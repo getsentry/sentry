@@ -45,6 +45,7 @@ function KeyValueList({
               subjectDataTestId,
               actionButton,
               isContextData: valueIsContextData,
+              isMultiValue,
             },
             idx
           ) => {
@@ -56,11 +57,12 @@ function KeyValueList({
               raw,
             };
 
-            const valueContainer = Array.isArray(value) ? (
-              <MultiValueContainer values={value} />
-            ) : (
-              <Value {...valueProps} />
-            );
+            const valueContainer =
+              isMultiValue && Array.isArray(value) ? (
+                <MultiValueContainer values={value} />
+              ) : (
+                <Value {...valueProps} />
+              );
 
             return (
               <tr key={`${key}-${idx}`}>
@@ -88,7 +90,7 @@ function KeyValueList({
   );
 }
 
-const MultiValueContainer = ({values}: {values: React.ReactNode[]}): JSX.Element => {
+const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
   return (
     <React.Fragment>
       {values.map((val, idx) => (

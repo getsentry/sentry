@@ -651,10 +651,11 @@ export type KeyValueListDataItem = {
   subject: string;
   actionButton?: React.ReactNode;
   isContextData?: boolean;
+  isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
-  value?: React.ReactNode | React.ReactNode[];
+  value?: React.ReactNode;
 };
 
 export type KeyValueListData = KeyValueListDataItem[];

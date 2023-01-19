@@ -163,14 +163,15 @@ const makeRow = (
     subject,
     value,
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+    isMultiValue: Array.isArray(value),
   };
 };
 
-function getMultiSpanEvidenceValues(spans: Span[]) {
+function getMultiSpanEvidenceValues(spans: Span[]): string[] {
   return spans.map(span => getSpanEvidenceValue(span));
 }
 
-function getSpanEvidenceValue(span: Span | null) {
+function getSpanEvidenceValue(span: Span | null): string {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
