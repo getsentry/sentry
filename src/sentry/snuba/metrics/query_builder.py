@@ -73,7 +73,7 @@ from sentry.snuba.metrics.utils import (
     TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
-    get_intervals,
+    get_num_intervals,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -371,15 +371,10 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
 
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
     date_range = timedelta(
-        seconds=int(
-            interval
-            * MetricsQuery.calculate_intervals_len(end=end, start=start, granularity=interval)
-        )
+        seconds=int(interval * get_num_intervals(end=end, start=start, granularity=interval))
     )
 
-    end = to_datetime(
-        int(interval * MetricsQuery.calculate_intervals_len(end=end, granularity=interval))
-    )
+    end = to_datetime(int(interval * get_num_intervals(start=None, end=end, granularity=interval)))
     start = end - date_range
     # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
     # if `end` is in the future. This allows for better real time results when
@@ -883,15 +878,11 @@ class SnubaQueryBuilder:
                 limit=self._metrics_query.limit,
                 offset=self._metrics_query.offset,  # No offset is set to None.
                 rollup=self._metrics_query.granularity,
-                intervals_len=len(
-                    list(
-                        get_intervals(
-                            self._metrics_query.start,
-                            self._metrics_query.end,
-                            self._metrics_query.granularity.granularity,
-                            interval=self._metrics_query.interval,
-                        )
-                    )
+                intervals_len=get_num_intervals(
+                    self._metrics_query.start,
+                    self._metrics_query.end,
+                    self._metrics_query.granularity.granularity,
+                    interval=self._metrics_query.interval,
                 ),
             )
 
