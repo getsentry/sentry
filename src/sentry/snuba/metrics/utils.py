@@ -334,7 +334,7 @@ def to_intervals(
     start: Optional[datetime], end: Optional[datetime], interval_seconds: int
 ) -> Tuple[Optional[datetime], Optional[datetime], int]:
     """
-    Given a start date, end date and an alignment interval in seconds returns the aligned start, end and
+    Given a `start` date, `end` date and an alignment interval in seconds returns the aligned start, end and
     the number of total intervals in [start:end]
 
     """
