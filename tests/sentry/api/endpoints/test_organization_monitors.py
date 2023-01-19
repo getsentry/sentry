@@ -29,6 +29,33 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
+    def test_sort(self):
+        def add_status_monitor(status_key: str):
+            return Monitor.objects.create(
+                project_id=self.project.id,
+                organization_id=self.organization.id,
+                status=getattr(MonitorStatus, status_key),
+                name=status_key,
+            )
+
+        monitor_active = add_status_monitor("ACTIVE")
+        monitor_ok = add_status_monitor("OK")
+        monitor_disabled = add_status_monitor("DISABLED")
+        monitor_error = add_status_monitor("ERROR")
+        monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(
+            response,
+            [
+                monitor_error,
+                monitor_missed_checkin,
+                monitor_active,
+                monitor_ok,
+                monitor_disabled,
+            ],
+        )
+
 
 @region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
