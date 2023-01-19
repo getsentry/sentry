@@ -22,7 +22,6 @@ region_map = [
 ]
 
 
-@pytest.mark.skip(reason="Temporarily disabled. Restore this along with SiloLimit.is_available.")
 class SiloModeTest:
     """Decorate a test case that is expected to work in a given silo mode.
 

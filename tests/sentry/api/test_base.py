@@ -10,6 +10,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.utils import pytest
 from sentry.utils.cursors import Cursor
 
 
@@ -246,6 +247,7 @@ class CustomerDomainTest(APITestCase):
         assert request_with_subdomain("sentry") is None
 
 
+@pytest.mark.skip(reason="Temporarily disabled. Restore this along with SiloLimit.is_available.")
 class SiloModeTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
         @EndpointSiloLimit(endpoint_mode)
