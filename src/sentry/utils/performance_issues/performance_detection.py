@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
@@ -693,6 +693,39 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_rate"] > random.random()
+
+    @staticmethod
+    def condense_url(url: str) -> str:
+        parsed_url = urlparse(str(url))
+
+        protocol_fragments = []
+        if parsed_url.scheme:
+            protocol_fragments.append(parsed_url.scheme)
+            protocol_fragments.append("://")
+
+        host_fragments = []
+        for fragment in parsed_url.netloc.split("."):
+            host_fragments.append(str(fragment))
+
+        path_fragments = []
+        for fragment in parsed_url.path.split("/"):
+            try:
+                int(fragment)
+                path_fragments.append("%d")
+            except ValueError:  # Not an integer
+                path_fragments.append(str(fragment))
+
+        query = parse_qs(parsed_url.query)
+
+        return "".join(
+            [
+                "".join(protocol_fragments),
+                ".".join(host_fragments),
+                "/".join(path_fragments),
+                "?",
+                "&".join(sorted(query.keys())),
+            ]
+        ).rstrip("?")
 
     @classmethod
     def is_event_eligible(cls, event):

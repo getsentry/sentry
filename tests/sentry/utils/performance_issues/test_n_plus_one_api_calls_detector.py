@@ -109,6 +109,48 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
 
 @pytest.mark.parametrize(
+    "url,condensed_url",
+    [
+        (
+            "",
+            "",
+        ),
+        (
+            "http://service.io",
+            "http://service.io",
+        ),
+        (
+            "https://www.service.io/resources/11",
+            "https://www.service.io/resources/%d",
+        ),
+        (
+            "https://www.service.io/resources/11/details",
+            "https://www.service.io/resources/%d/details",
+        ),
+        (
+            "https://www.service.io/resources/11/details?id=1&sort=down",
+            "https://www.service.io/resources/%d/details?id&sort",
+        ),
+        (
+            "https://www.service.io/resources/11/details?sort=down&id=1",
+            "https://www.service.io/resources/%d/details?id&sort",
+        ),
+        (
+            "https://service.io/clients/somecord/details?id=17",
+            "https://service.io/clients/somecord/details?id",
+        ),
+        (
+            "/clients/11/project/1343",
+            "/clients/%d/project/%d",
+        ),
+    ],
+)
+def test_condenses_url(url, condensed_url):
+    r = NPlusOneAPICallsDetector.condense_url(url)
+    assert r == condensed_url
+
+
+@pytest.mark.parametrize(
     "span",
     [
         {
