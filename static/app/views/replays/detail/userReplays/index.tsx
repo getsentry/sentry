@@ -45,12 +45,13 @@ function ReplaysFromUser({replayId, user}: Props) {
 
   const {eventView, loadRows} = useLoadReplaysFromUser({user});
 
-  const {isLoading, isRowLoaded, loadMoreRows, rows, rowState} =
-    useInfiniteLoader<ReplayListRecord>({
+  const {isRowLoaded, loadMoreRows, rows, rowState} = useInfiniteLoader<ReplayListRecord>(
+    {
       loadRows,
       initialStartIndex: 0,
       initialStopIndex: 5,
-    });
+    }
+  );
 
   const gridRef = useRef<MultiGrid | null>(null);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
@@ -101,9 +102,7 @@ function ReplaysFromUser({replayId, user}: Props) {
   return (
     <SessionsContainer>
       <SessionsTable>
-        {isLoading ? (
-          <Placeholder height="100%" />
-        ) : (
+        {isRowLoaded({index: 0}) ? (
           <InfiniteLoader
             isRowLoaded={isRowLoaded}
             loadMoreRows={loadMoreRows}
@@ -156,6 +155,8 @@ function ReplaysFromUser({replayId, user}: Props) {
               );
             }}
           </InfiniteLoader>
+        ) : (
+          <Placeholder height="100%" />
         )}
       </SessionsTable>
     </SessionsContainer>
@@ -200,6 +201,7 @@ const Header = styled('div')`
 const Body = styled('div')<{isCurrent: boolean}>`
   display: flex;
   padding: ${space(0.5)} ${space(1)};
+  ${p => p.theme.overflowEllipsis};
 
   background: ${p => (p.isCurrent ? p.theme.hover : 'inherit')};
 `;

@@ -56,7 +56,6 @@ function useInifiniteLoader<T>({
   }, [initialStartIndex, initialStopIndex, loadMoreRows]);
 
   return {
-    isLoading: !isRowLoaded({index: 0}),
     isRowLoaded,
     loadMoreRows,
     rows,
