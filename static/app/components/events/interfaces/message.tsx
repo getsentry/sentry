@@ -34,7 +34,7 @@ function renderParams(params: Props['data']['params'], meta: any) {
       };
     });
 
-    return <KeyValueList data={arrayData} isSorted={false} isContextData />;
+    return <KeyValueList data={arrayData} shouldSort={false} isContextData />;
   }
 
   const objectData = Object.entries(params).map(([key, value]) => ({
@@ -44,7 +44,7 @@ function renderParams(params: Props['data']['params'], meta: any) {
     meta: meta?.data?.params?.[key]?.[''],
   }));
 
-  return <KeyValueList data={objectData} isSorted={false} isContextData />;
+  return <KeyValueList data={objectData} shouldSort={false} isContextData />;
 }
 
 export function Message({data, event}: Props) {

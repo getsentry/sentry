@@ -35,6 +35,9 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: t(
     'Large render blocking assets are a type of resource that is delaying the First Contentful Paint (FCP). Delaying FCP impacts how long it takes to initially load the page for the user. The resource may take form of a script, stylesheet, image, or other asset that may require optimization. To learn more about how to fix large render blocking assets, check out these resources:'
   ),
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: t(
+    'Uncompressed assets are asset spans that take over 200ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
+  ),
   [IssueType.ERROR]: '',
 };
 
@@ -59,6 +62,7 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
       link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/n-one-api-calls/',
     },
   ],
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: [],
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: [],
   [IssueType.PERFORMANCE_SLOW_SPAN]: [],
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: [
@@ -90,6 +94,7 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {},
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {},
   [IssueType.PERFORMANCE_SLOW_SPAN]: {},
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {},
   [IssueType.ERROR]: {},
 };
 
@@ -149,15 +154,9 @@ export function getSpanInfoFromTransactionEvent(
   const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
   const causeSpanIDs = event?.perfProblem?.causeSpanIds ?? [];
 
-  const affectedSpanIds = [...offendingSpanIDs];
-  if (event?.perfProblem?.issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    affectedSpanIds.push(...parentSpanIDs);
-  }
-
   return {
     parentSpan: spansById[parentSpanIDs[0]],
     offendingSpans: offendingSpanIDs.map(spanID => spansById[spanID]),
     causeSpans: causeSpanIDs.map(spanID => spansById[spanID]),
-    affectedSpanIds,
   };
 }

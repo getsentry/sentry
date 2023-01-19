@@ -62,6 +62,7 @@ export enum IssueType {
   PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
   PERFORMANCE_SLOW_SPAN = 'performance_slow_span',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
 }
 
 type CapabilityInfo = {

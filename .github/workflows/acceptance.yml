@@ -108,8 +108,11 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # FE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: needs.files-changed.outputs.frontend_all == 'true'
         with:
           files: .artifacts/coverage/*
           type: frontend
@@ -185,6 +188,8 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'
@@ -248,6 +253,8 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'
