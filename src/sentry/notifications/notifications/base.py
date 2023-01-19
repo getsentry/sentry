@@ -195,8 +195,10 @@ class BaseNotification(abc.ABC):
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
 
-        return self.organization.absolute_url(
-            url_str, query=self.get_sentry_query_params(provider, recipient)
+        return str(
+            self.organization.absolute_url(
+                url_str, query=self.get_sentry_query_params(provider, recipient)
+            )
         )
 
     def determine_recipients(self) -> Iterable[Team | APIUser]:

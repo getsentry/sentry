@@ -22,9 +22,11 @@ provider_types = {
 
 def get_url(organization: Organization, provider_type: str, provider_slug: str) -> str:
     type_name = provider_types.get(provider_type, "")
-    return organization.absolute_url(
-        f"/settings/{organization.slug}/{type_name}/{provider_slug}/",
-        query="referrer=request_email",
+    return str(
+        organization.absolute_url(
+            f"/settings/{organization.slug}/{type_name}/{provider_slug}/",
+            query="referrer=request_email",
+        )
     )
 
 

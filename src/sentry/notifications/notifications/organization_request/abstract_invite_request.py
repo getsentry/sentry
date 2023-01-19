@@ -27,8 +27,10 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
 
     @property
     def members_url(self) -> str:
-        return self.organization.absolute_url(
-            reverse("sentry-organization-members", args=[self.organization.slug])
+        return str(
+            self.organization.absolute_url(
+                reverse("sentry-organization-members", args=[self.organization.slug])
+            )
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
