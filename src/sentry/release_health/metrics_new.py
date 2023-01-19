@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -16,7 +16,7 @@ from typing import (
     Union,
 )
 
-import pytz
+# import pytz
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
@@ -60,6 +60,7 @@ from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, 
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
 
@@ -241,7 +242,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
             org_id = self._get_org_id(project_ids)
 
         if now is None:
-            now = datetime.now(pytz.utc)
+            now = datetime.now(timezone.utc)
 
         return self._get_release_adoption_impl(now, org_id, project_releases, environments)
 
@@ -462,7 +463,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
                     Column("timestamp"), Op.GTE, datetime(2008, 5, 8)
                 ),  # Date of sentry's first commit
                 Condition(
-                    Column("timestamp"), Op.LT, datetime.now(pytz.utc) + timedelta(seconds=10)
+                    Column("timestamp"), Op.LT, datetime.now(timezone.utc) + timedelta(seconds=10)
                 ),
             ]
 
@@ -599,7 +600,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         if now is None:
-            now = datetime.now(pytz.utc)
+            now = datetime.now(timezone.utc)
 
         start = now - timedelta(days=90)
 
@@ -1019,7 +1020,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         assert stat in ("sessions", "users")
 
         if now is None:
-            now = datetime.now(pytz.utc)
+            now = datetime.now(timezone.utc)
 
         project_ids = [proj_id for proj_id, _release in project_releases]
         projects, org_id = self._get_projects_and_org_id(project_ids)
@@ -1247,7 +1248,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         projects, org_id = self._get_projects_and_org_id([project_id])
 
         if now is None:
-            now = datetime.now(pytz.utc)
+            now = datetime.now(timezone.utc)
 
         query_fn = self._get_crash_free_breakdown_fn(
             org_id, project_id, release, start, environments
@@ -1283,7 +1284,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[ProjectRelease]:
 
         if now is None:
-            now = datetime.now(pytz.utc)
+            now = datetime.now(timezone.utc)
 
         start = now - timedelta(days=3)
 
@@ -1347,7 +1348,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
 
         projects = self._get_projects(project_ids)
 
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timezone.utc)
 
         if stats_period is None:
             stats_period = "24h"
@@ -1405,7 +1406,6 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         #  a column uniqueExact(projectId, release)
         return len(groups)
 
-    # TODO implement
     def get_project_release_stats(
         self,
         project_id: ProjectId,
@@ -1416,7 +1416,114 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
-        raise NotImplementedError()
+        assert stat in ("users", "sessions")
+
+        projects, org_id = self._get_projects_and_org_id([project_id])
+
+        start = to_datetime((to_timestamp(start) // rollup + 1) * rollup)
+
+        # since snuba end queries are exclusive of the time and we're bucketing to
+        # 10 seconds, we need to round to the next 10 seconds since snuba is
+        # exclusive on the end.
+        end = to_datetime(
+            (to_timestamp(end) // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
+        )
+
+        where = [
+            Condition(
+                lhs=Column(name="tags[release]"),
+                op=Op.EQ,
+                rhs=release,
+            )
+        ]
+
+        if environments is not None:
+            where.append(Condition(Column("tags[environment]"), Op.IN, environments))
+
+        if stat == "users":
+            select = [
+                MetricField(metric_mri=SessionMRI.ALL_USER.value, alias="users", op=None),
+                MetricField(
+                    metric_mri=SessionMRI.ABNORMAL_USER.value, alias="users_abnormal", op=None
+                ),
+                MetricField(
+                    metric_mri=SessionMRI.CRASHED_USER.value, alias="users_crashed", op=None
+                ),
+                MetricField(
+                    metric_mri=SessionMRI.ERRORED_USER.value, alias="users_errored", op=None
+                ),
+                MetricField(
+                    metric_mri=SessionMRI.HEALTHY_USER.value, alias="users_healthy", op=None
+                ),
+            ]
+        else:
+            select = [
+                MetricField(metric_mri=SessionMRI.ALL.value, alias="sessions", op=None),
+                MetricField(
+                    metric_mri=SessionMRI.ABNORMAL.value, alias="sessions_abnormal", op=None
+                ),
+                MetricField(metric_mri=SessionMRI.CRASHED.value, alias="sessions_crashed", op=None),
+                MetricField(metric_mri=SessionMRI.ERRORED.value, alias="sessions_errored", op=None),
+                MetricField(metric_mri=SessionMRI.HEALTHY.value, alias="sessions_healthy", op=None),
+            ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=[project_id],
+            select=select,
+            start=start,
+            end=end,
+            where=where,
+            granularity=Granularity(rollup),
+            include_series=False,
+            include_totals=True,
+        )
+
+        raw_totals = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+        totals = raw_totals["groups"][0]["totals"]
+
+        # we also need durations for series we also need durations p50 and p90
+        select += [
+            MetricField(metric_mri=SessionMRI.DURATION.value, alias="duration_p50", op="p50"),
+            MetricField(metric_mri=SessionMRI.DURATION.value, alias="duration_p90", op="p90"),
+        ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=[project_id],
+            select=select,
+            start=start,
+            end=end,
+            where=where,
+            granularity=Granularity(rollup),
+            include_series=True,
+            include_totals=False,
+        )
+
+        raw_series = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+
+        series = raw_series["groups"][0]["series"]
+        intervals = raw_series["intervals"]
+        timestamps = [int(dt.timestamp()) for dt in intervals]
+
+        # massage series from { "healthy":[10,20], "errored":[1,2]}
+        # to : [(timestamp_0, {"healthy":10, "errored":1}),(timestamp_2, {..}) ]
+        ret_series = []
+        for idx, timestamp in enumerate(timestamps):
+            value = {}
+            for key in series.keys():
+                value[key] = series[key][idx]
+            ret_series.append((timestamp, value))
+
+        return ret_series, totals
 
     # TODO implement
     def get_project_sessions_count(
