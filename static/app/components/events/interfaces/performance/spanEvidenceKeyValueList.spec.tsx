@@ -256,4 +256,36 @@ describe('SpanEvidenceKeyValueList', () => {
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
     });
   });
+
+  describe('Render Blocking Asset', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET
+    );
+
+    const offenderSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 1000,
+      op: 'resource.script',
+      description: 'https://example.com/resource.js',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(offenderSpan);
+
+    it('Renders relevant fields', () => {
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
+      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+    });
+  });
 });

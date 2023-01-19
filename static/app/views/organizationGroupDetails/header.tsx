@@ -278,6 +278,12 @@ function GroupHeader({
             title="Slow DB Span Performance Issues are in active development and may change"
           />
         )}
+        {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
+          <FeatureBadge
+            type="alpha"
+            title="Large Render Blocking Asset Performance Issues are in active development and may change"
+          />
+        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
