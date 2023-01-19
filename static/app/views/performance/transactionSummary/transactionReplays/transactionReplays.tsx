@@ -64,7 +64,13 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Replays')].join(' \u2014 ');
 }
 
-function generateEventView({transactionName}: {transactionName: string}) {
+function generateEventView({
+  location,
+  transactionName,
+}: {
+  location: Location;
+  transactionName: string;
+}) {
   const fields = [
     'replayId',
     'count()',
@@ -81,7 +87,7 @@ function generateEventView({transactionName}: {transactionName: string}) {
     version: 2,
     fields,
     query: `event.type:transaction transaction:${transactionName} !replayId:""`,
-    projects: [],
+    projects: [Number(location.query.project)],
   });
 }
 

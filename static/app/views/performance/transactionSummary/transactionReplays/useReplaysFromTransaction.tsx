@@ -97,15 +97,14 @@ function useReplaysFromTransaction({
   }, [fetchReplayIds]);
 
   return {
-    data:
-      response.events && replayRecordsEventView
-        ? {
-            events: response.events,
-            replayRecordsEventView,
-          }
-        : null,
+    data: replayRecordsEventView
+      ? {
+          events: response.events,
+          replayRecordsEventView,
+        }
+      : null,
     fetchError,
-    isFetching: !fetchError && !response.events,
+    isFetching: !fetchError && !response.replayIds,
     pageLinks: response.pageLinks,
   };
 }

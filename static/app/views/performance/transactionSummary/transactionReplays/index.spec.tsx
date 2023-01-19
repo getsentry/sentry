@@ -25,7 +25,8 @@ jest.mock('sentry/utils/useMedia', () => ({
   default: jest.fn(() => true),
 }));
 
-const mockUrl = '/organizations/org-slug/replays/';
+const mockEventsUrl = '/organizations/org-slug/events/';
+const mockReplaysUrl = '/organizations/org-slug/replays/';
 
 let mockRouterContext: {
   childContextTypes?: any;
@@ -74,7 +75,7 @@ const getComponent = ({
           routes: router.routes,
         }}
       >
-        <TransactionReplays location={router.location} organization={organization} />
+        <TransactionReplays />
       </RouteContext.Provider>
     </OrganizationContext.Provider>
   );
@@ -123,22 +124,22 @@ describe('TransactionReplays', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(eventsMockApi).toHaveBeenCalled();
       expect(eventsMockApi).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
+            cursor: undefined,
             statsPeriod: '14d',
             project: ['1'],
             environment: [],
             field: expect.arrayContaining([
               'replayId',
               'count()',
-              ...SPAN_OP_BREAKDOWN_FIELDS,
-              SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
               'transaction.duration',
               'trace',
               'timestamp',
+              ...SPAN_OP_BREAKDOWN_FIELDS,
+              SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
             ]),
             per_page: 50,
             query: 'event.type:transaction transaction:transaction !replayId:""',
@@ -150,7 +151,7 @@ describe('TransactionReplays', () => {
 
   it('should snapshot empty state', async () => {
     MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockReplaysUrl,
       body: {
         data: [],
       },
@@ -175,7 +176,7 @@ describe('TransactionReplays', () => {
 
   it('should show loading indicator when loading replays', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockEventsUrl,
       statusCode: 200,
       body: {
         data: [],
@@ -192,7 +193,7 @@ describe('TransactionReplays', () => {
 
   it('should show a list of replays and have the correct values', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockReplaysUrl,
       statusCode: 200,
       body: {
         data: [
@@ -289,7 +290,7 @@ describe('TransactionReplays', () => {
 
     await waitFor(() => {
       expect(replaysMockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-started_at',
@@ -328,7 +329,7 @@ describe('TransactionReplays', () => {
     await waitFor(() => {
       expect(replaysMockApi).toHaveBeenCalledTimes(2);
       expect(replaysMockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: 'started_at',
@@ -340,7 +341,7 @@ describe('TransactionReplays', () => {
 
   it('should be able to click the `Duration` column and request data sorted by duration query', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockReplaysUrl,
       body: {
         data: [],
       },
@@ -351,7 +352,7 @@ describe('TransactionReplays', () => {
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-started_at',
@@ -390,7 +391,7 @@ describe('TransactionReplays', () => {
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledTimes(2);
       expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-duration',
@@ -402,7 +403,7 @@ describe('TransactionReplays', () => {
 
   it('should be able to click the `Errors` column and request data sorted by count_errors query', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockReplaysUrl,
       body: {
         data: [],
       },
@@ -413,7 +414,7 @@ describe('TransactionReplays', () => {
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-started_at',
@@ -452,7 +453,7 @@ describe('TransactionReplays', () => {
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledTimes(2);
       expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-count_errors',
@@ -464,7 +465,7 @@ describe('TransactionReplays', () => {
 
   it('should be able to click the `Activity` column and request data sorted by started_at query', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockReplaysUrl,
       body: {
         data: [],
       },
@@ -475,7 +476,7 @@ describe('TransactionReplays', () => {
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-started_at',
@@ -514,7 +515,7 @@ describe('TransactionReplays', () => {
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledTimes(2);
       expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
+        mockReplaysUrl,
         expect.objectContaining({
           query: expect.objectContaining({
             sort: '-activity',
