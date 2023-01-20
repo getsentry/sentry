@@ -12,6 +12,7 @@ from sentry.models import (
     MonitorType,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry")
 
@@ -35,6 +36,7 @@ def check_monitors(current_datetime=None):
     )[
         :10000
     ]
+    metrics.gauge("sentry.tasks.check_monitors.missing_count", qs.count())
     for monitor in qs:
         logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
         # add missed checkin
@@ -48,6 +50,7 @@ def check_monitors(current_datetime=None):
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
         :10000
     ]
+    metrics.gauge("sentry.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)
