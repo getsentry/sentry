@@ -363,29 +363,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @with_feature("organizations:codecov-stacktrace-integration")
-    def test_get_commit_sha_success(self, get_jwt, mock_blame, mock_get_stacktrace_link):
-        self.organization.flags.codecov_access = True
-        self.organization.save()
-        self.integration.provider = "github"
-        self.integration.save()
-
-        mock_get_stacktrace_link.return_value = (
-            "https://github.com/repo/blob/master/src/path/to/file.py",
-        )
-
-        mock_blame.return_value = git_blame
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={"file": self.filepath, "lineNo": 26},
-        )
-        assert response.data["commitSha"] == "5c7dc040fe713f718193e28972b43db94e5097b4"
-
-    @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
-    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @with_feature("organizations:codecov-stacktrace-integration")
     def test_get_commit_sha_logger_warning(self, get_jwt, mock_blame, mock_get_stacktrace_link):
         self._caplog.set_level(logging.WARNING, logger="sentry")
         self.organization.flags.codecov_access = True
@@ -398,7 +375,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         mock_blame.return_value = []
 
-        response = self.get_success_response(
+        self.get_success_response(
             self.organization.slug,
             self.project.slug,
             qs_params={"file": self.filepath, "lineNo": 26},
@@ -411,7 +388,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "Failed to get commit from git blame.",
             )
         ]
-        assert response.data["commitSha"] == ""
 
     @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
@@ -446,7 +422,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         self.organization.flags.codecov_access = True
         self.organization.save()
 
-        mock_integration.return_value = "https://github.com/repo/blob/master/src/path/to/file.py"
+        mock_integration.return_value = "https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py"
         mock_get_codecov_data.side_effect = Exception
 
         self.get_success_response(
@@ -457,6 +433,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "absPath": "abs_path",
                 "module": "module",
                 "package": "package",
+                "commitId": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
         )
 
