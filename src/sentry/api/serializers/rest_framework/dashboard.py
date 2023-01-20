@@ -197,7 +197,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
             builder.resolve_time_conditions()
             builder.resolve_conditions(conditions, use_aggregate_conditions=True)
-            builder.resolve_params()
+            builder.where = builder.resolve_params()
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
