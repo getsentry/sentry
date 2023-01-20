@@ -727,7 +727,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         for fragment in parsed_url.path.split("/"):
             try:
                 int(fragment)
-                path_fragments.append("%d")
+                path_fragments.append("*")
             except ValueError:  # Not an integer parameter
                 path_fragments.append(str(fragment))
 
@@ -739,7 +739,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 ".".join(host_fragments),
                 "/".join(path_fragments),
                 "?",
-                "&".join(sorted([f"{key}=%s" for key in query.keys()])),
+                "&".join(sorted([f"{key}=*" for key in query.keys()])),
             ]
         ).rstrip("?")
 

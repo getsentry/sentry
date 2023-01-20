@@ -34,7 +34,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-1010-7b6c834c090baf47f5d5ff177b8285c91b899dd3",
+                fingerprint="1-1010-d750ce46bb1b13dd5780aac48098d5e20eea682c",
                 op="http.client",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
@@ -121,27 +121,27 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ),
         (
             "https://www.service.io/resources/11",
-            "https://www.service.io/resources/%d",
+            "https://www.service.io/resources/*",
         ),
         (
             "https://www.service.io/resources/11/details",
-            "https://www.service.io/resources/%d/details",
+            "https://www.service.io/resources/*/details",
         ),
         (
             "https://www.service.io/resources/11/details?id=1&sort=down",
-            "https://www.service.io/resources/%d/details?id=%s&sort=%s",
+            "https://www.service.io/resources/*/details?id=*&sort=*",
         ),
         (
             "https://www.service.io/resources/11/details?sort=down&id=1",
-            "https://www.service.io/resources/%d/details?id=%s&sort=%s",
+            "https://www.service.io/resources/*/details?id=*&sort=*",
         ),
         (
             "https://service.io/clients/somecord/details?id=17",
-            "https://service.io/clients/somecord/details?id=%s",
+            "https://service.io/clients/somecord/details?id=*",
         ),
         (
             "/clients/11/project/1343",
-            "/clients/%d/project/%d",
+            "/clients/*/project/*",
         ),
     ],
 )
