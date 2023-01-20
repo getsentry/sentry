@@ -50,17 +50,6 @@ def test_single_leaf():
     assert clusterer.get_rules() == ["/a/*/**"]
 
 
-def test_asterisk_in_input():
-    """Original asterisks are escaped"""
-    clusterer = TreeClusterer(merge_threshold=2)
-    transaction_names = [
-        "/a/*/c/",
-        "/a/*/d/",
-    ]
-    clusterer.add_input(transaction_names)
-    assert clusterer.get_rules() == [r"/a/\*/*/**"]
-
-
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
 def test_collection():
     project1 = Project(id=101, name="p1", organization_id=1)

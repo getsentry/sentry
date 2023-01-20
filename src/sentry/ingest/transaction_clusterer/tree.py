@@ -117,9 +117,7 @@ class TreeClusterer(Clusterer):
 
     @staticmethod
     def _build_rule(path: List["Edge"]) -> ReplacementRule:
-        path_str = SEP.join(
-            ["*" if isinstance(key, Merged) else key.replace("*", r"\*") for key in path]
-        )
+        path_str = SEP.join(["*" if isinstance(key, Merged) else key for key in path])
         path_str += "/**"
         return ReplacementRule(path_str)
 
