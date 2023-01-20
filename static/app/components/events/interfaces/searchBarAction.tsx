@@ -4,7 +4,6 @@ import CompactSelect from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
 
 type FilterOption = React.ComponentProps<typeof CompactSelect>['options'][0];
 
@@ -70,11 +69,6 @@ const Wrapper = styled('div')`
   width: 100%;
   justify-content: flex-end;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-    flex-direction: column;
-  }
-
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 350px;
   }
@@ -95,20 +89,8 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
         border-left-width: 0;
       }
     `}
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    input {
-      border-radius: ${p => p.theme.borderRadius};
-      border-left-width: 1px;
-    }
-  }
 `;
 
 const StyledTrigger = styled(DropdownButton)`
   border-radius: ${p => p.theme.borderRadiusLeft};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    border-radius: ${p => p.theme.borderRadius};
-    margin-bottom: ${space(1)};
-  }
 `;
