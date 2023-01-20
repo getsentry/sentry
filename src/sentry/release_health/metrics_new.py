@@ -17,8 +17,8 @@ from typing import (
 )
 
 # import pytz
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
-from snuba_sdk.expressions import Granularity
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, Query, Request
+from snuba_sdk.expressions import Granularity, Limit
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Environment
@@ -57,7 +57,13 @@ from sentry.sentry_metrics.utils import (
     resolve_weak,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
+from sentry.snuba.metrics import (
+    MetricField,
+    MetricGroupByField,
+    MetricOrderByField,
+    MetricsQuery,
+    get_series,
+)
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
@@ -1016,7 +1022,6 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
 
         return ret_val
 
-    # TODO implement
     def get_release_health_data_overview(
         self,
         project_releases: Sequence[ProjectRelease],
@@ -1647,7 +1652,6 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         ]
         return ret_val
 
-    # TODO implement
     def get_project_releases_by_stability(
         self,
         project_ids: Sequence[ProjectId],
@@ -1658,7 +1662,100 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[str]] = None,
         now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
-        """Given some project IDs returns adoption rates that should be updated
-        on the postgres tables.
-        """
-        raise NotImplementedError()
+
+        if len(project_ids) == 0:
+            return []
+
+        projects, org_id = self._get_projects_and_org_id(project_ids)
+
+        where = []
+
+        if environments is not None:
+            where.append(Condition(Column("tags[environment]"), Op.IN, environments))
+
+        if stats_period is None:
+            stats_period = "24h"
+
+        # Special rule that we support sorting by the last 24h only.
+        if scope.endswith("_24h"):
+            scope = scope[:-4]
+            stats_period = "24h"
+
+        if now is None:
+            now = datetime.now(timezone.utc)
+
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
+
+        groupby = [
+            MetricGroupByField(field="project_id"),
+            MetricGroupByField(field="release"),
+        ]
+
+        if scope == "crash_free_sessions":
+            select = [
+                MetricField(metric_mri=SessionMRI.ALL.value, op=None),
+                MetricField(metric_mri=SessionMRI.CRASH_RATE.value, op=None),
+            ]
+            orderby = [
+                MetricOrderByField(
+                    MetricField(metric_mri=SessionMRI.CRASH_RATE.value, op=None),
+                    direction=Direction.DESC,
+                )
+            ]
+        elif scope == "sessions":
+            select = [MetricField(metric_mri=SessionMRI.ALL.value, op=None)]
+            orderby = [
+                MetricOrderByField(
+                    MetricField(metric_mri=SessionMRI.ALL.value, op=None), direction=Direction.DESC
+                )
+            ]
+        elif scope == "crash_free_users":
+            select = [
+                MetricField(metric_mri=SessionMRI.ALL_USER.value, op=None),
+                MetricField(metric_mri=SessionMRI.CRASH_USER_RATE.value, op=None),
+            ]
+            orderby = [
+                MetricOrderByField(
+                    MetricField(metric_mri=SessionMRI.CRASH_USER_RATE.value, op=None),
+                    direction=Direction.DESC,
+                )
+            ]
+        else:  # users
+            assert scope == "users"
+            select = [MetricField(metric_mri=SessionMRI.ALL_USER.value, op=None)]
+            orderby = [
+                MetricOrderByField(
+                    MetricField(metric_mri=SessionMRI.ALL_USER.value, op=None),
+                    direction=Direction.DESC,
+                )
+            ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=stats_start,
+            end=now,
+            where=where,
+            orderby=orderby,
+            groupby=groupby,
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            limit=Limit(limit) if limit is not None else None,
+            include_series=False,
+            include_totals=True,
+        )
+
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+
+        groups = raw_result["groups"]
+        ret_val = []
+
+        for group in groups:
+            by = group.get("by")
+            ret_val.append((by["project_id"], by["release"]))
+
+        return ret_val
