@@ -214,9 +214,9 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
 }
 
 const OrganizationDashboard = (props: Props) => (
-  <OrganizationDashboardWrapper>
+  <Layout.Page>
     <Dashboard {...props} />
-  </OrganizationDashboardWrapper>
+  </Layout.Page>
 );
 
 const SearchAndSelectorWrapper = styled('div')`
@@ -255,12 +255,6 @@ const ProjectCards = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
-`;
-
-const OrganizationDashboardWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
 `;
 
 export {Dashboard};

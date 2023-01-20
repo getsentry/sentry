@@ -166,6 +166,7 @@ export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
   codecovStatusCode?: CodecovStatusCode;
+  codecovUrl?: string;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   lineCoverage?: LineCoverage[];
