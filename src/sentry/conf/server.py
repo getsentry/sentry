@@ -1196,6 +1196,8 @@ SENTRY_FEATURES = {
     "organizations:source-maps-cta": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
+    # Enable new DS bias: prioritise by project
+    "organizations:ds-prioritise-by-project-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
