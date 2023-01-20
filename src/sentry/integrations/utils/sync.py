@@ -28,7 +28,7 @@ def where_should_sync(
         kwargs["id"] = organization_id
 
     ois = integration_service.get_organization_integrations(integration_id=integration.id)
-    organizations = Organization.objects.filter(id__in=[oi.id for oi in ois])
+    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
 
     return [
         organization
