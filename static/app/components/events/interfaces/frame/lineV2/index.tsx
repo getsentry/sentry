@@ -175,7 +175,8 @@ function Line({
   const shouldShowCodecovLegend =
     organization.features.includes('codecov-stacktrace-integration') &&
     organization.codecovAccess &&
-    !nextFrame;
+    !nextFrame &&
+    isExpanded;
 
   return (
     <StyleListItem className={className} data-test-id="stack-trace-frame">

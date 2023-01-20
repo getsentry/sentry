@@ -323,11 +323,12 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   onAssignToSuccess(_changeId, itemId, response) {
-    const item = this.get(itemId);
-    if (!item) {
+    const idx = this.items.findIndex(i => i.id === itemId);
+    if (idx === -1) {
       return;
     }
-    item.assignedTo = response.assignedTo;
+
+    this.items[idx] = {...this.items[idx], assignedTo: response.assignedTo};
     this.clearStatus(itemId, 'assignTo');
     this.updateItems([itemId]);
   },
