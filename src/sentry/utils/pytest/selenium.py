@@ -460,12 +460,12 @@ def start_chrome(**chrome_args):
 
 @pytest.fixture(scope="function")
 def function_browser(request, live_server):
-    return browser(request, live_server)
+    yield browser(request, live_server)
 
 
 @pytest.fixture(scope="class")
 def class_browser(request, live_server):
-    return browser(request, live_server)
+    yield browser(request, live_server)
 
 
 def browser(request, live_server):
@@ -544,7 +544,7 @@ def browser(request, live_server):
         request.cls.browser = browser
     request.node.browser = browser
 
-    return driver
+    return browser
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
