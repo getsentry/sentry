@@ -16,12 +16,22 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 class CheckInStatus:
     UNKNOWN = 0
+    """No status was passed"""
+
     OK = 1
+    """Checkin had no issues during execution"""
+
     ERROR = 2
+    """Checkin failed or otherwise had some issues"""
+
     IN_PROGRESS = 3
+    """Checkin is expected to complete"""
+
     MISSED = 4
+    """Monitor did not check in on time"""
 
     FINISHED_VALUES = (OK, ERROR)
+    """Sentient values used to indicate a monitor is finished running"""
 
     @classmethod
     def as_choices(cls):
