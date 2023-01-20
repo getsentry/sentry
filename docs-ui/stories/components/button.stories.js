@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownLink from 'sentry/components/dropdownLink';
@@ -12,10 +12,6 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 
 const Item = styled('span')`
   padding: 12px;
-`;
-
-const WideButton = styled(Button)`
-  width: 200px;
 `;
 
 export default {
@@ -120,15 +116,6 @@ export const Overview = ({busy}) => (
           <Button icon={<IconDelete />}>Default</Button>
         </Item>
       </div>
-    </div>
-    <div className="section">
-      <h2>Alignment</h2>
-      <Item>
-        <WideButton align="left">Aligned left</WideButton>
-      </Item>
-      <Item>
-        <WideButton align="right">Aligned right</WideButton>
-      </Item>
     </div>
     <div className="section">
       <h2>States (busy/disabled)</h2>

@@ -3,8 +3,8 @@ import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
+import {Button} from 'sentry/components/button';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -173,7 +173,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
   );
 }
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   padding-bottom: ${space(1)};
 `;
 

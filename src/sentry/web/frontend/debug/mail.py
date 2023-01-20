@@ -597,7 +597,7 @@ def request_access(request):
             "name": "George Bush",
             "organization": org,
             "team": team,
-            "url": absolute_uri(
+            "url": org.absolute_url(
                 reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
         },
@@ -617,7 +617,7 @@ def request_access_for_another_member(request):
             "name": "Username",
             "organization": org,
             "team": team,
-            "url": absolute_uri(
+            "url": org.absolute_url(
                 reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
             "requester": request.user.get_display_name(),
@@ -638,8 +638,8 @@ def invitation(request):
             "organization": org,
             "url": absolute_uri(
                 reverse(
-                    "sentry-accept-invite-with-org",
-                    kwargs={"organization_slug": org.slug, "member_id": om.id, "token": om.token},
+                    "sentry-accept-invite",
+                    kwargs={"member_id": om.id, "token": om.token},
                 )
             ),
         },
@@ -720,7 +720,7 @@ def org_delete_confirm(request):
             "organization": org,
             "audit_log_entry": entry,
             "eta": timezone.now() + timedelta(days=1),
-            "url": absolute_uri(reverse("sentry-restore-organization", args=[org.slug])),
+            "url": org.absolute_url(reverse("sentry-restore-organization", args=[org.slug])),
         },
     ).render(request)
 

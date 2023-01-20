@@ -12,7 +12,7 @@ import {
 } from 'sentry/actionCreators/sentryAppTokens';
 import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
@@ -135,7 +135,7 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{orgId: string; appSlug?: string}, {}> & {
+type Props = RouteComponentProps<{appSlug?: string}, {}> & {
   organization: Organization;
 };
 
@@ -185,9 +185,9 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
 
   handleSubmitSuccess = (data: SentryApp) => {
     const {app} = this.state;
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const type = this.isInternal ? 'internal' : 'public';
-    const baseUrl = `/settings/${orgId}/developer-settings/`;
+    const baseUrl = `/settings/${organization.slug}/developer-settings/`;
     const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
     if (app) {
       addSuccessMessage(t('%s successfully saved.', data.name));
@@ -501,6 +501,7 @@ export default withOrganization(SentryApplicationDetails);
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
+  align-items: center;
   justify-content: space-between;
 `;
 

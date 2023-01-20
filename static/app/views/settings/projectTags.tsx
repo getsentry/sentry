@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -11,15 +11,16 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {TagWithTopValues} from 'sentry/types';
+import {Organization, TagWithTopValues} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> &
-  AsyncView['props'];
+type Props = RouteComponentProps<{projectId: string}, {}> & {
+  organization: Organization;
+} & AsyncView['props'];
 
 type State = {
   tags: Array<TagWithTopValues>;
@@ -34,8 +35,9 @@ class ProjectTags extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {projectId, orgId} = this.props.params;
-    return [['tags', `/projects/${orgId}/${projectId}/tags/`]];
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    return [['tags', `/projects/${organization.slug}/${projectId}/tags/`]];
   }
 
   getTitle() {
@@ -44,13 +46,16 @@ class ProjectTags extends AsyncView<Props, State> {
   }
 
   handleDelete = (key: TagWithTopValues['key'], idx: number) => async () => {
-    const {params} = this.props;
-    const {projectId, orgId} = params;
+    const {organization, params} = this.props;
+    const {projectId} = params;
 
     try {
-      await this.api.requestPromise(`/projects/${orgId}/${projectId}/tags/${key}/`, {
-        method: 'DELETE',
-      });
+      await this.api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/tags/${key}/`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       const tags = [...this.state.tags];
       tags.splice(idx, 1);

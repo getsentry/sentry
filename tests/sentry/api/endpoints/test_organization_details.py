@@ -23,6 +23,7 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
 )
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
@@ -293,6 +294,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "openMembership": False,
             "isEarlyAdopter": True,
+            "codecovAccess": True,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -320,6 +322,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
+        assert org.flags.codecov_access
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -345,6 +348,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
+        assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]
@@ -693,6 +697,57 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
+
+    def test_update_slug_with_mapping(self):
+        self.create_organization_mapping(self.organization, slug="test")
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=self.organization.id, slug="test"
+            ).exists()
+
+        response = self.get_success_response(
+            self.organization.slug, slug="santry", idempotencyKey="1234"
+        )
+
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.slug == "santry"
+
+        with exempt_from_silo_limits():
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id, slug="santry")
+            assert not org_mapping.verified
+            assert org_mapping.idempotency_key
+
+            assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
+
+        # Drain outbox
+        outbox = Organization.outbox_to_verify_mapping(org.id)
+        outbox.drain_shard()
+
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
+            ).exists()
+
+            assert not OrganizationMapping.objects.filter(
+                organization_id=org.id, slug="test"
+            ).exists()
+
+    def test_update_name_with_mapping(self):
+        self.create_organization_mapping(self.organization)
+        response = self.get_success_response(self.organization.slug, name="SaNtRy")
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == "SaNtRy"
+
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=organization_id, name="SaNtRy"
+            ).exists()
+
+    def test_org_mapping_already_taken(self):
+        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
+        self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
 
 @region_silo_test

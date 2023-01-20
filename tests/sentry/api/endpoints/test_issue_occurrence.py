@@ -3,10 +3,12 @@ from unittest import mock
 
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
 
 
+@region_silo_test(stable=True)
 @mock.patch("sentry.api.endpoints.issue_occurrence.Producer")
 class IssueOccurrenceTest(APITestCase):
     def setUp(self):
@@ -24,7 +26,7 @@ class IssueOccurrenceTest(APITestCase):
             "platform": "python",
             "tags": {"environment": "prod"},
             "timestamp": ensure_aware(datetime.now()),
-            "message_timestamp": ensure_aware(datetime.now()),
+            "received": ensure_aware(datetime.now()),
         }
         self.data = {
             "id": "55f1419e73884cd2b45c79918f4b6dc5",

@@ -1,7 +1,7 @@
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import WidgetBuilder from './widgetBuilder';
@@ -17,9 +17,9 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
       features={['dashboards-edit']}
       organization={organization}
       renderDisabled={() => (
-        <PageContent>
+        <Layout.Page withPadding>
           <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-        </PageContent>
+        </Layout.Page>
       )}
     >
       <WidgetBuilder {...props} organization={organization} />

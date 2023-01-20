@@ -5,22 +5,7 @@ import {Location} from 'history';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventContexts from 'sentry/components/events/contexts';
-import EventDevice from 'sentry/components/events/device';
-import EventErrors, {Error} from 'sentry/components/events/errors';
-import EventAttachments from 'sentry/components/events/eventAttachments';
-import EventCause from 'sentry/components/events/eventCause';
-import EventDataSection from 'sentry/components/events/eventDataSection';
-import EventExtraData from 'sentry/components/events/eventExtraData';
-import {EventSdk} from 'sentry/components/events/eventSdk';
-import EventGroupingInfo from 'sentry/components/events/groupingInfo';
-import {EventPackageData} from 'sentry/components/events/packageData';
-import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
-import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
-import {DataSection} from 'sentry/components/events/styles';
-import EventUserFeedback from 'sentry/components/events/userFeedback';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -42,16 +27,30 @@ import {Image} from 'sentry/types/debugImage';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 import {CommitRow} from '../commitRow';
 
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
-import EventEntry from './eventEntry';
-import EventTagsAndScreenshot from './eventTagsAndScreenshot';
+import {EventContexts} from './contexts';
+import {EventDevice} from './device';
+import {Error, EventErrors} from './errors';
+import {EventAttachments} from './eventAttachments';
+import {EventCause} from './eventCause';
+import {EventDataSection} from './eventDataSection';
+import {EventEntry} from './eventEntry';
+import {EventExtraData} from './eventExtraData';
+import {EventSdk} from './eventSdk';
+import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
+import {EventViewHierarchy} from './eventViewHierarchy';
+import {EventGroupingInfo} from './groupingInfo';
+import {EventPackageData} from './packageData';
+import {EventRRWebIntegration} from './rrwebIntegration';
+import {EventSdkUpdates} from './sdkUpdates';
+import {DataSection} from './styles';
+import {EventUserFeedback} from './userFeedback';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -88,7 +87,6 @@ function hasThreadOrExceptionMinifiedFrameData(definedEvent: Event, bestThread?:
 type ProGuardErrors = Array<Error>;
 
 type Props = {
-  api: Client;
   location: Location;
   /**
    * The organization can be the shared view on a public issue view.
@@ -106,13 +104,14 @@ const EventEntries = ({
   organization,
   project,
   location,
-  api,
   event,
   group,
   className,
   isShare = false,
   showTagSummary = true,
 }: Props) => {
+  const api = useApi();
+
   const [isLoading, setIsLoading] = useState(true);
   const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
@@ -371,6 +370,18 @@ const EventEntries = ({
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
       {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
       {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
+      {!isShare &&
+        organization.features?.includes('mobile-view-hierarchies') &&
+        hasEventAttachmentsFeature &&
+        !!attachments.filter(attachment => attachment.type === 'event.view_hierarchy')
+          .length && (
+          <EventViewHierarchy
+            projectSlug={projectSlug}
+            viewHierarchies={attachments.filter(
+              attachment => attachment.type === 'event.view_hierarchy'
+            )}
+          />
+        )}
       {!isShare && hasEventAttachmentsFeature && (
         <EventAttachments
           event={event}
@@ -397,7 +408,7 @@ const EventEntries = ({
         />
       )}
       {!isShare && !hasReplay && hasEventAttachmentsFeature && (
-        <RRWebIntegration
+        <EventRRWebIntegration
           event={event}
           orgId={orgSlug}
           projectId={projectSlug}
@@ -526,6 +537,4 @@ const StyledReplayEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(3)};
 `;
 
-// TODO(ts): any required due to our use of SharedViewOrganization
-export default withOrganization<any>(withApi(EventEntries));
-export {BorderlessEventEntries};
+export {EventEntries, BorderlessEventEntries};

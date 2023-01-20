@@ -28,7 +28,7 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   const crumbs = [
     {
       label: t('Crons'),
-      to: `/organizations/${orgId}/crons`,
+      to: `/organizations/${orgId}/crons/`,
     },
     {
       label: t('Cron Monitor Details'),
@@ -40,15 +40,13 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
       <Layout.HeaderContent>
         <Breadcrumbs crumbs={crumbs} />
         <Layout.Title>
-          <MonitorName>
-            <IdBadge
-              project={monitor.project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-            />
-            {monitor.name}
-          </MonitorName>
+          <IdBadge
+            project={monitor.project}
+            avatarSize={28}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+          />
+          {monitor.name}
         </Layout.Title>
         <Clipboard value={monitor.id}>
           <MonitorId>
@@ -74,13 +72,6 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   );
 };
 
-const MonitorName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-`;
-
 const MonitorId = styled('div')`
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
@@ -94,6 +85,7 @@ const MonitorStats = styled('div')`
   grid-column-gap: ${space(4)};
   grid-row-gap: ${space(0.5)};
   margin-bottom: ${space(2)};
+  margin-top: ${space(1)};
 `;
 
 const MonitorStatLabel = styled(SectionHeading)`

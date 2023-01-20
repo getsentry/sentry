@@ -36,7 +36,7 @@ const PAGE_QUERY_PARAMS = [
   'environment',
 ];
 
-type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'router' | 'location'> & {
+type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'location'> & {
   currentEnvironment?: string;
   currentTeam?: TeamWithProjects;
   showEnvironment?: boolean;
@@ -242,7 +242,7 @@ const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
 
 const StyledTeamSelector = styled(TeamSelector)`
   & > div {
-    box-shadow: ${p => p.theme.dropShadowLight};
+    box-shadow: ${p => p.theme.dropShadowMedium};
   }
 `;
 

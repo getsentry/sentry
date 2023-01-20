@@ -1,18 +1,16 @@
-import {RouteComponentProps} from 'react-router';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {AuthProvider, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationAuthList from './organizationAuthList';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string}, {}> & {
-    organization: Organization;
-  };
+type Props = AsyncView['props'] & {
+  organization: Organization;
+};
 
 type State = AsyncView['state'] & {
   provider: AuthProvider | null;
@@ -21,24 +19,26 @@ type State = AsyncView['state'] & {
 
 class OrganizationAuth extends AsyncView<Props, State> {
   componentDidUpdate() {
-    const access = this.props.organization.access;
+    const {organization} = this.props;
+    const access = organization.access;
 
     if (this.state.provider && access.includes('org:write')) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
-      const path = `/organizations/${this.props.params.orgId}/auth/configure/`;
+      const path = normalizeUrl(`/organizations/${organization.slug}/auth/configure/`);
 
       // Don't break the back button by first replacing the current history
       // state so pressing back skips this react view.
-      this.props.router.replace(path);
+      this.props.router?.replace(path);
       window.location.assign(path);
     }
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {organization} = this.props;
     return [
-      ['providerList', `/organizations/${this.props.params.orgId}/auth-providers/`],
-      ['provider', `/organizations/${this.props.params.orgId}/auth-provider/`],
+      ['providerList', `/organizations/${organization.slug}/auth-providers/`],
+      ['provider', `/organizations/${organization.slug}/auth-provider/`],
     ];
   }
 
@@ -51,10 +51,11 @@ class OrganizationAuth extends AsyncView<Props, State> {
    * old SSO auth configuration page
    */
   handleSendReminders = (_provider: AuthProvider) => {
+    const {organization} = this.props;
     this.setState({sendRemindersBusy: true});
 
     this.api.request(
-      `/organizations/${this.props.params.orgId}/auth-provider/send-reminders/`,
+      `/organizations/${organization.slug}/auth-provider/send-reminders/`,
       {
         method: 'POST',
         data: {},
@@ -70,9 +71,10 @@ class OrganizationAuth extends AsyncView<Props, State> {
    * old SSO auth configuration page
    */
   handleConfigure = (provider: AuthProvider) => {
+    const {organization} = this.props;
     this.setState({busy: true});
 
-    this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
+    this.api.request(`/organizations/${organization.slug}/auth-provider/`, {
       method: 'POST',
       data: {provider, init: true},
       success: data => {
@@ -92,9 +94,10 @@ class OrganizationAuth extends AsyncView<Props, State> {
    * old SSO auth configuration page
    */
   handleDisableProvider = (provider: AuthProvider) => {
+    const {organization} = this.props;
     this.setState({busy: true});
 
-    this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
+    this.api.request(`/organizations/${organization.slug}/auth-provider/`, {
       method: 'DELETE',
       data: {provider},
       success: () => {

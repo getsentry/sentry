@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
@@ -26,7 +26,7 @@ import KeyRow from './keyRow';
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   keyList: ProjectKey[];
@@ -39,8 +39,9 @@ class ProjectKeys extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
   }
 
   /**
@@ -55,12 +56,16 @@ class ProjectKeys extends AsyncView<Props, State> {
       keyList: state.keyList.filter(key => key.id !== data.id),
     }));
 
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     try {
-      await this.api.requestPromise(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
-        method: 'DELETE',
-      });
+      await this.api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/keys/${data.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
       addSuccessMessage(t('Revoked key'));
     } catch (_err) {
       this.setState({
@@ -89,13 +94,17 @@ class ProjectKeys extends AsyncView<Props, State> {
       return {keyList};
     });
 
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     try {
-      await this.api.requestPromise(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
-        method: 'PUT',
-        data: {isActive},
-      });
+      await this.api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/keys/${data.id}/`,
+        {
+          method: 'PUT',
+          data: {isActive},
+        }
+      );
       addSuccessMessage(isActive ? t('Enabled key') : t('Disabled key'));
     } catch (_err) {
       addErrorMessage(isActive ? t('Error enabling key') : t('Error disabling key'));
@@ -104,11 +113,12 @@ class ProjectKeys extends AsyncView<Props, State> {
   };
 
   handleCreateKey = async () => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     try {
       const data: ProjectKey = await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/keys/`,
+        `/projects/${organization.slug}/${projectId}/keys/`,
         {
           method: 'POST',
         }
@@ -136,7 +146,7 @@ class ProjectKeys extends AsyncView<Props, State> {
 
   renderResults() {
     const {location, organization, routes, params} = this.props;
-    const {orgId, projectId} = params;
+    const {projectId} = params;
     const access = new Set(organization.access);
 
     return (
@@ -145,7 +155,7 @@ class ProjectKeys extends AsyncView<Props, State> {
           <KeyRow
             access={access}
             key={key.id}
-            orgId={orgId}
+            orgId={organization.slug}
             projectId={`${projectId}`}
             data={key}
             onToggle={this.handleToggleKey}

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import os
 import random
@@ -5,7 +7,7 @@ from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
 from unittest import mock
 from uuid import uuid4
 
@@ -66,6 +68,7 @@ from sentry.models import (
     Integration,
     IntegrationFeature,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
     OrganizationMemberTeam,
     PlatformExternalIssue,
@@ -91,7 +94,6 @@ from sentry.models import (
     UserReport,
 )
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
@@ -253,15 +255,18 @@ class Factories:
 
         org = Organization.objects.create(name=name, **kwargs)
         if owner:
-            Factories.create_member(organization=org, user=owner, role="owner")
+            Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_organization_mapping(org, **kwargs):
-        kwargs.setdefault("slug", org.slug)
-        mapping = OrganizationMapping.objects.create(organization_id=org.id, **kwargs)
-        return mapping
+    def create_org_mapping(org, **kwds):
+        kwds.setdefault("organization_id", org.id)
+        kwds.setdefault("slug", org.slug)
+        kwds.setdefault("name", org.name)
+        kwds.setdefault("idempotency_key", uuid4().hex)
+        kwds.setdefault("region_name", "test-region")
+        return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -1078,9 +1083,9 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_integration_external_issue(group=None, integration=None, key=None):
+    def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
-            organization_id=group.organization.id, integration_id=integration.id, key=key
+            organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
         )
 
         GroupLink.objects.create(
@@ -1279,10 +1284,14 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_integration(
-        organization: Organization, external_id: str, **kwargs: Any
+        organization: Organization,
+        external_id: str,
+        oi_params: Mapping[str, Any] | None = None,
+        **integration_params: Any,
     ) -> Integration:
-        integration = Integration.objects.create(external_id=external_id, **kwargs)
-        integration.add_organization(organization)
+        integration = Integration.objects.create(external_id=external_id, **integration_params)
+        organization_integration = integration.add_organization(organization)
+        organization_integration.update(**(oi_params or {}))
 
         return integration
 

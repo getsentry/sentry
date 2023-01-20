@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
@@ -20,6 +20,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
 
@@ -132,7 +133,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     const {organization} = this.state;
     const orgId = organization && organization.slug;
     this.props.router.push(
-      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
+      normalizeUrl(`/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`)
     );
   };
 
@@ -308,7 +309,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
           )}
         </p>
 
-        <Field label={t('Organization')} inline={false} stacked required>
+        <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
             onChange={this.onSelectOrg}
             value={selectedOrgSlug}
@@ -319,7 +320,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
               ValueContainer: this.customValueContainer,
             }}
           />
-        </Field>
+        </FieldGroup>
         {this.renderBottom()}
       </NarrowLayout>
     );
