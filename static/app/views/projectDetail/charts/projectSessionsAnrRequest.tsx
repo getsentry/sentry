@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {LineSeriesOption} from 'echarts';
 
+import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -14,6 +16,8 @@ import useApiRequests from 'sentry/utils/useApiRequests';
 import {DisplayModes} from '../projectCharts';
 
 import {ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
+
+const BAD_BEHAVIOUR_THRESHOLD = 0.47;
 
 type State = {
   sessionsData: SessionApiResponse;
@@ -34,6 +38,9 @@ function ProjectSessionsAnrRequest({
     displayMode === DisplayModes.ANR_RATE ? 'anr_rate()' : 'foreground_anr_rate()';
 
   const [timeseriesData, setTimeseriesData] = useState<Series[] | null>(null);
+  const [badBehaviourSeries, setBadBehaviourSeries] = useState<LineSeriesOption[] | null>(
+    null
+  );
   const [previousTimeseriesData, setPreviousTimeseriesData] = useState<Series | null>(
     null
   );
@@ -52,6 +59,7 @@ function ProjectSessionsAnrRequest({
       field: [yAxis, 'count_unique(user)'],
       interval: getSessionsInterval(datetime, {
         highFidelity: organization.features.includes('minute-resolution-sessions'),
+        dailyInterval: true,
       }),
       project: projects[0],
       environment,
@@ -125,7 +133,6 @@ function ProjectSessionsAnrRequest({
       const timeseriesData_ = [
         {
           seriesName: t('This Period'),
-          color: theme.green300,
           data: filteredResponse.intervals
             .slice(shouldFetchWithPrevious ? dataMiddleIndex : 0)
             .map((interval, i) => {
@@ -151,7 +158,21 @@ function ProjectSessionsAnrRequest({
         },
       ] as Series[];
 
-      setTimeseriesData(timeseriesData_);
+      const badBehaviourSeries_ =
+        yAxis === 'foreground_anr_rate()'
+          ? [
+              LineSeries({
+                name: t('Overall Bad Behaviour Threshold'),
+                data: filteredResponse.intervals
+                  .slice(shouldFetchWithPrevious ? dataMiddleIndex : 0)
+                  .map(interval => [interval, BAD_BEHAVIOUR_THRESHOLD]),
+                lineStyle: {color: theme.red200, width: 2, type: 'dotted'},
+                itemStyle: {color: theme.red200},
+                animation: false,
+                stack: 'bad_behaviour_threshold',
+              }),
+            ]
+          : null;
 
       const previousTimeseriesData_ = shouldFetchWithPrevious
         ? ({
@@ -177,7 +198,9 @@ function ProjectSessionsAnrRequest({
           } as Series) // TODO(project-detail): Change SeriesDataUnit value to support null
         : null;
 
+      setTimeseriesData(timeseriesData_);
       setPreviousTimeseriesData(previousTimeseriesData_);
+      setBadBehaviourSeries(badBehaviourSeries_);
     }
   }, [
     data.sessionsData,
@@ -185,7 +208,7 @@ function ProjectSessionsAnrRequest({
     queryParams.end,
     queryParams.start,
     shouldFetchWithPrevious,
-    theme.green300,
+    theme.red200,
     yAxis,
   ]);
 
@@ -198,6 +221,7 @@ function ProjectSessionsAnrRequest({
         totalSessions,
         previousTimeseriesData,
         timeseriesData: timeseriesData ?? [],
+        additionalSeries: badBehaviourSeries ?? undefined,
       })}
     </Fragment>
   );

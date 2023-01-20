@@ -99,15 +99,11 @@ describe('TraceDetailsContent', () => {
       );
 
       const errorText = await screen.findByText(
-        'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events:'
+        'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: This is a test error'
       );
 
       const errorContainer = errorText.parentElement;
       expect(errorContainer).not.toBeNull();
-
-      expect(
-        within(errorContainer!).getByText('This is a test error')
-      ).toBeInTheDocument();
     });
   });
 });
