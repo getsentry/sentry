@@ -430,6 +430,7 @@ def pytest_addoption(parser):
     group._addoption(
         "--no-headless", dest="no_headless", help="show a browser while running the tests (chrome)"
     )
+    group._addoption("--slow-network", dest="slow_network", help="slow the network (chrome)")
 
 
 def pytest_configure(config):
@@ -464,6 +465,7 @@ def browser(request, live_server):
 
     driver_type = request.config.getoption("selenium_driver")
     headless = not request.config.getoption("no_headless")
+    slow_network = request.config.getoption("slow_network")
     if driver_type == "chrome":
         options = webdriver.ChromeOptions()
         options.add_argument("no-sandbox")
@@ -481,6 +483,14 @@ def browser(request, live_server):
             chrome_args["executable_path"] = chromedriver_path
 
         driver = start_chrome(**chrome_args)
+        if slow_network:
+            # https://github.com/ChromeDevTools/devtools-frontend/blob/80c102878fd97a7a696572054007d40560dcdd21/front_end/sdk/NetworkManager.js#L252-L274
+            driver.set_network_conditions(
+                offline=False,
+                latency=400 * 5,
+                download_throughput=500 * 1024 / 8 * 0.8,
+                upload_throughput=500 * 1024 / 8 * 0.8,
+            )
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     elif driver_type == "phantomjs":
