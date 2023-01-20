@@ -26,6 +26,7 @@ import {
   StacktraceLinkResult,
 } from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
   getIntegrationIcon,
@@ -124,11 +125,18 @@ function shouldshowCodecovFeatures(
 }
 
 interface CodecovLinkProps {
+  organization: Organization;
   codecovStatusCode?: CodecovStatusCode;
   codecovUrl?: string;
 }
 
-function CodecovLink({codecovUrl, codecovStatusCode}: CodecovLinkProps) {
+const onOpenCodecovLink = (organization: Organization) => {
+  trackAdvancedAnalyticsEvent('issue_details.codecov_link_clicked', {
+    organization,
+  });
+};
+
+function CodecovLink({codecovUrl, codecovStatusCode, organization}: CodecovLinkProps) {
   if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
@@ -143,7 +151,11 @@ function CodecovLink({codecovUrl, codecovStatusCode}: CodecovLinkProps) {
       return null;
     }
     return (
-      <OpenInLink href={codecovUrl} openInNewTab>
+      <OpenInLink
+        href={codecovUrl}
+        openInNewTab
+        onClick={() => onOpenCodecovLink(organization)}
+      >
         {t('View Coverage Tests on Codecov')}
         <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       </OpenInLink>
@@ -279,6 +291,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           <CodecovLink
             codecovUrl={match.codecovUrl}
             codecovStatusCode={match.codecovStatusCode}
+            organization={organization}
           />
         )}
       </CodeMappingButtonContainer>
