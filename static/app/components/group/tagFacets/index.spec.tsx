@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {TagFacets, TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
+import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 import {Event} from 'sentry/types/event';
 
 const {organization} = initializeOrg();
@@ -94,13 +94,7 @@ describe('Tag Facets', function () {
         body: {},
       });
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          style="bars"
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -115,13 +109,7 @@ describe('Tag Facets', function () {
 
     it('displays os, device, and release tags', async function () {
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          style="bars"
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -162,7 +150,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           event={{tags: [{key: 'os', value: 'Android 12'}]} as Event}
-          style="bars"
         />,
         {
           organization,
@@ -188,7 +175,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="bars"
         />,
         {
           organization,
@@ -211,7 +197,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="bars"
         />,
         {
           organization,
@@ -232,7 +217,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="bars"
         />,
         {
           organization,
@@ -273,7 +257,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="bars"
         />,
         {
           organization,
@@ -327,7 +310,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="bars"
         />,
         {
           organization,
@@ -358,13 +340,7 @@ describe('Tag Facets', function () {
         body: {},
       });
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          style="breakdowns"
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -379,13 +355,7 @@ describe('Tag Facets', function () {
 
     it('displays os, device, and release tags', async function () {
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          style="breakdowns"
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -428,7 +398,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           event={{tags: [{key: 'os', value: 'Android 12'}]} as Event}
-          style="breakdowns"
         />,
         {
           organization,
@@ -454,7 +423,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="breakdowns"
         />,
         {
           organization,
@@ -477,7 +445,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="breakdowns"
         />,
         {
           organization,
@@ -498,7 +465,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="breakdowns"
         />,
         {
           organization,
@@ -523,7 +489,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="breakdowns"
         />,
         {
           organization,
@@ -558,7 +523,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="breakdowns"
         />,
         {
           organization,
@@ -612,7 +576,6 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           tagFormatter={TAGS_FORMATTER}
-          style="breakdowns"
         />,
         {
           organization,
@@ -648,7 +611,6 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          style="distributions"
           tagFormatter={TAGS_FORMATTER}
         />,
         {
@@ -670,7 +632,6 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          style="distributions"
           tagFormatter={TAGS_FORMATTER}
         />,
         {
@@ -698,7 +659,6 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          style="distributions"
           tagFormatter={TAGS_FORMATTER}
         />,
         {

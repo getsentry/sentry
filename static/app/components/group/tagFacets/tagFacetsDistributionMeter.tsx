@@ -15,18 +15,16 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {TagFacetsStyles} from '.';
-
 const COLORS = ['#3A3387', '#5F40A3', '#8C4FBD', '#B961D3', '#FEEBF9'];
 
 type Props = {
-  project: Project;
   segments: TagSegment[];
   title: string;
   totalValues: number;
   colors?: string[];
   expandByDefault?: boolean;
   onTagClick?: (title: string, value: TagSegment) => void;
+  project?: Project;
 };
 
 const _debounceTrackHover = debounce(
@@ -118,7 +116,7 @@ function TagFacetsDistributionMeter({
               trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
                 tag: title,
                 value: value.value,
-                platform: project.platform,
+                platform: project?.platform,
                 is_mobile: isMobilePlatform(project?.platform),
                 organization,
                 type: 'distributions',
@@ -135,7 +133,7 @@ function TagFacetsDistributionMeter({
                 _debounceTrackHover({
                   tag: title,
                   value: value.value,
-                  platform: project.platform,
+                  platform: project?.platform,
                   is_mobile: isMobilePlatform(project?.platform),
                   organization,
                   type: 'distributions',
@@ -234,6 +232,7 @@ const Title = styled('div')`
 `;
 
 const TitleType = styled('div')`
+  flex: none;
   color: ${p => p.theme.textColor};
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeSmall};
