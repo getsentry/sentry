@@ -9,15 +9,15 @@ import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasS
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {
-  UseVirtualizedListProps,
-  useVirtualizedTree,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
-import {FrameCallersTableCell} from './flamegraphDrawer';
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
-import {FlamegraphTreeTableRow} from './flamegraphTreeTableRow';
+import {
+  FrameCell,
+  FrameSelfWeightCell,
+  FrameTotalWeightCell,
+} from './flamegraphTreeTableRow';
 
 function makeSortFunction(
   property: 'total weight' | 'self weight' | 'name',
@@ -139,57 +139,19 @@ export function FlamegraphTreeTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
-  const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
-    (
-      r,
-      {
-        handleRowClick,
-        handleRowMouseEnter,
-        handleExpandTreeNode,
-        handleRowKeyDown,
-        selectedNodeIndex,
-      }
-    ) => {
-      return (
-        <FlamegraphTreeTableRow
-          ref={n => {
-            r.ref = n;
-          }}
-          node={r.item}
-          style={r.styles}
-          referenceNode={referenceNode}
-          frameColor={getFrameColor(r.item.node)}
-          formatDuration={formatDuration}
-          tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-          onClick={handleRowClick}
-          onExpandClick={handleExpandTreeNode}
-          onKeyDown={handleRowKeyDown}
-          onMouseEnter={handleRowMouseEnter}
-          onContextMenu={evt => {
-            setClickedContextMenuClose(r.item);
-            contextMenu.handleContextMenu(evt);
-          }}
-        />
-      );
-    },
-    [contextMenu, formatDuration, referenceNode, getFrameColor]
-  );
-
   const {
-    renderedItems,
+    renderedItemsIterator,
     scrollContainerStyles,
     containerStyles,
     handleSortingChange,
     handleScrollTo,
-    clickedGhostRowRef,
-    hoveredGhostRowRef,
   } = useVirtualizedTree({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
-    renderRow,
     scrollContainer: scrollContainerRef,
     rowHeight: 24,
+    overscroll: 10,
     tree,
   });
 
@@ -215,6 +177,10 @@ export function FlamegraphTreeTable({
     canvasScheduler.on('show in table view', onShowInTableView);
     return () => canvasScheduler.off('show in table view', onShowInTableView);
   }, [canvasScheduler, handleScrollTo]);
+
+  const containerStylesForTable = useMemo(() => {
+    return {...containerStyles, display: 'flex'};
+  }, [containerStyles]);
 
   return (
     <FrameBar>
@@ -269,29 +235,55 @@ export function FlamegraphTreeTable({
           contextMenu={contextMenu}
         />
         <TableItemsContainer>
-          {/*
-          The order of these two matters because we want clicked state to
-          be on top of hover in cases where user is hovering a clicked row.
-           */}
-          <div ref={hoveredGhostRowRef} />
-          <div ref={clickedGhostRowRef} />
           <div
             ref={setScrollContainerRef}
             style={scrollContainerStyles}
             onContextMenu={contextMenu.handleContextMenu}
           >
-            <div style={containerStyles}>
-              {renderedItems}
-              {/*
-              This is a ghost row, we stretch its width and height to fit the entire table
-              so that borders on columns are shown across the entire table and not just the rows.
-              This is useful when number of rows does not fill up the entire table height.
-             */}
-              <GhostRowContainer>
-                <FrameCallersTableCell />
-                <FrameCallersTableCell />
-                <FrameCallersTableCell style={{width: '100%'}} />
-              </GhostRowContainer>
+            <div style={containerStylesForTable}>
+              <FrameWeightsContainer>
+                {renderedItemsIterator.map(([r, props]) => {
+                  return (
+                    <FrameWeightsRow key={r.key} style={r.styles}>
+                      <FrameSelfWeightCell
+                        node={r.item}
+                        referenceNode={referenceNode}
+                        formatDuration={formatDuration}
+                        tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
+                      />
+                      <FrameTotalWeightCell
+                        node={r.item}
+                        referenceNode={referenceNode}
+                        formatDuration={formatDuration}
+                        tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
+                      />
+                    </FrameWeightsRow>
+                  );
+                })}
+              </FrameWeightsContainer>
+              <FrameNameRowsContainer>
+                {renderedItemsIterator.map(([r, props]) => {
+                  return (
+                    <FrameCell
+                      ref={ref => {
+                        r.ref = ref;
+                      }}
+                      key={r.key}
+                      color={getFrameColor(r.item.node)}
+                      node={r.item}
+                      tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
+                      style={r.styles}
+                      onClick={props.handleRowClick}
+                      onKeyDown={props.handleRowKeyDown}
+                      onMouseEnter={props.handleRowMouseEnter}
+                      onExpandClick={(evt: React.MouseEvent) => {
+                        evt.stopPropagation();
+                        props.handleExpandTreeNode(r.item, {expandChildren: evt.metaKey});
+                      }}
+                    />
+                  );
+                })}
+              </FrameNameRowsContainer>
             </div>
           </div>
         </TableItemsContainer>
@@ -305,15 +297,6 @@ const TableItemsContainer = styled('div')`
   height: 100%;
   overflow: hidden;
   background: ${p => p.theme.background};
-`;
-
-const GhostRowContainer = styled('div')`
-  display: flex;
-  width: 100%;
-  pointer-events: none;
-  position: absolute;
-  height: 100%;
-  z-index: -1;
 `;
 
 const TableHeaderButton = styled('button')`
@@ -359,6 +342,25 @@ const FrameCallersTable = styled('div')`
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
+
+const FrameWeightsContainer = styled('div')`
+  height: 100%;
+  position: relative;
+  width: 552px;
+`;
+
+const FrameWeightsRow = styled('div')`
+  display: flex;
+  left: 0;
+  width: ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px;
+`;
+
+const FrameNameRowsContainer = styled('div')`
+  position: relative;
+  height: 100%;
+  overflow: auto;
+  width: 100%;
+`;
 
 const FrameWeightCell = styled('div')`
   width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
