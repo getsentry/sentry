@@ -46,26 +46,29 @@ def detect(filename, detector_class, verbose):
 
     with open(filename) as file:
         data = json.loads(file.read())
-        click.echo(f"Event ID: {data['event_id']}")
+        if verbose > 1:
+            click.echo(f"Event ID: {data['event_id']}")
 
         detectors = [cls(settings, data) for cls in detector_classes]
 
         for detector in detectors:
-            click.echo(f"Detecting using {detector.__class__.__name__}")
+            if verbose > 0:
+                click.echo(f"Detecting using {detector.__class__.__name__}")
+
             performance_detection.run_detector_on_data(detector, data)
 
-            if len(detector.stored_problems) == 0:
-                click.echo("No problems detected")
-            else:
-                click.echo(
-                    f"Found {len(detector.stored_problems)} {pluralize(len(detector.stored_problems), 'problem,problems')}"
-                )
+            if verbose > 1:
+                if len(detector.stored_problems) == 0:
+                    click.echo("No problems detected")
+                else:
+                    click.echo(
+                        f"Found {len(detector.stored_problems)} {pluralize(len(detector.stored_problems), 'problem,problems')}"
+                    )
 
-            if verbose > 0:
-                for problem in detector.stored_problems.values():
-                    try:
-                        click.echo(problem.to_dict())
-                    except AttributeError:
-                        click.echo(problem)
+            for problem in detector.stored_problems.values():
+                try:
+                    click.echo(problem.to_dict())
+                except AttributeError:
+                    click.echo(problem)
 
             click.echo("\n")
