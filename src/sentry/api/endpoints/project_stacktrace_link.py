@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.utils.codecov import get_codecov_line_coverage
+from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -262,7 +262,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                should_get_codecov_line_coverage = (
+                should_get_codecov_data = (
                     features.has(
                         "organizations:codecov-stacktrace-integration",
                         project.organization,
@@ -270,21 +270,21 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
-                if should_get_codecov_line_coverage:
+                if should_get_codecov_data:
                     try:
-                        result["lineCoverage"] = get_codecov_line_coverage(
+                        result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
                             repo=current_config["config"]["repoName"],
                             service=current_config["config"]["provider"]["key"],
                             branch=current_config["config"]["defaultBranch"],
                             path=current_config["outcome"]["sourcePath"],
                         )
-                        if result["lineCoverage"]:
+                        if result["lineCoverage"] and result["codecovUrl"]:
                             result["codecovStatusCode"] = 200
                     except requests.exceptions.HTTPError as error:
                         result["codecovStatusCode"] = error.response.status_code
                         if error.response.status_code != 404:
                             logger.exception(
-                                "Failed to get expected coverage data from Codecov, pending investigation. Continuing execution."
+                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
                             )
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
