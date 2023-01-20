@@ -14,7 +14,7 @@ interface BaseRadioGroupProps<C extends string> {
   /**
    * The choices availiable in the group
    */
-  choices: [id: C, label: React.ReactNode, description?: React.ReactNode][];
+  choices: RadioOption<C>[];
   /**
    * Labels the radio group.
    */
@@ -32,7 +32,16 @@ interface BaseRadioGroupProps<C extends string> {
   orientInline?: boolean;
 }
 
-export interface RadioGroupProps<C extends string>
+/**
+ * A single option in a radio group
+ */
+export type RadioOption<C extends string = string> = [
+  id: C,
+  label: React.ReactNode,
+  description?: React.ReactNode
+];
+
+export interface RadioGroupProps<C extends string = string>
   extends BaseRadioGroupProps<C>,
     Omit<ContainerProps, 'onChange'> {}
 
