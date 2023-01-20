@@ -174,7 +174,8 @@ def resolve_tags(
 
             if extracted_column.name not in FILTERABLE_TAGS:
                 raise InvalidParams(
-                    f"Unable to resolve `match` function with {input_first_param.name}, only {FILTERABLE_TAGS} are supported"
+                    f"Unable to resolve `match` function with {input_first_param.name}, only {FILTERABLE_TAGS}"
+                    f"are supported"
                 )
 
             return Function(

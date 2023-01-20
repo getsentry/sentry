@@ -1527,3 +1527,125 @@ class ResolveTagsTestCase(TestCase):
             op=Op.EQ,
             rhs=1,
         )
+
+    def test_resolve_tags_with_match_and_filterable_tag(self):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="match",
+                    parameters=[
+                        Column(
+                            name="tags[environment]",
+                        ),
+                        "*ev",
+                    ],
+                ),
+                op=Op.EQ,
+                rhs=1,
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="match",
+                parameters=[
+                    Column(
+                        name=resolve_tag_key(self.use_case_id, self.org_id, "environment"),
+                    ),
+                    "*ev",
+                ],
+            ),
+            op=Op.EQ,
+            rhs=1,
+        )
+
+    def test_resolve_tags_with_match_if_null_and_filterable_tag(self):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="match",
+                    parameters=[
+                        Function(
+                            "ifNull",
+                            parameters=[
+                                Column(
+                                    name="tags[environment]",
+                                ),
+                            ],
+                        ),
+                        "*ev",
+                    ],
+                ),
+                op=Op.EQ,
+                rhs=1,
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="match",
+                parameters=[
+                    Column(
+                        name=resolve_tag_key(self.use_case_id, self.org_id, "environment"),
+                    ),
+                    "*ev",
+                ],
+            ),
+            op=Op.EQ,
+            rhs=1,
+        )
+
+    def test_resolve_tags_with_match_unsupported_input_first_param(self):
+        with pytest.raises(InvalidParams):
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="match",
+                        parameters=[
+                            Function(
+                                "transform",
+                                parameters=[
+                                    Column(
+                                        name="tags[http_status_code]",
+                                    ),
+                                    [""],
+                                    ["null"],
+                                ],
+                            ),
+                            "2**",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                ),
+            )
+
+    def test_resolve_tags_with_match_and_non_filterable_tag(self):
+        with pytest.raises(InvalidParams):
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="match",
+                        parameters=[
+                            Column(
+                                name="tags[http_status_code]",
+                            ),
+                            "2**",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                ),
+            )
