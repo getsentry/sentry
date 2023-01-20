@@ -8,12 +8,12 @@ from selenium.webdriver.support.wait import WebDriverWait
 from fixtures.page_objects.issue_list import IssueListPage
 from sentry.models import Visibility
 from sentry.models.savedsearch import SavedSearch, SortOptions
-from sentry.testutils import SlowAcceptanceTestCase, SnubaTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
-class OrganizationGroupIndexTest(SlowAcceptanceTestCase, SnubaTestCase):
+class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")

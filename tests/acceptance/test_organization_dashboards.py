@@ -20,7 +20,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.testutils import SlowAcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -35,7 +35,7 @@ EDIT_FEATURE = ["organizations:dashboards-edit"]
 
 
 @region_silo_test
-class OrganizationDashboardsAcceptanceTest(SlowAcceptanceTestCase):
+class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         min_ago = iso_format(before_now(minutes=1))
@@ -700,7 +700,7 @@ class OrganizationDashboardsAcceptanceTest(SlowAcceptanceTestCase):
 
 
 @region_silo_test
-class OrganizationDashboardsManageAcceptanceTest(SlowAcceptanceTestCase):
+class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
