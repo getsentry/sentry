@@ -52,7 +52,7 @@ CONTAINS_PARAMETER_REGEX = re.compile(
 
 
 class DetectorType(Enum):
-    SLOW_SPAN = "slow_span"
+    SLOW_DB_QUERY = "slow_db_query"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
@@ -64,7 +64,7 @@ class DetectorType(Enum):
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
-    DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
+    DetectorType.SLOW_DB_QUERY: GroupType.PERFORMANCE_SLOW_DB_QUERY,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -83,11 +83,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
-    # NOTE: Slow Span issues are not allowed for creation yet, the addition of this line is temporary so that we can
-    # record some metrics for issues of this type that *should* be created. We won't actually create any of these issues atm.
-    # This is handled within `event_manager.py` before the issue gets created.
-    # TODO: Remove this once we've verified that quality issues will be created, and not during spikes.
-    DetectorType.SLOW_SPAN: "performance.issues.slow_span.problem-creation",
+    DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
 }
 
 
@@ -217,7 +213,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     )
 
     return {
-        DetectorType.SLOW_SPAN: [
+        DetectorType.SLOW_DB_QUERY: [
             {
                 "duration_threshold": 1000.0,  # ms
                 "allowed_span_ops": ["db"],
@@ -263,7 +259,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
-            "duration_threshold": 50,  # ms
+            "duration_threshold": 200,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
         },
     }
@@ -278,7 +274,7 @@ def _detect_performance_problems(
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
-        SlowSpanDetector(detection_settings, data),
+        SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
         NPlusOneDBSpanDetector(detection_settings, data),
         NPlusOneDBSpanDetectorExtended(detection_settings, data),
@@ -497,15 +493,15 @@ class PerformanceDetector(ABC):
         return True
 
 
-class SlowSpanDetector(PerformanceDetector):
+class SlowDBQueryDetector(PerformanceDetector):
     """
     Check for slow spans in a certain type of span.op (eg. slow db spans)
     """
 
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.SLOW_SPAN
-    settings_key = DetectorType.SLOW_SPAN
+    type: DetectorType = DetectorType.SLOW_DB_QUERY
+    settings_key = DetectorType.SLOW_DB_QUERY
 
     def init(self):
         self.stored_problems = {}
@@ -522,7 +518,7 @@ class SlowSpanDetector(PerformanceDetector):
         if not fingerprint:
             return
 
-        if not SlowSpanDetector.is_span_eligible(span):
+        if not SlowDBQueryDetector.is_span_eligible(span):
             return
 
         description = span.get("description", None)
@@ -546,16 +542,10 @@ class SlowSpanDetector(PerformanceDetector):
                 offender_span_ids=spans_involved,
             )
 
-    # TODO: Temporarily set to true for now, but issues will not be created.
     def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return True
+        return features.has("organizations:performance-slow-db-issue", organization, actor=None)
 
-    # TODO: Temporarily set to true for now, but issues will not be created.
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return True
-
-    # TODO: Temporarily set to true for now, but issues will not be created.
-    def is_creation_allowed_for_system(self) -> bool:
         return True
 
     @classmethod
@@ -576,7 +566,7 @@ class SlowSpanDetector(PerformanceDetector):
     def _fingerprint(self, hash):
         signature = (str(hash)).encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
-        return f"1-{GroupType.PERFORMANCE_SLOW_SPAN.value}-{full_fingerprint}"
+        return f"1-{GroupType.PERFORMANCE_SLOW_DB_QUERY.value}-{full_fingerprint}"
 
 
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
@@ -1327,6 +1317,9 @@ class FileIOMainThreadDetector(PerformanceDetector):
             "organizations:performance-file-io-main-thread-detector", organization, actor=None
         )
 
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True
+
 
 class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
@@ -1588,6 +1581,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def _fingerprint(self, span) -> str:
         hashed_spans = fingerprint_spans([span])
         return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
 
 # Reports metrics and creates spans for detection

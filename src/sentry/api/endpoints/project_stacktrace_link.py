@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, List, Mapping, Optional
 
+import requests
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
@@ -10,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -48,6 +50,7 @@ def get_link(
         result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )
+    result["sourcePath"] = formatted_path
 
     return result
 
@@ -299,17 +302,19 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                # Get commit sha from Git blame
-                try:
-                    codecov_enabled = (
-                        features.has(
-                            "organizations:codecov-stacktrace-integration",
-                            project.organization,
-                            actor=request.user,
-                        )
-                        and project.organization.flags.codecov_access
+                should_get_codecov_data = (
+                    features.has(
+                        "organizations:codecov-stacktrace-integration",
+                        project.organization,
+                        actor=request.user,
                     )
-                    should_get_commit_sha = codecov_enabled and (
+                    and project.organization.flags.codecov_access
+                )
+                
+                # Get commit sha from Git blame
+                commit_sha = ctx["commit_id"] if ctx["commit_id"] else current_config["config"]["defaultBranch"]
+                try:
+                    should_get_commit_sha = should_get_codecov_data and (
                         not ctx["commit_id"]
                         or ctx["commit_id"] == current_config["config"]["defaultBranch"]
                     )
@@ -318,7 +323,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         integration = integrations.filter(provider="github")[0]
                         line_no = ctx.get("line_no")
                         if line_no:
-                            result["commitSha"] = self.get_commit_sha(
+                            commit_sha = self.get_commit_sha(
                                 integration,
                                 project.organization_id,
                                 int(line_no),
@@ -328,8 +333,28 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             )
                 except Exception:
                     logger.exception(
-                        "Code execution will continue, however, we failed to fetch the commit via Git blame."
+                        "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                     )
+                
+                # Get Codecov data
+                if should_get_codecov_data:
+                    try:
+                        result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
+                            repo=current_config["config"]["repoName"],
+                            service=current_config["config"]["provider"]["key"],
+                            branch=commit_sha,
+                            path=current_config["outcome"]["sourcePath"],
+                        )
+                        if result["lineCoverage"] and result["codecovUrl"]:
+                            result["codecovStatusCode"] = 200
+                    except requests.exceptions.HTTPError as error:
+                        result["codecovStatusCode"] = error.response.status_code
+                        if error.response.status_code != 404:
+                            logger.exception(
+                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
+                            )
+                    except Exception:
+                        logger.exception("Something unexpected happen. Continuing execution.")
 
             try:
                 set_tags(scope, result)

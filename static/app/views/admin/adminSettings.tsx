@@ -33,7 +33,11 @@ const optionsAvailable = [
   'performance.issues.compressed_assets.la-rollout',
   'performance.issues.compressed_assets.ea-rollout',
   'performance.issues.compressed_assets.ga-rollout',
-  'performance.issues.file_io_main_thread-creation',
+  'performance.issues.file_io_main_thread.problem-creation',
+  'performance.issues.slow_db_query.problem-creation',
+  'performance.issues.slow_db_query.la-rollout',
+  'performance.issues.slow_db_query.ea-rollout',
+  'performance.issues.slow_db_query.ga-rollout',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -137,7 +141,14 @@ export default class AdminSettings extends AsyncView<{}, State> {
             </Panel>
             <Panel>
               <PanelHeader>Performance Issues - File IO on Main Thread</PanelHeader>
-              {fields['performance.issues.file_io_main_thread-creation']}
+              {fields['performance.issues.file_io_main_thread.problem-creation']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Slow DB Span Detector</PanelHeader>
+              {fields['performance.issues.slow_db_query.problem-creation']}
+              {fields['performance.issues.slow_db_query.la-rollout']}
+              {fields['performance.issues.slow_db_query.ea-rollout']}
+              {fields['performance.issues.slow_db_query.ga-rollout']}
             </Panel>
           </Feature>
         </Form>

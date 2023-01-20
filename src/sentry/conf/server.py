@@ -583,6 +583,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
+    "sentry.tasks.organization_mapping",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
@@ -688,6 +689,7 @@ CELERY_QUEUES = [
     Queue(
         "transactions.name_clusterer", routing_key="transactions.name_clusterer"
     ),  # TODO: add workers
+    Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -818,6 +820,11 @@ CELERYBEAT_SCHEDULE = {
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
+    },
+    "hybrid-cloud-repair-mappings": {
+        "task": "sentry.tasks.organization_mapping.repair_mappings",
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
@@ -1050,7 +1057,7 @@ SENTRY_FEATURES = {
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
     # Sanitize transaction names in the ingestion pipeline.
-    "organizations:transaction-name-sanitization": False,
+    "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # True if release-health related queries should be run against both
@@ -1108,7 +1115,7 @@ SENTRY_FEATURES = {
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
     # Enable new issue actions on issue details
-    "organizations:issue-actions-v2": False,
+    "organizations:issue-actions-v2": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable removing issue from issue list if action taken.
@@ -1189,6 +1196,8 @@ SENTRY_FEATURES = {
     "organizations:source-maps-cta": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
+    # Enable new DS bias: prioritise by project
+    "organizations:ds-prioritise-by-project-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
@@ -1209,6 +1218,8 @@ SENTRY_FEATURES = {
     "organizations:scim-orgmember-roles": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
+    # Enable the in-app source map debugging feature
+    "organizations:fix-source-map-cta": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

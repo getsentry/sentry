@@ -7,7 +7,7 @@ import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {TagWithTopValues} from 'sentry/types';
+import {Organization, Project, TagWithTopValues} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
@@ -43,7 +43,6 @@ export default function TagFacetsDistributions({
       // Fetch the top values for the current group's top tags.
       const data = await api.requestPromise(`/issues/${groupId}/tags/`, {
         query: {
-          key: tagKeys,
           environment: environments.map(env => env.name),
           readable: true,
           limit: LIMIT,
@@ -65,7 +64,10 @@ export default function TagFacetsDistributions({
   }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
-  const sortedTagKeys = Object.keys(tagsData).sort();
+  const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
+  const remainingTagKeys = Object.keys(tagsData)
+    .filter(tagKey => !tagKeys.includes(tagKey))
+    .sort();
 
   return (
     <SidebarSection.Wrap>
@@ -78,36 +80,26 @@ export default function TagFacetsDistributions({
         </TagPlaceholders>
       ) : (
         <Fragment>
-          <SidebarSection.Title>{title || t('Most Impacted Tags')}</SidebarSection.Title>
+          <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
           <Content>
             <Fragment>
-              {sortedTagKeys.map(tagKey => {
-                const tagWithTopValues = tagsData[tagKey];
-                const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-                const topValuesTotal = tagWithTopValues
-                  ? tagWithTopValues.totalValues
-                  : 0;
-
-                const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${tagKey}/?referrer=tag-distribution-meter`;
-
-                const segments = topValues
-                  ? topValues.map(value => ({
-                      ...value,
-                      url,
-                    }))
-                  : [];
-
-                return (
-                  <TagFacetsDistributionMeter
-                    key={tagKey}
-                    title={tagKey}
-                    totalValues={topValuesTotal}
-                    segments={segments}
-                    onTagClick={() => undefined}
-                    project={project}
-                  />
-                );
-              })}
+              <TopDistributionWrapper data-test-id="top-distribution-wrapper">
+                <TagFacetsDistributionMeterWrapper
+                  groupId={groupId}
+                  organization={organization}
+                  project={project}
+                  tagKeys={topTagKeys}
+                  tagsData={tagsData}
+                  expandFirstTag
+                />
+              </TopDistributionWrapper>
+              <TagFacetsDistributionMeterWrapper
+                groupId={groupId}
+                organization={organization}
+                project={project}
+                tagKeys={remainingTagKeys}
+                tagsData={tagsData}
+              />
               <ShowAllButtonContainer>
                 <Button
                   size="xs"
@@ -135,6 +127,53 @@ export default function TagFacetsDistributions({
   );
 }
 
+function TagFacetsDistributionMeterWrapper({
+  groupId,
+  organization,
+  project,
+  tagKeys,
+  tagsData,
+  expandFirstTag,
+}: {
+  groupId: string;
+  organization: Organization;
+  project: Project;
+  tagKeys: string[];
+  tagsData: Record<string, TagWithTopValues>;
+  expandFirstTag?: boolean;
+}) {
+  return (
+    <Fragment>
+      {tagKeys.map((tagKey, index) => {
+        const tagWithTopValues = tagsData[tagKey];
+        const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+        const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+
+        const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${tagKey}/?referrer=tag-distribution-meter`;
+
+        const segments = topValues
+          ? topValues.map(value => ({
+              ...value,
+              url,
+            }))
+          : [];
+
+        return (
+          <TagFacetsDistributionMeter
+            key={tagKey}
+            title={tagKey}
+            totalValues={topValuesTotal}
+            segments={segments}
+            onTagClick={() => undefined}
+            project={project}
+            expandByDefault={expandFirstTag && index === 0}
+          />
+        );
+      })}
+    </Fragment>
+  );
+}
+
 function getTagUrl(orgSlug: string, groupId: string) {
   return `/organizations/${orgSlug}/issues/${groupId}/tags/`;
 }
@@ -151,4 +190,8 @@ const ShowAllButtonContainer = styled('div')`
 
 const Content = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const TopDistributionWrapper = styled('div')`
+  margin-bottom: 60px;
 `;

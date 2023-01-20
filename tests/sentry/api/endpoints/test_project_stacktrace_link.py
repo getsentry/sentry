@@ -403,7 +403,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             self.project.slug,
             qs_params={"file": self.filepath, "lineNo": 26},
         )
-
+        
         assert self._caplog.record_tuples == [
             (
                 "sentry.api.endpoints.project_stacktrace_link",
@@ -412,6 +412,61 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             )
         ]
         assert response.data["commitSha"] == ""
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_codecov_line_coverage_success(self, mock_integration, mock_get_codecov_data):
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+
+        expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
+        expected_codecov_url = "https://app.codecov.io/gh/getsentry/sentry/commit/a67ea84967ed1ec42844720d9daf77be36ff73b0/blob/src/path/to/file.py"
+        expected_status_code = 200
+        mock_integration.return_value = "https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py"
+        mock_get_codecov_data.return_value = (expected_line_coverage, expected_codecov_url)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+        assert response.data["lineCoverage"] == expected_line_coverage
+        assert response.data["codecovStatusCode"] == expected_status_code
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_codecov_line_coverage_exception(self, mock_integration, mock_get_codecov_data):
+        self._caplog.set_level(logging.ERROR, logger="sentry")
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+
+        mock_integration.return_value = "https://github.com/repo/blob/master/src/path/to/file.py"
+        mock_get_codecov_data.side_effect = Exception
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+
+        assert self._caplog.record_tuples == [
+            (
+                "sentry.api.endpoints.project_stacktrace_link",
+                logging.ERROR,
+                "Something unexpected happen. Continuing execution.",
+            )
+        ]
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
