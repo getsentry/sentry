@@ -76,8 +76,6 @@ function OrganizationGeneralSettings(props: Props) {
         browserHistory.replace(`/settings/${updated.slug}/`);
       }
     } else {
-      // This will update OrganizationStore (as well as OrganizationsStore
-      // which is slightly incorrect because it has summaries vs a detailed org)
       if (prevData.codecovAccess !== updated.codecovAccess) {
         trackAdvancedAnalyticsEvent('organization_settings.codecov_access_updated', {
           organization: updated,
@@ -85,6 +83,8 @@ function OrganizationGeneralSettings(props: Props) {
         });
       }
 
+      // This will update OrganizationStore (as well as OrganizationsStore
+      // which is slightly incorrect because it has summaries vs a detailed org)
       updateOrganization(updated);
     }
   };

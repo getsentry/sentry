@@ -148,6 +148,7 @@ const SectionHeader = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: ${space(0.5)};
   margin-bottom: ${space(1)};
 
   & h3,
@@ -167,8 +168,6 @@ const SectionHeader = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
-
-    text-transform: none;
   }
   & small > span {
     color: ${p => p.theme.textColor};
@@ -180,10 +179,6 @@ const SectionHeader = styled('div')`
       margin-left: ${space(1)};
       display: inline-block;
     }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: block;
   }
 
   > *:first-child {
