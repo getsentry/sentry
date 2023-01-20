@@ -813,6 +813,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if parsed_url.netloc in cls.HOST_DENYLIST:
             return False
 
+        # Ignore anything that looks like an asset. Some frameworks (and apps)
+        # fetch assets via XHR, which is not our concern
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
             return False
