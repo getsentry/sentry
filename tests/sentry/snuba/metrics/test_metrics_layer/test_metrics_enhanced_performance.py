@@ -1831,42 +1831,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     key=lambda elem: elem["name"],
                 )
 
-    def test_wildcard_match_with_non_supported_function(self):
-        with pytest.raises(InvalidParams):
-            metrics_query = self.build_metrics_query(
-                before_now="1h",
-                granularity="1h",
-                select=[
-                    MetricField(
-                        op="count",
-                        metric_mri=TransactionMRI.DURATION.value,
-                        alias="duration_count",
-                    ),
-                ],
-                where=[
-                    Condition(
-                        lhs=Function(
-                            "match",
-                            parameters=[
-                                Function("has", parameters=[Column(name="tags[os.name]"), ""]),
-                                "2*",
-                            ],
-                        ),
-                        op=Op.EQ,
-                        rhs=1,
-                    )
-                ],
-                limit=Limit(limit=50),
-                offset=Offset(offset=0),
-                include_series=False,
-            )
-            get_series(
-                [self.project],
-                metrics_query=metrics_query,
-                include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
-            )
-
     def test_wildcard_match_with_non_filterable_tags(self):
         with pytest.raises(InvalidParams):
             metrics_query = self.build_metrics_query(

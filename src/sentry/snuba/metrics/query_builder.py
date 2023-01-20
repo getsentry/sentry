@@ -123,7 +123,11 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
-    use_case_id: UseCaseKey, org_id: int, input_: Any, is_tag_value: bool = False
+    use_case_id: UseCaseKey,
+    org_id: int,
+    input_: Any,
+    is_tag_value: bool = False,
+    tag_keys_restrictions: Optional[Dict[str, str]] = None,
 ) -> Any:
     """Translate tags in snuba condition
 
@@ -132,7 +136,16 @@ def resolve_tags(
     if input_ is None:
         return None
     if isinstance(input_, (list, tuple)):
-        elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
+        elements = [
+            resolve_tags(
+                use_case_id,
+                org_id,
+                item,
+                is_tag_value=True,
+                tag_keys_restrictions=tag_keys_restrictions,
+            )
+            for item in input_
+        ]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
         # drop unknown strings.
         filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
@@ -142,46 +155,48 @@ def resolve_tags(
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
-            return resolve_tags(use_case_id, org_id, input_.parameters[0])
+            return resolve_tags(
+                use_case_id,
+                org_id,
+                input_.parameters[0],
+                tag_keys_restrictions=tag_keys_restrictions,
+            )
         elif input_.function == "isNull":
             return Function(
                 "equals",
                 [
-                    resolve_tags(use_case_id, org_id, input_.parameters[0]),
-                    resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        input_.parameters[0],
+                        tag_keys_restrictions=tag_keys_restrictions,
+                    ),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        "",
+                        is_tag_value=True,
+                        tag_keys_restrictions=tag_keys_restrictions,
+                    ),
                 ],
             )
         elif input_.function == "match":
-            input_first_param = input_.parameters[0]
+            restricted = {tag: "match" for tag in FILTERABLE_TAGS}
 
-            # The "match" operator requires the first value to originate from any of the FILTERABLE_TAGS, this requires
-            # a check on the "Column", however this "Column" can be nested within multiple other expressions
-            # (e.g. "ifNull").
-            #
-            # For now, we decided to support the only two known use-cases (in case new ones arise they should be added):
-            # * "Column(...)"
-            # * "Function('ifNull', Column(...))"
-            if isinstance(input_first_param, Function) and input_first_param.function == "ifNull":
-                extracted_column = input_first_param.parameters[0]
+            if tag_keys_restrictions:
+                tag_keys_restrictions.update(restricted)
             else:
-                extracted_column = input_first_param
-
-            if not isinstance(extracted_column, Column):
-                raise InvalidParams(
-                    "The `match` function requires as first parameter `Column(...)` or `Function('ifNull', "
-                    "Column(...))`"
-                )
-
-            if extracted_column.name not in FILTERABLE_TAGS:
-                raise InvalidParams(
-                    f"Unable to resolve `match` function with {input_first_param.name}, only {FILTERABLE_TAGS}"
-                    f"are supported"
-                )
+                tag_keys_restrictions = restricted
 
             return Function(
                 function=input_.function,
                 parameters=[
-                    resolve_tags(use_case_id, org_id, input_first_param),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        input_.parameters[0],
+                        tag_keys_restrictions=tag_keys_restrictions,
+                    ),
                     input_.parameters[1],  # We directly pass the regex.
                 ],
             )
@@ -189,7 +204,12 @@ def resolve_tags(
             return Function(
                 function=input_.function,
                 parameters=input_.parameters
-                and [resolve_tags(use_case_id, org_id, item) for item in input_.parameters],
+                and [
+                    resolve_tags(
+                        use_case_id, org_id, item, tag_keys_restrictions=tag_keys_restrictions
+                    )
+                    for item in input_.parameters
+                ],
             )
     if (
         isinstance(input_, Or)
@@ -201,14 +221,24 @@ def resolve_tags(
         and c.rhs == 1
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
-        return resolve_tags(use_case_id, org_id, input_.conditions[1])
+        return resolve_tags(
+            use_case_id, org_id, input_.conditions[1], tag_keys_restrictions=tag_keys_restrictions
+        )
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
-                lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+                lhs=resolve_tags(
+                    use_case_id, org_id, input_.lhs, tag_keys_restrictions=tag_keys_restrictions
+                ),
                 op=Op.EQ,
-                rhs=resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                rhs=resolve_tags(
+                    use_case_id,
+                    org_id,
+                    "",
+                    is_tag_value=True,
+                    tag_keys_restrictions=tag_keys_restrictions,
+                ),
             )
         if (
             isinstance(input_.lhs, Function)
@@ -233,16 +263,33 @@ def resolve_tags(
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
             rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
-            return Condition(lhs=resolve_tags(use_case_id, org_id, input_.lhs), op=op, rhs=rhs_ids)
+            return Condition(
+                lhs=resolve_tags(
+                    use_case_id, org_id, input_.lhs, tag_keys_restrictions=tag_keys_restrictions
+                ),
+                op=op,
+                rhs=rhs_ids,
+            )
         return Condition(
-            lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+            lhs=resolve_tags(
+                use_case_id, org_id, input_.lhs, tag_keys_restrictions=tag_keys_restrictions
+            ),
             op=input_.op,
-            rhs=resolve_tags(use_case_id, org_id, input_.rhs, is_tag_value=True),
+            rhs=resolve_tags(
+                use_case_id,
+                org_id,
+                input_.rhs,
+                is_tag_value=True,
+                tag_keys_restrictions=tag_keys_restrictions,
+            ),
         )
 
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
-            conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
+            conditions=[
+                resolve_tags(use_case_id, org_id, item, tag_keys_restrictions=tag_keys_restrictions)
+                for item in input_.conditions
+            ]
         )
     if isinstance(input_, Column):
         # If a column has the name belonging to the set, it means that we don't need to resolve its name.
@@ -270,11 +317,28 @@ def resolve_tags(
         if is_tag_value:
             return resolve_tag_value(use_case_id, org_id, input_)
         else:
+            expression, is_restricted = is_tag_key_restricted(input_, tag_keys_restrictions)
+            if is_restricted:
+                raise InvalidParams(
+                    f"The tag key ${input_} usage has been restricted by the ${expression} expression"
+                )
+
             return resolve_weak(use_case_id, org_id, input_)
     if isinstance(input_, int):
         return input_
 
     raise InvalidParams("Unable to resolve conditions")
+
+
+def is_tag_key_restricted(
+    tag_key: str, tag_keys_restrictions: Optional[Dict[str, str]]
+) -> Tuple[Optional[str], bool]:
+    if tag_keys_restrictions is None:
+        return None, False
+
+    expression = tag_keys_restrictions.get(f"tags[${tag_key}]")
+
+    return expression, expression is not None
 
 
 def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
