@@ -15,7 +15,7 @@ import {IconChevron} from 'sentry/icons';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
-export type MenuItemProps = MenuListItemProps & {
+export interface MenuItemProps extends MenuListItemProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -54,9 +54,9 @@ export type MenuItemProps = MenuListItemProps & {
    * Destination if this menu item is a link. See also: `isExternalLink`.
    */
   to?: LocationDescriptor;
-};
+}
 
-type Props = {
+interface DropdownMenuItemProps {
   /**
    * Whether to close the menu when an item has been clicked/selected
    */
@@ -87,14 +87,17 @@ type Props = {
    * Whether to show a divider below this item
    */
   showDivider?: boolean;
-};
+}
 
 /**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props> = (
+const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
+  HTMLLIElement,
+  DropdownMenuItemProps
+> = (
   {
     node,
     state,
@@ -102,7 +105,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
     closeOnSelect,
     showDivider,
     isSubmenuTrigger = false,
-    renderAs = 'li' as React.ElementType,
+    renderAs = 'li',
     ...submenuTriggerProps
   },
   forwardedRef
