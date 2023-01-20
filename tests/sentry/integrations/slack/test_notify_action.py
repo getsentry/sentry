@@ -89,7 +89,7 @@ class SlackNotifyActionTest(RuleTestCase):
         label = rule.render_label()
         assert (
             label
-            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: )"
+            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] in notification"
         )
 
     @responses.activate
