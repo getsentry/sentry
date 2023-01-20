@@ -143,6 +143,34 @@ class NPlusOneAPICallsDetectorTest(TestCase):
             "/clients/11/project/1343",
             "/clients/*/project/*",
         ),
+        (
+            "/clients/11/project/1343-turtles",
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/11/project/1343turtles",
+            "/clients/*/project/1343turtles",
+        ),
+        (
+            "/clients/563712f9722fb0996ac8f3905b40786f/project/1343",  # md5
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/563712f9722fb0996z/project/",  # md5-like
+            "/clients/563712f9722fb0996z/project/",
+        ),
+        (
+            "/clients/403926033d001b5279df37cbbe5287b7c7c267fa/project/1343",  # sha1
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/8ff81d74-606d-4c75-ac5e-cee65cbbc866/project/1343",  # uuid
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/hello-123s/project/1343",  # uuid-like
+            "/clients/hello-123s/project/*",
+        ),
     ],
 )
 def test_parameterizes_url(url, parameterized_url):

@@ -50,6 +50,30 @@ CONTAINS_PARAMETER_REGEX = re.compile(
     )
 )
 
+URL_PARAMETER_REGEX = re.compile(
+    r"""(?x)
+    (?P<uuid>
+        \b
+            [0-9a-fA-F]{8}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{12}
+        \b
+    ) |
+    (?P<sha1>
+        \b[0-9a-fA-F]{40}\b
+    ) |
+    (?P<md5>
+        \b[0-9a-fA-F]{32}\b
+    ) |
+    (?P<int>
+        -\d+\b |
+        \b\d+\b
+    )
+"""
+)  # From message.py
+
 
 class DetectorType(Enum):
     SLOW_DB_QUERY = "slow_db_query"
@@ -725,10 +749,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         path_fragments = []
         for fragment in parsed_url.path.split("/"):
-            try:
-                int(fragment)
+            if URL_PARAMETER_REGEX.search(fragment):
                 path_fragments.append("*")
-            except ValueError:  # Not an integer parameter
+            else:
                 path_fragments.append(str(fragment))
 
         query = parse_qs(parsed_url.query)
