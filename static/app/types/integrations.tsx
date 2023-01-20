@@ -150,6 +150,7 @@ export enum Coverage {
   COVERED = 1,
   PARTIAL = 2,
 }
+export type LineCoverage = [lineNo: number, coverage: Coverage];
 
 export enum CodecovStatusCode {
   COVERAGE_EXISTS = 200,
@@ -157,15 +158,11 @@ export enum CodecovStatusCode {
   NO_COVERAGE_DATA = 400,
 }
 
-export type LineCoverage = {
-  coverage: Coverage;
-  lineNo: number;
-};
-
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
   codecovStatusCode?: CodecovStatusCode;
+  codecovUrl?: string;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   lineCoverage?: LineCoverage[];
