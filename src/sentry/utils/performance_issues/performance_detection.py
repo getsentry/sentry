@@ -821,15 +821,15 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def _fingerprint(self) -> str:
-        urls = [urlparse(get_url_from_span(span)) for span in self.spans]
+        parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
 
-        all_query_params: set[str] = set()
-        for url in urls:
-            all_query_params.update(parse_qs(url.query).keys())
+        parts = parameterized_first_url.split("?")
+        if len(parts) > 1:
+            [path, _query] = parts
+        else:
+            path = parts[0]
 
-        first_url = urls[0]
-        raw_fingerprint = f"{first_url.netloc}{first_url.path}?{'&'.join(sorted(all_query_params))}"
-        fingerprint = hashlib.sha1(raw_fingerprint.encode("utf8")).hexdigest()
+        fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
         return f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value}-{fingerprint}"
 
