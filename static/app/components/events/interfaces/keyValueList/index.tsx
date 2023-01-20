@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -92,11 +92,11 @@ function KeyValueList({
 
 const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
   return (
-    <React.Fragment>
+    <Fragment>
       {values.map((val, idx) => (
         <Value key={`${val}-${idx}`} value={val} />
       ))}
-    </React.Fragment>
+    </Fragment>
   );
 };
 
