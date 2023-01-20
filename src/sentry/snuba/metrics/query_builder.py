@@ -154,12 +154,13 @@ def resolve_tags(
         elif input_.function == "match":
             input_first_param = input_.parameters[0]
 
-            # For now, we only support as the first parameter of "match" only the direct column and the "ifNull"
-            # function with the column inside. This has been done because a complex algorithm would be required to
-            # infer the matched column without evaluating the query's subtree.
+            # The "match" operator requires the first value to originate from any of the FILTERABLE_TAGS, this requires
+            # a check on the "Column", however this "Column" can be nested within multiple other expressions
+            # (e.g. "ifNull").
             #
-            # All the conditions below are just for checking the column name to which the "match" refers and have
-            # nothing to do with the resolution.
+            # For now, we decided to support the only two known use-cases (in case new ones arise they should be added):
+            # * "Column(...)"
+            # * "Function('ifNull', Column(...))"
             if isinstance(input_first_param, Function) and input_first_param.function == "ifNull":
                 extracted_column = input_first_param.parameters[0]
             else:
