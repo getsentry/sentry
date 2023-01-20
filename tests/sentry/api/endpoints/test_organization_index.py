@@ -2,8 +2,9 @@ import re
 
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 class OrganizationIndexTest(APITestCase):
@@ -170,6 +171,27 @@ class OrganizationsCreateTest(OrganizationIndexTest):
 
             data = {"name": "hello world", "agreeTerms": True}
             self.get_success_response(**data)
+
+    def test_organization_mapping(self):
+        data = {"slug": "santry", "name": "SaNtRy", "idempotencyKey": "1234"}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.slug == data["slug"]
+        assert org.name == data["name"]
+
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=organization_id,
+                slug=data["slug"],
+                name=data["name"],
+                idempotency_key=data["idempotencyKey"],
+            ).exists()
+
+    def test_slug_already_taken(self):
+        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
+        self.get_error_response(slug="taken", name="TaKeN", status_code=409)
 
 
 @region_silo_test

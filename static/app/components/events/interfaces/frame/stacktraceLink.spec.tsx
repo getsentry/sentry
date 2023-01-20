@@ -209,6 +209,7 @@ describe('StacktraceLink', function () {
       body: {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
+        codecovUrl: 'https://app.codecov.io/gh/path/to/file.py',
         integrations: [integration],
         codecovStatusCode: CodecovStatusCode.COVERAGE_EXISTS,
       },

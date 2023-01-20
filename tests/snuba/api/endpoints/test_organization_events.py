@@ -28,12 +28,13 @@ from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -597,6 +598,40 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
+
+    def test_generic_issue_ids_filter(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        event, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            user=user_data,
+        )
+
+        query = {
+            "field": ["title", "release", "environment", "user.display", "timestamp"],
+            "statsPeriod": "90d",
+            "query": f"issue:{group_info.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(
+            [
+                "organizations:profiling",
+            ]
+        ):
+            response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["title"] == group_info.group.title
+        assert response.data["data"][0]["environment"] == "prod"
+        assert response.data["data"][0]["user.display"] == user_data["email"]
+        assert response.data["data"][0]["timestamp"] == event.timestamp
 
     def test_has_performance_issue_ids(self):
         data = load_data(
@@ -2971,6 +3006,41 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 2
         result = {r["user.display"] for r in data}
         assert result == {"catherine", "cathy@example.com"}
+
+    def test_user_display_issue_platform(self):
+        project1 = self.create_project()
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        _, _, group_info = self.store_search_issue(
+            project1.id,
+            1,
+            ["group1-fingerprint"],
+            None,
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=10),
+            user=user_data,
+        )
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:profiling": True,
+        }
+        query = {
+            "field": ["user.display"],
+            "query": f"user.display:hell* issue.id:{group_info.group.id}",
+            "statsPeriod": "24h",
+            "dataset": "issuePlatform",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["user.display"] for r in data}
+        assert result == {user_data["email"]}
 
     def test_user_display_with_aggregates(self):
         self.store_event(

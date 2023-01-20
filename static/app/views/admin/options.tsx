@@ -280,7 +280,7 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.slow_span.problem-creation',
+    key: 'performance.issues.slow_db_query.problem-creation',
     label: t('Problem Creation Rate'),
     help: t(
       'Controls the overall rate at which performance problems are detected by the slow DB span detector.'
@@ -288,7 +288,7 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.slow_span.la-rollout',
+    key: 'performance.issues.slow_db_query.la-rollout',
     label: t('Limited Availability Detection Rate'),
     help: t(
       'Controls the rate at which performance problems are detected by the slow DB span detector for LA organizations.'
@@ -296,7 +296,7 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.slow_span.ea-rollout',
+    key: 'performance.issues.slow_db_query.ea-rollout',
     label: t('Early Adopter Detection Rate'),
     help: t(
       'Controls the rate at which performance problems are detected by the slow DB span detector for EA organizations.'
@@ -304,7 +304,7 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.slow_span.ga-rollout',
+    key: 'performance.issues.slow_db_query.ga-rollout',
     label: t('General Availability Detection Rate'),
     help: t(
       'Controls the rate at which performance problems are detected by the slow DB span detector for GA organizations.'
