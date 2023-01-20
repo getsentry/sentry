@@ -1057,7 +1057,7 @@ SENTRY_FEATURES = {
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
     # Sanitize transaction names in the ingestion pipeline.
-    "organizations:transaction-name-sanitization": False,
+    "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # True if release-health related queries should be run against both
