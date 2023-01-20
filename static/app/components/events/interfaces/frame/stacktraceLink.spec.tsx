@@ -2,12 +2,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {CodecovStatusCode, Frame} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import * as analytics from 'sentry/utils/integrationUtil';
 
 import {StacktraceLink} from './stacktraceLink';
-
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('StacktraceLink', function () {
   const org = TestStubs.Organization();
@@ -221,13 +218,17 @@ describe('StacktraceLink', function () {
       context: TestStubs.routerContext(),
       organization,
     });
-    userEvent.click(await screen.findByText('View Coverage Tests on Codecov'));
 
     expect(await screen.findByText('View Coverage Tests on Codecov')).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py'
     );
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalled();
+
+    userEvent.click(await screen.findByText('View Coverage Tests on Codecov'));
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'integrations.stacktrace_codecov_link_clicked',
+      expect.anything()
+    );
   });
 
   it('renders the missing coverage warning', async function () {

@@ -26,7 +26,6 @@ import {
   StacktraceLinkResult,
 } from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
   getIntegrationIcon,
@@ -131,13 +130,6 @@ interface CodecovLinkProps {
   codecovUrl?: string;
 }
 
-const onOpenCodecovLink = (organization: Organization, event: Event) => {
-  trackAdvancedAnalyticsEvent('issue_details.codecov_link_clicked', {
-    organization,
-    ...getAnalyicsDataForEvent(event),
-  });
-};
-
 function CodecovLink({
   codecovUrl,
   codecovStatusCode,
@@ -157,12 +149,17 @@ function CodecovLink({
     if (!codecovUrl) {
       return null;
     }
+
+    const onOpenCodecovLink = () => {
+      trackIntegrationAnalytics('integrations.stacktrace_codecov_link_clicked', {
+        view: 'stacktrace_issue_details',
+        organization,
+        ...getAnalyicsDataForEvent(event),
+      });
+    };
+
     return (
-      <OpenInLink
-        href={codecovUrl}
-        openInNewTab
-        onClick={() => onOpenCodecovLink(organization, event)}
-      >
+      <OpenInLink href={codecovUrl} openInNewTab onClick={onOpenCodecovLink}>
         {t('View Coverage Tests on Codecov')}
         <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       </OpenInLink>
