@@ -70,7 +70,7 @@ const ConsecutiveDBQueriesSpanEvidence = ({
       ...(causeSpans
         ? [makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))]
         : []),
-      makeRow('Parallelizable Spans', getMultiSpanEvidenceValues(offendingSpans)),
+      makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
     ]}
   />
 );
@@ -179,10 +179,6 @@ const makeRow = (
     isMultiValue: Array.isArray(value),
   };
 };
-
-function getMultiSpanEvidenceValues(spans: Span[]): string[] {
-  return spans.map(span => getSpanEvidenceValue(span));
-}
 
 function getSpanEvidenceValue(span: Span | null): string {
   if (!span || (!span.op && !span.description)) {

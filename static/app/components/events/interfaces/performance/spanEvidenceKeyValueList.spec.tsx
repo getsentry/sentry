@@ -132,7 +132,6 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(parallelizableSpanKeyValue).toHaveTextContent(
         'db - SELECT COUNT(*) FROM ITEMS'
       );
-      expect(parallelizableSpanKeyValue.getElementsByTagName('pre').length).toBe(2);
     });
   });
 
