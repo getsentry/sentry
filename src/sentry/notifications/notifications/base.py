@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
-from urllib.parse import urljoin
 
 import sentry_sdk
 
@@ -197,9 +196,8 @@ class BaseNotification(abc.ABC):
                     url_str += f"{fine_tuning_key}/"
 
         return str(
-            urljoin(
-                absolute_uri(url_str),
-                self.get_sentry_query_params(provider, recipient),
+            self.organization.absolute_url(
+                url_str, query=self.get_sentry_query_params(provider, recipient)
             )
         )
 

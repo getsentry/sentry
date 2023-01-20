@@ -9,30 +9,25 @@ from sentry.notifications.notifications.strategies.owner_recipient_strategy impo
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Team, User
 
+provider_types = {
+    "first_party": "integrations",
+    "plugin": "plugins",
+    "sentry_app": "sentry-apps",
+}
+
 
 def get_url(organization: Organization, provider_type: str, provider_slug: str) -> str:
-    # Explicitly typing to satisfy mypy.
-    url: str = absolute_uri(
-        "/".join(
-            [
-                "/settings",
-                organization.slug,
-                {
-                    "first_party": "integrations",
-                    "plugin": "plugins",
-                    "sentry_app": "sentry-apps",
-                }.get(provider_type, ""),
-                provider_slug,
-                "?referrer=request_email",
-            ]
+    type_name = provider_types.get(provider_type, "")
+    return str(
+        organization.absolute_url(
+            f"/settings/{organization.slug}/{type_name}/{provider_slug}/",
+            query="referrer=request_email",
         )
     )
-    return url
 
 
 @register()

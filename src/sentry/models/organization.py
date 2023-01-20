@@ -600,11 +600,16 @@ class Organization(Model, SnowflakeIdMixin):
             path = customer_domain_path(path)
             url_base = generate_organization_url(self.slug)
         uri = absolute_uri(path, url_prefix=url_base)
+        parts = [uri]
+        if query and not query.startswith("?"):
+            query = f"?{query}"
         if query:
-            uri = f"{uri}?{query}"
+            parts.append(query)
+        if fragment and not fragment.startswith("#"):
+            fragment = f"#{fragment}"
         if fragment:
-            uri = f"{uri}#{fragment}"
-        return uri
+            parts.append(fragment)
+        return "".join(parts)
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.priority > 0:
