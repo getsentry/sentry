@@ -145,7 +145,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ),
     ],
 )
-def test_condenses_url(url, parameterized_url):
+def test_parameterizes_url(url, parameterized_url):
     r = NPlusOneAPICallsDetector.parameterize_url(url)
     assert r == parameterized_url
 
