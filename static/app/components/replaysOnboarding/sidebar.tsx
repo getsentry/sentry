@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import IdBadge from 'sentry/components/idBadge';

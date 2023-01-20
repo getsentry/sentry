@@ -9,15 +9,22 @@ import {
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {IconClose} from 'sentry/icons/iconClose';
+import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, Frame, Organization, Project} from 'sentry/types';
+import {
+  CodecovStatusCode,
+  Event,
+  Frame,
+  Organization,
+  Project,
+  StacktraceLinkResult,
+} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -98,6 +105,51 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       </CloseButton>
     </CodeMappingButtonContainer>
   );
+}
+
+function shouldshowCodecovFeatures(
+  organization: Organization,
+  match: StacktraceLinkResult
+) {
+  const enabled =
+    organization.features.includes('codecov-stacktrace-integration') &&
+    organization.codecovAccess;
+
+  const validStatus = [
+    CodecovStatusCode.COVERAGE_EXISTS,
+    CodecovStatusCode.NO_COVERAGE_DATA,
+  ].includes(match.codecovStatusCode!);
+
+  return enabled && validStatus && match.config?.provider.key === 'github';
+}
+
+interface CodecovLinkProps {
+  codecovStatusCode?: CodecovStatusCode;
+  codecovUrl?: string;
+}
+
+function CodecovLink({codecovUrl, codecovStatusCode}: CodecovLinkProps) {
+  if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
+    return (
+      <CodecovWarning>
+        {t('Code Coverage not found')}
+        <IconWarning size="xs" color="errorText" />
+      </CodecovWarning>
+    );
+  }
+
+  if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
+    if (!codecovUrl) {
+      return null;
+    }
+    return (
+      <OpenInLink href={codecovUrl} openInNewTab>
+        {t('View Coverage Tests on Codecov')}
+        <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+      </OpenInLink>
+    );
+  }
+  return null;
 }
 
 interface StacktraceLinkProps {
@@ -223,6 +275,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
+        {shouldshowCodecovFeatures(organization, match) && (
+          <CodecovLink
+            codecovUrl={match.codecovUrl}
+            codecovStatusCode={match.codecovStatusCode}
+          />
+        )}
       </CodeMappingButtonContainer>
     );
   }
@@ -326,4 +384,11 @@ const OpenInLink = styled(ExternalLink)`
 const StyledLink = styled(Link)`
   ${LinkStyles}
   color: ${p => p.theme.gray300};
+`;
+
+const CodecovWarning = styled('div')`
+  display: flex;
+  color: ${p => p.theme.errorText};
+  gap: ${space(0.75)};
+  align-items: center;
 `;

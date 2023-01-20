@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -388,7 +388,7 @@ class ActionsPanel extends PureComponent<Props> {
                                 }
                               />
                             ),
-                            {allowClickClose: false}
+                            {closeEvents: 'escape-key'}
                           );
                         }}
                       >

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuickTrace from 'sentry/components/quickTrace';

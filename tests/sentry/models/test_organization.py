@@ -486,7 +486,7 @@ class Require2fa(TestCase):
         result = org.get_audit_log_data()
         assert result["flags"] == int(org.flags)
 
-    def test_send_delete_confirmation_system_audi(self):
+    def test_send_delete_confirmation_system_audit(self):
         org = self.create_organization(owner=self.user)
         audit_entry = create_system_audit_entry(
             organization=org,
@@ -514,4 +514,7 @@ class Require2fa(TestCase):
         assert url == "http://acme.testserver/restore/"
 
         url = org.absolute_url("/organizations/acme/issues/", query="project=123", fragment="ref")
+        assert url == "http://acme.testserver/issues/?project=123#ref"
+
+        url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"

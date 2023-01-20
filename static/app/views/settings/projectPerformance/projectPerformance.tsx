@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
@@ -20,7 +20,8 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type RouteParams = {orgId: string; projectId: string};
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
@@ -76,23 +77,26 @@ class ProjectPerformance extends AsyncView<Props, State> {
   }
 
   handleDelete = () => {
-    const {orgId, projectId} = this.props.params;
+    const {projectId} = this.props.params;
     const {organization} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/transaction-threshold/configure/`, {
-      method: 'DELETE',
-      success: () => {
-        trackAdvancedAnalyticsEvent(
-          'performance_views.project_transaction_threshold.clear',
-          {organization}
-        );
-      },
-      complete: () => this.fetchData(),
-    });
+    this.api.request(
+      `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,
+      {
+        method: 'DELETE',
+        success: () => {
+          trackAdvancedAnalyticsEvent(
+            'performance_views.project_transaction_threshold.clear',
+            {organization}
+          );
+        },
+        complete: () => this.fetchData(),
+      }
+    );
   };
 
   getEmptyMessage() {
@@ -222,10 +226,11 @@ class ProjectPerformance extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project, params} = this.props;
+    const {organization, project} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
     const requiredScopes: Scope[] = ['project:write'];
 
+    const params = {orgId: organization.slug, projectId: project.slug};
     const projectEndpoint = this.getProjectEndpoint(params);
     const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
 

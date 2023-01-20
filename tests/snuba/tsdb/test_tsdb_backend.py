@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytz
@@ -525,7 +525,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group1_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
@@ -673,7 +673,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group5"
+        group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group5"
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
@@ -777,6 +777,48 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         self.proj1group1 = all_groups[0]
         self.proj1group2 = all_groups[1]
         self.defaultenv = Environment.objects.get(name=defaultenv)
+
+    def test_range_group_manual_group_time_rollup(self):
+        project = self.create_project()
+
+        # these are the only granularities/rollups that be actually be used
+        GRANULARITIES = [
+            (10, timedelta(seconds=10), 5),
+            (60 * 60, timedelta(hours=1), 6),
+            (60 * 60 * 24, timedelta(days=1), 15),
+        ]
+
+        start = (datetime.now(timezone.utc) - timedelta(days=15)).replace(
+            hour=0, minute=0, second=0
+        )
+
+        for step, delta, times in GRANULARITIES:
+            series = [start + (delta * i) for i in range(times)]
+            series_ts = [int(to_timestamp(ts)) for ts in series]
+
+            assert self.db.get_optimal_rollup(series[0], series[-1]) == step
+
+            assert self.db.get_optimal_rollup_series(series[0], end=series[-1], rollup=None) == (
+                step,
+                series_ts,
+            )
+
+            for time_step in series:
+                _, _, group_info = self.store_search_issue(
+                    project_id=project.id,
+                    user_id=0,
+                    fingerprints=[f"test_range_group_manual_group_time_rollup-{step}"],
+                    environment=None,
+                    insert_time=time_step,
+                )
+
+            assert self.db.get_range(
+                TSDBModel.group_generic,
+                [group_info.group.id],
+                series[0],
+                series[-1],
+                rollup=None,
+            ) == {group_info.group.id: [(ts, 1) for ts in series_ts]}
 
     def test_range_groups_mult(self):
         now = (datetime.utcnow() - timedelta(days=1)).replace(

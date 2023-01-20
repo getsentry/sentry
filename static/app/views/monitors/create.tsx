@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -15,10 +14,9 @@ import CronsFeedbackButton from './cronsFeedbackButton';
 import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string}, {}> & {
-    organization: Organization;
-  };
+type Props = AsyncView['props'] & {
+  organization: Organization;
+};
 
 class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   getTitle() {
@@ -50,7 +48,7 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
                 },
               ]}
             />
-            <StyledHeading>{t('Set Up Cron Monitor')}</StyledHeading>
+            <Layout.Title>{t('Set Up Cron Monitor')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <CronsFeedbackButton />
@@ -76,10 +74,6 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   }
 }
 export default withOrganization(CreateMonitor);
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const HelpText = styled('p')`
   color: ${p => p.theme.subText};

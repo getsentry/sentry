@@ -17,8 +17,8 @@ import {
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -29,6 +29,7 @@ import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -976,7 +977,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             showUnderline
           />
         ),
-        link: <a href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
+        link: <ExternalLink href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
       }
     );
   }
@@ -1630,11 +1631,9 @@ const StepConnector = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
-  & > span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.5)};
-  }
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const TestButtonWrapper = styled('div')`

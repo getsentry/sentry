@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {RequestOptions} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Panel, PanelItem} from 'sentry/components/panels';
 import {IconOpen} from 'sentry/icons';
@@ -39,15 +39,16 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, integrationSlug} = this.props.params;
+    const {organization} = this.props;
+    const {integrationSlug} = this.props.params;
     return [
       [
         'information',
-        `/organizations/${orgId}/config/integrations/?provider_key=${integrationSlug}`,
+        `/organizations/${organization.slug}/config/integrations/?provider_key=${integrationSlug}`,
       ],
       [
         'configurations',
-        `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
+        `/organizations/${organization.slug}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
       ],
     ];
   }
@@ -125,16 +126,16 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   onInstall = (integration: Integration) => {
     // send the user to the configure integration view for that integration
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     this.props.router.push(
       normalizeUrl(
-        `/settings/${orgId}/integrations/${integration.provider.key}/${integration.id}/`
+        `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`
       )
     );
   };
 
   onRemove = (integration: Integration) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     const origIntegrations = [...this.state.configurations];
 
@@ -154,7 +155,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       },
     };
 
-    this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
+    this.api.request(
+      `/organizations/${organization.slug}/integrations/${integration.id}/`,
+      options
+    );
   };
 
   onDisable = (integration: Integration) => {

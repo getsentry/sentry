@@ -4,6 +4,7 @@ import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/t
 export enum ProblemSpan {
   PARENT = 'parent',
   OFFENDER = 'offender',
+  CAUSE = 'cause',
 }
 
 export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
@@ -23,7 +24,7 @@ export class TransactionEventBuilder {
   #event: EventTransaction;
   #spans: RawSpanType[] = [];
 
-  constructor(id?: string, title?: string) {
+  constructor(id?: string, title?: string, problemType?: IssueType) {
     this.#event = {
       id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -50,7 +51,7 @@ export class TransactionEventBuilder {
         causeSpanIds: [],
         offenderSpanIds: [],
         parentSpanIds: [],
-        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+        issueType: problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       },
       // For the purpose of mock data, we don't care as much about the properties below.
       // They're here to satisfy the type constraints, but in the future if we need actual values here
@@ -92,6 +93,10 @@ export class TransactionEventBuilder {
     return (this.#spans.length + 1).toString(16).padStart(16, '0');
   }
 
+  addEntry(entry: EventTransaction['entries'][number]) {
+    this.#event.entries.push(entry);
+  }
+
   addSpan(mockSpan: MockSpan, numSpans = 1, parentSpanId?: string) {
     for (let i = 0; i < numSpans; i++) {
       const spanId = this.generateSpanId();
@@ -110,6 +115,9 @@ export class TransactionEventBuilder {
           break;
         case ProblemSpan.OFFENDER:
           this.#event.perfProblem?.offenderSpanIds.push(spanId);
+          break;
+        case ProblemSpan.CAUSE:
+          this.#event.perfProblem?.causeSpanIds.push(spanId);
           break;
         default:
           break;

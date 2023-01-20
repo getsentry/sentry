@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.models import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -85,7 +86,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "dataset must be one of: discover, metricsEnhanced, metrics, profiles"
+            == f"dataset must be one of: {', '.join([key for key in DATASET_OPTIONS.keys()])}"
         )
 
     def test_out_of_retention(self):
@@ -159,6 +160,64 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
         assert field_meta["project.name"] == "string"
+        assert field_meta["environment"] == "string"
+        assert field_meta["epm()"] == "number"
+
+    def test_project_id(self):
+        self.store_transaction_metric(
+            1,
+            tags={"environment": "staging"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["project_id", "environment", "epm()"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["project_id"] == self.project.id
+        assert data[0]["environment"] == "staging"
+
+        assert meta["isMetricsData"]
+        assert field_meta["project_id"] == "integer"
+        assert field_meta["environment"] == "string"
+        assert field_meta["epm()"] == "number"
+
+    def test_project_dot_id(self):
+        self.store_transaction_metric(
+            1,
+            tags={"environment": "staging"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["project.id", "environment", "epm()"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["environment"] == "staging"
+
+        assert meta["isMetricsData"]
+        assert field_meta["project.id"] == "integer"
         assert field_meta["environment"] == "string"
         assert field_meta["epm()"] == "number"
 
@@ -2086,3 +2145,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Meta for project_id is wrong")
+    def test_project_id(self):
+        super().test_project_id()
+
+    @pytest.mark.xfail(reason="Meta for project.id is wrong")
+    def test_project_dot_id(self):
+        super().test_project_dot_id()

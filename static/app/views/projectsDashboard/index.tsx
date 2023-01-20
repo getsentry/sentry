@@ -8,20 +8,18 @@ import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project, TeamWithProjects} from 'sentry/types';
@@ -42,7 +40,7 @@ type Props = {
   loadingTeams: boolean;
   organization: Organization;
   teams: TeamWithProjects[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 function ProjectCardList({projects}: {projects: Project[]}) {
   const organization = useOrganization();
@@ -144,19 +142,15 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
         <Fragment>
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>
+              <Layout.Title>
                 {t('Projects')}
                 <PageHeadingQuestionTooltip
-                  title={tct(
-                    "A high-level overview of errors, transactions, and deployments filtered by teams you're part of. [link: Read the docs].",
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/projects/" />
-                      ),
-                    }
+                  docsUrl="https://docs.sentry.io/product/projects/"
+                  title={t(
+                    "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
                   )}
                 />
-              </StyledHeading>
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
@@ -220,14 +214,10 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
 }
 
 const OrganizationDashboard = (props: Props) => (
-  <OrganizationDashboardWrapper>
+  <Layout.Page>
     <Dashboard {...props} />
-  </OrganizationDashboardWrapper>
+  </Layout.Page>
 );
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const SearchAndSelectorWrapper = styled('div')`
   display: flex;
@@ -265,12 +255,6 @@ const ProjectCards = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
-`;
-
-const OrganizationDashboardWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
 `;
 
 export {Dashboard};

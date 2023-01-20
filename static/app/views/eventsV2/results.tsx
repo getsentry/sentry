@@ -11,7 +11,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
 import DatePageFilter from 'sentry/components/datePageFilter';
