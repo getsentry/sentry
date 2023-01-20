@@ -432,16 +432,14 @@ def set_sentry_option(request):
 
     ```python
     def test_basic(set_sentry_option):
-        set_sentry_option("key", 1.0)
+        with set_sentry_option("key", 1.0):
+            do stuff
     ```
     """
     from sentry.testutils.helpers.options import override_options
 
     def inner(key, value):
-        ctx_mgr = override_options({key: value})
-        ctx_mgr.__enter__()
-
-        request.addfinalizer(lambda: ctx_mgr.__exit__(None, None, None))
+        return override_options({key: value})
 
     return inner
 
