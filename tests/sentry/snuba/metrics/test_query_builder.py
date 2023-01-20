@@ -1604,7 +1604,13 @@ class ResolveTagsTestCase(TestCase):
         )
 
     def test_resolve_tags_with_match_and_non_filterable_tag(self):
-        with pytest.raises(InvalidParams):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
+
+        with pytest.raises(
+            InvalidParams,
+            match="The tag key http_status_code usage has been prohibited by one of the "
+            "expressions {'match'}",
+        ):
             resolve_tags(
                 self.use_case_id,
                 self.org_id,
@@ -1624,7 +1630,13 @@ class ResolveTagsTestCase(TestCase):
             )
 
     def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
-        with pytest.raises(InvalidParams):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
+
+        with pytest.raises(
+            InvalidParams,
+            match="The tag key http_status_code usage has been prohibited by one of the "
+            "expressions {'match'}",
+        ):
             resolve_tags(
                 self.use_case_id,
                 self.org_id,

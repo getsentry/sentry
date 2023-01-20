@@ -1753,7 +1753,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
-        for http_status_code, value in (
+        for os_name, value in (
             ("Mac OS 10.5", 0),
             ("Mac OS 10.6", 1),
             ("Mac OS 10.8", 2),
@@ -1764,7 +1764,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
-                tags={"os.name": http_status_code},
+                tags={"os.name": os_name},
                 value=value,
             )
 
@@ -1778,7 +1778,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("os.name", "Windows *", 3),
             ("os.name", "*8", 2),
         ):
-            # We want to test the "match" both with "Column(...)" and also with "Function('ifNull', Column(...))".
             for use_if_null in [True, False]:
                 column = Column(name=f"tags[{tag_key}]")
 

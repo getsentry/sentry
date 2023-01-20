@@ -127,7 +127,7 @@ def resolve_tags(
     org_id: int,
     input_: Any,
     is_tag_value: bool = False,
-    tag_keys_restrictions: Optional[Dict[str, str]] = None,
+    allowed_tag_keys: Optional[Dict[str, str]] = None,
 ) -> Any:
     """Translate tags in snuba condition
 
@@ -142,7 +142,7 @@ def resolve_tags(
                 org_id,
                 item,
                 is_tag_value=True,
-                tag_keys_restrictions=tag_keys_restrictions,
+                allowed_tag_keys=allowed_tag_keys,
             )
             for item in input_
         ]
@@ -159,7 +159,7 @@ def resolve_tags(
                 use_case_id,
                 org_id,
                 input_.parameters[0],
-                tag_keys_restrictions=tag_keys_restrictions,
+                allowed_tag_keys=allowed_tag_keys,
             )
         elif input_.function == "isNull":
             return Function(
@@ -169,24 +169,24 @@ def resolve_tags(
                         use_case_id,
                         org_id,
                         input_.parameters[0],
-                        tag_keys_restrictions=tag_keys_restrictions,
+                        allowed_tag_keys=allowed_tag_keys,
                     ),
                     resolve_tags(
                         use_case_id,
                         org_id,
                         "",
                         is_tag_value=True,
-                        tag_keys_restrictions=tag_keys_restrictions,
+                        allowed_tag_keys=allowed_tag_keys,
                     ),
                 ],
             )
         elif input_.function == "match":
             restricted = {tag: "match" for tag in FILTERABLE_TAGS}
 
-            if tag_keys_restrictions:
-                tag_keys_restrictions.update(restricted)
+            if allowed_tag_keys:
+                allowed_tag_keys.update(restricted)
             else:
-                tag_keys_restrictions = restricted
+                allowed_tag_keys = restricted
 
             return Function(
                 function=input_.function,
@@ -195,7 +195,7 @@ def resolve_tags(
                         use_case_id,
                         org_id,
                         input_.parameters[0],
-                        tag_keys_restrictions=tag_keys_restrictions,
+                        allowed_tag_keys=allowed_tag_keys,
                     ),
                     input_.parameters[1],  # We directly pass the regex.
                 ],
@@ -205,9 +205,7 @@ def resolve_tags(
                 function=input_.function,
                 parameters=input_.parameters
                 and [
-                    resolve_tags(
-                        use_case_id, org_id, item, tag_keys_restrictions=tag_keys_restrictions
-                    )
+                    resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
                     for item in input_.parameters
                 ],
             )
@@ -222,14 +220,14 @@ def resolve_tags(
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
         return resolve_tags(
-            use_case_id, org_id, input_.conditions[1], tag_keys_restrictions=tag_keys_restrictions
+            use_case_id, org_id, input_.conditions[1], allowed_tag_keys=allowed_tag_keys
         )
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, tag_keys_restrictions=tag_keys_restrictions
+                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
                 ),
                 op=Op.EQ,
                 rhs=resolve_tags(
@@ -237,7 +235,7 @@ def resolve_tags(
                     org_id,
                     "",
                     is_tag_value=True,
-                    tag_keys_restrictions=tag_keys_restrictions,
+                    allowed_tag_keys=allowed_tag_keys,
                 ),
             )
         if (
@@ -265,29 +263,27 @@ def resolve_tags(
             rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, tag_keys_restrictions=tag_keys_restrictions
+                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
                 ),
                 op=op,
                 rhs=rhs_ids,
             )
         return Condition(
-            lhs=resolve_tags(
-                use_case_id, org_id, input_.lhs, tag_keys_restrictions=tag_keys_restrictions
-            ),
+            lhs=resolve_tags(use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys),
             op=input_.op,
             rhs=resolve_tags(
                 use_case_id,
                 org_id,
                 input_.rhs,
                 is_tag_value=True,
-                tag_keys_restrictions=tag_keys_restrictions,
+                allowed_tag_keys=allowed_tag_keys,
             ),
         )
 
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
             conditions=[
-                resolve_tags(use_case_id, org_id, item, tag_keys_restrictions=tag_keys_restrictions)
+                resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
                 for item in input_.conditions
             ]
         )
@@ -312,17 +308,18 @@ def resolve_tags(
         else:
             name = input_.name
 
+        allowed = is_tag_key_allowed(name, allowed_tag_keys)
+        if not allowed:
+            raise InvalidParams(
+                f"The tag key {name} usage has been prohibited by one of the expressions "
+                f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {}}"
+            )
+
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
         if is_tag_value:
             return resolve_tag_value(use_case_id, org_id, input_)
         else:
-            expression, is_restricted = is_tag_key_restricted(input_, tag_keys_restrictions)
-            if is_restricted:
-                raise InvalidParams(
-                    f"The tag key ${input_} usage has been restricted by the ${expression} expression"
-                )
-
             return resolve_weak(use_case_id, org_id, input_)
     if isinstance(input_, int):
         return input_
@@ -330,15 +327,12 @@ def resolve_tags(
     raise InvalidParams("Unable to resolve conditions")
 
 
-def is_tag_key_restricted(
-    tag_key: str, tag_keys_restrictions: Optional[Dict[str, str]]
-) -> Tuple[Optional[str], bool]:
-    if tag_keys_restrictions is None:
-        return None, False
+def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]]) -> bool:
+    # If we have a None allow list it means we don't have any restriction on tag keys at all.
+    if allowed_tag_keys is None:
+        return True
 
-    expression = tag_keys_restrictions.get(f"tags[${tag_key}]")
-
-    return expression, expression is not None
+    return allowed_tag_keys.get(f"tags[{tag_key}]") is not None
 
 
 def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
