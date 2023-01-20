@@ -310,9 +310,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
-                
+
                 # Get commit sha from Git blame
-                commit_sha = ctx["commit_id"] if ctx["commit_id"] else current_config["config"]["defaultBranch"]
+                commit_sha = (
+                    ctx["commit_id"]
+                    if ctx["commit_id"]
+                    else current_config["config"]["defaultBranch"]
+                )
                 try:
                     should_get_commit_sha = should_get_codecov_data and (
                         not ctx["commit_id"]
@@ -335,7 +339,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     logger.exception(
                         "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                     )
-                
+
                 # Get Codecov data
                 if should_get_codecov_data:
                     try:
