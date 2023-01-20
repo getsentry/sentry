@@ -228,7 +228,7 @@ const FrameColorIndicator = styled('div')`
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
-const FrameCallersTableCell = styled('div')<{
+export const FrameCallersTableCell = styled('div')<{
   align?: 'right' | 'left';
   isSelected?: boolean;
   noPadding?: boolean;
@@ -246,9 +246,5 @@ const FrameCallersTableCell = styled('div')<{
 
   &:focus {
     outline: none;
-  }
-
-  &:hover {
-    background-color: ${p => p.theme.surface100};
   }
 `;

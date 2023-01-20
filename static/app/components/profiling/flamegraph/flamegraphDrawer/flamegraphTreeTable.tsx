@@ -14,6 +14,7 @@ import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTr
 
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
 import {
+  FrameCallersTableCell,
   FrameCell,
   FrameSelfWeightCell,
   FrameTotalWeightCell,
@@ -145,6 +146,8 @@ export function FlamegraphTreeTable({
     containerStyles,
     handleSortingChange,
     handleScrollTo,
+    clickedGhostRowRef,
+    hoveredGhostRowRef,
   } = useVirtualizedTree({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
@@ -235,6 +238,12 @@ export function FlamegraphTreeTable({
           contextMenu={contextMenu}
         />
         <TableItemsContainer>
+          {/*
+          The order of these two matters because we want clicked state to
+          be on top of hover in cases where user is hovering a clicked row.
+           */}
+          <div ref={hoveredGhostRowRef} />
+          <div ref={clickedGhostRowRef} />
           <div
             ref={setScrollContainerRef}
             style={scrollContainerStyles}
@@ -284,6 +293,11 @@ export function FlamegraphTreeTable({
                   );
                 })}
               </FrameNameRowsContainer>
+              <GhostRowContainer>
+                <FrameCallersTableCell />
+                <FrameCallersTableCell />
+                <FrameCallersTableCell style={{width: '100%'}} />
+              </GhostRowContainer>
             </div>
           </div>
         </TableItemsContainer>
@@ -291,6 +305,15 @@ export function FlamegraphTreeTable({
     </FrameBar>
   );
 }
+
+const GhostRowContainer = styled('div')`
+  display: flex;
+  width: 100%;
+  pointer-events: none;
+  position: absolute;
+  height: 100%;
+  z-index: -1;
+`;
 
 const TableItemsContainer = styled('div')`
   position: relative;

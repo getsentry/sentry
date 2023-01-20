@@ -1,3 +1,5 @@
+import {Theme} from '@emotion/react';
+
 import {
   TreeLike,
   UseVirtualizedListProps,
@@ -6,6 +8,109 @@ import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/V
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
 import {VirtualizedState} from './useVirtualizedTreeReducer';
+
+export function updateGhostRow({
+  element,
+  selectedNodeIndex,
+  rowHeight,
+  scrollTop,
+  interaction,
+  theme,
+}: {
+  element: HTMLElement | null;
+  interaction: 'hover' | 'clicked';
+  rowHeight: number;
+  scrollTop: number;
+  selectedNodeIndex: number;
+  theme: Theme;
+}) {
+  if (!element) {
+    return;
+  }
+  element.style.left = '0';
+  element.style.right = '0';
+  element.style.height = `${rowHeight}px`;
+  element.style.position = 'absolute';
+  element.style.backgroundColor =
+    interaction === 'clicked' ? theme.blue300 : theme.surface100;
+  element.style.pointerEvents = 'none';
+  element.style.willChange = 'transform, opacity';
+  element.style.transform = `translateY(${rowHeight * selectedNodeIndex - scrollTop}px)`;
+  element.style.opacity = '1';
+}
+
+export function markRowAsHovered(
+  hoveredRowKey: VirtualizedTreeRenderedRow<any>['key'] | null,
+  renderedItems: VirtualizedTreeRenderedRow<any>[],
+  {
+    rowHeight,
+    scrollTop,
+    theme,
+    ghostRowRef,
+  }: {
+    ghostRowRef: HTMLDivElement | null;
+    rowHeight: number;
+    scrollTop: number;
+    theme: Theme;
+  }
+) {
+  for (const row of renderedItems) {
+    if (row.ref && row.ref.dataset.hovered === 'true') {
+      delete row.ref.dataset.hovered;
+    }
+  }
+  if (hoveredRowKey === null && ghostRowRef) {
+    ghostRowRef.style.opacity = '0';
+    return;
+  }
+
+  const hoveredRow = renderedItems.find(row => row.key === hoveredRowKey);
+  if (hoveredRow?.ref) {
+    hoveredRow.ref.dataset.hovered = 'true';
+    updateGhostRow({
+      element: ghostRowRef,
+      interaction: 'hover',
+      rowHeight,
+      scrollTop,
+      selectedNodeIndex: hoveredRow.key,
+      theme,
+    });
+  }
+}
+
+export function markRowAsClicked(
+  clickedRowKey: VirtualizedTreeRenderedRow<any>['key'] | null,
+  renderedItems: VirtualizedTreeRenderedRow<any>[],
+  {
+    rowHeight,
+    scrollTop,
+    theme,
+    ghostRowRef,
+  }: {
+    ghostRowRef: HTMLDivElement | null;
+    rowHeight: number;
+    scrollTop: number;
+    theme: Theme;
+  }
+) {
+  if (clickedRowKey === null && ghostRowRef) {
+    ghostRowRef.style.opacity = '0';
+    return;
+  }
+  if (clickedRowKey !== null) {
+    const clickedRow = renderedItems.find(row => row.key === clickedRowKey);
+    if (clickedRow) {
+      updateGhostRow({
+        element: ghostRowRef,
+        interaction: 'clicked',
+        rowHeight,
+        scrollTop,
+        selectedNodeIndex: clickedRow.key,
+        theme,
+      });
+    }
+  }
+}
 
 /**
  * Recursively calls requestAnimationFrame until a specified delay has been met or exceeded.
