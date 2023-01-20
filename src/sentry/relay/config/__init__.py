@@ -182,7 +182,7 @@ class TransactionNameRule(TypedDict):
 
 
 def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
-    if not features.has("organizations:transaction-name-sanitization", project.organization):
+    if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
     cluster_rules = get_sorted_rules(project)
