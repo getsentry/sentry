@@ -403,7 +403,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             self.project.slug,
             qs_params={"file": self.filepath, "lineNo": 26},
         )
-        
+
         assert self._caplog.record_tuples == [
             (
                 "sentry.api.endpoints.project_stacktrace_link",
