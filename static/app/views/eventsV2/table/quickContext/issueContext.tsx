@@ -147,7 +147,7 @@ function IssueContext(props: BaseContextProps) {
               <IconUser size="md" />
             </StyledIconWrapper>
           )}
-          {getAssignedToDisplayName(issue, issue.assignedTo)}
+          {getAssignedToDisplayName(issue)}
         </AssignedToBody>
       </IssueContextContainer>
     );

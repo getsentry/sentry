@@ -75,9 +75,7 @@ const ConsecutiveDBQueriesSpanEvidence = ({
         causeSpans
           ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
           : null,
-        ...offendingSpans.map(span =>
-          makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
-        ),
+        makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
         makeRow(
           t('Duration Impact'),
           getDurationImpact(event, getConsecutiveDbTimeSaved(causeSpans, offendingSpans))
@@ -179,7 +177,7 @@ const makeTransactionNameRow = (event: Event) => makeRow(t('Transaction'), event
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value']
+  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][]
 ): KeyValueListDataItem => {
   const itemKey = kebabCase(subject);
 
@@ -188,10 +186,11 @@ const makeRow = (
     subject,
     value,
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+    isMultiValue: Array.isArray(value),
   };
 };
 
-function getSpanEvidenceValue(span: Span | null) {
+function getSpanEvidenceValue(span: Span | null): string {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }

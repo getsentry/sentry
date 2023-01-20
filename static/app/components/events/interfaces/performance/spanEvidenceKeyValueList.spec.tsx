@@ -96,6 +96,14 @@ describe('SpanEvidenceKeyValueList', () => {
       problemSpan: [ProblemSpan.CAUSE, ProblemSpan.OFFENDER],
     });
 
+    parentSpan.addChild({
+      startTimestamp: 0.4,
+      endTimestamp: 0.6,
+      op: 'db',
+      description: 'SELECT COUNT(*) FROM ITEMS',
+      problemSpan: [ProblemSpan.CAUSE, ProblemSpan.OFFENDER],
+    });
+
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
@@ -111,15 +119,23 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.starting-span')
       ).toHaveTextContent('db - SELECT * FROM USERS LIMIT 100');
 
-      expect(
-        screen.queryByRole('cell', {name: 'Parallelizable Span'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parallelizable-span')
-      ).toHaveTextContent('db - SELECT COUNT(*) FROM USERS');
+      expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'}).length).toBe(
+        1
+      );
+      const parallelizableSpanKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.parallelizable-spans'
+      );
+
+      expect(parallelizableSpanKeyValue).toHaveTextContent(
+        'db - SELECT COUNT(*) FROM USERS'
+      );
+      expect(parallelizableSpanKeyValue).toHaveTextContent(
+        'db - SELECT COUNT(*) FROM ITEMS'
+      );
+
       expect(
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('15.385% (100ms/650ms)');
+      ).toHaveTextContent('46.154% (300ms/650ms)');
     });
   });
 
