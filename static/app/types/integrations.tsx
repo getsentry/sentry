@@ -161,9 +161,9 @@ export enum CodecovStatusCode {
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
-  commitSha?: string;
   codecovStatusCode?: CodecovStatusCode;
   codecovUrl?: string;
+  commitSha?: string;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   lineCoverage?: LineCoverage[];
