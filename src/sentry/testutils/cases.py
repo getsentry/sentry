@@ -878,6 +878,9 @@ class AcceptanceTestCase(TransactionTestCase):
         self.browser.wait_until_not(".loading")
 
     def tearDown(self):
+        # Avoid tests finishing before their API calls have finished.
+        # NOTE: This is not fool-proof, it requires loading indicators to be
+        # used.
         self.wait_for_loading()
         super().tearDown()
 
