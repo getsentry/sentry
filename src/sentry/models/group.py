@@ -42,7 +42,8 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization, Team
+    from sentry.models import Organization, Team
+    from sentry.services.hybrid_cloud.integration import APIIntegration
     from sentry.services.hybrid_cloud.user import APIUser
 
 logger = logging.getLogger(__name__)
@@ -314,7 +315,7 @@ class GroupManager(BaseManager):
 
     def get_groups_by_external_issue(
         self,
-        integration: Integration,
+        integration: APIIntegration,
         organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet:
@@ -331,7 +332,7 @@ class GroupManager(BaseManager):
         return self.filter(
             id__in=group_link_subquery,
             project__organization__in=organizations,
-            project__organization__organizationintegration__integration=integration,
+            project__organization__organizationintegration__integration_id=integration.id,
         ).select_related("project")
 
     def update_group_status(

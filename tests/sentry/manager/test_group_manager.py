@@ -1,4 +1,5 @@
 from sentry.models import Group, Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils import TestCase
 
 
@@ -12,13 +13,14 @@ class SentryManagerTest(TestCase):
     def test_get_groups_by_external_issue(self):
         external_issue_key = "api-123"
         group = self.create_group()
-        integration = Integration.objects.create(
+        integration_model = Integration.objects.create(
             provider="jira",
             external_id="some_id",
             name="Hello world",
             metadata={"base_url": "https://example.com"},
         )
-        integration.add_organization(group.organization, self.user)
+        integration_model.add_organization(group.organization, self.user)
+        integration = integration_service._serialize_integration(integration=integration_model)
         self.create_integration_external_issue(
             group=group, integration=integration, key=external_issue_key
         )
