@@ -1012,6 +1012,8 @@ SENTRY_FEATURES = {
     "organizations:profiling": False,
     # Enable performance spans in flamecharts
     "organizations:profiling-flamechart-spans": False,
+    # Enable ui frames in flamecharts
+    "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
     # Enable multi project selection

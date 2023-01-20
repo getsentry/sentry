@@ -131,6 +131,7 @@ default_manager.add("organizations:performance-new-widget-designs", Organization
 default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature)
 default_manager.add("organizations:profiling", OrganizationFeature)
 default_manager.add("organizations:profiling-flamechart-spans", OrganizationFeature, True)
+default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, True)
 default_manager.add("organizations:profiling-dashboard-redesign", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
