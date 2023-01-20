@@ -50,7 +50,6 @@ export interface GroupEventDetailsProps
   onRetry: () => void;
   organization: Organization;
   project: Project;
-  className?: string;
   event?: Event;
 }
 
@@ -224,7 +223,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
 
   render() {
     const {
-      className,
       group,
       project,
       organization,
@@ -249,65 +247,61 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         transactionId={event?.type === 'transaction' ? event.id : undefined}
         timestamp={event?.dateReceived}
       >
-        <div className={className} data-test-id="group-event-details">
-          <StyledLayoutBody>
-            {hasReprocessingV2Feature &&
-            groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-              <ReprocessingProgress
-                totalEvents={
-                  (mostRecentActivity as GroupActivityReprocess).data.eventCount
-                }
-                pendingEvents={
-                  (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                    .pendingEvents
-                }
-              />
-            ) : (
-              <Fragment>
-                <QuickTraceQuery
-                  event={eventWithMeta}
-                  location={location}
-                  orgSlug={organization.slug}
-                >
-                  {results => {
-                    return (
-                      <StyledLayoutMain>
-                        {this.renderGroupStatusBanner()}
-                        <QuickTraceContext.Provider value={results}>
-                          {eventWithMeta && (
-                            <GroupEventToolbar
-                              group={group}
-                              event={eventWithMeta}
-                              organization={organization}
-                              location={location}
-                              project={project}
-                              hasReplay={hasReplay}
-                            />
-                          )}
-                          {this.renderReprocessedBox(
-                            groupReprocessingStatus,
-                            mostRecentActivity as GroupActivityReprocess
-                          )}
-                          {this.renderContent(eventWithMeta)}
-                        </QuickTraceContext.Provider>
-                      </StyledLayoutMain>
-                    );
-                  }}
-                </QuickTraceQuery>
+        <StyledLayoutBody data-test-id="group-event-details">
+          {hasReprocessingV2Feature &&
+          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+            <ReprocessingProgress
+              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
+              pendingEvents={
+                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
+                  .pendingEvents
+              }
+            />
+          ) : (
+            <Fragment>
+              <QuickTraceQuery
+                event={eventWithMeta}
+                location={location}
+                orgSlug={organization.slug}
+              >
+                {results => {
+                  return (
+                    <StyledLayoutMain>
+                      {this.renderGroupStatusBanner()}
+                      <QuickTraceContext.Provider value={results}>
+                        {eventWithMeta && (
+                          <GroupEventToolbar
+                            group={group}
+                            event={eventWithMeta}
+                            organization={organization}
+                            location={location}
+                            project={project}
+                            hasReplay={hasReplay}
+                          />
+                        )}
+                        {this.renderReprocessedBox(
+                          groupReprocessingStatus,
+                          mostRecentActivity as GroupActivityReprocess
+                        )}
+                        {this.renderContent(eventWithMeta)}
+                      </QuickTraceContext.Provider>
+                    </StyledLayoutMain>
+                  );
+                }}
+              </QuickTraceQuery>
 
-                <StyledLayoutSide>
-                  <GroupSidebar
-                    organization={organization}
-                    project={project}
-                    group={group}
-                    event={eventWithMeta}
-                    environments={environments}
-                  />
-                </StyledLayoutSide>
-              </Fragment>
-            )}
-          </StyledLayoutBody>
-        </div>
+              <StyledLayoutSide>
+                <GroupSidebar
+                  organization={organization}
+                  project={project}
+                  group={group}
+                  event={eventWithMeta}
+                  environments={environments}
+                />
+              </StyledLayoutSide>
+            </Fragment>
+          )}
+        </StyledLayoutBody>
       </TransactionProfileIdProvider>
     );
   }
@@ -347,8 +341,4 @@ const StyledLayoutSide = styled(Layout.Side)`
   }
 `;
 
-export default styled(GroupEventDetails)`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-`;
+export default GroupEventDetails;
