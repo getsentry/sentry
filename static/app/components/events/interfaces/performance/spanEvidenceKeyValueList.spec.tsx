@@ -96,6 +96,14 @@ describe('SpanEvidenceKeyValueList', () => {
       problemSpan: ProblemSpan.OFFENDER,
     });
 
+    parentSpan.addChild({
+      startTimestamp: 200,
+      endTimestamp: 400,
+      op: 'db',
+      description: 'SELECT COUNT(*) FROM ITEMS',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
@@ -111,12 +119,19 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.starting-span')
       ).toHaveTextContent('db - SELECT * FROM USERS LIMIT 100');
 
-      expect(
-        screen.queryByRole('cell', {name: 'Parallelizable Span'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parallelizable-span')
-      ).toHaveTextContent('db - SELECT COUNT(*) FROM USERS');
+      expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'}).length).toBe(
+        1
+      );
+      const parallelizableSpanKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.parallelizable-spans'
+      );
+
+      expect(parallelizableSpanKeyValue).toHaveTextContent(
+        'db - SELECT COUNT(*) FROM USERS'
+      );
+      expect(parallelizableSpanKeyValue).toHaveTextContent(
+        'db - SELECT COUNT(*) FROM ITEMS'
+      );
     });
   });
 
