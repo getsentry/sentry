@@ -1,6 +1,4 @@
 ---
-created: '2023-01-17T00:14:26.238135Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 - condition:
