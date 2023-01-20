@@ -181,12 +181,13 @@ def resolve_tags(
                 ],
             )
         elif input_.function == "match":
-            restricted = {tag: "match" for tag in FILTERABLE_TAGS}
+            restricted_tag_keys = {tag: "match" for tag in FILTERABLE_TAGS}
 
-            if allowed_tag_keys:
-                allowed_tag_keys.update(restricted)
+            if allowed_tag_keys is None:
+                new_allowed_tag_keys = restricted_tag_keys
             else:
-                allowed_tag_keys = restricted
+                new_allowed_tag_keys = allowed_tag_keys.copy()
+                new_allowed_tag_keys.update(restricted_tag_keys)
 
             return Function(
                 function=input_.function,
@@ -195,7 +196,7 @@ def resolve_tags(
                         use_case_id,
                         org_id,
                         input_.parameters[0],
-                        allowed_tag_keys=allowed_tag_keys,
+                        allowed_tag_keys=new_allowed_tag_keys,
                     ),
                     input_.parameters[1],  # We directly pass the regex.
                 ],
@@ -312,7 +313,7 @@ def resolve_tags(
         if not allowed:
             raise InvalidParams(
                 f"The tag key {name} usage has been prohibited by one of the expressions "
-                f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {}}"
+                f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {} }"
             )
 
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
