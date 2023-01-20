@@ -263,19 +263,41 @@ function GroupHeader({
         {group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS && (
           <FeatureBadge
             type="alpha"
-            title="N+1 API Calls Performance Issues are in active development and may change"
+            title={t(
+              'N+1 API Calls Performance Issues are in active development and may change'
+            )}
           />
         )}
-        {group.issueType === IssueType.PERFORMANCE_SLOW_SPAN && (
+        {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
           <FeatureBadge
             type="alpha"
-            title="Slow DB Span Performance Issues are in active development and may change"
+            title={t(
+              'Slow DB Query Performance Issues are in active development and may change'
+            )}
           />
         )}
         {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
           <FeatureBadge
             type="alpha"
-            title="Slow DB Span Performance Issues are in active development and may change"
+            title={t(
+              'Consecutive DB Query Performance Issues are in active development and may change'
+            )}
+          />
+        )}
+        {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
+          <FeatureBadge
+            type="alpha"
+            title={t(
+              'Large Render Blocking Asset Performance Issues are in active development and may change'
+            )}
+          />
+        )}
+        {group.issueType === IssueType.PERFORMANCE_UNCOMPRESSED_ASSET && (
+          <FeatureBadge
+            type="alpha"
+            title={t(
+              'Uncompressed Asset Performance Issues are in active development and may change'
+            )}
           />
         )}
       </ShortIdBreadrcumb>

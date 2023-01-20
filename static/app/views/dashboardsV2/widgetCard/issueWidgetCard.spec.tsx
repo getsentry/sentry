@@ -104,8 +104,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       screen.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
     ).toBeInTheDocument();
     userEvent.hover(screen.getByTitle('dashboard user'));
-    expect(await screen.findByText('Assigned to')).toBeInTheDocument();
-    expect(await screen.findByText('dashboard user')).toBeInTheDocument();
+    expect(await screen.findByText('Assigned to dashboard user')).toBeInTheDocument();
   });
 
   it('opens in issues page', async function () {

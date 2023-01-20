@@ -43,7 +43,7 @@ class MonitorCheckIn(Model):
     monitor = FlexibleForeignKey("sentry.Monitor")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     status = BoundedPositiveIntegerField(
-        default=0, choices=CheckInStatus.as_choices(), db_index=True
+        default=CheckInStatus.UNKNOWN, choices=CheckInStatus.as_choices(), db_index=True
     )
     config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
