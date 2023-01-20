@@ -135,6 +135,8 @@ jobs:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
       VISUAL_SNAPSHOT_ENABLE: 1
+      # Use file based grouping so class based browser tests can re-use browsers
+      # more effectively and reduce overall run time.
       TEST_GROUP_STRATEGY: file
 
     steps:
