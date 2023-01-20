@@ -2,6 +2,7 @@ import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -13,6 +14,7 @@ import {
   KeyValueListData,
   KeyValueListDataItem,
 } from 'sentry/types';
+import {getPerformanceDuration} from 'sentry/views/performance/utils';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
@@ -21,6 +23,8 @@ import {TraceContextSpanProxy} from './spanEvidence';
 
 type Span = (RawSpanType | TraceContextSpanProxy) & {
   data?: any;
+  start_timestamp?: number;
+  timestamp?: number;
 };
 
 type SpanEvidenceKeyValueListProps = {
@@ -73,6 +77,10 @@ const ConsecutiveDBQueriesSpanEvidence = ({
           : null,
         ...offendingSpans.map(span =>
           makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
+        ),
+        makeRow(
+          t('Duration Impact'),
+          getDurationImpact(event, getConsecutiveDbTimeSaved(causeSpans, offendingSpans))
         ),
       ].filter(Boolean) as KeyValueListData
     }
@@ -197,6 +205,51 @@ function getSpanEvidenceValue(span: Span | null) {
   }
 
   return `${span.op} - ${span.description}`;
+}
+
+const getConsecutiveDbTimeSaved = (
+  consecutiveSpans: Span[],
+  independentSpans: Span[]
+): number => {
+  const totalDuration = sumSpanDurations(consecutiveSpans);
+  const maxIndependentSpanDuration = Math.max(
+    ...independentSpans.map(span => getSpanDuration(span))
+  );
+  const independentSpanIds = independentSpans.map(span => span.span_id);
+
+  let sumOfDependentSpansDuration = 0;
+  consecutiveSpans.forEach(span => {
+    if (!independentSpanIds.includes(span.span_id)) {
+      sumOfDependentSpansDuration += getSpanDuration(span);
+    }
+  });
+
+  return (
+    totalDuration - Math.max(maxIndependentSpanDuration, sumOfDependentSpansDuration)
+  );
+};
+
+const sumSpanDurations = (spans: Span[]) => {
+  let totalDuration = 0;
+  spans.forEach(span => {
+    totalDuration += getSpanDuration(span);
+  });
+  return totalDuration;
+};
+
+const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
+  return timestamp && start_timestamp ? (timestamp - start_timestamp) * 1000 : 0;
+};
+
+function getDurationImpact(event: EventTransaction, durationAdded: number) {
+  const transactionTime = (event.endTimestamp - event.startTimestamp) * 1000;
+  if (!transactionTime) {
+    return null;
+  }
+  const percent = durationAdded / transactionTime;
+  return `${toPercent(percent)} (${getPerformanceDuration(
+    durationAdded
+  )}/${getPerformanceDuration(transactionTime)})`;
 }
 
 type ParameterLookup = Record<string, string[]>;

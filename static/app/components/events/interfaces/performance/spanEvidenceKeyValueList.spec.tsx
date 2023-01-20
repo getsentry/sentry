@@ -75,25 +75,25 @@ describe('SpanEvidenceKeyValueList', () => {
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 650,
+      endTimestamp: 0.65,
       op: 'http.server',
       problemSpan: ProblemSpan.PARENT,
     });
 
     parentSpan.addChild({
-      startTimestamp: 10,
-      endTimestamp: 200,
+      startTimestamp: 0.1,
+      endTimestamp: 0.2,
       op: 'db',
       description: 'SELECT * FROM USERS LIMIT 100',
       problemSpan: ProblemSpan.CAUSE,
     });
 
     parentSpan.addChild({
-      startTimestamp: 200,
-      endTimestamp: 400,
+      startTimestamp: 0.2,
+      endTimestamp: 0.4,
       op: 'db',
       description: 'SELECT COUNT(*) FROM USERS',
-      problemSpan: ProblemSpan.OFFENDER,
+      problemSpan: [ProblemSpan.CAUSE, ProblemSpan.OFFENDER],
     });
 
     builder.addSpan(parentSpan);
@@ -117,6 +117,9 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.parallelizable-span')
       ).toHaveTextContent('db - SELECT COUNT(*) FROM USERS');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.duration-impact')
+      ).toHaveTextContent('15.385% (100ms/650ms)');
     });
   });
 
