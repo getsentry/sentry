@@ -157,7 +157,7 @@ jobs:
 
       - name: Install Javascript Dependencies
         run: |
-          yarn install --frozen-lockfile --prefer-offline
+          yarn install --frozen-lockfile
 
       - name: webpack
         env:
