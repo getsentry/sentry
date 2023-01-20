@@ -155,7 +155,7 @@ jobs:
           path: |
             ${{ steps.config.outputs.webpack-path }}
             node_modules
-          key: ${{ runner.os }}-v3-webpack-cache-${{ hashFiles('webpack.config.ts') }}
+          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts', 'yarn.lock', 'api-docs/yarn.lock')}}
 
       - name: Install Javascript Dependencies
         run: |
