@@ -2,10 +2,12 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {CodecovLegend} from 'sentry/components/events/interfaces/frame/codecovLegend';
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
 import {PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import Context from '../context';
@@ -75,6 +77,7 @@ function Line({
    of the stack trace / exception */
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
   const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+  const organization = useOrganization();
 
   const expandable =
     !leadsToApp || includeSystemFrames
@@ -169,8 +172,16 @@ function Line({
     'leads-to-app': leadsToApp,
   });
 
+  const shouldShowCodecovLegend =
+    organization.features.includes('codecov-stacktrace-integration') &&
+    organization.codecovAccess &&
+    !nextFrame;
+
   return (
     <StyleListItem className={className} data-test-id="stack-trace-frame">
+      {shouldShowCodecovLegend && (
+        <CodecovLegend event={event} frame={frame} organization={organization} />
+      )}
       <StrictClick onClick={expandable ? toggleContext : undefined}>
         {renderLine()}
       </StrictClick>

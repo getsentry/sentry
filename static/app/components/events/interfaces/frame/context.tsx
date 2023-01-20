@@ -56,10 +56,10 @@ export function getCoverageColors(
   lines: [number, string][],
   lineCov: LineCoverage[]
 ): Array<Color | 'transparent'> {
-  const lineCoverage = keyBy(lineCov, 'lineNo');
-  return lines.map(line => {
-    const coverage = lineCoverage[line[0]]
-      ? lineCoverage[line[0]].coverage
+  const lineCoverage = keyBy(lineCov, 0);
+  return lines.map(([lineNo]) => {
+    const coverage = lineCoverage[lineNo]
+      ? lineCoverage[lineNo][1]
       : Coverage.NOT_APPLICABLE;
     switch (coverage) {
       case Coverage.COVERED:
