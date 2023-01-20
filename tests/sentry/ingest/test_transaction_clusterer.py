@@ -50,17 +50,6 @@ def test_single_leaf():
     assert clusterer.get_rules() == ["/a/*/**"]
 
 
-def test_asterisk_in_input():
-    """Original asterisks are escaped"""
-    clusterer = TreeClusterer(merge_threshold=2)
-    transaction_names = [
-        "/a/*/c/",
-        "/a/*/d/",
-    ]
-    clusterer.add_input(transaction_names)
-    assert clusterer.get_rules() == [r"/a/\*/*/**"]
-
-
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
 def test_collection():
     project1 = Project(id=101, name="p1", organization_id=1)
@@ -222,18 +211,19 @@ def test_transaction_clusterer_generates_rules(default_project):
             get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
         )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    feature = "organizations:transaction-name-normalize"
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
     default_project.update_option(
         "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
     )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) == [
             # TTL is 90d, so three months to expire
             {
