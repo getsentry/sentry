@@ -1,19 +1,23 @@
+from datetime import timedelta
 from unittest import mock
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
-class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
+class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -105,6 +109,32 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         )
         with self.feature(self.features):
             response = self.client.get(url, {"query": "transaction.duration:>1"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
+    def test_generic_event(self):
+        """Test that the issuePlatform dataset returns data for a generic issue's short ID"""
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+        )
+        url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+        with self.feature(self.features):
+            response = self.client.get(
+                url,
+                {
+                    "query": f"issue:{group_info.group.qualified_short_id}",
+                    "dataset": "issuePlatform",
+                },
+                format="json",
+            )
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
