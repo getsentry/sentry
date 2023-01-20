@@ -45,6 +45,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert Team.objects.filter(id=team_id).exists()
         assert Team.objects.get(id=team_id).slug == "test-scimv2"
         assert Team.objects.get(id=team_id).name == "Test SCIMv2"
+        assert Team.objects.get(id=team_id).idp_provisioned
         assert len(Team.objects.get(id=team_id).member_set) == 0
 
     def test_scim_team_index_populated(self):

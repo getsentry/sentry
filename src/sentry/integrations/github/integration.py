@@ -22,6 +22,7 @@ from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models import Integration, Organization, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
@@ -108,10 +109,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> JSONData:
         gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
-        return self.get_client().get_trees_for_org(
-            cache_key=self.org_integration.organization.slug,
-            gh_org=gh_org,
-            cache_seconds=cache_seconds,
+        organization_context = organization_service.get_organization_by_id(
+            id=self.org_integration.organization_id, user_id=None
+        )
+        return (
+            self.get_client().get_trees_for_org(
+                cache_key=organization_context.organization.slug,
+                gh_org=gh_org,
+                cache_seconds=cache_seconds,
+            )
+            if organization_context
+            else {}
         )
 
     def get_repositories(

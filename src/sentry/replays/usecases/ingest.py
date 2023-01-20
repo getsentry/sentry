@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from io import BytesIO
 from typing import TypedDict, Union
 
-import sentry_sdk
 from django.conf import settings
 from django.db.utils import IntegrityError
 from sentry_sdk.tracing import Transaction
@@ -149,14 +148,10 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Transaction) 
         ).count()
 
     if count_existing_segments > 0:
-        with sentry_sdk.push_scope() as scope:
-            scope.level = "warning"
-            scope.add_attachment(bytes=recording_segment, filename="dup_replay_segment")
-            scope.set_tag("replay_id", message.replay_id)
-            scope.set_tag("project_id", message.project_id)
-
-            logging.exception("Recording segment was already processed.")
-
+        logging.warning(
+            "Recording segment was already processed.",
+            extra={"project_id": message.project_id, "replay_id": message.replay_id},
+        )
         return None
 
     # create a File for our recording segment.

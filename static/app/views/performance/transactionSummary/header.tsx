@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -15,7 +14,6 @@ import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -124,17 +122,15 @@ function TransactionHeader({
           tab={currentTab}
         />
         <Layout.Title>
-          <TransactionName>
-            {project && (
-              <IdBadge
-                project={project}
-                avatarSize={28}
-                hideName
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            )}
-            {transactionName}
-          </TransactionName>
+          {project && (
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+          )}
+          {transactionName}
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
@@ -225,12 +221,5 @@ function TransactionHeader({
     </Layout.Header>
   );
 }
-
-const TransactionName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-`;
 
 export default TransactionHeader;

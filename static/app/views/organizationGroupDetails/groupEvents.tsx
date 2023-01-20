@@ -10,6 +10,7 @@ import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {handleRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AllEventsTable from './allEventsTable';
@@ -18,7 +19,7 @@ type Props = {
   api: Client;
   group: Group;
   organization: Organization;
-} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
+} & RouteComponentProps<{groupId: string}, {}>;
 
 interface State {
   query: string;
@@ -66,12 +67,15 @@ class GroupEvents extends Component<Props, State> {
   handleSearch = (query: string) => {
     const targetQueryParams = {...this.props.location.query};
     targetQueryParams.query = query;
-    const {groupId, orgId} = this.props.params;
+    const {organization} = this.props;
+    const {groupId} = this.props.params;
 
-    browserHistory.push({
-      pathname: `/organizations/${orgId}/issues/${groupId}/events/`,
-      query: targetQueryParams,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/issues/${groupId}/events/`,
+        query: targetQueryParams,
+      })
+    );
   };
 
   renderSearchBar() {
@@ -105,16 +109,14 @@ class GroupEvents extends Component<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Wrapper>
-            {this.renderSearchBar()}
-            <AllEventsTable
-              issueId={this.props.group.id}
-              location={this.props.location}
-              organization={this.props.organization}
-              group={this.props.group}
-              excludedTags={excludedTags}
-            />
-          </Wrapper>
+          <AllEventsFilters>{this.renderSearchBar()}</AllEventsFilters>
+          <AllEventsTable
+            issueId={this.props.group.id}
+            location={this.props.location}
+            organization={this.props.organization}
+            group={this.props.group}
+            excludedTags={excludedTags}
+          />
         </Layout.Main>
       </Layout.Body>
     );
@@ -127,9 +129,8 @@ const FilterSection = styled('div')`
   grid-template-columns: max-content 1fr;
 `;
 
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${space(2)};
+const AllEventsFilters = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export {GroupEvents};

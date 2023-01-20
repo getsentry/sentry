@@ -1,10 +1,20 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Node} from 'sentry/components/events/viewHierarchy/node';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {
+  UseVirtualizedListProps,
+  useVirtualizedTree,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
+import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
-import {Tree} from './tree';
+
+function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
+  return identifier ? `${type} - ${identifier}` : type;
+}
 
 export type ViewHierarchyWindow = {
   alpha: number;
@@ -30,19 +40,73 @@ type ViewHierarchyProps = {
 };
 
 function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
+  const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
+    null
+  );
   const [selectedWindow] = useState(0);
+  const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | null>(null);
+  const hierarchy = useMemo(() => {
+    return [viewHierarchy.windows[selectedWindow]];
+  }, [selectedWindow, viewHierarchy.windows]);
+
+  const renderRow: UseVirtualizedListProps<ViewHierarchyWindow>['renderRow'] = (
+    r,
+    {handleExpandTreeNode}
+  ) => {
+    const key = `view-hierarchy-node-${r.key}`;
+    const depthMarkers = Array(r.item.depth)
+      .fill('')
+      .map((_, i) => <DepthMarker key={`${key}-depth-${i}`} />);
+    return (
+      <TreeItem
+        key={key}
+        ref={n => {
+          r.ref = n;
+        }}
+        style={r.styles}
+      >
+        {depthMarkers}
+        <Node
+          id={key}
+          label={getNodeLabel(r.item.node)}
+          onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
+          collapsible={!!r.item.node.children?.length}
+          isExpanded={r.item.expanded}
+          onSelection={() => {
+            if (r.item.node !== selectedNode) {
+              setSelectedNode(r.item.node);
+            } else {
+              setSelectedNode(null);
+            }
+          }}
+          isSelected={selectedNode === r.item.node}
+        />
+      </TreeItem>
+    );
+  };
+
+  const {renderedItems, containerStyles, scrollContainerStyles} = useVirtualizedTree({
+    renderRow,
+    rowHeight: 20,
+    scrollContainer: scrollContainerRef,
+    tree: hierarchy,
+    expanded: true,
+    overscroll: 10,
+  });
+
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
       <TreeContainer>
-        <Tree<ViewHierarchyWindow>
-          data={viewHierarchy.windows[selectedWindow]}
-          getNodeLabel={({identifier, type}) =>
-            identifier ? `${type} - ${identifier}` : type
-          }
-          isRoot
-        />
+        <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
+          <RenderedItemsContainer style={containerStyles}>
+            {renderedItems}
+          </RenderedItemsContainer>
+        </ScrollContainer>
       </TreeContainer>
+      {defined(selectedNode) && (
+        <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+      )}
     </Fragment>
   );
 }
@@ -50,11 +114,30 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
 export {ViewHierarchy};
 
 const TreeContainer = styled('div')`
-  max-height: 500px;
-  overflow: auto;
+  position: relative;
+  height: 400px;
+  overflow: hidden;
+  overflow-y: auto;
   background-color: ${p => p.theme.surface100};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)} 0;
-  display: block;
+`;
+
+const ScrollContainer = styled('div')`
+  padding: ${space(1.5)};
+`;
+
+const RenderedItemsContainer = styled('div')`
+  position: relative;
+`;
+
+const TreeItem = styled('div')`
+  display: flex;
+  height: 20px;
+`;
+
+const DepthMarker = styled('div')`
+  margin-left: 5px;
+  width: ${space(2)};
+  border-left: 1px solid ${p => p.theme.gray200};
 `;

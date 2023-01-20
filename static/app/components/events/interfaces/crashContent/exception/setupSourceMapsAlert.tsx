@@ -1,14 +1,23 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EntryType, Event, EventTransaction, Organization} from 'sentry/types';
+import {
+  EntryException,
+  EntryType,
+  Event,
+  EventTransaction,
+  Organization,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventHasSourceMaps} from 'sentry/utils/events';
+import {getFileExtension} from 'sentry/utils/fileExtension';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+
+const fileNameBlocklist = ['@webkit-masked-url'];
 
 // This list must always be updated with the documentation.
 // Ideally it would be nice if we could send a request validating that this URL exists,
@@ -59,6 +68,10 @@ export function shouldDisplaySetupSourceMapsAlert(
   const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
     event as EventTransaction
   );
+  const exceptionEntry = event?.entries.find(
+    entry => entry.type === EntryType.EXCEPTION
+  ) as EntryException | undefined; // could there be more than one? handling only the first one for now
+  const exceptionEntryValues = exceptionEntry?.data.values;
 
   // We would like to filter out all platforms that do not have the concept of source maps
   if (
@@ -73,6 +86,54 @@ export function shouldDisplaySetupSourceMapsAlert(
     return false;
   }
 
+  // If event has no exception, we do not want to show this alert
+  if (!exceptionEntry || exceptionEntryValues?.length === 0) {
+    return false;
+  }
+
+  // If the event does not have exception stacktrace, we do not want to show this alert
+  if (
+    exceptionEntryValues?.every(
+      exception => !exception.stacktrace && !exception.rawStacktrace
+    )
+  ) {
+    return false;
+  }
+
+  // If there are no in-app frames, we do not want to show this alert
+  if (
+    exceptionEntryValues?.every(exception =>
+      exception.stacktrace?.frames?.every(frame => !frame.inApp)
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    exceptionEntryValues?.every(exception =>
+      exception.stacktrace?.frames?.every(frame => {
+        let filename = '';
+        try {
+          filename = new URL(frame.absPath ?? '').pathname.split('/').reverse()[0];
+        } catch {
+          // do nothing
+        }
+
+        return (
+          // If all filenames are anonymous, we do not want to show this alert
+          (frame.filename === '<anonymous>' && frame.inApp) ||
+          // If all function names are on the blocklist, we do not want to show this alert
+          fileNameBlocklist.includes(frame.function ?? '') ||
+          // If all absolute paths do not have a file extension, we do not want to show this alert
+          (frame.absPath && !getFileExtension(filename))
+        );
+      })
+    )
+  ) {
+    return false;
+  }
+
+  // Otherwise, show the alert
   return true;
 }
 

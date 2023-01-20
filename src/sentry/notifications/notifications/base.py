@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
-from urllib.parse import urljoin
 
 import sentry_sdk
 
@@ -197,9 +196,8 @@ class BaseNotification(abc.ABC):
                     url_str += f"{fine_tuning_key}/"
 
         return str(
-            urljoin(
-                absolute_uri(url_str),
-                self.get_sentry_query_params(provider, recipient),
+            self.organization.absolute_url(
+                url_str, query=self.get_sentry_query_params(provider, recipient)
             )
         )
 
@@ -212,6 +210,16 @@ class BaseNotification(abc.ABC):
 
         return notification_providers()
 
+    def filter_to_accepting_recipients(
+        self, recipients: Iterable[Team | APIUser]
+    ) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
+        accepting_recipients: Mapping[
+            ExternalProviders, Iterable[Team | APIUser]
+        ] = NotificationSetting.objects.filter_to_accepting_recipients(
+            self.organization, recipients, self.notification_setting_type
+        )
+        return accepting_recipients
+
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
         # need a notification_setting_type to call this function
         if not self.notification_setting_type:
@@ -219,9 +227,7 @@ class BaseNotification(abc.ABC):
 
         available_providers = self.get_notification_providers()
         recipients = list(self.determine_recipients())
-        recipients_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization, recipients, self.notification_setting_type
-        )
+        recipients_by_provider = self.filter_to_accepting_recipients(recipients)
 
         return {
             provider: recipients_of_provider

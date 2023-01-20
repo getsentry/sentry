@@ -54,7 +54,9 @@ runs:
   using: 'composite'
   steps:
     - name: Setup default environment variables
-      shell: bash
+      # the default for "bash" is:
+      #      bash --noprofile --norc -eo pipefail {0}
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         MATRIX_INSTANCE: ${{ matrix.instance }}
         # XXX: We should be using something like len(strategy.matrix.instance) (not possible atm)
@@ -62,11 +64,6 @@ runs:
         # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
         # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
-        # Only set `MIGRATIONS_TEST_MIGRATE` if it is not already set (or if it's an empty string)
-        if [ -z $MIGRATIONS_TEST_MIGRATE ]; then
-          echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
-        fi
-
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
@@ -77,7 +74,7 @@ runs:
 
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
-        echo "PYTEST_ADDOPTS=--reruns=5 --durations=10" >> $GITHUB_ENV
+        echo "PYTEST_ADDOPTS=--reruns=5 --durations=10 --fail-slow=60s" >> $GITHUB_ENV
 
         ### pytest-sentry configuration ###
         if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
@@ -100,7 +97,7 @@ runs:
 
         # this handles pytest test sharding
         if [ "$MATRIX_INSTANCE" ]; then
-          if ! [ "$MATRIX_INSTANCE_TOTAL" ]; then
+          if ! [ "${MATRIX_INSTANCE_TOTAL:-}" ]; then
             echo "MATRIX_INSTANCE_TOTAL is required."
             exit 1
           fi
@@ -108,38 +105,36 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - name: Setup python
-      uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
+    - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
       with:
         python-version: ${{ inputs.python-version }}
-        cache: pip
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
+        install-cmd: pip install -r ${{ inputs.workdir }}/requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config
       env:
         MATRIX_INSTANCE: ${{ matrix.instance }}
-      shell: bash
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       run: |
         echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
-        echo "matrix-instance-total=$(($MATRIX_INSTANCE_TOTAL))" >> "$GITHUB_OUTPUT"
+        echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
         echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
     - name: Install python dependencies
-      shell: bash
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
         # without needing to fork it. The path needed is the one where setup.py is located
         WORKDIR: ${{ inputs.workdir }}
       run: |
         cd "$WORKDIR"
-        pip install -r requirements-dev-frozen.txt
         # We need to install editable otherwise things like check migration will fail.
         SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
 
     - name: Start devservices
-      shell: bash
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}

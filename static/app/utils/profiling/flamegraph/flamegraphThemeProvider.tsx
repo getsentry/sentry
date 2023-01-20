@@ -3,10 +3,11 @@ import {createContext, useMemo} from 'react';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
+  makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
-  makeColorMapByImage,
+  makeColorMapByLibrary,
   makeColorMapByRecursion,
-  makeColorMapBySystemVsApplication,
+  makeColorMapBySystemFrame,
 } from 'sentry/utils/profiling/colors/utils';
 import {
   DarkFlamegraphTheme,
@@ -38,12 +39,18 @@ function FlamegraphThemeProvider(
         return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByRecursion}};
       }
       case 'by library': {
-        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByImage}};
+        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByLibrary}};
       }
-      case 'by system / application': {
+      case 'by system frame': {
         return {
           ...base,
-          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapBySystemVsApplication},
+          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapBySystemFrame},
+        };
+      }
+      case 'by application frame': {
+        return {
+          ...base,
+          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByApplicationFrame},
         };
       }
       case 'by frequency': {

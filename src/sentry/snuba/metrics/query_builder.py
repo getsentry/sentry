@@ -69,12 +69,11 @@ from sentry.snuba.metrics.utils import (
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
-    OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
-    get_intervals,
+    get_num_intervals,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -372,15 +371,10 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
 
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
     date_range = timedelta(
-        seconds=int(
-            interval
-            * MetricsQuery.calculate_intervals_len(end=end, start=start, granularity=interval)
-        )
+        seconds=int(interval * get_num_intervals(end=end, start=start, granularity=interval))
     )
 
-    end = to_datetime(
-        int(interval * MetricsQuery.calculate_intervals_len(end=end, granularity=interval))
-    )
+    end = to_datetime(int(interval * get_num_intervals(start=None, end=end, granularity=interval)))
     start = end - date_range
     # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
     # if `end` is in the future. This allows for better real time results when
@@ -620,9 +614,13 @@ class SnubaQueryBuilder:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
-            Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start),
-            Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end),
         ]
+
+        if self._metrics_query.start:
+            where.append(Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start))
+        if self._metrics_query.end:
+            where.append(Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end))
+
         if not self._metrics_query.where:
             return where
 
@@ -663,7 +661,10 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_groupby(self) -> List[Column]:
+    def _build_groupby(self) -> Optional[List[Column]]:
+        if self._metrics_query.groupby is None:
+            return None
+
         groupby_cols = []
 
         for metric_groupby_obj in self._metrics_query.groupby or []:
@@ -714,7 +715,7 @@ class SnubaQueryBuilder:
             select=select,
             where=where,
             limit=limit,
-            offset=offset or Offset(0),
+            offset=offset or None,
             granularity=rollup,
             orderby=orderby,
         )
@@ -867,24 +868,21 @@ class SnubaQueryBuilder:
             ]
             orderby = self._build_orderby()
 
+            # Functionally [] and None will be the same and the same applies for Offset(0) and None.
             queries_dict[entity] = self.__build_totals_and_series_queries(
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
-                groupby=groupby,
-                orderby=orderby,
+                groupby=groupby,  # Empty group by is set to None.
+                orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,
-                offset=self._metrics_query.offset,
+                offset=self._metrics_query.offset,  # No offset is set to None.
                 rollup=self._metrics_query.granularity,
-                intervals_len=len(
-                    list(
-                        get_intervals(
-                            self._metrics_query.start,
-                            self._metrics_query.end,
-                            self._metrics_query.granularity.granularity,
-                            interval=self._metrics_query.interval,
-                        )
-                    )
+                intervals_len=get_num_intervals(
+                    self._metrics_query.start,
+                    self._metrics_query.end,
+                    self._metrics_query.granularity.granularity,
+                    interval=self._metrics_query.interval,
                 ),
             )
 
@@ -972,8 +970,12 @@ class SnubaResultConverter:
                 # or also from raw_metrics that don't exist in clickhouse yet
                 cleaned_value = default_null_value
             else:
-                if op in OPERATIONS_PERCENTILES:
-                    value = value[0]
+                # We don't need anymore to extract the first value of quantilesIf, because we wrap it with
+                # arrayElement during query generation. I will leave this code here in case we decide to revert it,
+                # because it is quite difficult to find without proper knowledge of the metrics layer.
+                #
+                # if op in OPERATIONS_PERCENTILES:
+                #     value = value[0]
                 cleaned_value = finite_or_none(value)
 
             if bucketed_time is None:

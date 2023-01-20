@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -515,7 +515,7 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
 
 export const modalCss = css`
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
   margin: 50px auto;
 `;
 

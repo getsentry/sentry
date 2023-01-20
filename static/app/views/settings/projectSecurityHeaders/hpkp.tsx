@@ -123,7 +123,7 @@ class ProjectHpkpReports extends AsyncView<Props, State> {
               information, take a look at [link:the documentation on MDN].`,
                 {
                   link: (
-                    <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning" />
+                    <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning" />
                   ),
                 }
               )}
