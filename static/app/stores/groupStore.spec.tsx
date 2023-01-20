@@ -216,5 +216,17 @@ describe('GroupStore', function () {
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
       });
     });
+
+    describe('onAssignToSuccess()', function () {
+      it("should treat undefined itemIds argument as 'all'", function () {
+        GroupStore.items = [g('1')];
+        const assignedGroup = g('1', {assignedTo: TestStubs.User({type: 'user'})});
+        GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
+
+        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
+        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1']));
+        expect(GroupStore.items[0]).toEqual(assignedGroup);
+      });
+    });
   });
 });

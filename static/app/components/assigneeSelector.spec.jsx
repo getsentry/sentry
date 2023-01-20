@@ -82,6 +82,7 @@ describe('AssigneeSelector', () => {
     TeamStore.reset();
     TeamStore.setTeams([TEAM_1]);
     GroupStore.reset();
+    GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => null);
     jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
