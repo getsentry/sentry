@@ -65,7 +65,7 @@ function CompactSelect<Value extends React.Key>({
   closeOnSelect,
   triggerProps,
   ...controlProps
-}: SingleSelectProps<Value> | MultipleSelectProps<Value>) {
+}: SelectProps<Value>) {
   const triggerId = useMemo(() => domId('select-trigger-'), []);
 
   // Combine list box props into an object with two clearly separated types, one where

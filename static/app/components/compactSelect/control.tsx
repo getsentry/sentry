@@ -70,7 +70,7 @@ export interface ControlProps extends UseOverlayProps {
    */
   isClearable?: boolean;
   /**
-   * When true, there will be a loading indicator in the menu header.
+   * If true, there will be a loading indicator in the menu header.
    */
   isLoading?: boolean;
   /**

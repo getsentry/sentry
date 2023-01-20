@@ -55,8 +55,8 @@ export type CompositeSelectRegion<Value extends React.Key> =
   | MultipleCompositeSelectRegion<Value>;
 
 /**
- * [CompositeSelectChild description]
- * @type {[type]}
+ * A React child inside CompositeSelect. This helps ensure that the only non-falsy child
+ * allowed inside CompositeSelect is CompositeSelect.Region
  */
 type CompositeSelectChild =
   | React.ReactElement<CompositeSelectRegion<React.Key>>
