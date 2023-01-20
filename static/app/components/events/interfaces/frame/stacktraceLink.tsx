@@ -125,18 +125,25 @@ function shouldshowCodecovFeatures(
 }
 
 interface CodecovLinkProps {
+  event: Event;
   organization: Organization;
   codecovStatusCode?: CodecovStatusCode;
   codecovUrl?: string;
 }
 
-const onOpenCodecovLink = (organization: Organization) => {
+const onOpenCodecovLink = (organization: Organization, event: Event) => {
   trackAdvancedAnalyticsEvent('issue_details.codecov_link_clicked', {
     organization,
+    ...getAnalyicsDataForEvent(event),
   });
 };
 
-function CodecovLink({codecovUrl, codecovStatusCode, organization}: CodecovLinkProps) {
+function CodecovLink({
+  codecovUrl,
+  codecovStatusCode,
+  organization,
+  event,
+}: CodecovLinkProps) {
   if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
@@ -154,7 +161,7 @@ function CodecovLink({codecovUrl, codecovStatusCode, organization}: CodecovLinkP
       <OpenInLink
         href={codecovUrl}
         openInNewTab
-        onClick={() => onOpenCodecovLink(organization)}
+        onClick={() => onOpenCodecovLink(organization, event)}
       >
         {t('View Coverage Tests on Codecov')}
         <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
@@ -292,6 +299,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             codecovUrl={match.codecovUrl}
             codecovStatusCode={match.codecovStatusCode}
             organization={organization}
+            event={event}
           />
         )}
       </CodeMappingButtonContainer>
