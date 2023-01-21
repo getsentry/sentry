@@ -16,8 +16,9 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         data = self.activity.data
 
-        url = "/organizations/{}/releases/{}/?project={}".format(
-            self.organization.slug, data["version"], self.project.id
+        url = self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/releases/{data['version']}/",
+            query=f"project={self.project.id}",
         )
 
         if data.get("version"):
