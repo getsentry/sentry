@@ -283,7 +283,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value=None,
     ):
         if model in self.non_outcomes_snql_query_settings:
-            return self.get_data_snql(
+            return self.__get_data_snql(
                 model,
                 keys,
                 start,
@@ -298,7 +298,7 @@ class SnubaTSDB(BaseTSDB):
                 jitter_value,
             )
         else:
-            return self.get_data_legacy(
+            return self.__get_data_legacy(
                 model,
                 keys,
                 start,
@@ -313,7 +313,7 @@ class SnubaTSDB(BaseTSDB):
                 jitter_value,
             )
 
-    def get_data_snql(
+    def __get_data_snql(
         self,
         model,
         keys,
@@ -328,6 +328,10 @@ class SnubaTSDB(BaseTSDB):
         use_cache=False,
         jitter_value=None,
     ):
+        """
+        Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
+        the legacy format.
+        """
         model_requires_manual_group_on_time = model in (
             TSDBModel.group_generic,
             TSDBModel.users_affected_by_generic_group,
@@ -499,7 +503,7 @@ class SnubaTSDB(BaseTSDB):
         else:
             return result
 
-    def get_data_legacy(
+    def __get_data_legacy(
         self,
         model,
         keys,
