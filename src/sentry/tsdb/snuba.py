@@ -267,32 +267,6 @@ class SnubaTSDB(BaseTSDB):
 
         return known_rollups if known_rollups else synthetic_rollup
 
-    def get_sums_snql(
-        self,
-        model,
-        keys,
-        start,
-        end,
-        rollup=None,
-        environment_id=None,
-        use_cache=False,
-        jitter_value=None,
-    ):
-        pass
-
-    def get_distinct_counts_totals_snql(
-        self,
-        model,
-        keys,
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        use_cache=False,
-        jitter_value=None,
-    ):
-        pass
-
     def get_data(
         self,
         model,
