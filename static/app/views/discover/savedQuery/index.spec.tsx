@@ -3,9 +3,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
-import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
-import * as utils from 'sentry/views/eventsV2/savedQuery/utils';
+import {ALL_VIEWS} from 'sentry/views/discover/data';
+import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
+import * as utils from 'sentry/views/discover/savedQuery/utils';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -36,7 +36,7 @@ function mount(
   );
 }
 
-describe('EventsV2 > SaveQueryButtonGroup', function () {
+describe('Discover > SaveQueryButtonGroup', function () {
   let organization;
   const location = {
     pathname: '/organization/eventsv2/',

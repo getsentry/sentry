@@ -7,8 +7,8 @@ import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {QueryField as TableQueryField} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {QueryField as TableQueryField} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 export interface QueryFieldProps {
   fieldOptions: React.ComponentProps<typeof TableQueryField>['fieldOptions'];
