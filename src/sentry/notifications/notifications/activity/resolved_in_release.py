@@ -4,7 +4,6 @@ from html import escape
 from typing import Any, Mapping
 
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 from .base import GroupActivityNotification
 
@@ -25,11 +24,7 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
             return (
                 "{author} marked {an issue} as resolved in {version}",
                 {"version": data["version"]},
-                {
-                    "version": '<a href="{}">{}</a>'.format(
-                        absolute_uri(url), escape(data["version"])
-                    )
-                },
+                {"version": '<a href="{}">{}</a>'.format(url, escape(data["version"]))},
             )
         return "{author} marked {an issue} as resolved in an upcoming release", {}, {}
 
