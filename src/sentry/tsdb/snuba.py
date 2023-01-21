@@ -393,8 +393,7 @@ class SnubaTSDB(BaseTSDB):
         # build up where conditions
         conditions = conditions if conditions is not None else []
         if model_query_settings.conditions is not None:
-            conditions += deepcopy(model_query_settings.conditions)
-            # copy because we modify the conditions in snuba.query
+            conditions += model_query_settings.conditions
 
         # build up order by
         orderby = []
@@ -409,10 +408,11 @@ class SnubaTSDB(BaseTSDB):
         if keys:
 
             def _build_select_exp(
+                selected_columns: Sequence[str],
                 aggs: Sequence[Sequence[Any]],
             ) -> Optional[Sequence[SelectableExpression]]:
                 selects = []
-                for s in model_query_settings.selected_columns or ():
+                for s in selected_columns or ():
                     selects.append(Column(s))
                 # combination of aggregations
                 for agg in aggs:
@@ -461,7 +461,7 @@ class SnubaTSDB(BaseTSDB):
 
                 return None
 
-            selected = _build_select_exp(aggregations)
+            selected = _build_select_exp(model_query_settings.selected_columns, aggregations)
             where_conds = _build_where_exp(conditions, keys_map, start, end)
 
             # snql style using Reqest
