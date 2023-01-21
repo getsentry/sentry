@@ -57,7 +57,9 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase
+from django.test import TransactionTestCase as DjangoTransactionTestCase
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -477,7 +479,7 @@ class TestCase(BaseTestCase, TestCase):
             yield
 
 
-class TransactionTestCase(BaseTestCase, TransactionTestCase):
+class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
     pass
 
 

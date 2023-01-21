@@ -2,7 +2,7 @@ from urllib.parse import urlencode
 
 from selenium.webdriver.common.by import By
 
-from sentry.testutils import SlowAcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.factories import get_fixture_path
 
 EMAILS = (
@@ -46,7 +46,9 @@ def build_url(path: str, format: str = "html") -> str:
     return f"{path}?{urlencode({'format': format, 'seed': b'123', 'is_test': True})}"
 
 
-class EmailTestCase(SlowAcceptanceTestCase):
+class EmailTestCase(AcceptanceTestCase):
+    reset_sequences = True
+
     def setUp(self):
         super().setUp()
         # This email address is required to match FIXTURES.

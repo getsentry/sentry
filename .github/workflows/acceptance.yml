@@ -152,10 +152,8 @@ jobs:
       - name: webpack cache
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
-          path: |
-            ${{ steps.config.outputs.webpack-path }}
-            node_modules
-          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts', 'yarn.lock', 'api-docs/yarn.lock')}}
+          path: ${{ steps.config.outputs.webpack-path }}
+          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
 
       - name: Install Javascript Dependencies
         run: |
