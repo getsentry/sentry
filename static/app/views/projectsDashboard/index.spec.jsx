@@ -43,6 +43,7 @@ describe('ProjectsDashboard', function () {
       body: [],
     });
     ProjectsStatsStore.reset();
+    ProjectsStore.loadInitialData([]);
   });
 
   afterEach(function () {
@@ -52,7 +53,6 @@ describe('ProjectsDashboard', function () {
   describe('empty state', function () {
     it('renders with no projects', function () {
       const noProjectTeams = [TestStubs.Team({isMember: false, projects: []})];
-      ProjectsStore.loadInitialData([]);
 
       render(
         <Dashboard teams={noProjectTeams} organization={org} params={{orgId: org.slug}} />
@@ -64,7 +64,8 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders with 1 project, with no first event', function () {
-      const projects = TestStubs.Project({teams, firstEvent: false});
+      const projects = [TestStubs.Project({teams, firstEvent: false})];
+      ProjectsStore.loadInitialData(projects);
 
       const teamsWithOneProject = [TestStubs.Team({projects})];
 
@@ -106,6 +107,7 @@ describe('ProjectsDashboard', function () {
         }),
       ];
 
+      ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TestStubs.Team({projects})];
 
       render(
@@ -147,44 +149,47 @@ describe('ProjectsDashboard', function () {
         ],
       });
 
-      const projectWithTeam = [teamC, teamD];
+      const teamsWithSpecificProjects = [teamC, teamD];
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/teams/?team=2`,
-        body: projectWithTeam,
+        body: teamsWithSpecificProjects,
       });
 
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'project1',
+          teams: [teamC],
+          firstEvent: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'project2',
+          teams: [teamC],
+          isBookmarked: true,
+          firstEvent: true,
+          stats: [],
+        }),
+        TestStubs.Project({
+          id: '3',
+          slug: 'project3',
+          teams: [teamD],
+          firstEvent: true,
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData(projects);
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
-        body: [
-          TestStubs.Project({
-            id: '1',
-            slug: 'project1',
-            teams: [teamC],
-            firstEvent: true,
-            stats: [],
-          }),
-          TestStubs.Project({
-            id: '2',
-            slug: 'project2',
-            teams: [teamC],
-            isBookmarked: true,
-            firstEvent: true,
-            stats: [],
-          }),
-          TestStubs.Project({
-            id: '3',
-            slug: 'project3',
-            teams: [teamD],
-            firstEvent: true,
-            stats: [],
-          }),
-        ],
+        body: projects,
       });
 
       render(
         <Dashboard
-          teams={projectWithTeam}
+          teams={teamsWithSpecificProjects}
           organization={org}
           params={{orgId: org.slug}}
           location={{
@@ -220,6 +225,7 @@ describe('ProjectsDashboard', function () {
         }),
       ];
 
+      ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TestStubs.Team({projects})];
 
       render(
@@ -287,6 +293,7 @@ describe('ProjectsDashboard', function () {
         }),
       ];
 
+      ProjectsStore.loadInitialData(projects);
       const teamsWithFavProjects = [TestStubs.Team({projects})];
 
       MockApiClient.addMockResponse({
@@ -371,6 +378,8 @@ describe('ProjectsDashboard', function () {
     const teamsWithStatTestProjects = [TestStubs.Team({projects})];
 
     it('uses ProjectsStatsStore to load stats', async function () {
+      ProjectsStore.loadInitialData(projects);
+
       jest.useFakeTimers();
       ProjectsStatsStore.onStatsLoadSuccess([{...projects[0], stats: [[1517281200, 2]]}]);
       const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
@@ -446,6 +455,8 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders an error from withTeamsForUser', function () {
+      ProjectsStore.loadInitialData(projects);
+
       render(
         <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />
       );

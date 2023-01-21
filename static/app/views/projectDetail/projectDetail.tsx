@@ -200,8 +200,8 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     return (
       <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
-        <NoProjectMessage organization={organization}>
-          <Layout.Page>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs
@@ -341,8 +341,8 @@ class ProjectDetail extends AsyncView<Props, State> {
                 />
               </Layout.Side>
             </Layout.Body>
-          </Layout.Page>
-        </NoProjectMessage>
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     );
   }

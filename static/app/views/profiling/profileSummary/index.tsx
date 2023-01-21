@@ -119,8 +119,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         forceProject={project}
         specificProjectSlugs={defined(project) ? [project.slug] : []}
       >
-        <NoProjectMessage organization={organization}>
-          <Layout.Page>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
             {project && transaction && (
               <Fragment>
                 <Layout.Header>
@@ -185,8 +185,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                 </Layout.Body>
               </Fragment>
             )}
-          </Layout.Page>
-        </NoProjectMessage>
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
