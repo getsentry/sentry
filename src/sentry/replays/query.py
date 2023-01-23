@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Union
@@ -26,6 +28,7 @@ from sentry.replays.lib.query import (
     QueryConfig,
     String,
     Tag,
+    all_values_for_tag_key,
     generate_valid_conditions,
     get_valid_sort_commands,
 )
@@ -184,7 +187,63 @@ def query_replays_count(
     )
 
 
-# Select.
+def query_replays_dataset_tagkey_values(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    environment: str | None,
+    tag_key: str,
+):
+    """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
+
+    where = []
+
+    if environment:
+        where.append(Condition(Column("environment"), Op.IN, environment))
+
+    grouped_column = TAG_QUERY_ALIAS_COLUMN_MAP.get(tag_key)
+    if grouped_column is None:
+        # see https://clickhouse.com/docs/en/sql-reference/functions/array-join/
+        # for arrayJoin behavior. we use it to return a flattened
+        # row for each value in the tags.value array
+        aggregated_column = Function(
+            "arrayJoin",
+            parameters=[all_values_for_tag_key(tag_key, Column("tags.key"), Column("tags.value"))],
+            alias="tag_value",
+        )
+        grouped_column = Column("tag_value")
+
+    else:
+        # using identity to alias the column
+        aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Function("uniq", parameters=[Column("replay_id")], alias="times_seen"),
+                Function("min", parameters=[Column("timestamp")], alias="first_seen"),
+                Function("max", parameters=[Column("timestamp")], alias="last_seen"),
+                aggregated_column,
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("is_archived"), Op.IS_NULL),
+                *where,
+            ],
+            orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
+            groupby=[grouped_column],
+            granularity=Granularity(3600),
+            limit=Limit(1000),
+        ),
+    )
+    return raw_snql_query(
+        snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
+    )
 
 
 def make_select_statement(
@@ -593,6 +652,33 @@ QUERY_ALIAS_COLUMN_MAP = {
     "sdk_version": _grouped_unique_scalar_value(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
+}
+
+
+TAG_QUERY_ALIAS_COLUMN_MAP = {
+    "replay_type": Column("replay_type"),
+    "platform": Column("platform"),
+    "environment": Column("environment"),
+    "release": Column("release"),
+    "dist": Column("dist"),
+    "url": Function("arrayJoin", parameters=[Column("urls")]),
+    "user.id": Column("user_id"),
+    "user.username": Column("user_name"),
+    "user.email": Column("user_email"),
+    "user.ip": Function(
+        "IPv4NumToString",
+        parameters=[Column("ip_address_v4")],
+    ),
+    "sdk.name": Column("sdk_name"),
+    "sdk.version": Column("sdk_version"),
+    "os.name": Column("os_name"),
+    "os.version": Column("os_version"),
+    "browser.name": Column("browser_name"),
+    "browser.version": Column("browser_version"),
+    "device.name": Column("device_name"),
+    "device.brand": Column("device_brand"),
+    "device.family": Column("device_family"),
+    "device.model_id": Column("device_model"),
 }
 
 
