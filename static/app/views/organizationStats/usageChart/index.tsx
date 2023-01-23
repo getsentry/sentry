@@ -337,6 +337,7 @@ export class UsageChart extends Component<UsageChartProps, State> {
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.FILTERED,
@@ -344,12 +345,14 @@ export class UsageChart extends Component<UsageChartProps, State> {
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.DROPPED,
         data: chartData.dropped as any, // TODO(ts)
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.PROJECTED,
@@ -357,6 +360,7 @@ export class UsageChart extends Component<UsageChartProps, State> {
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
     ];
 
