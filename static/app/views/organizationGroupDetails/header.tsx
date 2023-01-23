@@ -262,7 +262,7 @@ function GroupHeader({
         </Tooltip>
         {group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS && (
           <FeatureBadge
-            type="alpha"
+            type="beta"
             title={t(
               'N+1 API Calls Performance Issues are in active development and may change'
             )}
