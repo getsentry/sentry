@@ -3,15 +3,27 @@ import functools
 import itertools
 from collections.abc import Mapping, Set
 from copy import deepcopy
-from typing import Any, Optional, Sequence
+from datetime import datetime
+from typing import Any, List, Optional, Sequence
 
-from snuba_sdk import Column, Direction, Entity, Granularity, Limit, OrderBy, Query, Request
+from snuba_sdk import (
+    Column,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    OrderBy,
+    Query,
+    Request,
+)
 from snuba_sdk.conditions import Condition, ConditionGroup, Op
-from snuba_sdk.legacy import parse_condition, parse_exp
+from snuba_sdk.legacy import parse_condition
 from snuba_sdk.query import SelectableExpression
 
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.tagstore.snuba.backend import _translate_filter_keys
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
@@ -187,29 +199,14 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
-    # TODO: here as reference for the old query settings
-    non_outcomes_legacy_query_settings = {
+    # these query settings should use SnQL style parameters instead of the legacy format
+    non_outcomes_snql_query_settings = {
         TSDBModel.group_generic: SnubaModelQuerySettings(
             snuba.Dataset.IssuePlatform,
             "group_id",
             None,
             [],
-        ),
-        TSDBModel.users_affected_by_generic_group: SnubaModelQuerySettings(
-            snuba.Dataset.IssuePlatform,
-            "group_id",
-            "tags[sentry:user]",
-            [],
-        ),
-    }
-
-    non_outcomes_snql_query_settings = {
-        TSDBModel.group_generic: SnubaModelQuerySettings(
-            snuba.Dataset.IssuePlatform,  # dataset
-            "group_id",  # groupby
-            None,  # aggregate
-            [],  # conditions
-            None,  # selected_columns
+            None,
         ),
         TSDBModel.users_affected_by_generic_group: SnubaModelQuerySettings(
             snuba.Dataset.IssuePlatform,
@@ -267,6 +264,48 @@ class SnubaTSDB(BaseTSDB):
 
         return known_rollups if known_rollups else synthetic_rollup
 
+    def __manual_group_on_time_aggregation_sqnl(
+        self, rollup, time_column_alias
+    ) -> SelectableExpression:
+        def rollup_agg(rollup_granularity: int, alias: str):
+            if rollup_granularity == 60:
+                return Function(
+                    "toUnixTimestamp", [Function("toStartOfMinute", [Column("timestamp")])], alias
+                )
+            elif rollup_granularity == 3600:
+                return Function(
+                    "toUnixTimestamp", [Function("toStartOfHour", [Column("timestamp")])], alias
+                )
+            elif rollup_granularity == 3600 * 24:
+                return Function(
+                    "toUnixTimestamp",
+                    [Function("toDateTime", [Function("toDate", [Column("timestamp")])])],
+                    alias,
+                )
+            else:
+                return None
+
+        # if we don't have an explicit function mapped to this rollup, we have to calculate it on the fly
+        # multiply(intDiv(toUInt32(toUnixTimestamp(timestamp)), granularity)))
+        synthetic_rollup = Function(
+            "multiply",
+            [
+                Function(
+                    "intDiv",
+                    [
+                        Function("toUInt32", [Function("toUnixTimestamp", [Column("timestamp")])]),
+                        rollup,
+                    ],
+                ),
+                rollup,
+            ],
+            time_column_alias,
+        )
+
+        known_rollups = rollup_agg(rollup, time_column_alias)
+
+        return known_rollups if known_rollups else synthetic_rollup
+
     def get_data(
         self,
         model,
@@ -290,12 +329,17 @@ class SnubaTSDB(BaseTSDB):
                 end,
                 rollup,
                 environment_ids,
-                aggregation,
+                "count" if aggregation == "count()" else aggregation,
                 group_on_model,
                 group_on_time,
-                conditions,
+                # no way around having to explicitly map legacy condition format to SnQL since this function
+                # is used everywhere that expects `conditions` to be legacy format
+                [parse_condition(c) for c in conditions] if conditions is not None else [],
                 use_cache,
                 jitter_value,
+                manual_group_on_time=(
+                    model in (TSDBModel.group_generic, TSDBModel.users_affected_by_generic_group)
+                ),
             )
         else:
             return self.__get_data_legacy(
@@ -315,29 +359,24 @@ class SnubaTSDB(BaseTSDB):
 
     def __get_data_snql(
         self,
-        model,
-        keys,
-        start,
-        end,
-        rollup=None,
-        environment_ids=None,
-        aggregation="count()",
-        group_on_model=True,
-        group_on_time=False,
-        conditions=None,
-        use_cache=False,
-        jitter_value=None,
+        model: TSDBModel,
+        keys: Sequence[Any],
+        start: Optional[datetime],
+        end: Optional[datetime],
+        rollup: Optional[int] = None,
+        environment_ids: Optional[Sequence[int]] = None,
+        aggregation: str = "count",
+        group_on_model: bool = True,
+        group_on_time: bool = False,
+        conditions: Optional[Sequence[ConditionGroup]] = None,
+        use_cache: bool = False,
+        jitter_value: Optional[int] = None,
+        manual_group_on_time: bool = False,
     ):
         """
         Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
         the legacy format.
         """
-        model_requires_manual_group_on_time = model in (
-            TSDBModel.group_generic,
-            TSDBModel.users_affected_by_generic_group,
-        )
-        group_on_time_column_alias = "grouped_time"
-
         model_query_settings = self.model_query_settings.get(model)
 
         if model_query_settings is None:
@@ -347,157 +386,112 @@ class SnubaTSDB(BaseTSDB):
         model_aggregate = model_query_settings.aggregate
         model_dataset = model_query_settings.dataset
 
-        # figure out groupby
-        groupby = []
-        if group_on_model and model_group is not None:
-            groupby.append(model_group)
-        if group_on_time:
-            if not model_requires_manual_group_on_time:
-                groupby.append("time")
-            else:
-                groupby.append(group_on_time_column_alias)
-        if aggregation == "count()" and model_aggregate is not None:
-            # Special case, because count has different semantics, we change:
-            # `COUNT(model_aggregate)` to `COUNT() GROUP BY model_aggregate`
-            groupby.append(model_aggregate)
-            model_aggregate = None
-
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
         keys_map = dict(zip(columns, self.flatten_keys(keys)))
         keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
-        # add this to selected_columns
-        aggregated_as = "aggregate"
-        aggregations = [[aggregation, model_aggregate, aggregated_as]]
-
         # For historical compatibility with bucket-counted TSDB implementations
         # we grab the original bucketed series and add the rollup time to the
         # timestamp of the last bucket to get the end time.
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        if group_on_time and model_requires_manual_group_on_time:
-            aggregations.append(
-                self.__manual_group_on_time_aggregation(rollup, group_on_time_column_alias)
-            )
-
         # If jitter_value is provided then we use it to offset the buckets we round start/end to by
         # up  to `rollup` seconds.
         series = self._add_jitter_to_series(series, start, rollup, jitter_value)
 
-        start = to_datetime(series[0])
-        end = to_datetime(series[-1] + rollup)
-        limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
-
-        # build up where conditions
-        conditions = conditions if conditions is not None else []
-        if model_query_settings.conditions is not None:
-            conditions += model_query_settings.conditions
-
-        # build up order by
-        orderby = []
-        if group_on_time:
-            if not model_requires_manual_group_on_time:
-                orderby.append("-time")
-            else:
-                orderby.append(f"-{group_on_time_column_alias}")
+        groupby = []
         if group_on_model and model_group is not None:
-            orderby.append(model_group)
+            groupby.append(model_group)
+        if group_on_time:
+            groupby.append("time")
+        if aggregation == "count" and model_aggregate is not None:
+            # Special case, because count has different semantics, we change:
+            # `COUNT(model_aggregate)` to `COUNT() GROUP BY model_aggregate`
+            groupby.append(model_aggregate)
+            model_aggregate = None
+
+        aggregated_as = "aggregate"
+        aggregations: List[SelectableExpression] = [
+            Function(
+                aggregation,
+                [Column(model_aggregate)] if model_aggregate else [],
+                aggregated_as,
+            )
+        ]
+
+        if group_on_time and manual_group_on_time:
+            aggregations.append(self.__manual_group_on_time_aggregation_sqnl(rollup, "time"))
 
         if keys:
+            start = to_datetime(series[0])
+            end = to_datetime(series[-1] + rollup)
+            limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
-            def _build_select_exp(
-                selected_columns: Sequence[str],
-                aggs: Sequence[Sequence[Any]],
-            ) -> Optional[Sequence[SelectableExpression]]:
-                selects = []
-                for s in selected_columns or ():
-                    selects.append(Column(s))
-                # combination of aggregations
-                for agg in aggs:
-                    selects.append(parse_exp(agg))
+            # build up order by
+            orderby: List[OrderBy] = []
+            if group_on_time:
+                orderby.append(OrderBy(Column("time"), Direction.DESC))
+            if group_on_model and model_group is not None:
+                orderby.append(OrderBy(Column(model_group), Direction.ASC))
 
-                return selects
+            # build up where conditions
+            conditions = conditions if conditions is not None else []
+            if model_query_settings.conditions is not None:
+                conditions += model_query_settings.conditions
 
-            def _build_where_exp(cond, filter_keys, start, end) -> Optional[ConditionGroup]:
-                # translate legacy condition format to SnQL condition group
+            project_ids = infer_project_ids_from_related_models(keys_map)
+            group_ids = keys_map.get("group_id")
+            env_ids = keys_map.get("environment")
 
-                from sentry.tagstore.snuba.backend import _translate_filter_keys
+            translated_filter_keys = _translate_filter_keys(project_ids, group_ids, env_ids)
 
-                project_ids = infer_project_ids_from_related_models(filter_keys)
-                group_ids = filter_keys.get("group_id")
-                env_ids = filter_keys.get("environment")
-
-                translated_filter_keys = _translate_filter_keys(project_ids, group_ids, env_ids)
-
-                # resolve filter_key values to the right values environment.id -> environment.name, etc.
-                mapped_filter_conditions = [
-                    Condition(Column(k), Op.IN, list(v)) for k, v in translated_filter_keys.items()
+            # resolve filter_key values to the right values environment.id -> environment.name, etc.
+            mapped_filter_conditions = [
+                Condition(Column(k), Op.IN, list(v)) for k, v in translated_filter_keys.items()
+            ]
+            # map filter keys to conditional expressions
+            where_conds = (
+                [
+                    Condition(Column("timestamp"), Op.GTE, start),
+                    Condition(Column("timestamp"), Op.LT, end),
                 ]
-                # map filter keys to conditional expressions
-                return (
-                    [
-                        Condition(Column("timestamp"), Op.GTE, start),
-                        Condition(Column("timestamp"), Op.LT, end),
-                    ]
-                    + ([parse_condition(c) for c in cond] if cond else [])
-                    + mapped_filter_conditions
-                )
+                + conditions
+                + mapped_filter_conditions
+            )
 
-            def _build_groupby_exp(
-                groupbys: Sequence[str],
-            ) -> Optional[Sequence[SelectableExpression]]:
-                return [Column(g) for g in groupbys] if groupbys else None
-
-            def _build_orderby_exp(orderbys: Sequence[str]) -> Optional[Sequence[OrderBy]]:
-                if orderbys:
-                    orderby_exp = []
-                    for o in orderbys:
-                        if o.startswith("-"):
-                            orderby_exp.append(OrderBy(Column(o[1:]), Direction.DESC))
-                        else:
-                            orderby_exp.append(OrderBy(Column(o), Direction.ASC))
-
-                return None
-
-            selected = _build_select_exp(model_query_settings.selected_columns, aggregations)
-            where_conds = _build_where_exp(conditions, keys_map, start, end)
-
-            # snql style using Reqest
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
                 query=Query(
                     match=Entity(model_dataset.value),
-                    select=selected,
+                    select=[Column(s) for s in model_query_settings.selected_columns or ()]
+                    + aggregations,
                     where=where_conds,
-                    groupby=_build_groupby_exp(groupby),
-                    orderby=_build_orderby_exp(orderby),
+                    groupby=[Column(g) for g in groupby] if groupby else None,
+                    orderby=orderby,
                     granularity=Granularity(rollup),
                     limit=Limit(limit),
                 ),
             )
-            result = raw_snql_query(
+            query_result = raw_snql_query(
                 snql_request, referrer=f"tsdb-modelid:{model.value}", use_cache=use_cache
             )
 
-            result = nest_groups(result["data"], groupby, [aggregated_as])
-
+            result = nest_groups(query_result["data"], groupby, [aggregated_as])
         else:
+            # don't bother querying snuba since we probably won't have the proper filter conditions to return
+            # reasonable data (invalid query)
             result = {}
 
         if group_on_time:
-            if not model_requires_manual_group_on_time:
-                keys_map["time"] = series
-            else:
-                keys_map[group_on_time_column_alias] = series
+            keys_map["time"] = series
 
         self.zerofill(result, groupby, keys_map)
         self.trim(result, groupby, keys)
 
-        if group_on_time and model_requires_manual_group_on_time:
-            # unroll aggregated data
+        if group_on_time and manual_group_on_time:
             self.unnest(result, aggregated_as)
             return result
         else:
