@@ -82,6 +82,7 @@ describe('AssigneeSelector', () => {
     TeamStore.reset();
     TeamStore.setTeams([TEAM_1]);
     GroupStore.reset();
+    GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => null);
     jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
@@ -369,8 +370,7 @@ describe('AssigneeSelector', () => {
     expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
     // Hover over avatar
     userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
-    expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
-    expect(screen.getByText('Jane Bloggs')).toBeInTheDocument();
+    expect(await screen.findByText('Suggestion: Jane Bloggs')).toBeInTheDocument();
     expect(screen.getByText('commit data')).toBeInTheDocument();
 
     await openMenu();

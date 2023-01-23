@@ -595,7 +595,7 @@ describe('WidgetBuilder', function () {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("isn't supported here.")).toBeInTheDocument();
+        expect(screen.getByText("The field isn't supported here.")).toBeInTheDocument();
       });
 
       userEvent.click(screen.getByText('Releases (Sessions, Crash rates)'));
@@ -869,7 +869,7 @@ describe('WidgetBuilder', function () {
           expect(eventsMock).toHaveBeenCalled();
         });
 
-        screen.getByText('Your selection is only applicable to');
+        screen.getByText('Your selection is only applicable to', {exact: false});
         expect(screen.getByText('Add Widget').closest('button')).toBeEnabled();
       });
 
@@ -921,7 +921,7 @@ describe('WidgetBuilder', function () {
           expect(eventsMock).toHaveBeenCalled();
         });
 
-        screen.getByText('Your selection is only applicable to');
+        screen.getByText('Your selection is only applicable to', {exact: false});
       });
 
       it('does not raise an alert banner if widget result is not metrics data but widget contains error fields', async function () {
@@ -968,7 +968,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          screen.queryByText('Your selection is only applicable to')
+          screen.queryByText('Your selection is only applicable to', {exact: false})
         ).not.toBeInTheDocument();
       });
 
