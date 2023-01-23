@@ -120,8 +120,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
-        <NoProjectMessage organization={organization}>
-          <Layout.Page>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Layout.Title>
@@ -218,8 +218,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 )}
               </Layout.Main>
             </Layout.Body>
-          </Layout.Page>
-        </NoProjectMessage>
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

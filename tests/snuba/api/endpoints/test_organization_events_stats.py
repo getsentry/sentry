@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from dateutil.parser import parse as parse_date
 from django.urls import reverse
+from django.utils import timezone
 from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -17,13 +18,15 @@ from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
-class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
     def setUp(self):
@@ -88,9 +91,89 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 "interval": "1h",
             },
         )
-
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
+    def test_generic_issue(self):
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+        )
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=1, minute=0, second=0) + timedelta(minutes=1),
+        )
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=1, minute=0, second=0) + timedelta(minutes=2),
+        )
+        with self.feature(
+            [
+                "organizations:profiling",
+            ]
+        ):
+            response = self.do_request(
+                {
+                    "start": timezone.now().replace(hour=0, minute=0, second=0),
+                    "end": timezone.now().replace(hour=2, minute=0, second=0),
+                    "interval": "1h",
+                    "query": f"issue:{group_info.group.qualified_short_id}",
+                    "dataset": "issuePlatform",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
+    def test_generic_issue_calculated_interval(self):
+        """Test that a 4h interval returns the correct generic event stats.
+        This follows a different code path than 1h or 1d as the IssuePlatformTimeSeriesQueryBuilder
+        does some calculation to create the time column."""
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+        )
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=3, minute=0, second=0) + timedelta(minutes=1),
+        )
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=3, minute=1, second=0) + timedelta(minutes=2),
+        )
+        with self.feature(
+            [
+                "organizations:profiling",
+            ]
+        ):
+            response = self.do_request(
+                {
+                    "start": timezone.now().replace(hour=0, minute=0, second=0),
+                    "end": timezone.now().replace(hour=4, minute=0, second=0),
+                    "interval": "4h",
+                    "query": f"issue:{group_info.group.qualified_short_id}",
+                    "dataset": "issuePlatform",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_misaligned_last_bucket(self):
         response = self.do_request(

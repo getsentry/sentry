@@ -56,7 +56,7 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
     {
       [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
-      [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
+      [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
@@ -71,17 +71,13 @@ const ConsecutiveDBQueriesSpanEvidence = ({
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
-    data={
-      [
-        makeTransactionNameRow(event),
-        causeSpans
-          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
-          : null,
-        ...offendingSpans.map(span =>
-          makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
-        ),
-      ].filter(Boolean) as KeyValueListData
-    }
+    data={[
+      makeTransactionNameRow(event),
+      ...(causeSpans
+        ? [makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))]
+        : []),
+      makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
+    ]}
   />
 );
 
@@ -135,11 +131,11 @@ const isRequestEntry = (entry: Entry): entry is EntryRequest => {
   return entry.type === EntryType.REQUEST;
 };
 
-const SlowSpanSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
+const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
       makeTransactionNameRow(event),
-      makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
 );
@@ -194,7 +190,7 @@ const makeTransactionNameRow = (event: Event) => makeRow(t('Transaction'), event
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value']
+  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][]
 ): KeyValueListDataItem => {
   const itemKey = kebabCase(subject);
 
@@ -203,10 +199,11 @@ const makeRow = (
     subject,
     value,
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+    isMultiValue: Array.isArray(value),
   };
 };
 
-function getSpanEvidenceValue(span: Span | null) {
+function getSpanEvidenceValue(span: Span | null): string {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }

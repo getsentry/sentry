@@ -1,23 +1,56 @@
 ---
-created: '2023-01-17T00:14:25.295001Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
-breakdownsV2:
-  span_ops:
-    matches:
-    - http
-    - db
-    - browser
-    - resource
-    - ui
-    type: spanOperations
-metricConditionalTagging:
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 2400
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 600
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
 - condition:
     inner:
     - name: event.duration
       op: gt
-      value: 1200
+      value: 1600
+    - name: event.transaction
+      op: eq
+      value: foo
     op: and
   tagValue: frustrated
   targetMetrics:
@@ -29,7 +62,46 @@ metricConditionalTagging:
     inner:
     - name: event.duration
       op: gt
-      value: 300
+      value: 400
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 2000
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 500
     op: and
   tagValue: tolerated
   targetMetrics:
@@ -915,36 +987,3 @@ metricConditionalTagging:
   - d:transactions/measurements.lcp@millisecond
   - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
-transactionMetrics:
-  acceptTransactionNames: strict
-  customMeasurements:
-    limit: 5
-  extractCustomTags: []
-  extractMetrics:
-  - d:transactions/duration@millisecond
-  - s:transactions/user@none
-  - d:transactions/measurements.app_start_cold@millisecond
-  - d:transactions/measurements.app_start_warm@millisecond
-  - d:transactions/measurements.cls@none
-  - d:transactions/measurements.fcp@millisecond
-  - d:transactions/measurements.fid@millisecond
-  - d:transactions/measurements.fp@millisecond
-  - d:transactions/measurements.frames_frozen@none
-  - d:transactions/measurements.frames_frozen_rate@ratio
-  - d:transactions/measurements.frames_slow@none
-  - d:transactions/measurements.frames_slow_rate@ratio
-  - d:transactions/measurements.frames_total@none
-  - d:transactions/measurements.inp@millisecond
-  - d:transactions/measurements.lcp@millisecond
-  - d:transactions/measurements.stall_count@none
-  - d:transactions/measurements.stall_longest_time@millisecond
-  - d:transactions/measurements.stall_percentage@ratio
-  - d:transactions/measurements.stall_total_time@millisecond
-  - d:transactions/measurements.ttfb.requesttime@millisecond
-  - d:transactions/measurements.ttfb@millisecond
-  - d:transactions/breakdowns.span_ops.ops.http@millisecond
-  - d:transactions/breakdowns.span_ops.ops.db@millisecond
-  - d:transactions/breakdowns.span_ops.ops.browser@millisecond
-  - d:transactions/breakdowns.span_ops.ops.resource@millisecond
-  - d:transactions/breakdowns.span_ops.ops.ui@millisecond
-  version: 1
