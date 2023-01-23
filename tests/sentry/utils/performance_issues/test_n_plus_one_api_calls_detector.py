@@ -69,7 +69,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
                 ],
             )
         ]
-        assert problems[0].title == "N+1 API Calls"
+        assert problems[0].title == "N+1 API Call"
 
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
