@@ -12,7 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.filter import FilterStep
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from sentry_sdk.tracing import Transaction
+from sentry_sdk.tracing import Span
 
 from sentry.replays.lib.consumer import LogExceptionStep
 from sentry.replays.usecases.ingest import (
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class MessageContext:
     message: Dict[str, Any]
-    transaction: Transaction
+    transaction: Span
 
     # The message attribute can cause large log messages to be emitted which can pin the CPU
     # to 100.

@@ -8,7 +8,7 @@ from typing import TypedDict, Union
 
 from django.conf import settings
 from django.db.utils import IntegrityError
-from sentry_sdk.tracing import Transaction
+from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models import File
@@ -77,7 +77,7 @@ class RecordingIngestMessage:
 @metrics.wraps("replays.usecases.ingest.ingest_recording_chunked")
 def ingest_recording_chunked(
     message_dict: RecordingSegmentMessage,
-    transaction: Transaction,
+    transaction: Span,
 ) -> None:
     """Ingest chunked recording messages."""
     with transaction.start_child(
@@ -115,7 +115,7 @@ def ingest_recording_chunked(
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording_not_chunked")
-def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Transaction) -> None:
+def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Span) -> None:
     """Ingest non-chunked recording messages."""
     with transaction.start_child(
         op="replays.usecases.ingest.ingest_recording_not_chunked",
@@ -132,7 +132,7 @@ def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Tr
         ingest_recording(message, transaction)
 
 
-def ingest_recording(message: RecordingIngestMessage, transaction: Transaction) -> None:
+def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None:
     """Ingest recording messages."""
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)
@@ -218,7 +218,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Transaction) 
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_chunk")
-def ingest_chunk(message_dict: RecordingSegmentChunkMessage, transaction: Transaction) -> None:
+def ingest_chunk(message_dict: RecordingSegmentChunkMessage, transaction: Span) -> None:
     """Ingest chunked message part."""
     with transaction.start_child(op="replays.process_recording.store_chunk"):
         cache_prefix = replay_recording_segment_cache_id(
