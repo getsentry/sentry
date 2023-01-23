@@ -44,12 +44,11 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import FeatureBadge from '../featureBadge';
 
-import {
+import TagFacets, {
   BACKEND_TAGS,
   DEFAULT_TAGS,
   FRONTEND_TAGS,
   MOBILE_TAGS,
-  TagFacets,
   TAGS_FORMATTER,
 } from './tagFacets';
 
@@ -309,7 +308,6 @@ class BaseGroupSidebar extends Component<Props, State> {
             }
             event={event}
             tagFormatter={TAGS_FORMATTER}
-            style="distributions"
             project={project}
           />
         ) : (
