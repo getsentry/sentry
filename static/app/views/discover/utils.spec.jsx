@@ -12,7 +12,7 @@ import {
   generateFieldOptions,
   getExpandedResults,
   pushEventViewToLocation,
-} from 'sentry/views/eventsV2/utils';
+} from 'sentry/views/discover/utils';
 
 describe('decodeColumnOrder', function () {
   it('can decode 0 elements', function () {
