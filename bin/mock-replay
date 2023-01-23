@@ -2,9 +2,9 @@
 from sentry.runner import configure
 
 configure()
-
 import datetime
 import pathlib
+import uuid
 
 import click
 import requests
@@ -55,11 +55,11 @@ def main():
         name=project_name,
         defaults={
             "organization": org,
-            "flags": Project.flags.has_releases,
+            "flags": Project.flags.has_replays,
         },
     )
 
-    replay_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+    replay_id = uuid.uuid4().hex
     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
