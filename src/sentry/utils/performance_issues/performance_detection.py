@@ -1665,13 +1665,13 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_event_eligible(cls, event):
         tags = event.get("tags", [])
         browser_name = next(
-            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), None
+            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
         )
-        if browser_name in [
-            "Chrome",
-            "Firefox",
-            "Safari",
-            "Edge",
+        if browser_name.lower() in [
+            "chrome",
+            "firefox",
+            "safari",
+            "edge",
         ]:
             # Only use major browsers as some mobile browser may be responsible for not sending accept-content header,
             # which isn't fixable since you can't control what headers your users are sending.
