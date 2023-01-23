@@ -41,6 +41,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
                     duration=1000.0,
@@ -69,6 +70,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
                     op="resource.link",
@@ -94,6 +96,25 @@ class UncompressedAssetsDetectorTest(TestCase):
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
             )
         ]
+
+    def test_does_not_detect_mobile_uncompressed_asset(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "tags": [["browser.name", "firefox_mobile"]],
+            "spans": [
+                create_asset_span(
+                    duration=1000.0,
+                    data={
+                        "Transfer Size": 1_000_000,
+                        "Encoded Body Size": 1_000_000,
+                        "Decoded Body Size": 1_000_000,
+                    },
+                )
+            ],
+        }
+
+        assert len(self.find_problems(event)) == 0
 
     def test_ignores_assets_under_size(self):
         event = {
