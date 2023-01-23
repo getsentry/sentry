@@ -515,3 +515,6 @@ class Require2fa(TestCase):
 
         url = org.absolute_url("/organizations/acme/issues/", query="project=123", fragment="ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"
+
+        url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
+        assert url == "http://acme.testserver/issues/?project=123#ref"
