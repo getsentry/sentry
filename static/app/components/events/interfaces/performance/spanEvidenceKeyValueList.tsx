@@ -268,6 +268,7 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
   return `${toPercent(percent)} (${getPerformanceDuration(
     durationAdded
   )}/${getPerformanceDuration(transactionTime)})`;
+}
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
   const transactionTime = event.endTimestamp - event.startTimestamp;
