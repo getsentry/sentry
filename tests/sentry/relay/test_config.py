@@ -508,19 +508,22 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
 def test_project_config_with_organizations_metrics_extraction(
     default_project, set_sentry_option, abnormal_mechanism_rollout, has_metrics_extraction
 ):
-    set_sentry_option(
+    with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
-    )
-    with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
-        cfg = get_project_config(default_project, full_config=True)
+    ):
+        with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
+            cfg = get_project_config(default_project, full_config=True)
 
-    cfg = cfg.to_dict()
-    session_metrics = get_path(cfg, "config", "sessionMetrics")
-    if has_metrics_extraction:
-        assert session_metrics == {"drop": False, "version": 2 if abnormal_mechanism_rollout else 1}
-    else:
-        assert session_metrics is None
+        cfg = cfg.to_dict()
+        session_metrics = get_path(cfg, "config", "sessionMetrics")
+        if has_metrics_extraction:
+            assert session_metrics == {
+                "drop": False,
+                "version": 2 if abnormal_mechanism_rollout else 1,
+            }
+        else:
+            assert session_metrics is None
 
 
 @pytest.mark.django_db
