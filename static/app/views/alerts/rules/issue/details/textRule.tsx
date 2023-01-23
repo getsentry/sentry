@@ -81,8 +81,12 @@ export function TextAction({
   }
 
   if (action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
-    // Remove (optionally, an ID: XXX) from slack action
-    return <Fragment>{action.name.replace(/\(optionally.*\)/, '')}</Fragment>;
+    const name = action.name
+      // Hide the id "(optionally, an ID: XXX)"
+      .replace(/\(optionally.*\)/, '')
+      // Hide empty tags
+      .replace('and show tags [] in notification', '');
+    return <Fragment>{name}</Fragment>;
   }
 
   return <Fragment>{action.name}</Fragment>;

@@ -652,6 +652,7 @@ export type KeyValueListDataItem = {
   subject: string;
   actionButton?: React.ReactNode;
   isContextData?: boolean;
+  isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
