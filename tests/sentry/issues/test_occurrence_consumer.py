@@ -76,7 +76,8 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
-        result = _process_message(message)
+        with self.feature("organizations:profile-blocked-main-thread-ingest"):
+            result = _process_message(message)
         assert result is not None
         occurrence = result[0]
 

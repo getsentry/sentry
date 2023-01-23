@@ -14,11 +14,14 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry import nodestore
+from sentry import features
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+from sentry.models import Organization, Project
 from sentry.utils import json, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
@@ -101,6 +104,15 @@ def process_event_and_issue_occurrence(
         raise ValueError(
             f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
         )
+
+    if occurrence_data["type"] != ProfileBlockedThreadGroupType.type_id:
+        return None
+
+    project = Project.objects.get_from_cache(id=event_data["project_id"])
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
+        return None
 
     event = save_event_from_occurrence(event_data)
     return save_issue_occurrence(occurrence_data, event)
