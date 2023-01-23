@@ -27,6 +27,12 @@ def contexttype(cls):
     return cls
 
 
+# NOTE: Are you adding a new context? Make sure to also update the
+# documentation in the sentry develop docs [0]!
+#
+# [0]: https://develop.sentry.dev/sdk/event-payloads/contexts
+
+
 class ContextType:
     indexed_fields = None
     type = None
