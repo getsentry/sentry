@@ -44,6 +44,7 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
+  computeMinZoomConfigViewForFrames,
   formatColorForFrame,
   Rect,
   useResizeCanvasObserver,
@@ -286,30 +287,18 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       }
 
       if (defined(highlightFrames)) {
-        const [firstFrame, ...frames] = flamegraph.findAllMatchingFrames(
+        const frames = flamegraph.findAllMatchingFrames(
           highlightFrames.name,
           highlightFrames.package
         );
 
-        if (firstFrame) {
-          const rectParams = frames.reduce(
-            (acc, frame) => {
-              acc.x = Math.min(acc.x, frame.start);
-              acc.y = Math.min(acc.y, frame.depth);
-              acc.width = Math.max(acc.width, frame.end);
-              return acc;
-            },
-            {
-              x: firstFrame.start,
-              y: firstFrame.depth,
-              width: firstFrame.end,
-            }
+        if (frames.length > 0) {
+          const rectFrames = frames.map(
+            f => new Rect(f.start, f.depth, f.end - f.start, 1)
           );
-
-          const newConfigView = computeConfigViewWithStrategy(
-            'min',
+          const newConfigView = computeMinZoomConfigViewForFrames(
             newView.configView,
-            new Rect(rectParams.x, rectParams.y, rectParams.width, 1)
+            rectFrames
           );
           newView.setConfigView(newConfigView);
           return newView;
@@ -320,6 +309,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       // to have some heuristic when the data is fetched to determine if we should
       // initialize the config view to the full view or a predefined value
       if (
+        !defined(highlightFrames) &&
+        !defined(zoomIntoFrame) &&
         position.view &&
         !position.view.isEmpty() &&
         previousView?.model === LOADING_OR_FALLBACK_FLAMEGRAPH
@@ -385,7 +376,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       flamegraphView.setMinWidth(minWidthBetweenViews);
       spansView.setMinWidth(minWidthBetweenViews);
     }
-  });
+  }, [flamegraphView, spansView]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
   // any of the children components effects actually run. This way we do not lose events

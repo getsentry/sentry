@@ -23,7 +23,6 @@ import {
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,7 +35,7 @@ const LoadingGroup: ProfileGroup = {
   metadata: {},
   measurements: {},
   traceID: '',
-  profiles: [Profile.Empty],
+  profiles: [],
 };
 
 function ProfileFlamegraph(): React.ReactElement {

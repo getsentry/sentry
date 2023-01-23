@@ -23,6 +23,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
+  computeMinZoomConfigViewForFrames,
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
   Rect,
@@ -550,7 +551,7 @@ function FlamegraphZoomView({
   );
 
   const handleHighlightAllFramesClick = useCallback(() => {
-    if (!hoveredNodeOnContextMenuOpen.current) {
+    if (!hoveredNodeOnContextMenuOpen.current || !flamegraphView) {
       return;
     }
 
@@ -564,7 +565,6 @@ function FlamegraphZoomView({
       setHighlightingAllOccurences(false);
       dispatch({type: 'set highlight all frames', payload: null});
       canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
-      scheduler.draw();
       return;
     }
 
@@ -577,11 +577,16 @@ function FlamegraphZoomView({
       },
     });
 
-    canvasPoolManager.dispatch('highlight frame', [
-      flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
-      'selected',
-    ]);
-  }, [canvasPoolManager, flamegraph, scheduler, dispatch]);
+    const frames = flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current);
+    const rectFrames = frames.map(f => new Rect(f.start, f.depth, f.end - f.start, 1));
+    const newConfigView = computeMinZoomConfigViewForFrames(
+      flamegraphView.configView,
+      rectFrames
+    );
+
+    canvasPoolManager.dispatch('highlight frame', [frames, 'selected']);
+    canvasPoolManager.dispatch('set config view', [newConfigView, flamegraphView]);
+  }, [canvasPoolManager, flamegraph, flamegraphView, dispatch]);
 
   const handleCopyFunctionName = useCallback(() => {
     if (!hoveredNodeOnContextMenuOpen.current) {

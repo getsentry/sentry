@@ -817,6 +817,29 @@ export function computeConfigViewWithStrategy(
   return frame.withHeight(view.height);
 }
 
+export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): Rect {
+  if (frames.length === 1) {
+    return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
+  }
+  const frame = frames.reduce(
+    (min, f) => {
+      return {
+        x: Math.min(min.x, f.x),
+        y: Math.min(min.y, f.y),
+        right: Math.max(min.right, f.right),
+        bottom: 0,
+      };
+    },
+    {x: Number.MAX_SAFE_INTEGER, y: Number.MAX_SAFE_INTEGER, right: 0, bottom: 0}
+  );
+
+  return computeConfigViewWithStrategy(
+    'exact',
+    view,
+    new Rect(frame.x, frame.y, frame.right - frame.x, view.height)
+  );
+}
+
 // Compute the X and Y position based on offset and canvas resolution
 export function getPhysicalSpacePositionFromOffset(offsetX: number, offsetY: number) {
   const logicalMousePos = vec2.fromValues(offsetX, offsetY);
