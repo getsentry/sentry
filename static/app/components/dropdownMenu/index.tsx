@@ -6,13 +6,11 @@ import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import DropdownMenu, {
-  DropdownMenuContext,
-  DropdownMenuProps,
-} from 'sentry/components/dropdownMenu';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {FormSize} from 'sentry/utils/theme';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+
+import {MenuItemProps} from './item';
+import DropdownMenuList, {DropdownMenuContext, DropdownMenuListProps} from './list';
 
 /**
  * Recursively removes hidden items, including those nested in submenus
@@ -45,9 +43,9 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
   }, []);
 }
 
-interface DropdownMenuControlProps
+interface DropdownMenuProps
   extends Omit<
-      DropdownMenuProps,
+      DropdownMenuListProps,
       'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,
     Pick<
@@ -123,7 +121,7 @@ interface DropdownMenuControlProps
  * A menu component that renders both the trigger button and the dropdown
  * menu. See: https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
  */
-function DropdownMenuControl({
+function DropdownMenu({
   items,
   disabledKeys,
   trigger,
@@ -145,7 +143,7 @@ function DropdownMenuControl({
   shouldCloseOnInteractOutside,
   preventOverflowOptions,
   ...props
-}: DropdownMenuControlProps) {
+}: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   const {rootOverlayState} = useContext(DropdownMenuContext);
@@ -237,7 +235,7 @@ function DropdownMenuControl({
     }
 
     return (
-      <DropdownMenu
+      <DropdownMenuList
         {...props}
         {...menuProps}
         size={size}
@@ -265,20 +263,20 @@ function DropdownMenuControl({
             </Item>
           );
         }}
-      </DropdownMenu>
+      </DropdownMenuList>
     );
   }
 
   return (
-    <MenuControlWrap className={className} as={renderWrapAs} role="presentation">
+    <DropdownMenuWrap className={className} as={renderWrapAs} role="presentation">
       {renderTrigger()}
       {renderMenu()}
-    </MenuControlWrap>
+    </DropdownMenuWrap>
   );
 }
 
-export default DropdownMenuControl;
+export default DropdownMenu;
 
-const MenuControlWrap = styled('div')`
+const DropdownMenuWrap = styled('div')`
   list-style-type: none;
 `;
