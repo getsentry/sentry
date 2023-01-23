@@ -77,6 +77,7 @@ export function decodeFlamegraphStateFromQueryParams(
 
   if (typeof query.frameName === 'string' && typeof query.framePackage === 'string') {
     decoded.profiles = {
+      ...(decoded.profiles ?? {}),
       highlightFrames: {
         name: query.frameName,
         package: query.framePackage,
@@ -86,6 +87,7 @@ export function decodeFlamegraphStateFromQueryParams(
 
   if (typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))) {
     decoded.profiles = {
+      ...(decoded.profiles ?? {}),
       threadId: parseInt(query.tid, 10),
     };
   }

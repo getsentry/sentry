@@ -1,13 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
-import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
+import {useMenuTrigger} from '@react-aria/menu';
 import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
-import {MenuTriggerProps} from '@react-types/menu';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu, {DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {FormSize} from 'sentry/utils/theme';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
@@ -43,10 +42,12 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
   }, []);
 }
 
-interface Props
-  extends Omit<Partial<MenuTriggerProps>, 'trigger'>,
-    Partial<AriaMenuOptions<MenuItemProps>>,
-    UseOverlayProps {
+interface DropdownMenuControlProps
+  extends Partial<DropdownMenuProps>,
+    Pick<
+      UseOverlayProps,
+      'isOpen' | 'offset' | 'position' | 'isDismissable' | 'shouldCloseOnBlur'
+    > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
    * prop, it will be rendered as a menu section. If it has a `children` prop
@@ -141,7 +142,7 @@ function DropdownMenuControl({
   isDismissable = true,
   shouldCloseOnBlur = true,
   ...props
-}: Props) {
+}: DropdownMenuControlProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   const {
