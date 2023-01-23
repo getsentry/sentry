@@ -14,6 +14,7 @@ import {
   KeyValueListData,
   KeyValueListDataItem,
 } from 'sentry/types';
+import {formatBytesBase2} from 'sentry/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
 
 import KeyValueList from '../keyValueList';
@@ -58,6 +59,7 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
       [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
+      [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
   return <Component event={event} {...spanInfo} />;
@@ -156,6 +158,23 @@ const RenderBlockingAssetSpanEvidence = ({
   />
 );
 
+const UncompressedAssetSpanEvidence = ({
+  event,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(event),
+      makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(t('Asset Size'), getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')),
+      makeRow(
+        t('Duration Impact'),
+        getSingleSpanDurationImpact(event, offendingSpans[0])
+      ),
+    ]}
+  />
+);
+
 const DefaultSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
@@ -249,6 +268,33 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
   return `${toPercent(percent)} (${getPerformanceDuration(
     durationAdded
   )}/${getPerformanceDuration(transactionTime)})`;
+
+function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
+  const transactionTime = event.endTimestamp - event.startTimestamp;
+  if (
+    !transactionTime ||
+    typeof span.timestamp === 'undefined' ||
+    typeof span.start_timestamp === 'undefined'
+  ) {
+    return null;
+  }
+  const spanTime = span?.timestamp - span?.start_timestamp;
+  const percent = spanTime / transactionTime;
+  return `${toPercent(percent)} (${getPerformanceDuration(
+    spanTime * 1000
+  )}/${getPerformanceDuration(transactionTime * 1000)})`;
+}
+
+function getSpanDataField(span: Span, field: string) {
+  return span.data?.[field];
+}
+
+function getSpanFieldBytes(span: Span, field: string) {
+  const bytes = getSpanDataField(span, field);
+  if (!bytes) {
+    return null;
+  }
+  return `${formatBytesBase2(bytes)} (${bytes} B)`;
 }
 
 type ParameterLookup = Record<string, string[]>;
