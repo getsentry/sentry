@@ -417,14 +417,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             total_sessions = sessions_per_project.get(project_id, 0.0)
             total_users = users_per_project.get(project_id, 0.0)
 
-            if (
-                release_sessions is None
-                or release_users is None
-                or total_sessions is None
-                or total_users is None
-            ):
-                continue
-
             adoption: ReleaseAdoption = {
                 "adoption": release_users / total_users * 100
                 if release_users and total_users
@@ -649,7 +641,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         if includes_releases:
-            where_clause.append(filter_releases_by_project_release(projects_list))
+            where_clause.append(filter_releases_by_project_release(projects_list))  # type: ignore
             groupby.append(MetricGroupByField(field="release"))
 
         query = MetricsQuery(
@@ -681,7 +673,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             else:
                 proj_id = get_path(group, "by", "project_id")
                 ret_val.add(proj_id)
-        return ret_val
+        return ret_val  # type: ignore
 
     def check_releases_have_health_data(
         self,
@@ -1009,8 +1001,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
         groups = raw_result["groups"]
         ret_val: Dict[ProjectRelease, List[List[int]]] = defaultdict(
-            lambda: _make_stats(start, granularity, buckets)
-        )  # type: ignore
+            lambda: _make_stats(start, granularity, buckets)  # type: ignore
+        )
 
         timestamps = [int(dt.timestamp()) for dt in raw_result["intervals"]]
 
@@ -1020,8 +1012,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             series = get_path(group, "series", "value")
             assert len(timestamps)
             data = zip(timestamps, series)
-            data = [[ts, dt] for ts, dt in data]
-            ret_val[(proj_id, release)] = data
+            as_array = [[ts, dt] for ts, dt in data]
+            ret_val[(proj_id, release)] = as_array
 
         return ret_val
 
@@ -1210,7 +1202,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
 
         def query_stats(end: datetime) -> CrashFreeBreakdown:
-            def _get_data(select) -> Tuple[int, int]:
+            def _get_data(select: List[MetricField]) -> Tuple[int, int]:
                 query = MetricsQuery(
                     org_id=org_id,
                     project_ids=[project_id],
@@ -1604,7 +1596,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 value[key] = series[key][idx]
             ret_series.append((timestamp, value))
 
-        return ret_series, totals
+        return ret_series, totals  # type: ignore
 
     def get_project_sessions_count(
         self,
@@ -1652,7 +1644,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         groups = raw_result["groups"]
         if len(groups) > 0:
-            return get_path(groups[0], "totals", "value", default=0)
+            return get_path(groups[0], "totals", "value", default=0)  # type: ignore
         else:
             return 0
 
