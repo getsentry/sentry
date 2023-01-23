@@ -331,31 +331,41 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
-    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
-    def test_get_commit_sha_valid_line_no(self, mock_blame):
+    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_get_commit_sha_valid_line_no(self, get_jwt, mock_blame):
+        self.integration.provider = "github"
+        self.integration.save()
+
         mock_blame.return_value = git_blame
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
         commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            integration=self.integration,
-            organization_id=self.organization.id,
+            integration_installation=self.integration.get_installation(
+                organization_id=self.project.organization_id
+            ),
             line_no=26,
             filepath="test/path/file.py",
             repository=self.repo,
-            branch="main",
+            ref="main",
         )
         assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
 
-    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
-    def test_get_commit_sha_invalid_line_no(self, mock_blame):
+    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_get_commit_sha_invalid_line_no(self, get_jwt, mock_blame):
+        self.integration.provider = "github"
+        self.integration.save()
+
         mock_blame.return_value = git_blame
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
         commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            integration=self.integration,
-            organization_id=self.organization.id,
+            integration_installation=self.integration.get_installation(
+                organization_id=self.project.organization_id
+            ),
             line_no=80,
             filepath="test/path/file.py",
             repository=self.repo,
-            branch="main",
+            ref="main",
         )
         assert commit_sha == ""
 
@@ -409,6 +419,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "absPath": "abs_path",
                 "module": "module",
                 "package": "package",
+                "commitId": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
         )
         assert response.data["lineCoverage"] == expected_line_coverage

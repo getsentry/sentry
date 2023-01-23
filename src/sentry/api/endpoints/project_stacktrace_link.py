@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.github.client import GitHubClientMixin
 from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -186,37 +187,35 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
     def get_commit_sha(
         self,
-        integration: Integration,
-        organization_id: str,
+        integration_installation: GitHubClientMixin,
         line_no: int,
         filepath: str,
         repository: Repository,
-        branch: str,
+        ref: str,
     ) -> Optional[str]:
-        commitSha = ""
-        integrationInstallation = integration.get_installation(organization_id=organization_id)
-        git_blame_list = integrationInstallation.get_blame_for_file(
+        commit_sha = ""
+        git_blame_list = integration_installation.get_blame_for_file(
             repository,
             filepath,
-            branch,
+            ref,
             line_no,
         )
-        if git_blame_list != []:
+        if git_blame_list:
             for blame in git_blame_list:
                 if blame["startingLine"] <= line_no <= blame["endingLine"]:
-                    commitSha = str(blame["commit"]["oid"])
+                    commit_sha = str(blame["commit"]["oid"])
                     break
-        if not commitSha:
+        if not commit_sha:
             logger.warning(
                 "Failed to get commit from git blame.",
                 extra={
                     "git_blame_response": git_blame_list,
                     "filepath": filepath,
                     "line_no": line_no,
-                    "branch": branch,
+                    "ref": ref,
                 },
             )
-        return commitSha
+        return commit_sha
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -311,43 +310,46 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     and project.organization.flags.codecov_access
                 )
 
-                # Get commit sha from Git blame
-                commit_sha = (
-                    ctx["commit_id"]
-                    if ctx["commit_id"]
-                    else current_config["config"]["defaultBranch"]
-                )
-                try:
-                    should_get_commit_sha = should_get_codecov_data and (
-                        not ctx["commit_id"]
-                        or ctx["commit_id"] == current_config["config"]["defaultBranch"]
+                # Get Codecov data
+                if should_get_codecov_data:
+                    # Get commit sha from Git blame
+                    ref = (
+                        ctx["commit_id"]
+                        if ctx["commit_id"]
+                        else current_config["config"]["defaultBranch"]
+                    )
+                    should_get_commit_sha = (
+                        len(integrations.filter(provider="github")) > 0
+                        and ref == current_config["config"]["defaultBranch"]
                     )
 
                     if should_get_commit_sha:
-                        integration = integrations.filter(provider="github")[0]
-                        line_no = ctx.get("line_no")
-                        if line_no:
-                            commit_sha = self.get_commit_sha(
-                                integration,
-                                project.organization_id,
-                                int(line_no),
-                                filepath,
-                                current_config["repository"],
-                                current_config["config"]["defaultBranch"],
+                        try:
+                            integration = integrations.filter(provider="github")[0]
+                            integration_installation = integration.get_installation(
+                                organization_id=project.organization_id
                             )
-                except Exception:
-                    logger.exception(
-                        "Failed to get commit sha from git blame, pending investigation. Continuing execution."
-                    )
+                            line_no = ctx.get("line_no")
+                            if line_no:
+                                ref = self.get_commit_sha(
+                                    integration_installation,
+                                    int(line_no),
+                                    filepath,
+                                    current_config["repository"],
+                                    current_config["config"]["defaultBranch"],
+                                )
+                        except Exception:
+                            logger.exception(
+                                "Failed to get commit sha from git blame, pending investigation. Continuing execution."
+                            )
 
-                # Get Codecov data
-                if should_get_codecov_data:
                     try:
                         result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
-                            repo=current_config["config"]["repoName"],
-                            service=current_config["config"]["provider"]["key"],
-                            branch=commit_sha,
-                            path=current_config["outcome"]["sourcePath"],
+                            current_config["config"]["repoName"],
+                            current_config["config"]["provider"]["key"],
+                            ref,
+                            "branch" if ref == current_config["config"]["defaultBranch"] else "sha",
+                            current_config["outcome"]["sourcePath"],
                         )
                         if result["lineCoverage"] and result["codecovUrl"]:
                             result["codecovStatusCode"] = 200

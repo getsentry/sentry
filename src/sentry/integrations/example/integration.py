@@ -164,9 +164,6 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
 
-    def get_blame_for_file(self, repo: Repository, path: str, ref: str, lineno: int) -> None:
-        pass
-
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
