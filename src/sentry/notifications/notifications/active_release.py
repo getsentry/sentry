@@ -200,7 +200,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
     def release_url(release: Release) -> str:
         organization = release.organization
         params = {"project": release.project_id, "referrer": "alert_email_release"}
-        url = f"/organizations/{organization.slug}/releases/{quote(release.version)}/"
+        url = f"/organizations/{organization.slug}/releases/{release.version}/"
 
         return str(organization.absolute_url(url, query=urlencode(params)))
 
