@@ -22,7 +22,7 @@ describe('Tags', function () {
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 2, value: '123abcd', name: '123abcd'}],
         },
         {
           key: 'environment',
@@ -111,5 +111,40 @@ describe('Tags', function () {
     );
 
     expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
+  });
+
+  it('renders tag keys, top values, and percentages', async function () {
+    const api = new Client();
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      query: 'event.type:csp',
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        api={api}
+        totalValues={2}
+        organization={org}
+        selection={{projects: [], environments: [], datetime: {}}}
+        location={{query: {}}}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
+
+    expect(screen.getByText('release')).toBeInTheDocument();
+    expect(screen.getByText('123abcd')).toBeInTheDocument();
+    expect(screen.getByText('environment')).toBeInTheDocument();
+    expect(screen.getByText('abcd123')).toBeInTheDocument();
+    expect(screen.getByText('color')).toBeInTheDocument();
+    expect(screen.getByText('red')).toBeInTheDocument();
+    expect(screen.getAllByText('100%').length).toEqual(3);
   });
 });
