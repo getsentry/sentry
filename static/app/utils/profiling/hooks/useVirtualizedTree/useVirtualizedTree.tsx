@@ -41,6 +41,7 @@ export interface UseVirtualizedListProps<T extends TreeLike> {
   scrollContainer: HTMLElement | null;
   tree: T[];
   expanded?: boolean;
+  initialSelectedNodeIndex?: number;
   overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
@@ -55,7 +56,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
     roots: props.tree,
-    selectedNodeIndex: null,
+    selectedNodeIndex: props.initialSelectedNodeIndex ?? null,
     scrollTop: 0,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
