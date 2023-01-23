@@ -618,7 +618,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             <FlamegraphUIFrames
               canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
-              flamegraphView={flamegraphView}
+              uiFramesView={flamegraphView}
               uiFrames={uiFrames}
             />
           ) : null
