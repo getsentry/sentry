@@ -27,7 +27,7 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
     'N+1 API Calls are repeated concurrent calls to fetch a resource. These spans will always begin at the same time and may potentially be combined to fetch everything at once to reduce server load. Alternatively, you may be able to lazily load the resources. To learn more about how and when to fix N+1 API Calls, check out these resources:'
   ),
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: t(
-    'File IO operations on your main thread may cause app hangs.'
+    'File IO operations on your main thread may lead to app hangs.'
   ),
   [IssueType.PERFORMANCE_SLOW_DB_QUERY]: t(
     'Slow DB Queries are SELECT query spans that take longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
@@ -63,7 +63,13 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
     },
   ],
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: [],
-  [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: [],
+  [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: [
+    {
+      text: t('Sentry Docs: File IO on the Main Thread'),
+      link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
+    },
+  ],
+  [IssueType.PERFORMANCE_SLOW_SPAN]: [],
   [IssueType.PERFORMANCE_SLOW_DB_QUERY]: [],
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: [
     {
