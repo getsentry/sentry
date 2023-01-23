@@ -34,12 +34,10 @@ const _debounceTrackHover = debounce(
     platform,
     is_mobile,
     organization,
-    type,
   }: {
     is_mobile: boolean;
     organization: Organization;
     tag: string;
-    type: TagFacetsStyles;
     value: string;
     platform?: string;
   }) => {
@@ -49,7 +47,6 @@ const _debounceTrackHover = debounce(
       platform,
       is_mobile,
       organization,
-      type,
     });
   },
   300
@@ -119,7 +116,6 @@ function TagFacetsDistributionMeter({
                 platform: project?.platform,
                 is_mobile: isMobilePlatform(project?.platform),
                 organization,
-                type: 'distributions',
               });
               return onTagClick?.(title, value);
             },
@@ -136,7 +132,6 @@ function TagFacetsDistributionMeter({
                   platform: project?.platform,
                   is_mobile: isMobilePlatform(project?.platform),
                   organization,
-                  type: 'distributions',
                 });
               }}
               onMouseLeave={() => setHoveredValue(null)}

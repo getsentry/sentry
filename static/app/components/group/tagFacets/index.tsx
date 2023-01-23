@@ -168,7 +168,6 @@ export default function TagFacets({
                         platform: project?.platform,
                         is_mobile: isMobilePlatform(project?.platform),
                         organization,
-                        type: 'distributions',
                       }
                     );
                   }}
