@@ -3,7 +3,7 @@ import time
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Dict, List, MutableMapping, Sequence, Union
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -280,6 +280,7 @@ def __translated_payload(
     return payload
 
 
+@patch("sentry.quotas.get_event_retention", Mock(return_value=90))
 def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
@@ -358,6 +359,7 @@ invalid_payloads = [
 ]
 
 
+@patch("sentry.quotas.get_event_retention", Mock(return_value=90))
 @pytest.mark.parametrize("invalid_payload, error_text, format_payload", invalid_payloads)
 def test_process_messages_invalid_messages(
     invalid_payload, error_text, format_payload, caplog
@@ -423,6 +425,7 @@ def test_process_messages_invalid_messages(
     assert error_text in caplog.text
 
 
+@patch("sentry.quotas.get_event_retention", Mock(return_value=90))
 def test_process_messages_rate_limited(caplog, settings) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
