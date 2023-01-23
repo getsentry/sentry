@@ -26,6 +26,12 @@ module.exports = {
       backend_dependencies: fileChanges.backend_dependencies !== 'true',
     };
 
+    const pr = context.payload.pull_request;
+    // sentrySHA is the sha getsentry should run against.
+    const sentrySHA = pr.merge_commit_sha || pr.head.sha;
+    // prSHA is the sha actions should post commit statuses too.
+    const prSHA = pr.head.sha;
+
     await Promise.all(
       DISPATCHES.map(({workflow, pathFilterName}) => {
         return github.rest.actions.createWorkflowDispatch({
@@ -36,7 +42,8 @@ module.exports = {
           inputs: {
             pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
             skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
-            'sentry-sha': context.payload.pull_request.head.sha,
+            'sentry-sha': sentrySHA,
+            'sentry-pr-sha': prSHA,
           },
         });
       })
