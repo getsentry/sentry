@@ -170,13 +170,25 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
                                 ]
                             },
-                        }
+                        },
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
                     ]
                 },
             },
@@ -197,7 +209,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             self.project.slug,
             event.event_id,
             frame_idx=0,
-            exception_idx=0,
+            exception_idx=1,
         )
         error = resp.data["errors"][0]
         assert error["type"] == "url_not_valid"
