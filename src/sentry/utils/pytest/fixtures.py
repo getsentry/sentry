@@ -426,7 +426,7 @@ def reset_snuba(call_snuba):
 
 
 @pytest.fixture
-def set_sentry_option(request):
+def set_sentry_option():
     """
     A pytest-style wrapper around override_options.
 

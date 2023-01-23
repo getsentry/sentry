@@ -154,10 +154,10 @@ def validate_silo_mode():
     # a bug, or you may be using a contextmanager incorrectly.  Let us know and we can help!
     if SiloMode.get_current_mode() != SiloMode.MONOLITH:
         raise Exception(
-            "Possible test league bug!  SiloMode was not reset to Monolith between tests.  Please read the comment."
+            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
         )
     yield
     if SiloMode.get_current_mode() != SiloMode.MONOLITH:
         raise Exception(
-            "Possible test league bug!  SiloMode was not reset to Monolith between tests.  Please read the comment."
+            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
         )
