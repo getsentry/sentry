@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
-import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -86,9 +85,6 @@ function TagFacetsDistributionMeter({
         <StyledChevron
           direction={expanded ? 'up' : 'down'}
           size="xs"
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
           aria-label={`expand-${title}`}
         />
       </Title>
@@ -109,9 +105,8 @@ function TagFacetsDistributionMeter({
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
-          const segmentProps: SegmentValue = {
+          const segmentProps = {
             index,
-            to: value.url,
             onClick: () => {
               trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
                 tag: title,
@@ -203,8 +198,10 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      {renderTitle()}
-      {renderSegments()}
+      <TagHeader onClick={() => setExpanded(!expanded)}>
+        {renderTitle()}
+        {renderSegments()}
+      </TagHeader>
       {expanded && renderLegend()}
     </TagSummary>
   );
@@ -214,6 +211,10 @@ export default TagFacetsDistributionMeter;
 
 const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const TagHeader = styled('span')`
+  cursor: pointer;
 `;
 
 const SegmentBar = styled('div')`
@@ -257,10 +258,9 @@ const OtherSegment = styled('span')<{color: string}>`
   color: inherit;
   outline: none;
   background-color: ${p => p.color};
-  cursor: pointer;
 `;
 
-const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
+const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
   &:hover {
     color: ${p => p.theme.white};
   }
