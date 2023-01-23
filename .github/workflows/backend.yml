@@ -103,7 +103,10 @@ jobs:
         run: |
           make test-python-ci
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   backend-migration-tests:
@@ -134,7 +137,10 @@ jobs:
         run: |
           MIGRATIONS_TEST_MIGRATE=1 PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations" make test-python-ci
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   cli:
@@ -159,7 +165,10 @@ jobs:
         run: |
           make test-cli
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   requirements:
@@ -329,7 +338,10 @@ jobs:
         run: |
           make test-region-to-control-integration
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   relay:
@@ -362,7 +374,10 @@ jobs:
         run: |
           make test-relay-integration
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   snuba:
@@ -400,7 +415,10 @@ jobs:
         run: |
           make test-snuba
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   symbolicator:
@@ -439,7 +457,10 @@ jobs:
         run: |
           make test-symbolicator
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   typing:
