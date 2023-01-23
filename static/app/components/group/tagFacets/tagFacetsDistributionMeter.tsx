@@ -176,7 +176,9 @@ function TagFacetsDistributionMeter({
                 onMouseLeave={() => debounceSetHovered(null)}
               >
                 <LegendDot color={colors[index]} focus={focus} />
-                <LegendText unfocus={unfocus}>{segment.name}</LegendText>
+                <LegendText unfocus={unfocus}>
+                  {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
+                </LegendText>
                 {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
               </LegendRow>
             </Link>
@@ -322,4 +324,8 @@ const StyledChevron = styled(IconChevron)`
   color: ${p => p.theme.gray300};
   min-width: ${space(1.5)};
   margin-top: 0;
+`;
+
+const NotApplicableLabel = styled('span')`
+  color: ${p => p.theme.gray300};
 `;
