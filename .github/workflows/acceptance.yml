@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
-      - name: Check for backend file changes
+      - name: Check for file changes
         uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
@@ -113,6 +113,7 @@ jobs:
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
+          artifact-name: frontend-snapshots
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
@@ -126,6 +127,31 @@ jobs:
         with:
           files: .artifacts/coverage/*
           type: frontend
+
+  frontend-visual-diff:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [frontend]
+    name: trigger frontend visual snapshot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+      - name: Diff snapshots
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
+        with:
+          action-name: 'Frontend Visual Snapshot'
+          artifact-name: 'frontend-snapshots'
+          base-branch: 'master'
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
 
   acceptance:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -202,6 +228,7 @@ jobs:
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
+          artifact-name: acceptance-snapshots
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
@@ -212,6 +239,30 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
+
+  acceptance-visual-diff:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [acceptance]
+    name: trigger acceptance visual snapshot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+      - name: Diff snapshots
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
+        with:
+          action-name: 'Acceptance Visual Snapshot'
+          artifact-name: 'acceptance-snapshots'
+          base-branch: 'master'
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -276,6 +327,7 @@ jobs:
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
+          artifact-name: chartcuterie-snapshots
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
@@ -287,37 +339,49 @@ jobs:
         uses: ./.github/actions/artifacts
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
-  visual-diff:
+  chartcuterie-visual-diff:
     if: always()
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
-    needs: [acceptance, frontend, chartcuterie, files-changed]
-    name: triggers visual snapshot
+    needs: [chartcuterie]
+    name: trigger chartcuterie visual snapshot
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
-      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
-      # NOTE: A timeout is considered a failure
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+      - name: Diff snapshots
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
+        with:
+          action-name: 'Chartcuterie Visual Snapshot'
+          artifact-name: 'chartcuterie-snapshots'
+          base-branch: 'master'
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+  # This check runs once all dependant jobs have passed
+  trigger-visual-snapshots:
+    needs: [chartcuterie-visual-diff, acceptance-visual-diff, frontend-visual-diff]
+    name: triggers visual snapshot
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
+    runs-on: ubuntu-20.04
+    steps:
+      # If any jobs we depend on fail, we will fail
       - name: Check for failures
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
-      - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
-        # Run this step only if there are acceptance related code changes
-        # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
-        with:
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
   # Since Visual Snapshot is a required check we need to pretend to have run
   fake-visual-snapshot:
     name: Visual Snapshot
     needs: [files-changed]
-    # Opposite condition to "triggers visual snapshot" required check
+    # Opposite condition to "trigger * visual snapshot" required checks
     if: needs.files-changed.outputs.acceptance != 'true'
     runs-on: ubuntu-20.04
     steps:
