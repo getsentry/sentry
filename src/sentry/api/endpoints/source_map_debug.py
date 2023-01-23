@@ -116,8 +116,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             )
 
         exceptions = event.interfaces["exception"].values
-        # 0th index should be the top error on the details page
-        frame_list = exceptions[len(exceptions) - 1 - int(exception_idx)].stacktrace.frames
+        frame_list = exceptions[int(exception_idx)].stacktrace.frames
         frame = frame_list[int(frame_idx)]
         abs_path = frame.abs_path
 
