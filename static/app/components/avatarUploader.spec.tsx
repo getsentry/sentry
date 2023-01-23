@@ -3,9 +3,9 @@ import {
   getDiffNW,
   getDiffSE,
   getDiffSW,
-} from 'sentry/components/avatarCropper';
+} from 'sentry/components/avatarUploader';
 
-describe('AvatarCropper', function () {
+describe('AvatarUploader', function () {
   describe('getDiffNW', function () {
     it(
       'should return a negative diff when yDiff and xDiff ' +

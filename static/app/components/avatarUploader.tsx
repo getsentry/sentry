@@ -62,7 +62,7 @@ type State = {
   resizeDirection: Position | null;
 };
 
-class AvatarCropper extends Component<Props, State> {
+class AvatarUploader extends Component<Props, State> {
   state: State = {
     file: null,
     objectURL: null,
@@ -429,7 +429,7 @@ class AvatarCropper extends Component<Props, State> {
   }
 }
 
-export {AvatarCropper};
+export {AvatarUploader};
 
 const UploadInput = styled('input')`
   position: absolute;
