@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {AriaMenuOptions, useMenu} from '@react-aria/menu';
-import {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
 import {useTreeState} from '@react-stately/tree';
@@ -16,7 +15,7 @@ import MenuSection from 'sentry/components/dropdownMenuSection';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 
-type Props = {
+export interface DropdownMenuProps extends AriaMenuOptions<MenuItemProps> {
   /**
    * If this is a submenu, it will in some cases need to close the root menu
    * (e.g. when a submenu item is clicked).
@@ -46,9 +45,7 @@ type Props = {
   minWidth?: number;
   onClose?: () => void;
   size?: MenuItemProps['size'];
-} & AriaMenuOptions<MenuItemProps> &
-  Partial<OverlayProps> &
-  Partial<AriaPositionProps>;
+}
 
 function DropdownMenu({
   closeOnSelect = true,
@@ -60,7 +57,7 @@ function DropdownMenu({
   closeCurrentSubmenu,
   overlayPositionProps,
   ...props
-}: Props) {
+}: DropdownMenuProps) {
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 

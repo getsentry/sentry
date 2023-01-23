@@ -157,13 +157,14 @@ jobs:
 
       - name: node_modules cache
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        id: nodemodulescache
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
 
       - name: webpack
         env:

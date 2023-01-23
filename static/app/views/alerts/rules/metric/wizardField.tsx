@@ -24,9 +24,9 @@ import {
   AlertWizardRuleTemplates,
   WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {QueryField} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {getFieldOptionConfig} from './metricField';
 

@@ -3,10 +3,10 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
-import EventDetails from 'sentry/views/eventsV2/eventDetails';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import EventDetails from 'sentry/views/discover/eventDetails';
 
-describe('EventsV2 > EventDetails', function () {
+describe('Discover > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   const errorsView = EventView.fromSavedQuery(
     ALL_VIEWS.find(view => view.name === 'Errors by Title')
