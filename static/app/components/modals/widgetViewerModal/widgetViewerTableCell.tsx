@@ -30,9 +30,9 @@ import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 
