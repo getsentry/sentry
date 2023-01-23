@@ -16,7 +16,7 @@ import {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalytics
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 export function handleCreateQuery(
   api: Client,
