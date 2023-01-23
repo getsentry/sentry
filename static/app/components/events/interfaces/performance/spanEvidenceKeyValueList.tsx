@@ -305,7 +305,7 @@ type ParameterLookup = Record<string, string[]>;
   * @returns A condensed string describing the query parameters changing
   * between the URLs of the given span. e.g., "id:{1,2,3}"
  */
-function formatChangingQueryParameters(spans: Span[], baseURL?: string): string {
+function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[] {
   const URLs = spans
     .map(span => extractSpanURLString(span, baseURL))
     .filter((url): url is URL => url instanceof URL);
@@ -323,7 +323,7 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string 
     }
   }
 
-  return pairs.join(' ');
+  return pairs;
 }
 
 const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
