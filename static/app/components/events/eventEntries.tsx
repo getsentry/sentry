@@ -6,6 +6,7 @@ import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Evidence} from 'sentry/components/events/evidence';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -359,6 +360,7 @@ const EventEntries = ({
           onDeleteScreenshot={handleDeleteAttachment}
         />
       )}
+      <Evidence event={event} group={group} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}
