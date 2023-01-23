@@ -69,7 +69,6 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
       link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
     },
   ],
-  [IssueType.PERFORMANCE_SLOW_SPAN]: [],
   [IssueType.PERFORMANCE_SLOW_DB_QUERY]: [],
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: [
     {
