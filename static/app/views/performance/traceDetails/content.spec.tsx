@@ -3,7 +3,7 @@ import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import TraceDetailsContent from 'sentry/views/performance/traceDetails/content';
 
 const SAMPLE_ERROR_DATA = {

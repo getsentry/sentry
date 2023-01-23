@@ -74,8 +74,14 @@ class TimeRange(TypedDict):
     end: str
 
 
+class DecayingFn(TypedDict):
+    type: str
+    decayedSampledRate: Optional[str]
+
+
 class ReleaseRule(BaseRule):
     timeRange: Optional[TimeRange]
+    decayingFn: Optional[DecayingFn]
 
 
 def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
