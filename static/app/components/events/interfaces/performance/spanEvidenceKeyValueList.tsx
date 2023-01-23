@@ -71,13 +71,19 @@ const ConsecutiveDBQueriesSpanEvidence = ({
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      ...(causeSpans
-        ? [makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))]
-        : []),
-      makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
-    ]}
+    data={
+      [
+        makeTransactionNameRow(event),
+        causeSpans
+          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
+          : null,
+        makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
+        makeRow(
+          t('Duration Impact'),
+          getDurationImpact(event, getConsecutiveDbTimeSaved(causeSpans, offendingSpans))
+        ),
+      ].filter(Boolean) as KeyValueListData
+    }
   />
 );
 
@@ -219,20 +225,60 @@ function getSpanEvidenceValue(span: Span | null): string {
   return `${span.op} - ${span.description}`;
 }
 
+const getConsecutiveDbTimeSaved = (
+  consecutiveSpans: Span[],
+  independentSpans: Span[]
+): number => {
+  const totalDuration = sumSpanDurations(consecutiveSpans);
+  const maxIndependentSpanDuration = Math.max(
+    ...independentSpans.map(span => getSpanDuration(span))
+  );
+  const independentSpanIds = independentSpans.map(span => span.span_id);
+
+  let sumOfDependentSpansDuration = 0;
+  consecutiveSpans.forEach(span => {
+    if (!independentSpanIds.includes(span.span_id)) {
+      sumOfDependentSpansDuration += getSpanDuration(span);
+    }
+  });
+
+  return (
+    totalDuration - Math.max(maxIndependentSpanDuration, sumOfDependentSpansDuration)
+  );
+};
+
+const sumSpanDurations = (spans: Span[]) => {
+  let totalDuration = 0;
+  spans.forEach(span => {
+    totalDuration += getSpanDuration(span);
+  });
+  return totalDuration;
+};
+
+const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
+  return timestamp && start_timestamp ? (timestamp - start_timestamp) * 1000 : 0;
+};
+
+function getDurationImpact(event: EventTransaction, durationAdded: number) {
+  const transactionTime = (event.endTimestamp - event.startTimestamp) * 1000;
+  if (!transactionTime) {
+    return null;
+  }
+  const percent = durationAdded / transactionTime;
+  return `${toPercent(percent)} (${getPerformanceDuration(
+    durationAdded
+  )}/${getPerformanceDuration(transactionTime)})`;
+}
+
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
-  const transactionTime = event.endTimestamp - event.startTimestamp;
   if (
-    !transactionTime ||
     typeof span.timestamp === 'undefined' ||
     typeof span.start_timestamp === 'undefined'
   ) {
     return null;
   }
   const spanTime = span?.timestamp - span?.start_timestamp;
-  const percent = spanTime / transactionTime;
-  return `${toPercent(percent)} (${getPerformanceDuration(
-    spanTime * 1000
-  )}/${getPerformanceDuration(transactionTime * 1000)})`;
+  return getDurationImpact(event, spanTime * 1000);
 }
 
 function getSpanDataField(span: Span, field: string) {
