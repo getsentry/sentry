@@ -402,6 +402,10 @@ def get_metric_object_from_metric_field(
 
 
 class AliasMetaType(Enum):
+    """
+    Enum representing the meta type of an alias returned from a SNQL query.
+    """
+
     TAG = 0
     DATASET_COLUMN = 1
     TIME_COLUMN = 2
@@ -438,7 +442,8 @@ def get_alias_meta_type(
         elif isinstance(field, MetricField):
             return AliasMetaType.GROUP_BY_METRIC_FIELD, parsed_expr
 
-    # This logic has been copied from the logic before.
+    # This logic has been copied from the logic before that handles specific edge cases that were assumed by the author
+    # of the original function.
     if parsed_alias in DATASET_COLUMNS:
         return AliasMetaType.DATASET_COLUMN, parsed_expr
     elif parsed_alias in [TS_COL_GROUP]:

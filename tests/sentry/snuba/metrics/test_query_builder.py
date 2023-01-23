@@ -1005,6 +1005,9 @@ def test_translate_meta_results():
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "metric_id", "type": "UInt64"},
+        {"name": "bucketed_time", "type": "UInt64"},
+        {"name": "project.id", "type": "UInt64"},
+        {"name": "time", "type": "UInt64"},
     ]
     assert translate_meta_results(
         meta,
@@ -1024,6 +1027,8 @@ def test_translate_meta_results():
                     alias="team_key_transaction",
                 )
             ),
+            "project.id": MetricGroupByField(field="project_id"),
+            "time": MetricGroupByField(field="bucketed_time"),
         },
     ) == sorted(
         [
@@ -1032,6 +1037,9 @@ def test_translate_meta_results():
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
             {"name": "metric_id", "type": "UInt64"},
+            {"name": "bucketed_time", "type": "UInt64"},
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "time", "type": "UInt64"},
         ],
         key=lambda elem: elem["name"],
     )
