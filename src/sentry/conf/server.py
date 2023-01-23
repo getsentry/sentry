@@ -1016,6 +1016,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
+    # Whether to enable ingest for profile blocked main thread issues
+    "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
