@@ -47,6 +47,11 @@ def build_url(path: str, format: str = "html") -> str:
 
 
 class EmailTestCase(AcceptanceTestCase):
+    # This test requires ID's for issues to start from 1, so reset sequences
+    # to avoid the test failing if the order of tests mean issues are made
+    # before this test is run.
+    reset_sequences = True
+
     def setUp(self):
         super().setUp()
         # This email address is required to match FIXTURES.
