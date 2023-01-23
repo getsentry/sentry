@@ -20,7 +20,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
 
-from sentry import quotas
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
@@ -345,7 +344,7 @@ class IndexerBatch:
                     )
                 continue
 
-            new_payload_value["retention_days"] = quotas.get_event_retention(organization=org_id)
+            new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = self.use_case_id.value
 
