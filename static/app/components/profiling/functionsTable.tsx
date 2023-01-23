@@ -192,11 +192,12 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'package',
   'count',
   'p75',
+  'p95',
   'p99',
   'examples',
 ];
 
-const COLUMNS: Record<TableColumnKey, TableColumn> = {
+const COLUMNS: Record<Exclude<TableColumnKey, 'p95'>, TableColumn> = {
   name: {
     key: 'name',
     name: t('Name'),
