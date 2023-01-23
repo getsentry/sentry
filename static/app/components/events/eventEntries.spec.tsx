@@ -306,7 +306,7 @@ describe('EventEntries', function () {
       );
 
       const resourcesHeadingText = screen.getByRole('heading', {
-        name: /resources and whatever/i,
+        name: /resources/i,
       });
 
       expect(resourcesHeadingText).toBeInTheDocument();
@@ -354,7 +354,7 @@ describe('EventEntries', function () {
         name: /breadcrumbs/i,
       });
       const resourcesHeadingText = screen.getByRole('heading', {
-        name: /resources and whatever/i,
+        name: /resources/i,
       });
 
       expect(spanEvidenceHeading).toBeInTheDocument();
@@ -375,7 +375,7 @@ describe('EventEntries', function () {
 
       expect(
         within(eventEntriesContainer.children[2] as HTMLElement).getByRole('heading', {
-          name: /resources and whatever/i,
+          name: /resources/i,
         })
       ).toBeInTheDocument();
     });

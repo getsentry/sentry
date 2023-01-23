@@ -19,7 +19,7 @@ type Props = {
 // This section provides users with resources on how to resolve an issue
 export function Resources(props: Props) {
   return (
-    <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
+    <EventDataSection type="resources" title={t('Resources')}>
       {props.description}
       <LinkSection>
         {props.links.map(({link, text}) => (
