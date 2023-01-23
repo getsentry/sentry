@@ -1,10 +1,14 @@
 import styled from '@emotion/styled';
 
+import {
+  getUnqiueFilesFromExcption,
+  SourceMapDebug,
+} from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Tooltip from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ExceptionType} from 'sentry/types';
+import {ExceptionType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -18,6 +22,7 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 type Props = {
   event: Event;
   platform: StackTraceProps['platform'];
+  projectSlug: Project['slug'];
   type: STACK_TYPE;
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -35,6 +40,7 @@ export function Content({
   groupingCurrentLevel,
   hasHierarchicalGrouping,
   platform,
+  projectSlug,
   values,
   type,
   meta,
@@ -42,6 +48,8 @@ export function Content({
   if (!values) {
     return null;
   }
+
+  const debugFrames = getUnqiueFilesFromExcption(values);
 
   const children = values.map((exc, excIdx) => {
     return (
@@ -64,6 +72,13 @@ export function Content({
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
         <SetupSourceMapsAlert event={event} />
+        {debugFrames.some(tuple => tuple[2] === excIdx) && (
+          <SourceMapDebug
+            event={event}
+            projectSlug={projectSlug}
+            debugFrames={debugFrames}
+          />
+        )}
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL
