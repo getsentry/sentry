@@ -1019,7 +1019,9 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
             release = get_path(group, "by", "release")
             series = get_path(group, "series", "value")
             assert len(timestamps)
-            ret_val[(proj_id, release)] = list(zip(timestamps, series))
+            data = zip(timestamps, series)
+            data = [[ts, dt] for ts, dt in data]
+            ret_val[(proj_id, release)] = data
 
         return ret_val
 
