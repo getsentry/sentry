@@ -109,9 +109,10 @@ class Tags extends Component<Props, State> {
         : totalValues;
     return (
       <TagFacetsDistributionMeter
-        segments={segments}
+        key={tag.key}
         title={tag.key}
-        totalValues={maxTotalValues ?? 0}
+        segments={segments}
+        totalValues={Number(maxTotalValues)}
         expandByDefault={index === 0}
       />
     );
