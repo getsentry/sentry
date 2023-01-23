@@ -2,6 +2,7 @@ import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -13,6 +14,8 @@ import {
   KeyValueListData,
   KeyValueListDataItem,
 } from 'sentry/types';
+import {formatBytesBase2} from 'sentry/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
@@ -21,6 +24,8 @@ import {TraceContextSpanProxy} from './spanEvidence';
 
 type Span = (RawSpanType | TraceContextSpanProxy) & {
   data?: any;
+  start_timestamp?: number;
+  timestamp?: number;
 };
 
 type SpanEvidenceKeyValueListProps = {
@@ -54,6 +59,7 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
       [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
+      [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
   return <Component event={event} {...spanInfo} />;
@@ -65,17 +71,13 @@ const ConsecutiveDBQueriesSpanEvidence = ({
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
-    data={
-      [
-        makeTransactionNameRow(event),
-        causeSpans
-          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
-          : null,
-        ...offendingSpans.map(span =>
-          makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
-        ),
-      ].filter(Boolean) as KeyValueListData
-    }
+    data={[
+      makeTransactionNameRow(event),
+      ...(causeSpans
+        ? [makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))]
+        : []),
+      makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
+    ]}
   />
 );
 
@@ -150,6 +152,23 @@ const RenderBlockingAssetSpanEvidence = ({
   />
 );
 
+const UncompressedAssetSpanEvidence = ({
+  event,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(event),
+      makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(t('Asset Size'), getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')),
+      makeRow(
+        t('Duration Impact'),
+        getSingleSpanDurationImpact(event, offendingSpans[0])
+      ),
+    ]}
+  />
+);
+
 const DefaultSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
@@ -171,7 +190,7 @@ const makeTransactionNameRow = (event: Event) => makeRow(t('Transaction'), event
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value']
+  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][]
 ): KeyValueListDataItem => {
   const itemKey = kebabCase(subject);
 
@@ -180,10 +199,11 @@ const makeRow = (
     subject,
     value,
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+    isMultiValue: Array.isArray(value),
   };
 };
 
-function getSpanEvidenceValue(span: Span | null) {
+function getSpanEvidenceValue(span: Span | null): string {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
@@ -197,6 +217,34 @@ function getSpanEvidenceValue(span: Span | null) {
   }
 
   return `${span.op} - ${span.description}`;
+}
+
+function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
+  const transactionTime = event.endTimestamp - event.startTimestamp;
+  if (
+    !transactionTime ||
+    typeof span.timestamp === 'undefined' ||
+    typeof span.start_timestamp === 'undefined'
+  ) {
+    return null;
+  }
+  const spanTime = span?.timestamp - span?.start_timestamp;
+  const percent = spanTime / transactionTime;
+  return `${toPercent(percent)} (${getPerformanceDuration(
+    spanTime * 1000
+  )}/${getPerformanceDuration(transactionTime * 1000)})`;
+}
+
+function getSpanDataField(span: Span, field: string) {
+  return span.data?.[field];
+}
+
+function getSpanFieldBytes(span: Span, field: string) {
+  const bytes = getSpanDataField(span, field);
+  if (!bytes) {
+    return null;
+  }
+  return `${formatBytesBase2(bytes)} (${bytes} B)`;
 }
 
 type ParameterLookup = Record<string, string[]>;
