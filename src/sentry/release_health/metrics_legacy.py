@@ -121,7 +121,7 @@ def _model_environment_ids_to_environment_names(
     return defaultdict(lambda: None, id_to_name)
 
 
-class MetricsReleaseHealthBackend(ReleaseHealthBackend):
+class MetricsReleaseHealthLegacyBackend(ReleaseHealthBackend):
     """Gets release health results from the metrics dataset"""
 
     def is_metrics_based(self) -> bool:

@@ -119,18 +119,18 @@ def _model_environment_ids_to_environment_names(
     return defaultdict(lambda: None, id_to_name)
 
 
-class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
+class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     """
     Implementation of the ReleaseHealthBackend using the MetricsLayer API
     """
 
     @staticmethod
     def _get_org_id(project_ids: Sequence[int]) -> int:
-        return MetricsLayerReleaseHealthBackend._get_projects_and_org_id(project_ids)[1]
+        return MetricsReleaseHealthBackend._get_projects_and_org_id(project_ids)[1]
 
     @staticmethod
     def _get_projects(project_ids: Sequence[int]) -> Sequence[Project]:
-        return MetricsLayerReleaseHealthBackend._get_projects_and_org_id(project_ids)[0]
+        return MetricsReleaseHealthBackend._get_projects_and_org_id(project_ids)[0]
 
     @staticmethod
     def _get_projects_and_org_id(project_ids: Sequence[int]) -> Tuple[Sequence[Project], int]:
@@ -278,7 +278,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleasesAdoption:
         start = now - timedelta(days=1)
         project_ids = [proj for proj, _rel in project_releases]
-        projects = MetricsLayerReleaseHealthBackend._get_projects(project_ids)
+        projects = MetricsReleaseHealthBackend._get_projects(project_ids)
 
         def _get_common_where(total: bool) -> List[Condition]:
             where_common: List[Condition] = [
