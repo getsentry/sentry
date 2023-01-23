@@ -311,56 +311,59 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 )
 
                 # Get Codecov data
-                if should_get_codecov_data:
-                    # Get commit sha from Git blame
-                    ref = (
-                        ctx["commit_id"]
-                        if ctx["commit_id"]
-                        else current_config["config"]["defaultBranch"]
-                    )
-                    should_get_commit_sha = (
-                        len(integrations.filter(provider="github")) > 0
-                        and ref == current_config["config"]["defaultBranch"]
-                    )
+                try:
+                    if should_get_codecov_data:
+                        ref = (
+                            ctx["commit_id"]
+                            if ctx["commit_id"]
+                            else current_config["config"]["defaultBranch"]
+                        )
 
-                    if should_get_commit_sha:
-                        try:
-                            integration = integrations.filter(provider="github")[0]
-                            integration_installation = integration.get_installation(
-                                organization_id=project.organization_id
-                            )
-                            line_no = ctx.get("line_no")
-                            if line_no:
-                                ref = self.get_commit_sha(
-                                    integration_installation,
-                                    int(line_no),
-                                    filepath,
-                                    current_config["repository"],
-                                    current_config["config"]["defaultBranch"],
+                        # Get commit sha from Git blame
+                        gh_integrations = integrations.filter(provider="github")
+                        should_get_commit_sha = (
+                            len(gh_integrations) > 0
+                            and ref == current_config["config"]["defaultBranch"]
+                        )
+
+                        if should_get_commit_sha:
+                            try:
+                                integration_installation = gh_integrations[0].get_installation(
+                                    organization_id=project.organization_id
                                 )
-                        except Exception:
-                            logger.exception(
-                                "Failed to get commit sha from git blame, pending investigation. Continuing execution."
-                            )
+                                line_no = ctx.get("line_no")
+                                if line_no:
+                                    ref = self.get_commit_sha(
+                                        integration_installation,
+                                        int(line_no),
+                                        filepath,
+                                        current_config["repository"],
+                                        current_config["config"]["defaultBranch"],
+                                    )
+                            except Exception:
+                                logger.exception(
+                                    "Failed to get commit sha from git blame, pending investigation. Continuing execution."
+                                )
 
-                    try:
                         result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
-                            current_config["config"]["repoName"],
-                            current_config["config"]["provider"]["key"],
-                            ref,
-                            "branch" if ref == current_config["config"]["defaultBranch"] else "sha",
-                            current_config["outcome"]["sourcePath"],
+                            repo=current_config["config"]["repoName"],
+                            service=current_config["config"]["provider"]["key"],
+                            ref=ref,
+                            ref_type="branch"
+                            if ref == current_config["config"]["defaultBranch"]
+                            else "sha",
+                            path=current_config["outcome"]["sourcePath"],
                         )
                         if result["lineCoverage"] and result["codecovUrl"]:
                             result["codecovStatusCode"] = 200
-                    except requests.exceptions.HTTPError as error:
-                        result["codecovStatusCode"] = error.response.status_code
-                        if error.response.status_code != 404:
-                            logger.exception(
-                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
-                            )
-                    except Exception:
-                        logger.exception("Something unexpected happen. Continuing execution.")
+                except requests.exceptions.HTTPError as error:
+                    result["codecovStatusCode"] = error.response.status_code
+                    if error.response.status_code != 404:
+                        logger.exception(
+                            "Failed to get expected data from Codecov, pending investigation. Continuing execution."
+                        )
+                except Exception:
+                    logger.exception("Something unexpected happen. Continuing execution.")
 
             try:
                 set_tags(scope, result)
