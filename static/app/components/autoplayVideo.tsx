@@ -1,5 +1,7 @@
 import {useEffect, useRef} from 'react';
 
+import useMedia from 'sentry/utils/useMedia';
+
 interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   'aria-label': string;
 }
@@ -15,6 +17,8 @@ interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement>
 function AutoplayVideo(props: AutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const prefersReducedMotion = useMedia('(prefers-reduced-motion)');
+
   useEffect(() => {
     if (videoRef.current) {
       // Set muted as more browsers allow autoplay with muted video.
@@ -23,12 +27,14 @@ function AutoplayVideo(props: AutoplayVideoProps) {
       // So we need to set the muted property then trigger play.
       videoRef.current.muted = true;
 
-      // non-chromium Edge and jsdom don't return a promise.
-      videoRef.current.play()?.catch(() => {
-        // Do nothing. Interrupting this playback is fine.
-      });
+      if (!prefersReducedMotion) {
+        // non-chromium Edge and jsdom don't return a promise.
+        videoRef.current.play()?.catch(() => {
+          // Do nothing. Interrupting this playback is fine.
+        });
+      }
     }
-  }, []);
+  }, [prefersReducedMotion]);
 
   return <video ref={videoRef} playsInline disablePictureInPicture loop {...props} />;
 }
