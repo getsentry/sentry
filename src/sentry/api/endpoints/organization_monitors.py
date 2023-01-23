@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -26,6 +26,19 @@ def map_value_to_constant(constant, value):
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+DEFAULT_ORDERING = [
+    MonitorStatus.ERROR,
+    MonitorStatus.MISSED_CHECKIN,
+    MonitorStatus.ACTIVE,
+    MonitorStatus.OK,
+    MonitorStatus.DISABLED,
+]
+
+DEFAULT_ORDERING_CASE = Case(
+    *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
+    output_field=IntegerField(),
+)
+
 
 @region_silo_endpoint
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
@@ -44,9 +57,15 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return self.respond([])
 
-        queryset = Monitor.objects.filter(
-            organization_id=organization.id, project_id__in=filter_params["project_id"]
-        ).exclude(status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS])
+        queryset = (
+            Monitor.objects.filter(
+                organization_id=organization.id, project_id__in=filter_params["project_id"]
+            )
+            .annotate(status_order=DEFAULT_ORDERING_CASE)
+            .exclude(
+                status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
+            )
+        )
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
@@ -75,14 +94,10 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        queryset = queryset.extra(
-            select={"is_error": f"sentry_monitor.status = {MonitorStatus.ERROR}"}
-        )
-
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("-is_error", "-name"),
+            order_by=("status_order", "-name"),
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

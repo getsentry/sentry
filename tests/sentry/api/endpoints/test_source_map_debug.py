@@ -1,0 +1,183 @@
+from rest_framework import status
+
+from sentry.models import File, Release, ReleaseFile
+from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
+
+
+@region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
+class ProjectOwnershipEndpointTestCase(APITestCase):
+    endpoint = "sentry-api-0-event-source-map-debug"
+
+    def setUp(self) -> None:
+        self.login_as(self.user)
+        return super().setUp()
+
+    def test_no_feature_flag(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32},
+            project_id=self.project.id,
+        )
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame=0,
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+        assert (
+            resp.data["detail"]
+            == "Endpoint not available without 'organizations:fix-source-map-cta' feature flag"
+        )
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_missing_event(self):
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            "invalid_id",
+            frame_idx=0,
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+        assert resp.data["detail"] == "Event not found"
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_no_frame_given(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+        )
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_no_errors(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(version=event.release)
+        release.update(user_agent="test_user_agent", project_id=self.project.id)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+        )
+        assert resp.data["errors"] == []
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_event_has_no_release(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32},
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+        )
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_release_on_event"
+        assert error["message"] == "The event is missing a release"
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_release_has_no_user_agent(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+        )
+        release = Release.objects.get(version=event.release)
+        release.update(project_id=self.project.id)
+
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_user_agent_on_release"
+        assert error["message"] == "The release is missing a user agent"
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_release_has_no_artifacts(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+        )
+        release = Release.objects.get(version=event.release)
+        release.update(user_agent="test_user_agent", project_id=self.project.id)
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_sourcemaps_on_release"
+        assert error["message"] == "The release is missing source maps"
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_no_valid_url(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(version=event.release)
+        release.update(user_agent="test_user_agent", project_id=self.project.id)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+        )
+        error = resp.data["errors"][0]
+        assert error["type"] == "url_not_valid"
+        assert error["message"] == "The absolute path url is not valid"
