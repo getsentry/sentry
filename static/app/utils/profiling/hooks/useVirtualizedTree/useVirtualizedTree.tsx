@@ -439,7 +439,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           const nextIndex = indexInVisibleItems + 1;
 
           // Bounds check if we are at end of list
-          if (nextIndex > latestTreeRef.current.flattened.length - 1) {
+          if (nextIndex > latestItemsRef.current.length - 1) {
             return;
           }
 
