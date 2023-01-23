@@ -270,7 +270,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
-                coverage_expected = True
                 if should_get_codecov_data:
                     try:
                         result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
@@ -283,8 +282,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             result["codecovStatusCode"] = 200
                     except requests.exceptions.HTTPError as error:
                         result["codecovStatusCode"] = error.response.status_code
-                        if error.response.status_code == 404:
-                            coverage_expected = False
                         if error.response.status_code != 404:
                             logger.exception(
                                 "Failed to get expected data from Codecov, pending investigation. Continuing execution."
@@ -292,7 +289,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
                     # We don't expect coverage data if the integration does not exist (404)
-                    scope.set_tag("codecov.coverage_expected", coverage_expected)
+                    scope.set_tag("codecov.enabled", should_get_codecov_data)
 
             try:
                 set_tags(scope, result)
