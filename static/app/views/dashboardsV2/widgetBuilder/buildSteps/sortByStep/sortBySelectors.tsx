@@ -23,8 +23,8 @@ import {
   SortDirection,
   sortDirections,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
-import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {QueryField} from 'sentry/views/discover/table/queryField';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 
