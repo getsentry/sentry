@@ -114,10 +114,17 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
             {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {"name": "session.anr_rate", "operations": [], "type": "numeric", "unit": "percentage"},
+            {"name": "session.crash_free", "operations": [], "type": "numeric", "unit": "sessions"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
                 "operations": [],
+                "unit": "percentage",
+            },
+            {
+                "name": "session.crash_free_user",
+                "operations": [],
+                "type": "numeric",
                 "unit": "percentage",
             },
             {
@@ -141,6 +148,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
             {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
             {
+                "name": "session.errored_preaggregated",
+                "operations": [],
+                "type": "numeric",
+                "unit": "sessions",
+            },
+            {
                 "name": "session.errored_user",
                 "type": "numeric",
                 "operations": [],
@@ -160,6 +173,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             },
         ]
 
+    # TODO do we really need this test ?
     @patch(
         "sentry.snuba.metrics.datasource.get_public_name_from_mri",
         mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
@@ -188,8 +202,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         )
 
         response = self.get_success_response(self.organization.slug, project=[self.proj2.id])
+        # RaduW This is ridiculous we are asserting on a canned response of metric values
+        # It will break every time we add a new public metric or every time we change in any
+        # way the order in which the metrics are returned !
         assert response.data == self.session_metrics_meta
 
+    # TODO what exactly are we testing here ?
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     def test_metrics_index_derived_metrics_and_invalid_derived_metric(self):
         for errors, minute in [(0, 0), (2, 1)]:
@@ -223,6 +241,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "name": "session.healthy",
                     "type": "numeric",
                     "operations": [],
+                    "unit": "sessions",
+                },
+                {
+                    "name": "sessions.errored.unique",
+                    "operations": [],
+                    "type": "numeric",
                     "unit": "sessions",
                 },
             ],
