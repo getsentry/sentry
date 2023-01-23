@@ -1,10 +1,11 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import {Theme, useTheme} from '@emotion/react';
-import type {LegendComponentOption} from 'echarts';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
+import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
@@ -92,6 +93,7 @@ function ProjectBaseSessionsChart({
                   reloading,
                   timeseriesData,
                   previousTimeseriesData,
+                  additionalSeries,
                 }) => (
                   <ReleaseSeries
                     utc={utc}
@@ -134,6 +136,7 @@ function ProjectBaseSessionsChart({
                             }
                             releaseSeries={releaseSeries}
                             displayMode={displayMode}
+                            additionalSeries={additionalSeries}
                           />
                         </TransitionChart>
                       );
@@ -162,6 +165,7 @@ type ChartProps = {
   theme: Theme;
   timeSeries: Series[];
   zoomRenderProps: ZoomRenderProps;
+  additionalSeries?: LineSeriesOption[];
   previousTimeSeries?: Series[];
 };
 
@@ -225,16 +229,20 @@ class Chart extends Component<ChartProps, ChartState> {
   get isCrashFree() {
     const {displayMode} = this.props;
 
-    return [
-      DisplayModes.STABILITY,
-      DisplayModes.STABILITY_USERS,
-      DisplayModes.ANR_RATE,
-      DisplayModes.FOREGROUND_ANR_RATE,
-    ].includes(displayMode);
+    return [DisplayModes.STABILITY, DisplayModes.STABILITY_USERS].includes(displayMode);
+  }
+
+  get isAnr() {
+    const {displayMode} = this.props;
+
+    return [DisplayModes.ANR_RATE, DisplayModes.FOREGROUND_ANR_RATE].includes(
+      displayMode
+    );
   }
 
   get legend(): LegendComponentOption {
-    const {theme, timeSeries, previousTimeSeries, releaseSeries} = this.props;
+    const {theme, timeSeries, previousTimeSeries, releaseSeries, additionalSeries} =
+      this.props;
     const {seriesSelection} = this.state;
 
     const hideReleasesByDefault =
@@ -270,6 +278,7 @@ class Chart extends Component<ChartProps, ChartState> {
       data: [
         ...timeSeries.map(s => s.seriesName),
         ...(previousTimeSeries ?? []).map(s => s.seriesName),
+        ...(additionalSeries ?? []).map(s => s.name?.toString() ?? ''),
         ...releaseSeries.map(s => s.seriesName),
       ],
       selected,
@@ -294,6 +303,10 @@ class Chart extends Component<ChartProps, ChartState> {
             return displayCrashFreePercent(value, 0, 3);
           }
 
+          if (this.isAnr) {
+            return displayCrashFreePercent(value, 0, 3, false);
+          }
+
           return typeof value === 'number' ? value.toLocaleString() : value;
         },
       },
@@ -305,23 +318,42 @@ class Chart extends Component<ChartProps, ChartState> {
             scale: true,
             max: 100,
           }
+        : this.isAnr
+        ? {
+            axisLabel: {
+              formatter: (value: number) => displayCrashFreePercent(value, 0, 3, false),
+            },
+            scale: true,
+          }
         : {min: 0},
     };
   }
 
   render() {
-    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries} = this.props;
+    const {
+      zoomRenderProps,
+      timeSeries,
+      previousTimeSeries,
+      releaseSeries,
+      additionalSeries,
+    } = this.props;
 
-    const ChartComponent = this.isCrashFree ? LineChart : StackedAreaChart;
-
+    const ChartComponent = this.isCrashFree
+      ? LineChart
+      : this.isAnr
+      ? BarChart
+      : StackedAreaChart;
     return (
       <ChartComponent
         {...zoomRenderProps}
         {...this.chartOptions}
         legend={this.legend}
         series={
-          Array.isArray(releaseSeries) ? [...timeSeries, ...releaseSeries] : timeSeries
+          Array.isArray(releaseSeries) && !this.isAnr
+            ? [...timeSeries, ...releaseSeries]
+            : timeSeries
         }
+        additionalSeries={additionalSeries}
         previousPeriod={previousTimeSeries}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}

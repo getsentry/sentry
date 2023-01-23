@@ -22,8 +22,8 @@ import {
   FlamegraphStateQueryParamSync,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,7 +36,7 @@ const LoadingGroup: ProfileGroup = {
   metadata: {},
   measurements: {},
   traceID: '',
-  profiles: [Profile.Empty],
+  profiles: [],
 };
 
 function ProfileFlamegraph(): React.ReactElement {
@@ -54,10 +54,17 @@ function ProfileFlamegraph(): React.ReactElement {
     }
   );
 
+  const currentProject = useCurrentProjectFromRouteParam();
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
       organization,
+      project_platform: currentProject?.platform,
+      project_id: currentProject?.id,
     });
+    // ignore  currentProject so we don't block the analytics event
+    // or fire more than once unnecessarily
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization]);
 
   const onImport: ProfileDragDropImportProps['onImport'] = useCallback(

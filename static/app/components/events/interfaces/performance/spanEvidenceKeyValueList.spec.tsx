@@ -96,6 +96,14 @@ describe('SpanEvidenceKeyValueList', () => {
       problemSpan: ProblemSpan.OFFENDER,
     });
 
+    parentSpan.addChild({
+      startTimestamp: 200,
+      endTimestamp: 400,
+      op: 'db',
+      description: 'SELECT COUNT(*) FROM ITEMS',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
@@ -111,12 +119,19 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.starting-span')
       ).toHaveTextContent('db - SELECT * FROM USERS LIMIT 100');
 
-      expect(
-        screen.queryByRole('cell', {name: 'Parallelizable Span'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parallelizable-span')
-      ).toHaveTextContent('db - SELECT COUNT(*) FROM USERS');
+      expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'}).length).toBe(
+        1
+      );
+      const parallelizableSpanKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.parallelizable-spans'
+      );
+
+      expect(parallelizableSpanKeyValue).toHaveTextContent(
+        'db - SELECT COUNT(*) FROM USERS'
+      );
+      expect(parallelizableSpanKeyValue).toHaveTextContent(
+        'db - SELECT COUNT(*) FROM ITEMS'
+      );
     });
   });
 
@@ -222,7 +237,7 @@ describe('SpanEvidenceKeyValueList', () => {
     const builder = new TransactionEventBuilder(
       'a1',
       '/',
-      IssueType.PERFORMANCE_SLOW_SPAN
+      IssueType.PERFORMANCE_SLOW_DB_QUERY
     );
 
     const parentSpan = new MockSpan({
@@ -250,10 +265,90 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
 
-      expect(screen.getByRole('cell', {name: 'Slow Span'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-span')
+        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
+    });
+  });
+
+  describe('Render Blocking Asset', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET
+    );
+
+    const offenderSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 1000,
+      op: 'resource.script',
+      description: 'https://example.com/resource.js',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(offenderSpan);
+
+    it('Renders relevant fields', () => {
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
+      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+    });
+  });
+
+  describe('Uncompressed Asset', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+      {
+        duration: 0.931, // in seconds
+      }
+    );
+
+    const offenderSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 0.487, // in seconds
+      op: 'resource.script',
+      description: 'https://example.com/resource.js',
+      problemSpan: ProblemSpan.OFFENDER,
+      data: {
+        'Encoded Body Size': 31041901,
+      },
+    });
+
+    builder.addSpan(offenderSpan);
+
+    it('Renders relevant fields', () => {
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
+      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+
+      expect(screen.getByRole('cell', {name: 'Asset Size'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.asset-size')
+      ).toHaveTextContent('29.6 MiB (31041901 B)');
+
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.duration-impact')
+      ).toHaveTextContent('52.309% (487ms/931ms)');
     });
   });
 });
