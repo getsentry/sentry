@@ -7,6 +7,8 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
+import {VirtualizedTreeRenderedRow} from '../../../../utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+
 function computeRelativeWeight(base: number, value: number) {
   // Make sure we dont divide by zero
   if (!base || !value) {
@@ -15,113 +17,118 @@ function computeRelativeWeight(base: number, value: number) {
   return (value / base) * 100;
 }
 
-export function FrameSelfWeightCell({
-  style,
-  tabIndex,
-  node,
-  referenceNode,
-  formatDuration,
-}: {
-  formatDuration: Flamegraph['formatter'];
-  node: VirtualizedTreeNode<FlamegraphFrame>;
-  referenceNode: FlamegraphFrame;
-  tabIndex: number;
-  style?: CSSProperties;
-}) {
-  return (
-    <FrameCallersTableCell style={style} isSelected={tabIndex === 0} align="right">
-      {formatDuration(node.node.node.selfWeight)}
-      <Weight
-        isSelected={tabIndex === 0}
-        weight={computeRelativeWeight(
-          referenceNode.node.totalWeight,
-          node.node.node.selfWeight
-        )}
-      />
-    </FrameCallersTableCell>
-  );
-}
+export const FrameSelfWeightCell = forwardRef(
+  (
+    {
+      style,
+      node,
+      referenceNode,
+      formatDuration,
+    }: {
+      formatDuration: Flamegraph['formatter'];
+      node: VirtualizedTreeNode<FlamegraphFrame>;
+      referenceNode: FlamegraphFrame;
+      tabIndex: number;
+      style?: CSSProperties;
+    },
+    ref: React.Ref<HTMLDivElement> | null
+  ) => {
+    const weight = computeRelativeWeight(
+      referenceNode.node.totalWeight,
+      node.node.node.selfWeight
+    );
+    return (
+      <FrameCallersTableCellRight ref={ref} style={style}>
+        {formatDuration(node.node.node.selfWeight)}
+        <Weight>
+          {weight.toFixed(1)}%
+          <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
+        </Weight>
+      </FrameCallersTableCellRight>
+    );
+  }
+);
 
-export function FrameTotalWeightCell({
-  style,
-  tabIndex,
-  node,
-  referenceNode,
-  formatDuration,
-}: {
-  formatDuration: Flamegraph['formatter'];
-  node: VirtualizedTreeNode<FlamegraphFrame>;
-  referenceNode: FlamegraphFrame;
-  tabIndex: number;
-  style?: CSSProperties;
-}) {
-  return (
-    <FrameCallersTableCell
-      style={style}
-      isSelected={tabIndex === 0}
-      noPadding
-      align="right"
-    >
-      <FrameWeightTypeContainer>
-        <FrameWeightContainer>
-          {formatDuration(node.node.node.totalWeight)}
-          <Weight
-            padded
-            isSelected={tabIndex === 0}
-            weight={computeRelativeWeight(
-              referenceNode.node.totalWeight,
-              node.node.node.totalWeight
+export const FrameTotalWeightCell = forwardRef(
+  (
+    {
+      style,
+      node,
+      referenceNode,
+      formatDuration,
+    }: {
+      formatDuration: Flamegraph['formatter'];
+      node: VirtualizedTreeNode<FlamegraphFrame>;
+      referenceNode: FlamegraphFrame;
+      tabIndex: number;
+      style?: CSSProperties;
+    },
+    ref: React.Ref<HTMLDivElement> | null
+  ) => {
+    const weight = computeRelativeWeight(
+      referenceNode.node.totalWeight,
+      node.node.node.totalWeight
+    );
+    return (
+      <FrameCallersTableCellRight ref={ref} style={style}>
+        <FrameWeightTypeContainer>
+          <FrameWeightContainer>
+            {formatDuration(node.node.node.totalWeight)}
+            <Weight>
+              {weight.toFixed(1)}%
+              <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
+            </Weight>
+          </FrameWeightContainer>
+          <FrameTypeIndicator>
+            {node.node.node.frame.is_application ? (
+              <IconUser size="xs" />
+            ) : (
+              <IconSettings size="xs" />
             )}
-          />
-        </FrameWeightContainer>
-        <FrameTypeIndicator isSelected={tabIndex === 0}>
-          {node.node.node.frame.is_application ? (
-            <IconUser size="xs" />
-          ) : (
-            <IconSettings size="xs" />
-          )}
-        </FrameTypeIndicator>
-      </FrameWeightTypeContainer>
-    </FrameCallersTableCell>
-  );
-}
+          </FrameTypeIndicator>
+        </FrameWeightTypeContainer>
+      </FrameCallersTableCellRight>
+    );
+  }
+);
 
 export const FrameCell = forwardRef(
   (
     {
-      node,
+      row,
       color,
-      style,
       tabIndex,
+      style,
       onClick,
       onKeyDown,
       onMouseEnter,
       onExpandClick,
     }: {
       color: string;
-      node: VirtualizedTreeNode<FlamegraphFrame>;
       onClick: () => any;
       onExpandClick: () => any;
       onKeyDown: () => any;
       onMouseEnter: () => any;
+      row: VirtualizedTreeRenderedRow<FlamegraphFrame>;
       tabIndex: number;
       style?: CSSProperties;
     },
     ref: React.Ref<HTMLDivElement> | null
   ) => {
     return (
-      <FrameCallersTableCell
+      <FrameCallersTableCellLeft
         ref={ref}
         tabIndex={tabIndex}
         onClick={onClick}
         onKeyDown={onKeyDown}
         onMouseEnter={onMouseEnter}
-        isSelected={tabIndex === 0}
         style={{
-          ...style,
-          border: 'none',
-          paddingLeft: node.depth * 14 + 8,
           width: '100%',
+          position: 'absolute',
+          height: style?.height ?? 0,
+          border: 'none',
+          paddingLeft: 8,
+          transform: `translate(${row.item.depth * 14}px, ${row.position.top}px)`,
         }}
       >
         <FrameNameContainer>
@@ -129,51 +136,23 @@ export const FrameCell = forwardRef(
           <FrameChildrenIndicator
             tabIndex={-1}
             onClick={onExpandClick}
-            open={node.expanded}
+            style={{transform: row.item.expanded ? 'rotate(90deg)' : 'rotate(0deg)'}}
           >
-            {node.node.children.length > 0 ? '\u203A' : null}
+            {row.item.node.children.length > 0 ? '\u203A' : null}
           </FrameChildrenIndicator>
-          <FrameName>{node.node.frame.name}</FrameName>
+          <FrameName>{row.item.node.frame.name}</FrameName>
         </FrameNameContainer>
-      </FrameCallersTableCell>
+      </FrameCallersTableCellLeft>
     );
   }
 );
 
-const Weight = styled(
-  (props: {isSelected: boolean; weight: number; padded?: boolean}) => {
-    const {weight, padded: __, isSelected: _, ...rest} = props;
-    return (
-      <div {...rest}>
-        {weight.toFixed(1)}%
-        <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
-      </div>
-    );
-  }
-)`
+const Weight = styled('div')`
   display: inline-block;
   min-width: 7ch;
-  padding-right: ${p => (p.padded ? space(0.5) : 0)};
-  color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
-  opacity: ${p => (p.isSelected ? 0.8 : 1)};
-`;
-
-const FrameWeightTypeContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  position: relative;
-`;
-
-const FrameTypeIndicator = styled('div')<{isSelected: boolean}>`
-  flex-shrink: 0;
-  width: 26px;
-  height: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
-  opacity: ${p => (p.isSelected ? 0.8 : 1)};
+  padding-right: ${space(0.5)};
+  color: ${p => p.theme.subText};
+  opacity: 1;
 `;
 
 const FrameWeightContainer = styled('div')`
@@ -182,6 +161,27 @@ const FrameWeightContainer = styled('div')`
   position: relative;
   justify-content: flex-end;
   flex: 1 1 100%;
+  height: 100%;
+`;
+
+const FrameWeightTypeContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  flex: 1 1 100%;
+  height: 100%;
+`;
+
+const FrameTypeIndicator = styled('div')`
+  flex-shrink: 0;
+  width: 26px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${p => p.theme.subText};
+  opacity: 0.8;
 `;
 
 const BackgroundWeightBar = styled('div')`
@@ -201,7 +201,7 @@ const FrameNameContainer = styled('div')`
   align-items: center;
 `;
 
-const FrameChildrenIndicator = styled('button')<{open: boolean}>`
+const FrameChildrenIndicator = styled('button')`
   width: 10px;
   height: 10px;
   display: flex;
@@ -211,7 +211,6 @@ const FrameChildrenIndicator = styled('button')<{open: boolean}>`
   align-items: center;
   justify-content: center;
   user-select: none;
-  transform: ${p => (p.open ? 'rotate(90deg)' : 'rotate(0deg)')};
 `;
 
 const FrameName = styled('span')`
@@ -228,20 +227,33 @@ const FrameColorIndicator = styled('div')`
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
-export const FrameCallersTableCell = styled('div')<{
-  align?: 'right' | 'left';
-  isSelected?: boolean;
-  noPadding?: boolean;
-}>`
+export const FrameCallersTableCellLeft = styled('div')`
   width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
   position: relative;
   white-space: nowrap;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 0 ${p => (p.noPadding ? 0 : space(1))} 0 0;
-  text-align: ${p => (p.align === 'right' ? 'right' : 'left')};
-  justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+  padding: 0;
+  text-align: left;
+  justify-content: flex-start;
+  border-right: 1px solid ${p => p.theme.border};
+
+  &:focus {
+    outline: none;
+  }
+`;
+
+export const FrameCallersTableCellRight = styled('div')`
+  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
+  position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  text-align: right;
+  justify-content: flex-end;
   border-right: 1px solid ${p => p.theme.border};
 
   &:focus {

@@ -19,8 +19,6 @@ import {
   computeVirtualizedTreeNodeScrollTop,
   findCarryOverIndex,
   findRenderedItems,
-  markRowAsClicked,
-  markRowAsHovered,
   requestAnimationTimeout,
   VirtualizedTreeRenderedRow,
 } from './virtualizedTreeUtils';
@@ -45,11 +43,29 @@ export interface TreeLike {
   children?: TreeLike[];
 }
 
+function scrollIntoView(node: VirtualizedTreeRenderedRow<any>) {
+  if (!node.ref) {
+    return;
+  }
+
+  node.ref.scrollIntoView({block: 'nearest', inline: 'nearest'});
+  for (const other of node.otherRefs) {
+    other.scrollIntoView({block: 'nearest', inline: 'nearest'});
+  }
+}
+
 export interface UseVirtualizedListProps<T extends TreeLike> {
   rowHeight: number;
   scrollContainer: HTMLElement | null;
   tree: T[];
+  /**
+   * Whether to expand all nodes by default
+   */
   expanded?: boolean;
+  otherScrollContainer?: HTMLElement | null;
+  /**
+   * Number of items to render above and below the visible area
+   */
   overscroll?: number;
   renderRow?: (
     item: VirtualizedTreeRenderedRow<T>,
@@ -64,7 +80,20 @@ export interface UseVirtualizedListProps<T extends TreeLike> {
       selectedNodeIndex: number | null;
     }
   ) => React.ReactNode;
+  /**
+   * Return a boolean indicating whether the node should be skipped.
+   * If true, the node will be omitted from the tree and it's children
+   * will be added to the first parent for which skipFunction returns false.
+   * @param node
+   * @returns {boolean}
+   */
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
+  /**
+   * Sort function for sorting the tree - sorting is done per level.
+   * @param a {VirtualizedTreeNode<T>}
+   * @param b {VirtualizedTreeNode<T>}
+   * @returns number
+   */
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
 }
 
@@ -72,8 +101,6 @@ export function useVirtualizedTree<T extends TreeLike>(
   props: UseVirtualizedListProps<T>
 ) {
   const theme = useTheme();
-  const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
-  const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
     roots: props.tree,
@@ -122,7 +149,10 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
-  const scrollEndTimeoutId = useRef<
+  const scrollEndPrimaryTimeoutId = useRef<
+    ReturnType<typeof requestAnimationTimeout> | undefined
+  >(undefined);
+  const scrollEndOtherTimeoutId = useRef<
     ReturnType<typeof requestAnimationTimeout> | undefined
   >(undefined);
 
@@ -150,29 +180,19 @@ export function useVirtualizedTree<T extends TreeLike>(
     if (props.scrollContainer) {
       props.scrollContainer.scrollTo({top: scroll});
     }
+    if (props.otherScrollContainer) {
+      props.otherScrollContainer.scrollTo({top: scroll});
+    }
 
     dispatch({type: 'set selected node index', payload: selectedNodeIndex});
     setTree(newTree);
-
-    markRowAsClicked(selectedNodeIndex, latestItemsRef.current, {
-      ghostRowRef: clickedGhostRowRef.current,
-      rowHeight: props.rowHeight,
-      scrollTop: scroll,
-      theme,
-    });
-
-    markRowAsHovered(null, latestItemsRef.current, {
-      ghostRowRef: hoveredGhostRowRef.current,
-      rowHeight: props.rowHeight,
-      scrollTop: scroll,
-      theme,
-    });
 
     expandedHistory.current = newTree.getAllExpandedNodes(expandedHistory.current);
     flattenedHistory.current = newTree.flattened;
   }, [
     props.tree,
     props.expanded,
+    props.otherScrollContainer,
     props.skipFunction,
     props.sortFunction,
     props.rowHeight,
@@ -180,6 +200,28 @@ export function useVirtualizedTree<T extends TreeLike>(
     theme,
   ]);
 
+  const handleScrollEvents = useCallback(
+    (
+      target,
+      timer: React.MutableRefObject<
+        ReturnType<typeof requestAnimationTimeout> | undefined
+      >
+    ) => {
+      if (timer.current) {
+        cancelAnimationTimeout(timer.current);
+      }
+
+      target.style.pointerEvents = 'none';
+
+      timer.current = requestAnimationTimeout(() => {
+        target.style.pointerEvents = 'auto';
+      }, 150);
+    },
+    []
+  );
+
+  const scrollingPrimary = useRef<boolean>(false);
+  const scrollingOthers = useRef<boolean>(false);
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
 
@@ -187,48 +229,69 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
-    function handleScroll(evt) {
-      const scrollTop = Math.max(0, evt.target.scrollTop);
-      dispatch({type: 'set scroll top', payload: scrollTop});
-
-      if (scrollEndTimeoutId.current !== undefined) {
-        cancelAnimationTimeout(scrollEndTimeoutId.current);
-      }
-
-      evt.target.firstChild.style.pointerEvents = 'none';
-      scrollEndTimeoutId.current = requestAnimationTimeout(() => {
-        evt.target.firstChild.style.pointerEvents = 'auto';
-      }, 150);
-
-      if (latestStateRef.current.selectedNodeIndex !== null) {
-        markRowAsClicked(
-          latestStateRef.current.selectedNodeIndex,
-          latestItemsRef.current,
-          {
-            ghostRowRef: clickedGhostRowRef.current,
-            rowHeight: props.rowHeight,
-            scrollTop: evt.target.scrollTop,
-            theme,
-          }
+    const handlePrimaryScroll = evt => {
+      if (!scrollingPrimary.current) {
+        scrollingOthers.current = true;
+        if (props.otherScrollContainer) {
+          props.otherScrollContainer.scrollTop = evt.currentTarget.scrollTop;
+        }
+        handleScrollEvents(props.scrollContainer?.firstChild, scrollEndPrimaryTimeoutId);
+        handleScrollEvents(
+          props.otherScrollContainer?.firstChild,
+          scrollEndOtherTimeoutId
         );
+        dispatch({type: 'set scroll top', payload: evt.currentTarget.scrollTop});
+        return;
       }
+      scrollingPrimary.current = false;
+    };
 
-      markRowAsHovered(null, latestItemsRef.current, {
-        ghostRowRef: hoveredGhostRowRef.current,
-        rowHeight: props.rowHeight,
-        scrollTop: evt.target.scrollTop,
-        theme,
-      });
-    }
-
-    scrollContainer.addEventListener('scroll', handleScroll, {
-      passive: false,
+    scrollContainer.addEventListener('scroll', handlePrimaryScroll, {
+      passive: true,
     });
 
     return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
+      scrollContainer.removeEventListener('scroll', handlePrimaryScroll);
     };
-  }, [props.scrollContainer, props.rowHeight, theme]);
+  }, [
+    props.scrollContainer,
+    props.otherScrollContainer,
+    handleScrollEvents,
+    props.rowHeight,
+    theme,
+  ]);
+
+  useEffect(() => {
+    if (!props.otherScrollContainer || !props.scrollContainer) {
+      return undefined;
+    }
+
+    const handleOtherScroll = evt => {
+      if (!scrollingOthers.current) {
+        scrollingPrimary.current = true;
+        if (props.scrollContainer) {
+          props.scrollContainer.scrollTop = evt.currentTarget.scrollTop;
+        }
+        handleScrollEvents(props.scrollContainer?.firstChild, scrollEndPrimaryTimeoutId);
+        handleScrollEvents(
+          props.otherScrollContainer?.firstChild,
+          scrollEndOtherTimeoutId
+        );
+        dispatch({type: 'set scroll top', payload: evt.currentTarget.scrollTop});
+        return;
+      }
+      scrollingOthers.current = false;
+    };
+
+    const container = props.otherScrollContainer;
+    container.addEventListener('scroll', handleOtherScroll, {
+      passive: true,
+    });
+
+    return () => {
+      container.removeEventListener('scroll', handleOtherScroll);
+    };
+  }, [handleScrollEvents, props.otherScrollContainer, props.scrollContainer]);
 
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
@@ -254,12 +317,6 @@ export function useVirtualizedTree<T extends TreeLike>(
       // If a node exists at the index, select it
       if (latestTreeRef.current.flattened[index]) {
         dispatch({type: 'set selected node index', payload: index});
-        markRowAsClicked(index, latestItemsRef.current, {
-          ghostRowRef: clickedGhostRowRef.current,
-          rowHeight: props.rowHeight,
-          scrollTop: latestStateRef.current.scrollTop,
-          theme,
-        });
       }
     };
 
@@ -299,14 +356,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
-    function onMouseLeave() {
-      markRowAsHovered(null, latestItemsRef.current, {
-        ghostRowRef: hoveredGhostRowRef.current,
-        rowHeight: props.rowHeight,
-        scrollTop: latestStateRef.current.scrollTop,
-        theme,
-      });
-    }
+    function onMouseLeave() {}
 
     container.addEventListener('mouseleave', onMouseLeave, {
       passive: true,
@@ -317,35 +367,18 @@ export function useVirtualizedTree<T extends TreeLike>(
     };
   }, [props.scrollContainer, theme, props.rowHeight]);
 
-  const handleRowMouseEnter = useCallback(
-    (key: number) => {
-      return (_evt: React.MouseEvent<HTMLElement>) => {
-        markRowAsHovered(key, latestItemsRef.current, {
-          ghostRowRef: hoveredGhostRowRef.current,
-          rowHeight: props.rowHeight,
-          scrollTop: latestStateRef.current.scrollTop,
-          theme,
-        });
-      };
-    },
-    [theme, props.rowHeight]
-  );
+  const handleRowMouseEnter = useCallback((selectedNodeIndex: number) => {
+    return (_evt: React.MouseEvent<HTMLElement>) => {
+      dispatch({type: 'set selected node index', payload: selectedNodeIndex});
+    };
+  }, []);
 
   // When a row is clicked, we update the selected node
-  const handleRowClick = useCallback(
-    (selectedNodeIndex: number) => {
-      return (_evt: React.MouseEvent<HTMLElement>) => {
-        dispatch({type: 'set selected node index', payload: selectedNodeIndex});
-        markRowAsClicked(selectedNodeIndex, latestItemsRef.current, {
-          ghostRowRef: clickedGhostRowRef.current,
-          rowHeight: props.rowHeight,
-          scrollTop: latestStateRef.current.scrollTop,
-          theme,
-        });
-      };
-    },
-    [theme, props.rowHeight]
-  );
+  const handleRowClick = useCallback((selectedNodeIndex: number) => {
+    return (_evt: React.MouseEvent<HTMLElement>) => {
+      dispatch({type: 'set selected node index', payload: selectedNodeIndex});
+    };
+  }, []);
 
   // When a node is expanded, the underlying tree is recomputed (the flattened tree is updated)
   // We copy the properties of the old tree by creating a new instance of VirtualizedTree
@@ -372,15 +405,8 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       dispatch({type: 'set selected node index', payload: selectedNodeIndex});
       setTree(newTree);
-
-      markRowAsClicked(selectedNodeIndex, latestItemsRef.current, {
-        ghostRowRef: clickedGhostRowRef.current,
-        rowHeight: props.rowHeight,
-        scrollTop: latestStateRef.current.scrollTop,
-        theme,
-      });
     },
-    [props.rowHeight, theme]
+    []
   );
 
   // When a tree is sorted, we sort all of the nodes in the tree and not just the visible ones
@@ -439,12 +465,6 @@ export function useVirtualizedTree<T extends TreeLike>(
           const index = latestTreeRef.current.flattened.length - 1;
 
           dispatch({type: 'set selected node index', payload: index});
-          markRowAsClicked(index, latestItemsRef.current, {
-            ghostRowRef: clickedGhostRowRef.current,
-            rowHeight: props.rowHeight,
-            scrollTop: latestStateRef.current.scrollTop,
-            theme,
-          });
           return;
         }
 
@@ -468,18 +488,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           });
 
           latestItemsRef.current[nextIndex].ref?.focus({preventScroll: true});
-          latestItemsRef.current[nextIndex].ref?.scrollIntoView({block: 'nearest'});
-
-          markRowAsClicked(
-            latestItemsRef.current[nextIndex].key,
-            latestItemsRef.current,
-            {
-              ghostRowRef: clickedGhostRowRef.current,
-              rowHeight: props.rowHeight,
-              scrollTop: latestStateRef.current.scrollTop,
-              theme,
-            }
-          );
+          scrollIntoView(latestItemsRef.current[nextIndex]);
         }
       }
 
@@ -488,12 +497,6 @@ export function useVirtualizedTree<T extends TreeLike>(
 
         if (event.metaKey || event.ctrlKey) {
           dispatch({type: 'set selected node index', payload: 0});
-          markRowAsClicked(0, latestItemsRef.current, {
-            ghostRowRef: clickedGhostRowRef.current,
-            rowHeight: props.rowHeight,
-            scrollTop: latestStateRef.current.scrollTop,
-            theme,
-          });
           return;
         }
 
@@ -515,22 +518,12 @@ export function useVirtualizedTree<T extends TreeLike>(
             type: 'set selected node index',
             payload: latestItemsRef.current[nextIndex].key,
           });
-          markRowAsClicked(
-            latestItemsRef.current[nextIndex].key,
-            latestItemsRef.current,
-            {
-              ghostRowRef: clickedGhostRowRef.current,
-              rowHeight: props.rowHeight,
-              scrollTop: latestStateRef.current.scrollTop,
-              theme,
-            }
-          );
           latestItemsRef.current[nextIndex].ref?.focus({preventScroll: true});
-          latestItemsRef.current[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+          scrollIntoView(latestItemsRef.current[nextIndex]);
         }
       }
     },
-    [handleExpandTreeNode, theme, props.rowHeight]
+    [handleExpandTreeNode]
   );
 
   const handleScrollTo = useCallback(
@@ -588,12 +581,6 @@ export function useVirtualizedTree<T extends TreeLike>(
         type: 'scroll to index',
         payload: {selectedNodeIndex: newlyVisibleIndex, scrollTop: newScrollTop},
       });
-      markRowAsClicked(newlyVisibleIndex, latestItemsRef.current, {
-        ghostRowRef: clickedGhostRowRef.current,
-        rowHeight: props.rowHeight,
-        scrollTop: latestStateRef.current.scrollTop,
-        theme,
-      });
 
       const newMaxHeight = newTree.flattened.length * props.rowHeight;
 
@@ -618,8 +605,11 @@ export function useVirtualizedTree<T extends TreeLike>(
           top: newScrollTop,
         });
       }
+      if (props.otherScrollContainer) {
+        props.otherScrollContainer.scrollTo({top: newScrollTop});
+      }
     },
-    [props.rowHeight, theme, props.scrollContainer]
+    [props.rowHeight, props.scrollContainer, props.otherScrollContainer]
   );
 
   const renderRow = props.renderRow;
@@ -723,7 +713,5 @@ export function useVirtualizedTree<T extends TreeLike>(
     handleSortingChange,
     scrollContainerStyles: SCROLL_CONTAINER_STYLES,
     containerStyles: treeHeightToDOMStyles(tree, props.rowHeight),
-    clickedGhostRowRef,
-    hoveredGhostRowRef,
   };
 }

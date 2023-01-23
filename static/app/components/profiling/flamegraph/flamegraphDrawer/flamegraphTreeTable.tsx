@@ -14,7 +14,7 @@ import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTr
 
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
 import {
-  FrameCallersTableCell,
+  FrameCallersTableCellRight,
   FrameCell,
   FrameSelfWeightCell,
   FrameTotalWeightCell,
@@ -105,6 +105,9 @@ export function FlamegraphTreeTable({
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
+  const [weightScrollContainerRef, setWeightScrollContainerRef] =
+    useState<HTMLDivElement | null>(null);
+
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
@@ -146,15 +149,14 @@ export function FlamegraphTreeTable({
     containerStyles,
     handleSortingChange,
     handleScrollTo,
-    clickedGhostRowRef,
-    hoveredGhostRowRef,
   } = useVirtualizedTree({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     scrollContainer: scrollContainerRef,
+    otherScrollContainer: weightScrollContainerRef,
     rowHeight: 24,
-    overscroll: 10,
+    overscroll: 5,
     tree,
   });
 
@@ -181,16 +183,24 @@ export function FlamegraphTreeTable({
     return () => canvasScheduler.off('show in table view', onShowInTableView);
   }, [canvasScheduler, handleScrollTo]);
 
-  const containerStylesForTable = useMemo(() => {
-    return {...containerStyles, display: 'flex'};
-  }, [containerStyles]);
+  const onSelfWeightSort = useCallback(() => {
+    onSortChange('self weight');
+  }, [onSortChange]);
+
+  const onTotalWeightSort = useCallback(() => {
+    onSortChange('total weight');
+  }, [onSortChange]);
+
+  const onSortByName = useCallback(() => {
+    onSortChange('name');
+  }, [onSortChange]);
 
   return (
     <FrameBar>
       <FrameCallersTable>
         <FrameCallersTableHeader>
           <FrameWeightCell>
-            <TableHeaderButton onClick={() => onSortChange('self weight')}>
+            <TableHeaderButton onClick={onSelfWeightSort}>
               <span>
                 {t('Self Time')}{' '}
                 <QuestionTooltip
@@ -207,7 +217,7 @@ export function FlamegraphTreeTable({
             </TableHeaderButton>
           </FrameWeightCell>
           <FrameWeightCell>
-            <TableHeaderButton onClick={() => onSortChange('total weight')}>
+            <TableHeaderButton onClick={onTotalWeightSort}>
               <span>
                 {t('Total Time')}{' '}
                 <QuestionTooltip
@@ -224,7 +234,7 @@ export function FlamegraphTreeTable({
             </TableHeaderButton>
           </FrameWeightCell>
           <FrameNameCell>
-            <TableHeaderButton onClick={() => onSortChange('name')}>
+            <TableHeaderButton onClick={onSortByName}>
               {t('Frame')}{' '}
               {sort === 'name' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
@@ -242,63 +252,66 @@ export function FlamegraphTreeTable({
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
            */}
-          <div ref={hoveredGhostRowRef} />
-          <div ref={clickedGhostRowRef} />
-          <div
-            ref={setScrollContainerRef}
-            style={scrollContainerStyles}
+          <FrameScrollContainer
+            ref={setWeightScrollContainerRef}
+            style={{
+              ...scrollContainerStyles,
+              width: '328px',
+            }}
             onContextMenu={contextMenu.handleContextMenu}
           >
-            <div style={containerStylesForTable}>
-              <FrameWeightsContainer>
-                {renderedItemsIterator.map(([r, props]) => {
-                  return (
-                    <FrameWeightsRow key={r.key} style={r.styles}>
-                      <FrameSelfWeightCell
-                        node={r.item}
-                        referenceNode={referenceNode}
-                        formatDuration={formatDuration}
-                        tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
-                      />
-                      <FrameTotalWeightCell
-                        node={r.item}
-                        referenceNode={referenceNode}
-                        formatDuration={formatDuration}
-                        tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
-                      />
-                    </FrameWeightsRow>
-                  );
-                })}
-              </FrameWeightsContainer>
-              <FrameNameRowsContainer>
-                {renderedItemsIterator.map(([r, props]) => {
-                  return (
-                    <FrameCell
-                      ref={ref => {
-                        r.ref = ref;
-                      }}
-                      key={r.key}
-                      color={getFrameColor(r.item.node)}
+            <FrameWeightsContainer style={containerStyles}>
+              {renderedItemsIterator.map(([r, props]) => {
+                return (
+                  <FrameWeightsRow key={r.key} style={r.styles}>
+                    <FrameSelfWeightCell
                       node={r.item}
+                      ref={el => el && r.otherRefs.push(el)}
+                      referenceNode={referenceNode}
+                      formatDuration={formatDuration}
                       tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
-                      style={r.styles}
-                      onClick={props.handleRowClick}
-                      onKeyDown={props.handleRowKeyDown}
-                      onMouseEnter={props.handleRowMouseEnter}
-                      onExpandClick={(evt: React.MouseEvent) => {
-                        evt.stopPropagation();
-                        props.handleExpandTreeNode(r.item, {expandChildren: evt.metaKey});
-                      }}
                     />
-                  );
-                })}
-              </FrameNameRowsContainer>
-              <GhostRowContainer>
-                <FrameCallersTableCell />
-                <FrameCallersTableCell />
-                <FrameCallersTableCell style={{width: '100%'}} />
-              </GhostRowContainer>
-            </div>
+                    <FrameTotalWeightCell
+                      node={r.item}
+                      referenceNode={referenceNode}
+                      formatDuration={formatDuration}
+                      tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
+                    />
+                  </FrameWeightsRow>
+                );
+              })}
+            </FrameWeightsContainer>
+            <GhostRowContainer>
+              <FrameCallersTableCellRight />
+              <FrameCallersTableCellRight />
+            </GhostRowContainer>
+          </FrameScrollContainer>
+          <div
+            ref={setScrollContainerRef}
+            style={{...scrollContainerStyles, width: 'calc(100% - 328px)'}}
+            onContextMenu={contextMenu.handleContextMenu}
+          >
+            <FrameNameRowsContainer style={{...containerStyles, scrollbarWidth: 'none'}}>
+              {renderedItemsIterator.map(([r, props]) => {
+                return (
+                  <FrameCell
+                    ref={el => (r.ref = el)}
+                    row={r}
+                    key={r.key}
+                    color={getFrameColor(r.item.node)}
+                    tabIndex={props.selectedNodeIndex === r.key ? 0 : 1}
+                    style={r.styles}
+                    onClick={props.handleRowClick}
+                    onKeyDown={props.handleRowKeyDown}
+                    onMouseEnter={props.handleRowMouseEnter}
+                    onExpandClick={(evt: React.MouseEvent) => {
+                      evt.stopPropagation();
+                      props.handleExpandTreeNode(r.item, {expandChildren: evt.metaKey});
+                    }}
+                  />
+                );
+              })}
+            </FrameNameRowsContainer>
           </div>
         </TableItemsContainer>
       </FrameCallersTable>
@@ -306,11 +319,20 @@ export function FlamegraphTreeTable({
   );
 }
 
+const FrameScrollContainer = styled('div')`
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    width: 0;
+  }
+`;
+
 const GhostRowContainer = styled('div')`
   display: flex;
   width: 100%;
   pointer-events: none;
   position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
   z-index: -1;
 `;
@@ -319,6 +341,7 @@ const TableItemsContainer = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+  display: flex;
   background: ${p => p.theme.background};
 `;
 
@@ -369,7 +392,7 @@ const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
 const FrameWeightsContainer = styled('div')`
   height: 100%;
   position: relative;
-  width: 552px;
+  scrollbar-width: none;
 `;
 
 const FrameWeightsRow = styled('div')`
@@ -380,9 +403,6 @@ const FrameWeightsRow = styled('div')`
 
 const FrameNameRowsContainer = styled('div')`
   position: relative;
-  height: 100%;
-  overflow: auto;
-  width: 100%;
 `;
 
 const FrameWeightCell = styled('div')`

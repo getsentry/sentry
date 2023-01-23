@@ -1,5 +1,3 @@
-import {Theme} from '@emotion/react';
-
 import {
   TreeLike,
   UseVirtualizedListProps,
@@ -8,109 +6,6 @@ import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/V
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
 import {VirtualizedState} from './useVirtualizedTreeReducer';
-
-export function updateGhostRow({
-  element,
-  selectedNodeIndex,
-  rowHeight,
-  scrollTop,
-  interaction,
-  theme,
-}: {
-  element: HTMLElement | null;
-  interaction: 'hover' | 'clicked';
-  rowHeight: number;
-  scrollTop: number;
-  selectedNodeIndex: number;
-  theme: Theme;
-}) {
-  if (!element) {
-    return;
-  }
-  element.style.left = '0';
-  element.style.right = '0';
-  element.style.height = `${rowHeight}px`;
-  element.style.position = 'absolute';
-  element.style.backgroundColor =
-    interaction === 'clicked' ? theme.blue300 : theme.surface100;
-  element.style.pointerEvents = 'none';
-  element.style.willChange = 'transform, opacity';
-  element.style.transform = `translateY(${rowHeight * selectedNodeIndex - scrollTop}px)`;
-  element.style.opacity = '1';
-}
-
-export function markRowAsHovered(
-  hoveredRowKey: VirtualizedTreeRenderedRow<any>['key'] | null,
-  renderedItems: VirtualizedTreeRenderedRow<any>[],
-  {
-    rowHeight,
-    scrollTop,
-    theme,
-    ghostRowRef,
-  }: {
-    ghostRowRef: HTMLDivElement | null;
-    rowHeight: number;
-    scrollTop: number;
-    theme: Theme;
-  }
-) {
-  for (const row of renderedItems) {
-    if (row.ref && row.ref.dataset.hovered === 'true') {
-      delete row.ref.dataset.hovered;
-    }
-  }
-  if (hoveredRowKey === null && ghostRowRef) {
-    ghostRowRef.style.opacity = '0';
-    return;
-  }
-
-  const hoveredRow = renderedItems.find(row => row.key === hoveredRowKey);
-  if (hoveredRow?.ref) {
-    hoveredRow.ref.dataset.hovered = 'true';
-    updateGhostRow({
-      element: ghostRowRef,
-      interaction: 'hover',
-      rowHeight,
-      scrollTop,
-      selectedNodeIndex: hoveredRow.key,
-      theme,
-    });
-  }
-}
-
-export function markRowAsClicked(
-  clickedRowKey: VirtualizedTreeRenderedRow<any>['key'] | null,
-  renderedItems: VirtualizedTreeRenderedRow<any>[],
-  {
-    rowHeight,
-    scrollTop,
-    theme,
-    ghostRowRef,
-  }: {
-    ghostRowRef: HTMLDivElement | null;
-    rowHeight: number;
-    scrollTop: number;
-    theme: Theme;
-  }
-) {
-  if (clickedRowKey === null && ghostRowRef) {
-    ghostRowRef.style.opacity = '0';
-    return;
-  }
-  if (clickedRowKey !== null) {
-    const clickedRow = renderedItems.find(row => row.key === clickedRowKey);
-    if (clickedRow) {
-      updateGhostRow({
-        element: ghostRowRef,
-        interaction: 'clicked',
-        rowHeight,
-        scrollTop,
-        selectedNodeIndex: clickedRow.key,
-        theme,
-      });
-    }
-  }
-}
 
 /**
  * Recursively calls requestAnimationFrame until a specified delay has been met or exceeded.
@@ -172,12 +67,18 @@ export function findOptimisticStartIndex<T extends TreeLike>({
   if (!items.length || viewport.top === 0) {
     return 0;
   }
+  // Since rowHeight is static, we can just compute the first visible index
   return Math.max(Math.floor(scrollTop / rowHeight) - overscroll, 0);
 }
 
 export interface VirtualizedTreeRenderedRow<T> {
   item: VirtualizedTreeNode<T>;
   key: number;
+  otherRefs: HTMLElement[];
+  position: {
+    depth: number;
+    top: number;
+  };
   ref: HTMLElement | null;
   styles: React.CSSProperties;
 }
@@ -236,7 +137,18 @@ export function findRenderedItems<T extends TreeLike>({
       renderedRows[visibleItemIndex] = {
         key: indexPointer,
         ref: null,
-        styles: {position: 'absolute', top: elementTop, height: rowHeight},
+        // In case the virtualized list is split into multiple lists, we need to keep track of
+        // other refs so that we can synchronize the scroll between them
+        otherRefs: [],
+        position: {
+          top: elementTop,
+          depth: items[indexPointer].depth,
+        },
+        styles: {
+          position: 'absolute',
+          transform: `translateY(${elementTop}px)`,
+          height: rowHeight,
+        },
         item: items[indexPointer],
       };
 
