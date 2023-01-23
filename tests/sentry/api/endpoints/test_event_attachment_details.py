@@ -127,14 +127,12 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         with self.feature("organizations:event-attachments"):
             response = self.client.get(path)
 
+        expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="view_hierarchy.json"'
-        assert response.get("Content-Length") == str(self.file.size)
+        assert response.get("Content-Length") == str(len(expected_response))
         assert response.get("Content-Type") == "application/octet-stream"
-        assert (
-            b"".join(response.streaming_content)
-            == b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
-        )
+        assert b"".join(response.streaming_content) == expected_response
 
     def test_delete(self):
         self.login_as(user=self.user)

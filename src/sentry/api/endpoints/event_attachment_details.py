@@ -1,6 +1,8 @@
 import io
+import os
 import posixpath
 
+import sentry_sdk
 from django.http import StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -90,48 +92,57 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         return bool(self._get_proguard_uuid(event))
 
     def _get_proguard_mapper(self, event: Event):
-        uuid = self._get_proguard_uuid(event)
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(
-            event.project, [uuid], features=["mapping"]
-        )
-        debug_file_path = dif_paths.get(uuid)
-        if debug_file_path is None:
-            raise Exception
+        with sentry_sdk.start_span(op="event.attachment.download.get_proguard", description=""):
+            uuid = self._get_proguard_uuid(event)
+            dif_paths = ProjectDebugFile.difcache.fetch_difs(
+                event.project, [uuid], features=["mapping"]
+            )
+            debug_file_path = dif_paths.get(uuid)
+            if debug_file_path is None:
+                return
 
-        # TODO(nar): Is there a way to know how big this is before opening?
-        mapper = ProguardMapper.open(debug_file_path)
-        if not mapper.has_line_info:
-            # TODO(nar): throw some error?
-            raise Exception
+            # TODO(nar): Find a reasonable threshold
+            if os.path.getsize(debug_file_path) > 99999999:
+                raise Exception("View Hierarchy attachment size is too large")
 
-        return mapper
+            mapper = ProguardMapper.open(debug_file_path)
+            if not mapper.has_line_info:
+                return
+
+            return mapper
 
     def download(self, attachment):
-        file = File.objects.get(id=attachment.file_id)
-        fp = file.getfile()
+        with sentry_sdk.start_transaction(name="event.attachment.download"):
+            file = File.objects.get(id=attachment.file_id)
+            fp = file.getfile()
+            size = file.size
 
-        if attachment.type == "event.view_hierarchy":
-            event = SnubaEventStorage().get_event_by_id(attachment.project_id, attachment.event_id)
-            if self._requires_deobfuscation(event):
-                mapper = self._get_proguard_mapper(event)
-                if mapper is None:
-                    raise Exception
-                raw_view_hierarchy = json.load(fp)
-                fp = io.BytesIO(
-                    json.dumps_htmlsafe(
-                        deobfuscate_view_hierarchy(raw_view_hierarchy, mapper)
-                    ).encode()
+            if attachment.type == "event.view_hierarchy":
+                event = SnubaEventStorage().get_event_by_id(
+                    attachment.project_id, attachment.event_id
                 )
+                if self._requires_deobfuscation(event):
+                    mapper = self._get_proguard_mapper(event)
+                    if mapper is None:
+                        raise Exception("Unable to create Proguard mapper")
+                    raw_view_hierarchy = json.load(fp)
+                    fp = io.BytesIO(
+                        json.dumps_htmlsafe(
+                            deobfuscate_view_hierarchy(raw_view_hierarchy, mapper)
+                        ).encode()
+                    )
+                    size = fp.getbuffer().nbytes
 
-        response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b""),
-            content_type=file.headers.get("content-type", "application/octet-stream"),
-        )
-        response["Content-Length"] = file.size
-        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
-            " ".join(attachment.name.split())
-        )
-        return response
+            response = StreamingHttpResponse(
+                iter(lambda: fp.read(4096), b""),
+                content_type=file.headers.get("content-type", "application/octet-stream"),
+            )
+            response["Content-Length"] = size
+            response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
+                " ".join(attachment.name.split())
+            )
+
+            return response
 
     def get(self, request: Request, project, event_id, attachment_id) -> Response:
         """
