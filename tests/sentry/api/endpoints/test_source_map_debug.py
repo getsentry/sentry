@@ -38,6 +38,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             self.project.slug,
             "invalid_id",
             frame_idx=0,
+            exception_idx=0,
             status_code=status.HTTP_404_NOT_FOUND,
         )
         assert resp.data["detail"] == "Event not found"
@@ -91,7 +92,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
         assert resp.data["errors"] == []
 
@@ -103,7 +108,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
         error = resp.data["errors"][0]
         assert error["type"] == "no_release_on_event"
@@ -118,7 +127,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         release.update(project_id=self.project.id)
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
 
         error = resp.data["errors"][0]
@@ -133,7 +146,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         release = Release.objects.get(version=event.release)
         release.update(user_agent="test_user_agent", project_id=self.project.id)
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
 
         error = resp.data["errors"][0]
@@ -176,7 +193,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
         error = resp.data["errors"][0]
         assert error["type"] == "url_not_valid"

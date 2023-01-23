@@ -41,6 +41,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             GLOBAL_PARAMS.PROJECT_SLUG,
             EVENT_PARAMS.EVENT_ID,
             EVENT_PARAMS.FRAME_IDX,
+            EVENT_PARAMS.EXCEPTION_IDX,
         ],
         request=None,
         responses={
@@ -65,6 +66,10 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         frame_idx = request.GET.get("frame_idx")
         if not frame_idx:
             raise ParseError(detail="Query parameter 'frame_idx' is required")
+
+        exception_idx = request.GET.get("exception_idx")
+        if not exception_idx:
+            raise ParseError(detail="Query parameter 'exception_idx' is required")
 
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
@@ -110,8 +115,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 }
             )
 
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
+        exceptions = event.interfaces["exception"].values
+        # 0th index should be the top error on the details page
+        frame_list = exceptions[len(exceptions) - 1 - exception_idx].stacktrace.frames
         frame = frame_list[int(frame_idx)]
         abs_path = frame.abs_path
 
