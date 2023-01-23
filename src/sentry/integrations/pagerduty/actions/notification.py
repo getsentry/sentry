@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Sequence
 
 from sentry.constants import ObjectStatus
@@ -8,6 +9,8 @@ from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.models import Integration, PagerDutyService
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger("sentry.integrations.pagerduty")
 
 
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
@@ -35,12 +38,14 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         try:
             integration = self.get_integration()
         except Integration.DoesNotExist:
+            logger.exception("Integration removed, however, the rule still refers to it.")
             # integration removed but rule still exists
             return
 
         try:
             service = self._get_service()
         except PagerDutyService.DoesNotExist:
+            logger.exception("The PagerDuty does not exist anymore while integration does.")
             return
 
         def send_notification(event, futures):
