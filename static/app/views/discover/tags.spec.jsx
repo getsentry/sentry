@@ -140,11 +140,11 @@ describe('Tags', function () {
     );
 
     expect(screen.getByText('release')).toBeInTheDocument();
-    expect(screen.getByText('123abcd')).toBeInTheDocument();
+    expect(screen.getAllByText('123abcd').length).toEqual(2);
     expect(screen.getByText('environment')).toBeInTheDocument();
     expect(screen.getByText('abcd123')).toBeInTheDocument();
     expect(screen.getByText('color')).toBeInTheDocument();
     expect(screen.getByText('red')).toBeInTheDocument();
-    expect(screen.getAllByText('100%').length).toEqual(3);
+    expect(screen.getAllByText('100%').length).toEqual(4);
   });
 });
