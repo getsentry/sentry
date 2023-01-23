@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Column, generateFieldAsString} from 'sentry/utils/discover/fields';
-import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
+import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 
 describe('ArithmeticInput', function () {
   const operators = ['+', '-', '*', '/', '(', ')'];

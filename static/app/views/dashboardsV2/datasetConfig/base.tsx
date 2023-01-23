@@ -14,8 +14,8 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValue} from 'sentry/views/eventsV2/table/types';
+import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValue} from 'sentry/views/discover/table/types';
 
 import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
 import {getNumEquations} from '../utils';

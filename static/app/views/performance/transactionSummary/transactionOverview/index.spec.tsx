@@ -415,7 +415,7 @@ describe('Performance > TransactionSummary', function () {
     console.error.mockRestore();
   });
 
-  describe('with eventsv2', function () {
+  describe('with discover', function () {
     it('renders basic UI elements', async function () {
       const {organization, router, routerContext} = initializeData();
 

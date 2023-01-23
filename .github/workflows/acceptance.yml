@@ -110,9 +110,11 @@ jobs:
 
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # FE changes since it conflicts with codecov's carry forward functionality
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.frontend_all == 'true'
+        if: ${{ always() && needs.files-changed.outputs.frontend_all == 'true' }}
         with:
           files: .artifacts/coverage/*
           type: frontend
@@ -155,13 +157,14 @@ jobs:
 
       - name: node_modules cache
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        id: nodemodulescache
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
 
       - name: webpack
         env:
@@ -196,9 +199,11 @@ jobs:
 
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # BE changes since it conflicts with codecov's carry forward functionality
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend_all == 'true'
+        if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -261,9 +266,11 @@ jobs:
 
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # BE changes since it conflicts with codecov's carry forward functionality
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend_all == 'true'
+        if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
   visual-diff:
     if: always()

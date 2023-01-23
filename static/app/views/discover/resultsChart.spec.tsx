@@ -3,9 +3,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
-import ResultsChart from 'sentry/views/eventsV2/resultsChart';
+import ResultsChart from 'sentry/views/discover/resultsChart';
 
-describe('EventsV2 > ResultsChart', function () {
+describe('Discover > ResultsChart', function () {
   const features = ['discover-basic'];
   const location = TestStubs.location({
     query: {query: 'tag:value'},
