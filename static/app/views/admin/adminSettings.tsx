@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
 import {Form} from 'sentry/components/forms';
 import {Panel, PanelHeader} from 'sentry/components/panels';
@@ -5,6 +7,36 @@ import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
 import {getOption, getOptionField} from './options';
+
+const manualDetectionOptions = [
+  'performance.issues.n_plus_one_db.problem-creation',
+  'performance.issues.n_plus_one_db_ext.problem-creation',
+  'performance.issues.n_plus_one_db.count_threshold',
+  'performance.issues.n_plus_one_db.duration_threshold',
+  'performance.issues.file_io_main_thread.problem-creation',
+];
+
+// For rollout options backed by `AutoRegisterOptionBackedRolloutFeatureHandler`
+export const autoRegisterDetectorOptions = [
+  {
+    optionRoot: 'performance.issues.consecutive_db',
+    detectorName: 'Consecutive DB',
+  },
+  {
+    optionRoot: 'performance.issues.n_plus_one_api_calls',
+    detectorName: 'N+1 API Calls',
+  },
+  {
+    optionRoot: 'performance.issues.compressed_assets',
+    detectorName: 'Compressed Assets',
+  },
+  {
+    optionRoot: 'performance.issues.slow_db_query',
+    detectorName: 'Slow DB Span',
+  },
+];
+
+export const autoRegisterCohorts = ['la', 'ea', 'ga'];
 
 const optionsAvailable = [
   'system.url-prefix',
@@ -17,27 +49,11 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
-  'performance.issues.n_plus_one_db.problem-creation',
-  'performance.issues.n_plus_one_db_ext.problem-creation',
-  'performance.issues.n_plus_one_db.count_threshold',
-  'performance.issues.n_plus_one_db.duration_threshold',
-  'performance.issues.consecutive_db.problem-creation',
-  'performance.issues.consecutive_db.la-rollout',
-  'performance.issues.consecutive_db.ea-rollout',
-  'performance.issues.consecutive_db.ga-rollout',
-  'performance.issues.n_plus_one_api_calls.problem-creation',
-  'performance.issues.n_plus_one_api_calls.la-rollout',
-  'performance.issues.n_plus_one_api_calls.ea-rollout',
-  'performance.issues.n_plus_one_api_calls.ga-rollout',
-  'performance.issues.compressed_assets.problem-creation',
-  'performance.issues.compressed_assets.la-rollout',
-  'performance.issues.compressed_assets.ea-rollout',
-  'performance.issues.compressed_assets.ga-rollout',
-  'performance.issues.file_io_main_thread.problem-creation',
-  'performance.issues.slow_db_query.problem-creation',
-  'performance.issues.slow_db_query.la-rollout',
-  'performance.issues.slow_db_query.ea-rollout',
-  'performance.issues.slow_db_query.ga-rollout',
+  ...manualDetectionOptions,
+  ...autoRegisterDetectorOptions.flatMap(option => [
+    `${option.optionRoot}.problem-creation`,
+    ...autoRegisterCohorts.map(cohort => `${option.optionRoot}.${cohort}-rollout`),
+  ]),
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -112,44 +128,28 @@ export default class AdminSettings extends AsyncView<{}, State> {
 
           <Feature features={['organizations:performance-issues-dev']}>
             <Panel>
-              <PanelHeader>Performance Issues - Detectors</PanelHeader>
+              <PanelHeader>Performance Issues - N+1 Detector</PanelHeader>
               {fields['performance.issues.n_plus_one_db.problem-creation']}
               {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
               {fields['performance.issues.n_plus_one_db.count_threshold']}
               {fields['performance.issues.n_plus_one_db.duration_threshold']}
             </Panel>
             <Panel>
-              <PanelHeader>Performance Issues - Consecutive DB Detector</PanelHeader>
-              {fields['performance.issues.consecutive_db.problem-creation']}
-              {fields['performance.issues.consecutive_db.la-rollout']}
-              {fields['performance.issues.consecutive_db.ea-rollout']}
-              {fields['performance.issues.consecutive_db.ga-rollout']}
-            </Panel>
-            <Panel>
-              <PanelHeader>Performance Issues - N+1 API Calls Detector</PanelHeader>
-              {fields['performance.issues.n_plus_one_api_calls.problem-creation']}
-              {fields['performance.issues.n_plus_one_api_calls.la-rollout']}
-              {fields['performance.issues.n_plus_one_api_calls.ea-rollout']}
-              {fields['performance.issues.n_plus_one_api_calls.ga-rollout']}
-            </Panel>
-            <Panel>
-              <PanelHeader>Performance Issues - Compressed Assets Detector</PanelHeader>
-              {fields['performance.issues.compressed_assets.problem-creation']}
-              {fields['performance.issues.compressed_assets.la-rollout']}
-              {fields['performance.issues.compressed_assets.ea-rollout']}
-              {fields['performance.issues.compressed_assets.ga-rollout']}
-            </Panel>
-            <Panel>
               <PanelHeader>Performance Issues - File IO on Main Thread</PanelHeader>
               {fields['performance.issues.file_io_main_thread.problem-creation']}
             </Panel>
-            <Panel>
-              <PanelHeader>Performance Issues - Slow DB Span Detector</PanelHeader>
-              {fields['performance.issues.slow_db_query.problem-creation']}
-              {fields['performance.issues.slow_db_query.la-rollout']}
-              {fields['performance.issues.slow_db_query.ea-rollout']}
-              {fields['performance.issues.slow_db_query.ga-rollout']}
-            </Panel>
+
+            {...autoRegisterDetectorOptions.map(option => (
+              <Panel key={option.optionRoot}>
+                <PanelHeader>Performance Issue - {option.detectorName}</PanelHeader>
+                {fields[`performance.issues.${option.optionRoot}.problem-creation`]}
+                {...autoRegisterCohorts.map(cohort => (
+                  <Fragment key={cohort}>
+                    {fields[`performance.issues.${option.optionRoot}.${cohort}-rollout`]}
+                  </Fragment>
+                ))}
+              </Panel>
+            ))}
           </Feature>
         </Form>
       </div>

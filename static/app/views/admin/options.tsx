@@ -10,6 +10,10 @@ import {
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {
+  autoRegisterCohorts,
+  autoRegisterDetectorOptions,
+} from 'sentry/views/admin/adminSettings';
 
 type Section = {
   key: string;
@@ -61,6 +65,34 @@ const HIGH_THROUGHPUT_RATE_OPTION = {
   max: 1.0,
   step: 0.0001,
 };
+
+const autoRegisterOptionDefinitions: Field[] = [
+  ...autoRegisterDetectorOptions.flatMap(option => [
+    {
+      key: `performance.issues.${option.optionRoot}.problem-creation`,
+      label: t('Problem Creation Rate'),
+      help: tct(
+        'Controls the overall rate at which performance problems are detected by the [name] detector.',
+        {
+          name: option.detectorName,
+        }
+      ),
+      ...HIGH_THROUGHPUT_RATE_OPTION,
+    },
+    ...autoRegisterCohorts.map(cohort => ({
+      key: `performance.issues.${option.optionRoot}.${cohort}-rollout`,
+      label: tct('[cohort] Rate', {cohort: cohort.toUpperCase()}),
+      help: tct(
+        'Controls the rate at which performance problems are detected by the [name] detector for [cohort] organizations',
+        {
+          name: option.detectorName,
+          cohort: cohort.toUpperCase(),
+        }
+      ),
+      ...HIGH_THROUGHPUT_RATE_OPTION,
+    })),
+  ]),
+];
 
 const performanceOptionDefinitions: Field[] = [
   {
@@ -176,102 +208,6 @@ const performanceOptionDefinitions: Field[] = [
     step: 1,
   },
   {
-    key: 'performance.issues.consecutive_db.problem-creation',
-    label: t('Problem Creation Rate'),
-    help: t(
-      'Controls the overall rate at which performance problems are detected by the Consecutive DB detector.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.consecutive_db.la-rollout',
-    label: t('Limited Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the Consecutive DB detector for LA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.consecutive_db.ea-rollout',
-    label: t('Early Adopter Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the Consecutive DB detector for EA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.consecutive_db.ga-rollout',
-    label: t('General Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the Consecutive DB detector for GA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.n_plus_one_api_calls.problem-creation',
-    label: t('Problem Creation Rate'),
-    help: t(
-      'Controls the overall rate at which performance problems are detected by the N+1 API Calls detector.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.n_plus_one_api_calls.la-rollout',
-    label: t('Limited Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the N+1 API Calls detector for LA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.n_plus_one_api_calls.ea-rollout',
-    label: t('Early Adopter Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the N+1 API Calls detector for EA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.n_plus_one_api_calls.ga-rollout',
-    label: t('General Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the for N+1 API Calls detector for GA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.compressed_assets.problem-creation',
-    label: t('Problem Creation Rate'),
-    help: t(
-      'Controls the overall rate at which performance problems are detected by the compressed assets detector.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.compressed_assets.la-rollout',
-    label: t('Limited Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the compressed assets detector for LA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.compressed_assets.ea-rollout',
-    label: t('Early Adopter Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the compressed assets detector for EA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.compressed_assets.ga-rollout',
-    label: t('General Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the compressed assets detector for GA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
     key: 'performance.issues.file_io_main_thread.problem-creation',
     label: t('File IO Problem Creation Rate'),
     help: t(
@@ -279,38 +215,7 @@ const performanceOptionDefinitions: Field[] = [
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
-  {
-    key: 'performance.issues.slow_db_query.problem-creation',
-    label: t('Problem Creation Rate'),
-    help: t(
-      'Controls the overall rate at which performance problems are detected by the slow DB span detector.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.slow_db_query.la-rollout',
-    label: t('Limited Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the slow DB span detector for LA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.slow_db_query.ea-rollout',
-    label: t('Early Adopter Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the slow DB span detector for EA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.slow_db_query.ga-rollout',
-    label: t('General Availability Detection Rate'),
-    help: t(
-      'Controls the rate at which performance problems are detected by the slow DB span detector for GA organizations.'
-    ),
-    ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
+  ...autoRegisterOptionDefinitions,
 ];
 
 // This are ordered based on their display order visually
