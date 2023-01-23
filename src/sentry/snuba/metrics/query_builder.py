@@ -476,10 +476,10 @@ def get_metric_object_from_metric_field(
 
 class AliasMetaType(Enum):
     """
-    Enum representing the type of an alias returned from a SNQL query.
+    This class represents the type of an alias returned from a SNQL query.
 
     This type does not refer to the result type but rather the type of element to which the alias refers in the query
-    (e.g., MetricField, MetricGroupByField, special columns, or simple tag).
+    (e.g., MetricField, MetricGroupByField, dataset real columns, or simple tag).
     """
 
     TAG = 0
