@@ -18,7 +18,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getMetricRuleDiscoverQuery} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
-import type {TableColumn} from 'sentry/views/eventsV2/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TimePeriodType} from './constants';

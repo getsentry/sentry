@@ -1,7 +1,7 @@
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import GlobalModal from 'sentry/components/globalModal';
-import ColumnEditModal, {modalCss} from 'sentry/views/eventsV2/table/columnEditModal';
+import ColumnEditModal, {modalCss} from 'sentry/views/discover/table/columnEditModal';
 
 const columns = [
   {

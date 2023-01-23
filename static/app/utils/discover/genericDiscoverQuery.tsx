@@ -87,7 +87,7 @@ type BaseDiscoverQueryProps = {
   queryExtras?: Record<string, string>;
   /**
    * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
-   * on the OrganizationEventsV2Endpoint view.
+   * on the OrganizationDiscoverEndpoint view.
    */
   referrer?: string;
   /**

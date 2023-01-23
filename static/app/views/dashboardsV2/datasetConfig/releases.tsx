@@ -20,8 +20,8 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';

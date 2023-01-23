@@ -24,8 +24,8 @@ import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {QuickContextHoverWrapper} from 'sentry/views/eventsV2/table/quickContext/quickContextWrapper';
-import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
 

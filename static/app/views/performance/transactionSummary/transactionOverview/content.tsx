@@ -31,9 +31,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
-import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
-import Tags from 'sentry/views/eventsV2/tags';
+import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
+import Tags from 'sentry/views/discover/tags';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,

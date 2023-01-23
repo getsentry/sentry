@@ -15,8 +15,8 @@ import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
-import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
-import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
 type Props = {
   eventView: EventView;

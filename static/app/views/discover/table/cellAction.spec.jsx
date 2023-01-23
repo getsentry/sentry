@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 
 const defaultData = {
   transaction: 'best-transaction',

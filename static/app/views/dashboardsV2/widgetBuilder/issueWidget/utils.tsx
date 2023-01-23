@@ -1,5 +1,5 @@
 import {SelectValue} from 'sentry/types';
-import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {ColumnType, ISSUE_FIELDS} from './fields';

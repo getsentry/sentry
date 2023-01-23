@@ -5,9 +5,9 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import ColumnEditCollection from 'sentry/views/discover/table/columnEditCollection';
+import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 interface Props {
   displayType: DisplayType;

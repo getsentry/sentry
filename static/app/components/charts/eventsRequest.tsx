@@ -154,7 +154,7 @@ type EventsRequestPartialProps = {
    */
   generatePathname?: (org: OrganizationSummary) => string;
   /**
-   * Hide error toast (used for pages which also query eventsV2). Stops error appearing as a toast.
+   * Hide error toast (used for pages which also query discover). Stops error appearing as a toast.
    */
   hideError?: boolean;
   /**

@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 
 function renderComponent(eventView: EventView) {
   const organization = TestStubs.Organization();

@@ -4,7 +4,7 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import * as eventRequest from 'sentry/components/charts/eventsRequest';
 import * as worldMaps from 'sentry/components/charts/worldMapChart';
 import EventView from 'sentry/utils/discover/eventView';
-import MiniGraph from 'sentry/views/eventsV2/miniGraph';
+import MiniGraph from 'sentry/views/discover/miniGraph';
 
 jest.mock('sentry/components/charts/eventsRequest');
 
@@ -37,7 +37,7 @@ jest.mock('sentry/components/charts/eventsGeoRequest', () =>
   )
 );
 
-describe('EventsV2 > MiniGraph', function () {
+describe('Discover > MiniGraph', function () {
   const features = ['discover-basic'];
   const location = TestStubs.location({
     query: {query: 'tag:value'},

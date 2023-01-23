@@ -15,7 +15,7 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ContextTitle} from 'sentry/views/eventsV2/table/quickContext/styles';
+import {ContextTitle} from 'sentry/views/discover/table/quickContext/styles';
 import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 import {Button} from '../button';

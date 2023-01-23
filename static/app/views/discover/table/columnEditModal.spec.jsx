@@ -8,7 +8,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
-import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
+import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -64,7 +64,7 @@ const selectByLabel = async (label, options) => {
   userEvent.click(opt);
 };
 
-describe('EventsV2 -> ColumnEditModal', function () {
+describe('Discover -> ColumnEditModal', function () {
   beforeEach(() => {
     TagStore.reset();
     TagStore.loadTagsSuccess([

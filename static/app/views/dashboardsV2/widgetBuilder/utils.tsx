@@ -22,9 +22,9 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {FlatValidationError, getNumEquations, ValidationError} from '../utils';

@@ -16,7 +16,7 @@ import {Column} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import ColumnEditCollection from './columnEditCollection';
 

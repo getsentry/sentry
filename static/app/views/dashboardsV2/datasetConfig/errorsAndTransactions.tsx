@@ -48,9 +48,9 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,

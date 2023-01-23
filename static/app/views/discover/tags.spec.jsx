@@ -8,7 +8,7 @@ import {
 
 import {Client} from 'sentry/api';
 import EventView from 'sentry/utils/discover/eventView';
-import {Tags} from 'sentry/views/eventsV2/tags';
+import {Tags} from 'sentry/views/discover/tags';
 
 describe('Tags', function () {
   function generateUrl(key, value) {

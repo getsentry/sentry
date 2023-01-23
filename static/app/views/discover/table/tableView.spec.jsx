@@ -6,7 +6,7 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import EventView from 'sentry/utils/discover/eventView';
-import TableView from 'sentry/views/eventsV2/table/tableView';
+import TableView from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
