@@ -62,7 +62,8 @@ function TagFacetsDistributionMeter({
   expandByDefault,
 }: Props) {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
+  const multiValueTag = segments.length > 1;
+  const [expanded, setExpanded] = useState<boolean>(multiValueTag && !!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
   const debounceSetHovered = debounce(value => setHoveredValue(value), 70);
   const topSegments = segments.slice(0, MAX_SEGMENTS);
@@ -79,14 +80,14 @@ function TagFacetsDistributionMeter({
     return (
       <Title>
         <TitleType>{title}</TitleType>
-        <TitleDescription>
-          <Label>{topSegments[0].name || t('n/a')}</Label>
-        </TitleDescription>
-        <StyledChevron
-          direction={expanded ? 'up' : 'down'}
-          size="xs"
-          aria-label={`expand-${title}`}
-        />
+        <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+        {multiValueTag && (
+          <StyledChevron
+            direction={expanded ? 'up' : 'down'}
+            size="xs"
+            aria-label={`expand-${title}`}
+          />
+        )}
       </Title>
     );
   }
@@ -137,15 +138,7 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment aria-label={t('Other')} color={colors[colors.length - 1]} />
               ) : (
-                <Segment
-                  aria-label={t(
-                    'Add the %s %s segment tag to the search query',
-                    title,
-                    value.value
-                  )}
-                  color={colors[index]}
-                  {...segmentProps}
-                >
+                <Segment color={colors[index]} {...segmentProps}>
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
                   {index === 0 && pctLabel > 6 ? `${pctLabel}%` : null}
                 </Segment>
@@ -165,7 +158,15 @@ function TagFacetsDistributionMeter({
           const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
           const focus = hoveredValue?.value === segment.value;
           return (
-            <Link key={`segment-${segment.name}-${index}`} to={segment.url}>
+            <Link
+              key={`segment-${segment.name}-${index}`}
+              to={segment.url}
+              aria-label={t(
+                'Add the %s %s segment tag to the search query',
+                title,
+                segment.value
+              )}
+            >
               <LegendRow
                 onMouseOver={() => debounceSetHovered(segment)}
                 onMouseLeave={() => debounceSetHovered(null)}
@@ -198,7 +199,7 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      <TagHeader onClick={() => setExpanded(!expanded)}>
+      <TagHeader onClick={() => multiValueTag && setExpanded(!expanded)}>
         {renderTitle()}
         {renderSegments()}
       </TagHeader>
@@ -240,14 +241,11 @@ const TitleType = styled('div')`
 `;
 
 const TitleDescription = styled('div')`
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   color: ${p => p.theme.gray300};
   text-align: right;
   font-size: ${p => p.theme.fontSizeSmall};
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const Label = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 

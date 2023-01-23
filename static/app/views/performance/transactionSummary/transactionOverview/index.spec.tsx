@@ -317,15 +317,24 @@ describe('Performance > TransactionSummary', function () {
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'dev', name: 'dev'}],
+          topValues: [
+            {count: 2, value: 'dev', name: 'dev'},
+            {count: 1, value: 'prod', name: 'prod'},
+          ],
         },
         {
           key: 'foo',
-          topValues: [{count: 1, value: 'bar', name: 'bar'}],
+          topValues: [
+            {count: 2, value: 'bar', name: 'bar'},
+            {count: 1, value: 'baz', name: 'baz'},
+          ],
         },
         {
           key: 'user',
-          topValues: [{count: 1, value: 'id:100', name: '100'}],
+          topValues: [
+            {count: 2, value: 'id:100', name: '100'},
+            {count: 1, value: 'id:101', name: '101'},
+          ],
         },
       ],
     });
@@ -784,6 +793,11 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Tag Summary');
 
+      userEvent.click(screen.getByText('environment'));
+      userEvent.click(screen.getByText('foo'));
+      // TODO(edward): Update to something better like getByLabel once we add better accessibility.
+      userEvent.click(screen.getAllByText('user')[1]);
+
       userEvent.click(
         screen.getByLabelText('Add the environment dev segment tag to the search query')
       );
@@ -1190,6 +1204,8 @@ describe('Performance > TransactionSummary', function () {
       });
 
       await screen.findByText('Tag Summary');
+      userEvent.click(screen.getByText('environment'));
+      userEvent.click(screen.getByText('foo'));
 
       userEvent.click(
         screen.getByLabelText('Add the environment dev segment tag to the search query')
