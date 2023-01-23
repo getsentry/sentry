@@ -1726,7 +1726,7 @@ def report_metrics_for_detectors(
             continue
 
         if detector.type in [DetectorType.UNCOMPRESSED_ASSETS]:
-            detected_tags["browser_name", allowed_browser_name]
+            detected_tags["browser_name"] = allowed_browser_name
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:
