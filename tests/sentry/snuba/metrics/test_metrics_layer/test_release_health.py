@@ -215,16 +215,12 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
+    # TODO RaduW (Do we really want to keep this one ?
+    # What does it have to do with ReleaseHealth? it tests the internals of the naming layer
     def test_query_private_metrics_raise_exception(self):
-        self.store_release_health_metric(
-            name=SessionMRI.SESSION.value,
-            tags={"session.status": "errored_preaggr"},
-            value=2,
-        )
-
         with pytest.raises(
             InvalidParams,
-            match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
+            match=f"Unable to find a mri reverse mapping for '{SessionMRI.ERRORED_ALL.value}'.",
         ):
             self.build_metrics_query(
                 before_now="1h",
@@ -232,8 +228,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 select=[
                     MetricField(
                         op=None,
-                        metric_mri=str(SessionMRI.ERRORED_PREAGGREGATED.value),
-                        alias="errored_preaggregated_sessions_alias",
+                        metric_mri=str(SessionMRI.ERRORED_ALL.value),
                     ),
                 ],
                 limit=Limit(limit=51),
