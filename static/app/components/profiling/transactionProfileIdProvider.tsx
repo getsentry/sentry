@@ -10,9 +10,11 @@ interface TransactionToProfileIdProviderProps {
   children: React.ReactNode;
   timestamp: string | undefined;
   transactionId: string | undefined;
+  projectId?: string | undefined;
 }
 
 export function TransactionProfileIdProvider({
+  projectId,
   timestamp,
   transactionId,
   children,
@@ -36,6 +38,7 @@ export function TransactionProfileIdProvider({
   }, [timestamp]);
 
   const {status, data, error} = useProfileEvents({
+    projects: projectId ? [projectId] : undefined,
     fields: ['id'],
     referrer: 'transactionToProfileProvider',
     limit: 1,

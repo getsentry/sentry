@@ -16,12 +16,22 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 class CheckInStatus:
     UNKNOWN = 0
+    """No status was passed"""
+
     OK = 1
+    """Checkin had no issues during execution"""
+
     ERROR = 2
+    """Checkin failed or otherwise had some issues"""
+
     IN_PROGRESS = 3
+    """Checkin is expected to complete"""
+
     MISSED = 4
+    """Monitor did not check in on time"""
 
     FINISHED_VALUES = (OK, ERROR)
+    """Sentient values used to indicate a monitor is finished running"""
 
     @classmethod
     def as_choices(cls):
@@ -43,7 +53,7 @@ class MonitorCheckIn(Model):
     monitor = FlexibleForeignKey("sentry.Monitor")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     status = BoundedPositiveIntegerField(
-        default=0, choices=CheckInStatus.as_choices(), db_index=True
+        default=CheckInStatus.UNKNOWN, choices=CheckInStatus.as_choices(), db_index=True
     )
     config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)

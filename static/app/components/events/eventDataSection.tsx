@@ -1,19 +1,45 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DataSection} from 'sentry/components/events/styles';
 import Anchor from 'sentry/components/links/anchor';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;
+  /**
+   * The title of the section
+   */
   title: React.ReactNode;
+  /**
+   * Used as the `id` of the section. This powers the permalink
+   */
   type: string;
+  /**
+   * Actions that appear to the far right of the title
+   */
   actions?: React.ReactNode;
   className?: string;
-  isCentered?: boolean;
+  /**
+   * If the section has a guide associated to it, you may specify the guide
+   * target and it will wrap the title with a GuideAnchor
+   */
+  guideTarget?: string;
+  /**
+   * A description shown in a QuestionTooltip
+   */
+  help?: React.ReactNode;
+  /**
+   * Should the permalink be enabled for this section?
+   *
+   * @default true
+   */
   showPermalink?: boolean;
+  /**
+   * Should the title be wrapped in a h3?
+   */
   wrapTitle?: boolean;
 };
 
@@ -42,18 +68,27 @@ export function EventDataSection({
   className,
   type,
   title,
-  wrapTitle = true,
+  help,
   actions,
-  isCentered = false,
+  guideTarget,
+  wrapTitle = true,
   showPermalink = true,
   ...props
 }: Props) {
-  const titleNode = wrapTitle ? <h3>{title}</h3> : title;
+  let titleNode = wrapTitle ? <h3>{title}</h3> : title;
+
+  titleNode = guideTarget ? (
+    <GuideAnchor target={guideTarget} position="bottom">
+      {titleNode}
+    </GuideAnchor>
+  ) : (
+    titleNode
+  );
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
       {title && (
-        <SectionHeader id={type} isCentered={isCentered}>
+        <SectionHeader id={type}>
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
@@ -65,6 +100,7 @@ export function EventDataSection({
             ) : (
               titleNode
             )}
+            {help && <QuestionTooltip size="xs" title={help} />}
           </Title>
           {actions && <ActionContainer>{actions}</ActionContainer>}
         </SectionHeader>
@@ -75,7 +111,10 @@ export function EventDataSection({
 }
 
 const Title = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const Permalink = styled('span')`
@@ -105,10 +144,11 @@ const PermalinkAnchor = styled(Anchor)`
   }
 `;
 
-const SectionHeader = styled('div')<{isCentered?: boolean}>`
+const SectionHeader = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: ${space(0.5)};
   margin-bottom: ${space(1)};
 
   & h3,
@@ -128,31 +168,20 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
-
-    text-transform: none;
   }
   & small > span {
     color: ${p => p.theme.textColor};
     font-weight: normal;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
     }
   }
 
-  ${p =>
-    p.isCentered &&
-    css`
-      align-items: center;
-      @media (max-width: ${p.theme.breakpoints.small}) {
-        display: block;
-      }
-    `}
-
-  >*:first-child {
+  > *:first-child {
     position: relative;
     flex-grow: 1;
   }

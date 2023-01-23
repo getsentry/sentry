@@ -74,7 +74,7 @@ from sentry.snuba.metrics.utils import (
     TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
-    get_intervals,
+    get_num_intervals,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -124,7 +124,11 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
-    use_case_id: UseCaseKey, org_id: int, input_: Any, is_tag_value: bool = False
+    use_case_id: UseCaseKey,
+    org_id: int,
+    input_: Any,
+    is_tag_value: bool = False,
+    allowed_tag_keys: Optional[Dict[str, str]] = None,
 ) -> Any:
     """Translate tags in snuba condition
 
@@ -133,7 +137,16 @@ def resolve_tags(
     if input_ is None:
         return None
     if isinstance(input_, (list, tuple)):
-        elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
+        elements = [
+            resolve_tags(
+                use_case_id,
+                org_id,
+                item,
+                is_tag_value=True,
+                allowed_tag_keys=allowed_tag_keys,
+            )
+            for item in input_
+        ]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
         # drop unknown strings.
         filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
@@ -143,27 +156,49 @@ def resolve_tags(
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
-            return resolve_tags(use_case_id, org_id, input_.parameters[0])
+            return resolve_tags(
+                use_case_id,
+                org_id,
+                input_.parameters[0],
+                allowed_tag_keys=allowed_tag_keys,
+            )
         elif input_.function == "isNull":
             return Function(
                 "equals",
                 [
-                    resolve_tags(use_case_id, org_id, input_.parameters[0]),
-                    resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        input_.parameters[0],
+                        allowed_tag_keys=allowed_tag_keys,
+                    ),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        "",
+                        is_tag_value=True,
+                        allowed_tag_keys=allowed_tag_keys,
+                    ),
                 ],
             )
         elif input_.function == "match":
-            column = input_.parameters[0]
+            restricted_tag_keys = {tag: "match" for tag in FILTERABLE_TAGS}
 
-            if column.name not in FILTERABLE_TAGS:
-                raise InvalidParams(
-                    f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
-                )
+            if allowed_tag_keys is None:
+                new_allowed_tag_keys = restricted_tag_keys
+            else:
+                new_allowed_tag_keys = allowed_tag_keys.copy()
+                new_allowed_tag_keys.update(restricted_tag_keys)
 
             return Function(
                 function=input_.function,
                 parameters=[
-                    resolve_tags(use_case_id, org_id, column),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        input_.parameters[0],
+                        allowed_tag_keys=new_allowed_tag_keys,
+                    ),
                     input_.parameters[1],  # We directly pass the regex.
                 ],
             )
@@ -171,7 +206,10 @@ def resolve_tags(
             return Function(
                 function=input_.function,
                 parameters=input_.parameters
-                and [resolve_tags(use_case_id, org_id, item) for item in input_.parameters],
+                and [
+                    resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                    for item in input_.parameters
+                ],
             )
     if (
         isinstance(input_, Or)
@@ -183,14 +221,24 @@ def resolve_tags(
         and c.rhs == 1
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
-        return resolve_tags(use_case_id, org_id, input_.conditions[1])
+        return resolve_tags(
+            use_case_id, org_id, input_.conditions[1], allowed_tag_keys=allowed_tag_keys
+        )
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
-                lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+                lhs=resolve_tags(
+                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                ),
                 op=Op.EQ,
-                rhs=resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                rhs=resolve_tags(
+                    use_case_id,
+                    org_id,
+                    "",
+                    is_tag_value=True,
+                    allowed_tag_keys=allowed_tag_keys,
+                ),
             )
         if (
             isinstance(input_.lhs, Function)
@@ -215,16 +263,31 @@ def resolve_tags(
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
             rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
-            return Condition(lhs=resolve_tags(use_case_id, org_id, input_.lhs), op=op, rhs=rhs_ids)
+            return Condition(
+                lhs=resolve_tags(
+                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                ),
+                op=op,
+                rhs=rhs_ids,
+            )
         return Condition(
-            lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+            lhs=resolve_tags(use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys),
             op=input_.op,
-            rhs=resolve_tags(use_case_id, org_id, input_.rhs, is_tag_value=True),
+            rhs=resolve_tags(
+                use_case_id,
+                org_id,
+                input_.rhs,
+                is_tag_value=True,
+                allowed_tag_keys=allowed_tag_keys,
+            ),
         )
 
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
-            conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
+            conditions=[
+                resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                for item in input_.conditions
+            ]
         )
     if isinstance(input_, Column):
         # If a column has the name belonging to the set, it means that we don't need to resolve its name.
@@ -247,6 +310,13 @@ def resolve_tags(
         else:
             name = input_.name
 
+        allowed = is_tag_key_allowed(name, allowed_tag_keys)
+        if not allowed:
+            raise InvalidParams(
+                f"The tag key {name} usage has been prohibited by one of the expressions "
+                f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {} }"
+            )
+
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
         if is_tag_value:
@@ -257,6 +327,14 @@ def resolve_tags(
         return input_
 
     raise InvalidParams("Unable to resolve conditions")
+
+
+def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]]) -> bool:
+    # If we have a None allow list it means we don't have any restriction on tag keys at all.
+    if allowed_tag_keys is None:
+        return True
+
+    return allowed_tag_keys.get(f"tags[{tag_key}]") is not None
 
 
 def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
@@ -372,15 +450,10 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
 
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
     date_range = timedelta(
-        seconds=int(
-            interval
-            * MetricsQuery.calculate_intervals_len(end=end, start=start, granularity=interval)
-        )
+        seconds=int(interval * get_num_intervals(end=end, start=start, granularity=interval))
     )
 
-    end = to_datetime(
-        int(interval * MetricsQuery.calculate_intervals_len(end=end, granularity=interval))
-    )
+    end = to_datetime(int(interval * get_num_intervals(start=None, end=end, granularity=interval)))
     start = end - date_range
     # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
     # if `end` is in the future. This allows for better real time results when
@@ -927,15 +1000,11 @@ class SnubaQueryBuilder:
                 limit=self._metrics_query.limit,
                 offset=self._metrics_query.offset,  # No offset is set to None.
                 rollup=self._metrics_query.granularity,
-                intervals_len=len(
-                    list(
-                        get_intervals(
-                            self._metrics_query.start,
-                            self._metrics_query.end,
-                            self._metrics_query.granularity.granularity,
-                            interval=self._metrics_query.interval,
-                        )
-                    )
+                intervals_len=get_num_intervals(
+                    self._metrics_query.start,
+                    self._metrics_query.end,
+                    self._metrics_query.granularity.granularity,
+                    interval=self._metrics_query.interval,
                 ),
             )
 

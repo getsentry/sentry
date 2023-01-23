@@ -71,7 +71,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         org_integration_status: int | None = None,
-        limit: int | None = 5,
+        limit: int | None = None,
     ) -> List[APIIntegration]:
         integration_kwargs: Dict[str, Any] = {}
         if integration_ids is not None:
@@ -128,7 +128,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
-        limit: int | None = 5,
+        limit: int | None = None,
     ) -> List[APIOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
 

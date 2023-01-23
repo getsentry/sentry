@@ -7,6 +7,7 @@ import {
   RadioField,
   TextField,
 } from 'sentry/components/forms';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 
@@ -271,10 +272,42 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.file_io_main_thread-creation',
+    key: 'performance.issues.file_io_main_thread.problem-creation',
     label: t('File IO Problem Creation Rate'),
     help: t(
       'Controls the overall rate at which performance problems are detected by the File IO Detector'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_db_query.problem-creation',
+    label: t('Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the slow DB span detector.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_db_query.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the slow DB span detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_db_query.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the slow DB span detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_db_query.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the slow DB span detector for GA organizations.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
@@ -367,7 +400,7 @@ const definitions: Field[] = [
     help: tct(
       'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation]. Note: This is separate from error-reporting for the self-hosted installer. The data reported to the beacon only includes usage stats from your running self-hosted instance.',
       {
-        link: <a href="https://develop.sentry.dev/self-hosted/" />,
+        link: <ExternalLink href="https://develop.sentry.dev/self-hosted/" />,
       }
     ),
   },
