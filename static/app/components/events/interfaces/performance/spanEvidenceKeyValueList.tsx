@@ -271,19 +271,14 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
 }
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
-  const transactionTime = event.endTimestamp - event.startTimestamp;
   if (
-    !transactionTime ||
     typeof span.timestamp === 'undefined' ||
     typeof span.start_timestamp === 'undefined'
   ) {
     return null;
   }
   const spanTime = span?.timestamp - span?.start_timestamp;
-  const percent = spanTime / transactionTime;
-  return `${toPercent(percent)} (${getPerformanceDuration(
-    spanTime * 1000
-  )}/${getPerformanceDuration(transactionTime * 1000)})`;
+  return getDurationImpact(event, spanTime * 1000);
 }
 
 function getSpanDataField(span: Span, field: string) {

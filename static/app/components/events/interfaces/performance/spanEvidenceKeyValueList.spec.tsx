@@ -18,22 +18,22 @@ describe('SpanEvidenceKeyValueList', () => {
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 200,
+      endTimestamp: 0.2,
       op: 'http.server',
       problemSpan: ProblemSpan.PARENT,
     });
 
     parentSpan.addChild({
-      startTimestamp: 10,
-      endTimestamp: 2100,
+      startTimestamp: 0.01,
+      endTimestamp: 2.1,
       op: 'db',
       description: 'SELECT * FROM books',
       problemSpan: ProblemSpan.OFFENDER,
     });
 
     parentSpan.addChild({
-      startTimestamp: 10,
-      endTimestamp: 2100,
+      startTimestamp: 0.01,
+      endTimestamp: 2.1,
       op: 'db',
       description: 'SELECT * FROM books WHERE id = %s',
       problemSpan: ProblemSpan.OFFENDER,
