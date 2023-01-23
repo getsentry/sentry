@@ -40,6 +40,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.resolve_issue()
+        self.wait_for_loading()
 
         res = self.page.api_issue_get(event.group.id)
         assert res.status_code == 200, res
@@ -49,6 +50,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.ignore_issue()
+        self.wait_for_loading()
 
         res = self.page.api_issue_get(event.group.id)
         assert res.status_code == 200, res
@@ -58,6 +60,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.bookmark_issue()
+        self.wait_for_loading()
 
         res = self.page.api_issue_get(event.group.id)
         assert res.status_code == 200, res
