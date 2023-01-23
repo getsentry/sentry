@@ -14,7 +14,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
+import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';
 

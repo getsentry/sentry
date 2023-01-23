@@ -24,9 +24,9 @@ import {
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
-import {WidgetType} from 'sentry/views/dashboardsV2/types';
-import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
-import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 

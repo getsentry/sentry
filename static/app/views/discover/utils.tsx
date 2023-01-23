@@ -38,7 +38,7 @@ import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboardsV2/types';
+import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboards/types';
 
 import {displayModeToDisplayType} from './savedQuery/utils';
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';

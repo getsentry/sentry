@@ -4,12 +4,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
-  DashboardDetails,
-  DashboardListItem,
-  Widget,
-} from 'sentry/views/dashboardsV2/types';
-import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
+import {DashboardDetails, DashboardListItem, Widget} from 'sentry/views/dashboards/types';
+import {flattenErrors} from 'sentry/views/dashboards/utils';
 
 export function fetchDashboards(api: Client, orgSlug: string) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(

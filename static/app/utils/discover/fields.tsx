@@ -6,7 +6,7 @@ import {assert} from 'sentry/types/utils';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import {
   AGGREGATION_FIELDS,
