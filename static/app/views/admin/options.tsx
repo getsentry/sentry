@@ -83,7 +83,7 @@ const autoRegisterOptionDefinitions: Field[] = [
       key: `performance.issues.${option.optionRoot}.${cohort}-rollout`,
       label: tct('[cohort] Rate', {cohort: cohort.toUpperCase()}),
       help: tct(
-        'Controls the rate at which performance problems are detected by the [name] detector for [cohort] organizations',
+        'Controls the percentage of [cohort] organizations that are eligible for [name] detector',
         {
           name: option.detectorName,
           cohort: cohort.toUpperCase(),
