@@ -1508,19 +1508,19 @@ function buildRoutes() {
       <IndexRedirect to="queries/" />
       <Route
         path="homepage/"
-        component={make(() => import('sentry/views/eventsV2/homepage'))}
+        component={make(() => import('sentry/views/discover/homepage'))}
       />
       <Route
         path="queries/"
-        component={make(() => import('sentry/views/eventsV2/landing'))}
+        component={make(() => import('sentry/views/discover/landing'))}
       />
       <Route
         path="results/"
-        component={make(() => import('sentry/views/eventsV2/results'))}
+        component={make(() => import('sentry/views/discover/results'))}
       />
       <Route
         path=":eventSlug/"
-        component={make(() => import('sentry/views/eventsV2/eventDetails'))}
+        component={make(() => import('sentry/views/discover/eventDetails'))}
       />
     </Fragment>
   );
@@ -1529,7 +1529,7 @@ function buildRoutes() {
       {usingCustomerDomain ? (
         <Route
           path="/discover/"
-          component={withDomainRequired(make(() => import('sentry/views/eventsV2')))}
+          component={withDomainRequired(make(() => import('sentry/views/discover')))}
           key="orgless-discover-route"
         >
           {discoverChildRoutes}
@@ -1537,7 +1537,7 @@ function buildRoutes() {
       ) : null}
       <Route
         path="/organizations/:orgId/discover/"
-        component={withDomainRedirect(make(() => import('sentry/views/eventsV2')))}
+        component={withDomainRedirect(make(() => import('sentry/views/discover')))}
         key="org-discover-route"
       >
         {discoverChildRoutes}

@@ -20,8 +20,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
 import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
-import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {QueryField} from 'sentry/views/discover/table/queryField';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 

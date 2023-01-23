@@ -33,8 +33,8 @@ import {
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
-import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {WidgetViewerQueryField} from './utils';
 // Dashboards only supports top 5 for now
