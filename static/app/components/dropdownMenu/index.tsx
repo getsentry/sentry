@@ -12,6 +12,8 @@ import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {MenuItemProps} from './item';
 import DropdownMenuList, {DropdownMenuContext, DropdownMenuListProps} from './list';
 
+export {MenuItemProps};
+
 /**
  * Recursively removes hidden items, including those nested in submenus
  */
