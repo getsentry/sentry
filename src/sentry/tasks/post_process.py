@@ -413,12 +413,12 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     if group_event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
-        logger.error(
-            "No post process pipeline configured for issue category",
-            extra={"category": group_event.group.issue_category},
-        )
-        return
-    pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[group_event.group.issue_category]
+        # pipeline for generic issues
+        pipeline = GENERIC_POST_PROCESS_PIPELINE
+    else:
+        # specific pipelines for issue types
+        pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[group_event.group.issue_category]
+
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
@@ -838,3 +838,9 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         # process_plugins,
     ],
 }
+
+GENERIC_POST_PROCESS_PIPELINE = [
+    process_snoozes,
+    process_inbox_adds,
+    process_rules,
+]
