@@ -3,9 +3,9 @@ import selectEvent from 'react-select-event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DiscoverLanding} from 'sentry/views/eventsV2/landing';
+import {DiscoverLanding} from 'sentry/views/discover/landing';
 
-describe('EventsV2 > Landing', function () {
+describe('Discover > Landing', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic', 'discover-query'];
 

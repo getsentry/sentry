@@ -7,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import Results from 'sentry/views/eventsV2/results';
+import Results from 'sentry/views/discover/results';
 
 import {DEFAULT_EVENT_VIEW, TRANSACTION_VIEWS} from './data';
 
