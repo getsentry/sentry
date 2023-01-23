@@ -1,13 +1,15 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
-import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
+import {useMenuTrigger} from '@react-aria/menu';
 import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
-import {MenuTriggerProps} from '@react-types/menu';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu, {
+  DropdownMenuContext,
+  DropdownMenuProps,
+} from 'sentry/components/dropdownMenu';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {FormSize} from 'sentry/utils/theme';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
@@ -43,10 +45,21 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
   }, []);
 }
 
-interface Props
-  extends Omit<Partial<MenuTriggerProps>, 'trigger'>,
-    Partial<AriaMenuOptions<MenuItemProps>>,
-    UseOverlayProps {
+interface DropdownMenuControlProps
+  extends Omit<
+      DropdownMenuProps,
+      'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
+    >,
+    Pick<
+      UseOverlayProps,
+      | 'isOpen'
+      | 'offset'
+      | 'position'
+      | 'isDismissable'
+      | 'shouldCloseOnBlur'
+      | 'shouldCloseOnInteractOutside'
+      | 'preventOverflowOptions'
+    > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
    * prop, it will be rendered as a menu section. If it has a `children` prop
@@ -58,27 +71,18 @@ interface Props
    */
   className?: string;
   /**
-   * If this is a submenu, it will in some cases need to close itself (e.g.
-   * when the user presses the arrow left key)
-   */
-  closeCurrentSubmenu?: () => void;
-  /**
-   * If this is a submenu, it will in some cases need to close the root menu
-   * (e.g. when a submenu item is clicked).
-   */
-  closeRootMenu?: () => void;
-  /**
    * Whether the trigger is disabled.
    */
   isDisabled?: boolean;
   /**
-   * Whether this is a submenu.
-   */
-  isSubmenu?: boolean;
-  /**
    * Title for the current menu.
    */
   menuTitle?: string;
+  /**
+   * Whether the menu should always be wider than the trigger. If true (default), then
+   * the menu will have a min width equal to the trigger's width.
+   */
+  menuWiderThanTrigger?: boolean;
   /**
    * Minimum menu width, in pixels
    */
@@ -128,9 +132,7 @@ function DropdownMenuControl({
   isDisabled: disabledProp,
   isOpen: isOpenProp,
   minMenuWidth,
-  isSubmenu = false,
-  closeRootMenu,
-  closeCurrentSubmenu,
+  menuWiderThanTrigger = true,
   renderWrapAs = 'div',
   size = 'md',
   className,
@@ -140,31 +142,33 @@ function DropdownMenuControl({
   position = 'bottom-start',
   isDismissable = true,
   shouldCloseOnBlur = true,
+  shouldCloseOnInteractOutside,
+  preventOverflowOptions,
   ...props
-}: Props) {
+}: DropdownMenuControlProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
+  const {rootOverlayState} = useContext(DropdownMenuContext);
   const {
     isOpen,
-    state,
+    state: overlayState,
     triggerRef,
     triggerProps: overlayTriggerProps,
     overlayProps,
   } = useOverlay({
-    onClose: closeRootMenu,
     isOpen: isOpenProp,
+    onClose: rootOverlayState?.close,
     offset,
     position,
-    isDismissable: !isSubmenu && isDismissable,
-    shouldCloseOnBlur: !isSubmenu && shouldCloseOnBlur,
-    shouldCloseOnInteractOutside: () => !isSubmenu,
-    // Necessary for submenus to be correctly positioned
-    ...(isSubmenu && {preventOverflowOptions: {boundary: document.body, altAxis: true}}),
+    isDismissable,
+    shouldCloseOnBlur,
+    shouldCloseOnInteractOutside,
+    preventOverflowOptions,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
     {type: 'menu', isDisabled},
-    {...state, focusStrategy: 'first'},
+    {...overlayState, focusStrategy: 'first'},
     triggerRef
   );
 
@@ -172,13 +176,6 @@ function DropdownMenuControl({
     {
       isDisabled,
       ...menuTriggerProps,
-      ...(isSubmenu && {
-        onKeyUp: e => e.continuePropagation(),
-        onKeyDown: e => e.continuePropagation(),
-        onPress: () => null,
-        onPressStart: () => null,
-        onPressEnd: () => null,
-      }),
     },
     triggerRef
   );
@@ -188,13 +185,15 @@ function DropdownMenuControl({
   const [triggerWidth, setTriggerWidth] = useState<number>();
   // Update triggerWidth when its size changes using useResizeObserver
   const updateTriggerWidth = useCallback(async () => {
+    if (!menuWiderThanTrigger) {
+      return;
+    }
+
     // Wait until the trigger element finishes rendering, otherwise
     // ResizeObserver might throw an infinite loop error.
     await new Promise(resolve => window.setTimeout(resolve));
-
-    const newTriggerWidth = triggerRef.current?.offsetWidth;
-    !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
-  }, [isSubmenu, triggerRef]);
+    setTriggerWidth(triggerRef.current?.offsetWidth ?? 0);
+  }, [menuWiderThanTrigger, triggerRef]);
 
   useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
   // If ResizeObserver is not available, manually update the width
@@ -242,12 +241,10 @@ function DropdownMenuControl({
         {...props}
         {...menuProps}
         size={size}
-        isSubmenu={isSubmenu}
         minWidth={Math.max(minMenuWidth ?? 0, triggerWidth ?? 0)}
-        closeRootMenu={closeRootMenu ?? state.close}
-        closeCurrentSubmenu={closeCurrentSubmenu}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
         overlayPositionProps={overlayProps}
+        overlayState={overlayState}
         items={activeItems}
       >
         {(item: MenuItemProps) => {

@@ -16,7 +16,7 @@ import {
   PERCENTAGE_UNITS,
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
-import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
+import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum EventDetailPageSource {

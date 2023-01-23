@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useEffect, useRef} from 'react';
+import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard, usePress} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
@@ -6,6 +6,7 @@ import {TreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 import {LocationDescriptor} from 'history';
 
+import {DropdownMenuContext} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import MenuListItem, {
   InnerWrap as MenuListItemInnerWrap,
@@ -15,7 +16,7 @@ import {IconChevron} from 'sentry/icons';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
-export type MenuItemProps = MenuListItemProps & {
+export interface MenuItemProps extends MenuListItemProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -51,12 +52,12 @@ export type MenuItemProps = MenuListItemProps & {
    */
   submenuTitle?: string;
   /**
-   * Destination if this menu item is a link. See also: `isExternalLink`.
+   * Destination if this menu item is a link.
    */
   to?: LocationDescriptor;
-};
+}
 
-type Props = {
+interface DropdownMenuItemProps {
   /**
    * Whether to close the menu when an item has been clicked/selected
    */
@@ -66,19 +67,13 @@ type Props = {
    */
   node: Node<MenuItemProps>;
   /**
-   * Used to close the menu when needed (e.g. when the item is
-   * clicked/selected)
-   */
-  onClose: () => void;
-  /**
    * Tree state (from @react-stately) inherited from parent menu
    */
   state: TreeState<MenuItemProps>;
   /**
-   * Whether this is a trigger button (displayed as a normal menu item) for a
-   * submenu
+   * Handler that is called when the menu should close after selecting an item
    */
-  isSubmenuTrigger?: boolean;
+  onClose?: () => void;
   /**
    * Tag name for item wrapper
    */
@@ -87,37 +82,31 @@ type Props = {
    * Whether to show a divider below this item
    */
   showDivider?: boolean;
-};
+}
 
 /**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props> = (
-  {
-    node,
-    state,
-    onClose,
-    closeOnSelect,
-    showDivider,
-    isSubmenuTrigger = false,
-    renderAs = 'li' as React.ElementType,
-    ...submenuTriggerProps
-  },
+const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
+  HTMLLIElement,
+  DropdownMenuItemProps
+> = (
+  {node, state, closeOnSelect, onClose, showDivider, renderAs = 'li', ...props},
   forwardedRef
 ) => {
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, ...itemProps} = node.value;
+  const {key, onAction, to, label, isSubmenu, ...itemProps} = node.value;
   const {size} = node.props;
 
   const actionHandler = () => {
     if (to) {
       return;
     }
-    if (isSubmenuTrigger) {
+    if (isSubmenu) {
       state.selectionManager.select(node.key);
       return;
     }
@@ -138,7 +127,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
     }
 
     if (isHovered && isFocused) {
-      if (isSubmenuTrigger) {
+      if (isSubmenu) {
         state.selectionManager.select(node.key);
         return;
       }
@@ -149,7 +138,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
     isFocused,
     prevIsHovered,
     prevIsFocused,
-    isSubmenuTrigger,
+    isSubmenu,
     node.key,
     state.selectionManager,
   ]);
@@ -163,11 +152,10 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
           metaKey: e.metaKey,
         });
         ref.current?.querySelector(`${MenuListItemInnerWrap}`)?.dispatchEvent(mouseEvent);
-        onClose();
         return;
       }
 
-      if (e.key === 'ArrowRight' && isSubmenuTrigger) {
+      if (e.key === 'ArrowRight' && isSubmenu) {
         state.selectionManager.select(node.key);
         return;
       }
@@ -177,12 +165,16 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
   });
 
   // Manage interactive events & create aria attributes
+  const {rootOverlayState} = useContext(DropdownMenuContext);
   const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
     {
       key: node.key,
       onAction: actionHandler,
+      onClose: () => {
+        onClose?.();
+        rootOverlayState?.close();
+      },
       closeOnSelect: to ? false : closeOnSelect,
-      onClose,
       isDisabled,
     },
     state,
@@ -191,8 +183,8 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
 
   // Merged menu item props, class names are combined, event handlers chained,
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-  const props = mergeProps(
-    submenuTriggerProps,
+  const mergedProps = mergeProps(
+    props,
     menuItemProps,
     hoverProps,
     keyboardProps,
@@ -203,7 +195,6 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
 
   return (
     <MenuListItem
-      aria-haspopup={isSubmenuTrigger}
       ref={mergeRefs([ref, forwardedRef])}
       as={renderAs}
       data-test-id={key}
@@ -215,9 +206,9 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
       labelProps={labelProps}
       detailsProps={descriptionProps}
       size={size}
-      {...props}
+      {...mergedProps}
       {...itemProps}
-      {...(isSubmenuTrigger && {
+      {...(isSubmenu && {
         trailingItems: (
           <Fragment>
             {itemProps.trailingItems}

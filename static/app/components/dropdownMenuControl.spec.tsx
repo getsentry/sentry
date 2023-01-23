@@ -81,7 +81,7 @@ describe('DropdownMenu', function () {
     expect(onAction).not.toHaveBeenCalled();
   });
 
-  it('renders submenues', function () {
+  it('renders submenus', function () {
     const onAction = jest.fn();
 
     render(
@@ -140,5 +140,31 @@ describe('DropdownMenu', function () {
     userEvent.hover(parentItem);
     userEvent.click(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
     expect(onAction).toHaveBeenCalled();
+
+    // Entire menu system is closed
+    expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+
+    // Pressing Esc closes the entire menu system
+    userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
+    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    userEvent.keyboard('{Esc}');
+    expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+
+    // Clicking outside closes the entire menu system
+    userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
+    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    userEvent.click(document.body);
+    expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 });

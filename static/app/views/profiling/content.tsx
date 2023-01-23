@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -41,10 +41,9 @@ import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
   location: Location;
-  router: InjectedRouter;
 }
 
-function ProfilingContent({location, router}: ProfilingContentProps) {
+function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
@@ -120,8 +119,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
-        <NoProjectMessage organization={organization}>
-          <Layout.Page>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Layout.Title>
@@ -192,7 +191,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                   </ProfilingOnboardingPanel>
                 ) : (
                   <Fragment>
-                    <ProfileCharts router={router} query={query} selection={selection} />
+                    <ProfileCharts query={query} selection={selection} />
                     <ProfileEventsTable
                       columns={FIELDS.slice()}
                       data={
@@ -218,8 +217,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 )}
               </Layout.Main>
             </Layout.Body>
-          </Layout.Page>
-        </NoProjectMessage>
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

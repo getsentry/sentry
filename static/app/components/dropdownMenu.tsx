@@ -1,37 +1,53 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {AriaMenuOptions, useMenu} from '@react-aria/menu';
-import {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
-import {useTreeState} from '@react-stately/tree';
+import {TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
+import omit from 'lodash/omit';
 
 import MenuControl from 'sentry/components/dropdownMenuControl';
 import MenuItem, {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import MenuSection from 'sentry/components/dropdownMenuSection';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
+import useOverlay from 'sentry/utils/useOverlay';
 
-type Props = {
+type OverlayState = ReturnType<typeof useOverlay>['state'];
+
+interface DropdownMenuContextValue {
   /**
-   * If this is a submenu, it will in some cases need to close the root menu
-   * (e.g. when a submenu item is clicked).
+   * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
+   * close the current submenu.
    */
-  closeRootMenu: () => void;
+  parentMenuState?: TreeState<MenuItemProps>;
   /**
-   * Whether this is a submenu
+   * Overlay state manager (from useOverlay) for the root (top-most) menu. To be used to
+   * close the entire menu system.
    */
-  isSubmenu: boolean;
+  rootOverlayState?: OverlayState;
+}
+
+export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
+
+export interface DropdownMenuProps
+  extends Omit<
+    AriaMenuOptions<MenuItemProps>,
+    | 'selectionMode'
+    | 'selectedKeys'
+    | 'defaultSelectedKeys'
+    | 'onSelectionChange'
+    | 'disallowEmptySelection'
+  > {
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
-   * If this is a submenu, it will in some cases need to close itself (e.g.
-   * when the user presses the arrow left key)
+   * The open state of the current overlay that contains this menu
    */
-  closeCurrentSubmenu?: () => void;
+  overlayState: OverlayState;
   /**
    * Whether the menu should close when an item has been clicked/selected
    */
@@ -44,23 +60,20 @@ type Props = {
    * Minimum menu width
    */
   minWidth?: number;
-  onClose?: () => void;
   size?: MenuItemProps['size'];
-} & AriaMenuOptions<MenuItemProps> &
-  Partial<OverlayProps> &
-  Partial<AriaPositionProps>;
+}
 
 function DropdownMenu({
   closeOnSelect = true,
+  onClose,
   minWidth,
   size,
-  isSubmenu,
   menuTitle,
-  closeRootMenu,
-  closeCurrentSubmenu,
+  overlayState,
   overlayPositionProps,
   ...props
-}: Props) {
+}: DropdownMenuProps) {
+  const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
@@ -73,8 +86,8 @@ function DropdownMenu({
   // root menu).
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      if (isSubmenu && e.key === 'ArrowLeft') {
-        closeCurrentSubmenu?.();
+      if (e.key === 'ArrowLeft' && parentMenuState) {
+        parentMenuState.selectionManager.clearSelection();
         return;
       }
       e.continuePropagation();
@@ -125,7 +138,7 @@ function DropdownMenu({
       <MenuItem
         node={node}
         state={state}
-        onClose={closeRootMenu}
+        onClose={onClose}
         closeOnSelect={closeOnSelect}
         showDivider={showDividers && !isLastNode}
       />
@@ -134,31 +147,46 @@ function DropdownMenu({
 
   // Render a submenu whose trigger button is a menu item
   const renderItemWithSubmenu = (node: Node<MenuItemProps>, isLastNode: boolean) => {
-    const trigger = submenuTriggerProps => (
+    if (!node.value.children) {
+      return null;
+    }
+
+    const trigger = triggerProps => (
       <MenuItem
         renderAs="div"
         node={node}
         state={state}
-        isSubmenuTrigger
         showDivider={showDividers && !isLastNode}
-        {...submenuTriggerProps}
+        closeOnSelect={false}
+        {...omit(triggerProps, [
+          'onClick',
+          'onDragStart',
+          'onKeyDown',
+          'onKeyUp',
+          'onMouseDown',
+          'onPointerDown',
+          'onPointerUp',
+        ])}
       />
     );
 
     return (
       <MenuControl
-        items={node.value.children as MenuItemProps[]}
+        isOpen={state.selectionManager.isSelected(node.key)}
+        items={node.value.children}
         trigger={trigger}
+        onClose={onClose}
+        closeOnSelect={closeOnSelect}
         menuTitle={node.value.submenuTitle}
+        menuWiderThanTrigger={false}
+        isDismissable={false}
+        shouldCloseOnBlur={false}
+        shouldCloseOnInteractOutside={() => false}
+        preventOverflowOptions={{boundary: document.body, altAxis: true}}
+        renderWrapAs="li"
         position="right-start"
         offset={-4}
-        closeOnSelect={closeOnSelect}
-        isOpen={state.selectionManager.isSelected(node.key)}
         size={size}
-        isSubmenu
-        closeRootMenu={closeRootMenu}
-        closeCurrentSubmenu={() => state.selectionManager.clearSelection()}
-        renderWrapAs="li"
       />
     );
   };
@@ -191,23 +219,32 @@ function DropdownMenu({
     });
 
   const theme = useTheme();
+  const contextValue = useMemo(
+    () => ({
+      rootOverlayState: rootOverlayState ?? overlayState,
+      parentMenuState: state,
+    }),
+    [rootOverlayState, overlayState, state]
+  );
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
-        <StyledOverlay>
-          {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
-          <MenuWrap
-            ref={menuRef}
-            hasTitle={!!menuTitle}
-            {...mergeProps(modifiedMenuProps, keyboardProps)}
-            style={{
-              maxHeight: overlayPositionProps.style?.maxHeight,
-              minWidth,
-            }}
-          >
-            {renderCollection(stateCollection)}
-          </MenuWrap>
-        </StyledOverlay>
+        <DropdownMenuContext.Provider value={contextValue}>
+          <StyledOverlay>
+            {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
+            <MenuWrap
+              ref={menuRef}
+              hasTitle={!!menuTitle}
+              {...mergeProps(modifiedMenuProps, keyboardProps)}
+              style={{
+                maxHeight: overlayPositionProps.style?.maxHeight,
+                minWidth,
+              }}
+            >
+              {renderCollection(stateCollection)}
+            </MenuWrap>
+          </StyledOverlay>
+        </DropdownMenuContext.Provider>
       </PositionWrapper>
     </FocusScope>
   );

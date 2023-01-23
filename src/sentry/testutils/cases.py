@@ -122,7 +122,6 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.silo import single_process_silo_mode_state
 from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -315,7 +314,6 @@ class BaseTestCase(Fixtures):
         GroupMeta.objects.clear_local_cache()
 
     def _post_teardown(self):
-        single_process_silo_mode_state.mode = None
         super()._post_teardown()
 
     def options(self, options):
@@ -869,6 +867,12 @@ class AcceptanceTestCase(TransactionTestCase):
             return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
         ):
             yield
+
+    def wait_for_loading(self):
+        self.browser.wait_until_not('[data-test-id="events-request-loading"]')
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+        self.browser.wait_until_not(".loading")
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
