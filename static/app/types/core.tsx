@@ -48,6 +48,12 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 export interface SelectValue<T> extends MenuListItemProps {
   label: string | number | React.ReactElement;
   value: T;
+  /**
+   * In scenarios where you're using a react element as the label react-select
+   * will be unable to filter to that label. Use this to specify the plain text of
+   * the label.
+   */
+  plainTextLabel?: string;
 }
 
 /**
@@ -69,6 +75,28 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
+  REPLAYS = 'replays',
+}
+
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// Should be used in conjuction with DATA_CATEGORY_INFO rather than manipulating the string
+export enum DataCategoryExact {
+  ERROR = 'error',
+  TRANSACTION = 'transaction',
+  ATTACHMENT = 'attachment',
+  PROFILE = 'profile',
+  REPLAY = 'replay',
+  TRANSACTION_PROCESSED = 'transaction_processed',
+  TRANSACTION_INDEXED = 'transaction_indexed',
+}
+
+export interface DataCategoryInfo {
+  apiName: string;
+  displayName: string;
+  name: string;
+  plural: string;
+  titleName: React.ReactNode;
+  uid: number;
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';

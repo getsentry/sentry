@@ -2,7 +2,7 @@ import uuid
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 from django.utils import timezone
 
@@ -68,6 +68,9 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         fingerprints: Sequence[str],
         environment: Optional[str] = None,
         insert_time: Optional[datetime] = None,
+        tags: Optional[Sequence[Tuple[str, Any]]] = None,
+        release: Optional[str] = None,
+        user: Optional[Dict[str, Any]] = None,
     ) -> Tuple[Event, IssueOccurrence, Optional[GroupInfo]]:
         from sentry.utils import snuba
 
@@ -78,10 +81,19 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
             "tags": [("sentry:user", user_id_val)],
             "timestamp": iso_format(insert_timestamp),
         }
+        if tags:
+            event_data["tags"].extend(tags)
+
+        if user:
+            event_data["user"] = user
 
         if environment:
             event_data["environment"] = environment
             event_data["tags"].extend([("environment", environment)])
+
+        if release:
+            event_data["release"] = release
+            event_data["tags"].extend([("release", release)])
 
         event = self.store_event(
             data=event_data,
@@ -116,7 +128,9 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         assert len(result["data"]) == 1
         assert result["data"][0]["project_id"] == project_id
         assert result["data"][0]["group_id"] == group_info.group.id if group_info else None
-        assert result["data"][0]["tags[sentry:user]"] == user_id_val
+        assert (
+            result["data"][0]["tags[sentry:user]"] == user_id_val if not user else f"id:{user_id}"
+        )
         assert result["data"][0]["environment"] == environment
         assert result["data"][0]["timestamp"] == insert_timestamp.isoformat()
 

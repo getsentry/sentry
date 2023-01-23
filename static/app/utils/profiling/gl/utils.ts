@@ -53,6 +53,66 @@ export function createProgram(
   throw new Error('Failed to create program');
 }
 
+export function getUniform(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string
+): WebGLUniformLocation {
+  const uniform = gl.getUniformLocation(program, name);
+  if (!uniform) {
+    throw new Error(`Could not locate uniform ${name} in shader`);
+  }
+  return uniform;
+}
+
+export function getAttribute(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string
+): number {
+  const attribute = gl.getAttribLocation(program, name);
+  if (attribute === -1) {
+    throw new Error(`Could not locate attribute ${name} in shader`);
+  }
+  return attribute;
+}
+
+export function createAndBindBuffer(
+  gl: WebGLRenderingContext,
+  data: ArrayBufferView,
+  usage: number
+): WebGLBuffer {
+  const buffer = gl.createBuffer();
+  if (!buffer) {
+    throw new Error('Could not create buffer');
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, data, usage);
+  return buffer;
+}
+
+export function pointToAndEnableVertexAttribute(
+  gl: WebGLRenderingContext,
+  attribute: number,
+  attributeInfo: {
+    normalized: boolean;
+    offset: number;
+    size: number;
+    stride: number;
+    type: number;
+  }
+) {
+  gl.vertexAttribPointer(
+    attribute,
+    attributeInfo.size,
+    attributeInfo.type,
+    attributeInfo.normalized,
+    attributeInfo.stride,
+    attributeInfo.offset
+  );
+  gl.enableVertexAttribArray(attribute);
+}
+
 // Create a projection matrix with origins at 0,0 in top left corner, scaled to width/height
 export function makeProjectionMatrix(width: number, height: number): mat3 {
   const projectionMatrix = mat3.create();
@@ -311,13 +371,9 @@ export class Rect {
 
   containsRect(rect: Rect): boolean {
     return (
-      // left bound
       this.left <= rect.left &&
-      // right bound
       rect.right <= this.right &&
-      // top bound
       this.top <= rect.top &&
-      // bottom bound
       rect.bottom <= this.bottom
     );
   }
@@ -502,19 +558,78 @@ export function findRangeBinarySearch(
   }
 }
 
+export function upperBound<T extends {end: number; start: number}>(
+  target: number,
+  values: T[]
+) {
+  let low = 0;
+  let high = values.length;
+
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].start < target ? 1 : 0;
+  }
+
+  while (low !== high) {
+    const mid = low + Math.floor((high - low) / 2);
+
+    if (values[mid].start < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low;
+}
+
+export function lowerBound<T extends {end: number; start: number}>(
+  target: number,
+  values: T[]
+) {
+  let low = 0;
+  let high = values.length;
+
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].end < target ? 1 : 0;
+  }
+
+  while (low !== high) {
+    const mid = low + Math.floor((high - low) / 2);
+
+    if (values[mid].end < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low;
+}
+
 export function formatColorForSpan(
   frame: SpanChartNode,
   renderer: SpanChartRenderer2D
 ): string {
   const color = renderer.getColorForFrame(frame);
-  if (color.length === 4) {
-    return `rgba(${color
-      .slice(0, 3)
-      .map(n => n * 255)
-      .join(',')}, ${color[3]})`;
-  }
+  if (Array.isArray(color)) {
+    if (color.length === 4) {
+      return `rgba(${color
+        .slice(0, 3)
+        .map(n => n * 255)
+        .join(',')}, ${color[3]})`;
+    }
 
-  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+  }
+  return '';
 }
 
 export function formatColorForFrame(

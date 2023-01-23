@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -242,9 +242,9 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {params, organization} = this.props;
+    const {organization} = this.props;
     const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
-    const {name: orgName, access} = organization;
+    const {access} = organization;
 
     const canAddMembers = access.includes('member:write');
     const canRemove = access.includes('member:admin');
@@ -326,12 +326,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
           <PanelBody>
             {members.map(member => (
               <OrganizationMemberRow
-                params={params}
                 key={member.id}
+                organization={organization}
                 member={member}
                 status={this.state.invited[member.id]}
-                orgName={orgName}
-                memberCanLeave={!isOnlyOwner}
+                memberCanLeave={!isOnlyOwner && !member.flags['idp:provisioned']}
                 currentUser={currentUser}
                 canRemoveMembers={canRemove}
                 canAddMembers={canAddMembers}

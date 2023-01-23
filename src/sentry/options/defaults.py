@@ -199,6 +199,9 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# Codecov Integration
+register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # GitHub Integration
 register("github-app.id", default=0)
 register("github-app.name", default="")
@@ -557,6 +560,10 @@ register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
+register("performance.issues.compressed_assets.problem-creation", default=0.0)
+register("performance.issues.compressed_assets.la-rollout", default=0.0)
+register("performance.issues.compressed_assets.ea-rollout", default=0.0)
+register("performance.issues.compressed_assets.ga-rollout", default=0.0)
 register("performance.issues.consecutive_db.problem-creation", default=0.0)
 register("performance.issues.consecutive_db.la-rollout", default=0.0)
 register("performance.issues.consecutive_db.ea-rollout", default=0.0)
@@ -564,11 +571,16 @@ register("performance.issues.consecutive_db.ga-rollout", default=0.0)
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
-register("performance.issues.file_io_main_thread-creation", default=0.0)
+register("performance.issues.file_io_main_thread.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.la-rollout", default=0.0)
 register("performance.issues.n_plus_one_api_calls.ea-rollout", default=0.0)
 register("performance.issues.n_plus_one_api_calls.ga-rollout", default=0.0)
+register("performance.issues.slow_db_query.problem-creation", default=0.0)
+register("performance.issues.slow_db_query.la-rollout", default=0.0)
+register("performance.issues.slow_db_query.ea-rollout", default=0.0)
+register("performance.issues.slow_db_query.ga-rollout", default=0.0)
+
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
@@ -13,11 +13,12 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -30,6 +31,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
@@ -116,10 +118,8 @@ class EventsTable extends Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, excludedTags} = this.props;
 
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.transactionEvents.cellaction',
-        eventName: 'Performance Views: Transaction Events Tab Cell Action Clicked',
-        organization_id: parseInt(organization.id, 10),
+      trackAdvancedAnalyticsEvent('performance_views.transactionEvents.cellaction', {
+        organization,
         action,
       });
 
@@ -211,7 +211,13 @@ class EventsTable extends Component<Props, State> {
           handleCellAction={this.handleCellAction(column)}
           allowActions={allowActions}
         >
-          {target ? <Link to={target}>{rendered}</Link> : rendered}
+          {target ? (
+            <ViewReplayLink replayId={dataRow.replayId} to={target}>
+              {rendered}
+            </ViewReplayLink>
+          ) : (
+            rendered
+          )}
         </CellAction>
       );
     }
@@ -258,10 +264,8 @@ class EventsTable extends Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.transactionEvents.sort',
-      eventName: 'Performance Views: Transaction Events Tab Sorted',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.transactionEvents.sort', {
+      organization,
       field: currentSortField,
       direction: currentSortKind,
     });
@@ -474,8 +478,12 @@ class EventsTable extends Component<Props, State> {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);
+                  const replayIds = tableData.data.map(row => row.replayId);
                   return (
-                    <Fragment>
+                    <ReplayIdCountProvider
+                      organization={organization}
+                      replayIds={replayIds}
+                    >
                       <GridEditable
                         isLoading={
                           isTotalEventsLoading ||
@@ -499,7 +507,7 @@ class EventsTable extends Component<Props, State> {
                         caption={paginationCaption}
                         pageLinks={pageLinks}
                       />
-                    </Fragment>
+                    </ReplayIdCountProvider>
                   );
                 }}
               </DiscoverQuery>

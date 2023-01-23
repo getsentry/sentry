@@ -168,11 +168,18 @@ class Organization(Model, SnowflakeIdMixin):
                 "require_email_verification",
                 "Require and enforce email verification for all members.",
             ),
+            (
+                "codecov_access",
+                "Enable codecov integration.",
+            ),
         ),
         default=1,
     )
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
+
+    # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
+    customer_id: Optional[str] = None
 
     class Meta:
         app_label = "sentry"
@@ -238,6 +245,15 @@ class Organization(Model, SnowflakeIdMixin):
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=org_id,
             category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=org_id,
+        )
+
+    @staticmethod
+    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
             object_identifier=org_id,
         )
 
@@ -584,11 +600,16 @@ class Organization(Model, SnowflakeIdMixin):
             path = customer_domain_path(path)
             url_base = generate_organization_url(self.slug)
         uri = absolute_uri(path, url_prefix=url_base)
+        parts = [uri]
+        if query and not query.startswith("?"):
+            query = f"?{query}"
         if query:
-            uri = f"{uri}?{query}"
+            parts.append(query)
+        if fragment and not fragment.startswith("#"):
+            fragment = f"#{fragment}"
         if fragment:
-            uri = f"{uri}#{fragment}"
-        return uri
+            parts.append(fragment)
+        return "".join(parts)
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.priority > 0:

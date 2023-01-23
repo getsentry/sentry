@@ -71,6 +71,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         "foo_transaction",
         "bar_transaction",
         "baz_transaction",
+        "measurements.custom.measurement",
     ]
     DEFAULT_METRIC_TIMESTAMP = datetime.datetime(
         2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc
@@ -1452,27 +1453,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Handled by the discover transform later so its fine that this is nan
         assert math.isnan(data["p50"])
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
-    @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
-    def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
-        query = MetricsQueryBuilder(
-            self.params,
-            # Include a tag:value search as well since that resolves differently
-            query=f"project:{self.project.slug} transaction:foo_transaction",
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[
-                "transaction",
-                "p95(transaction.duration)",
-                "p100(measurements.lcp)",
-                "apdex()",
-                "count_web_vitals(measurements.lcp, good)",
-            ],
-            dry_run=True,
-        )
-        query.run_query("test_query")
-        assert not mock_indexer.called
-        assert not mock_query.called
-
     @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
     def test_multiple_references_only_resolve_index_once(self, mock_indexer):
         MetricsQueryBuilder(
@@ -1526,8 +1506,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query="transaction:foo_transaction",
             allow_metric_aggregates=False,
             use_aggregate_conditions=True,
-            # Use dry run for now to not hit indexer
-            dry_run=True,
         )
 
     def test_group_by_not_in_select(self):
@@ -1572,6 +1550,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 groupby_columns=[
                     "transaction",
                 ],
+            )
+
+    def test_event_type_query_condition(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            query="event.type:transaction",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[],
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+
+    def test_invalid_event_type_query_condition(self):
+        with pytest.raises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                query="!event.type:transaction",
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[],
             )
 
 

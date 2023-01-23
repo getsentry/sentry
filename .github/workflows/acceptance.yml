@@ -49,7 +49,7 @@ jobs:
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -108,8 +108,11 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # FE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: needs.files-changed.outputs.frontend_all == 'true'
         with:
           files: .artifacts/coverage/*
           type: frontend
@@ -150,6 +153,12 @@ jobs:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
 
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
       - name: Install Javascript Dependencies
         run: |
           yarn install --frozen-lockfile
@@ -185,6 +194,8 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'
@@ -248,6 +259,8 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'

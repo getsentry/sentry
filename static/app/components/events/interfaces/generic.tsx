@@ -1,8 +1,8 @@
 import {useState} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
@@ -51,7 +51,7 @@ export function Generic({type, data, meta}: Props) {
   return (
     <EventDataSection
       type={type}
-      title={<h3>{t('Report')}</h3>}
+      title={t('Report')}
       actions={
         <ButtonBar merged active={view}>
           <Button barId="report" size="xs" onClick={() => setView('report')}>
@@ -62,7 +62,6 @@ export function Generic({type, data, meta}: Props) {
           </Button>
         </ButtonBar>
       }
-      wrapTitle={false}
     >
       {getView({view, data, meta})}
     </EventDataSection>

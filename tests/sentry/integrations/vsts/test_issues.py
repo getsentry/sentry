@@ -21,6 +21,7 @@ from sentry.models import (
     Integration,
     IntegrationExternalProject,
 )
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -432,10 +433,10 @@ class VstsIssueFormTest(VstsIssueBase):
         responses.reset()
 
     def update_issue_defaults(self, defaults):
-        self.integration.org_integration.config = {
-            "project_issue_defaults": {str(self.group.project_id): defaults}
-        }
-        self.integration.org_integration.save()
+        self.integration.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.integration.org_integration.id,
+            config={"project_issue_defaults": {str(self.group.project_id): defaults}},
+        )
 
     def assert_project_field(self, fields, default_value, choices):
         project_field = [field for field in fields if field["name"] == "project"][0]

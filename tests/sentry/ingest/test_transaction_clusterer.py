@@ -6,6 +6,7 @@ from freezegun import freeze_time
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     _store_transaction_name,
+    clear_transaction_names,
     get_transaction_names,
     record_transaction_name,
 )
@@ -70,6 +71,18 @@ def test_collection():
 
     project3 = Project(id=103, name="project3", organization_id=1)
     assert set() == set(get_transaction_names(project3))
+
+
+def test_clear_redis():
+    project = Project(id=101, name="p1", organization_id=1)
+    _store_transaction_name(project, "foo")
+    assert set(get_transaction_names(project)) == {"foo"}
+    clear_transaction_names(project)
+    assert set(get_transaction_names(project)) == set()
+
+    # Deleting for a none-existing project does not crash:
+    project2 = Project(id=666, name="project2", organization_id=1)
+    clear_transaction_names(project2)
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 100)
@@ -173,11 +186,14 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
             _store_transaction_name(project1, f"/users/trans/tx-{project1.id}-{i}")
             _store_transaction_name(project1, f"/test/path/{i}")
 
+        # Add a transaction to project2 so it runs again
+        _store_transaction_name(project2, "foo")
+
         with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1):
             spawn_clusterers()
 
         # One project per batch now:
-        assert cluster_projects_delay.call_count == 2
+        assert cluster_projects_delay.call_count == 2, cluster_projects_delay.call_args
 
         pr_rules = _get_rules(project1)
         assert pr_rules.keys() == {
@@ -195,18 +211,19 @@ def test_transaction_clusterer_generates_rules(default_project):
             get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
         )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    feature = "organizations:transaction-name-normalize"
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
     default_project.update_option(
         "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
     )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) == [
             # TTL is 90d, so three months to expire
             {

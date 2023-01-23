@@ -1,6 +1,5 @@
 import random
 import string
-from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytz
@@ -9,6 +8,7 @@ from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
 from sentry.models import Group
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 
 FEATURES = {
@@ -59,20 +59,18 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_one_performance_issue(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
         event_data = self.create_sample_event(mock_now.return_value.timestamp())
 
         with self.feature(FEATURES):
             event = self.store_event(data=event_data, project_id=self.project.id)
 
             self.page.visit_issue(self.org.slug, event.groups[0].id)
-            self.browser.click('[aria-label="Show Details"]')
-
             self.browser.snapshot("performance issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
         event_data = self.create_sample_event(mock_now.return_value.timestamp())
 
         with self.feature(FEATURES):
@@ -82,7 +80,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
 
         # Create identical events with different parent spans
         for _ in range(3):

@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Frame} from 'sentry/types';
+import {CodecovStatusCode, Frame} from 'sentry/types';
 import * as analytics from 'sentry/utils/integrationUtil';
 
 import {StacktraceLink} from './stacktraceLink';
@@ -196,5 +196,53 @@ describe('StacktraceLink', function () {
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('renders the codecov link', async function () {
+    const organization = {
+      ...org,
+      features: ['codecov-stacktrace-integration'],
+      codecovAccess: true,
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        codecovUrl: 'https://app.codecov.io/gh/path/to/file.py',
+        integrations: [integration],
+        codecovStatusCode: CodecovStatusCode.COVERAGE_EXISTS,
+      },
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+      organization,
+    });
+    expect(await screen.findByText('View Coverage Tests on Codecov')).toHaveAttribute(
+      'href',
+      'https://app.codecov.io/gh/path/to/file.py'
+    );
+  });
+
+  it('renders the missing coverage warning', async function () {
+    const organization = {
+      ...org,
+      features: ['codecov-stacktrace-integration'],
+      codecovAccess: true,
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        integrations: [integration],
+        codecovStatusCode: CodecovStatusCode.NO_COVERAGE_DATA,
+      },
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+      organization,
+    });
+    expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
   });
 });
