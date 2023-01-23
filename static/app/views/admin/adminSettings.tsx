@@ -139,11 +139,11 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.file_io_main_thread.problem-creation']}
             </Panel>
 
-            {...autoRegisterDetectorOptions.map(option => (
+            {autoRegisterDetectorOptions.map(option => (
               <Panel key={option.optionRoot}>
                 <PanelHeader>Performance Issue - {option.detectorName}</PanelHeader>
                 {fields[`performance.issues.${option.optionRoot}.problem-creation`]}
-                {...autoRegisterCohorts.map(cohort => (
+                {autoRegisterCohorts.map(cohort => (
                   <Fragment key={cohort}>
                     {fields[`performance.issues.${option.optionRoot}.${cohort}-rollout`]}
                   </Fragment>
