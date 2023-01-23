@@ -1,4 +1,6 @@
 ---
+created: '2023-01-17T00:14:26.876268Z'
+creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 - condition:
@@ -87,9 +89,9 @@ source: tests/sentry/relay/test_config.py
   targetTag: satisfaction
 - condition:
     inner:
-    - name: event.duration
+    - name: event.measurements.lcp.value
       op: gt
-      value: 1200
+      value: 2000
     op: and
   tagValue: frustrated
   targetMetrics:
@@ -99,9 +101,9 @@ source: tests/sentry/relay/test_config.py
   targetTag: satisfaction
 - condition:
     inner:
-    - name: event.duration
+    - name: event.measurements.lcp.value
       op: gt
-      value: 300
+      value: 500
     op: and
   tagValue: tolerated
   targetMetrics:
