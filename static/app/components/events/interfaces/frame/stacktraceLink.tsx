@@ -87,7 +87,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       }
     );
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.DISMISS_CTA, {
       view: 'stacktrace_issue_details',
       organization,
       ...getAnalyicsDataForEvent(event),
@@ -151,7 +151,7 @@ function CodecovLink({
     }
 
     const onOpenCodecovLink = () => {
-      trackIntegrationAnalytics('integrations.stacktrace_codecov_link_clicked', {
+      trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_LINK_CLICKED, {
         view: 'stacktrace_issue_details',
         organization,
         ...getAnalyicsDataForEvent(event),
@@ -224,7 +224,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       return;
     }
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.LINK_VIEWED, {
       view: 'stacktrace_issue_details',
       organization,
       platform: project?.platform,
@@ -332,7 +332,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           }
           onClick={() => {
             trackIntegrationAnalytics(
-              'integrations.stacktrace_start_setup',
+              StacktraceLinkEvents.START_SETUP,
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
