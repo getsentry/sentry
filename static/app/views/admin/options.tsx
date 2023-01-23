@@ -69,7 +69,7 @@ const HIGH_THROUGHPUT_RATE_OPTION = {
 const autoRegisterOptionDefinitions: Field[] = [
   ...autoRegisterDetectorOptions.flatMap(option => [
     {
-      key: `performance.issues.${option.optionRoot}.problem-creation`,
+      key: `performance.issues.${option.namespace}.problem-creation`,
       label: t('Problem Creation Rate'),
       help: tct(
         'Controls the overall rate at which performance problems are detected by the [name] detector.',
@@ -80,7 +80,7 @@ const autoRegisterOptionDefinitions: Field[] = [
       ...HIGH_THROUGHPUT_RATE_OPTION,
     },
     ...autoRegisterCohorts.map(cohort => ({
-      key: `performance.issues.${option.optionRoot}.${cohort}-rollout`,
+      key: `performance.issues.${option.namespace}.${cohort}-rollout`,
       label: tct('[cohort] Rate', {cohort: cohort.toUpperCase()}),
       help: tct(
         'Controls the percentage of [cohort] organizations that are eligible for [name] detector',

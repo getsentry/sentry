@@ -17,21 +17,24 @@ const manualDetectionOptions = [
 ];
 
 // For rollout options backed by `AutoRegisterOptionBackedRolloutFeatureHandler`
-export const autoRegisterDetectorOptions = [
+export const autoRegisterDetectorOptions: Array<{
+  detectorName: string;
+  namespace: string;
+}> = [
   {
-    optionRoot: 'performance.issues.consecutive_db',
+    namespace: 'performance.issues.consecutive_db',
     detectorName: 'Consecutive DB',
   },
   {
-    optionRoot: 'performance.issues.n_plus_one_api_calls',
+    namespace: 'performance.issues.n_plus_one_api_calls',
     detectorName: 'N+1 API Calls',
   },
   {
-    optionRoot: 'performance.issues.compressed_assets',
+    namespace: 'performance.issues.compressed_assets',
     detectorName: 'Compressed Assets',
   },
   {
-    optionRoot: 'performance.issues.slow_db_query',
+    namespace: 'performance.issues.slow_db_query',
     detectorName: 'Slow DB Span',
   },
 ];
@@ -51,8 +54,8 @@ const optionsAvailable = [
   'beacon.anonymous',
   ...manualDetectionOptions,
   ...autoRegisterDetectorOptions.flatMap(option => [
-    `${option.optionRoot}.problem-creation`,
-    ...autoRegisterCohorts.map(cohort => `${option.optionRoot}.${cohort}-rollout`),
+    `${option.namespace}.problem-creation`,
+    ...autoRegisterCohorts.map(cohort => `${option.namespace}.${cohort}-rollout`),
   ]),
 ];
 
@@ -140,12 +143,12 @@ export default class AdminSettings extends AsyncView<{}, State> {
             </Panel>
 
             {autoRegisterDetectorOptions.map(option => (
-              <Panel key={option.optionRoot}>
+              <Panel key={option.namespace}>
                 <PanelHeader>Performance Issue - {option.detectorName}</PanelHeader>
-                {fields[`performance.issues.${option.optionRoot}.problem-creation`]}
+                {fields[`performance.issues.${option.namespace}.problem-creation`]}
                 {autoRegisterCohorts.map(cohort => (
                   <Fragment key={cohort}>
-                    {fields[`performance.issues.${option.optionRoot}.${cohort}-rollout`]}
+                    {fields[`performance.issues.${option.namespace}.${cohort}-rollout`]}
                   </Fragment>
                 ))}
               </Panel>
