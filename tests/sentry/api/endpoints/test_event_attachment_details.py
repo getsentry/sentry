@@ -1,37 +1,57 @@
+import zipfile
 from io import BytesIO
 
-from sentry.models import EventAttachment, File
+from sentry.models import EventAttachment, File, create_files_from_dif_zip
 from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
+
+PROGUARD_UUID = "467ade76-6d0b-11ed-a1eb-0242ac120002"
+PROGUARD_SOURCE = b"""\
+org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
+    65:65:void <init>() -> <init>
+    67:67:java.lang.Class[] getClassContext() -> a
+    69:69:java.lang.Class[] getExtraClassContext() -> a
+    65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
+"""
 
 
 class CreateAttachmentMixin:
-    def create_attachment(self):
+    def create_attachment(
+        self,
+        name="hello.png",
+        file_type="image/png",
+        attachment_type=None,
+        contents=b"File contents here",
+        event_data=None,
+    ):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
         min_ago = iso_format(before_now(minutes=1))
+        event_data = event_data or {}
         self.event = self.store_event(
             data={
                 "fingerprint": ["group1"],
                 "timestamp": min_ago,
                 "tags": {"sentry:release": self.release.version},
+                **event_data,
             },
             project_id=self.project.id,
         )
 
-        self.file = File.objects.create(name="hello.png", type="image/png; foo=bar")
-        self.file.putfile(BytesIO(b"File contents here"))
+        self.file = File.objects.create(name=name, type=f"{file_type}; foo=bar")
+        self.file.putfile(BytesIO(contents))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
             file_id=self.file.id,
-            type=self.file.type,
-            name="hello.png",
+            type=attachment_type or self.file.type,
+            name=name,
         )
-        assert self.attachment.mimetype == "image/png"
+        assert self.attachment.mimetype == file_type
 
         return self.attachment
 
@@ -66,6 +86,55 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Length") == str(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
         assert b"File contents here" == b"".join(response.streaming_content)
+
+    def test_download_view_hierarchy_with_proguard_file(self):
+        def create_proguard():
+            with zipfile.ZipFile(BytesIO(), "w") as f:
+                f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+                create_files_from_dif_zip(f, project=self.project)
+
+        self.login_as(user=self.user)
+
+        obfuscated_view_hierarchy = {
+            "rendering_system": "Test System",
+            "windows": [
+                {
+                    "identifier": "parent",
+                    "type": "org.a.b.g$a",
+                    "children": [
+                        {
+                            "identifier": "child",
+                            "type": "org.a.b.g$a",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        self.create_attachment(
+            name="view_hierarchy.json",
+            file_type="application/json",
+            attachment_type="event.view_hierarchy",
+            contents=(json.dumps(obfuscated_view_hierarchy).encode("utf-8")),
+            event_data={
+                "debug_meta": {"images": [{"uuid": PROGUARD_UUID, "type": "proguard"}]},
+            },
+        )
+        create_proguard()
+
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert response.get("Content-Disposition") == 'attachment; filename="view_hierarchy.json"'
+        assert response.get("Content-Length") == str(self.file.size)
+        assert response.get("Content-Type") == "application/octet-stream"
+        assert (
+            b"".join(response.streaming_content)
+            == b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
+        )
 
     def test_delete(self):
         self.login_as(user=self.user)
