@@ -33,7 +33,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
-import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
+import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 

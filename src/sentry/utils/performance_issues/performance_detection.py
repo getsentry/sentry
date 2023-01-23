@@ -1688,7 +1688,10 @@ def report_metrics_for_detectors(
         if event_id:
             set_tag("_pi_transaction", event_id)
 
-    browser_name = event.get("browser.name", None)
+    tags = event.get("tags", [])
+    browser_name = next(
+        (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), None
+    )
     allowed_browser_name = "Other"
     if browser_name in [
         "Chrome",
