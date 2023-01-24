@@ -137,10 +137,16 @@ def map_metric_alert_query_args(url: str, args: Mapping[str, str | None]) -> Map
     return map_incident_args(url, data)
 
 
+metric_alerts_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<alert_rule_id>\d+)"
+)
+
+customer_domain_metric_alerts_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/alerts/rules/details/(?P<alert_rule_id>\d+)"
+)
+
 handler: Handler = Handler(
     fn=unfurl_metric_alerts,
-    matcher=re.compile(
-        r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<alert_rule_id>\d+)"
-    ),
+    matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
     arg_mapper=map_metric_alert_query_args,
 )
