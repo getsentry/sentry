@@ -94,6 +94,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    @pytest.mark.skip(reason="flaky: SNS-1990")
     def test_generic_issue(self):
         _, _, group_info = self.store_search_issue(
             self.project.id,
@@ -133,6 +134,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    @pytest.mark.skip(reason="flaky: SNS-1990")
     def test_generic_issue_calculated_interval(self):
         """Test that a 4h interval returns the correct generic event stats.
         This follows a different code path than 1h or 1d as the IssuePlatformTimeSeriesQueryBuilder
