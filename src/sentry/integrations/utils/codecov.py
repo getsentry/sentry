@@ -1,6 +1,7 @@
 from typing import Optional, Sequence, Tuple
 
 import requests
+from sentry_sdk import configure_scope
 
 from sentry import options
 
