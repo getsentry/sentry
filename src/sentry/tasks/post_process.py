@@ -426,7 +426,7 @@ def run_post_process_job(job: PostProcessJob):
                 "post_process.pipeline_step",
                 extra={
                     "step": f"{pipeline_step.__name__}",
-                    "event": group_event.id,
+                    "event": group_event.event_id,
                     "group": group_event.group.id,
                     "status": "started",
                 },
@@ -436,7 +436,7 @@ def run_post_process_job(job: PostProcessJob):
                 "post_process.pipeline_step",
                 extra={
                     "step": f"{pipeline_step.__name__}",
-                    "event": group_event.id,
+                    "event": group_event.event_id,
                     "group": group_event.group.id,
                     "status": "exception",
                 },
@@ -708,6 +708,10 @@ def process_commits(job: PostProcessJob) -> None:
                             project_id=event.project_id,
                             sdk_name=sdk_name,
                         )
+                        logger.info(
+                            "process_commits.commit_context.task_triggered",
+                            extra={"event": event.event_id, "group": event.group_id},
+                        )
                     else:
                         process_suspect_commits.delay(
                             event_id=event.event_id,
@@ -718,6 +722,10 @@ def process_commits(job: PostProcessJob) -> None:
                             sdk_name=sdk_name,
                         )
     except UnableToAcquireLock:
+        logger.info(
+            "process_commits.aborted.no_lock",
+            extra={"event": event.event_id, "group": event.group_id},
+        )
         pass
 
 
