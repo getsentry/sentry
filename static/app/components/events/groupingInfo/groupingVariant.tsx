@@ -266,7 +266,7 @@ class GroupVariant extends Component<Props, State> {
             value: d[1],
           }))}
           isContextData
-          isSorted={false}
+          shouldSort={false}
         />
       </VariantWrapper>
     );

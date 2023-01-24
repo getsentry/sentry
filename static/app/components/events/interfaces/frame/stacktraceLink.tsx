@@ -87,7 +87,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       }
     );
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.DISMISS_CTA, {
       view: 'stacktrace_issue_details',
       organization,
       ...getAnalyicsDataForEvent(event),
@@ -124,11 +124,18 @@ function shouldshowCodecovFeatures(
 }
 
 interface CodecovLinkProps {
-  sourceUrl: string | undefined;
+  event: Event;
+  organization: Organization;
   codecovStatusCode?: CodecovStatusCode;
+  codecovUrl?: string;
 }
 
-function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
+function CodecovLink({
+  codecovUrl,
+  codecovStatusCode,
+  organization,
+  event,
+}: CodecovLinkProps) {
   if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
@@ -139,16 +146,20 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
   }
 
   if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
-    if (!sourceUrl) {
+    if (!codecovUrl) {
       return null;
     }
-    const codecovUrl = sourceUrl.replaceAll(
-      new RegExp('github.com/.[^/]*', 'g'),
-      'app.codecov.io/gh'
-    );
+
+    const onOpenCodecovLink = () => {
+      trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_LINK_CLICKED, {
+        view: 'stacktrace_issue_details',
+        organization,
+        ...getAnalyicsDataForEvent(event),
+      });
+    };
 
     return (
-      <OpenInLink href={codecovUrl} openInNewTab>
+      <OpenInLink href={codecovUrl} openInNewTab onClick={onOpenCodecovLink}>
         {t('View Coverage Tests on Codecov')}
         <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       </OpenInLink>
@@ -213,7 +224,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       return;
     }
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.LINK_VIEWED, {
       view: 'stacktrace_issue_details',
       organization,
       platform: project?.platform,
@@ -282,8 +293,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         </OpenInLink>
         {shouldshowCodecovFeatures(organization, match) && (
           <CodecovLink
-            sourceUrl={match.sourceUrl}
+            codecovUrl={match.codecovUrl}
             codecovStatusCode={match.codecovStatusCode}
+            organization={organization}
+            event={event}
           />
         )}
       </CodeMappingButtonContainer>
@@ -319,7 +332,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           }
           onClick={() => {
             trackIntegrationAnalytics(
-              'integrations.stacktrace_start_setup',
+              StacktraceLinkEvents.START_SETUP,
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,

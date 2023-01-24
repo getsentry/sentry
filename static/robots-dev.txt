@@ -1,0 +1,3 @@
+# In development and development previews disallow all bots from indexing
+User-agent: *
+Disallow: /
