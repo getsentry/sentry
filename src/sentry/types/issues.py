@@ -48,7 +48,7 @@ GROUP_TYPE_TO_TEXT = {
     GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: "Render Blocking Asset Span",
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: "N+1 Query",
     GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: "File IO on Main Thread",
-    GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: "N+1 API Calls",
+    GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: "N+1 API Call",
     GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES: "MN+1 Query",
     GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: "Uncompressed Asset",
     GroupType.PROFILE_BLOCKED_THREAD: "Blocked Thread",
