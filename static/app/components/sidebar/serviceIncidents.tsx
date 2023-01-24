@@ -10,6 +10,7 @@ import {Button} from 'sentry/components/button';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
+import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import {
@@ -24,8 +25,6 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SentryServiceStatus} from 'sentry/types';
 import marked from 'sentry/utils/marked';
-
-import TimeSince from '../timeSince';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
