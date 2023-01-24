@@ -68,6 +68,5 @@ export function DataSetStep({dataSet, onChange, displayType}: Props) {
 
 const DataSetChoices = styled(RadioGroup)`
   display: flex;
-  flex-wrap: wrap;
   gap: ${space(2)};
 `;
