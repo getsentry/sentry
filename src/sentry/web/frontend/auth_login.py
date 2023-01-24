@@ -134,13 +134,13 @@ class AuthLoginView(BaseView):
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
 
-        if (
-            request.method == "GET"
-            and request.subdomain
-            and Organization.objects.filter(
-                slug=request.subdomain, status=OrganizationStatus.VISIBLE
-            ).exists()
-        ):
+        org_exists = bool(
+            organization_service.check_organization_by_slug(
+                slug=request.subdomain, only_visible=True
+            )
+        )
+
+        if request.method == "GET" and request.subdomain and org_exists:
             url = reverse("sentry-auth-organization", args=[request.subdomain])
             # Only redirect to /auth/login/orgslug/ if the current requesting path is not the same.
             if request.path_info != url:
