@@ -5,7 +5,7 @@ import {
   SourceMapDebug,
 } from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ExceptionType, Project} from 'sentry/types';

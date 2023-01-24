@@ -6,12 +6,11 @@ import moment from 'moment';
 import {Button} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-
-import ExternalLink from '../links/externalLink';
 
 type Error = {
   message: React.ReactNode;

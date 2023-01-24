@@ -30,7 +30,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
         attachment: hierarchyMeta,
         eventId: hierarchyMeta.event_id,
         orgId: organization.slug,
-        projectId: projectSlug,
+        projectSlug,
       }),
     ],
     {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}

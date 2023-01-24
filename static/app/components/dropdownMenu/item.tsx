@@ -6,7 +6,6 @@ import {TreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 import {LocationDescriptor} from 'history';
 
-import {DropdownMenuContext} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import MenuListItem, {
   InnerWrap as MenuListItemInnerWrap,
@@ -15,6 +14,8 @@ import MenuListItem, {
 import {IconChevron} from 'sentry/icons';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
+
+import {DropdownMenuContext} from './list';
 
 export interface MenuItemProps extends MenuListItemProps {
   /**
