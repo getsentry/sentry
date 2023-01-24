@@ -61,6 +61,7 @@ export function DataSetStep({dataSet, onChange, displayType}: Props) {
         onChange={newDataSet => {
           onChange(newDataSet as DataSet);
         }}
+        orientInline
       />
     </BuildStep>
   );
@@ -70,5 +71,4 @@ const DataSetChoices = styled(RadioGroup)`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(2)};
-  flex-direction: row;
 `;
