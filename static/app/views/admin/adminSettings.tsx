@@ -17,6 +17,7 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
+  'performance.issues.all.problem-detection',
   'performance.issues.n_plus_one_db.problem-creation',
   'performance.issues.n_plus_one_db_ext.problem-creation',
   'performance.issues.n_plus_one_db.count_threshold',
@@ -111,6 +112,10 @@ export default class AdminSettings extends AsyncView<{}, State> {
           </Panel>
 
           <Feature features={['organizations:performance-issues-dev']}>
+            <Panel>
+              <PanelHeader>Performance Issues - All</PanelHeader>
+              {fields['performance.issues.all.problem-detection']}
+            </Panel>
             <Panel>
               <PanelHeader>Performance Issues - Detectors</PanelHeader>
               {fields['performance.issues.n_plus_one_db.problem-creation']}
