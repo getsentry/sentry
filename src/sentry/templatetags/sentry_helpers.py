@@ -3,7 +3,7 @@ import os.path
 from collections import namedtuple
 from datetime import datetime, timedelta
 from random import randint
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from django import template
 from django.template.defaultfilters import stringfilter
@@ -105,8 +105,13 @@ def org_url(organization, path, query=None, fragment=None) -> str:
     Generate an absolute url for an organization
     """
     if not hasattr(organization, "absolute_url"):
-        raise RuntimeError("organiation parameter is missing absolute_url")
+        raise RuntimeError("organiation parameter is not an Organization instance")
     return organization.absolute_url(path, query=query, fragment=fragment)
+
+
+@register.simple_tag
+def querystring(**kwargs):
+    return urlencode(kwargs, doseq=False)
 
 
 @register.simple_tag

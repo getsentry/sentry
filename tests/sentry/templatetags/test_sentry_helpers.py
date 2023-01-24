@@ -121,6 +121,15 @@ def test_org_url_customer_domains(input, output):
         assert result == output
 
 
+def test_querystring():
+    input = """
+    {% load sentry_helpers %}
+    {% querystring transaction="testing" referrer="weekly_report" space="some thing"%}
+    """
+    result = engines["django"].from_string(input).render(context={}).strip()
+    assert result == "transaction=testing&amp;referrer=weekly_report&amp;space=some+thing"
+
+
 def test_date_handle_date_and_datetime():
     result = (
         engines["django"]
