@@ -1,6 +1,9 @@
 import {Rect} from 'sentry/utils/profiling/gl/utils';
-
-import {makeFormatTo} from './units/units';
+import {
+  makeFormatter,
+  makeFormatTo,
+  makeTimelineFormatter,
+} from 'sentry/utils/profiling/units/units';
 
 export type UIFrameNode = {
   duration: number;
@@ -13,7 +16,7 @@ export type UIFrameNode = {
 type FrameRenders = NonNullable<Profiling.Schema['measurements']>;
 
 function sortFramesByStartedTime(a: Profiling.FrameRender, b: Profiling.FrameRender) {
-  return a.elapsed_since_start_ns - b.elapsed_since_start_ns;
+  return a.elapsed_since_start_ns - a.value - (b.elapsed_since_start_ns - b.value);
 }
 
 class UIFrames {
@@ -21,6 +24,9 @@ class UIFrames {
   toUnit: string = 'nanoseconds';
   minFrameDuration: number = Number.MAX_SAFE_INTEGER;
   configSpace: Rect = Rect.Empty();
+
+  formatter = makeFormatter('nanoseconds');
+  timelineFormatter = makeTimelineFormatter('nanoseconds');
 
   constructor(
     frames: {
@@ -31,8 +37,8 @@ class UIFrames {
     configSpace?: Rect
   ) {
     const unit = frames.frozen?.unit || frames.slow?.unit || 'nanoseconds';
-    const slowOrDefaultFrames = frames.frozen ?? {values: [], unit};
-    const frozenOrDefaultFrames = frames.slow ?? {values: [], unit};
+    const slowOrDefaultFrames = frames.slow ?? {values: [], unit};
+    const frozenOrDefaultFrames = frames.frozen ?? {values: [], unit};
 
     this.toUnit = options.unit;
 
@@ -41,6 +47,9 @@ class UIFrames {
       frozenOrDefaultFrames
     );
     this.configSpace = configSpace ?? Rect.Empty();
+
+    this.timelineFormatter = makeTimelineFormatter(this.toUnit);
+    this.formatter = makeFormatter(this.toUnit);
   }
 
   static Empty = new UIFrames(
@@ -69,8 +78,8 @@ class UIFrames {
         ? 'frozen'
         : !frozenFramesQueue.length
         ? 'slow'
-        : slowFramesQueue[0].elapsed_since_start_ns <
-          frozenFramesQueue[0].elapsed_since_start_ns
+        : slowFramesQueue[0].elapsed_since_start_ns - slowFramesQueue[0].value <
+          frozenFramesQueue[0].elapsed_since_start_ns - frozenFramesQueue[0].value
         ? 'slow'
         : 'frozen';
 
@@ -81,9 +90,9 @@ class UIFrames {
       const unitFn = nextType === 'slow' ? toSlowFinalUnit : toFrozenFinalUnit;
 
       frames.push({
-        start: unitFn(frame.elapsed_since_start_ns),
-        end: unitFn(frame.elapsed_since_start_ns + frame.value),
-        duration: unitFn(frame.elapsed_since_start_ns),
+        start: unitFn(frame.elapsed_since_start_ns - frame.value),
+        end: unitFn(frame.elapsed_since_start_ns),
+        duration: unitFn(frame.value),
         node: frame,
         type: nextType,
       });
