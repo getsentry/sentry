@@ -27,7 +27,6 @@ from sentry.plugins.base import Notification
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils import metrics
-from sentry.utils.http import absolute_uri
 
 
 class ActiveReleaseIssueNotification(AlertRuleNotification):
@@ -199,25 +198,19 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
 
     @staticmethod
     def release_url(release: Release) -> str:
+        organization = release.organization
         params = {"project": release.project_id, "referrer": "alert_email_release"}
-        url = "/organizations/{org}/releases/{version}/{params}".format(
-            org=release.organization.slug,
-            version=release.version,
-            params="?" + urlencode(params),
-        )
+        url = f"/organizations/{organization.slug}/releases/{release.version}/"
 
-        return str(absolute_uri(url))
+        return str(organization.absolute_url(url, query=urlencode(params)))
 
     @staticmethod
     def slack_release_url(release: Release) -> str:
+        organization = release.organization
         params = {"project": release.project_id, "referrer": "alert_slack_release"}
-        url = "/organizations/{org}/releases/{version}/{params}".format(
-            org=release.organization.slug,
-            version=quote(release.version),
-            params="?" + urlencode(params),
-        )
+        url = f"/organizations/{organization.slug}/releases/{quote(release.version)}/"
 
-        return str(absolute_uri(url))
+        return str(organization.absolute_url(url, query=urlencode(params)))
 
 
 class CommitData(TypedDict):

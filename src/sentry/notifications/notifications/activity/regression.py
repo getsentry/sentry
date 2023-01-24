@@ -7,7 +7,6 @@ from sentry_relay import parse_release
 
 from sentry.models import Activity
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 from .base import GroupActivityNotification
 
@@ -25,7 +24,7 @@ class RegressionActivityNotification(GroupActivityNotification):
         message, params, html_params = "{author} marked {an issue} as a regression", {}, {}
 
         if self.version:
-            version_url = absolute_uri(
+            version_url = self.organization.absolute_url(
                 f"/organizations/{self.organization.slug}/releases/{self.version_parsed}/"
             )
 

@@ -247,7 +247,7 @@ class ActivityNotificationTest(APITestCase):
         )
         assert (
             attachment["actions"][0]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/"
+            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy"
         )
         assert (
             attachment["footer"]
