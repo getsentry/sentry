@@ -13,7 +13,7 @@ type Props = {
   data: ExceptionType;
   event: Event;
   hasHierarchicalGrouping: boolean;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -21,7 +21,7 @@ type Props = {
 export function ExceptionV2({
   event,
   data,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
@@ -64,7 +64,7 @@ export function ExceptionV2({
       title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
       type={EntryType.EXCEPTION}
       stackType={STACK_TYPE.ORIGINAL}
-      projectId={projectId}
+      projectSlug={projectSlug}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
@@ -117,7 +117,7 @@ export function ExceptionV2({
                 ? STACK_VIEW.FULL
                 : STACK_VIEW.APP
             }
-            projectId={projectId}
+            projectSlug={projectSlug}
             newestFirst={recentFirst}
             event={event}
             platform={platform}
