@@ -1,10 +1,12 @@
 from croniter import croniter
 from django.core.exceptions import ValidationError
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.models import MonitorStatus, MonitorType, ScheduleType
+from sentry.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
 
 SCHEDULE_TYPES = {
     "crontab": ScheduleType.CRONTAB,
@@ -31,6 +33,7 @@ NONSTANDARD_CRONTAB_SCHEDULES = {
 }
 
 
+@extend_schema_field(OpenApiTypes.ANY)
 class ObjectField(serializers.Field):
     def to_internal_value(self, data):
         return data
@@ -41,8 +44,8 @@ class CronJobValidator(serializers.Serializer):
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()))
     )
     schedule = ObjectField()
-    checkin_margin = EmptyIntegerField(required=False, default=None)
-    max_runtime = EmptyIntegerField(required=False, default=None)
+    checkin_margin = EmptyIntegerField(required=False, allow_null=True, default=None)
+    max_runtime = EmptyIntegerField(required=False, allow_null=True, default=None)
 
     def validate_schedule_type(self, value):
         if value:
@@ -129,3 +132,14 @@ class MonitorValidator(serializers.Serializer):
 
     def create(self, validated_data):
         return validated_data
+
+
+class MonitorCheckInValidator(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=(
+            ("ok", CheckInStatus.OK),
+            ("error", CheckInStatus.ERROR),
+            ("in_progress", CheckInStatus.IN_PROGRESS),
+        )
+    )
+    duration = EmptyIntegerField(required=False, allow_null=True)

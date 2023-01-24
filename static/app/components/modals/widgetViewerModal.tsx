@@ -14,8 +14,8 @@ import moment from 'moment';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
@@ -50,7 +50,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getFieldsFromEquations,
@@ -58,21 +58,22 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-} from 'sentry/views/dashboardsV2/utils';
+} from 'sentry/views/dashboards/utils';
+import {SESSION_DURATION_ALERT} from 'sentry/views/dashboards/widgetCard';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
-} from 'sentry/views/dashboardsV2/widgetCard/chart';
+} from 'sentry/views/dashboards/widgetCard/chart';
 import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
-} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
-import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
-import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
-import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
-import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
-import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
-import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -176,6 +177,9 @@ function WidgetViewerModal(props: Props) {
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
   const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
   const isTableWidget = widget.displayType === DisplayType.TABLE;
+  const hasSessionDuration = widget.queries.some(query =>
+    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+  );
   const locationPageFilter = useMemo(
     () =>
       start && end
@@ -791,6 +795,7 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewer() {
     return (
       <Fragment>
+        {hasSessionDuration && SESSION_DURATION_ALERT}
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={
@@ -972,7 +977,6 @@ function WidgetViewerModal(props: Props) {
                       <ButtonBar gap={1}>
                         {onEdit && widget.id && (
                           <Button
-                            type="button"
                             onClick={() => {
                               closeModal();
                               onEdit();
@@ -1053,7 +1057,6 @@ function OpenButton({
     <Button
       to={path}
       priority="primary"
-      type="button"
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,

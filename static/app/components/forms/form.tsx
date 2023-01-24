@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
 import FormModel, {FormOptions} from 'sentry/components/forms/model';
 import {Data, OnSubmitCallback} from 'sentry/components/forms/types';
@@ -202,7 +202,6 @@ export default class Form extends Component<FormProps> {
                   <Observer>
                     {() => (
                       <Button
-                        type="button"
                         disabled={this.model.isSaving}
                         onClick={onCancel}
                         style={{marginLeft: 5}}

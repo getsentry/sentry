@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
@@ -171,10 +171,6 @@ const Details = styled('div')`
   gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   margin-left: ${space(2)};
-
-  input[type='checkbox'] {
-    margin: 0;
-  }
 `;
 
 const StyledPanelItem = styled(PanelItem)`

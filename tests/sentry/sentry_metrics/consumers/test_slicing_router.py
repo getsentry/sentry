@@ -81,7 +81,6 @@ def test_with_slicing(metrics_message, setup_slicing) -> None:
         assert route.topic.name == "sliced_topic_1"
     else:
         assert False, "unexpected org_id"
-    router.shutdown()
 
 
 def test_with_no_org_in_routing_header(setup_slicing) -> None:
@@ -108,8 +107,6 @@ def test_with_no_org_in_routing_header(setup_slicing) -> None:
     router = SlicingRouter("sliceable")
     with pytest.raises(MissingOrgInRoutingHeader):
         _ = router.get_route_for_message(message)
-
-    router.shutdown()
 
 
 @pytest.mark.parametrize("org_id", [100])

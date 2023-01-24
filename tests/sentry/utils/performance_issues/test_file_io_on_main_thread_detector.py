@@ -8,7 +8,7 @@ import pytest
 from sentry.eventstore.models import Event
 from sentry.models import create_files_from_dif_zip
 from sentry.testutils import TestCase
-from sentry.testutils.performance_issues.event_generators import EVENTS
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
@@ -51,11 +51,11 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def test_detects_file_io_main_thread(self):
-        event = EVENTS["file-io-on-main-thread"]
+        event = get_event("file-io-on-main-thread")
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-153198dd61706844cf3d9a922f6f82543df8125f",
+                fingerprint=f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-153198dd61706844cf3d9a922f6f82543df8125f",
                 op="file.write",
                 desc="1669031858711_file.txt (4.0 kB)",
                 type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
@@ -66,19 +66,19 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ]
 
     def test_does_not_detect_file_io_main_thread(self):
-        event = EVENTS["file-io-on-main-thread"]
+        event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = False
 
         assert self.find_problems(event) == []
 
     def test_gives_problem_correct_title(self):
-        event = EVENTS["file-io-on-main-thread"]
+        event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         problem = self.find_problems(event)[0]
         assert problem.title == "File IO on Main Thread"
 
     def test_file_io_with_proguard(self):
-        event = EVENTS["file-io-on-main-thread-with-obfuscation"]
+        event = get_event("file-io-on-main-thread-with-obfuscation")
         event["project"] = self.project.id
 
         uuid = event["debug_meta"]["images"][0]["uuid"]
@@ -88,25 +88,25 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         call_stack = b"org.slf4j.helpers.Util$ClassContextSecurityManager.getExtraClassContext"
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         assert (
-            problem.fingerprint == f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
+            problem.fingerprint
+            == f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-{hashed_stack}"
         )
         assert problem.title == "File IO on Main Thread"
 
-    def test_parallel_spans(self):
-        event = EVENTS["file-io-on-main-thread-with-parallel-spans"]
-
+    def test_parallel_spans_detected(self):
+        event = get_event("file-io-on-main-thread-with-parallel-spans")
         problem = self.find_problems(event)[0]
         assert problem.offender_span_ids == ["054ba3a374d543eb", "054ba3a3a4d543ab"]
 
     def test_parallel_spans_not_detected_when_total_too_short(self):
-        event = EVENTS["file-io-on-main-thread-with-parallel-spans"]
+        event = get_event("file-io-on-main-thread-with-parallel-spans")
         event["spans"][1]["timestamp"] = 1669031858.015
 
         problems = self.find_problems(event)
         assert len(problems) == 0
 
     def test_complicated_structure(self):
-        event = EVENTS["file-io-on-main-thread-with-complicated-structure"]
+        event = get_event("file-io-on-main-thread-with-complicated-structure")
 
         problem = self.find_problems(event)[0]
         assert problem.offender_span_ids == [

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import type {LinkProps} from 'sentry/components/links/link';
 import {Panel} from 'sentry/components/panels';
 
@@ -23,7 +23,7 @@ export const RelatedIssuesNotAvailable = ({buttonTo, buttonText}: Props) => (
     showIcon
     trailingItems={
       <Feature features={['discover-basic']}>
-        <Button type="button" priority="default" size="xs" to={buttonTo}>
+        <Button priority="default" size="xs" to={buttonTo}>
           {buttonText}
         </Button>
       </Feature>

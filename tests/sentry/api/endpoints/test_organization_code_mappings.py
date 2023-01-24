@@ -1,12 +1,12 @@
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
-from sentry.models import Integration, Repository
+from sentry.models import Repository
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationCodeMappingsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -73,6 +73,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
+            "automaticallyGenerated": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -94,6 +95,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
 
         assert response.data[1] == {
+            "automaticallyGenerated": False,
             "id": str(path_config2.id),
             "projectId": str(self.project2.id),
             "projectSlug": self.project2.slug,
@@ -129,6 +131,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
+            "automaticallyGenerated": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -212,6 +215,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
+            "automaticallyGenerated": False,
             "id": str(response.data["id"]),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -258,8 +262,9 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.data == {"projectId": ["Project does not exist"]}
 
     def test_repo_does_not_exist_on_given_integrationId(self):
-        bad_integration = Integration.objects.create(provider="github", external_id="radsfas")
-        bad_integration.add_organization(self.organization, self.user)
+        bad_integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="radsfas"
+        )
         bad_repo = Repository.objects.create(
             name="another", organization_id=self.organization.id, integration_id=bad_integration.id
         )
@@ -272,8 +277,9 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_repo_does_not_exist_on_given_organization(self):
         bad_org = self.create_organization(owner=self.user, name="foo")
-        bad_integration = Integration.objects.create(provider="github", external_id="radsfas")
-        bad_integration.add_organization(bad_org, self.user)
+        bad_integration = self.create_integration(
+            organization=bad_org, provider="github", external_id="radsfas"
+        )
         bad_repo = Repository.objects.create(
             name="another", organization_id=bad_org.id, integration_id=bad_integration.id
         )

@@ -1,13 +1,7 @@
-import {
-  AnchorHTMLAttributes,
-  cloneElement,
-  createContext,
-  Fragment,
-  useState,
-} from 'react';
+import {AnchorHTMLAttributes, cloneElement, createContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
 import CompositeSelect from 'sentry/components/compositeSelect';
@@ -22,7 +16,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventDataSection from './eventDataSection';
+import {EventDataSection} from './eventDataSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -193,102 +187,96 @@ export function TraceEventDataSection({
   return (
     <EventDataSection
       type={type}
-      title={
-        <Header>
-          <Title>{cloneElement(title, {type})}</Title>
-          <ActionWrapper>
-            {!stackTraceNotFound && (
-              <Fragment>
-                {!state.display.includes('raw-stack-trace') && (
-                  <Tooltip
-                    title={t('Only full version available')}
-                    disabled={hasAppOnlyFrames}
-                  >
-                    <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
-                      <Button
-                        type="button"
-                        size="xs"
-                        barId="relevant"
-                        onClick={() =>
-                          setState({
-                            ...state,
-                            fullStackTrace: false,
-                          })
-                        }
-                        disabled={!hasAppOnlyFrames}
-                      >
-                        {t('Most Relevant')}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="xs"
-                        barId="full"
-                        priority={!hasAppOnlyFrames ? 'primary' : undefined}
-                        onClick={() =>
-                          setState({
-                            ...state,
-                            fullStackTrace: true,
-                          })
-                        }
-                      >
-                        {t('Full Stack Trace')}
-                      </Button>
-                    </ButtonBar>
-                  </Tooltip>
-                )}
-                {state.display.includes('raw-stack-trace') && nativePlatform && (
+      title={cloneElement(title, {type})}
+      actions={
+        !stackTraceNotFound && (
+          <ButtonBar gap={1}>
+            {!state.display.includes('raw-stack-trace') && (
+              <Tooltip
+                title={t('Only full version available')}
+                disabled={hasAppOnlyFrames}
+              >
+                <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
                   <Button
                     size="xs"
-                    href={rawStackTraceDownloadLink}
-                    title={t('Download raw stack trace file')}
+                    barId="relevant"
+                    onClick={() =>
+                      setState({
+                        ...state,
+                        fullStackTrace: false,
+                      })
+                    }
+                    disabled={!hasAppOnlyFrames}
                   >
-                    {t('Download')}
+                    {t('Most Relevant')}
                   </Button>
-                )}
-                <CompactSelect
-                  triggerProps={{
-                    icon: <IconSort />,
-                    size: 'xs',
-                    title: sortByTooltip,
-                  }}
-                  isDisabled={!!sortByTooltip}
-                  position="bottom-end"
-                  onChange={selectedOption => {
-                    setState({...state, sortBy: selectedOption.value});
-                  }}
-                  value={state.sortBy}
-                  options={Object.entries(sortByOptions).map(([value, label]) => ({
-                    label,
-                    value: value as keyof typeof sortByOptions,
-                  }))}
-                />
-                <CompositeSelect
-                  triggerProps={{
-                    icon: <IconEllipsis />,
-                    size: 'xs',
-                    showChevron: false,
-                    'aria-label': t('Options'),
-                  }}
-                  triggerLabel=""
-                  position="bottom-end"
-                  sections={[
-                    {
-                      label: t('Display'),
-                      value: 'display',
-                      defaultValue: state.display,
-                      multiple: true,
-                      options: getDisplayOptions().map(option => ({
-                        ...option,
-                        value: String(option.value),
-                      })),
-                      onChange: display => setState({...state, display}),
-                    },
-                  ]}
-                />
-              </Fragment>
+                  <Button
+                    size="xs"
+                    barId="full"
+                    priority={!hasAppOnlyFrames ? 'primary' : undefined}
+                    onClick={() =>
+                      setState({
+                        ...state,
+                        fullStackTrace: true,
+                      })
+                    }
+                  >
+                    {t('Full Stack Trace')}
+                  </Button>
+                </ButtonBar>
+              </Tooltip>
             )}
-          </ActionWrapper>
-        </Header>
+            {state.display.includes('raw-stack-trace') && nativePlatform && (
+              <Button
+                size="xs"
+                href={rawStackTraceDownloadLink}
+                title={t('Download raw stack trace file')}
+              >
+                {t('Download')}
+              </Button>
+            )}
+            <CompactSelect
+              triggerProps={{
+                icon: <IconSort size="xs" />,
+                size: 'xs',
+                title: sortByTooltip,
+              }}
+              isDisabled={!!sortByTooltip}
+              position="bottom-end"
+              onChange={selectedOption => {
+                setState({...state, sortBy: selectedOption.value});
+              }}
+              value={state.sortBy}
+              options={Object.entries(sortByOptions).map(([value, label]) => ({
+                label,
+                value: value as keyof typeof sortByOptions,
+              }))}
+            />
+            <CompositeSelect
+              triggerProps={{
+                icon: <IconEllipsis size="xs" />,
+                size: 'xs',
+                showChevron: false,
+                'aria-label': t('Options'),
+              }}
+              triggerLabel=""
+              position="bottom-end"
+              sections={[
+                {
+                  label: t('Display'),
+                  value: 'display',
+                  defaultValue: state.display,
+                  multiple: true,
+                  options: getDisplayOptions().map(option => ({
+                    ...option,
+                    value: String(option.value),
+                  })),
+                  onChange: display => setState({...state, display}),
+                },
+              ]}
+            />
+          </ButtonBar>
+        )
       }
       showPermalink={false}
       wrapTitle={wrapTitle}
@@ -330,25 +318,4 @@ const Permalink = styled('a')`
   &:hover ${StyledIconLink} {
     display: block;
   }
-`;
-
-const Header = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const Title = styled('div')`
-  flex: 1;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
-    flex: unset;
-  }
-`;
-
-const ActionWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;

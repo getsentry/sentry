@@ -184,6 +184,16 @@ register_strategy_config(
     enhancements_base="mobile:2021-04-02",
 )
 
+register_strategy_config(
+    id="newstyle:2023-01-11",
+    base="newstyle:2019-10-29",
+    risk=RISK_LEVEL_MEDIUM,
+    changelog="""
+        * Initial version
+    """,
+    initial_context={},
+)
+
 
 # Deprecated strategies
 #

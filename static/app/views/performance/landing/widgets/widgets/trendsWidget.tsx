@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -92,6 +92,30 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, trendChangeType]
   );
 
+  const assembleAccordionItems = provided =>
+    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
+
+  const getChart = provided => () =>
+    (
+      <TrendsChart
+        {...provided}
+        {...rest}
+        isLoading={provided.widgetData.chart.isLoading}
+        statsData={provided.widgetData.chart.statsData}
+        query={eventView.query}
+        project={eventView.project}
+        environment={eventView.environment}
+        start={eventView.start}
+        end={eventView.end}
+        statsPeriod={eventView.statsPeriod}
+        transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
+        trendChangeType={trendChangeType}
+        trendFunctionField={trendFunctionField}
+        disableXAxis
+        disableLegend
+      />
+    );
+
   const getItems = provided =>
     provided.widgetData.chart.transactionsList.map(listItem => () => {
       const initialConditions = new MutableSearch([]);
@@ -140,28 +164,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              headers={getItems(provided)}
-              content={
-                <TrendsChart
-                  {...provided}
-                  {...rest}
-                  isLoading={provided.widgetData.chart.isLoading}
-                  statsData={provided.widgetData.chart.statsData}
-                  query={eventView.query}
-                  project={eventView.project}
-                  environment={eventView.environment}
-                  start={eventView.start}
-                  end={eventView.end}
-                  statsPeriod={eventView.statsPeriod}
-                  transaction={
-                    provided.widgetData.chart.transactionsList[selectedListIndex]
-                  }
-                  trendChangeType={trendChangeType}
-                  trendFunctionField={trendFunctionField}
-                  disableXAxis
-                  disableLegend
-                />
-              }
+              items={assembleAccordionItems(provided)}
             />
           ),
           // accordion items height + chart height

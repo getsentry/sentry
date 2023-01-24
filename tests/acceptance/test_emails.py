@@ -19,7 +19,7 @@ EMAILS = (
     ("/debug/mail/unable-to-fetch-commits/", "unable to fetch commits"),
     ("/debug/mail/unable-to-delete-repo/", "unable to delete repo"),
     ("/debug/mail/error-alert/", "alert"),
-    # ("/debug/mail/performance-alert/", "performance"), TODO: Flaky: GRW-778
+    ("/debug/mail/performance-alert/", "performance"),
     ("/debug/mail/digest/", "digest"),
     ("/debug/mail/invalid-identity/", "invalid identity"),
     ("/debug/mail/invitation/", "invitation"),
@@ -47,6 +47,11 @@ def build_url(path: str, format: str = "html") -> str:
 
 
 class EmailTestCase(AcceptanceTestCase):
+    # This test requires ID's for issues to start from 1, so reset sequences
+    # to avoid the test failing if the order of tests mean issues are made
+    # before this test is run.
+    reset_sequences = True
+
     def setUp(self):
         super().setUp()
         # This email address is required to match FIXTURES.

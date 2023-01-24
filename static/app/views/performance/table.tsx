@@ -31,8 +31,8 @@ import EventView, {
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
 import TransactionThresholdModal, {
@@ -137,7 +137,7 @@ class _Table extends Component<Props, State> {
               }}
             />
           ),
-          {modalCss, backdrop: 'static'}
+          {modalCss, closeEvents: 'escape-key'}
         );
         return;
       }

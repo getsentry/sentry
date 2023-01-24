@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
+from sentry.issues.ingest import save_issue_from_occurrence
 from sentry.models import (
     Activity,
     Group,
@@ -29,6 +30,7 @@ from sentry.models import (
 from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
+from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group, process_event
 from sentry.testutils import SnubaTestCase, TestCase
@@ -41,6 +43,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupType
 from sentry.utils.cache import cache
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class EventMatcher:
@@ -173,19 +176,10 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
         assert mock_derive_code_mappings.delay.call_count == 0
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
-    def test_derive_python(self, mock_derive_code_mappings):
-        data = {"platform": "python"}
-        self._call_post_process_group(data)
-        assert mock_derive_code_mappings.delay.call_count == 1
-        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, False)
-
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
-    def test_derive_js(self, mock_derive_code_mappings):
-        data = {"platform": "javascript"}
-        self._call_post_process_group(data)
-        assert mock_derive_code_mappings.delay.call_count == 1
-        # Because we only run on dry run mode even if the official flag is set
-        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, True)
+    def test_derive_supported_languages(self, mock_derive_code_mappings):
+        for platform in SUPPORTED_LANGUAGES:
+            self._call_post_process_group({"platform": platform})
+            assert mock_derive_code_mappings.delay.call_count == 1
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
@@ -1228,7 +1222,7 @@ class PostProcessGroupPerformanceTest(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[
-                f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1",
+                f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1",
                 f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
             ],
             environment=None,
@@ -1288,3 +1282,35 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         )
 
         assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]
+
+
+@region_silo_test
+class PostProcessGroupGenericTest(
+    TestCase,
+    SnubaTestCase,
+    OccurrenceTestMixin,
+    CorePostProcessGroupTestMixin,
+    InboxTestMixin,
+    RuleProcessorTestMixin,
+    SnoozeTestMixin,
+):
+    def create_event(self, data, project_id):
+        data["type"] = "generic"
+        event = self.store_event(data=data, project_id=project_id)
+
+        occurrence = self.build_occurrence(event_id=event.event_id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+
+        return event.for_group(group_info.group)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
+    ):
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=group_id,
+        )

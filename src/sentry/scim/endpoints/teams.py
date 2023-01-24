@@ -193,7 +193,11 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
         request.data.update(
-            {"name": request.data["displayName"], "slug": slugify(request.data["displayName"])}
+            {
+                "name": request.data["displayName"],
+                "slug": slugify(request.data["displayName"]),
+                "idp_provisioned": True,
+            }
         ),
         return super().post(request, organization)
 
@@ -388,6 +392,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
         try:
             with transaction.atomic():
+                team.idp_provisioned = True
+                team.save()
+
                 for operation in operations:
                     op = operation["op"].lower()
                     if op == TeamPatchOps.ADD and operation["path"] == "members":

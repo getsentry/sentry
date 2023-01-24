@@ -6,15 +6,13 @@ coverage:
     patch:
       default: false
       frontend:
-        # codecov should not fail status checks
-        informational: true
+        # codecov will not fail status checks for master
         only_pulls: true
         target: 60%
         flags:
         - frontend
       backend:
-        # codecov should not fail status checks
-        informational: true
+        # codecov will not fail status checks for master
         only_pulls: true
         target: 90%
         flags:
@@ -28,6 +26,22 @@ coverage:
   - src/social_auth/
   - static/app/routes.tsx
   - tests/
+
+component_management:
+    individual_components:
+      # Profiling team components
+      - component_id: "profiling_views"
+        name: "Profiling Views"
+        paths:
+          - "static/app/views/profiling/**"
+      - component_id: "profiling_components"
+        name: "Profiling Components"
+        paths:
+          - "src/sentry/static/sentry/app/components/profiling/**"
+      - component_id: "profiling_utils"
+        name: "Profiling Utils"
+        paths:
+          - "src/sentry/static/sentry/app/utils/profiling/**"
 
 flags:
   frontend:

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuickTrace from 'sentry/components/quickTrace';
@@ -58,13 +58,13 @@ function IssueQuickTrace({
         showIcon
         trailingItems={
           <Button
-            priority="link"
-            size="zero"
+            aria-label={t('Remind me later')}
             title={t('Dismiss for a month')}
+            priority="link"
+            size="xs"
+            icon={<IconClose />}
             onClick={snoozePrompt}
-          >
-            <IconClose />
-          </Button>
+          />
         }
       >
         {tct(

@@ -9,8 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
@@ -77,7 +76,7 @@ function RuleListRow({
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
       if (!rule.lastTriggered) {
-        return t('Alerts not triggered yet');
+        return t('Alert not triggered yet');
       }
       return (
         <div>
@@ -88,7 +87,7 @@ function RuleListRow({
     }
 
     if (!rule.latestIncident) {
-      return t('Alerts not triggered yet');
+      return t('Alert not triggered yet');
     }
 
     if (activeIncident) {
@@ -388,12 +387,11 @@ function RuleListRow({
       <ActionsRow>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
-            <DropdownMenuControl
+            <DropdownMenu
               items={actions}
               position="bottom-end"
               triggerProps={{
                 'aria-label': t('Show more'),
-                'data-test-id': 'alert-row-actions',
                 size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,

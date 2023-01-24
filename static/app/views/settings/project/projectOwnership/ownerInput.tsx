@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';

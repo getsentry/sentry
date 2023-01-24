@@ -49,7 +49,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        self.store_event(
+        self.keep_event = self.store_event(
             data={
                 "event_id": self.event_id3,
                 "timestamp": iso_format(before_now(minutes=1)),
@@ -102,6 +102,31 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not nodestore.get(self.node_id)
         assert not nodestore.get(self.node_id2)
         assert nodestore.get(self.node_id3), "Does not remove from second group"
+        assert Group.objects.filter(id=self.keep_event.group_id).exists()
+
+    def test_simple_multiple_groups(self):
+        other_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        )
+        other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
+        keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
+
+        group = self.event.group
+        with self.tasks():
+            delete_groups(object_ids=[group.id, other_event.group_id])
+
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not Group.objects.filter(id=other_event.group_id).exists()
+        assert not nodestore.get(self.node_id)
+        assert not nodestore.get(other_node_id)
+
+        assert Group.objects.filter(id=self.keep_event.group_id).exists()
+        assert nodestore.get(keep_node_id)
 
     @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")

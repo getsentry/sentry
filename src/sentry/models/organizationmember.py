@@ -28,13 +28,16 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization, User
+    from sentry.models.organization import Organization
+    from sentry.services.hybrid_cloud.integration import APIIntegration
+    from sentry.services.hybrid_cloud.user import APIUser
 
 INVITE_DAYS_VALID = 30
 
@@ -75,10 +78,10 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:
+    def get_for_integration(self, integration: APIIntegration, actor: APIUser) -> QuerySet:
         return self.filter(
-            user=actor,
-            organization__organizationintegration__integration=integration,
+            user_id=actor.id,
+            organization__organizationintegration__integration_id=integration.id,
         ).select_related("organization")
 
     def get_member_invite_query(self, id: int) -> QuerySet:
@@ -189,6 +192,15 @@ class OrganizationMember(Model):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
+    @staticmethod
+    def outbox_for_update(org_id: int, org_member_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            object_identifier=org_member_id,
+        )
+
     def refresh_expires_at(self):
         now = timezone.now()
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
@@ -242,16 +254,14 @@ class OrganizationMember(Model):
     def get_invite_link(self):
         if not self.is_pending or not self.invite_approved:
             return None
-        return absolute_uri(
-            reverse(
-                "sentry-accept-invite-with-org",
-                kwargs={
-                    "organization_slug": self.organization.slug,
-                    "member_id": self.id,
-                    "token": self.token or self.legacy_token,
-                },
-            )
+        path = reverse(
+            "sentry-accept-invite",
+            kwargs={
+                "member_id": self.id,
+                "token": self.token or self.legacy_token,
+            },
         )
+        return self.organization.absolute_url(path)
 
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder

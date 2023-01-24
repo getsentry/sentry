@@ -68,8 +68,8 @@ class NumberDragControl extends Component<Props, State> {
         isActive={this.state.isClicked}
         isX={isX}
       >
-        <IconArrow direction={isX ? 'left' : 'up'} size="8px" />
-        <IconArrow direction={isX ? 'right' : 'down'} size="8px" />
+        <IconArrow direction={isX ? 'left' : 'up'} legacySize="8px" />
+        <IconArrow direction={isX ? 'right' : 'down'} legacySize="8px" />
       </Wrapper>
     );
   }

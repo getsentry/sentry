@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import Button from 'sentry/components/button';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {Button} from 'sentry/components/button';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
@@ -69,8 +68,8 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
-        <Heading>{t('Getting Started with Replays')}</Heading>
-        <DropdownMenuControl
+        <Heading>{t('Getting Started with Session Replay')}</Heading>
+        <DropdownMenu
           items={items}
           triggerLabel={
             <StyledIdBadge
@@ -126,7 +125,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <Fragment>
         <div>
           {tct(
-            'Fiddlesticks. Session Replay isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+            'Session Replay isn’t available for your [platform] project. It supports all browser JavaScript applications. It is built to work with @sentry/browser and our browser framework SDKs.',
             {platform: currentPlatform?.name || currentProject.slug}
           )}
         </div>

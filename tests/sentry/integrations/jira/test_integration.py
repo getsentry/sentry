@@ -19,6 +19,8 @@ from sentry.models import (
     IntegrationExternalProject,
     OrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -253,10 +255,12 @@ class JiraIntegrationTest(APITestCase):
                 "parent",
                 "reporter",
             ]
-
-            installation.org_integration.config = {"issues_ignored_fields": ["customfield_10200"]}
             # After ignoring "customfield_10200", it no longer shows up
-            installation.org_integration.save()
+            installation.org_integration = integration_service.update_organization_integration(
+                org_integration_id=installation.org_integration.id,
+                config={"issues_ignored_fields": ["customfield_10200"]},
+            )
+
             fields = installation.get_create_issue_config(group, self.user)
             field_names = [field["name"] for field in fields]
             assert field_names == [
@@ -284,10 +288,10 @@ class JiraIntegrationTest(APITestCase):
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
-        }
-        installation.org_integration.save()
+        installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
+        )
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(
@@ -316,10 +320,10 @@ class JiraIntegrationTest(APITestCase):
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
-        }
-        installation.org_integration.save()
+        installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
+        )
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -349,10 +353,10 @@ class JiraIntegrationTest(APITestCase):
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"project": "10004"}}
-        }
-        installation.org_integration.save()
+        installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
+        )
 
         with mock.patch.object(installation, "get_client", get_client):
             mock_fetch_issue_create_meta_return_value = json.loads(
@@ -394,10 +398,10 @@ class JiraIntegrationTest(APITestCase):
         label_default = "hi"
 
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"labels": label_default}}
-        }
-        installation.org_integration.save()
+        installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
+        )
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -568,7 +572,7 @@ class JiraIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
@@ -581,7 +585,7 @@ class JiraIntegrationTest(APITestCase):
             json=[{"accountId": "deadbeef123", "emailAddress": "Bob@example.com"}],
         )
         responses.add(responses.PUT, assign_issue_url, json={})
-        installation.sync_assignee_outbound(external_issue, self.user)
+        installation.sync_assignee_outbound(external_issue, user)
 
         assert len(responses.calls) == 2
 
@@ -593,7 +597,7 @@ class JiraIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         external_issue = ExternalIssue.objects.create(
@@ -604,7 +608,7 @@ class JiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        installation.sync_assignee_outbound(external_issue, self.user)
+        installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1
@@ -612,7 +616,7 @@ class JiraIntegrationTest(APITestCase):
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
     @responses.activate
     def test_sync_assignee_outbound_use_email_api(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
@@ -632,7 +636,7 @@ class JiraIntegrationTest(APITestCase):
         )
         responses.add(responses.PUT, assign_issue_url, json={})
 
-        installation.sync_assignee_outbound(external_issue, self.user)
+        installation.sync_assignee_outbound(external_issue, user)
 
         # extra call to get email address
         assert len(responses.calls) == 3

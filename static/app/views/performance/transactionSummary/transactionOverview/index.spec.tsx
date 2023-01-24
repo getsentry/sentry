@@ -415,7 +415,7 @@ describe('Performance > TransactionSummary', function () {
     console.error.mockRestore();
   });
 
-  describe('with eventsv2', function () {
+  describe('with discover', function () {
     it('renders basic UI elements', async function () {
       const {organization, router, routerContext} = initializeData();
 
@@ -451,7 +451,9 @@ describe('Performance > TransactionSummary', function () {
       ).toBeInTheDocument();
 
       // Ensure ops breakdown filter exists
-      expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Filter by operation'})
+      ).toBeInTheDocument();
 
       // Ensure create alert from discover is hidden without metric alert
       expect(

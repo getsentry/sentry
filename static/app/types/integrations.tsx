@@ -1,4 +1,4 @@
-import type Alert from 'sentry/components/alert';
+import type {Alert} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {
@@ -144,11 +144,28 @@ export type SentryAppSchemaStacktraceLink = {
   params?: Array<string>;
 };
 
+export enum Coverage {
+  NOT_APPLICABLE = -1,
+  COVERED = 0,
+  NOT_COVERED = 1,
+  PARTIAL = 2,
+}
+export type LineCoverage = [lineNo: number, coverage: Coverage];
+
+export enum CodecovStatusCode {
+  COVERAGE_EXISTS = 200,
+  NO_INTEGRATION = 404,
+  NO_COVERAGE_DATA = 400,
+}
+
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
+  codecovStatusCode?: CodecovStatusCode;
+  codecovUrl?: string;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
+  lineCoverage?: LineCoverage[];
   sourceUrl?: string;
 };
 
