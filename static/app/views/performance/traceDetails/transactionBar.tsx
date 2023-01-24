@@ -38,7 +38,7 @@ import {
   getHumanDuration,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFullDetailed} from 'sentry/utils/performance/quickTrace/utils';

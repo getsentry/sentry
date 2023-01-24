@@ -6,7 +6,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {t} from 'sentry/locale';
 
-describe('EventsV2 > OptionSelector (Multiple)', function () {
+describe('Charts > OptionSelector (Multiple)', function () {
   const features = ['discover-basic'];
   const yAxisValue = ['count()', 'failure_count()'];
   const yAxisOptions = [

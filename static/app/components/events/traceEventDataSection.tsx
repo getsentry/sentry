@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -49,7 +49,7 @@ type Props = {
   hasNewestFirst: boolean;
   hasVerboseFunctionNames: boolean;
   platform: PlatformType;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
   stackType: STACK_TYPE;
@@ -72,7 +72,7 @@ export function TraceEventDataSection({
   children,
   platform,
   stackType,
-  projectId,
+  projectSlug,
   eventId,
   hasNewestFirst,
   hasMinified,
@@ -168,7 +168,7 @@ export function TraceEventDataSection({
   const minified = stackType === STACK_TYPE.MINIFIED;
 
   // Apple crash report endpoint
-  const appleCrashEndpoint = `/projects/${organization.slug}/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
   const sortByTooltip = !hasNewestFirst

@@ -8,13 +8,13 @@ type Props = {
   groupId: string;
   onDelete: (attachmentId: string) => void;
   orgId: string;
-  projectId: string;
+  projectSlug: string;
 };
 
 const GroupEventAttachmentsTable = ({
   attachments,
   orgId,
-  projectId,
+  projectSlug,
   groupId,
   onDelete,
   deletedAttachments,
@@ -36,7 +36,7 @@ const GroupEventAttachmentsTable = ({
             key={attachment.id}
             attachment={attachment}
             orgId={orgId}
-            projectId={projectId}
+            projectSlug={projectSlug}
             groupId={groupId}
             onDelete={onDelete}
             isDeleted={deletedAttachments.some(id => attachment.id === id)}

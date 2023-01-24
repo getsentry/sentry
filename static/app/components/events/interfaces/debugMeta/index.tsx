@@ -52,7 +52,7 @@ type Props = DefaultProps &
   WithRouterProps & {
     event: Event;
     organization: Organization;
-    projectId: Project['id'];
+    projectSlug: Project['slug'];
     groupId?: Group['id'];
   };
 
@@ -220,7 +220,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       return;
     }
 
-    const {location, organization, projectId: projSlug, groupId, event} = this.props;
+    const {location, organization, projectSlug, groupId, event} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -248,7 +248,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
           {...deps}
           image={image}
           organization={organization}
-          projSlug={projSlug}
+          projSlug={projectSlug}
           event={event}
           onReprocessEvent={
             defined(groupId) ? this.handleReprocessEvent(groupId) : undefined

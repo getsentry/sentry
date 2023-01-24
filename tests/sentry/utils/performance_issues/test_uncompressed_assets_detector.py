@@ -25,6 +25,18 @@ def create_asset_span(
     return create_span("resource.script", desc=desc, duration=duration, data=data)
 
 
+def create_compressed_asset_span():
+    return create_asset_span(
+        desc="https://someothersite.example.com/app.js",
+        duration=1.0,
+        data={
+            "Transfer Size": 5,
+            "Encoded Body Size": 4,
+            "Decoded Body Size": 5,
+        },
+    )
+
+
 @region_silo_test
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
@@ -41,6 +53,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
                     duration=1000.0,
@@ -49,7 +62,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 1_000_000,
                         "Decoded Body Size": 1_000_000,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -69,6 +83,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
             "spans": [
                 create_asset_span(
                     op="resource.link",
@@ -79,7 +94,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 1_000_000,
                         "Decoded Body Size": 1_000_000,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -95,6 +111,26 @@ class UncompressedAssetsDetectorTest(TestCase):
             )
         ]
 
+    def test_does_not_detect_mobile_uncompressed_asset(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "tags": [["browser.name", "firefox_mobile"]],
+            "spans": [
+                create_asset_span(
+                    duration=1000.0,
+                    data={
+                        "Transfer Size": 1_000_000,
+                        "Encoded Body Size": 1_000_000,
+                        "Decoded Body Size": 1_000_000,
+                    },
+                ),
+                create_compressed_asset_span(),
+            ],
+        }
+
+        assert len(self.find_problems(event)) == 0
+
     def test_ignores_assets_under_size(self):
         event = {
             "event_id": "a" * 16,
@@ -107,7 +143,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 99_999,
                         "Decoded Body Size": 99_999,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -125,7 +162,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 101_000,
                         "Decoded Body Size": 100_999,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -143,7 +181,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 101_000,
                         "Decoded Body Size": 101_000,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
