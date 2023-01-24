@@ -22,11 +22,12 @@ def get_codecov_data(
         url = CODECOV_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
-        params = {"branch": branch, "path": path}
-        response = requests.get(
-            url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
-        )
         with configure_scope() as scope:
+            scope.set_tag("codecov.attempted_url", url)
+            params = {"branch": branch, "path": path}
+            response = requests.get(
+                url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
+            )
             scope.set_tag("codecov.http_code", response.status_code)
 
             response.raise_for_status()

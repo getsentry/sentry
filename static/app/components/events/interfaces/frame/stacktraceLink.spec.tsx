@@ -56,6 +56,7 @@ describe('StacktraceLink', function () {
           commitId: event.release?.lastCommit?.id,
           file: frame.filename,
           platform,
+          lineNo: frame.lineNo,
         },
       })
     );
@@ -218,9 +219,16 @@ describe('StacktraceLink', function () {
       context: TestStubs.routerContext(),
       organization,
     });
+
     expect(await screen.findByText('View Coverage Tests on Codecov')).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py'
+    );
+
+    userEvent.click(await screen.findByText('View Coverage Tests on Codecov'));
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'integrations.stacktrace_codecov_link_clicked',
+      expect.anything()
     );
   });
 

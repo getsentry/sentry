@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
+from sentry.issues.ingest import save_issue_from_occurrence
 from sentry.models import (
     Activity,
     Group,
@@ -42,6 +43,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupType
 from sentry.utils.cache import cache
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class EventMatcher:
@@ -1280,3 +1282,35 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         )
 
         assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]
+
+
+@region_silo_test
+class PostProcessGroupGenericTest(
+    TestCase,
+    SnubaTestCase,
+    OccurrenceTestMixin,
+    CorePostProcessGroupTestMixin,
+    InboxTestMixin,
+    RuleProcessorTestMixin,
+    SnoozeTestMixin,
+):
+    def create_event(self, data, project_id):
+        data["type"] = "generic"
+        event = self.store_event(data=data, project_id=project_id)
+
+        occurrence = self.build_occurrence(event_id=event.event_id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+
+        return event.for_group(group_info.group)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
+    ):
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=group_id,
+        )

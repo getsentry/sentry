@@ -1662,6 +1662,23 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
+    def is_event_eligible(cls, event):
+        tags = event.get("tags", [])
+        browser_name = next(
+            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
+        )
+        if browser_name.lower() in [
+            "chrome",
+            "firefox",
+            "safari",
+            "edge",
+        ]:
+            # Only use major browsers as some mobile browser may be responsible for not sending accept-content header,
+            # which isn't fixable since you can't control what headers your users are sending.
+            # This can be extended later.
+            return True
+        return False
+
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
@@ -1688,6 +1705,29 @@ def report_metrics_for_detectors(
         if event_id:
             set_tag("_pi_transaction", event_id)
 
+    tags = event.get("tags", [])
+    browser_name = next(
+        (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), None
+    )
+    allowed_browser_name = "Other"
+    if browser_name in [
+        "Chrome",
+        "Firefox",
+        "Safari",
+        "Electron",
+        "Chrome Mobile",
+        "Edge",
+        "Mobile Safari",
+        "Opera",
+        "Opera Mobile",
+        "Chrome Mobile WebView",
+        "Chrome Mobile iOS",
+        "Samsung Internet",
+        "Firefox Mobile",
+    ]:
+        # Reduce cardinality in case there are custom browser name tags.
+        allowed_browser_name = browser_name
+
     detected_tags = {"sdk_name": sdk_name}
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
@@ -1704,6 +1744,9 @@ def report_metrics_for_detectors(
 
         if not detected_problem_keys:
             continue
+
+        if detector.type in [DetectorType.UNCOMPRESSED_ASSETS]:
+            detected_tags["browser_name"] = allowed_browser_name
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:
