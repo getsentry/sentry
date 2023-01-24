@@ -13,6 +13,7 @@ export enum StacktraceLinkEvents {
   START_SETUP = 'integrations.stacktrace_start_setup',
   SUBMIT = 'integrations.stacktrace_submit_config',
   LINK_VIEWED = 'integrations.stacktrace_link_viewed',
+  CODECOV_LINK_CLICKED = 'integrations.stacktrace_codecov_link_clicked',
 }
 
 // This type allows analytics functions to use the string literal or enum.KEY
@@ -39,4 +40,6 @@ export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string
   [StacktraceLinkEvents.MANUAL_OPTION]: 'Integrations: Stacktrace Manual Option Clicked',
   [StacktraceLinkEvents.START_SETUP]: 'Integrations: Stacktrace Start Setup',
   [StacktraceLinkEvents.SUBMIT]: 'Integrations: Stacktrace Submit Config',
+  [StacktraceLinkEvents.CODECOV_LINK_CLICKED]:
+    'Integrations: Stacktrace Codecov Link Clicked',
 };
