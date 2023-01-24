@@ -56,6 +56,7 @@ describe('StacktraceLink', function () {
           commitId: event.release?.lastCommit?.id,
           file: frame.filename,
           platform,
+          lineNo: frame.lineNo,
         },
       })
     );

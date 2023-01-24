@@ -26,6 +26,7 @@ function useStacktraceLink(
     ...(frame.absPath && {absPath: frame.absPath}),
     ...(frame.module && {module: frame.module}),
     ...(frame.package && {package: frame.package}),
+    lineNo: frame.lineNo,
   };
 
   return useQuery<StacktraceLinkResult>(
