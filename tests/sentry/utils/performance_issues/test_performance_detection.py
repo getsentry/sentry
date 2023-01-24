@@ -17,6 +17,7 @@ from sentry.utils.performance_issues.performance_detection import (
     NPlusOneDBSpanDetector,
     PerformanceProblem,
     _detect_performance_problems,
+    detect_performance_problems,
     total_span_time,
 )
 
@@ -74,6 +75,28 @@ class PerformanceDetectionTest(TestCase):
         self.addCleanup(patch_organization.stop)
 
         self.project = self.create_project()
+
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_disabled(self, mock):
+        event = {}
+        detect_performance_problems(event)
+        assert mock.call_count == 0
+
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_enabled(self, mock):
+        event = {}
+        with override_options({"performance.issues.all.problem-detection": 1.0}):
+            detect_performance_problems(event)
+        assert mock.call_count == 1
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_no_feature_flag_disables_creation(self):
+        self.features = []
+        n_plus_one_event = get_event["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == []
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
