@@ -61,6 +61,7 @@ export function DataSetStep({dataSet, onChange, displayType}: Props) {
         onChange={newDataSet => {
           onChange(newDataSet as DataSet);
         }}
+        orientInline
       />
     </BuildStep>
   );
