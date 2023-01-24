@@ -15,8 +15,7 @@ import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
@@ -573,7 +572,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     }
 
     const contextMenu = (
-      <DropdownMenuControl
+      <DropdownMenu
         items={contextMenuItems}
         trigger={triggerProps => (
           <Button

@@ -2,10 +2,11 @@ import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import {Node} from '@react-types/shared';
 
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import space from 'sentry/styles/space';
 
-type Props = {
+import {MenuItemProps} from './item';
+
+type DropdownMenuSectionProps = {
   children: React.ReactNode;
   node: Node<MenuItemProps>;
 };
@@ -14,23 +15,23 @@ type Props = {
  * A wrapper component for menu sections. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-function MenuSection({node, children}: Props) {
+function DropdownMenuSection({node, children}: DropdownMenuSectionProps) {
   const {itemProps, headingProps, groupProps} = useMenuSection({
     heading: node.rendered,
     'aria-label': node['aria-label'],
   });
 
   return (
-    <MenuSectionWrap {...itemProps}>
+    <DropdownMenuSectionWrap {...itemProps}>
       {node.rendered && <Heading {...headingProps}>{node.rendered}</Heading>}
       <Group {...groupProps}>{children}</Group>
-    </MenuSectionWrap>
+    </DropdownMenuSectionWrap>
   );
 }
 
-export default MenuSection;
+export default DropdownMenuSection;
 
-const MenuSectionWrap = styled('li')`
+const DropdownMenuSectionWrap = styled('li')`
   list-style-type: none;
 `;
 
@@ -44,7 +45,7 @@ const Heading = styled('span')`
   margin: ${space(1)} ${space(1.5)} ${space(0.5)};
   padding-right: ${space(1)};
 
-  ${MenuSectionWrap}:first-of-type & {
+  ${DropdownMenuSectionWrap}:first-of-type & {
     margin-top: ${space(0.5)};
   }
 `;

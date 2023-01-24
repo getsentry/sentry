@@ -5,8 +5,7 @@ import {Location} from 'history';
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
@@ -291,7 +290,7 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
-const StyledDropdownMenuControl = styled(DropdownMenuControl)`
+const StyledDropdownMenuControl = styled(DropdownMenu)`
   & > button {
     z-index: auto;
   }

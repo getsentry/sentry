@@ -48,8 +48,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import DropdownMenuControl from '../dropdownMenuControl';
-import {MenuItemProps} from '../dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from '../dropdownMenu';
 
 import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
@@ -2036,6 +2035,6 @@ const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
 `;
 
-const OverlowingActionsMenu = styled(DropdownMenuControl)`
+const OverlowingActionsMenu = styled(DropdownMenu)`
   display: flex;
 `;

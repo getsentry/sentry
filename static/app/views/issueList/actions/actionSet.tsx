@@ -4,8 +4,7 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -256,7 +255,7 @@ function ActionSet({
           {t('Merge')}
         </ActionLink>
       )}
-      <DropdownMenuControl
+      <DropdownMenu
         size="sm"
         items={menuItems}
         triggerProps={{

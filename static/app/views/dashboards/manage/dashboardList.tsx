@@ -12,8 +12,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
@@ -101,7 +100,7 @@ function DashboardList({
     ];
 
     return (
-      <DropdownMenuControl
+      <DropdownMenu
         items={menuItems}
         trigger={triggerProps => (
           <DropdownTrigger
