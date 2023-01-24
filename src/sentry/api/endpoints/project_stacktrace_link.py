@@ -128,7 +128,7 @@ def set_tags(scope: Scope, result: JSONData) -> None:
         scope.set_tag(
             "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
         )
-    if result["codecov"].get("attemptedUrl"):
+    if result.get("codecov") and result["codecov"].get("attemptedUrl"):
         scope.set_tag("codecov.attempted_url", result["codecov"]["attemptedUrl"])
 
 
