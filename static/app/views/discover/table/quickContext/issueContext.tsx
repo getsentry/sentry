@@ -10,7 +10,7 @@ import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {Panel} from 'sentry/components/panels';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

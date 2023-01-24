@@ -16,7 +16,7 @@ import Link from 'sentry/components/links/link';
 import {TourImage, TourStep, TourText} from 'sentry/components/modals/featureTourModal';
 import {Panel} from 'sentry/components/panels';
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

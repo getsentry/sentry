@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';

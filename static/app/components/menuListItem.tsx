@@ -4,7 +4,7 @@ import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
+import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';

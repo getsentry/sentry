@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {EventGroupingConfig} from 'sentry/types';
 

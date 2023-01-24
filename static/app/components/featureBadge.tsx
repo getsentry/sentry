@@ -6,7 +6,7 @@ import type {SeverityLevel} from '@sentry/types';
 
 import Badge from 'sentry/components/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space, {ValidSize} from 'sentry/styles/space';
 

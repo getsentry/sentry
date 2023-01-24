@@ -13,7 +13,7 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelHeader} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 
 import FooterWithButtons from './components/footerWithButtons';

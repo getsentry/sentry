@@ -11,7 +11,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import {
   IconCheckmark,

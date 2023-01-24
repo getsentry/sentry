@@ -3,7 +3,7 @@ import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

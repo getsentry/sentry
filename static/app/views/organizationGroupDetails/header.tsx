@@ -23,7 +23,7 @@ import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import {Item, TabList} from 'sentry/components/tabs';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

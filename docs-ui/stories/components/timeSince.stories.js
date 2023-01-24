@@ -1,5 +1,5 @@
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 
 export default {
   title: 'Components/Time Since',

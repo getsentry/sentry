@@ -5,7 +5,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 
 describe('Tooltip', function () {
   function mockOverflow(width: number, containerWidth: number) {

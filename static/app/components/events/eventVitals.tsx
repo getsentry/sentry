@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

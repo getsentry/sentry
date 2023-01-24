@@ -8,7 +8,7 @@ import Avatar from 'sentry/components/avatar';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import LetterAvatar from 'sentry/components/letterAvatar';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';

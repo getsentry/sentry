@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {ImageCandidate} from 'sentry/types/debugImage';
 

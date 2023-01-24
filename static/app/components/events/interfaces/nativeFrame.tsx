@@ -17,7 +17,7 @@ import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/u
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import StrictClick from 'sentry/components/strictClick';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconInfo} from 'sentry/icons/iconInfo';

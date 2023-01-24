@@ -9,7 +9,7 @@ import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolut
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import DropdownMenu from 'sentry/components/dropdownMenu';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {

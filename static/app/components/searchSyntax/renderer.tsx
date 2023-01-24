@@ -3,7 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 
 import {ParseResult, Token, TokenResult} from './parser';

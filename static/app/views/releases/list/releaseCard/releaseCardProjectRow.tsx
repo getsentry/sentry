@@ -15,7 +15,7 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import {PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tag from 'sentry/components/tag';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';

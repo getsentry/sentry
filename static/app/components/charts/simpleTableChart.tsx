@@ -6,7 +6,7 @@ import PanelTable, {
   PanelTableHeader,
   PanelTableProps,
 } from 'sentry/components/panels/panelTable';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';

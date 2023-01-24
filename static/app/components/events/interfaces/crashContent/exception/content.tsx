@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ExceptionType} from 'sentry/types';
