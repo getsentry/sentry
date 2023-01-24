@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
     retry_jitter=False,
 )
 def process_commit_context(
-    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+    event_id, event_platform, event_frames, group_id, project_id, cache_key, sdk_name=None, **kwargs
 ):
     """
     For a given event, look at the first in_app frame, and if we can find who modified the line, we can then update who is assigned to the issue.
@@ -44,14 +44,6 @@ def process_commit_context(
     )
     try:
         with lock.acquire():
-            group_cache_key = f"w-o-i:g-{group_id}-2"
-            if cache.get(group_cache_key):
-                metrics.incr(
-                    "sentry.tasks.process_commit_context.debounce",
-                    tags={"event": event_id, "group": group_id, "project": project_id},
-                )
-                return
-
             metrics.incr(
                 "sentry.tasks.process_commit_context.start",
                 tags={"event": event_id, "group": group_id, "project": project_id},
@@ -87,7 +79,7 @@ def process_commit_context(
 
             if len(current_owners) >= PREFERRED_GROUP_OWNERS:
                 cache_duration = timezone.now() - current_owners[0].date_added
-                cache.set(group_cache_key, True, cache_duration.total_seconds())
+                cache.set(cache_key, True, cache_duration.total_seconds())
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
@@ -115,6 +107,7 @@ def process_commit_context(
             frame = next(filter(lambda frame: frame.get("in_app", False), frames[::-1]), None)
 
             if not frame:
+                cache.set(cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds())
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
@@ -141,6 +134,8 @@ def process_commit_context(
             )
 
             if not commit_context and not selected_code_mapping:
+                cache.set(cache_key, True, timedelta(days=1).total_seconds())
+
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
@@ -164,6 +159,8 @@ def process_commit_context(
                     key=commit_context.get("commitId"),
                 )
             except Commit.DoesNotExist:
+                cache.set(cache_key, True, timedelta(days=1).total_seconds())
+
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
@@ -206,7 +203,7 @@ def process_commit_context(
                         owner.delete()
 
             cache.set(
-                group_cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
+                cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
             )  # 1 week in seconds
             logger.info(
                 "process_commit_context.success",

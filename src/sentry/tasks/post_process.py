@@ -673,22 +673,43 @@ def process_commits(job: PostProcessJob) -> None:
 
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
+                metric_tags = {
+                    "event": event.event_id,
+                    "group": event.group_id,
+                    "project": event.project_id,
+                }
                 if features.has("organizations:commit-context", event.project.organization):
+                    cache_key = f"process-commit-context-{event.group_id}"
+                    if cache.get(cache_key):
+                        metrics.incr(
+                            "sentry.tasks.process_commit_context.debounce",
+                            tags={**metric_tags},
+                        )
+                        return
                     process_commit_context.delay(
                         event_id=event.event_id,
                         event_platform=event.platform,
                         event_frames=event_frames,
                         group_id=event.group_id,
                         project_id=event.project_id,
+                        cache_key=cache_key,
                         sdk_name=sdk_name,
                     )
                 else:
+                    cache_key = f"process-suspect-commits-{event.group_id}"
+                    if cache.get(cache_key):
+                        metrics.incr(
+                            "sentry.tasks.process_suspect_commits.debounce",
+                            tags={**metric_tags},
+                        )
+                        return
                     process_suspect_commits.delay(
                         event_id=event.event_id,
                         event_platform=event.platform,
                         event_frames=event_frames,
                         group_id=event.group_id,
                         project_id=event.project_id,
+                        cache_key=cache_key,
                         sdk_name=sdk_name,
                     )
     except UnableToAcquireLock:

@@ -21,15 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+    event_id, event_platform, event_frames, group_id, project_id, cache_key, sdk_name=None, **kwargs
 ):
-    group_cache_key = f"w-o-i:g-{group_id}-2"
-    if cache.get(group_cache_key):
-        metrics.incr(
-            "sentry.tasks.process_suspect_commits.debounce",
-            tags={"event": event_id, "group": group_id, "project": project_id},
-        )
-        return
 
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
@@ -103,14 +96,16 @@ def _process_suspect_commits(
                         )[0].delete()
 
                 cache.set(
-                    group_cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
+                    cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
                 )  # 1 week in seconds
         except Commit.DoesNotExist:
+            cache.set(cache_key, True, timedelta(days=1).total_seconds())
             logger.info(
                 "process_suspect_commits.skipped",
                 extra={"event": event_id, "reason": "no_commit"},
             )
         except Release.DoesNotExist:
+            cache.set(cache_key, True, timedelta(days=1).total_seconds())
             logger.info(
                 "process_suspect_commits.skipped",
                 extra={"event": event_id, "reason": "no_release"},
@@ -124,7 +119,7 @@ def _process_suspect_commits(
     max_retries=5,
 )
 def process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+    event_id, event_platform, event_frames, group_id, project_id, cache_key, sdk_name=None, **kwargs
 ):
     lock = locks.get(
         f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
@@ -132,7 +127,14 @@ def process_suspect_commits(
     try:
         with lock.acquire():
             _process_suspect_commits(
-                event_id, event_platform, event_frames, group_id, project_id, sdk_name, **kwargs
+                event_id,
+                event_platform,
+                event_frames,
+                group_id,
+                project_id,
+                cache_key,
+                sdk_name,
+                **kwargs,
             )
     except UnableToAcquireLock:
         pass
