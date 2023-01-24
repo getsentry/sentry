@@ -115,7 +115,7 @@ function shouldshowCodecovFeatures(
     organization.features.includes('codecov-stacktrace-integration') &&
     organization.codecovAccess;
 
-  const codecovStatus = match.codecov?.statusCode;
+  const codecovStatus = match.codecov?.status;
   const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
   return enabled && validStatus && match.config?.provider.key === 'github';
@@ -291,8 +291,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         </OpenInLink>
         {shouldshowCodecovFeatures(organization, match) && (
           <CodecovLink
-            codecovUrl={match.codecov?.codecovUrl}
-            codecovStatusCode={match.codecov?.statusCode}
+            codecovUrl={match.codecov?.coverageUrl}
+            codecovStatusCode={match.codecov?.status}
             organization={organization}
             event={event}
           />

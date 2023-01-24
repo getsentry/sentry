@@ -212,8 +212,8 @@ describe('StacktraceLink', function () {
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
         codecov: {
-          statusCode: CodecovStatusCode.COVERAGE_EXISTS,
-          codecovUrl: 'https://app.codecov.io/gh/path/to/file.py',
+          status: CodecovStatusCode.COVERAGE_EXISTS,
+          coverageUrl: 'https://app.codecov.io/gh/path/to/file.py',
         },
       },
     });
@@ -246,7 +246,7 @@ describe('StacktraceLink', function () {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
-        codecov: {statusCode: CodecovStatusCode.NO_COVERAGE_DATA},
+        codecov: {status: CodecovStatusCode.NO_COVERAGE_DATA},
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
