@@ -375,7 +375,8 @@ export class Line extends Component<Props, State> {
     const shouldShowCodecovLegend =
       this.props.organization?.features.includes('codecov-stacktrace-integration') &&
       this.props.organization?.codecovAccess &&
-      !this.props.nextFrame;
+      !this.props.nextFrame &&
+      this.state.isExpanded;
 
     return (
       <StyledLi data-test-id="line" {...props}>
