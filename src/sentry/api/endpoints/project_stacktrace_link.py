@@ -299,6 +299,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             )
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
+                    # We don't expect coverage data if the integration does not exist (404)
+                    scope.set_tag("codecov.enabled", True)
 
             try:
                 set_tags(scope, result)

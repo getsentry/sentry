@@ -4,12 +4,13 @@ import requests
 
 from sentry import options
 
+LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 
 
 def get_codecov_data(
     repo: str, service: str, branch: str, path: str
-) -> Tuple[Optional[Sequence[Tuple[int, int]]], Optional[str]]:
+) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
     codecov_url = None
@@ -20,12 +21,21 @@ def get_codecov_data(
         url = CODECOV_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
-        params = {"branch": branch, "path": path}
-        response = requests.get(
-            url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
-        )
-        response.raise_for_status()
-        line_coverage = response.json()["files"][0]["line_coverage"]
-        codecov_url = response.json()["commit_file_url"]
+
+        with configure_scope() as scope:
+            scope.set_tag("codecov.attempted_url", url)
+            params = {"branch": branch, "path": path}
+            response = requests.get(
+                url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
+            )
+            scope.set_tag("codecov.http_code", response.status_code)
+
+            response.raise_for_status()
+            line_coverage = response.json()["files"][0]["line_coverage"]
+            codecov_url = response.json()["commit_file_url"]
+
+            coverage_found = line_coverage is not None and len(line_coverage) > 0
+            scope.set_tag("codecov.coverage_found", coverage_found)
+            scope.set_tag("codecov.url", codecov_url)
 
     return line_coverage, codecov_url
