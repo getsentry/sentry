@@ -1,6 +1,5 @@
 import {useEffect, useRef} from 'react';
-
-import useMedia from 'sentry/utils/useMedia';
+import {useReducedMotion} from 'framer-motion';
 
 interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   'aria-label': string;
@@ -17,7 +16,7 @@ interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement>
 function AutoplayVideo(props: AutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const prefersReducedMotion = useMedia('(prefers-reduced-motion)');
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (videoRef.current) {
