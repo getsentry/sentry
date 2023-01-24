@@ -108,6 +108,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
 }
 
 
@@ -635,6 +636,13 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             )
             if fcp >= fcp_minimum_threshold and fcp < fcp_maximum_threshold:
                 self.fcp = fcp
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return features.has(
+            "organizations:performance-issues-render-blocking-assets-detector",
+            organization,
+            actor=None,
+        )
 
     def visit_span(self, span: Span):
         if not self.fcp:
