@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
@@ -122,7 +125,19 @@ const NPlusOneAPICallsSpanEvidence = ({
         [
           makeTransactionNameRow(event),
           commonPathPrefix
-            ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), commonPathPrefix)
+            ? makeRow(
+                t('Repeating Spans (%s)', offendingSpans.length),
+                <pre className="val-string">
+                  <AnnotatedText
+                    value={
+                      <Fragment>
+                        {commonPathPrefix}
+                        <HighlightedEvidence>[Parameters]</HighlightedEvidence>
+                      </Fragment>
+                    }
+                  />
+                </pre>
+              )
             : null,
           problemParameters.length > 0
             ? makeRow(t('Parameters'), problemParameters)
@@ -132,6 +147,10 @@ const NPlusOneAPICallsSpanEvidence = ({
     />
   );
 };
+
+const HighlightedEvidence = styled('span')`
+  color: ${p => p.theme.errorText};
+`;
 
 const isRequestEntry = (entry: Entry): entry is EntryRequest => {
   return entry.type === EntryType.REQUEST;

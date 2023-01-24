@@ -191,7 +191,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('/book/');
+      ).toHaveTextContent('/book/[Parameters]');
 
       expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
       expect(
