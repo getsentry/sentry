@@ -3,22 +3,7 @@
 from django.db import migrations, models
 
 import sentry.db.models.fields.bounded
-from sentry.event_manager import DEFAULT_GROUPHASH_IGNORE_LIMIT, GROUPHASH_IGNORE_LIMIT_MAP
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GROUP_TYPE_TO_TEXT
-from sentry.types.issues import GroupType as GroupTypeEnum
-
-
-def backfill_grouptype_table(apps, schema_editor):
-    GroupType = apps.get_model("sentry", "GroupType")
-
-    for type in GroupTypeEnum:
-        GroupType.objects.create(
-            slug=type.name,
-            description=GROUP_TYPE_TO_TEXT[type],
-            category=GROUP_TYPE_TO_CATEGORY[type].value,
-            ignore_limit=GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT),
-        )
 
 
 class Migration(CheckedMigration):
@@ -60,10 +45,5 @@ class Migration(CheckedMigration):
                 "db_table": "sentry_grouptype",
                 "unique_together": {("slug", "description")},
             },
-        ),
-        migrations.RunPython(
-            backfill_grouptype_table,
-            migrations.RunPython.noop,
-            hints={"tables": ["sentry_grouptype"]},
         ),
     ]
