@@ -82,7 +82,10 @@ SMALLEST_METRICS_BUCKET = 10
 # In order to make functional comparison easier, the metrics implementation
 # (explicitly) chooses the same rollup in the equivalent queries, and uses this
 # constant to denote that case.
-LEGACY_SESSIONS_DEFAULT_ROLLUP = 3600
+MINUTE = 60  # 60 seconds
+HOUR = MINUTE * 60
+DAY = HOUR * 24
+LEGACY_SESSIONS_DEFAULT_ROLLUP = HOUR
 USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
 
 logger = logging.getLogger(__name__)
@@ -650,7 +653,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=select,
             start=start,
             end=now,
-            granularity=Granularity(24 * 60 * 60),  # daily
+            granularity=Granularity(DAY),
             groupby=groupby,
             where=where_clause,
             include_series=False,
@@ -705,7 +708,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=select,
             start=start,
             end=end,
-            granularity=Granularity(60),
+            granularity=Granularity(MINUTE),
             groupby=groupby,
             where=where_clause,
             include_series=False,
@@ -1439,10 +1442,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         if scope == "users":
             select = [MetricField(metric_mri=SessionMRI.ALL_USER.value, alias="v", op=None)]
-            # where += Condition(Column("value"), Op.GT, 0)
         elif scope == "crash_free_users":
             select = [MetricField(metric_mri=SessionMRI.CRASH_FREE_USER.value, alias="v", op=None)]
-            # where += Condition(Column("value"), Op.GT, 0)
         else:  # sessions
             select = [MetricField(metric_mri=SessionMRI.ALL.value, alias="v", op=None)]
 
@@ -1477,7 +1478,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # the way it was in the original implementation where we
         # didn't use a group by  but calculated in one go with
         #  a column uniqueExact(projectId, release)
-        return len(groups)
+        ret_val = 0
+        for group in groups:
+            val = get_path(group, "totals", "value", default=0)
+            if val > 0:
+                ret_val += 1
+        return ret_val
 
     def get_project_release_stats(
         self,

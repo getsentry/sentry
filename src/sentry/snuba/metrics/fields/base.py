@@ -1417,14 +1417,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_USER.value,
-            metrics=[SessionMRI.CRASH_USER_RATE.value],
-            unit="percentage",
-            snql=lambda crash_user_rate_value, project_ids, org_id, metric_ids, alias=None: complement(
-                crash_user_rate_value, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
             metrics=[SessionMRI.SESSION.value],
             unit="sessions",
