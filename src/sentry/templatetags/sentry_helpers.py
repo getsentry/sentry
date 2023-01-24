@@ -100,6 +100,16 @@ def absolute_uri(parser, token):
 
 
 @register.simple_tag
+def org_url(organization, path, query=None, fragment=None) -> str:
+    """
+    Generate an absolute url for an organization
+    """
+    if not hasattr(organization, "absolute_url"):
+        raise RuntimeError("organiation parameter is missing absolute_url")
+    return organization.absolute_url(path, query=query, fragment=fragment)
+
+
+@register.simple_tag
 def system_origin():
     from sentry.utils.http import absolute_uri, origin_from_url
 
