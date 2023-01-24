@@ -8,6 +8,7 @@ from sentry.models import Commit, Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -22,6 +23,14 @@ logger = logging.getLogger(__name__)
 def _process_suspect_commits(
     event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
+    group_cache_key = f"w-o-i:g-{group_id}"
+    if cache.get(group_cache_key):
+        metrics.incr(
+            "sentry.tasks.process_suspect_commits.debounce",
+            tags={"detail": "w-o-i:g debounce"},
+        )
+        return
+
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
 
@@ -93,6 +102,7 @@ def _process_suspect_commits(
                             organization_id=project.organization_id,
                         )[0].delete()
 
+                cache.set(group_cache_key, True, 604800)  # 1 week in seconds
         except Commit.DoesNotExist:
             logger.info(
                 "process_suspect_commits.skipped",

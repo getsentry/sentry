@@ -13,6 +13,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -43,6 +44,13 @@ def process_commit_context(
     )
     try:
         with lock.acquire():
+            group_cache_key = f"w-o-i:g-{group_id}"
+            if cache.get(group_cache_key):
+                metrics.incr(
+                    "sentry.tasks.process_commit_context.debounce",
+                    tags={"detail": "w-o-i:g debounce"},
+                )
+
             metrics.incr(
                 "sentry.tasks.process_commit_context.start",
                 tags={"event": event_id, "group": group_id, "project": project_id},
@@ -194,6 +202,7 @@ def process_commit_context(
                     else:
                         owner.delete()
 
+            cache.set(group_cache_key, True, 604800)  # 1 week in seconds
             logger.info(
                 "process_commit_context.success",
                 extra={

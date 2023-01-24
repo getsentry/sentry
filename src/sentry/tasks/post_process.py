@@ -669,36 +669,28 @@ def process_commits(job: PostProcessJob) -> None:
                 cache.set(has_commit_key, org_has_commit, 3600)
 
             if org_has_commit:
-                group_cache_key = f"w-o-i:g-{event.group_id}"
-                if cache.get(group_cache_key):
-                    metrics.incr(
-                        "sentry.tasks.process_suspect_commits.debounce",
-                        tags={"detail": "w-o-i:g debounce"},
+                from sentry.utils.committers import get_frame_paths
+
+                event_frames = get_frame_paths(event)
+                sdk_name = get_sdk_name(event.data)
+                if features.has("organizations:commit-context", event.project.organization):
+                    process_commit_context.delay(
+                        event_id=event.event_id,
+                        event_platform=event.platform,
+                        event_frames=event_frames,
+                        group_id=event.group_id,
+                        project_id=event.project_id,
+                        sdk_name=sdk_name,
                     )
                 else:
-                    from sentry.utils.committers import get_frame_paths
-
-                    cache.set(group_cache_key, True, 604800)  # 1 week in seconds
-                    event_frames = get_frame_paths(event)
-                    sdk_name = get_sdk_name(event.data)
-                    if features.has("organizations:commit-context", event.project.organization):
-                        process_commit_context.delay(
-                            event_id=event.event_id,
-                            event_platform=event.platform,
-                            event_frames=event_frames,
-                            group_id=event.group_id,
-                            project_id=event.project_id,
-                            sdk_name=sdk_name,
-                        )
-                    else:
-                        process_suspect_commits.delay(
-                            event_id=event.event_id,
-                            event_platform=event.platform,
-                            event_frames=event_frames,
-                            group_id=event.group_id,
-                            project_id=event.project_id,
-                            sdk_name=sdk_name,
-                        )
+                    process_suspect_commits.delay(
+                        event_id=event.event_id,
+                        event_platform=event.platform,
+                        event_frames=event_frames,
+                        group_id=event.group_id,
+                        project_id=event.project_id,
+                        sdk_name=sdk_name,
+                    )
     except UnableToAcquireLock:
         pass
 
