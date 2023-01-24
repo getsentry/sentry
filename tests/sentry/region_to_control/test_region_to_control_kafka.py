@@ -44,7 +44,9 @@ def region_to_control_consumer(random_group_id):
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         consumer = get_region_to_control_consumer(
-            group_id=random_group_id, auto_offset_reset="earliest"
+            group_id=random_group_id,
+            auto_offset_reset="earliest",
+            strict_offset_reset=False,
         )
 
         consumer._run_once()
