@@ -74,7 +74,28 @@ class UIFramesRenderer {
     this.theme = theme;
     this.options = options;
 
-    this.colors = new Float32Array(uiFrames.frames.length * 6 * 4).fill(0.5);
+    this.colors = new Float32Array(uiFrames.frames.length * 6 * 4);
+
+    for (let index = 0; index < uiFrames.frames.length; index++) {
+      const frame = uiFrames.frames[index];
+
+      if (!frame) {
+        continue;
+      }
+
+      const colorWithAlpha =
+        uiFrames.frames[index].type === 'frozen'
+          ? [0.9, 0.0, 0.2, 0.7]
+          : [0.95, 0.7, 0.0, 0.6];
+
+      for (let i = 0; i < 6; i++) {
+        const offset = index * 6 * 4 + i * 4;
+        this.colors[offset] = colorWithAlpha[0];
+        this.colors[offset + 1] = colorWithAlpha[1];
+        this.colors[offset + 2] = colorWithAlpha[2];
+        this.colors[offset + 3] = colorWithAlpha[3];
+      }
+    }
 
     this.init();
   }
@@ -99,12 +120,11 @@ class UIFramesRenderer {
     for (let index = 0; index < FRAME_COUNT; index++) {
       const frame = this.uiFrames.frames[index];
 
-      const rowOffset = frame.type === 'frozen' ? 1 : 0;
       const x1 = frame.start;
       const x2 = frame.end;
       // UIFrames have no notion of depth
-      const y1 = -1 + rowOffset;
-      const y2 = 0 + rowOffset;
+      const y1 = 0;
+      const y2 = 1;
 
       // top left -> top right -> bottom left ->
       // bottom left -> top right -> bottom right
@@ -126,6 +146,15 @@ class UIFramesRenderer {
       // @TODO check if we can pack bounds across vertex calls,
       // we are allocating 6x the amount of memory here
       const boundsOffset = index * VERTICES * BOUNDS;
+
+      for (let i = 0; i < VERTICES; i++) {
+        const offset = boundsOffset + i * BOUNDS;
+
+        this.bounds[offset] = x1;
+        this.bounds[offset + 1] = y1;
+        this.bounds[offset + 2] = x2;
+        this.bounds[offset + 3] = y2;
+      }
 
       for (let i = 0; i < VERTICES; i++) {
         const offset = boundsOffset + i * BOUNDS;

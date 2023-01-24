@@ -1,3 +1,5 @@
+import {Rect} from 'sentry/utils/profiling/gl/utils';
+
 import {makeFormatTo} from './units/units';
 
 export type UIFrameNode = {
@@ -17,13 +19,16 @@ function sortFramesByStartedTime(a: Profiling.FrameRender, b: Profiling.FrameRen
 class UIFrames {
   frames: ReadonlyArray<UIFrameNode> = [];
   toUnit: string = 'nanoseconds';
+  minFrameDuration: number = Number.MAX_SAFE_INTEGER;
+  configSpace: Rect = Rect.Empty();
 
   constructor(
     frames: {
       frozen: FrameRenders['frozen_frame_renders'];
       slow: FrameRenders['slow_frame_renders'];
     },
-    options: {unit: string}
+    options: {unit: string},
+    configSpace?: Rect
   ) {
     const unit = frames.frozen?.unit || frames.slow?.unit || 'nanoseconds';
     const slowOrDefaultFrames = frames.frozen ?? {values: [], unit};
@@ -35,6 +40,7 @@ class UIFrames {
       slowOrDefaultFrames,
       frozenOrDefaultFrames
     );
+    this.configSpace = configSpace ?? Rect.Empty();
   }
 
   static Empty = new UIFrames(
@@ -77,10 +83,11 @@ class UIFrames {
       frames.push({
         start: unitFn(frame.elapsed_since_start_ns),
         end: unitFn(frame.elapsed_since_start_ns + frame.value),
-        duration: unitFn(frame.value),
+        duration: unitFn(frame.elapsed_since_start_ns),
         node: frame,
         type: nextType,
       });
+      this.minFrameDuration = Math.min(this.minFrameDuration, unitFn(frame.value));
     }
 
     return frames;

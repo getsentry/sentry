@@ -17,7 +17,6 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
@@ -27,7 +26,6 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
 import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -38,22 +36,24 @@ import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 interface FlamegraphUIFramesProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
+  setUIFramesCanvasRef: (ref: HTMLCanvasElement | null) => void;
   uiFrames: UIFrames;
-  uiFramesView: CanvasView<Flamegraph> | null;
+  uiFramesCanvas: FlamegraphCanvas | null;
+  uiFramesCanvasRef: HTMLCanvasElement | null;
+  uiFramesView: CanvasView<UIFrames> | null;
 }
 
 export function FlamegraphUIFrames({
   uiFrames,
   canvasPoolManager,
   uiFramesView,
+  uiFramesCanvasRef,
+  uiFramesCanvas,
+  setUIFramesCanvasRef,
 }: FlamegraphUIFramesProps) {
-  const devicePixelRatio = useDevicePixelRatio();
   const profileGroup = useProfileGroup();
   const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useCanvasScheduler(canvasPoolManager);
-  const [uiFramesCanvasRef, setUIFramesCanvasRef] = useState<HTMLCanvasElement | null>(
-    null
-  );
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
@@ -62,16 +62,6 @@ export function FlamegraphUIFrames({
   >(null);
 
   const selectedUIFrameRef = useRef<UIFrameNode[] | null>(null);
-
-  const uiFramesCanvas = useMemo(() => {
-    if (!uiFramesCanvasRef) {
-      return null;
-    }
-    return new FlamegraphCanvas(
-      uiFramesCanvasRef,
-      vec2.fromValues(0, flamegraphTheme.SIZES.TIMELINE_HEIGHT * devicePixelRatio)
-    );
-  }, [devicePixelRatio, uiFramesCanvasRef, flamegraphTheme]);
 
   const uiFramesRenderer = useMemo(() => {
     if (!uiFramesCanvasRef) {
