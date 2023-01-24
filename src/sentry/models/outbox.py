@@ -48,8 +48,9 @@ class OutboxCategory(IntEnum):
     WEBHOOK_PROXY = 1
     ORGANIZATION_UPDATE = 2
     ORGANIZATION_MEMBER_UPDATE = 3
-    AUDIT_LOG_EVENT = 4
-    USER_IP_EVENT = 5
+    VERIFY_ORGANIZATION_MAPPING = 4
+    AUDIT_LOG_EVENT = 5
+    USER_IP_EVENT = 6
 
     @classmethod
     def as_choices(cls):

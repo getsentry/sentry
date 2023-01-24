@@ -10,7 +10,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
-} from 'sentry/utils/profiling/hooks/useResizableDrawer';
+} from 'sentry/utils/useResizableDrawer';
 
 import {CollapsibleTimeline} from './collapsibleTimeline';
 
@@ -68,7 +68,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     };
   }, [layout]);
 
-  const {onMouseDown} = useResizableDrawer(resizableOptions);
+  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
 
   const onOpenMinimap = useCallback(
     () =>
@@ -163,7 +163,10 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         ) : null}
         <ZoomViewContainer>{props.flamegraph}</ZoomViewContainer>
         <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
-          {cloneElement(props.flamegraphDrawer, {onResize: onMouseDown})}
+          {cloneElement(props.flamegraphDrawer, {
+            onResize: onMouseDown,
+            onResizeReset: onDoubleClick,
+          })}
         </FlamegraphDrawerContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>

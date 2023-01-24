@@ -103,7 +103,10 @@ jobs:
         run: |
           make test-python-ci
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   backend-migration-tests:
@@ -134,7 +137,10 @@ jobs:
         run: |
           MIGRATIONS_TEST_MIGRATE=1 PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations" make test-python-ci
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   cli:
@@ -159,7 +165,10 @@ jobs:
         run: |
           make test-cli
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   requirements:
@@ -336,7 +345,10 @@ jobs:
         run: |
           make test-relay-integration
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   snuba:
@@ -351,10 +363,10 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1]
+        instance: [0, 1, 2]
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 2
+      MATRIX_INSTANCE_TOTAL: 3
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
@@ -374,7 +386,10 @@ jobs:
         run: |
           make test-snuba
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   symbolicator:
@@ -413,7 +428,10 @@ jobs:
         run: |
           make test-symbolicator
 
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
+        if: ${{ always() }}
         uses: ./.github/actions/artifacts
 
   typing:

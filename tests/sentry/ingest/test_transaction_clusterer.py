@@ -211,18 +211,19 @@ def test_transaction_clusterer_generates_rules(default_project):
             get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
         )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    feature = "organizations:transaction-name-normalize"
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
     default_project.update_option(
         "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
     )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) == [
             # TTL is 90d, so three months to expire
             {

@@ -81,3 +81,11 @@ def process_audit_log_event(payload: Any, **kwds: Any):
     # TODO: This will become explicit rpc
     if payload is not None:
         DatabaseBackedLogService().record_audit_log(event=AuditLogEvent(**payload))
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
+def process_organization_mapping_verifications(object_identifier: int, **kwds: Any):
+    if (org := _maybe_process_tombstone(Organization, object_identifier)) is None:
+        return
+
+    organization_mapping_service.verify_mappings(org.id, org.slug)

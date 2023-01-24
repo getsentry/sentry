@@ -1552,6 +1552,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 ],
             )
 
+    def test_event_type_query_condition(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            query="event.type:transaction",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[],
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+
+    def test_invalid_event_type_query_condition(self):
+        with pytest.raises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                query="!event.type:transaction",
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[],
+            )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):

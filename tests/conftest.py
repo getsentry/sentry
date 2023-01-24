@@ -2,6 +2,8 @@ import os
 
 import pytest
 
+from sentry.silo import SiloMode
+
 pytest_plugins = ["sentry.utils.pytest"]
 
 
@@ -120,3 +122,20 @@ def register_class_in_model_manifest(request: pytest.FixtureRequest):
             yield
     else:
         yield
+
+
+@pytest.fixture(autouse=True)
+def validate_silo_mode():
+    # NOTE!  Hybrid cloud uses many mechanisms to simulate multiple different configurations of the application
+    # during tests.  It depends upon `override_settings` using the correct contextmanager behaviors and correct
+    # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has
+    # a bug, or you may be using a contextmanager incorrectly.  Let us know and we can help!
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+        raise Exception(
+            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
+        )
+    yield
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+        raise Exception(
+            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
+        )

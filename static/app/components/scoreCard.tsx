@@ -7,7 +7,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-type Props = {
+export type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
@@ -25,7 +25,7 @@ function ScoreCard({
   trendStatus,
   className,
   renderOpenButton,
-}: Props) {
+}: ScoreCardProps) {
   return (
     <ScorePanel className={className}>
       <HeaderWrapper>
@@ -104,7 +104,7 @@ export const Score = styled('span')`
   white-space: nowrap;
 `;
 
-type TrendProps = {trendStatus: Props['trendStatus']};
+type TrendProps = {trendStatus: ScoreCardProps['trendStatus']};
 
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};

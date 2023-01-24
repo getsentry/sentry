@@ -6,8 +6,7 @@ import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -40,8 +39,8 @@ import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
-import {QuickContextHoverWrapper} from 'sentry/views/eventsV2/table/quickContext/quickContextWrapper';
-import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -357,7 +356,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <RightAlignedContainer>
-          <DropdownMenuControl
+          <DropdownMenu
             position="left"
             size="xs"
             triggerProps={{

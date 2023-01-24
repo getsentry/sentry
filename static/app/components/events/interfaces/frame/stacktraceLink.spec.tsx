@@ -56,6 +56,7 @@ describe('StacktraceLink', function () {
           commitId: event.release?.lastCommit?.id,
           file: frame.filename,
           platform,
+          lineNo: frame.lineNo,
         },
       })
     );
@@ -210,16 +211,26 @@ describe('StacktraceLink', function () {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
-        codecovStatusCode: CodecovStatusCode.COVERAGE_EXISTS,
+        codecov: {
+          statusCode: CodecovStatusCode.COVERAGE_EXISTS,
+          codecovUrl: 'https://app.codecov.io/gh/path/to/file.py',
+        },
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: TestStubs.routerContext(),
       organization,
     });
+
     expect(await screen.findByText('View Coverage Tests on Codecov')).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py'
+    );
+
+    userEvent.click(await screen.findByText('View Coverage Tests on Codecov'));
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'integrations.stacktrace_codecov_link_clicked',
+      expect.anything()
     );
   });
 
@@ -235,7 +246,7 @@ describe('StacktraceLink', function () {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
-        codecovStatusCode: CodecovStatusCode.NO_COVERAGE_DATA,
+        codecov: {statusCode: CodecovStatusCode.NO_COVERAGE_DATA},
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
