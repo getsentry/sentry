@@ -218,7 +218,7 @@ const Content = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const TagFacetsList = styled('ol')`
+export const TagFacetsList = styled('ol')`
   list-style: none;
   padding: 0;
   margin: 0 0 ${space(2)};
