@@ -20,6 +20,8 @@ from sentry.eventstore.snuba import SnubaEventStorage
 from sentry.models import EventAttachment, File, OrganizationMember, ProjectDebugFile
 from sentry.utils import json
 
+PROGUARD_FILE_SIZE_THRESHOLD = 400
+
 
 class EventAttachmentDetailsPermission(ProjectPermission):
     def has_object_permission(self, request: Request, view, project):
@@ -92,7 +94,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         return bool(self._get_proguard_uuid(event))
 
     def _get_proguard_mapper(self, event: Event):
-        with sentry_sdk.start_span(op="event.attachment.download.get_proguard", description=""):
+        with sentry_sdk.start_span(op="event.attachment.download.get_proguard"):
             uuid = self._get_proguard_uuid(event)
             dif_paths = ProjectDebugFile.difcache.fetch_difs(
                 event.project, [uuid], features=["mapping"]
@@ -101,9 +103,10 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             if debug_file_path is None:
                 return
 
-            # TODO(nar): Find a reasonable threshold
-            if os.path.getsize(debug_file_path) > 99999999:
-                raise Exception("View Hierarchy attachment size is too large")
+            proguard_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
+            sentry_sdk.set_tag("proguard_file_size_in_mb", proguard_file_size_in_mb)
+            if proguard_file_size_in_mb > PROGUARD_FILE_SIZE_THRESHOLD:
+                raise Exception("The Proguard file is too large for deobfuscation")
 
             mapper = ProguardMapper.open(debug_file_path)
             if not mapper.has_line_info:
