@@ -119,13 +119,23 @@ def _process_suspect_commits(
     max_retries=5,
 )
 def process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, cache_key, sdk_name=None, **kwargs
+    event_id,
+    event_platform,
+    event_frames,
+    group_id,
+    project_id,
+    cache_key=None,
+    sdk_name=None,
+    **kwargs,
 ):
     lock = locks.get(
         f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
     )
     try:
         with lock.acquire():
+            if not cache_key:
+                cache_key = f"process-suspect-commits-{group_id}"
+
             _process_suspect_commits(
                 event_id,
                 event_platform,

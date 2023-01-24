@@ -34,7 +34,14 @@ logger = logging.getLogger(__name__)
     retry_jitter=False,
 )
 def process_commit_context(
-    event_id, event_platform, event_frames, group_id, project_id, cache_key, sdk_name=None, **kwargs
+    event_id,
+    event_platform,
+    event_frames,
+    group_id,
+    project_id,
+    cache_key=None,
+    sdk_name=None,
+    **kwargs,
 ):
     """
     For a given event, look at the first in_app frame, and if we can find who modified the line, we can then update who is assigned to the issue.
@@ -48,6 +55,9 @@ def process_commit_context(
                 "sentry.tasks.process_commit_context.start",
                 tags={"event": event_id, "group": group_id, "project": project_id},
             )
+            if not cache_key:
+                cache_key = f"process-commit-context-{group_id}"
+
             set_current_event_project(project_id)
 
             project = Project.objects.get_from_cache(id=project_id)
