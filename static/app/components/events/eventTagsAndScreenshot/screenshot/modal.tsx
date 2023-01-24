@@ -164,7 +164,7 @@ function Modal({
         <StyledImageVisualization
           attachment={currentEventAttachment}
           orgId={orgSlug}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           eventId={currentEventAttachment.event_id}
         />
 

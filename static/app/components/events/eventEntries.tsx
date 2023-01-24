@@ -41,6 +41,7 @@ import {EventAttachments} from './eventAttachments';
 import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
+import {EventEvidence} from './eventEvidence';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
@@ -351,7 +352,7 @@ const EventEntries = ({
         <EventTagsAndScreenshot
           event={event}
           organization={organization as Organization}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           location={location}
           isShare={isShare}
           hasContext={hasContext}
@@ -359,6 +360,7 @@ const EventEntries = ({
           onDeleteScreenshot={handleDeleteAttachment}
         />
       )}
+      <EventEvidence event={event} group={group} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}
@@ -386,7 +388,7 @@ const EventEntries = ({
         <EventAttachments
           event={event}
           orgId={orgSlug}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           location={location}
           attachments={attachments}
           onDeleteAttachment={handleDeleteAttachment}
@@ -400,7 +402,7 @@ const EventEntries = ({
       )}
       {!isShare && event.groupID && (
         <EventGroupingInfo
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           event={event}
           showGroupingConfig={
             orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
@@ -411,7 +413,7 @@ const EventEntries = ({
         <EventRRWebIntegration
           event={event}
           orgId={orgSlug}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           renderer={children => (
             <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
               {children}

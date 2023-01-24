@@ -108,6 +108,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
 }
 
 
@@ -635,6 +636,16 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             )
             if fcp >= fcp_minimum_threshold and fcp < fcp_maximum_threshold:
                 self.fcp = fcp
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return features.has(
+            "organizations:performance-issues-render-blocking-assets-detector",
+            organization,
+            actor=None,
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
     def visit_span(self, span: Span):
         if not self.fcp:
@@ -1662,6 +1673,23 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
+    def is_event_eligible(cls, event):
+        tags = event.get("tags", [])
+        browser_name = next(
+            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
+        )
+        if browser_name.lower() in [
+            "chrome",
+            "firefox",
+            "safari",
+            "edge",
+        ]:
+            # Only use major browsers as some mobile browser may be responsible for not sending accept-content header,
+            # which isn't fixable since you can't control what headers your users are sending.
+            # This can be extended later.
+            return True
+        return False
+
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
@@ -1688,7 +1716,10 @@ def report_metrics_for_detectors(
         if event_id:
             set_tag("_pi_transaction", event_id)
 
-    browser_name = event.get("browser.name", None)
+    tags = event.get("tags", [])
+    browser_name = next(
+        (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), None
+    )
     allowed_browser_name = "Other"
     if browser_name in [
         "Chrome",

@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
@@ -71,13 +74,19 @@ const ConsecutiveDBQueriesSpanEvidence = ({
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      ...(causeSpans
-        ? [makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))]
-        : []),
-      makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
-    ]}
+    data={
+      [
+        makeTransactionNameRow(event),
+        causeSpans
+          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
+          : null,
+        makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
+        makeRow(
+          t('Duration Impact'),
+          getDurationImpact(event, getConsecutiveDbTimeSaved(causeSpans, offendingSpans))
+        ),
+      ].filter(Boolean) as KeyValueListData
+    }
   />
 );
 
@@ -116,7 +125,19 @@ const NPlusOneAPICallsSpanEvidence = ({
         [
           makeTransactionNameRow(event),
           commonPathPrefix
-            ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), commonPathPrefix)
+            ? makeRow(
+                t('Repeating Spans (%s)', offendingSpans.length),
+                <pre className="val-string">
+                  <AnnotatedText
+                    value={
+                      <Fragment>
+                        {commonPathPrefix}
+                        <HighlightedEvidence>[Parameters]</HighlightedEvidence>
+                      </Fragment>
+                    }
+                  />
+                </pre>
+              )
             : null,
           problemParameters.length > 0
             ? makeRow(t('Parameters'), problemParameters)
@@ -126,6 +147,10 @@ const NPlusOneAPICallsSpanEvidence = ({
     />
   );
 };
+
+const HighlightedEvidence = styled('span')`
+  color: ${p => p.theme.errorText};
+`;
 
 const isRequestEntry = (entry: Entry): entry is EntryRequest => {
   return entry.type === EntryType.REQUEST;
@@ -219,20 +244,60 @@ function getSpanEvidenceValue(span: Span | null): string {
   return `${span.op} - ${span.description}`;
 }
 
+const getConsecutiveDbTimeSaved = (
+  consecutiveSpans: Span[],
+  independentSpans: Span[]
+): number => {
+  const totalDuration = sumSpanDurations(consecutiveSpans);
+  const maxIndependentSpanDuration = Math.max(
+    ...independentSpans.map(span => getSpanDuration(span))
+  );
+  const independentSpanIds = independentSpans.map(span => span.span_id);
+
+  let sumOfDependentSpansDuration = 0;
+  consecutiveSpans.forEach(span => {
+    if (!independentSpanIds.includes(span.span_id)) {
+      sumOfDependentSpansDuration += getSpanDuration(span);
+    }
+  });
+
+  return (
+    totalDuration - Math.max(maxIndependentSpanDuration, sumOfDependentSpansDuration)
+  );
+};
+
+const sumSpanDurations = (spans: Span[]) => {
+  let totalDuration = 0;
+  spans.forEach(span => {
+    totalDuration += getSpanDuration(span);
+  });
+  return totalDuration;
+};
+
+const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
+  return timestamp && start_timestamp ? (timestamp - start_timestamp) * 1000 : 0;
+};
+
+function getDurationImpact(event: EventTransaction, durationAdded: number) {
+  const transactionTime = (event.endTimestamp - event.startTimestamp) * 1000;
+  if (!transactionTime) {
+    return null;
+  }
+  const percent = durationAdded / transactionTime;
+  return `${toPercent(percent)} (${getPerformanceDuration(
+    durationAdded
+  )}/${getPerformanceDuration(transactionTime)})`;
+}
+
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
-  const transactionTime = event.endTimestamp - event.startTimestamp;
   if (
-    !transactionTime ||
     typeof span.timestamp === 'undefined' ||
     typeof span.start_timestamp === 'undefined'
   ) {
     return null;
   }
   const spanTime = span?.timestamp - span?.start_timestamp;
-  const percent = spanTime / transactionTime;
-  return `${toPercent(percent)} (${getPerformanceDuration(
-    spanTime * 1000
-  )}/${getPerformanceDuration(transactionTime * 1000)})`;
+  return getDurationImpact(event, spanTime * 1000);
 }
 
 function getSpanDataField(span: Span, field: string) {
@@ -259,7 +324,7 @@ type ParameterLookup = Record<string, string[]>;
   * @returns A condensed string describing the query parameters changing
   * between the URLs of the given span. e.g., "id:{1,2,3}"
  */
-function formatChangingQueryParameters(spans: Span[], baseURL?: string): string {
+function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[] {
   const URLs = spans
     .map(span => extractSpanURLString(span, baseURL))
     .filter((url): url is URL => url instanceof URL);
@@ -277,7 +342,7 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string 
     }
   }
 
-  return pairs.join(' ');
+  return pairs;
 }
 
 const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
