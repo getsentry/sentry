@@ -1,8 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Evidence} from 'sentry/components/events/evidence';
+import {EventEvidence} from 'sentry/components/events/eventEvidence';
 
-describe('Evidence', () => {
+describe('EventEvidence', () => {
   const event = TestStubs.Event({
     occurrence: {
       evidenceData: {},
@@ -30,7 +30,7 @@ describe('Evidence', () => {
 
   it('renders nothing when evidence display is empty', () => {
     const {container} = render(
-      <Evidence
+      <EventEvidence
         {...defaultProps}
         event={TestStubs.Event({occurrence: {evidenceDisplay: []}})}
       />
@@ -40,7 +40,7 @@ describe('Evidence', () => {
   });
 
   it('renders evidenceDisplay data in a key/value table', () => {
-    render(<Evidence {...defaultProps} />);
+    render(<EventEvidence {...defaultProps} />);
 
     expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
     expect(

@@ -10,7 +10,7 @@ type EvidenceProps = {event: Event; group?: Group};
  *
  * When we figure out how we want to genericize the UI for performance issues we can revisit.
  */
-export const Evidence = ({event, group}: EvidenceProps) => {
+export const EventEvidence = ({event, group}: EvidenceProps) => {
   const evidenceDisplay = event.occurrence?.evidenceDisplay;
 
   if (!evidenceDisplay?.length || group?.issueCategory === IssueCategory.PERFORMANCE) {
