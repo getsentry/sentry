@@ -20,7 +20,7 @@ type Props = Pick<
 > & {
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
-  projectSlug: Project['id'];
+  projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
