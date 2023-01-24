@@ -191,12 +191,12 @@ def build_query_builder(
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
-        organization = organization_service.get_organization_by_id(
+        organization_context = organization_service.get_organization_by_id(
             id=subscription.project.organization_id
         )
         span.set_tag(
             "uses_metrics_layer",
-            features.has("organizations:use-metrics-layer", organization),
+            features.has("organizations:use-metrics-layer", organization_context.organization),
         )
         span.set_tag("dataset", subscription.snuba_query.dataset)
 
