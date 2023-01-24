@@ -453,7 +453,7 @@ const generateBadgeTheme = (colors: BaseColors) => ({
 
 const generateTagTheme = (colors: BaseColors) => ({
   default: {
-    background: colors.surface400,
+    background: colors.surface300,
     border: colors.gray200,
     iconColor: colors.gray300,
   },
