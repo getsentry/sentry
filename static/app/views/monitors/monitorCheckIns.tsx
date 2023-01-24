@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Duration from 'sentry/components/duration';
 import {PanelBody, PanelItem} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
