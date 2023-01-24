@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.models import Any, Environment, Mapping, Optional
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
@@ -190,9 +191,12 @@ def build_query_builder(
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
+        organization = organization_service.get_organization_by_id(
+            id=subscription.project.organization_id
+        )
         span.set_tag(
             "uses_metrics_layer",
-            features.has("organizations:use-metrics-layer", subscription.project.organization_id),
+            features.has("organizations:use-metrics-layer", organization),
         )
         span.set_tag("dataset", subscription.snuba_query.dataset)
 
