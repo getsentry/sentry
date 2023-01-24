@@ -175,7 +175,7 @@ function TagFacetsDistributionMeter({
               >
                 <LegendDot color={colors[index]} focus={focus} />
                 <LegendText unfocus={unfocus}>{segment.name}</LegendText>
-                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
               </LegendRow>
             </Link>
           );
