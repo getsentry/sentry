@@ -102,7 +102,9 @@ def _process_suspect_commits(
                             organization_id=project.organization_id,
                         )[0].delete()
 
-                cache.set(group_cache_key, True, 604800)  # 1 week in seconds
+                cache.set(
+                    group_cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
+                )  # 1 week in seconds
         except Commit.DoesNotExist:
             logger.info(
                 "process_suspect_commits.skipped",

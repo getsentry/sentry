@@ -86,6 +86,8 @@ def process_commit_context(
             ).order_by("-date_added")
 
             if len(current_owners) >= PREFERRED_GROUP_OWNERS:
+                cache_duration = timezone.now() - current_owners[0].date_added
+                cache.set(group_cache_key, True, cache_duration.total_seconds())
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
@@ -203,7 +205,9 @@ def process_commit_context(
                     else:
                         owner.delete()
 
-            cache.set(group_cache_key, True, 604800)  # 1 week in seconds
+            cache.set(
+                group_cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
+            )  # 1 week in seconds
             logger.info(
                 "process_commit_context.success",
                 extra={
