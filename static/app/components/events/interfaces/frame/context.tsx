@@ -159,8 +159,7 @@ const Context = ({
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
   const hasCoverageData =
-    !isLoading &&
-    data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
   const lineColors: Array<Color | 'transparent'> =
     hasCoverageData && data!.codecov?.lineCoverage!
