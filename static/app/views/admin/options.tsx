@@ -320,21 +320,21 @@ const performanceOptionDefinitions: Field[] = [
   },
   {
     key: 'performance.issues.render_blocking_assets.la-rollout',
-    label: t('Problem Creation Rate'),
+    label: t('Limited Availability Detection Rate'),
     help: t(
       'Controls the rate at which performance problems are detected by the large render blocking asset detector for LA organizations.'
     ),
   },
   {
     key: 'performance.issues.render_blocking_assets.ea-rollout',
-    label: t('Problem Creation Rate'),
+    label: t('Early Adopter Detection Rate'),
     help: t(
       'Controls the rate at which performance problems are detected by the large render blocking asset detector for EA organizations.'
     ),
   },
   {
     key: 'performance.issues.render_blocking_assets.ga-rollout',
-    label: t('Problem Creation Rate'),
+    label: t('General Availability Detection Rate'),
     help: t(
       'Controls the rate at which performance problems are detected by the large render blocking asset detector for GA organizations.'
     ),
