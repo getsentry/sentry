@@ -278,7 +278,7 @@ function GroupHeader({
         )}
         {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
           <FeatureBadge
-            type="alpha"
+            type="beta"
             title={t(
               'Consecutive DB Query Performance Issues are in active development and may change'
             )}
