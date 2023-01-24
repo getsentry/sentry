@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {
   Project,
   SessionApiResponse,
@@ -17,18 +19,26 @@ type Props = {
 
 export function useHeartbeat({project}: Props) {
   const organization = useOrganization();
+  const [firstErrorReceived, setFirstErrorReceived] = useState(false);
+  const [firstTransactionReceived, setFirstTransactionReceived] = useState(false);
+  const [sessionInProgress, setSessionInProgress] = useState(false);
 
-  const {data: eventData, isLoading: eventLoading} = useQuery<Project>(
+  const {isLoading: eventLoading} = useQuery<Project>(
     [`/projects/${organization.slug}/${project?.slug}/`],
     {
       staleTime: 0,
       refetchInterval: DEFAULT_POLL_INTERVAL,
-      enabled: !!project, // Only fetch if project is available,
+      enabled: !!project && !firstErrorReceived, // Fetch only if the project is available and we have not yet received an error,
+      onSuccess: data => {
+        setFirstErrorReceived(!!data.firstEvent);
+        // When an error is received, a transaction is also received
+        setFirstTransactionReceived(!!data.firstTransactionEvent);
+      },
     }
   );
 
   // TODO(Priscila): Check if the query parameters are optimal
-  const {data: sessionData, isLoading: sessionLoading} = useQuery<SessionApiResponse>(
+  const {isLoading: sessionLoading} = useQuery<SessionApiResponse>(
     [
       `/organizations/${organization.slug}/sessions/`,
       {
@@ -44,31 +54,31 @@ export function useHeartbeat({project}: Props) {
     {
       staleTime: 0,
       refetchInterval: DEFAULT_POLL_INTERVAL,
-      enabled: !!project, // Only fetch if project is available,
+      enabled: !!project && !(sessionInProgress || firstTransactionReceived), // Fetch only if the project is available and we if a connection to Sentry was not yet established,
+      onSuccess: data => {
+        // According to the docs https://develop.sentry.dev/sdk/sessions/#terminal-session-states, a session can exist in two states: in progress or terminated.
+        // A terminated session must not receive further updates. 'exited', 'crashed' and 'abnormal' are all terminal states.
+        const [inProgressState, terminatedStates] = partition(
+          data.groups,
+          group => group.by['session.status'] === SessionStatus.HEALTHY
+        );
+
+        // TODO(Priscila): Is the exit state the same as the errored?
+        const sessionTerminated = terminatedStates.some(
+          terminateState => terminateState.totals['sum(session)'] > 0
+        );
+
+        setSessionInProgress(
+          !sessionTerminated && inProgressState[0]?.totals['sum(session)'] > 0
+        );
+      },
     }
   );
 
-  // According to the docs https://develop.sentry.dev/sdk/sessions/#terminal-session-states, asession can exist in two states: in progress or terminated.
-  // A terminated session must not receive further updates. 'exited', 'crashed' and 'abnormal' are all terminal states.
-  const [inProgressState, terminatedStates] = sessionData
-    ? partition(
-        sessionData.groups,
-        group => group.by['session.status'] === SessionStatus.HEALTHY
-      )
-    : [[], []];
-
-  // TODO(Priscila): Is the exit state the same as the errored?
-  const sessionTerminated = terminatedStates.some(
-    terminateState => terminateState.totals['sum(session)'] > 0
-  );
-
-  const sessionInProgress =
-    !sessionTerminated && inProgressState[0]?.totals['sum(session)'] > 0;
-
   return {
     sessionInProgress,
-    firstErrorReceived: !!eventData?.firstEvent,
-    firstTransactionReceived: !!eventData?.firstTransactionEvent,
+    firstErrorReceived,
+    firstTransactionReceived,
     eventLoading,
     sessionLoading,
   };
