@@ -25,6 +25,18 @@ def create_asset_span(
     return create_span("resource.script", desc=desc, duration=duration, data=data)
 
 
+def create_compressed_asset_span():
+    return create_asset_span(
+        desc="https://someothersite.example.com/app.js",
+        duration=1.0,
+        data={
+            "Transfer Size": 5,
+            "Encoded Body Size": 4,
+            "Decoded Body Size": 5,
+        },
+    )
+
+
 @region_silo_test
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
@@ -50,7 +62,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 1_000_000,
                         "Decoded Body Size": 1_000_000,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -81,7 +94,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 1_000_000,
                         "Decoded Body Size": 1_000_000,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -110,7 +124,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 1_000_000,
                         "Decoded Body Size": 1_000_000,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -128,7 +143,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 99_999,
                         "Decoded Body Size": 99_999,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -146,7 +162,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 101_000,
                         "Decoded Body Size": 100_999,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
@@ -164,7 +181,8 @@ class UncompressedAssetsDetectorTest(TestCase):
                         "Encoded Body Size": 101_000,
                         "Decoded Body Size": 101_000,
                     },
-                )
+                ),
+                create_compressed_asset_span(),
             ],
         }
 
