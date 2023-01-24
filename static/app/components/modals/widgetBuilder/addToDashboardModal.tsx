@@ -28,15 +28,15 @@ import {
   DisplayType,
   MAX_WIDGETS,
   Widget,
-} from 'sentry/views/dashboardsV2/types';
+} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
-} from 'sentry/views/dashboardsV2/utils';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+} from 'sentry/views/dashboards/utils';
+import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
+import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 

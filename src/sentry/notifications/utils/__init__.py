@@ -48,7 +48,6 @@ from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.committers import get_serialized_event_file_committers
-from sentry.utils.http import absolute_uri
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     PerformanceProblem,
@@ -193,10 +192,11 @@ def get_group_settings_link(
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
     # Explicitly typing to satisfy mypy.
-    integration_link: str = absolute_uri(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+    return str(
+        organization.absolute_url(
+            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+        )
     )
-    return integration_link
 
 
 @dataclass
