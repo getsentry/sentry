@@ -92,7 +92,6 @@ class EventStream(Service):
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
         else:
             cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
-
             post_process_group.apply_async(
                 kwargs={
                     "is_new": is_new,
@@ -105,6 +104,7 @@ class EventStream(Service):
                 },
                 queue=queue,
             )
+            logger.info("post_process.task_triggered", extra={"event": event_id, "group": group_id})
 
     def _get_queue_for_post_process(self, event: Event) -> str:
         event_type = self._get_event_type(event)

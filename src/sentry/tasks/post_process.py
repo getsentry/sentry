@@ -422,7 +422,25 @@ def run_post_process_job(job: PostProcessJob):
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
+            logger.info(
+                "post_process.pipeline_step",
+                extra={
+                    "step": f"{pipeline_step.__name__}",
+                    "event": group_event.id,
+                    "group": group_event.group.id,
+                    "status": "started",
+                },
+            )
         except Exception:
+            logger.info(
+                "post_process.pipeline_step",
+                extra={
+                    "step": f"{pipeline_step.__name__}",
+                    "event": group_event.id,
+                    "group": group_event.group.id,
+                    "status": "exception",
+                },
+            )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": group_event, "group": group_event.group},
