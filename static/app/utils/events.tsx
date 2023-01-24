@@ -319,7 +319,6 @@ export function getAnalyicsDataForGroup(group: Group | null) {
     error_count: Number(group?.count || -1),
     group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
     num_comments: group ? group.numComments : -1,
-    project_platform: group?.project.platform,
     has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
     has_owner: group?.owners ? group?.owners.length > 0 : false,
     integration_assignment_source: group ? getAssignmentIntegration(group) : '',

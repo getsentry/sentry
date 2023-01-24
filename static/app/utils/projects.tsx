@@ -543,5 +543,6 @@ export function getAnalyicsDataForProject(project: Project) {
     project_has_minified_stack_trace: project.hasMinifiedStackTrace,
     project_age: getDaysSinceDate(project.dateCreated),
     project_id: parseInt(project.id, 10),
+    project_platform: project.platform,
   };
 }
