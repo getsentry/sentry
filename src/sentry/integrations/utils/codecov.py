@@ -1,7 +1,6 @@
 from typing import Optional, Sequence, Tuple
 
 import requests
-from sentry_sdk import configure_scope
 
 from sentry import options
 
@@ -21,14 +20,12 @@ def get_codecov_data(
         url = CODECOV_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
-        with configure_scope() as scope:
-            scope.set_tag("codecov.attempted_url", url)
-            params = {"branch": branch, "path": path}
-            response = requests.get(
-                url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
-            )
-            response.raise_for_status()
-            line_coverage = response.json()["files"][0]["line_coverage"]
-            codecov_url = response.json()["commit_file_url"]
+        params = {"branch": branch, "path": path}
+        response = requests.get(
+            url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
+        )
+        response.raise_for_status()
+        line_coverage = response.json()["files"][0]["line_coverage"]
+        codecov_url = response.json()["commit_file_url"]
 
     return line_coverage, codecov_url
