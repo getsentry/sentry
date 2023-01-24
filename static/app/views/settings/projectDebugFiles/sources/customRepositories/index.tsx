@@ -15,7 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';

@@ -6,7 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/projects';
 import Link from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';

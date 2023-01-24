@@ -158,14 +158,19 @@ export enum CodecovStatusCode {
   NO_COVERAGE_DATA = 400,
 }
 
+export interface CodecovResponse {
+  statusCode: CodecovStatusCode;
+  attemptedUrl?: string;
+  codecovUrl?: string;
+  lineCoverage?: LineCoverage[];
+}
+
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
-  codecovStatusCode?: CodecovStatusCode;
-  codecovUrl?: string;
+  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
-  lineCoverage?: LineCoverage[];
   sourceUrl?: string;
 };
 
