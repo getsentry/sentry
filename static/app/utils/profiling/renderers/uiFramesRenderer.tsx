@@ -3,20 +3,22 @@ import {mat3, vec2} from 'gl-matrix';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 
 import {
+  createAndBindBuffer,
   createProgram,
   createShader,
+  getAttribute,
   getContext,
+  getUniform,
   makeProjectionMatrix,
+  pointToAndEnableVertexAttribute,
   Rect,
   resizeCanvasToDisplaySize,
 } from '../gl/utils';
 import {UIFrameNode, UIFrames} from '../uiFrames';
 
-import {fragment, vertex} from './shaders';
+import {uiFramesFragment, uiFramesVertext} from './shaders';
 
-// These are both mutable and are used to avoid unnecessary allocations during rendering.
-const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
-const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
+const VERTICES_PER_FRAME = 6;
 
 class UIFramesRenderer {
   canvas: HTMLCanvasElement | null;
@@ -29,32 +31,22 @@ class UIFramesRenderer {
 
   // Vertex and color buffer
   positions: Float32Array = new Float32Array();
-  bounds: Float32Array = new Float32Array();
-  colors: Float32Array = new Float32Array();
-  searchResults: Float32Array = new Float32Array();
+  frame_types: Float32Array = new Float32Array();
 
   colorMap: Map<string | number, number[]> = new Map();
 
   attributes: {
-    a_bounds: number | null;
-    a_color: number | null;
-    a_is_search_result: number | null;
+    a_frame_type: number | null;
     a_position: number | null;
   } = {
+    a_frame_type: null,
     a_position: null,
-    a_color: null,
-    a_bounds: null,
-    a_is_search_result: null,
   };
 
   uniforms: {
-    u_border_width: WebGLUniformLocation | null;
-    u_draw_border: WebGLUniformLocation | null;
     u_model: WebGLUniformLocation | null;
     u_projection: WebGLUniformLocation | null;
   } = {
-    u_border_width: null,
-    u_draw_border: null,
     u_model: null,
     u_projection: null,
   };
@@ -74,29 +66,6 @@ class UIFramesRenderer {
     this.theme = theme;
     this.options = options;
 
-    this.colors = new Float32Array(uiFrames.frames.length * 6 * 4);
-
-    for (let index = 0; index < uiFrames.frames.length; index++) {
-      const frame = uiFrames.frames[index];
-
-      if (!frame) {
-        continue;
-      }
-
-      const colorWithAlpha =
-        uiFrames.frames[index].type === 'frozen'
-          ? [0.9, 0.0, 0.2, 0.7]
-          : [0.95, 0.7, 0.0, 0.6];
-
-      for (let i = 0; i < 6; i++) {
-        const offset = index * 6 * 4 + i * 4;
-        this.colors[offset] = colorWithAlpha[0];
-        this.colors[offset + 1] = colorWithAlpha[1];
-        this.colors[offset + 2] = colorWithAlpha[2];
-        this.colors[offset + 3] = colorWithAlpha[3];
-      }
-    }
-
     this.init();
   }
 
@@ -108,14 +77,12 @@ class UIFramesRenderer {
 
   initVertices(): void {
     const POSITIONS = 2;
-    const BOUNDS = 4;
     const VERTICES = 6;
 
     const FRAME_COUNT = this.uiFrames.frames.length;
 
-    this.bounds = new Float32Array(VERTICES * BOUNDS * FRAME_COUNT);
     this.positions = new Float32Array(VERTICES * POSITIONS * FRAME_COUNT);
-    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES);
+    this.frame_types = new Float32Array(FRAME_COUNT * VERTICES_PER_FRAME);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
       const frame = this.uiFrames.frames[index];
@@ -143,27 +110,14 @@ class UIFramesRenderer {
       this.positions[positionOffset + 10] = x2;
       this.positions[positionOffset + 11] = y2;
 
-      // @TODO check if we can pack bounds across vertex calls,
-      // we are allocating 6x the amount of memory here
-      const boundsOffset = index * VERTICES * BOUNDS;
-
-      for (let i = 0; i < VERTICES; i++) {
-        const offset = boundsOffset + i * BOUNDS;
-
-        this.bounds[offset] = x1;
-        this.bounds[offset + 1] = y1;
-        this.bounds[offset + 2] = x2;
-        this.bounds[offset + 3] = y2;
-      }
-
-      for (let i = 0; i < VERTICES; i++) {
-        const offset = boundsOffset + i * BOUNDS;
-
-        this.bounds[offset] = x1;
-        this.bounds[offset + 1] = y1;
-        this.bounds[offset + 2] = x2;
-        this.bounds[offset + 3] = y2;
-      }
+      const type = frame.type === 'frozen' ? 1 : 0;
+      const typeOffset = index * 6;
+      this.frame_types[typeOffset] = type;
+      this.frame_types[typeOffset + 1] = type;
+      this.frame_types[typeOffset + 2] = type;
+      this.frame_types[typeOffset + 3] = type;
+      this.frame_types[typeOffset + 4] = type;
+      this.frame_types[typeOffset + 5] = type;
     }
   }
 
@@ -194,195 +148,50 @@ class UIFramesRenderer {
     }
 
     this.uniforms = {
-      u_border_width: null,
-      u_draw_border: null,
       u_model: null,
       u_projection: null,
     };
     this.attributes = {
-      a_bounds: null,
-      a_color: null,
-      a_is_search_result: null,
       a_position: null,
+      a_frame_type: null,
     };
 
-    const vertexShader = createShader(this.gl, this.gl.VERTEX_SHADER, vertex());
-
+    const vertexShader = createShader(this.gl, this.gl.VERTEX_SHADER, uiFramesVertext());
     const fragmentShader = createShader(
       this.gl,
       this.gl.FRAGMENT_SHADER,
-      fragment(this.theme)
+      uiFramesFragment(this.theme)
     );
 
     // create program
     this.program = createProgram(this.gl, vertexShader, fragmentShader);
 
-    const uProjectionMatrix = this.gl.getUniformLocation(this.program, 'u_projection');
-    const uModelMatrix = this.gl.getUniformLocation(this.program, 'u_model');
-    const uBorderWidth = this.gl.getUniformLocation(this.program, 'u_border_width');
-    const uDrawBorder = this.gl.getUniformLocation(this.program, 'u_draw_border');
-
-    if (!uProjectionMatrix) {
-      throw new Error('Could not locate u_projection in shader');
-    }
-    if (!uModelMatrix) {
-      throw new Error('Could not locate u_model in shader');
-    }
-    if (!uBorderWidth) {
-      throw new Error('Could not locate u_border_width in shader');
-    }
-    if (!uDrawBorder) {
-      throw new Error('Could not locate u_draw_border in shader');
+    // initialize uniforms
+    for (const uniform in this.uniforms) {
+      this.uniforms[uniform] = getUniform(this.gl, this.program, uniform);
     }
 
-    this.uniforms.u_projection = uProjectionMatrix;
-    this.uniforms.u_model = uModelMatrix;
-    this.uniforms.u_border_width = uBorderWidth;
-    this.uniforms.u_draw_border = uDrawBorder;
+    // initialize and upload frame type
+    this.attributes.a_frame_type = getAttribute(this.gl, this.program, 'a_frame_type');
+    createAndBindBuffer(this.gl, this.frame_types, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_frame_type, {
+      size: 1,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
 
-    {
-      const aColorAttributeLocation = this.gl.getAttribLocation(this.program, 'a_color');
-
-      if (aColorAttributeLocation === -1) {
-        throw new Error('Could not locate a_color in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_color = aColorAttributeLocation;
-
-      // Init color buffer
-      const colorBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = colorBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.colors, this.gl.STATIC_DRAW);
-
-      const size = 4;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(
-        aColorAttributeLocation,
-        size,
-        type,
-        normalize,
-        stride,
-        offset
-      );
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aColorAttributeLocation);
-    }
-
-    {
-      const aIsSearchResult = this.gl.getAttribLocation(
-        this.program,
-        'a_is_search_result'
-      );
-
-      if (aIsSearchResult === -1) {
-        throw new Error('Could not locate a_is_search_result in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_is_search_result = aIsSearchResult;
-
-      // Init color buffer
-      const searchResultsBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = searchResultsBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, searchResultsBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.searchResults, this.gl.DYNAMIC_DRAW);
-
-      const size = 1;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(aIsSearchResult, size, type, normalize, stride, offset);
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aIsSearchResult);
-    }
-
-    {
-      // look up where the vertex data needs to go.
-      const aPositionAttributeLocation = this.gl.getAttribLocation(
-        this.program,
-        'a_position'
-      );
-
-      if (aPositionAttributeLocation === -1) {
-        throw new Error('Could not locate a_color in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_position = aPositionAttributeLocation;
-
-      // Init position buffer
-      const positionBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.positions, this.gl.STATIC_DRAW);
-
-      const size = 2;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(
-        aPositionAttributeLocation,
-        size,
-        type,
-        normalize,
-        stride,
-        offset
-      );
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aPositionAttributeLocation);
-    }
-
-    {
-      // look up where the bounds vertices needs to go.
-      const aBoundsAttributeLocation = this.gl.getAttribLocation(
-        this.program,
-        'a_bounds'
-      );
-
-      if (aBoundsAttributeLocation === -1) {
-        throw new Error('Could not locate a_bounds in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_bounds = aBoundsAttributeLocation;
-
-      // Init bounds buffer
-      const boundsBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = boundsBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, boundsBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bounds, this.gl.STATIC_DRAW);
-
-      const size = 4;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(
-        aBoundsAttributeLocation,
-        size,
-        type,
-        normalize,
-        stride,
-        offset
-      );
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aBoundsAttributeLocation);
-    }
+    // initialize and upload positions buffer data
+    this.attributes.a_position = getAttribute(this.gl, this.program, 'a_position');
+    createAndBindBuffer(this.gl, this.positions, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_position, {
+      size: 2,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
 
     // Use shader program
     this.gl.useProgram(this.program);
@@ -440,22 +249,11 @@ class UIFramesRenderer {
     // Tell webgl to convert clip space to px
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
-    this.gl.uniform1i(this.uniforms.u_draw_border, 1);
-
-    const physicalToConfig = mat3.invert(
-      CONFIG_TO_PHYSICAL_SPACE,
-      configViewToPhysicalSpace
+    this.gl.drawArrays(
+      this.gl.TRIANGLES,
+      0,
+      this.uiFrames.frames.length * VERTICES_PER_FRAME
     );
-    const configSpacePixel = PHYSICAL_SPACE_PX.transformRect(physicalToConfig);
-
-    this.gl.uniform2f(
-      this.uniforms.u_border_width,
-      configSpacePixel.width,
-      configSpacePixel.height
-    );
-
-    const VERTICES = 6;
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.uiFrames.frames.length * VERTICES);
   }
 }
 

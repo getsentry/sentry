@@ -65,6 +65,8 @@ export interface FlamegraphTheme {
       colorBuffer: Array<number>;
       colorMap: Map<Frame['key'], ColorChannels>;
     };
+    UI_FRAME_COLOR_FROZEN: string;
+    UI_FRAME_COLOR_SLOW: string;
   };
   FONTS: {
     FONT: string;
@@ -173,6 +175,10 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
+    // Yellow 200
+    UI_FRAME_COLOR_SLOW: 'vec4(0.96, 0.69, 0.0, 0.55)',
+    // Red 200 but stronger opacity
+    UI_FRAME_COLOR_FROZEN: 'vec4(0.96, 0.329, 0.349, 0.8)',
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
     SEARCH_RESULT_SPAN_COLOR: '#fdb359',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
@@ -205,6 +211,10 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(255,255,255, 0.2)',
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(255,255,255,0.1)',
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
+    // Yellow 200
+    UI_FRAME_COLOR_SLOW: 'vec4(0.96, 0.69, 0.0, 0.6)',
+    // Red 200 but stronger opacity
+    UI_FRAME_COLOR_FROZEN: 'vec4(0.96, 0.329, 0.349, 0.5)',
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
     SPAN_FRAME_LINE_PATTERN: '#594b66',
     SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',

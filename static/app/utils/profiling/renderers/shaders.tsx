@@ -66,3 +66,36 @@ void main() {
   }
 }
 `;
+
+export const uiFramesVertext = () => `
+  attribute vec2 a_position;
+  attribute float a_frame_type;
+
+  uniform mat3 u_model;
+  uniform mat3 u_projection;
+
+  varying float v_frame_type;
+
+  void main() {
+    vec2 scaled = (u_model * vec3(a_position.xy, 1)).xy;
+    vec2 pos = (u_projection * vec3(scaled.xy, 1)).xy;
+
+    gl_Position = vec4(pos, 0.0, 1.0);
+
+    v_frame_type = a_frame_type;
+  }
+`;
+
+export const uiFramesFragment = (theme: FlamegraphTheme) => `
+precision mediump float;
+
+varying float v_frame_type;
+
+void main() {
+  if(v_frame_type == 1.0) {
+    gl_FragColor = ${theme.COLORS.UI_FRAME_COLOR_FROZEN};
+  } else {
+    gl_FragColor = ${theme.COLORS.UI_FRAME_COLOR_SLOW};
+  }
+}
+`;

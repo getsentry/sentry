@@ -29,7 +29,7 @@ export function createShader(
   }
 
   gl.deleteShader(shader);
-  throw new Error('Failed to compile shader');
+  throw new Error(`Failed to compile ${type} shader`);
 }
 
 export function createProgram(
