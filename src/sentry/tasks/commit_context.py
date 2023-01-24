@@ -192,8 +192,13 @@ def process_commit_context(
                 logger.info(
                     "process_commit_context.no_commit_in_sentry",
                     extra={
-                        **basic_logging_details,
-                        "reason": "commit_sha_does_not_exist_in_sentry",
+                        {
+                            **basic_logging_details,
+                            "sha": commit_context.get("commitId"),
+                            "repository_id": selected_code_mapping.repository_id,
+                            "code_mapping_id": selected_code_mapping.id,
+                            "reason": "commit_sha_does_not_exist_in_sentry",
+                        }
                     },
                 )
                 return
