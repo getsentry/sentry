@@ -1,13 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DropdownMenuControl from './dropdownMenuControl';
+import DropdownMenu from 'sentry/components/dropdownMenu';
 
 describe('DropdownMenu', function () {
   it('renders a basic menu', function () {
     const onAction = jest.fn();
 
     render(
-      <DropdownMenuControl
+      <DropdownMenu
         items={[
           {
             key: 'item1',
@@ -55,7 +55,7 @@ describe('DropdownMenu', function () {
     const onAction = jest.fn();
 
     render(
-      <DropdownMenuControl
+      <DropdownMenu
         items={[
           {
             key: 'item1',
@@ -85,7 +85,7 @@ describe('DropdownMenu', function () {
     const onAction = jest.fn();
 
     render(
-      <DropdownMenuControl
+      <DropdownMenu
         items={[
           {
             key: 'item1',

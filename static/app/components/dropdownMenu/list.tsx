@@ -10,12 +10,13 @@ import {TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
-import MenuControl from 'sentry/components/dropdownMenuControl';
-import MenuItem, {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import MenuSection from 'sentry/components/dropdownMenuSection';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import useOverlay from 'sentry/utils/useOverlay';
+
+import DropdownMenu from './index';
+import DropdownMenuItem, {MenuItemProps} from './item';
+import DropdownMenuSection from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
 
@@ -34,7 +35,7 @@ interface DropdownMenuContextValue {
 
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
-export interface DropdownMenuProps
+export interface DropdownMenuListProps
   extends Omit<
     AriaMenuOptions<MenuItemProps>,
     | 'selectionMode'
@@ -63,7 +64,7 @@ export interface DropdownMenuProps
   size?: MenuItemProps['size'];
 }
 
-function DropdownMenu({
+function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   minWidth,
@@ -72,7 +73,7 @@ function DropdownMenu({
   overlayState,
   overlayPositionProps,
   ...props
-}: DropdownMenuProps) {
+}: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
@@ -135,7 +136,7 @@ function DropdownMenu({
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>, isLastNode: boolean) => {
     return (
-      <MenuItem
+      <DropdownMenuItem
         node={node}
         state={state}
         onClose={onClose}
@@ -152,7 +153,7 @@ function DropdownMenu({
     }
 
     const trigger = triggerProps => (
-      <MenuItem
+      <DropdownMenuItem
         renderAs="div"
         node={node}
         state={state}
@@ -171,7 +172,7 @@ function DropdownMenu({
     );
 
     return (
-      <MenuControl
+      <DropdownMenu
         isOpen={state.selectionManager.isSelected(node.key)}
         items={node.value.children}
         trigger={trigger}
@@ -202,7 +203,9 @@ function DropdownMenu({
 
       if (node.type === 'section') {
         itemToRender = (
-          <MenuSection node={node}>{renderCollection([...node.childNodes])}</MenuSection>
+          <DropdownMenuSection node={node}>
+            {renderCollection([...node.childNodes])}
+          </DropdownMenuSection>
         );
       } else {
         itemToRender = node.value.isSubmenu
@@ -232,7 +235,7 @@ function DropdownMenu({
         <DropdownMenuContext.Provider value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
-            <MenuWrap
+            <DropdownMenuListWrap
               ref={menuRef}
               hasTitle={!!menuTitle}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
@@ -242,7 +245,7 @@ function DropdownMenu({
               }}
             >
               {renderCollection(stateCollection)}
-            </MenuWrap>
+            </DropdownMenuListWrap>
           </StyledOverlay>
         </DropdownMenuContext.Provider>
       </PositionWrapper>
@@ -250,14 +253,14 @@ function DropdownMenu({
   );
 }
 
-export default DropdownMenu;
+export default DropdownMenuList;
 
 const StyledOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
 `;
 
-const MenuWrap = styled('ul')<{hasTitle: boolean}>`
+const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
