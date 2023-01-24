@@ -88,7 +88,20 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 }
             )
 
-        release = Release.objects.get(project_id=project.id, version=release_version)
+        try:
+            release = Release.objects.get(
+                organization=project.organization, version=release_version
+            )
+        except Release.DoesNotExist:
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.MISSING_RELEASE
+                        ).get_api_context()
+                    ],
+                }
+            )
         user_agent = release.user_agent
 
         if not user_agent:

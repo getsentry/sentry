@@ -81,8 +81,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             },
             project_id=self.project.id,
         )
-        release = Release.objects.get(version=event.release)
-        release.update(user_agent="test_user_agent", project_id=self.project.id)
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
 
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
@@ -123,8 +123,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
-        release = Release.objects.get(version=event.release)
-        release.update(project_id=self.project.id)
+        Release.objects.get(organization=self.organization, version=event.release)
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -143,8 +142,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
-        release = Release.objects.get(version=event.release)
-        release.update(user_agent="test_user_agent", project_id=self.project.id)
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -194,8 +193,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             },
             project_id=self.project.id,
         )
-        release = Release.objects.get(version=event.release)
-        release.update(user_agent="test_user_agent", project_id=self.project.id)
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
 
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
