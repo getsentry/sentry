@@ -74,12 +74,12 @@ export const GrowLink = styled(Link)`
 export const WidgetEmptyStateWarning = () => {
   return (
     <StyledEmptyStateWarning>
-      <PrimaryNote>{t('No results found')}</PrimaryNote>
-      <Note>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
         {t(
           'Transactions may not be listed due to the filters above or a low sampling rate'
         )}
-      </Note>
+      </SecondaryMessage>
     </StyledEmptyStateWarning>
   );
 };
@@ -119,12 +119,16 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   flex-direction: column;
 `;
 
-const PrimaryNote = styled('p')`
+const PrimaryMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  color: ${p => p.theme.gray300};
+  font-weight: 600;
+  margin: 0 auto ${space(1)};
 `;
 
-const Note = styled('p')`
+const SecondaryMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
   max-width: 300px;
 `;
 
