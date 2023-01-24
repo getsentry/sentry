@@ -461,6 +461,11 @@ def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
     return organization_id
 
 
+def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> List[int]:
+    ids = [set(get_related_project_ids(k, filter_keys[k])) for k in filter_keys]
+    return list(set.union(*ids))
+
+
 def get_query_params_to_update_for_projects(query_params, with_org=False):
     """
     Get the project ID and query params that need to be updated for project
@@ -472,11 +477,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
     elif query_params.filter_keys:
         # Otherwise infer the project_ids from any related models
         with timer("get_related_project_ids"):
-            ids = [
-                set(get_related_project_ids(k, query_params.filter_keys[k]))
-                for k in query_params.filter_keys
-            ]
-            project_ids = list(set.union(*ids))
+            project_ids = infer_project_ids_from_related_models(query_params.filter_keys)
     elif query_params.conditions:
         project_ids = []
         for cond in query_params.conditions:
