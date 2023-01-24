@@ -19,6 +19,7 @@ def get_codecov_data(
         owner_username, repo_name = repo.split("/")
         if service == "github":
             service = "gh"
+        path = path.lstrip("/")
         url = CODECOV_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
