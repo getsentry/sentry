@@ -140,16 +140,14 @@ export default function TagFacets({
           <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
           <Content>
             <Fragment>
-              <TopDistributionWrapper data-test-id="top-distribution-wrapper">
-                <TagFacetsDistributionMeterWrapper
-                  groupId={groupId}
-                  organization={organization}
-                  project={project}
-                  tagKeys={topTagKeys}
-                  tagsData={tagsData}
-                  expandFirstTag
-                />
-              </TopDistributionWrapper>
+              <TagFacetsDistributionMeterWrapper
+                groupId={groupId}
+                organization={organization}
+                project={project}
+                tagKeys={topTagKeys}
+                tagsData={tagsData}
+                expandFirstTag
+              />
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
@@ -246,8 +244,4 @@ const ShowAllButtonContainer = styled('div')`
 
 const Content = styled('div')`
   margin-top: ${space(2)};
-`;
-
-const TopDistributionWrapper = styled('div')`
-  margin-bottom: 60px;
 `;
