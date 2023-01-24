@@ -1,8 +1,8 @@
 import {useState} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import {EntryType, Event} from 'sentry/types/event';
@@ -71,12 +71,7 @@ export function Csp({data, event}: Props) {
   );
 
   return (
-    <EventDataSection
-      type="csp"
-      title={<h3>{t('CSP Report')}</h3>}
-      actions={actions}
-      wrapTitle={false}
-    >
+    <EventDataSection type="csp" title={t('CSP Report')} actions={actions}>
       {getView(view, cleanData, meta)}
     </EventDataSection>
   );

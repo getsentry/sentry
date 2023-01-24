@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -28,8 +28,8 @@ import SegmentExplorerQuery, {
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {
   platformAndConditionsToPerformanceType,

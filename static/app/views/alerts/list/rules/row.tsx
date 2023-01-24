@@ -9,8 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
@@ -18,7 +17,7 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -388,7 +387,7 @@ function RuleListRow({
       <ActionsRow>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
-            <DropdownMenuControl
+            <DropdownMenu
               items={actions}
               position="bottom-end"
               triggerProps={{

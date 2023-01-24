@@ -8,7 +8,7 @@ import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -23,7 +23,7 @@ type Props = {
   location: Location;
   onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
   orgId: string;
-  projectId: string;
+  projectSlug: string;
 };
 
 type State = {
@@ -31,7 +31,7 @@ type State = {
   expanded: boolean;
 };
 
-class EventAttachments extends Component<Props, State> {
+export class EventAttachments extends Component<Props, State> {
   state: State = {
     expanded: false,
     attachmentPreviews: {},
@@ -74,7 +74,7 @@ class EventAttachments extends Component<Props, State> {
       <AttachmentPreviewWrapper>
         <AttachmentComponent
           orgId={this.props.orgId}
-          projectId={this.props.projectId}
+          projectSlug={this.props.projectSlug}
           eventId={this.props.event.id}
           attachment={attachment}
         />
@@ -92,7 +92,7 @@ class EventAttachments extends Component<Props, State> {
   }
 
   render() {
-    const {event, projectId, orgId, location, attachments, onDeleteAttachment} =
+    const {event, projectSlug, orgId, location, attachments, onDeleteAttachment} =
       this.props;
     const crashFileStripped = event.metadata.stripped_crash;
 
@@ -111,7 +111,7 @@ class EventAttachments extends Component<Props, State> {
         {crashFileStripped && (
           <EventAttachmentsCrashReportsNotice
             orgSlug={orgId}
-            projectSlug={projectId}
+            projectSlug={projectSlug}
             groupId={event.groupID!}
             location={location}
           />
@@ -132,7 +132,7 @@ class EventAttachments extends Component<Props, State> {
                   <FileSize bytes={attachment.size} />
                 </Size>
                 <AttachmentUrl
-                  projectId={projectId}
+                  projectSlug={projectSlug}
                   eventId={event.id}
                   attachment={attachment}
                 >

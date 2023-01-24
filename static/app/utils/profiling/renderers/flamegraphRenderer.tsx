@@ -5,10 +5,14 @@ import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/f
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {
+  createAndBindBuffer,
   createProgram,
   createShader,
+  getAttribute,
   getContext,
+  getUniform,
   makeProjectionMatrix,
+  pointToAndEnableVertexAttribute,
   Rect,
   resizeCanvasToDisplaySize,
 } from '../gl/utils';
@@ -18,6 +22,8 @@ import {fragment, vertex} from './shaders';
 // These are both mutable and are used to avoid unnecessary allocations during rendering.
 const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
 const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
+const VERTICES_PER_FRAME = 6;
+const COLOR_COMPONENTS = 4;
 
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
@@ -83,12 +89,8 @@ class FlamegraphRenderer {
   }
 
   init(): void {
-    const VERTICES = 6;
-    const COLOR_COMPONENTS = 4;
-
-    this.colors = new Float32Array(VERTICES * COLOR_COMPONENTS);
-    this.frames = [...this.flamegraph.frames];
-    this.roots = [...this.flamegraph.root.children];
+    this.frames = this.flamegraph.frames;
+    this.roots = this.flamegraph.root.children;
 
     // Generate colors for the flamegraph
     const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
@@ -98,6 +100,14 @@ class FlamegraphRenderer {
     );
 
     this.colorMap = colorMap;
+
+    if (
+      VERTICES_PER_FRAME * COLOR_COMPONENTS * this.frames.length !==
+      colorBuffer.length
+    ) {
+      throw new Error('Color buffer length does not match the number of vertices');
+    }
+
     this.colors = new Float32Array(colorBuffer);
 
     this.initCanvasContext();
@@ -108,13 +118,12 @@ class FlamegraphRenderer {
   initVertices(): void {
     const POSITIONS = 2;
     const BOUNDS = 4;
-    const VERTICES = 6;
 
     const FRAME_COUNT = this.frames.length;
 
-    this.bounds = new Float32Array(VERTICES * BOUNDS * FRAME_COUNT);
-    this.positions = new Float32Array(VERTICES * POSITIONS * FRAME_COUNT);
-    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES);
+    this.bounds = new Float32Array(VERTICES_PER_FRAME * BOUNDS * FRAME_COUNT);
+    this.positions = new Float32Array(VERTICES_PER_FRAME * POSITIONS * FRAME_COUNT);
+    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES_PER_FRAME);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
       const frame = this.frames[index];
@@ -143,9 +152,9 @@ class FlamegraphRenderer {
 
       // @TODO check if we can pack bounds across vertex calls,
       // we are allocating 6x the amount of memory here
-      const boundsOffset = index * VERTICES * BOUNDS;
+      const boundsOffset = index * VERTICES_PER_FRAME * BOUNDS;
 
-      for (let i = 0; i < VERTICES; i++) {
+      for (let i = 0; i < VERTICES_PER_FRAME; i++) {
         const offset = boundsOffset + i * BOUNDS;
 
         this.bounds[offset] = x1;
@@ -206,172 +215,58 @@ class FlamegraphRenderer {
     // create program
     this.program = createProgram(this.gl, vertexShader, fragmentShader);
 
-    const uProjectionMatrix = this.gl.getUniformLocation(this.program, 'u_projection');
-    const uModelMatrix = this.gl.getUniformLocation(this.program, 'u_model');
-    const uBorderWidth = this.gl.getUniformLocation(this.program, 'u_border_width');
-    const uDrawBorder = this.gl.getUniformLocation(this.program, 'u_draw_border');
-
-    if (!uProjectionMatrix) {
-      throw new Error('Could not locate u_projection in shader');
-    }
-    if (!uModelMatrix) {
-      throw new Error('Could not locate u_model in shader');
-    }
-    if (!uBorderWidth) {
-      throw new Error('Could not locate u_border_width in shader');
-    }
-    if (!uDrawBorder) {
-      throw new Error('Could not locate u_draw_border in shader');
+    // initialize uniforms
+    for (const uniform in this.uniforms) {
+      this.uniforms[uniform] = getUniform(this.gl, this.program, uniform);
     }
 
-    this.uniforms.u_projection = uProjectionMatrix;
-    this.uniforms.u_model = uModelMatrix;
-    this.uniforms.u_border_width = uBorderWidth;
-    this.uniforms.u_draw_border = uDrawBorder;
+    // initialize and upload search results buffer data
+    this.attributes.a_is_search_result = getAttribute(
+      this.gl,
+      this.program,
+      'a_is_search_result'
+    );
+    createAndBindBuffer(this.gl, this.searchResults, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_is_search_result, {
+      size: 1,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
 
-    {
-      const aIsSearchResult = this.gl.getAttribLocation(
-        this.program,
-        'a_is_search_result'
-      );
+    // initialize and upload color buffer data
+    this.attributes.a_color = getAttribute(this.gl, this.program, 'a_color');
+    createAndBindBuffer(this.gl, this.colors, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_color, {
+      size: 4,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
 
-      if (aIsSearchResult === -1) {
-        throw new Error('Could not locate a_is_search_result in shader');
-      }
+    // initialize and upload positions buffer data
+    this.attributes.a_position = getAttribute(this.gl, this.program, 'a_position');
+    createAndBindBuffer(this.gl, this.positions, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_position, {
+      size: 2,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
 
-      // attributes get data from buffers
-      this.attributes.a_is_search_result = aIsSearchResult;
-
-      // Init color buffer
-      const searchResultsBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = searchResultsBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, searchResultsBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.searchResults, this.gl.DYNAMIC_DRAW);
-
-      const size = 1;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(aIsSearchResult, size, type, normalize, stride, offset);
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aIsSearchResult);
-    }
-
-    {
-      const aColorAttributeLocation = this.gl.getAttribLocation(this.program, 'a_color');
-
-      if (aColorAttributeLocation === -1) {
-        throw new Error('Could not locate a_color in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_color = aColorAttributeLocation;
-
-      // Init color buffer
-      const colorBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = colorBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.colors, this.gl.STATIC_DRAW);
-
-      const size = 4;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(
-        aColorAttributeLocation,
-        size,
-        type,
-        normalize,
-        stride,
-        offset
-      );
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aColorAttributeLocation);
-    }
-
-    {
-      // look up where the vertex data needs to go.
-      const aPositionAttributeLocation = this.gl.getAttribLocation(
-        this.program,
-        'a_position'
-      );
-
-      if (aPositionAttributeLocation === -1) {
-        throw new Error('Could not locate a_color in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_position = aPositionAttributeLocation;
-
-      // Init position buffer
-      const positionBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.positions, this.gl.STATIC_DRAW);
-
-      const size = 2;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(
-        aPositionAttributeLocation,
-        size,
-        type,
-        normalize,
-        stride,
-        offset
-      );
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aPositionAttributeLocation);
-    }
-
-    {
-      // look up where the bounds vertices needs to go.
-      const aBoundsAttributeLocation = this.gl.getAttribLocation(
-        this.program,
-        'a_bounds'
-      );
-
-      if (aBoundsAttributeLocation === -1) {
-        throw new Error('Could not locate a_color in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_bounds = aBoundsAttributeLocation;
-
-      // Init bounds buffer
-      const boundsBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = boundsBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, boundsBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bounds, this.gl.STATIC_DRAW);
-
-      const size = 4;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(
-        aBoundsAttributeLocation,
-        size,
-        type,
-        normalize,
-        stride,
-        offset
-      );
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aBoundsAttributeLocation);
-    }
+    // initialize and upload bounds buffer data
+    this.attributes.a_bounds = getAttribute(this.gl, this.program, 'a_bounds');
+    createAndBindBuffer(this.gl, this.bounds, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_bounds, {
+      size: 4,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
 
     // Use shader program
     this.gl.useProgram(this.program);
@@ -427,6 +322,10 @@ class FlamegraphRenderer {
   }
 
   setSearchResults(searchResults: FlamegraphSearch['results']['frames']) {
+    if (!this.program || !this.gl) {
+      return;
+    }
+
     const matchedFrame = new Float32Array(6).fill(1);
     const unMatchedFrame = new Float32Array(6).fill(0);
 
@@ -439,30 +338,19 @@ class FlamegraphRenderer {
       );
     }
 
-    if (!this.program || !this.gl) {
-      return;
-    }
-
-    const aIsSearchResult = this.gl.getAttribLocation(this.program, 'a_is_search_result');
-    // attributes get data from buffers
-    this.attributes.a_is_search_result = aIsSearchResult;
-
-    // Init color buffer
-    const searchResultsBuffer = this.gl.createBuffer();
-
-    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = searchResultsBuffer)
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, searchResultsBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, this.searchResults, this.gl.DYNAMIC_DRAW);
-
-    const size = 1;
-    const type = this.gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-
-    this.gl.vertexAttribPointer(aIsSearchResult, size, type, normalize, stride, offset);
-    // Point to attribute location
-    this.gl.enableVertexAttribArray(aIsSearchResult);
+    this.attributes.a_is_search_result = getAttribute(
+      this.gl,
+      this.program,
+      'a_is_search_result'
+    );
+    createAndBindBuffer(this.gl, this.searchResults, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_is_search_result, {
+      size: 1,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
   }
 
   draw(configViewToPhysicalSpace: mat3): void {
@@ -487,10 +375,8 @@ class FlamegraphRenderer {
 
     // Projection matrix
     this.gl.uniformMatrix3fv(this.uniforms.u_projection, false, projectionMatrix);
-
     // Model to projection
     this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
-
     // Check if we should draw border
     this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
 
@@ -509,8 +395,7 @@ class FlamegraphRenderer {
       configSpacePixel.height
     );
 
-    const VERTICES = 6;
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES);
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES_PER_FRAME);
   }
 }
 

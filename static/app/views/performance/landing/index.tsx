@@ -3,12 +3,11 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -16,7 +15,7 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -157,13 +156,9 @@ export function PerformanceLanding(props: Props) {
               <Layout.Title>
                 {t('Performance')}
                 <PageHeadingQuestionTooltip
-                  title={tct(
-                    'Your main view for transaction data with graphs that visualize transactions or trends, as well as a table where you can drill down on individual transactions. [link: Read the docs].',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/performance/" />
-                      ),
-                    }
+                  docsUrl="https://docs.sentry.io/product/performance/"
+                  title={t(
+                    'Your main view for transaction data with graphs that visualize transactions or trends, as well as a table where you can drill down on individual transactions.'
                   )}
                 />
               </Layout.Title>

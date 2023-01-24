@@ -65,3 +65,11 @@ def process_organization_member_updates(object_identifier: int, **kwds: Any):
     if (org_member := _maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
         return
     org_member  # TODO: When we get the org member mapping table in place, here is where we'll sync it.
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
+def process_organization_mapping_verifications(object_identifier: int, **kwds: Any):
+    if (org := _maybe_process_tombstone(Organization, object_identifier)) is None:
+        return
+
+    organization_mapping_service.verify_mappings(org.id, org.slug)

@@ -34,7 +34,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS-3b2ee4021cd4e24acd32179932e10553e312786b",
+                fingerprint="1-1010-d750ce46bb1b13dd5780aac48098d5e20eea682c",
                 op="http.client",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
@@ -69,7 +69,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
                 ],
             )
         ]
-        assert problems[0].title == "N+1 API Calls"
+        assert problems[0].title == "N+1 API Call"
 
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
@@ -106,6 +106,76 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         detector = NPlusOneAPICallsDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
+
+
+@pytest.mark.parametrize(
+    "url,parameterized_url",
+    [
+        (
+            "",
+            "",
+        ),
+        (
+            "http://service.io",
+            "http://service.io",
+        ),
+        (
+            "https://www.service.io/resources/11",
+            "https://www.service.io/resources/*",
+        ),
+        (
+            "https://www.service.io/resources/11/details",
+            "https://www.service.io/resources/*/details",
+        ),
+        (
+            "https://www.service.io/resources/11/details?id=1&sort=down",
+            "https://www.service.io/resources/*/details?id=*&sort=*",
+        ),
+        (
+            "https://www.service.io/resources/11/details?sort=down&id=1",
+            "https://www.service.io/resources/*/details?id=*&sort=*",
+        ),
+        (
+            "https://service.io/clients/somecord/details?id=17",
+            "https://service.io/clients/somecord/details?id=*",
+        ),
+        (
+            "/clients/11/project/1343",
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/11/project/1343-turtles",
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/11/project/1343turtles",
+            "/clients/*/project/1343turtles",
+        ),
+        (
+            "/clients/563712f9722fb0996ac8f3905b40786f/project/1343",  # md5
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/563712f9722fb0996z/project/",  # md5-like
+            "/clients/563712f9722fb0996z/project/",
+        ),
+        (
+            "/clients/403926033d001b5279df37cbbe5287b7c7c267fa/project/1343",  # sha1
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/8ff81d74-606d-4c75-ac5e-cee65cbbc866/project/1343",  # uuid
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/hello-123s/project/1343",  # uuid-like
+            "/clients/hello-123s/project/*",
+        ),
+    ],
+)
+def test_parameterizes_url(url, parameterized_url):
+    r = NPlusOneAPICallsDetector.parameterize_url(url)
+    assert r == parameterized_url
 
 
 @pytest.mark.parametrize(

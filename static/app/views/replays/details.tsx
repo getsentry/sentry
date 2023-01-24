@@ -44,7 +44,7 @@ function ReplayDetails({
     orgSlug,
   });
 
-  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
+  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
   if (!fetching && !replay && fetchError) {
     if (fetchError.statusText === 'Not Found') {

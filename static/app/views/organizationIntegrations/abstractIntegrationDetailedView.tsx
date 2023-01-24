@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
@@ -48,7 +48,7 @@ type State = {
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{integrationSlug: string; orgId: string}, {}> &
+} & RouteComponentProps<{integrationSlug: string}, {}> &
   AsyncComponent['props'];
 
 class AbstractIntegrationDetailedView<

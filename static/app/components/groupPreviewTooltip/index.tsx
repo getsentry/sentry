@@ -1,5 +1,6 @@
-import {Fragment, ReactChild} from 'react';
+import {ReactChild} from 'react';
 
+import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
 
@@ -50,7 +51,11 @@ const GroupPreviewTooltip = ({
         </SpanEvidencePreview>
       );
     default:
-      return <Fragment>{children}</Fragment>;
+      return (
+        <EvidencePreview groupId={groupId} eventId={eventId} projectSlug={projectSlug}>
+          {children}
+        </EvidencePreview>
+      );
   }
 };
 

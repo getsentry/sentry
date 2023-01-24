@@ -3,7 +3,7 @@ import {Component} from 'react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -136,7 +136,7 @@ class TransactionThresholdButton extends Component<Props, State> {
           onApply={(threshold, metric) => this.onChangeThreshold(threshold, metric)}
         />
       ),
-      {modalCss, backdrop: 'static'}
+      {modalCss, closeEvents: 'escape-key'}
     );
   }
 

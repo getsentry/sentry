@@ -33,7 +33,7 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
     values?: Array<Thread>;
   };
   event: Event;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
 };
 
 type State = {
@@ -55,10 +55,10 @@ function getIntendedStackView(
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-function Threads({
+export function ThreadsV2({
   data,
   event,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
@@ -152,7 +152,7 @@ function Threads({
               ? STACK_VIEW.FULL
               : STACK_VIEW.APP
           }
-          projectId={projectId}
+          projectSlug={projectSlug}
           newestFirst={recentFirst}
           event={event}
           platform={platform}
@@ -204,7 +204,7 @@ function Threads({
     <TraceEventDataSection
       type={EntryType.THREADS}
       stackType={STACK_TYPE.ORIGINAL}
-      projectId={projectId}
+      projectSlug={projectSlug}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={stackView === STACK_VIEW.FULL}
@@ -280,5 +280,3 @@ function Threads({
     </TraceEventDataSection>
   );
 }
-
-export default Threads;

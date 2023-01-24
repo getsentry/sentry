@@ -8,7 +8,7 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
@@ -200,8 +200,8 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     return (
       <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
-        <NoProjectMessage organization={organization}>
-          <Layout.Page>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs
@@ -341,8 +341,8 @@ class ProjectDetail extends AsyncView<Props, State> {
                 />
               </Layout.Side>
             </Layout.Body>
-          </Layout.Page>
-        </NoProjectMessage>
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     );
   }

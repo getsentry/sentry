@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import GroupReplays from 'sentry/views/organizationGroupDetails/groupReplays';
@@ -123,12 +123,12 @@ describe('GroupReplays', () => {
               environment: [],
               field: [
                 'activity',
-                'countErrors',
+                'count_errors',
                 'duration',
-                'finishedAt',
+                'finished_at',
                 'id',
-                'projectId',
-                'startedAt',
+                'project_id',
+                'started_at',
                 'urls',
                 'user',
               ],
@@ -136,7 +136,7 @@ describe('GroupReplays', () => {
               project: ['2'],
               query:
                 'id:[346789a703f6454384f1de473b8b9fcc,b05dae9b6be54d21a4d5ad9f8f02b780]',
-              sort: '-startedAt',
+              sort: '-started_at',
               statsPeriod: '14d',
             }),
           })
@@ -303,12 +303,12 @@ describe('GroupReplays', () => {
         body: {
           data: [
             {
-              countErrors: 1,
+              count_errors: 1,
               duration: 52346,
-              finishedAt: '2022-09-15T06:54:00+00:00',
+              finished_at: '2022-09-15T06:54:00+00:00',
               id: '346789a703f6454384f1de473b8b9fcc',
-              projectId: '2',
-              startedAt: '2022-09-15T06:50:03+00:00',
+              project_id: '2',
+              started_at: '2022-09-15T06:50:03+00:00',
               urls: [
                 'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
                 '/organizations/sentry-emerging-tech/replays/?project=2',
@@ -317,17 +317,17 @@ describe('GroupReplays', () => {
                 id: '147086',
                 name: '',
                 email: '',
-                ip_address: '127.0.0.1',
-                displayName: 'testDisplayName',
+                ip: '127.0.0.1',
+                display_name: 'testDisplayName',
               },
             },
             {
-              countErrors: 4,
+              count_errors: 4,
               duration: 400,
-              finishedAt: '2022-09-21T21:40:38+00:00',
+              finished_at: '2022-09-21T21:40:38+00:00',
               id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
-              projectId: '2',
-              startedAt: '2022-09-21T21:30:44+00:00',
+              project_id: '2',
+              started_at: '2022-09-21T21:30:44+00:00',
               urls: [
                 'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
                 '/organizations/sentry-emerging-tech/issues/',
@@ -337,8 +337,8 @@ describe('GroupReplays', () => {
                 id: '147086',
                 name: '',
                 email: '',
-                ip_address: '127.0.0.1',
-                displayName: 'testDisplayName',
+                ip: '127.0.0.1',
+                display_name: 'testDisplayName',
               },
             },
           ],
@@ -441,7 +441,7 @@ describe('GroupReplays', () => {
           mockReplayUrl,
           expect.objectContaining({
             query: expect.objectContaining({
-              sort: '-startedAt',
+              sort: '-started_at',
             }),
           })
         );
@@ -462,162 +462,6 @@ describe('GroupReplays', () => {
             }),
           })
         );
-      });
-    });
-
-    it('should be able to click the `Start Time` column and request data sorted by startedAt query', async () => {
-      const mockGroup = TestStubs.Group();
-
-      const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
-        router,
-      });
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Start Time'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: 'startedAt',
-        },
-      });
-
-      // Update the location, and re-render with the new value
-      router.location.query.sort = 'startedAt';
-      rerender(<GroupReplays group={mockGroup} />);
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(2);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Start Time'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: '-startedAt',
-        },
-      });
-    });
-
-    it('should be able to click the `Duration` column and request data sorted by duration query', async () => {
-      const mockGroup = TestStubs.Group();
-
-      const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
-        router,
-      });
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Duration'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: '-duration',
-        },
-      });
-
-      // Update the location, and re-render with the new value
-      router.location.query.sort = '-duration';
-      rerender(<GroupReplays group={mockGroup} />);
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(2);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Duration'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: 'duration',
-        },
-      });
-    });
-
-    it('should be able to click the `Errors` column and request data sorted by countErrors query', async () => {
-      const mockGroup = TestStubs.Group();
-
-      const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
-        router,
-      });
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Errors'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: '-countErrors',
-        },
-      });
-
-      // Update the location, and re-render with the new value
-      router.location.query.sort = '-countErrors';
-      rerender(<GroupReplays group={mockGroup} />);
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(2);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Errors'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: 'countErrors',
-        },
-      });
-    });
-
-    it('should be able to click the `Activity` column and request data sorted by startedAt query', async () => {
-      const mockGroup = TestStubs.Group();
-
-      const {router, organization, routerContext} = init({});
-      const {rerender} = render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
-        router,
-      });
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Activity'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: '-activity',
-        },
-      });
-
-      // Update the location, and re-render with the new value
-      router.location.query.sort = '-activity';
-      rerender(<GroupReplays group={mockGroup} />);
-
-      await waitFor(() => {
-        expect(mockReplayApi).toHaveBeenCalledTimes(2);
-      });
-
-      userEvent.click(screen.getByRole('columnheader', {name: 'Activity'}));
-      expect(routerContext.context.router.push).toHaveBeenLastCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: 'activity',
-        },
       });
     });
   });

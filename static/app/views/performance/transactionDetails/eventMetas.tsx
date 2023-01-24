@@ -2,12 +2,12 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {frontend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';

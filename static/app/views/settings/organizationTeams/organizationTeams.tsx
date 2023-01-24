@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';

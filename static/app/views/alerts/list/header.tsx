@@ -1,15 +1,14 @@
 import {InjectedRouter} from 'react-router';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -45,9 +44,9 @@ const AlertHeader = ({router, activeTab}: Props) => {
         <Layout.Title>
           {t('Alerts')}
           <PageHeadingQuestionTooltip
-            title={tct(
-              'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date. [link: Read the docs].',
-              {link: <ExternalLink href="https://docs.sentry.io/product/alerts/" />}
+            docsUrl="https://docs.sentry.io/product/alerts/"
+            title={t(
+              'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date.'
             )}
           />
         </Layout.Title>

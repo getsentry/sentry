@@ -52,9 +52,6 @@ describe('InboxReason', () => {
     const tag = screen.getByText('Unignored');
     userEvent.hover(tag);
 
-    // Text is split up because of translations
-    expect(await screen.findByText('Affected')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
-    expect(screen.getByText('user(s)')).toBeInTheDocument();
+    expect(await screen.findByText('Affected 10 user(s)')).toBeInTheDocument();
   });
 });

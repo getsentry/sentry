@@ -2,9 +2,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -12,7 +13,6 @@ import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventA
 import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
-import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
 
@@ -33,13 +33,13 @@ type Props = Omit<
 > & {
   attachments: ScreenshotProps['screenshot'][];
   onDeleteScreenshot: ScreenshotProps['onDelete'];
-  projectId: string;
+  projectSlug: string;
   hasContext?: boolean;
   isShare?: boolean;
 };
 
-function EventTagsAndScreenshots({
-  projectId: projectSlug,
+export function EventTagsAndScreenshot({
+  projectSlug,
   location,
   event,
   attachments,
@@ -132,13 +132,11 @@ function EventTagsAndScreenshots({
         <div>
           <ScreenshotWrapper>
             <StyledScreenshotDataSection
+              title={screenshotLink}
+              showPermalink={false}
+              help={t('This image was captured around the time that the event occurred.')}
+              type="screenshot-data-section"
               data-test-id="screenshot-data-section"
-              title={tct('[link]', {
-                link: screenshotLink,
-              })}
-              description={t(
-                'This image was captured around the time that the event occurred.'
-              )}
             >
               <Screenshot
                 organization={organization}
@@ -160,8 +158,6 @@ function EventTagsAndScreenshots({
   );
 }
 
-export default EventTagsAndScreenshots;
-
 /**
  * Used to adjust padding based on which 3 elements are shown
  * - screenshot
@@ -182,7 +178,7 @@ const Wrapper = styled(DataSection)<{
   }
 `;
 
-const StyledScreenshotDataSection = styled(ScreenshotDataSection)`
+const StyledScreenshotDataSection = styled(EventDataSection)`
   h3 a {
     color: ${p => p.theme.linkColor};
   }

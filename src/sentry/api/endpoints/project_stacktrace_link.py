@@ -1,15 +1,17 @@
 import logging
 from typing import Dict, List, Mapping, Optional
 
+import requests
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -47,6 +49,7 @@ def get_link(
         result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )
+    result["sourcePath"] = formatted_path
 
     return result
 
@@ -116,7 +119,7 @@ def try_path_munging(
 
 
 def set_tags(scope: Scope, result: JSONData) -> None:
-    scope.set_tag("stacktrace_link.found", result.get("sourceUrl", False))
+    scope.set_tag("stacktrace_link.found", result["sourceUrl"] is not None)
     scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
     scope.set_tag("stacktrace_link.error", result.get("error"))
     scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
@@ -258,6 +261,45 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
+
+                should_get_codecov_data = (
+                    features.has(
+                        "organizations:codecov-stacktrace-integration",
+                        project.organization,
+                        actor=request.user,
+                    )
+                    and project.organization.flags.codecov_access
+                )
+                if should_get_codecov_data:
+                    try:
+                        result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
+                            repo=current_config["config"]["repoName"],
+                            service=current_config["config"]["provider"]["key"],
+                            branch=current_config["config"]["defaultBranch"],
+                            path=current_config["outcome"]["sourcePath"],
+                        )
+                        if result["lineCoverage"] and result["codecovUrl"]:
+                            result["codecovStatusCode"] = 200
+                            result["codecov"] = {
+                                "lineCoverage": result["lineCoverage"],
+                                "codecovUrl": result["codecovUrl"],
+                                "statusCode": result["codecovStatusCode"],
+                            }
+                    except requests.exceptions.HTTPError as error:
+                        result["codecovStatusCode"] = error.response.status_code
+                        result["codecov"] = {
+                            "attemptedUrl": error.response.url,
+                            "statusCode": result["codecovStatusCode"],
+                        }
+                        if error.response.status_code != 404:
+                            logger.exception(
+                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
+                            )
+                    except Exception:
+                        logger.exception("Something unexpected happen. Continuing execution.")
+                    # We don't expect coverage data if the integration does not exist (404)
+                    scope.set_tag("codecov.enabled", True)
+
             try:
                 set_tags(scope, result)
             except Exception:

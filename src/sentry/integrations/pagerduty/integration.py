@@ -1,3 +1,5 @@
+import logging
+
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
@@ -18,6 +20,8 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .client import PagerDutyClient
+
+logger = logging.getLogger("sentry.integrations.pagerduty")
 
 DESCRIPTION = """
 Connect your Sentry organization with one or more PagerDuty accounts, and start getting
@@ -88,7 +92,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 
             with transaction.atomic():
                 existing_service_items = PagerDutyService.objects.filter(
-                    organization_integration=self.org_integration
+                    organization_integration_id=self.org_integration.id
                 )
 
                 for service_item in existing_service_items:
@@ -108,7 +112,7 @@ class PagerDutyIntegration(IntegrationInstallation):
                     service_name = row["service"]
                     key = row["integration_key"]
                     PagerDutyService.objects.create(
-                        organization_integration=self.org_integration,
+                        organization_integration_id=self.org_integration.id,
                         service_name=service_name,
                         integration_key=key,
                     )
@@ -123,7 +127,9 @@ class PagerDutyIntegration(IntegrationInstallation):
 
     @property
     def services(self):
-        services = PagerDutyService.objects.filter(organization_integration=self.org_integration)
+        services = PagerDutyService.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
 
         return services
 
@@ -147,6 +153,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                 integration=integration, organization=organization
             )
         except OrganizationIntegration.DoesNotExist:
+            logger.exception("The PagerDuty post_install step failed.")
             return
 
         with transaction.atomic():

@@ -1,9 +1,9 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import TeamKeyTransaction, {
   TitleProps,
 } from 'sentry/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';

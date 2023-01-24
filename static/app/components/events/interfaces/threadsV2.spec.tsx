@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import {ThreadsV2} from 'sentry/components/events/interfaces/threadsV2';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
 import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
@@ -200,7 +200,7 @@ describe('ThreadsV2', function () {
         event,
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
-        projectId: project.id,
+        projectSlug: project.slug,
       };
 
       it('renders', function () {
@@ -861,7 +861,7 @@ describe('ThreadsV2', function () {
         event,
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
-        projectId: project.id,
+        projectSlug: project.slug,
       };
 
       it('renders', function () {
@@ -1012,7 +1012,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         MockApiClient.addMockResponse({
-          url: `/projects/${organization.slug}/2/events/${event.id}/apple-crash-report?minified=false`,
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false`,
           body: '',
         });
 
