@@ -11,7 +11,7 @@ class GroupType(Model):
     slug = models.CharField(max_length=254, unique=True)
     description = models.CharField(max_length=254, unique=True)
     category = BoundedPositiveIntegerField(
-        choices=[category.value for category in GroupCategory],
+        choices=[(category.value, category.name.lower()) for category in GroupCategory],
         default=GroupCategory.ERROR.value,
     )
     ignore_limit = models.IntegerField(default=3, null=False)

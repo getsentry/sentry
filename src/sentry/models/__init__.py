@@ -56,6 +56,7 @@ from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
+from .grouptype import *  # NOQA
 from .identity import *  # NOQA
 from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
