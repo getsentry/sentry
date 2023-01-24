@@ -39,6 +39,10 @@ const optionsAvailable = [
   'performance.issues.slow_db_query.la-rollout',
   'performance.issues.slow_db_query.ea-rollout',
   'performance.issues.slow_db_query.ga-rollout',
+  'performance.issues.render_blocking_assets.problem-creation',
+  'performance.issues.render_blocking_assets.la-rollout',
+  'performance.issues.render_blocking_assets.ea-rollout',
+  'performance.issues.render_blocking_assets.ga-rollout',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -154,6 +158,15 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.slow_db_query.la-rollout']}
               {fields['performance.issues.slow_db_query.ea-rollout']}
               {fields['performance.issues.slow_db_query.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Performance Issues - Large Render Blocking Asset Detector
+              </PanelHeader>
+              {fields['performance.issues.render_blocking_assets.problem-creation']}
+              {fields['performance.issues.render_blocking_assets.la-rollout']}
+              {fields['performance.issues.render_blocking_assets.ea-rollout']}
+              {fields['performance.issues.render_blocking_assets.ga-rollout']}
             </Panel>
           </Feature>
         </Form>
