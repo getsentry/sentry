@@ -44,12 +44,13 @@ def process_commit_context(
     )
     try:
         with lock.acquire():
-            group_cache_key = f"w-o-i:g-{group_id}"
+            group_cache_key = f"w-o-i:g-{group_id}-2"
             if cache.get(group_cache_key):
                 metrics.incr(
                     "sentry.tasks.process_commit_context.debounce",
-                    tags={"detail": "w-o-i:g debounce"},
+                    tags={"event": event_id, "group": group_id, "project": project_id},
                 )
+                return
 
             metrics.incr(
                 "sentry.tasks.process_commit_context.start",

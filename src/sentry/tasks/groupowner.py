@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 def _process_suspect_commits(
     event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
-    group_cache_key = f"w-o-i:g-{group_id}"
+    group_cache_key = f"w-o-i:g-{group_id}-2"
     if cache.get(group_cache_key):
         metrics.incr(
             "sentry.tasks.process_suspect_commits.debounce",
-            tags={"detail": "w-o-i:g debounce"},
+            tags={"event": event_id, "group": group_id, "project": project_id},
         )
         return
 
