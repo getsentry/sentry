@@ -1093,16 +1093,11 @@ enum ReplayFieldKey {
   COUNT_ERRORS = 'count_errors',
   COUNT_SEGMENTS = 'count_segments',
   COUNT_URLS = 'count_urls',
-  DEVICE_MODEL = 'device.model_id',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
-  RELEASES = 'releases',
-  TRACE_IDS = 'trace_ids',
   URLS = 'urls',
-  USER_IP_ADDRESS = 'user.ip',
-  USER_NAME = 'user.username',
 }
 
 /**
@@ -1122,7 +1117,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.COUNT_URLS,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
-  ReplayFieldKey.DEVICE_MODEL,
+  FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   ReplayFieldKey.DURATION,
@@ -1131,15 +1126,15 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
-  ReplayFieldKey.RELEASES,
+  FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
-  ReplayFieldKey.TRACE_IDS,
+  FieldKey.TRACE,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
-  ReplayFieldKey.USER_IP_ADDRESS,
-  ReplayFieldKey.USER_NAME,
+  FieldKey.USER_IP,
+  FieldKey.USER_USERNAME,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -1175,11 +1170,6 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
-  [ReplayFieldKey.DEVICE_MODEL]: {
-    desc: t('Model of device'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [ReplayFieldKey.DURATION]: {
     desc: t('Duration of the replay, in seconds'),
     kind: FieldKind.FIELD,
@@ -1200,28 +1190,8 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [ReplayFieldKey.RELEASES]: {
-    desc: t('Releases this Replay spans across'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.TRACE_IDS]: {
-    desc: t('List of traces that are linked from the Replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [ReplayFieldKey.URLS]: {
     desc: t('List of urls that were visited within the Replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.USER_IP_ADDRESS]: {
-    desc: t('IP Address of the user'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.USER_NAME]: {
-    desc: t('Name of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
