@@ -341,7 +341,7 @@ const EventEntries = ({
       )}
       {event.userReport && group && (
         <EventDataSection title="User Feedback" type="user-feedback">
-          <StyledEventUserFeedback
+          <EventUserFeedback
             report={event.userReport}
             orgId={orgSlug}
             issueId={group.id}
@@ -519,14 +519,6 @@ const BorderlessEventEntries = styled(EventEntries)`
     padding-top: 0;
     border-top: 0;
   }
-`;
-
-const StyledEventUserFeedback = styled(EventUserFeedback)`
-  border-radius: 0;
-  box-shadow: none;
-  padding: 0;
-  border: 0;
-  margin: 0;
 `;
 
 const StyledReplayEventDataSection = styled(EventDataSection)`
