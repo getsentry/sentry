@@ -10,22 +10,26 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import Tooltip from 'sentry/components/tooltip';
+import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import configStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -42,7 +46,6 @@ const TWO_FACTOR_REQUIRED = t(
 
 type RouteParams = {
   memberId: string;
-  orgId: string;
 };
 
 type Props = {
@@ -138,8 +141,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   handleAddTeam = (team: Team) => {
     const {member} = this.state;
-    if (!member!.teams.includes(team.slug)) {
-      member!.teams.push(team.slug);
+    if (!member) {
+      return;
+    }
+    const teams = member.teams;
+    if (!teams.includes(team.slug)) {
+      member.teams = [...teams, team.slug];
     }
     this.setState({member});
   };
@@ -165,7 +172,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     try {
       await Promise.all(requests);
-      router.push(`/settings/${organization.slug}/members/`);
+      router.push(normalizeUrl(`/settings/${organization.slug}/members/`));
       addSuccessMessage(t('All authenticators have been removed'));
     } catch (err) {
       addErrorMessage(t('Error removing authenticators'));
@@ -247,6 +254,8 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const {email, expired, pending} = member;
     const canResend = !expired;
     const showAuth = !pending;
+    const currentUser = configStore.get('user');
+    const isCurrentUser = currentUser.email === email;
 
     return (
       <Fragment>
@@ -264,55 +273,60 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
           <PanelBody>
             <PanelItem>
-              <OverflowWrapper>
-                <Details>
+              <Details>
+                <div>
+                  <DetailLabel>{t('Email')}</DetailLabel>
                   <div>
-                    <DetailLabel>{t('Email')}</DetailLabel>
-                    <div>
-                      <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
-                    </div>
+                    <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
                   </div>
+                </div>
+                <div>
+                  <DetailLabel>{t('Status')}</DetailLabel>
+                  <div data-test-id="member-status">
+                    {this.renderMemberStatus(member)}
+                  </div>
+                </div>
+                <div>
+                  <DetailLabel>{t('Added')}</DetailLabel>
                   <div>
-                    <DetailLabel>{t('Status')}</DetailLabel>
-                    <div data-test-id="member-status">
-                      {this.renderMemberStatus(member)}
-                    </div>
+                    <DateTime dateOnly date={member.dateCreated} />
                   </div>
-                  <div>
-                    <DetailLabel>{t('Added')}</DetailLabel>
-                    <div>
-                      <DateTime dateOnly date={member.dateCreated} />
-                    </div>
-                  </div>
-                </Details>
-
-                {inviteLink && (
-                  <InviteSection>
-                    <div>
-                      <DetailLabel>{t('Invite Link')}</DetailLabel>
-                      <TextCopyInput>{inviteLink}</TextCopyInput>
-                      <p className="help-block">
-                        {t(
-                          'This invite link can be used by anyone who knows it. Keep it secure!'
-                        )}
-                      </p>
-                    </div>
-                    <InviteActions>
-                      <Button onClick={() => this.handleInvite(true)}>
-                        {t('Generate New Invite')}
-                      </Button>
-                      {canResend && (
-                        <Button
-                          data-test-id="resend-invite"
-                          onClick={() => this.handleInvite(false)}
-                        >
-                          {t('Resend Invite')}
-                        </Button>
+                </div>
+              </Details>
+            </PanelItem>
+            <PanelItem>
+              {inviteLink && (
+                <InviteSection>
+                  <InviteField>
+                    <DetailLabel>{t('Invite Link')}</DetailLabel>
+                    <TextCopyInput>{inviteLink}</TextCopyInput>
+                    <p className="help-block">
+                      {t(
+                        'This invite link can be used by anyone who knows it. Keep it secure!'
                       )}
-                    </InviteActions>
-                  </InviteSection>
-                )}
-              </OverflowWrapper>
+                    </p>
+                  </InviteField>
+                  <ButtonBar gap={1}>
+                    {canResend && (
+                      <Button
+                        data-test-id="resend-invite"
+                        onClick={() => this.handleInvite(false)}
+                      >
+                        {t('Resend Invite')}
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => this.handleInvite(true)}
+                      title={t(
+                        'Generate New Invite. This will invalidate the previous invite link!'
+                      )}
+                      priority="danger"
+                      aria-label={t('Generate New Invite')}
+                      icon={<IconRefresh size="sm" />}
+                    />
+                  </ButtonBar>
+                </InviteSection>
+              )}
             </PanelItem>
           </PanelBody>
         </Panel>
@@ -321,7 +335,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           <Panel>
             <PanelHeader>{t('Authentication')}</PanelHeader>
             <PanelBody>
-              <Field
+              <FieldGroup
                 alignRight
                 flexibleControlStateSize
                 label={t('Reset two-factor authentication')}
@@ -343,14 +357,16 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                     </Button>
                   </Confirm>
                 </Tooltip>
-              </Field>
+              </FieldGroup>
             </PanelBody>
           </Panel>
         )}
 
         <OrganizationRoleSelect
           enforceAllowed={false}
+          enforceIdpRoleRestricted={member.flags['idp:role-restricted']}
           enforceRetired={hasTeamRoles}
+          isCurrentUser={isCurrentUser}
           disabled={!canEdit}
           roleList={member.roles}
           roleSelected={member.role}
@@ -360,6 +376,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
         <Teams slugs={member.teams}>
           {({teams, initiallyLoaded}) => (
             <TeamSelect
+              enforceIdpProvisioned
               organization={organization}
               selectedTeams={teams}
               disabled={!canEdit}
@@ -412,23 +429,14 @@ const DetailLabel = styled('div')`
   color: ${p => p.theme.textColor};
 `;
 
-const OverflowWrapper = styled('div')`
-  overflow: hidden;
-  flex: 1;
+const InviteField = styled('div')`
+  flex-grow: 1;
 `;
 
 const InviteSection = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  margin-top: ${space(2)};
-  padding-top: ${space(2)};
-`;
-
-const InviteActions = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-auto-flow: column;
-  justify-content: flex-end;
-  margin-top: ${space(2)};
+  flex-grow: 1;
+  display: flex;
+  gap: ${space(1)}; ;
 `;
 
 const Footer = styled('div')`

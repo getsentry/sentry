@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import {Theme, withTheme} from '@emotion/react';
+import {LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -29,7 +30,7 @@ import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {DisplayModes} from '../projectCharts';
 
-const omitIgnoredProps = (props: Props) =>
+const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
 type ProjectSessionsChartRequestRenderProps = {
@@ -39,15 +40,18 @@ type ProjectSessionsChartRequestRenderProps = {
   reloading: boolean;
   timeseriesData: Series[];
   totalSessions: number | null;
+  additionalSeries?: LineSeriesOption[];
 };
 
-type Props = {
+export type ProjectSessionsChartRequestProps = {
   api: Client;
   children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
   displayMode:
     | DisplayModes.SESSIONS
     | DisplayModes.STABILITY
-    | DisplayModes.STABILITY_USERS;
+    | DisplayModes.STABILITY_USERS
+    | DisplayModes.ANR_RATE
+    | DisplayModes.FOREGROUND_ANR_RATE;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
   selection: PageFilters;
@@ -64,7 +68,10 @@ type State = {
   totalSessions: number | null;
 };
 
-class ProjectSessionsChartRequest extends Component<Props, State> {
+class ProjectSessionsChartRequest extends Component<
+  ProjectSessionsChartRequestProps,
+  State
+> {
   state: State = {
     reloading: false,
     errored: false,
@@ -77,7 +84,7 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: ProjectSessionsChartRequestProps) {
     if (!isEqual(omitIgnoredProps(this.props), omitIgnoredProps(prevProps))) {
       this.fetchData();
     }

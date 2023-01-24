@@ -26,7 +26,7 @@ import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
-import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
+import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -256,7 +256,7 @@ function SearchBar(props: SearchBarProps) {
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
           }}
           maxSearchItems={maxSearchItems}
-          excludedTags={['environment']}
+          excludedTags={[FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]}
           maxMenuHeight={maxMenuHeight ?? 300}
           customPerformanceMetrics={customMeasurements}
           {...props}

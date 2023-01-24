@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -75,7 +75,6 @@ const Pagination = ({
             onCursor?.(links.previous?.cursor, path, query, -1);
             paginationAnalyticsEvent?.('Previous');
           }}
-          type="button"
         />
         <Button
           icon={<IconChevron direction="right" size="sm" />}
@@ -86,7 +85,6 @@ const Pagination = ({
             onCursor?.(links.next?.cursor, path, query, 1);
             paginationAnalyticsEvent?.('Next');
           }}
-          type="button"
         />
       </ButtonBar>
     </Wrapper>

@@ -20,15 +20,23 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     view: Rect.Empty(),
   },
   preferences: {
+    timelines: {
+      ui_frames: true,
+      minimap: true,
+      transaction_spans: true,
+    },
     colorCoding: 'by symbol name',
     sorting: 'call order',
     view: 'top down',
-    xAxis: 'standalone',
+    xAxis: 'profile',
     layout: 'table bottom',
   },
   search: {
     index: null,
-    results: new Map(),
+    results: {
+      frames: new Map(),
+      spans: new Map(),
+    },
     query: '',
   },
 };

@@ -19,12 +19,13 @@ interface UseFunctionsOptions {
   project: Project;
   query: string;
   sort: string;
-  transaction: string;
+  transaction: string | null;
   cursor?: string;
   functionType?: 'application' | 'system' | 'all';
   selection?: PageFilters;
 }
 
+// TODO: this needs to move to `useQuery` to take advantage of client-side caching and avoid refetch on mount
 function useFunctions({
   functionType,
   project,
@@ -42,7 +43,7 @@ function useFunctions({
   });
 
   useEffect(() => {
-    if (selection === undefined) {
+    if (selection === undefined || transaction === null) {
       return undefined;
     }
 

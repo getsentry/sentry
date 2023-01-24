@@ -6,6 +6,7 @@ import * as PropTypes from 'prop-types';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
+import {shouldDisplaySetupSourceMapsAlert} from 'sentry/components/events/interfaces/crashContent/exception/setupSourceMapsAlert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -36,6 +37,7 @@ import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -74,7 +76,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
 } & WithRouteAnalyticsProps &
-  RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
+  RouteComponentProps<{groupId: string; eventId?: string}, {}>;
 
 type State = {
   error: boolean;
@@ -129,9 +131,15 @@ class GroupDetails extends Component<Props, State> {
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
       // if we are loading events we should record analytics after it's loaded
-      this.getEvent(this.state.group).then(
-        () => this.state.group?.project && this.trackView(this.state.group?.project)
-      );
+      this.getEvent(this.state.group).then(() => {
+        if (!this.state.group?.project) {
+          return;
+        }
+        const project = this.props.projects.find(
+          p => p.id === this.state.group?.project.id
+        );
+        project && this.trackView(project);
+      });
     }
   }
 
@@ -160,7 +168,7 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {params, location} = this.props;
+    const {params, location, organization, router} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
@@ -177,7 +185,8 @@ class GroupDetails extends Component<Props, State> {
       error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
       group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
       num_comments: group ? group.numComments : -1,
-      project_has_replay: group?.project.hasReplays,
+      project_has_replay: project.hasReplays,
+      project_has_minified_stack_trace: project.hasMinifiedStackTrace,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
       has_owner: group?.owners ? group?.owners.length > 0 : false,
@@ -190,6 +199,11 @@ class GroupDetails extends Component<Props, State> {
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       has_otel: event?.contexts?.otel !== undefined,
+      has_setup_source_maps_alert: shouldDisplaySetupSourceMapsAlert(
+        organization,
+        router.location.query.project,
+        event
+      ),
     });
   }
 
@@ -215,8 +229,8 @@ class GroupDetails extends Component<Props, State> {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api} = this.props;
-    const orgSlug = params.orgId;
+    const {params, environments, api, organization} = this.props;
+    const orgSlug = organization.slug;
     const groupId = params.groupId;
     const eventId = params.eventId ?? 'latest';
     const projectId = group?.project?.slug;
@@ -252,14 +266,16 @@ class GroupDetails extends Component<Props, State> {
   }
 
   getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {organization, router} = this.props;
+    const {organization, params} = this.props;
     const {event} = this.state;
 
     const currentTab = this.getCurrentTab();
 
-    const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
-      router.params.eventId && event ? `events/${event.id}/` : ''
-    }`;
+    const baseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/issues/${group.id}/${
+        params.eventId && event ? `events/${event.id}/` : ''
+      }`
+    );
 
     return {baseUrl, currentTab};
   }
@@ -420,7 +436,7 @@ class GroupDetails extends Component<Props, State> {
   }
 
   async fetchData(trackView = false) {
-    const {api, isGlobalSelectionReady, params} = this.props;
+    const {api, isGlobalSelectionReady, organization, params} = this.props;
 
     // Need to wait for global selection store to be ready before making request
     if (!isGlobalSelectionReady) {
@@ -446,15 +462,14 @@ class GroupDetails extends Component<Props, State> {
         return;
       }
 
-      const project = data.project;
-
-      markEventSeen(api, params.orgId, project.slug, params.groupId);
+      const project = this.props.projects.find(p => p.id === data.project.id);
 
       if (!project) {
         Sentry.withScope(() => {
           Sentry.captureException(new Error('Project not found'));
         });
       } else {
+        markEventSeen(api, organization.slug, project.slug, params.groupId);
         const locationWithProject = {...this.props.location};
         if (
           locationWithProject.query.project === undefined &&
@@ -481,13 +496,13 @@ class GroupDetails extends Component<Props, State> {
         browserHistory.replace(locationWithProject);
       }
 
-      this.setState({project, loadingGroup: false});
+      this.setState({project: project || data.project, loadingGroup: false});
 
       GroupStore.loadInitialData([data]);
 
       if (trackView) {
         // make sure releases have loaded before we track the view
-        groupReleasePromise.then(() => this.trackView(project));
+        groupReleasePromise.then(() => project && this.trackView(project));
       }
     } catch (error) {
       this.handleRequestError(error);
@@ -616,7 +631,7 @@ class GroupDetails extends Component<Props, State> {
       if (group.id !== event?.groupID && !eventError) {
         // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
         const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
-        router.push(redirectUrl);
+        router.push(normalizeUrl(redirectUrl));
       } else {
         childProps = {
           ...childProps,

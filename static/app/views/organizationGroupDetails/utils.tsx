@@ -2,7 +2,7 @@ import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
@@ -99,11 +99,9 @@ const SUBSCRIPTION_REASONS = {
  * @param removeLinks add/remove links to subscription reasons text (default: false)
  * @returns Reason for subscription
  */
-export function getSubscriptionReason(group: Group, removeLinks = false) {
+export function getSubscriptionReason(group: Group) {
   if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
-    return tct('You have [link:disabled workflow notifications] for this project.', {
-      link: removeLinks ? <span /> : <a href="/account/settings/notifications/" />,
-    });
+    return t('You have disabled workflow notifications for this project.');
   }
 
   if (!group.isSubscribed) {
@@ -123,11 +121,8 @@ export function getSubscriptionReason(group: Group, removeLinks = false) {
     }
   }
 
-  return tct(
-    "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
-    {
-      link: removeLinks ? <span /> : <a href="/account/settings/notifications/" />,
-    }
+  return t(
+    "You're receiving updates because you are subscribed to workflow notifications for this project."
   );
 }
 

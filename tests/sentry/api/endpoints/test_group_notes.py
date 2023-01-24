@@ -1,18 +1,11 @@
-from sentry.models import (
-    Activity,
-    ExternalIssue,
-    GroupLink,
-    GroupSubscription,
-    Integration,
-    OrganizationIntegration,
-)
+from sentry.models import Activity, ExternalIssue, GroupLink, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupNoteTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -34,7 +27,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["id"] == str(activity.id)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -154,19 +147,19 @@ class GroupNoteCreateTest(APITestCase):
     def test_with_group_link(self):
         group = self.group
 
-        integration = Integration.objects.create(provider="example", external_id="123456")
-        integration.add_organization(group.organization, self.user)
-
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
+        integration = self.create_integration(
+            organization=group.organization,
+            provider="example",
+            external_id="123456",
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            },
         )
 
         external_issue = ExternalIssue.objects.create(
@@ -182,7 +175,8 @@ class GroupNoteCreateTest(APITestCase):
         )
 
         self.user.name = "Sentry Admin"
-        self.user.save()
+        with exempt_from_silo_limits():
+            self.user.save()
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"

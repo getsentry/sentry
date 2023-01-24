@@ -70,7 +70,7 @@ describe('IntegrationExternalMappings', function () {
       method: 'GET',
       body: {},
     });
-    render(
+    const {container} = render(
       <IntegrationExternalMappings
         organization={organization}
         integration={TestStubs.GitHubIntegration()}
@@ -84,7 +84,7 @@ describe('IntegrationExternalMappings', function () {
         context: routerContext,
       }
     );
-    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
+    expect(container).toHaveTextContent('Set up External User Mappings.');
   });
 
   it('still renders suggestions if no mappings are provided', async function () {
@@ -132,7 +132,7 @@ describe('IntegrationExternalMappings', function () {
     for (const team of MOCK_TEAM_SUGGESTIONS) {
       expect(screen.getByText(team)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId('mapping-option')).toHaveLength(2);
+    expect(screen.getAllByRole('button', {name: 'Remove user mapping'})).toHaveLength(2);
 
     for (const team of MOCK_TEAM_MAPPINGS) {
       expect(screen.getByText(team.externalName)).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe('IntegrationExternalMappings', function () {
     userEvent.click(screen.getByTestId('add-mapping-button'));
     expect(onCreateMock).toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByTestId('delete-mapping-button')[0]);
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove user mapping'})[0]);
     userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();
   });

@@ -8,7 +8,7 @@ import {motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import Alert, {alertStyles} from 'sentry/components/alert';
+import {Alert, alertStyles} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
@@ -20,6 +20,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 
 import FirstEventFooter from './components/firstEventFooter';
@@ -179,7 +180,9 @@ function SetupDocs({
         state: 'finished',
       });
       browserHistory.push(
-        `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
+        normalizeUrl(
+          `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
+        )
       );
     }
   });

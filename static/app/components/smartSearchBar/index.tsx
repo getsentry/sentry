@@ -48,8 +48,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import DropdownMenuControl from '../dropdownMenuControl';
-import {MenuItemProps} from '../dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from '../dropdownMenu';
 
 import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
@@ -1937,7 +1936,7 @@ export {SmartSearchBar, Props as SmartSearchBarProps};
 const Container = styled('div')<{inputHasFocus: boolean}>`
   min-height: ${p => p.theme.form.md.height}px;
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.background};
   padding: 6px ${space(1)};
   position: relative;
@@ -2036,6 +2035,6 @@ const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
 `;
 
-const OverlowingActionsMenu = styled(DropdownMenuControl)`
+const OverlowingActionsMenu = styled(DropdownMenu)`
   display: flex;
 `;

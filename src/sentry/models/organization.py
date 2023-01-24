@@ -8,6 +8,7 @@ from typing import FrozenSet, Optional, Sequence
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
+from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -31,11 +32,12 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -167,11 +169,18 @@ class Organization(Model, SnowflakeIdMixin):
                 "require_email_verification",
                 "Require and enforce email verification for all members.",
             ),
+            (
+                "codecov_access",
+                "Enable codecov integration.",
+            ),
         ),
         default=1,
     )
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
+
+    # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
+    customer_id: Optional[str] = None
 
     class Meta:
         app_label = "sentry"
@@ -195,6 +204,8 @@ class Organization(Model, SnowflakeIdMixin):
     def __str__(self):
         return f"{self.name} ({self.slug})"
 
+    snowflake_redis_key = "organization_snowflake_key"
+
     def save(self, *args, **kwargs):
         slugify_target = None
         if not self.slug:
@@ -208,12 +219,15 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         if SENTRY_USE_SNOWFLAKE:
-            snowflake_redis_key = "organization_snowflake_key"
             self.save_with_snowflake_id(
-                snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+                self.snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
             )
         else:
             super().save(*args, **kwargs)
+
+    @classmethod
+    def reserve_snowflake_id(cls):
+        return generate_snowflake_id(cls.snowflake_redis_key)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
@@ -226,6 +240,24 @@ class Organization(Model, SnowflakeIdMixin):
 
         return super().delete(**kwargs)
 
+    @staticmethod
+    def outbox_for_update(org_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=org_id,
+        )
+
+    @staticmethod
+    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
+            object_identifier=org_id,
+        )
+
     @cached_property
     def is_default(self):
         if not settings.SENTRY_SINGLE_ORGANIZATION:
@@ -233,8 +265,8 @@ class Organization(Model, SnowflakeIdMixin):
 
         return self == type(self).get_default()
 
-    def has_access(self, user, access=None):
-        queryset = self.member_set.filter(user=user)
+    def has_access(self, user: APIUser, access=None):
+        queryset = self.member_set.filter(user_id=user.id)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
@@ -569,11 +601,16 @@ class Organization(Model, SnowflakeIdMixin):
             path = customer_domain_path(path)
             url_base = generate_organization_url(self.slug)
         uri = absolute_uri(path, url_prefix=url_base)
+        parts = [uri]
+        if query and not query.startswith("?"):
+            query = f"?{query}"
         if query:
-            uri = f"{uri}?{query}"
+            parts.append(query)
+        if fragment and not fragment.startswith("#"):
+            fragment = f"#{fragment}"
         if fragment:
-            uri = f"{uri}#{fragment}"
-        return uri
+            parts.append(fragment)
+        return "".join(parts)
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.priority > 0:
@@ -585,3 +622,18 @@ class Organization(Model, SnowflakeIdMixin):
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
+
+    # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
+    @classmethod
+    def remove_organization_mapping(cls, instance, **kwargs):
+        from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+
+        organization_mapping_service.delete(instance.id)
+
+
+post_delete.connect(
+    Organization.remove_organization_mapping,
+    dispatch_uid="sentry.remove_organization_mapping",
+    sender=Organization,
+    weak=False,
+)

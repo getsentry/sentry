@@ -75,7 +75,7 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return member
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "post"
 
@@ -306,7 +306,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert oar.requester == self.member.user
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "delete"
 
@@ -475,7 +475,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not ax_after_leaving.has_project_membership(project)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "get"
@@ -504,7 +504,7 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"

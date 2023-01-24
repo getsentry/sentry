@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 import uniqWith from 'lodash/uniqWith';
 
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {ErrorItem, ErrorItemProps} from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
@@ -203,4 +203,4 @@ const ErrorList = styled(List)`
   }
 `;
 
-export default withApi(Errors);
+export const EventErrors = withApi(Errors);

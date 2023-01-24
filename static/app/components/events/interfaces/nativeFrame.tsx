@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {
   hasAssembly,
   hasContextRegisters,
@@ -330,7 +330,9 @@ function NativeFrame({
                 title={t('Toggle Context')}
                 aria-label={t('Toggle Context')}
                 tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
-                icon={<IconChevron size="8px" direction={expanded ? 'up' : 'down'} />}
+                icon={
+                  <IconChevron legacySize="8px" direction={expanded ? 'up' : 'down'} />
+                }
               />
             )}
           </ExpandCell>

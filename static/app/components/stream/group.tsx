@@ -543,11 +543,6 @@ const GroupCheckBoxWrapper = styled('div')`
   height: 15px;
   display: flex;
   align-items: center;
-
-  & input[type='checkbox'] {
-    margin: 0;
-    display: block;
-  }
 `;
 
 const primaryStatStyle = (theme: Theme) => css`

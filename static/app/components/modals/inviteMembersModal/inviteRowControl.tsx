@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {MultiValueProps} from 'react-select';
 import {Theme, useTheme} from '@emotion/react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectControl, {
   StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';
@@ -129,7 +129,6 @@ function InviteRowControl({
       <Button
         borderless
         icon={<IconClose />}
-        size="zero"
         onClick={onRemove}
         disabled={disableRemove}
         aria-label={t('Remove')}

@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
@@ -14,8 +15,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-
-import Button from './button';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 
@@ -161,7 +160,9 @@ class SuperuserAccessForm extends Component<Props, State> {
           initialData={{isSuperuserModal: true}}
           extraButton={
             <BackWrapper>
-              <Button onClick={this.handleSubmitCOPS}>{t('COPS/CSM')}</Button>
+              <Button type="submit" onClick={this.handleSubmitCOPS}>
+                {t('COPS/CSM')}
+              </Button>
             </BackWrapper>
           }
           resetOnError

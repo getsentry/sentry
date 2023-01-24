@@ -66,9 +66,7 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
-from sentry.replays.endpoints.organization_issue_replay_count import (
-    OrganizationIssueReplayCountEndpoint,
-)
+from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
@@ -157,7 +155,6 @@ from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
-from .endpoints.group_suspect_releases import GroupSuspectReleasesEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -261,9 +258,6 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
-from .endpoints.organization_events_spans_count_histogram import (
-    OrganizationEventsSpansCountHistogramEndpoint,
-)
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
@@ -407,12 +401,12 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_profiling_profile import (
+    ProjectProfilingEventEndpoint,
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
 )
-from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -460,6 +454,7 @@ from .endpoints.relay import (
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
+from .endpoints.source_map_debug import SourceMapDebugEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_alerts_triggered import (
@@ -516,7 +511,6 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/suspect-releases/$", GroupSuspectReleasesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$", GroupNotesEndpoint.as_view()),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
@@ -695,18 +689,31 @@ urlpatterns = [
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
                 ),
+            ]
+        ),
+    ),
+    # TODO: include in the /organizations/ route tree + remove old dupes once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/monitors/",
+        include(
+            [
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
+                    r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-details-with-org",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/checkins/$",
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-index-with-org",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/stats/$",
+                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+                    MonitorCheckInDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-details-with-org",
+                ),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats-with-org",
                 ),
@@ -1214,14 +1221,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-spans-histogram",
                 ),
                 url(
-                    # TODO (@udameli): This is a temporary endpoint necessary for the performance issue experiment.
-                    # If the span count histogram proves to be valuable, then OrganizationEventsSpansHistogramEndpoint
-                    # functionality will be extended so it can return span count distribution data
-                    r"^(?P<organization_slug>[^\/]+)/events-spans-counts-histogram/$",
-                    OrganizationEventsSpansCountHistogramEndpoint.as_view(),
-                    name="sentry-api-0-organization-events-spans-count-histogram",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends",
@@ -1589,9 +1588,9 @@ urlpatterns = [
                     name="sentry-api-0-organization-replay-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/issue-replay-count/$",
-                    OrganizationIssueReplayCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-issue-replay-count",
+                    r"^(?P<organization_slug>[^\/]+)/replay-count/$",
+                    OrganizationReplayCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
@@ -1931,6 +1930,11 @@ urlpatterns = [
                     name="sentry-api-0-event-owners",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
+                    SourceMapDebugEndpoint.as_view(),
+                    name="sentry-api-0-event-source-map-debug",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
                     DebugFilesEndpoint.as_view(),
                     name="sentry-api-0-dsym-files",
@@ -2032,11 +2036,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",
                     ProjectReleaseDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-release-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/activity/$",
-                    ProjectReleaseActivityEndpoint.as_view(),
-                    name="sentry-api-0-project-release-activity",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
@@ -2323,12 +2322,31 @@ urlpatterns = [
             ]
         ),
     ),
+    # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
+    # It will be removed in the near future.
+    url(
+        r"^profiling/projects/(?P<project_id>[\w_-]+)/profile/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/",
+        ProjectProfilingEventEndpoint.as_view(),
+        name="sentry-api-0-profiling-project-profile",
+    ),
     # Groups
     url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
+        GroupParticipantsEndpoint.as_view(),
+        name="sentry-api-0-group-stats-with-org",
+    ),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
+    ),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-shared-group-details-with-org",
     ),
     url(
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",

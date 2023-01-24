@@ -17,9 +17,9 @@ import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {Button} from 'sentry/components/button';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {
   IconCheckmark,
@@ -386,7 +386,7 @@ class Actions extends Component<Props> {
       const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
       return (
         <ActionWrapper>
-          <DropdownMenuControl
+          <DropdownMenu
             triggerProps={{
               'aria-label': t('More Actions'),
               icon: <IconEllipsis size="xs" />,
@@ -474,7 +474,6 @@ class Actions extends Component<Props> {
           </Feature>
           {isResolved || isIgnored ? (
             <ActionButton
-              type="button"
               priority="primary"
               title={
                 isAutoResolved
@@ -585,7 +584,7 @@ class Actions extends Component<Props> {
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
-        <DropdownMenuControl
+        <DropdownMenu
           triggerProps={{
             'aria-label': t('More Actions'),
             icon: <IconEllipsis size="xs" />,

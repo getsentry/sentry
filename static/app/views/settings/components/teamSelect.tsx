@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -11,6 +11,7 @@ import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,6 +24,11 @@ type Props = {
    * Should button be disabled
    */
   disabled: boolean;
+  /**
+   * Should adding a team be disabled based
+   * on whether the team is idpProvisioned
+   */
+  enforceIdpProvisioned: boolean;
   /**
    * callback when teams are added
    */
@@ -53,6 +59,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
+  enforceIdpProvisioned,
   selectedTeams,
   menuHeader,
   organization,
@@ -87,6 +94,7 @@ function TeamSelect({
         onRemove={slug => onRemoveTeam(slug)}
         disabled={disabled}
         confirmMessage={confirmMessage}
+        enforceIdpProvisioned={enforceIdpProvisioned}
       />
     ));
   };
@@ -98,7 +106,21 @@ function TeamSelect({
       index,
       value: team.slug,
       searchKey: team.slug,
-      label: <DropdownTeamBadge avatarSize={18} team={team} />,
+      label: () => {
+        if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
+          return (
+            <Tooltip
+              title={t(
+                "Membership to this team is managed through your organization's identity provider."
+              )}
+            >
+              <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+            </Tooltip>
+          );
+        }
+        return <DropdownTeamBadge avatarSize={18} team={team} />;
+      },
+      disabled: enforceIdpProvisioned && team.flags['idp:provisioned'],
     }));
 
   return (
@@ -139,12 +161,20 @@ function TeamSelect({
 type TeamRowProps = {
   confirmMessage: string | null;
   disabled: boolean;
+  enforceIdpProvisioned: boolean;
   onRemove: Props['onRemoveTeam'];
   orgId: string;
   team: Team;
 };
 
-const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps) => (
+const TeamRow = ({
+  orgId,
+  team,
+  onRemove,
+  disabled,
+  confirmMessage,
+  enforceIdpProvisioned,
+}: TeamRowProps) => (
   <TeamPanelItem data-test-id="team-row">
     <StyledLink to={`/settings/${orgId}/teams/${team.slug}/`}>
       <TeamBadge team={team} />
@@ -153,9 +183,20 @@ const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps
       message={confirmMessage}
       bypass={!confirmMessage}
       onConfirm={() => onRemove(team.slug)}
-      disabled={disabled}
+      disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
     >
-      <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
+      <Button
+        size="xs"
+        icon={<IconSubtract isCircled size="xs" />}
+        disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
+        title={
+          enforceIdpProvisioned && team.flags['idp:provisioned']
+            ? t(
+                "Membership to this team is managed through your organization's identity provider."
+              )
+            : undefined
+        }
+      >
         {t('Remove')}
       </Button>
     </Confirm>
@@ -166,6 +207,13 @@ const DropdownTeamBadge = styled(TeamBadge)`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: none;
+`;
+
+const DropdownTeamBadgeDisabled = styled(TeamBadge)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-transform: none;
+  filter: grayscale(1);
 `;
 
 const TeamPanelItem = styled(PanelItem)`
