@@ -58,17 +58,18 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
 
 def deobfuscate_view_hierarchy(view_hierarchy, mapper):
-    windows_to_deobfuscate = [*view_hierarchy.get("windows")]
-    while windows_to_deobfuscate:
-        window = windows_to_deobfuscate.pop()
-        window["type"] = mapper.remap_class(window.get("type"))
-        if window.get("children"):
-            windows_to_deobfuscate.extend(window.get("children"))
+    with sentry_sdk.start_span(op="function", description="deobfuscate_view_hierarchy"):
+        windows_to_deobfuscate = [*view_hierarchy.get("windows")]
+        while windows_to_deobfuscate:
+            window = windows_to_deobfuscate.pop()
+            window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
+            if window.get("children"):
+                windows_to_deobfuscate.extend(window.get("children"))
 
-    return {
-        "rendering_system": view_hierarchy.get("rendering_system"),
-        "windows": view_hierarchy.get("windows"),
-    }
+        return {
+            "rendering_system": view_hierarchy.get("rendering_system"),
+            "windows": view_hierarchy.get("windows"),
+        }
 
 
 @region_silo_endpoint
@@ -94,7 +95,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         return bool(self._get_proguard_uuid(event))
 
     def _get_proguard_mapper(self, event: Event):
-        with sentry_sdk.start_span(op="event.attachment.download.get_proguard"):
+        with sentry_sdk.start_span(
+            op="function", description="event.attachment.download.get_proguard"
+        ) as span:
             uuid = self._get_proguard_uuid(event)
             dif_paths = ProjectDebugFile.difcache.fetch_difs(
                 event.project, [uuid], features=["mapping"]
@@ -104,7 +107,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                 return
 
             proguard_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
-            sentry_sdk.set_tag("proguard_file_size_in_mb", proguard_file_size_in_mb)
+            span.set_tag("proguard_file_size_in_mb", proguard_file_size_in_mb)
             if proguard_file_size_in_mb > PROGUARD_FILE_SIZE_THRESHOLD:
                 raise Exception("The Proguard file is too large for deobfuscation")
 
