@@ -15,12 +15,12 @@ type Props = {
   isDeleted: boolean;
   onDelete: (attachmentId: string) => void;
   orgId: string;
-  projectId: string;
+  projectSlug: string;
 };
 
 const GroupEventAttachmentsTableRow = ({
   attachment,
-  projectId,
+  projectSlug,
   onDelete,
   isDeleted,
   orgId,
@@ -51,7 +51,7 @@ const GroupEventAttachmentsTableRow = ({
     <td>
       <ActionsWrapper>
         <AttachmentUrl
-          projectId={projectId}
+          projectSlug={projectSlug}
           eventId={attachment.event_id}
           attachment={attachment}
         >

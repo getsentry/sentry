@@ -21,7 +21,7 @@ const iconStyle = css`
 
 type Props = {
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
   query: Query;
   streamPath: string;
   tag: EventTag;
@@ -32,7 +32,7 @@ const EventTagsPill = ({
   tag,
   query,
   organization,
-  projectId,
+  projectSlug,
   streamPath,
   meta,
 }: Props) => {
@@ -46,7 +46,7 @@ const EventTagsPill = ({
       {key === 'release' ? (
         <VersionHoverCard
           organization={organization}
-          projectSlug={projectId}
+          projectSlug={projectSlug}
           releaseVersion={value}
           showUnderline
           underlineColor="linkUnderline"

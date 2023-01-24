@@ -20,14 +20,14 @@ type Props = Pick<
 > & {
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
 export function StackTrace({
   hideGuide = false,
-  projectId,
+  projectSlug,
   event,
   data,
   hasHierarchicalGrouping,
@@ -70,7 +70,7 @@ export function StackTrace({
         <NoStackTraceMessage />
       ) : (
         <CrashContent
-          projectId={projectId}
+          projectSlug={projectSlug}
           event={event}
           stackView={stackView}
           newestFirst={newestFirst}

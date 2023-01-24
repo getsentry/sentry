@@ -135,7 +135,6 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={{
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
-        projectId={project.slug}
         isProjectStabilized
       />
     );

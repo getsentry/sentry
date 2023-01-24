@@ -18,7 +18,7 @@ type Props = {
   api: Client;
   eventId: Event['id'];
   platform: PlatformType;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   type: 'original' | 'minified';
   // XXX: Organization is NOT available for Shared Issues!
   organization?: Organization;
@@ -55,10 +55,10 @@ class RawContent extends Component<Props, State> {
   }
 
   getAppleCrashReportEndpoint(organization: Organization) {
-    const {type, projectId, eventId} = this.props;
+    const {type, projectSlug, eventId} = this.props;
 
     const minified = type === 'minified';
-    return `/projects/${organization.slug}/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
+    return `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
   }
 
   getContent(isNative: boolean, exc: any) {

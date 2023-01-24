@@ -13,7 +13,7 @@ type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 type Props = {
   event: Event;
   newestFirst: boolean;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   stackTraceNotFound: boolean;
   stackType: STACK_TYPE;
   data?: Thread;
@@ -25,7 +25,7 @@ type Props = {
 
 const Content = ({
   event,
-  projectId,
+  projectSlug,
   data,
   stackView,
   groupingCurrentLevel,
@@ -56,7 +56,7 @@ const Content = ({
         stackType={stackType}
         stackView={stackView}
         newestFirst={newestFirst}
-        projectId={projectId}
+        projectSlug={projectSlug}
         exception={exception}
         stacktrace={stacktrace}
         groupingCurrentLevel={groupingCurrentLevel}

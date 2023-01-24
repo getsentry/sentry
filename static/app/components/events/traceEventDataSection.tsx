@@ -50,7 +50,7 @@ type Props = {
   hasNewestFirst: boolean;
   hasVerboseFunctionNames: boolean;
   platform: PlatformType;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
   stackType: STACK_TYPE;
@@ -73,7 +73,7 @@ export function TraceEventDataSection({
   children,
   platform,
   stackType,
-  projectId,
+  projectSlug,
   eventId,
   hasNewestFirst,
   hasMinified,
@@ -169,7 +169,7 @@ export function TraceEventDataSection({
   const minified = stackType === STACK_TYPE.MINIFIED;
 
   // Apple crash report endpoint
-  const appleCrashEndpoint = `/projects/${organization.slug}/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
   const sortByTooltip = !hasNewestFirst

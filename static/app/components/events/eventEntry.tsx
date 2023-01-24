@@ -58,7 +58,7 @@ export function EventEntry({
         <ExceptionV2
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -66,7 +66,7 @@ export function EventEntry({
         <Exception
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -83,7 +83,7 @@ export function EventEntry({
         <StackTraceV2
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -91,7 +91,7 @@ export function EventEntry({
         <StackTrace
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -129,7 +129,7 @@ export function EventEntry({
         <ThreadsV2
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -137,7 +137,7 @@ export function EventEntry({
         <Threads
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -147,7 +147,7 @@ export function EventEntry({
       return (
         <DebugMeta
           event={event}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupId={group?.id}
           organization={organization as Organization}
           data={entry.data}

@@ -19,7 +19,7 @@ import GroupVariant from './groupingVariant';
 type Props = AsyncComponent['props'] & {
   event: Event;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
   showGroupingConfig: boolean;
 };
 
@@ -31,9 +31,9 @@ type State = AsyncComponent['state'] & {
 
 class GroupingInfo extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, event, projectId} = this.props;
+    const {organization, event, projectSlug} = this.props;
 
-    let path = `/projects/${organization.slug}/${projectId}/events/${event.id}/grouping-info/`;
+    let path = `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`;
     if (this.state?.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }

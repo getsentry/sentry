@@ -33,13 +33,13 @@ type Props = Omit<
 > & {
   attachments: ScreenshotProps['screenshot'][];
   onDeleteScreenshot: ScreenshotProps['onDelete'];
-  projectId: string;
+  projectSlug: string;
   hasContext?: boolean;
   isShare?: boolean;
 };
 
 export function EventTagsAndScreenshot({
-  projectId: projectSlug,
+  projectSlug,
   location,
   event,
   attachments,

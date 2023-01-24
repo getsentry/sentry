@@ -166,7 +166,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
         <GroupEventAttachmentsTable
           attachments={eventAttachments}
           orgId={params.orgId}
-          projectId={project.slug}
+          projectSlug={project.slug}
           groupId={params.groupId}
           onDelete={this.handleDelete}
           deletedAttachments={deletedAttachments}

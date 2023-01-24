@@ -24,7 +24,7 @@ type Props = Pick<
     values?: Array<Thread>;
   };
   event: Event;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   hideGuide?: boolean;
 };
 
@@ -51,7 +51,7 @@ function getIntendedStackView(thread: Thread, event: Event) {
 export function Threads({
   data,
   event,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
@@ -166,7 +166,7 @@ export function Threads({
         stacktrace={stacktrace}
         event={event}
         newestFirst={newestFirst}
-        projectId={projectId}
+        projectSlug={projectSlug}
         groupingCurrentLevel={groupingCurrentLevel}
         stackTraceNotFound={stackTraceNotFound}
         hasHierarchicalGrouping={hasHierarchicalGrouping}
