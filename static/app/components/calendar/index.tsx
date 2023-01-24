@@ -1,7 +1,7 @@
 import {lazy, Suspense} from 'react';
 
-import LoadingIndicator from '../loadingIndicator';
-import Placeholder from '../placeholder';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 
 import type {DatePickerProps} from './datePicker';
 import type {DateRangePickerProps} from './dateRangePicker';
