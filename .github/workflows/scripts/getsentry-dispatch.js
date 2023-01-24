@@ -32,7 +32,7 @@ module.exports = {
           owner: 'getsentry',
           repo: 'getsentry',
           workflow_id: workflow,
-          ref: 'master',
+          ref: 'mgs-merge-commit',
           inputs: {
             pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
             skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
