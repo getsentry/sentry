@@ -159,9 +159,9 @@ export enum CodecovStatusCode {
 }
 
 export interface CodecovResponse {
-  statusCode: CodecovStatusCode;
+  status: CodecovStatusCode;
   attemptedUrl?: string;
-  codecovUrl?: string;
+  coverageUrl?: string;
   lineCoverage?: LineCoverage[];
 }
 
