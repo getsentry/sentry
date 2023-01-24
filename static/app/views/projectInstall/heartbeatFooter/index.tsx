@@ -192,7 +192,6 @@ const NoProjectWrapper = styled('div')`
   width: calc(100% + 2px);
   display: flex;
   justify-content: flex-end;
-  align-items: center;
   background: ${p => p.theme.background};
   padding: ${space(2)} 0;
   margin-bottom: -${space(3)};
