@@ -16,7 +16,8 @@ export const lightColors = {
   surface200: '#FFFFFF',
   surface300: '#FFFFFF',
   /**
-   * Hover color. Deprecated – use InteractionStateLayer instead.
+   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
+   * (hover/press) states.
    * @deprecated
    */
   surface400: '#F5F3F7',
@@ -77,7 +78,8 @@ export const darkColors = {
   surface200: '#241D2A',
   surface300: '#2C2433',
   /**
-   * Hover color. Deprecated – use InteractionStateLayer instead.
+   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
+   * (hover/press) states.
    * @deprecated
    */
   surface400: '#362E3E',
@@ -235,7 +237,9 @@ const generateAliases = (colors: BaseColors) => ({
   disabledBorder: colors.gray200,
 
   /**
-   * Indicates a "hover" state, to suggest that an interactive element is clickable
+   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
+   * interaction (hover/press) states.
+   * @deprecated
    */
   hover: colors.surface400,
 
