@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {} from 'sentry/components/text';
 import {t} from 'sentry/locale';
