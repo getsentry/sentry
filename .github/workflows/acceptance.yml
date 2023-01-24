@@ -212,7 +212,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend_always == 'true'
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
