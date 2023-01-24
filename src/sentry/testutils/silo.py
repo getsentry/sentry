@@ -40,18 +40,19 @@ class SiloModeTest:
                 if callable(attr):
                     yield attr
 
+    # TODO: REMOVE
     def _is_acceptance_test(self, test_class: type) -> bool:
         from sentry.testutils import AcceptanceTestCase
 
         return issubclass(test_class, AcceptanceTestCase)
 
     def _create_mode_methods(
-        self, test_class: type, test_method: TestMethod
+        self, test_class: type, test_method: TestMethod, single_server_silo_mode: bool
     ) -> Iterable[Tuple[str, TestMethod]]:
         def method_for_mode(mode: SiloMode) -> Iterable[Tuple[str, TestMethod]]:
             def replacement_test_method(*args: Any, **kwargs: Any) -> None:
                 with override_settings(
-                    SILO_MODE=mode, SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class)
+                    SILO_MODE=mode, SINGLE_SERVER_SILO_MODE=single_server_silo_mode
                 ):
                     with override_regions(region_map):
                         if mode == SiloMode.REGION:
@@ -74,27 +75,33 @@ class SiloModeTest:
                 continue
             yield from method_for_mode(mode)
 
-    def _add_silo_modes_to_methods(self, test_class: type) -> type:
+    def _add_silo_modes_to_methods(self, test_class: type, single_server_silo_mode: bool) -> type:
         for test_method in self._find_all_test_methods(test_class):
             for (new_method_name, new_test_method) in self._create_mode_methods(
-                test_class, test_method
+                test_class, test_method, single_server_silo_mode
             ):
                 setattr(test_class, new_method_name, new_test_method)
         return test_class
 
-    def __call__(self, decorated_obj: Any = None, stable: bool = False) -> Any:
+    def __call__(
+        self, decorated_obj: Any = None, stable: bool = False, single_server_silo_mode=False
+    ) -> Any:
         if decorated_obj:
-            return self._call(decorated_obj, stable)
+            return self._call(decorated_obj, stable, single_server_silo_mode)
 
         def receive_decorated_obj(f: Any) -> Any:
-            return self._call(f, stable)
+            return self._call(f, stable, single_server_silo_mode)
 
         return receive_decorated_obj
 
-    def _mark_parameterized_by_silo_mode(self, test_method: TestMethod) -> TestMethod:
+    def _mark_parameterized_by_silo_mode(
+        self, test_method: TestMethod, single_server_silo_mode: bool
+    ) -> TestMethod:
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
             silo_mode = kwargs.pop("silo_mode")
-            with override_settings(SILO_MODE=silo_mode):
+            with override_settings(
+                SILO_MODE=silo_mode, SINGLE_SERVER_SILO_MODE=single_server_silo_mode
+            ):
                 with override_regions(region_map):
                     if silo_mode == SiloMode.REGION:
                         with override_settings(SENTRY_REGION="north_america"):
@@ -117,7 +124,7 @@ class SiloModeTest:
             ),
         )
 
-    def _call(self, decorated_obj: Any, stable: bool) -> Any:
+    def _call(self, decorated_obj: Any, stable: bool, single_server_silo_mode: bool) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
         is_function = callable(decorated_obj)
         if not (is_test_case_class or is_function):
@@ -129,9 +136,9 @@ class SiloModeTest:
             return decorated_obj
 
         if is_test_case_class:
-            return self._add_silo_modes_to_methods(decorated_obj)
+            return self._add_silo_modes_to_methods(decorated_obj, single_server_silo_mode)
 
-        return self._mark_parameterized_by_silo_mode(decorated_obj)
+        return self._mark_parameterized_by_silo_mode(decorated_obj, single_server_silo_mode)
 
 
 all_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)

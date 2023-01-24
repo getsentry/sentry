@@ -2,7 +2,7 @@ from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test(stable=True, single_server_silo_mode=True)
 class JIRATest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
