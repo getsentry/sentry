@@ -191,12 +191,16 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('/book/');
+      ).toHaveTextContent('/book/[Parameters]');
 
       expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parameters')
-      ).toHaveTextContent('book_id:{7,8} sort:{up,down}');
+
+      const parametersKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.parameters'
+      );
+
+      expect(parametersKeyValue).toHaveTextContent('book_id:{7,8}');
+      expect(parametersKeyValue).toHaveTextContent('sort:{up,down}');
     });
 
     describe('extractQueryParameters', () => {

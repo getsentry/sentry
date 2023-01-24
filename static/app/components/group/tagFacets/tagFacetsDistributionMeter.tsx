@@ -256,6 +256,7 @@ const OtherSegment = styled('span')<{color: string}>`
   color: inherit;
   outline: none;
   background-color: ${p => p.color};
+  cursor: pointer;
 `;
 
 const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
