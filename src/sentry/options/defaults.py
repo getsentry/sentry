@@ -559,6 +559,9 @@ register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
+# Performance issue option for *all* performance issues detection
+register("performance.issues.all.problem-detection", default=0.0)
+
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.compressed_assets.problem-creation", default=0.0)
 register("performance.issues.compressed_assets.la-rollout", default=0.0)
