@@ -45,7 +45,7 @@ GROUP_TYPE_TO_TEXT = {
     GroupType.ERROR: "Error",
     GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: "Consecutive DB Queries",
     GroupType.PERFORMANCE_SLOW_DB_QUERY: "Slow DB Query",
-    GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: "Render Blocking Asset Span",
+    GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: "Large Render Blocking Asset",
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: "N+1 Query",
     GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: "File IO on Main Thread",
     GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: "N+1 API Call",

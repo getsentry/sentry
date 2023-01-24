@@ -580,6 +580,10 @@ register("performance.issues.slow_db_query.problem-creation", default=0.0)
 register("performance.issues.slow_db_query.la-rollout", default=0.0)
 register("performance.issues.slow_db_query.ea-rollout", default=0.0)
 register("performance.issues.slow_db_query.ga-rollout", default=0.0)
+register("performance.issues.render_blocking_assets.problem-creation", default=0.0)
+register("performance.issues.render_blocking_assets.la-rollout", default=0.0)
+register("performance.issues.render_blocking_assets.ea-rollout", default=0.0)
+register("performance.issues.render_blocking_assets.ga-rollout", default=0.0)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.

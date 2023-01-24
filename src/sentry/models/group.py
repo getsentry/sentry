@@ -440,7 +440,7 @@ class Group(Model):
             (GroupType.PERFORMANCE_SLOW_DB_QUERY.value, _("Slow DB Query")),
             (
                 GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
-                _("Render Blocking Asset Span"),
+                _("Large Render Blocking Asset"),
             ),
             (
                 GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value,
