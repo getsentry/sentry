@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IdBadge from 'sentry/components/idBadge';
 import Placeholder from 'sentry/components/placeholder';
@@ -159,18 +159,18 @@ export function HeartbeatFooter({
         ) : firstErrorReceived ? (
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
-              <IconCheckmark size="16px" isCircled />
+              <IconCheckmark size="sm" isCircled />
               {t('DSN response received')}
             </Beat>
             <Beat status={BeatStatus.COMPLETE}>
-              <IconCheckmark size="16px" isCircled />
+              <IconCheckmark size="sm" isCircled />
               {t('First error received')}
             </Beat>
           </Fragment>
         ) : serverConnected ? (
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
-              <IconCheckmark size="16px" isCircled />
+              <IconCheckmark size="sm" isCircled />
               {t('DSN response received')}
             </Beat>
             <Beat status={BeatStatus.AWAITING}>
