@@ -272,24 +272,22 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 )
                 if should_get_codecov_data:
                     try:
-                        result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
+                        lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
                             service=current_config["config"]["provider"]["key"],
                             branch=current_config["config"]["defaultBranch"],
                             path=current_config["outcome"]["sourcePath"],
                         )
-                        if result["lineCoverage"] and result["codecovUrl"]:
-                            result["codecovStatusCode"] = 200
+                        if lineCoverage and codecovUrl:
                             result["codecov"] = {
-                                "lineCoverage": result["lineCoverage"],
-                                "codecovUrl": result["codecovUrl"],
-                                "statusCode": result["codecovStatusCode"],
+                                "lineCoverage": lineCoverage,
+                                "coverageUrl": codecovUrl,
+                                "status": 200,
                             }
                     except requests.exceptions.HTTPError as error:
-                        result["codecovStatusCode"] = error.response.status_code
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,
-                            "statusCode": result["codecovStatusCode"],
+                            "status": error.response.status_code,
                         }
                         if error.response.status_code != 404:
                             logger.exception(

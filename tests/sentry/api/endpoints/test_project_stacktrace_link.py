@@ -341,8 +341,8 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "package": "package",
             },
         )
-        assert response.data["lineCoverage"] == expected_line_coverage
-        assert response.data["codecovStatusCode"] == expected_status_code
+        assert response.data["codecov"]["lineCoverage"] == expected_line_coverage
+        assert response.data["codecov"]["status"] == expected_status_code
 
     @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
