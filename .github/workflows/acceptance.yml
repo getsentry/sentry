@@ -122,7 +122,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ always() && needs.files-changed.outputs.frontend_all == 'true' }}
+        if: needs.files-changed.outputs.frontend_all == 'true'
         with:
           files: .artifacts/coverage/*
           type: frontend
@@ -211,7 +211,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
+        if: needs.files-changed.outputs.backend_always
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -285,7 +285,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   visual-diff:
     if: always()
