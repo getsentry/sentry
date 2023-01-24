@@ -1019,7 +1019,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return is_db_op and is_query
 
     def _fingerprint(self) -> str:
-        hashed_spans = fingerprint_spans(self.consecutive_db_spans)
+        prior_span_index = self.consecutive_db_spans.index(self.independent_db_spans[0]) - 1
+        hashed_spans = fingerprint_spans(
+            [self.consecutive_db_spans[prior_span_index]] + self.independent_db_spans
+        )
         return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES.value}-{hashed_spans}"
 
     def on_complete(self) -> None:
