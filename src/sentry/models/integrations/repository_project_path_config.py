@@ -26,10 +26,11 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
 
 def process_resource_change(instance, **kwargs):
-    from sentry.models import Organization, Project
+    from sentry.models import Group, Organization, Project
     from sentry.tasks.codeowners import update_code_owners_schema
+    from sentry.utils.cache import cache
 
-    def _spawn_task():
+    def _spawn_update_schema_task():
         try:
             update_code_owners_schema.apply_async(
                 kwargs={
@@ -40,7 +41,15 @@ def process_resource_change(instance, **kwargs):
         except (Project.DoesNotExist, Organization.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    def _clear_commit_context_cache():
+        group_ids = Group.objects.filter(project_id=instance.project_id).values_list(
+            "id", flat=True
+        )
+        cache_keys = [f"process-commit-context-{group_id}" for group_id in group_ids]
+        cache.delete_many(cache_keys)
+
+    transaction.on_commit(_spawn_update_schema_task)
+    transaction.on_commit(_clear_commit_context_cache)
 
 
 post_save.connect(
