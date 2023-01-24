@@ -84,7 +84,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build CSS
-        run: NODE_ENV=production yarn build-css
+        run: ls2
 
       - name: jest
         env:
@@ -123,7 +123,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.frontend_all == 'true'
+        if: always() && needs.files-changed.outputs.frontend_all == 'true'
         with:
           files: .artifacts/coverage/*
           type: frontend
@@ -212,7 +212,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend_always == 'true'
+        if: always() && needs.files-changed.outputs.backend_all == 'true'
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -286,7 +286,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend_all == 'true'
+        if: always() && needs.files-changed.outputs.backend_all == 'true'
 
   visual-diff:
     if: always()
