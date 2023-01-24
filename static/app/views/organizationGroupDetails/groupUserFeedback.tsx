@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
@@ -7,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import space from 'sentry/styles/space';
 import {Group, Organization, Project, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
@@ -97,7 +99,7 @@ class GroupUserFeedback extends Component<Props, State> {
         <Layout.Body>
           <Layout.Main>
             {reportList.map((item, idx) => (
-              <EventUserFeedback
+              <StyledEventUserFeedback
                 key={idx}
                 report={item}
                 orgId={organization.slug}
@@ -119,5 +121,9 @@ class GroupUserFeedback extends Component<Props, State> {
     );
   }
 }
+
+const StyledEventUserFeedback = styled(EventUserFeedback)`
+  margin-bottom: ${space(2)};
+`;
 
 export default withOrganization(GroupUserFeedback);

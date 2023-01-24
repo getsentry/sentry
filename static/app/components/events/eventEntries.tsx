@@ -340,12 +340,13 @@ const EventEntries = ({
         />
       )}
       {event.userReport && group && (
-        <StyledEventUserFeedback
-          report={event.userReport}
-          orgId={orgSlug}
-          issueId={group.id}
-          includeBorder={!hasErrors}
-        />
+        <EventDataSection title="User Feedback" type="user-feedback">
+          <StyledEventUserFeedback
+            report={event.userReport}
+            orgId={orgSlug}
+            issueId={group.id}
+          />
+        </EventDataSection>
       )}
       {showTagSummary && (
         <EventTagsAndScreenshot
@@ -520,16 +521,11 @@ const BorderlessEventEntries = styled(EventEntries)`
   }
 `;
 
-type StyledEventUserFeedbackProps = {
-  includeBorder: boolean;
-};
-
-const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
+const StyledEventUserFeedback = styled(EventUserFeedback)`
   border-radius: 0;
   box-shadow: none;
-  padding: ${space(3)} ${space(4)} 0 40px;
+  padding: 0;
   border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
   margin: 0;
 `;
 
