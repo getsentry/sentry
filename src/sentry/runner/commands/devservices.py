@@ -89,7 +89,7 @@ def get_or_create(
 
 
 def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 5) -> None:
-    from docker.errors import ImageNotFound
+    from docker.errors import APIError
 
     current_attempt = 0
 
@@ -100,12 +100,13 @@ def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 
     while True:
         try:
             client.images.pull(image)
-        except ImageNotFound as e:
+        except APIError:
             if current_attempt + 1 >= max_attempts:
-                raise e
+                raise
             current_attempt = current_attempt + 1
             continue
-        break
+        else:
+            break
 
 
 def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple[str, int]]:
