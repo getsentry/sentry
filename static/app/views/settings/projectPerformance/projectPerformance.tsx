@@ -214,7 +214,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
         defaultValue: 0,
       },
       {
-        name: 'consecutive_db_querieis_detection_rate',
+        name: 'consecutive_db_queries_detection_rate',
         type: 'range',
         label: t('Consecutive DB Detection rate'),
         min: 0.0,
