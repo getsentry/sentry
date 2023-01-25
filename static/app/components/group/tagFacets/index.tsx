@@ -139,7 +139,7 @@ export default function TagFacets({
         <Fragment>
           <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
           <Content>
-            <Fragment>
+            <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
@@ -148,32 +148,32 @@ export default function TagFacets({
                 tagsData={tagsData}
                 expandFirstTag
               />
-              <TagFacetsDistributionMeterWrapper
-                groupId={groupId}
-                organization={organization}
-                project={project}
-                tagKeys={remainingTagKeys}
-                tagsData={tagsData}
-              />
-              <ShowAllButtonContainer>
-                <Button
-                  size="xs"
-                  to={getTagUrl(organization.slug, groupId)}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'issue_group_details.tags.show_all_tags.clicked',
-                      {
-                        platform: project?.platform,
-                        is_mobile: isMobilePlatform(project?.platform),
-                        organization,
-                      }
-                    );
-                  }}
-                >
-                  {t('View All Tags')}
-                </Button>
-              </ShowAllButtonContainer>
-            </Fragment>
+            </span>
+            <TagFacetsDistributionMeterWrapper
+              groupId={groupId}
+              organization={organization}
+              project={project}
+              tagKeys={remainingTagKeys}
+              tagsData={tagsData}
+            />
+            <ShowAllButtonContainer>
+              <Button
+                size="xs"
+                to={getTagUrl(organization.slug, groupId)}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'issue_group_details.tags.show_all_tags.clicked',
+                    {
+                      platform: project?.platform,
+                      is_mobile: isMobilePlatform(project?.platform),
+                      organization,
+                    }
+                  );
+                }}
+              >
+                {t('View All Tags')}
+              </Button>
+            </ShowAllButtonContainer>
           </Content>
         </Fragment>
       )}
