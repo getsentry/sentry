@@ -159,6 +159,7 @@ class SnubaProtocolEventStream(EventStream):
         )
 
         event_type = self._get_event_type(event)
+        occurrence_data = self._get_occurrence_data(event)
 
         self._send(
             project.id,
@@ -178,7 +179,8 @@ class SnubaProtocolEventStream(EventStream):
                     "data": event_data,
                     "primary_hash": primary_hash,
                     "retention_days": retention_days,
-                    "occurrence_data": self._get_occurrence_data(event),
+                    "occurrence_id": occurrence_data.get("id"),
+                    "occurrence_data": occurrence_data,
                 },
                 {
                     "is_new": is_new,

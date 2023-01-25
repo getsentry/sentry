@@ -1,6 +1,7 @@
 export type FlamegraphColorCodings = [
   'by symbol name',
-  'by system / application',
+  'by system frame',
+  'by application frame',
   'by library',
   'by recursion',
   'by frequency'
@@ -17,6 +18,7 @@ export interface FlamegraphPreferences {
   timelines: {
     minimap: boolean;
     transaction_spans: boolean;
+    ui_frames: boolean;
   };
   view: FlamegraphViewOptions[number];
   xAxis: FlamegraphAxisOptions[number];

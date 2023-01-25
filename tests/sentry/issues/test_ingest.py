@@ -3,7 +3,6 @@ from hashlib import md5
 from unittest import mock
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.event_manager import GroupInfo
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
@@ -17,13 +16,13 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test(stable=True)
 class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        # TODO: We should make this a platform event once we have one
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         saved_occurrence = save_issue_occurrence(occurrence.to_dict(), event)[0]
@@ -47,8 +46,8 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
         # assert result["data"][0]["group_ids"] == [self.group.id]
 
     def test_different_ids(self) -> None:
-        # TODO: We should make this a platform event once we have one
-        event = self.store_event(data={}, project_id=self.project.id)
+        event_data = load_data("generic-event")
+        event = self.store_event(data=event_data, project_id=self.project.id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
             ValueError, "IssueOccurrence must have the same event_id as the passed Event"
@@ -185,11 +184,13 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 @region_silo_test(stable=True)
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        # TODO: We should make this a platform event once we have one
-        event = self.store_event(data={}, project_id=self.project.id)
-        group_event = event.for_group(self.group)
+        event_data = load_data("generic-event")
+        event = self.store_event(data=event_data, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
-        group_info = GroupInfo(event.group, True, False, None, False)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group.id)
         with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
             event, "for_group", return_value=group_event
         ):

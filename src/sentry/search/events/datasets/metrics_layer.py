@@ -40,6 +40,9 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
+            constants.PROJECT_DOT_ID_ALIAS: lambda alias: AliasedExpression(
+                self.builder.resolve_column(constants.PROJECT_ID_ALIAS), alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> str:
@@ -437,7 +440,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
         value = search_filter.value.value
-        if value == "transaction":
+        operator = search_filter.operator
+        if value == "transaction" and operator == "=":
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")

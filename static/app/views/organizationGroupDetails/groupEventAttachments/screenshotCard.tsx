@@ -119,7 +119,7 @@ export function ScreenshotCard({
             <StyledImageVisualization
               attachment={eventAttachment}
               orgId={organization.slug}
-              projectId={projectSlug}
+              projectSlug={projectSlug}
               eventId={eventId}
               onLoad={() => setLoadingImage(false)}
               onError={() => setLoadingImage(false)}

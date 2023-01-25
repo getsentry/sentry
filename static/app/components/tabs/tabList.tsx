@@ -183,24 +183,26 @@ function BaseTabList({
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <CompactSelect
-          options={overflowMenuItems}
-          value={[...state.selectionManager.selectedKeys][0]}
-          onChange={opt => state.setSelectedKey(opt.value)}
-          isDisabled={disabled}
-          position="bottom-end"
-          size="sm"
-          offset={4}
-          trigger={triggerProps => (
-            <OverflowMenuTrigger
-              {...triggerProps}
-              borderless
-              showChevron={false}
-              icon={<IconEllipsis />}
-              aria-label={t('More tabs')}
-            />
-          )}
-        />
+        <TabListOverflowWrap>
+          <CompactSelect
+            options={overflowMenuItems}
+            value={[...state.selectionManager.selectedKeys][0]}
+            onChange={opt => state.setSelectedKey(opt.value)}
+            isDisabled={disabled}
+            position="bottom-end"
+            size="sm"
+            offset={4}
+            trigger={triggerProps => (
+              <OverflowMenuTrigger
+                {...triggerProps}
+                borderless
+                showChevron={false}
+                icon={<IconEllipsis />}
+                aria-label={t('More tabs')}
+              />
+            )}
+          />
+        </TabListOverflowWrap>
       )}
     </TabListOuterWrap>
   );
@@ -272,10 +274,12 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
       `};
 `;
 
-const OverflowMenuTrigger = styled(DropdownButton)`
+const TabListOverflowWrap = styled('div')`
   position: absolute;
   right: 0;
   bottom: ${space(0.75)};
+`;
+const OverflowMenuTrigger = styled(DropdownButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
 `;

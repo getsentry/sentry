@@ -16,7 +16,7 @@ import {
   Widget,
   WidgetQuery,
   WidgetType,
-} from 'sentry/views/dashboardsV2/types';
+} from 'sentry/views/dashboards/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {

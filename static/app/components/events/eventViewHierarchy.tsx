@@ -1,28 +1,18 @@
-import {useState} from 'react';
-import isEqual from 'lodash/isEqual';
+import {useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types';
-import {uniqueId} from 'sentry/utils/guid';
 import {useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
 import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
 
-const DEFAULT_RESPONSE: ViewHierarchyData = {rendering_system: '', windows: []};
 const FIVE_SECONDS_IN_MS = 5 * 1000;
-
-function fillWithUniqueIds(hierarchy) {
-  return {
-    ...hierarchy,
-    id: uniqueId(),
-    children: hierarchy.children?.map(fillWithUniqueIds) ?? [],
-  };
-}
 
 type Props = {
   projectSlug: string;
@@ -31,43 +21,38 @@ type Props = {
 
 function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   const [selectedViewHierarchy] = useState(0);
-  const api = useApi();
   const organization = useOrganization();
 
   const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
-  const {isLoading, data} = useQuery<ViewHierarchyData>(
-    [`viewHierarchies.${hierarchyMeta.id}`],
-    async () => {
-      const response = await api.requestPromise(
-        getAttachmentUrl({
-          attachment: hierarchyMeta,
-          eventId: hierarchyMeta.event_id,
-          orgId: organization.slug,
-          projectId: projectSlug,
-        }),
-        {
-          method: 'GET',
-        }
-      );
-
-      if (!response) {
-        return DEFAULT_RESPONSE;
-      }
-
-      const JSONdata = JSON.parse(response);
-
-      return {
-        rendering_system: JSONdata.rendering_system,
-        // Recursively add unique IDs to the nodes for rendering the tree,
-        // and to correlate elements when hovering between tree and wireframe
-        windows: JSONdata.windows.map(fillWithUniqueIds),
-      };
-    },
+  const {isLoading, data} = useQuery<string>(
+    [
+      getAttachmentUrl({
+        attachment: hierarchyMeta,
+        eventId: hierarchyMeta.event_id,
+        orgId: organization.slug,
+        projectSlug,
+      }),
+    ],
     {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
   );
 
+  // Memoize the JSON parsing because downstream hooks depend on
+  // referential equality of objects in the data
+  const hierarchy = useMemo<ViewHierarchyData>(() => {
+    if (!data) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(data);
+    } catch (err) {
+      Sentry.captureException(err);
+      return null;
+    }
+  }, [data]);
+
   // TODO(nar): This loading behaviour is subject to change
-  if (isLoading || !data || isEqual(DEFAULT_RESPONSE, data)) {
+  if (isLoading || !data) {
     return <LoadingIndicator />;
   }
 
@@ -76,7 +61,9 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
       type="view_hierarchy"
       title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
     >
-      <ViewHierarchy viewHierarchy={data} />
+      <ErrorBoundary mini>
+        <ViewHierarchy viewHierarchy={hierarchy} />
+      </ErrorBoundary>
     </EventDataSection>
   );
 }

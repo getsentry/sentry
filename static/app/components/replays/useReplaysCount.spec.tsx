@@ -10,6 +10,7 @@ describe('useReplaysCount', () => {
   const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 
   const mockGroupIds = ['123', '456'];
+  const mockReplayIds = ['abc', 'def'];
   const mockTransactionNames = ['/home', '/profile'];
 
   MockUseLocation.mockReturnValue({
@@ -30,7 +31,7 @@ describe('useReplaysCount', () => {
   });
   const projectIds = [Number(project.id)];
 
-  it('should throw if neither groupIds nor transactionNames is provided', () => {
+  it('should throw if none of groupIds, replayIds, transactionNames is provided', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
@@ -40,8 +41,8 @@ describe('useReplaysCount', () => {
     expect(result.error).toBeTruthy();
   });
 
-  it('should throw if both groupIds and transactionNames are provided', () => {
-    const {result} = reactHooks.renderHook(useReplaysCount, {
+  it('should throw if more than one of groupIds, replayIds, transactionNames are provided', () => {
+    const {result: result1} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         projectIds,
@@ -49,7 +50,27 @@ describe('useReplaysCount', () => {
         transactionNames: [],
       },
     });
-    expect(result.error).toBeTruthy();
+    expect(result1.error).toBeTruthy();
+
+    const {result: result2} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        projectIds,
+        groupIds: [],
+        replayIds: [],
+      },
+    });
+    expect(result2.error).toBeTruthy();
+
+    const {result: result3} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        projectIds,
+        replayIds: [],
+        transactionNames: [],
+      },
+    });
+    expect(result3.error).toBeTruthy();
   });
 
   it('should query for groupIds', async () => {
@@ -212,6 +233,64 @@ describe('useReplaysCount', () => {
     expect(result.current).toEqual({
       123: 0,
       456: 0,
+    });
+  });
+
+  it('should query for replayId', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        projectIds,
+        replayIds: mockReplayIds,
+      },
+    });
+
+    expect(result.current).toEqual({});
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `replay_id:[abc,def]`,
+          statsPeriod: '14d',
+          project: [2],
+        },
+      })
+    );
+
+    await waitForNextUpdate();
+  });
+
+  it('should return the count of each replayId, or zero if not included in the response', async () => {
+    const countRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {
+        abc: 42,
+      },
+    });
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        projectIds,
+        replayIds: mockReplayIds,
+      },
+    });
+
+    expect(result.current).toEqual({});
+    expect(countRequest).toHaveBeenCalled();
+
+    await waitForNextUpdate();
+
+    expect(result.current).toEqual({
+      abc: 42,
+      def: 0,
     });
   });
 

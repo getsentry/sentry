@@ -1,13 +1,18 @@
 import datetime
 import logging
 import uuid
-from typing import Any, Dict
+from copy import deepcopy
+from typing import Any, Dict, Optional, Sequence
 
 import pytest
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_consumer import _process_message
+from sentry.issues.occurrence_consumer import (
+    InvalidEventPayloadError,
+    _get_kwargs,
+    _process_message,
+)
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -40,11 +45,10 @@ def get_test_message(
         payload["event"] = {
             "event_id": uuid.uuid4().hex,
             "project_id": project_id,
-            "title": "code's broken",
             "platform": "genesis",
             "tags": {},
             "timestamp": now.isoformat(),
-            "message_timestamp": now.isoformat(),
+            "received": now.isoformat(),
         }
 
     payload.update(overrides)
@@ -85,3 +89,45 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
         message = get_test_message(self.project.id, type=300)
         occurrence = _process_message(message)
         assert occurrence is None
+
+
+class ParseEventPayloadTest(IssueOccurrenceTestMessage):
+    def run_test(self, message: Dict[str, Any]) -> None:
+        _get_kwargs(message)
+
+    def run_invalid_schema_test(self, message: Dict[str, Any]) -> None:
+        with pytest.raises(InvalidEventPayloadError):
+            self.run_test(message)
+
+    def run_invalid_payload_test(
+        self,
+        remove_event_fields: Optional[Sequence[str]] = None,
+        update_event_fields: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        if remove_event_fields:
+            for field in remove_event_fields:
+                message["event"].pop(field)
+        if update_event_fields:
+            message["event"].update(update_event_fields)
+        self.run_invalid_schema_test(message)
+
+    def test_invalid_payload(self) -> None:
+        self.run_invalid_payload_test(remove_event_fields=["event_id"])
+        self.run_invalid_payload_test(remove_event_fields=["project_id"])
+        self.run_invalid_payload_test(remove_event_fields=["timestamp"])
+        self.run_invalid_payload_test(remove_event_fields=["platform"])
+        self.run_invalid_payload_test(remove_event_fields=["tags"])
+        self.run_invalid_payload_test(update_event_fields={"event_id": 0000})
+        self.run_invalid_payload_test(update_event_fields={"project_id": "p_id"})
+        self.run_invalid_payload_test(update_event_fields={"timestamp": 0000})
+        self.run_invalid_payload_test(update_event_fields={"platform": 0000})
+        self.run_invalid_payload_test(update_event_fields={"tags": "tagged"})
+
+    def test_valid(self) -> None:
+        self.run_test(get_test_message(self.project.id))
+
+    def test_valid_nan(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["tags"]["nan-tag"] = float("nan")
+        self.run_test(message)

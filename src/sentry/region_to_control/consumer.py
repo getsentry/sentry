@@ -1,4 +1,3 @@
-import signal
 from typing import Any, Mapping, Optional
 
 import sentry_sdk
@@ -22,6 +21,7 @@ from .messages import AuditLogEvent, RegionToControlMessage, UserIpEvent
 
 def get_region_to_control_consumer(
     group_id: str,
+    strict_offset_reset: bool,
     auto_offset_reset: str = "earliest",
     **opts: Any,
 ) -> StreamProcessor[KafkaPayload]:
@@ -34,24 +34,17 @@ def get_region_to_control_consumer(
                 cluster_name,
             ),
             auto_offset_reset=auto_offset_reset,
+            strict_offset_reset=strict_offset_reset,
             group_id=group_id,
         )
     )
 
-    processor = StreamProcessor(
+    return StreamProcessor(
         consumer=consumer,
         topic=Topic(settings.KAFKA_REGION_TO_CONTROL),
         processor_factory=RegionToControlStrategyFactory(),
         commit_policy=ONCE_PER_SECOND,
     )
-
-    def handler(*args: Any) -> None:
-        processor.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    return processor
 
 
 class ProcessRegionToControlMessage(ProcessingStrategy[KafkaPayload]):

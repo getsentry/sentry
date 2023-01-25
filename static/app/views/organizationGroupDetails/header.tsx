@@ -23,7 +23,7 @@ import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import {Item, TabList} from 'sentry/components/tabs';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -262,20 +262,42 @@ function GroupHeader({
         </Tooltip>
         {group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS && (
           <FeatureBadge
-            type="alpha"
-            title="N+1 API Calls Performance Issues are in active development and may change"
+            type="beta"
+            title={t(
+              'N+1 API Calls Performance Issues are in active development and may change'
+            )}
           />
         )}
-        {group.issueType === IssueType.PERFORMANCE_SLOW_SPAN && (
+        {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
           <FeatureBadge
             type="alpha"
-            title="Slow DB Span Performance Issues are in active development and may change"
+            title={t(
+              'Slow DB Query Performance Issues are in active development and may change'
+            )}
           />
         )}
         {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
           <FeatureBadge
+            type="beta"
+            title={t(
+              'Consecutive DB Query Performance Issues are in active development and may change'
+            )}
+          />
+        )}
+        {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
+          <FeatureBadge
             type="alpha"
-            title="Slow DB Span Performance Issues are in active development and may change"
+            title={t(
+              'Large Render Blocking Asset Performance Issues are in active development and may change'
+            )}
+          />
+        )}
+        {group.issueType === IssueType.PERFORMANCE_UNCOMPRESSED_ASSET && (
+          <FeatureBadge
+            type="alpha"
+            title={t(
+              'Uncompressed Asset Performance Issues are in active development and may change'
+            )}
           />
         )}
       </ShortIdBreadrcumb>
