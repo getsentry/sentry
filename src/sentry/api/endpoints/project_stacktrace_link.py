@@ -346,7 +346,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 logger.exception(
                                     "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                                 )
-                                
+
                     try:
                         lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
