@@ -56,7 +56,7 @@ jobs:
               workflow_id: 'acceptance.yml',
               ref: 'master',
               inputs: {
-                'sentry-sha': '${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}',
+                'sentry-sha': '${{ github.event.pull_request.merge_commit_sha }}',
                 'sentry-pr-sha': '${{ github.event.pull_request.head.sha }}',
               }
             })
