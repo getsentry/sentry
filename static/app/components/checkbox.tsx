@@ -154,7 +154,7 @@ const VariableWeightIcon = styled('svg')<{size: string}>`
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke: ${p => p.theme.white};
-  stroke-width: calc((0.7px + ${p => p.size} * 0.035) * 1.4);
+  stroke-width: calc(1px + ${p => p.size} * 0.05);
 `;
 
 export default Checkbox;
