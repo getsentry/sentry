@@ -184,6 +184,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
+        path="/organizations/:orgId/share/issue/:shareId/"
+        component={make(() => import('sentry/views/sharedGroupDetails'))}
+      />
+      <Route
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
