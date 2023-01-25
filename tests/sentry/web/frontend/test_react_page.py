@@ -244,7 +244,7 @@ class ReactPageViewTest(TestCase):
         org = self.create_organization(owner=self.user)
         other_org = self.create_organization()
 
-        self.login_as(self.user)
+        self.login_as(self.user, superuser=True)
 
         with self.feature({"organizations:customer-domains": [org.slug]}):
             # Induce activeorg
