@@ -37,8 +37,7 @@ export function useHeartbeat({project}: Props) {
       {
         query: {
           project: project?.id,
-          statsPeriod: '1h',
-          interval: '1h',
+          statsPeriod: '24h',
           field: [SessionFieldWithOperation.SESSIONS],
         },
       },

@@ -97,6 +97,8 @@ class ProjectInstallPlatform extends Component<Props, State> {
     const {params, organization} = this.props;
     const {projectId} = params;
 
+    organization.features = ['onboarding-heartbeat-footer'];
+
     const platform = platforms.find(p => p.id === params.platform);
 
     if (!platform) {
