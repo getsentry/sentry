@@ -125,7 +125,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "name": "session.crash_free_user",
                 "operations": [],
                 "type": "numeric",
-                "unit": "percentage",
+                "unit": "users",
             },
             {
                 "name": "session.crash_free_user_rate",
