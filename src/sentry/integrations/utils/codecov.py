@@ -26,7 +26,7 @@ def get_codecov_data(
         with configure_scope() as scope:
             params = {"branch": branch, "path": path}
             response = requests.get(
-                url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
+                url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
             )
             scope.set_tag("codecov.http_code", response.status_code)
 
