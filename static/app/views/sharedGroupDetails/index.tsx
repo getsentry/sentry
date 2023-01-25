@@ -20,7 +20,7 @@ import {OrganizationContext} from '../organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
-type Props = RouteComponentProps<{orgId: string | undefined; shareId: string}, {}> & {
+type Props = RouteComponentProps<{shareId: string; orgId?: string}, {}> & {
   api: Client;
 };
 
@@ -68,7 +68,7 @@ class SharedGroupDetails extends Component<Props, State> {
     if (params.orgId) {
       return params.orgId;
     }
-    const {customerDomain} = window.__initialData;
+    const {customerDomain} = window.__initialData || {};
     if (customerDomain?.subdomain) {
       return customerDomain.subdomain;
     }

@@ -184,7 +184,7 @@ function buildRoutes() {
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
-        path="/organizations/:orgId/share/issue/:shareId/"
+        path="/(organizations)?/:orgId?/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
