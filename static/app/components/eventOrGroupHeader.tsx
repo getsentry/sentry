@@ -6,7 +6,7 @@ import capitalize from 'lodash/capitalize';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -14,7 +14,6 @@ import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';
 
@@ -56,7 +55,6 @@ function EventOrGroupHeader({
   grouping = false,
   source,
 }: Props) {
-  const params = useParams();
   const location = useLocation();
 
   const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
@@ -99,7 +97,7 @@ function EventOrGroupHeader({
   }
 
   function getTitle() {
-    const orgId = params?.orgId;
+    const orgId = organization.slug;
 
     const {id, status} = data as Group;
     const {eventID, groupID} = data as Event;

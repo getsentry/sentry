@@ -4,7 +4,7 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

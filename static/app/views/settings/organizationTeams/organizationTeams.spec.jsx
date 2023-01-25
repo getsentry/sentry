@@ -23,7 +23,7 @@ describe('OrganizationTeams', function () {
     const createWrapper = props =>
       render(
         <OrganizationTeams
-          params={{orgId: organization.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           routes={[]}
           features={new Set(['open-membership'])}
           access={new Set(['project:admin'])}
@@ -122,7 +122,7 @@ describe('OrganizationTeams', function () {
     const createWrapper = props =>
       render(
         <OrganizationTeams
-          params={{orgId: organization.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           routes={[]}
           features={new Set([])}
           access={new Set([])}
@@ -190,12 +190,12 @@ describe('OrganizationTeams', function () {
   });
 
   describe('Team Requests', function () {
-    const orgId = 'org-slug';
     const {organization, project} = initializeOrg({
       organization: {
         openMembership: false,
       },
     });
+    const orgId = organization.slug;
     const accessRequest = TestStubs.AccessRequest();
     const requester = TestStubs.User({
       id: '9',
@@ -208,7 +208,7 @@ describe('OrganizationTeams', function () {
     const createWrapper = props =>
       render(
         <OrganizationTeams
-          params={{orgId: organization.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           routes={[]}
           features={new Set([])}
           access={new Set([])}
@@ -290,7 +290,7 @@ describe('OrganizationTeams', function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
-          params={{orgId: organization.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           routes={[]}
           features={new Set()}
           access={access}
@@ -305,7 +305,7 @@ describe('OrganizationTeams', function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
-          params={{orgId: organization.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           routes={[]}
           features={features}
           access={access}
@@ -313,14 +313,19 @@ describe('OrganizationTeams', function () {
         />
       );
 
-      expect(screen.getByText('a minimum team-level role of')).toBeInTheDocument();
+      expect(
+        // Text broken up by styles
+        screen.getByText(
+          'Your organization role as an has granted you a minimum team-level role of'
+        )
+      ).toBeInTheDocument();
     });
 
     it('does not render alert with lowest org role', function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'member'}});
       render(
         <OrganizationTeams
-          params={{orgId: organization.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           routes={[]}
           features={features}
           access={access}

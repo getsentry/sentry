@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
@@ -17,7 +17,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -28,7 +27,6 @@ import {
 } from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -65,7 +63,12 @@ export const PAGE_QUERY_PARAMS = [
 type Props = {
   organization: Organization;
   selection: PageFilters;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
+
+const UsageStatsOrganization = HookOrDefault({
+  hookName: 'component:enhanced-org-stats',
+  defaultComponent: UsageStatsOrg,
+});
 
 export class OrganizationStats extends Component<Props> {
   get dataCategory(): DataCategory {
@@ -310,7 +313,7 @@ export class OrganizationStats extends Component<Props> {
       : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
 
     return (
-      <Fragment>
+      <SelectorGrid>
         <DropdownDataCategory
           triggerProps={{prefix: t('Category')}}
           value={this.dataCategory}
@@ -327,7 +330,7 @@ export class OrganizationStats extends Component<Props> {
           onUpdate={this.handleUpdateDatetime}
           relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
         />
-      </Fragment>
+      </SelectorGrid>
     );
   };
 
@@ -335,43 +338,38 @@ export class OrganizationStats extends Component<Props> {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
 
-    // We only show UsageProjectStats if multiple projects are selected
-    const shouldRenderProjectStats = this.hasProjectStats
-      ? this.projectIds.includes(-1) || this.projectIds.length !== 1
-      : // Always render if they don't have the proper flags
-        true;
+    const isSingleProject = this.hasProjectStats
+      ? this.projectIds.length === 1 && !this.projectIds.includes(-1)
+      : false;
 
     return (
       <SentryDocumentTitle title="Usage Stats">
         <PageFiltersContainer>
-          {hasTeamInsights && (
+          {hasTeamInsights ? (
             <HeaderTabs organization={organization} activeTab="stats" />
+          ) : (
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
+                <HeadingSubtitle>
+                  {tct(
+                    'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/product/stats/" />,
+                    }
+                  )}
+                </HeadingSubtitle>
+              </Layout.HeaderContent>
+            </Layout.Header>
           )}
           <Body>
             <Layout.Main fullWidth>
-              {!hasTeamInsights && (
-                <Fragment>
-                  <PageHeader>
-                    <PageHeading>{t('Organization Usage Stats')}</PageHeading>
-                  </PageHeader>
-                  <p>
-                    {tct(
-                      'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/stats/" />
-                        ),
-                      }
-                    )}
-                  </p>
-                </Fragment>
-              )}
               <HookHeader organization={organization} />
               {this.renderProjectPageControl()}
-              <PageGrid>
-                {this.renderPageControl()}
+              {this.renderPageControl()}
+              <div>
                 <ErrorBoundary mini>
-                  <UsageStatsOrg
+                  <UsageStatsOrganization
                     organization={organization}
                     dataCategory={this.dataCategory}
                     dataCategoryName={this.dataCategoryName}
@@ -379,10 +377,11 @@ export class OrganizationStats extends Component<Props> {
                     chartTransform={this.chartTransform}
                     handleChangeState={this.setStateOnUrl}
                     projectIds={this.projectIds}
+                    isSingleProject={isSingleProject}
                   />
                 </ErrorBoundary>
-              </PageGrid>
-              {shouldRenderProjectStats && (
+              </div>
+              {!isSingleProject && (
                 <ErrorBoundary mini>
                   <UsageStatsProjects
                     organization={organization}
@@ -408,11 +407,11 @@ export class OrganizationStats extends Component<Props> {
 
 export default withPageFilters(withOrganization(OrganizationStats));
 
-const PageGrid = styled('div')`
+const SelectorGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${space(2)};
-
+  margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -422,6 +421,7 @@ const PageGrid = styled('div')`
 `;
 
 const DropdownDataCategory = styled(CompactSelect)`
+  position: relative;
   grid-column: auto / span 1;
 
   button[aria-haspopup='listbox'] {
@@ -434,6 +434,18 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
@@ -451,6 +463,11 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
   }
+`;
+
+const HeadingSubtitle = styled('p')`
+  margin-top: ${space(0.5)};
+  margin-bottom: 0;
 `;
 
 const PageControl = styled('div')`

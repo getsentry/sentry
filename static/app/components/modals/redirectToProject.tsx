@@ -3,7 +3,7 @@ import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import recreateRoute from 'sentry/utils/recreateRoute';

@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button, {ButtonLabel} from 'sentry/components/button';
+import {Button, ButtonLabel} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
@@ -325,7 +324,7 @@ const StyledItemButton = styled(Button)`
   }
 `;
 
-const OverflowMenu = styled(DropdownMenuControl)`
+const OverflowMenu = styled(DropdownMenu)`
   position: absolute;
   top: 12px;
   right: ${space(1)};

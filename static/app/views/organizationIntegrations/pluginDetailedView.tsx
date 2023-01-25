@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 
 import * as modal from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PluginProjectItem, PluginWithProjectList} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -25,9 +26,13 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, integrationSlug} = this.props.params;
+    const {organization} = this.props;
+    const {integrationSlug} = this.props.params;
     return [
-      ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
+      [
+        'plugins',
+        `/organizations/${organization.slug}/plugins/configs/?plugins=${integrationSlug}`,
+      ],
     ];
   }
 
@@ -115,11 +120,11 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           needOrg={false}
           onFinish={path => {
             modalProps.closeModal();
-            router.push(path);
+            router.push(normalizeUrl(path));
           }}
         />
       ),
-      {allowClickClose: false}
+      {closeEvents: 'escape-key'}
     );
   };
 

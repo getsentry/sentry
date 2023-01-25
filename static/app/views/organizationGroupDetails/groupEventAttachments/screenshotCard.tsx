@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import DateTime from 'sentry/components/dateTime';
 import DropdownLink from 'sentry/components/dropdownLink';
@@ -119,7 +119,7 @@ export function ScreenshotCard({
             <StyledImageVisualization
               attachment={eventAttachment}
               orgId={organization.slug}
-              projectId={projectSlug}
+              projectSlug={projectSlug}
               eventId={eventId}
               onLoad={() => setLoadingImage(false)}
               onError={() => setLoadingImage(false)}

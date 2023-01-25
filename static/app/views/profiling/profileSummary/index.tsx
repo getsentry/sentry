@@ -20,11 +20,11 @@ import {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ProfileSummaryContent} from './content';
@@ -39,19 +39,18 @@ interface ProfileSummaryPageProps {
 
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
-  const {projects} = useProjects({
-    slugs: defined(props.params.projectId) ? [props.params.projectId] : [],
-  });
+  const project = useCurrentProjectFromRouteParam();
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
       organization,
+      project_platform: project?.platform,
+      project_id: project?.id,
     });
+    // ignore  currentProject so we don't block the analytics event
+    // or fire more than once unnecessarily
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization]);
-
-  // Extract the project matching the provided project slug,
-  // if it doesn't exist, set this to null and handle it accordingly.
-  const project = projects.length === 1 ? projects[0] : null;
 
   const transaction = decodeScalar(props.location.query.transaction);
 
@@ -119,32 +118,32 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         forceProject={project}
         specificProjectSlugs={defined(project) ? [project.slug] : []}
       >
-        <NoProjectMessage organization={organization}>
-          {project && transaction && (
-            <Fragment>
-              <Layout.Header>
-                <Layout.HeaderContent>
-                  <Breadcrumb
-                    organization={organization}
-                    trails={[
-                      {
-                        type: 'landing',
-                        payload: {
-                          query: props.location.query,
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
+            {project && transaction && (
+              <Fragment>
+                <Layout.Header>
+                  <Layout.HeaderContent>
+                    <Breadcrumb
+                      organization={organization}
+                      trails={[
+                        {
+                          type: 'landing',
+                          payload: {
+                            query: props.location.query,
+                          },
                         },
-                      },
-                      {
-                        type: 'profile summary',
-                        payload: {
-                          projectSlug: project.slug,
-                          query: props.location.query,
-                          transaction,
+                        {
+                          type: 'profile summary',
+                          payload: {
+                            projectSlug: project.slug,
+                            query: props.location.query,
+                            transaction,
+                          },
                         },
-                      },
-                    ]}
-                  />
-                  <Layout.Title>
-                    <Title>
+                      ]}
+                    />
+                    <Layout.Title>
                       {project ? (
                         <IdBadge
                           project={project}
@@ -154,48 +153,43 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         />
                       ) : null}
                       {transaction}
-                    </Title>
-                  </Layout.Title>
-                </Layout.HeaderContent>
-              </Layout.Header>
-              <Layout.Body>
-                <Layout.Main fullWidth>
-                  <ActionBar>
-                    <PageFilterBar condensed>
-                      <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
-                    </PageFilterBar>
-                    <SmartSearchBar
-                      organization={organization}
-                      hasRecentSearches
-                      searchSource="profile_summary"
-                      supportedTags={profileFilters}
-                      query={rawQuery}
-                      onSearch={handleSearch}
-                      maxQueryLength={MAX_QUERY_LENGTH}
+                    </Layout.Title>
+                  </Layout.HeaderContent>
+                </Layout.Header>
+                <Layout.Body>
+                  <Layout.Main fullWidth>
+                    <ActionBar>
+                      <PageFilterBar condensed>
+                        <EnvironmentPageFilter />
+                        <DatePageFilter alignDropdown="left" />
+                      </PageFilterBar>
+                      <SmartSearchBar
+                        organization={organization}
+                        hasRecentSearches
+                        searchSource="profile_summary"
+                        supportedTags={profileFilters}
+                        query={rawQuery}
+                        onSearch={handleSearch}
+                        maxQueryLength={MAX_QUERY_LENGTH}
+                      />
+                    </ActionBar>
+                    <ProfileSummaryContent
+                      location={props.location}
+                      project={project}
+                      selection={props.selection}
+                      transaction={transaction}
+                      query={query}
                     />
-                  </ActionBar>
-                  <ProfileSummaryContent
-                    location={props.location}
-                    project={project}
-                    selection={props.selection}
-                    transaction={transaction}
-                    query={query}
-                  />
-                </Layout.Main>
-              </Layout.Body>
-            </Fragment>
-          )}
-        </NoProjectMessage>
+                  </Layout.Main>
+                </Layout.Body>
+              </Fragment>
+            )}
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
-
-const Title = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const ActionBar = styled('div')`
   display: grid;

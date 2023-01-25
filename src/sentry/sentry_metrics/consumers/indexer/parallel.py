@@ -184,9 +184,9 @@ def get_parallel_metrics_consumer(
     output_block_size: int,
     group_id: str,
     auto_offset_reset: str,
+    strict_offset_reset: bool,
     indexer_profile: MetricsIngestConfiguration,
     slicing_router: Optional[SlicingRouter],
-    **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
@@ -204,12 +204,18 @@ def get_parallel_metrics_consumer(
     create_topics(cluster_name, [indexer_profile.input_topic])
 
     return StreamProcessor(
-        KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
+        KafkaConsumer(
+            get_config(
+                indexer_profile.input_topic,
+                group_id,
+                auto_offset_reset=auto_offset_reset,
+                strict_offset_reset=strict_offset_reset,
+            )
+        ),
         Topic(indexer_profile.input_topic),
         processing_factory,
         CommitPolicy(
-            min_commit_frequency_sec=max_parallel_batch_time / 1000,
-            # TODO(markus): honor CLI params or remove them
-            min_commit_messages=None,
+            min_commit_frequency_sec=max_batch_time / 1000,
+            min_commit_messages=max_batch_size,
         ),
     )

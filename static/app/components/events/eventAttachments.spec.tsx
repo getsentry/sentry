@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EventAttachments from 'sentry/components/events/eventAttachments';
+import {EventAttachments} from 'sentry/components/events/eventAttachments';
 
 describe('EventAttachments', function () {
   const {routerContext, organization, project} = initializeOrg();
@@ -9,7 +9,7 @@ describe('EventAttachments', function () {
 
   const props = {
     orgId: organization.slug,
-    projectId: project.slug,
+    projectSlug: project.slug,
     location: routerContext.context.location,
     attachments: [],
     onDeleteAttachment: jest.fn(),
@@ -28,12 +28,13 @@ describe('EventAttachments', function () {
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(
       'href',
-      `/settings/${props.orgId}/projects/${props.projectId}/security-and-privacy/`
+      `/settings/${props.orgId}/projects/${props.projectSlug}/security-and-privacy/`
     );
 
     expect(
       screen.getByText(
-        'Your limit of stored crash reports has been reached for this issue.'
+        'Your limit of stored crash reports has been reached for this issue.',
+        {exact: false}
       )
     ).toBeInTheDocument();
   });

@@ -376,7 +376,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         - The API also does not support setting secondary emails.
         """
 
-        with sentry_sdk.start_span(op="enterprise.scim-provision-user") as span:
+        with sentry_sdk.start_transaction(
+            name="scim.provision_member", op="scim", sampled=True
+        ) as txn:
             if (
                 features.has("organizations:scim-orgmember-roles", organization, actor=None)
                 and "sentryOrgRole" in request.data
@@ -387,7 +389,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             else:
                 role = organization.default_role
                 idp_role_restricted = False
-            span.set_tag("role_restricted", idp_role_restricted)
+            txn.set_tag("role_restricted", idp_role_restricted)
 
             # Allow any role as long as it doesn't have `org:admin` permissions
             allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
@@ -395,10 +397,10 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             # Check for roles not found
             # TODO: move this to the serializer verification
             if role not in {role.id for role in allowed_roles}:
-                span.set_tag("invalid_role_selection", True)
-                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE, span=span)
+                txn.set_tag("invalid_role_selection", True)
+                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
-            span.set_tag("invalid_role_selection", False)
+            txn.set_tag("invalid_role_selection", False)
             serializer = OrganizationMemberSerializer(
                 data={
                     "email": request.data.get("userName"),
@@ -421,8 +423,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 if "role" in serializer.errors:
                     # TODO: Change this to an error pointing to a doc showing the workaround if they
                     # tried to provision an org admin
-                    raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE, span=span)
-                raise SCIMApiError(detail=json.dumps(serializer.errors), span=span)
+                    raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+                raise SCIMApiError(detail=json.dumps(serializer.errors))
 
             result = serializer.validated_data
             with transaction.atomic():

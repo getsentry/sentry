@@ -11,7 +11,7 @@ export enum Tab {
   REPLAYS = 'Replays',
 }
 
-export const TabPaths = {
+export const TabPaths: Record<Tab, string> = {
   [Tab.DETAILS]: '',
   [Tab.ACTIVITY]: 'activity/',
   [Tab.USER_FEEDBACK]: 'feedback/',

@@ -23,12 +23,12 @@ from fixtures.github import (
 from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
-from sentry.dynamic_sampling.latest_release_booster import (
+from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
+    Platform,
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.event_manager import (
     EventManager,
     EventUser,
@@ -2435,6 +2435,35 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert data2["hashes"] == []
             assert data3["hashes"] == [expected_hash]
 
+    @override_options(
+        {
+            "performance.issues.slow_db_query.problem-creation": 1.0,
+            "performance_issue_creation_rate": 1.0,
+        }
+    )
+    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
+    def test_perf_issue_slow_db_issue_is_created(self):
+        def attempt_to_generate_slow_db_issue() -> Event:
+            last_event = None
+
+            for _ in range(100):
+                manager = EventManager(make_event(**get_event("slow-db-spans")))
+                manager.normalize()
+                event = manager.save(self.project.id)
+                last_event = event
+
+            return last_event
+
+        # Should not create the group without the feature flag
+        last_event = attempt_to_generate_slow_db_issue()
+        assert len(last_event.groups) == 0
+
+        with self.feature({"organizations:performance-slow-db-issue": True}):
+            last_event = attempt_to_generate_slow_db_issue()
+
+            assert len(last_event.groups) == 1
+            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_DB_QUERY.value
+
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):
@@ -3399,10 +3428,7 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
         ts = time()
 
@@ -3481,10 +3507,7 @@ class DSLatestReleaseBoostTest(TestCase):
             ]
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
         with self.options(
             {

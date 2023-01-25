@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import capitalize from 'lodash/capitalize';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
 import {Organization, ResolutionStatusDetails} from 'sentry/types';

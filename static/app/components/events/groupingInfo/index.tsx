@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {Button} from 'sentry/components/button';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -19,7 +19,7 @@ import GroupVariant from './groupingVariant';
 type Props = AsyncComponent['props'] & {
   event: Event;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
   showGroupingConfig: boolean;
 };
 
@@ -29,11 +29,11 @@ type State = AsyncComponent['state'] & {
   isOpen: boolean;
 };
 
-class EventGroupingInfo extends AsyncComponent<Props, State> {
+class GroupingInfo extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, event, projectId} = this.props;
+    const {organization, event, projectSlug} = this.props;
 
-    let path = `/projects/${organization.slug}/${projectId}/events/${event.id}/grouping-info/`;
+    let path = `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`;
     if (this.state?.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }
@@ -205,4 +205,4 @@ const VariantDivider = styled('hr')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
-export default withOrganization(EventGroupingInfo);
+export const EventGroupingInfo = withOrganization(GroupingInfo);

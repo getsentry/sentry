@@ -49,7 +49,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    Integration,
     SentryAppInstallationToken,
     Team,
     User,
@@ -67,6 +66,7 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
@@ -375,6 +375,12 @@ class GroupSerializerBase(Serializer, ABC):
     ) -> Mapping[Group, SeenStats]:
         pass
 
+    @abstractmethod
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        pass
+
     def _expand(self, key) -> bool:
         if self.expand is None:
             return False
@@ -460,11 +466,20 @@ class GroupSerializerBase(Serializer, ABC):
         perf_issues = [
             group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
         ]
+        generic_issues = [
+            group
+            for group in item_list
+            if group.issue_category
+            and group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+        ]
 
         # bulk query for the seen_stats by type
         error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
         perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
-        agg_stats = {**error_stats, **perf_stats}
+        generic_stats = (
+            self._seen_stats_generic(generic_issues, user) if generic_issues else {}
+        ) or {}
+        agg_stats = {**error_stats, **perf_stats, **generic_stats}
         # combine results back
         return {group: agg_stats.get(group, {}) for group in item_list}
 
@@ -629,14 +644,21 @@ class GroupSerializerBase(Serializer, ABC):
 
         integration_annotations = []
         # find all the integration installs that have issue tracking
-        for integration in Integration.objects.filter(organizations=org_id):
+        integrations = integration_service.get_integrations(organization_id=org_id)
+        for integration in integrations:
             if not (
-                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+                integration_service.has_feature(
+                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
+                )
+                or integration_service.has_feature(
+                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
+                )
             ):
                 continue
 
-            install = integration.get_installation(org_id)
+            install = integration_service.get_installation(
+                integration=integration, organization_id=org_id
+            )
             local_annotations_by_group_id = (
                 safe_execute(
                     install.get_annotations_for_group_list,
@@ -745,6 +767,15 @@ class GroupSerializer(GroupSerializerBase):
             perf_issue_list,
             tagstore.get_perf_groups_user_counts,
             tagstore.get_perf_group_list_tag_value,
+        )
+
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return self.__seen_stats_impl(
+            generic_issue_list,
+            tagstore.get_generic_groups_user_counts,
+            tagstore.get_generic_group_list_tag_value,
         )
 
     def __seen_stats_impl(
@@ -918,6 +949,22 @@ class GroupSerializerSnuba(GroupSerializerBase):
             self.environment_ids,
         )
 
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return self._parse_seen_stats_results(
+            self._execute_generic_seen_stats_query(
+                item_list=generic_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+                environment_ids=self.environment_ids,
+            ),
+            generic_issue_list,
+            bool(self.start or self.end or self.conditions),
+            self.environment_ids,
+        )
+
     @staticmethod
     def _execute_error_seen_stats_query(
         item_list, start=None, end=None, conditions=None, environment_ids=None
@@ -972,6 +1019,32 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
+        )
+
+    @staticmethod
+    def _execute_generic_seen_stats_query(
+        item_list, start=None, end=None, conditions=None, environment_ids=None
+    ):
+        project_ids = list({item.project_id for item in item_list})
+        group_ids = [item.id for item in item_list]
+        aggregations = [
+            ["count()", "", "times_seen"],
+            ["min", "timestamp", "first_seen"],
+            ["max", "timestamp", "last_seen"],
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if environment_ids:
+            filters["environment"] = environment_ids
+        return aliased_query(
+            dataset=Dataset.IssuePlatform,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
         )
 
     @staticmethod

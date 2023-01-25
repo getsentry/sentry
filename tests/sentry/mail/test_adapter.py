@@ -1152,12 +1152,13 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
+        timestamp = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
             project_id=project.id,
         )
 
@@ -1192,12 +1193,13 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
             project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        timestamp = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
 
@@ -1222,12 +1224,13 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         no longer exists, we don't blow up when getting users in get_send_to
         """
         project = self.project
+        timestamp = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
             project_id=project.id,
         )
 

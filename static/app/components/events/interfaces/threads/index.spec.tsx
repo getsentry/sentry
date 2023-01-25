@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Threads from 'sentry/components/events/interfaces/threads';
+import {Threads} from 'sentry/components/events/interfaces/threads';
 
 describe('Threads', () => {
   const entries = TestStubs.Entries()[0];
@@ -51,7 +51,7 @@ describe('Threads', () => {
       <Threads
         data={data}
         hasHierarchicalGrouping={false}
-        projectId="project-id"
+        projectSlug="project-id"
         event={newEvent}
       />
     );
@@ -69,7 +69,7 @@ describe('Threads', () => {
       <Threads
         data={{...data, values: [{...data.values[0], stacktrace: null}]}}
         hasHierarchicalGrouping={false}
-        projectId="project-id"
+        projectSlug="project-id"
         event={{
           ...event,
           entries: [
@@ -97,7 +97,7 @@ describe('Threads', () => {
       render(
         <Threads
           data={threadsEntry.data}
-          projectId="project-id"
+          projectSlug="project-id"
           event={event}
           hasHierarchicalGrouping={false}
         />
@@ -112,7 +112,7 @@ describe('Threads', () => {
         <Threads
           data={threadsEntry.data}
           hasHierarchicalGrouping={false}
-          projectId="project-id"
+          projectSlug="project-id"
           event={{
             ...event,
             entries: [

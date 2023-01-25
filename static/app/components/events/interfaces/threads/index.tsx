@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
@@ -24,7 +24,7 @@ type Props = Pick<
     values?: Array<Thread>;
   };
   event: Event;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   hideGuide?: boolean;
 };
 
@@ -48,10 +48,10 @@ function getIntendedStackView(thread: Thread, event: Event) {
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-function Threads({
+export function Threads({
   data,
   event,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
@@ -166,7 +166,7 @@ function Threads({
         stacktrace={stacktrace}
         event={event}
         newestFirst={newestFirst}
-        projectId={projectId}
+        projectSlug={projectSlug}
         groupingCurrentLevel={groupingCurrentLevel}
         stackTraceNotFound={stackTraceNotFound}
         hasHierarchicalGrouping={hasHierarchicalGrouping}
@@ -174,5 +174,3 @@ function Threads({
     </EventDataSection>
   );
 }
-
-export default Threads;

@@ -99,8 +99,8 @@ def send_incident_alert_notification(action, incident, metric_value, new_status:
     client = MsTeamsClient(integration)
     try:
         client.send_card(channel, attachment)
-    except ApiError as e:
-        logger.info("rule.fail.msteams_post", extra={"error": str(e)})
+    except ApiError:
+        logger.info("rule.fail.msteams_post", exc_info=True)
 
 
 def get_preinstall_client(service_url):

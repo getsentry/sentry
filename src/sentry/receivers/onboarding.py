@@ -18,6 +18,8 @@ from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import (
     alert_rule_created,
     event_processed,
+    first_cron_checkin_received,
+    first_cron_monitor_created,
     first_event_pending,
     first_event_received,
     first_event_with_minified_stack_trace_received,
@@ -257,6 +259,31 @@ def record_first_replay(project, **kwargs):
             platform=project.platform,
         )
         try_mark_onboarding_complete(project.organization_id)
+
+
+@first_cron_monitor_created.connect(weak=False)
+def record_first_cron_monitor(project, user, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
+
+    analytics.record(
+        "first_cron_monitor.created",
+        user_id=user.id if user else project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+    )
+
+
+@first_cron_checkin_received.connect(weak=False)
+def record_first_cron_checkin(project, monitor_id, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_cron_checkins))
+
+    analytics.record(
+        "first_cron_checkin.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        monitor_id=monitor_id,
+    )
 
 
 @member_invited.connect(weak=False)

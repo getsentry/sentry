@@ -2,7 +2,7 @@ import datetime
 import functools
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, Mapping, Optional, Set, Union
+from typing import Any, Callable, Mapping, Optional, Set
 
 import rapidjson
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -164,7 +164,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             result.update(value.payload)
             return result
 
-        initial_value: Set[int] = set()
+        initial_value: Callable[[], Set[int]] = lambda: set()
 
         def do_update(message: Message[Set[int]]) -> None:
             table = TABLE_MAPPING[self.__use_case_id]
@@ -196,8 +196,8 @@ def get_last_seen_updater(
     max_batch_size: int,
     max_batch_time: float,
     auto_offset_reset: str,
+    strict_offset_reset: bool,
     ingest_config: MetricsIngestConfiguration,
-    **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     """
     The last_seen updater uses output from the metrics indexer to update the
@@ -212,7 +212,14 @@ def get_last_seen_updater(
     )
 
     return StreamProcessor(
-        KafkaConsumer(get_config(ingest_config.output_topic, group_id, auto_offset_reset)),
+        KafkaConsumer(
+            get_config(
+                ingest_config.output_topic,
+                group_id,
+                auto_offset_reset=auto_offset_reset,
+                strict_offset_reset=strict_offset_reset,
+            )
+        ),
         Topic(ingest_config.output_topic),
         processing_factory,
         IMMEDIATE,

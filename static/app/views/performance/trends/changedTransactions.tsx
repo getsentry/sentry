@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import DropdownLink from 'sentry/components/dropdownLink';
@@ -19,7 +19,7 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

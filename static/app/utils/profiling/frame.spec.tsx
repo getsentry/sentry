@@ -33,6 +33,8 @@ describe('Frame', () => {
       ).toBe(undefined);
     });
     it.each([
+      ['node:internal/crypto/hash', 'node:internal/crypto'],
+      ['node:vm', 'node:vm'],
       ['/usr/code/node_modules/@sentry/profiling-node/file.js', '@sentry/profiling-node'],
       ['/usr/code/node_modules/sentry/profiling-node/file.js', 'sentry'],
       ['/usr/code/node_modules/sentry/file.js', 'sentry'],

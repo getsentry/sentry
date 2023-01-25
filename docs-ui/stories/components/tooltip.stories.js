@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
-import Button from 'sentry/components/button';
-import Tooltip from 'sentry/components/tooltip';
+import {Button} from 'sentry/components/button';
+import {Tooltip} from 'sentry/components/tooltip';
 
 class CustomThing extends Component {
   render() {
