@@ -1,13 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
+import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 
 describe('Breadcrumb', function () {
   it('renders the profiling link', function () {
     const {organization, routerContext} = initializeOrg();
     render(
-      <Breadcrumb
+      <ProfilingBreadcrumbs
         organization={organization}
         trails={[
           {type: 'landing', payload: {query: {}}},

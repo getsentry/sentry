@@ -12,12 +12,12 @@ import {
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 
-interface BreadcrumbsProps {
+export interface ProfilingBreadcrumbsProps {
   organization: Organization;
   trails: Trail[];
 }
 
-function Breadcrumb({organization, trails}: BreadcrumbsProps) {
+function ProfilingBreadcrumbs({organization, trails}: ProfilingBreadcrumbsProps) {
   const crumbs = useMemo(
     () => trails.map(trail => trailToCrumb(trail, {organization})),
     [organization, trails]
@@ -110,4 +110,4 @@ type FlamegraphTrail = {
 
 type Trail = ProfilingTrail | ProfileSummaryTrail | FlamegraphTrail;
 
-export {Breadcrumb};
+export {ProfilingBreadcrumbs};

@@ -1,8 +1,15 @@
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
+
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
-import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
+import {
+  ProfilingBreadcrumbs,
+  ProfilingBreadcrumbsProps,
+} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -40,34 +47,37 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     });
   }
 
+  const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
+    return [
+      {type: 'landing', payload: {query: location.query}},
+      {
+        type: 'profile summary',
+        payload: {
+          projectSlug,
+          transaction: transactionName,
+          query: location.query,
+        },
+      },
+      {
+        type: 'flamechart',
+        payload: {
+          transaction: transactionName,
+          profileId,
+          projectSlug,
+          query: location.query,
+          tab: location.pathname.endsWith('details/') ? 'details' : 'flamechart',
+        },
+      },
+    ];
+  }, [location, projectSlug, transactionName, profileId]);
+
   return (
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Breadcrumb
-          organization={organization}
-          trails={[
-            {type: 'landing', payload: {query: location.query}},
-            {
-              type: 'profile summary',
-              payload: {
-                projectSlug,
-                transaction: transactionName,
-                query: location.query,
-              },
-            },
-            {
-              type: 'flamechart',
-              payload: {
-                transaction: transactionName,
-                profileId,
-                projectSlug,
-                query: location.query,
-                tab: location.pathname.endsWith('details/') ? 'details' : 'flamechart',
-              },
-            },
-          ]}
-        />
-      </Layout.HeaderContent>
+    <SmallerLayoutHeader>
+      <SmallerHeaderContent>
+        <SmallerProfilingBreadcrumbsWrapper>
+          <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
+        </SmallerProfilingBreadcrumbsWrapper>
+      </SmallerHeaderContent>
       <Layout.HeaderActions>
         {transactionTarget && (
           <Button size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
@@ -75,7 +85,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           </Button>
         )}
       </Layout.HeaderActions>
-      <Layout.HeaderNavTabs underlined>
+      <SmallerProfilingHeaderNavTabs underlined>
         <li className={location.pathname.endsWith('flamechart/') ? 'active' : undefined}>
           <Link
             to={generateProfileFlamechartRouteWithQuery({
@@ -100,9 +110,28 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
             {t('Details')}
           </Link>
         </li>
-      </Layout.HeaderNavTabs>
-    </Layout.Header>
+      </SmallerProfilingHeaderNavTabs>
+    </SmallerLayoutHeader>
   );
 }
+
+const SmallerHeaderContent = styled(Layout.HeaderContent)`
+  margin-bottom: ${space(1.5)};
+`;
+
+const SmallerProfilingBreadcrumbsWrapper = styled('div')`
+  nav {
+    padding-bottom: ${space(1)};
+  }
+`;
+
+const SmallerProfilingHeaderNavTabs = styled(Layout.HeaderNavTabs)`
+  a {
+    padding-top: 0 !important;
+  }
+`;
+const SmallerLayoutHeader = styled(Layout.Header)`
+  padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
+`;
 
 export {ProfileHeader};
