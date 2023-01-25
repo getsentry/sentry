@@ -186,5 +186,5 @@ const Filters = styled('div')`
 `;
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
-  margin: ${space(2)} 0 0;
+  margin: ${space(2)} 0;
 `;

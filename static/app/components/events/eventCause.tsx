@@ -93,7 +93,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
           </ExpandButton>
         )}
       </CauseHeader>
-      <Panel>
+      <StyledPanel>
         {commits.slice(0, isExpanded ? 100 : 1).map(commit => (
           <CommitRow
             key={commit.id}
@@ -102,10 +102,14 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
             onPullRequestClick={handlePullRequestClick}
           />
         ))}
-      </Panel>
+      </StyledPanel>
     </DataSection>
   );
 }
+
+const StyledPanel = styled(Panel)`
+  margin: 0;
+`;
 
 const ExpandButton = styled('button')`
   display: flex;
