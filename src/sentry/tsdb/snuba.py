@@ -24,7 +24,6 @@ from snuba_sdk.query import SelectableExpression
 
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
-from sentry.tagstore.snuba.backend import _translate_filter_keys
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
@@ -448,17 +447,12 @@ class SnubaTSDB(BaseTSDB):
                 conditions += model_query_settings.conditions
 
             project_ids = infer_project_ids_from_related_models(keys_map)
-            group_ids = keys_map.get("group_id")
-            env_ids = keys_map.get("environment")
-
-            # forward
-            # TODO: keys_map and filter_keys should be the same, need to revisit this and merge the two into one
-            filter_keys = _translate_filter_keys(keys_map, project_ids, group_ids, env_ids)
-            forward, reverse = get_snuba_translators(filter_keys, is_grouprelease)
+            keys_map["project_id"] = project_ids
+            forward, reverse = get_snuba_translators(keys_map, is_grouprelease)
 
             # resolve filter_key values to the right values environment.id -> environment.name, etc.
             mapped_filter_conditions = []
-            for col, f_keys in forward(deepcopy(filter_keys)).items():
+            for col, f_keys in forward(deepcopy(keys_map)).items():
                 if f_keys:
                     if len(f_keys) == 1 and None in f_keys:
                         mapped_filter_conditions.append(Condition(Column(col), Op.IS_NULL))
@@ -495,7 +489,6 @@ class SnubaTSDB(BaseTSDB):
             query_result = raw_snql_query(
                 snql_request, referrer=f"tsdb-modelid:{model.value}", use_cache=use_cache
             )
-            # reverse
             if manual_group_on_time:
                 translated_results = {"data": query_result["data"]}
             else:

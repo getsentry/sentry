@@ -50,6 +50,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
     get_organization_id_from_project_ids,
+    get_snuba_translators,
     nest_groups,
     raw_snql_query,
 )
@@ -95,15 +96,16 @@ def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
 
 
-def _translate_filter_keys(f_keys, project_ids, group_ids, environment_ids) -> Dict[str, Any]:
-    f_keys["project_id"] = project_ids
+def _translate_filter_keys(project_ids, group_ids, environment_ids) -> Dict[str, Any]:
+    filter_keys = {"project_id": project_ids}
 
     if environment_ids:
-        f_keys["environment"] = environment_ids
+        filter_keys["environment"] = environment_ids
     if group_ids:
-        f_keys["group_id"] = group_ids
+        filter_keys["group_id"] = group_ids
 
-    return f_keys
+    forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=False)
+    return forward(filter_keys)
 
 
 class SnubaTagStorage(TagStorage):
