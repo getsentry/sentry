@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {
   Group,
@@ -12,36 +12,40 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
-type Props = {
-  project?: Project;
-};
-
-export function useHeartbeat({project}: Props) {
+export function useHeartbeat(
+  projectSlug: string | undefined,
+  projectId: string | undefined
+) {
   const organization = useOrganization();
+
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstTransactionReceived, setFirstTransactionReceived] = useState(false);
   const [hasSession, setHasSession] = useState(false);
+  const {
+    isLoading: eventIsLoading,
+    refetch: eventRefetch,
+    isFetchedAfterMount: eventIsFetchedAfterMount,
+  } = useQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
+    staleTime: 0,
+    refetchInterval: DEFAULT_POLL_INTERVAL,
+    enabled: !!projectSlug && !firstError, // Fetch only if the project is available and we have not yet received an error,
+    onSuccess: data => {
+      setFirstError(data.firstEvent);
+      // When an error is received, a transaction is also received
+      setFirstTransactionReceived(!!data.firstTransactionEvent);
+    },
+  });
 
-  const {isLoading: eventLoading} = useQuery<Project>(
-    [`/projects/${organization.slug}/${project?.slug}/`],
-    {
-      staleTime: 0,
-      refetchInterval: DEFAULT_POLL_INTERVAL,
-      enabled: !!project && !firstError, // Fetch only if the project is available and we have not yet received an error,
-      onSuccess: data => {
-        setFirstError(data.firstEvent);
-        // When an error is received, a transaction is also received
-        setFirstTransactionReceived(!!data.firstTransactionEvent);
-      },
-    }
-  );
-
-  const {isLoading: sessionLoading} = useQuery<SessionApiResponse>(
+  const {
+    isLoading: sessionIsLoading,
+    refetch: sessionsRefetch,
+    isFetchedAfterMount: sessionIsFetchedAfterMount,
+  } = useQuery<SessionApiResponse>(
     [
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          project: project?.id,
+          project: projectId,
           statsPeriod: '24h',
           field: [SessionFieldWithOperation.SESSIONS],
         },
@@ -50,7 +54,7 @@ export function useHeartbeat({project}: Props) {
     {
       staleTime: 0,
       refetchInterval: DEFAULT_POLL_INTERVAL,
-      enabled: !!project && !(hasSession || firstTransactionReceived), // Fetch only if the project is available and we if a connection to Sentry was not yet established,
+      enabled: !!projectId && !(hasSession || firstTransactionReceived), // Fetch only if the project is available and we if a connection to Sentry was not yet established,
       onSuccess: data => {
         const hasHealthData =
           getCount(data.groups, SessionFieldWithOperation.SESSIONS) > 0;
@@ -64,25 +68,34 @@ export function useHeartbeat({project}: Props) {
   // *not* include sample events, while just looking at the issues list will.
   // We will wait until the project.firstEvent is set and then locate the
   // event given that event datetime
-  const {data: issuesData, isLoading: issuesLoading} = useQuery<Group[]>(
-    [`/projects/${organization.slug}/${project?.slug}/issues/`],
-    {
-      staleTime: Infinity,
-      enabled: !!firstError, // Only fetch if an error event is received,
-    }
-  );
+  const {
+    data: issuesData,
+    refetch: issuesRefetch,
+    isFetchedAfterMount: issuesIsFetchedAfterMount,
+  } = useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
+    staleTime: Infinity,
+    enabled: !!firstError, // Only fetch if an error event is received,
+  });
 
   const firstErrorReceived =
     !!firstError && issuesData
       ? issuesData.find((issue: Group) => issue.firstSeen === firstError) || true
       : false;
 
+  const serverConnected = hasSession || firstTransactionReceived;
+  const isFetchedAfterMount =
+    eventIsFetchedAfterMount && sessionIsFetchedAfterMount && issuesIsFetchedAfterMount;
+  const loading = eventIsLoading || sessionIsLoading || !isFetchedAfterMount;
+
+  useEffect(() => {
+    eventRefetch();
+    sessionsRefetch();
+    issuesRefetch();
+  }, [eventRefetch, issuesRefetch, sessionsRefetch, projectSlug]);
+
   return {
-    hasSession,
+    loading,
+    serverConnected,
     firstErrorReceived,
-    firstTransactionReceived,
-    eventLoading,
-    sessionLoading,
-    issuesLoading,
   };
 }

@@ -38,16 +38,10 @@ function NewProjectSideBarSection({
   project?: Project;
 }) {
   const theme = useTheme();
-  const {
-    firstErrorReceived,
-    hasSession,
-    firstTransactionReceived,
-    eventLoading,
-    sessionLoading,
-  } = useHeartbeat({project});
-
-  const loading = eventLoading || sessionLoading;
-  const serverConnected = hasSession || firstTransactionReceived;
+  const {firstErrorReceived, loading, serverConnected} = useHeartbeat(
+    project?.slug,
+    project?.id
+  );
 
   const platform = project ? project.platform || 'other' : platformOnCreate;
   const platformName = platforms.find(p => p.id === platform)?.name ?? '';

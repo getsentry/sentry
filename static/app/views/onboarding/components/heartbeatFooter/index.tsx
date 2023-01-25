@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -81,16 +81,10 @@ export function HeartbeatFooter({
       ? projects.find(proj => proj.slug === nextProjectSlug)
       : undefined;
 
-  const {
-    sessionLoading,
-    eventLoading,
-    firstErrorReceived,
-    firstTransactionReceived,
-    hasSession,
-  } = useHeartbeat({project});
-
-  const serverConnected = hasSession || firstTransactionReceived;
-  const loading = projectsLoading || sessionLoading || eventLoading;
+  const {loading, firstErrorReceived, serverConnected} = useHeartbeat(
+    project?.slug,
+    project?.id
+  );
 
   useEffect(() => {
     const onUnload = (nextLocation?: Location) => {
@@ -137,14 +131,20 @@ export function HeartbeatFooter({
   }, [serverConnected, firstErrorReceived, route, router, organization.slug, location]);
 
   useEffect(() => {
+    clearIndicators();
+
+    if (loading) {
+      return;
+    }
+
     if (serverConnected) {
-      addSuccessMessage('DSN response received');
+      addSuccessMessage(t('DSN response received'));
     }
 
     if (firstErrorReceived) {
-      addSuccessMessage('First error received');
+      addSuccessMessage(t('DSN and error received'));
     }
-  }, [serverConnected, firstErrorReceived]);
+  }, [serverConnected, firstErrorReceived, loading, projectSlug]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
@@ -164,8 +164,8 @@ export function HeartbeatFooter({
       <Beats>
         {loading ? (
           <Fragment>
-            <LoadingPlaceholder height="28px" />
-            <LoadingPlaceholder height="28px" />
+            <LoadingPlaceholder height="28px" width="160px" />
+            <LoadingPlaceholder height="28px" width="160px" />
           </Fragment>
         ) : firstErrorReceived ? (
           <Fragment>
@@ -206,17 +206,23 @@ export function HeartbeatFooter({
         <ButtonBar gap={1}>
           {newOrg ? (
             <Fragment>
-              {nextProject && (
-                <Button busy={projectsLoading} onClick={onSetupNextProject}>
-                  {nextProject.platform
-                    ? t('Setup %s', getPlatformName(nextProject.platform))
-                    : t('Next Platform')}
-                </Button>
-              )}
-              {firstErrorReceived ? (
+              {nextProject &&
+                (loading ? (
+                  <LoadingPlaceholderButton width="125px" />
+                ) : (
+                  <Button busy={projectsLoading} onClick={onSetupNextProject}>
+                    {nextProject.platform
+                      ? t('Setup %s', getPlatformName(nextProject.platform))
+                      : t('Next Platform')}
+                  </Button>
+                ))}
+
+              {loading ? (
+                <LoadingPlaceholderButton width="135px" />
+              ) : firstErrorReceived ? (
                 <Button
                   priority="primary"
-                  busy={projectsLoading}
+                  busy={projectsLoading || loading}
                   to={`/organizations/${organization.slug}/issues/${
                     firstErrorReceived &&
                     firstErrorReceived !== true &&
@@ -333,9 +339,12 @@ const Beats = styled('div')`
   }
 `;
 
-export const LoadingPlaceholder = styled(Placeholder)`
-  width: 100%;
-  max-width: ${p => p.width};
+const LoadingPlaceholder = styled(Placeholder)`
+  width: ${p => p.width ?? '100%'};
+`;
+
+const LoadingPlaceholderButton = styled(LoadingPlaceholder)`
+  height: ${p => p.theme.form.md.height}px;
 `;
 
 const PulsingIndicator = styled('div')`
