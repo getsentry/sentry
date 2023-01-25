@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -134,6 +135,16 @@ export function HeartbeatFooter({
 
     router.setRouteLeaveHook(route, onUnload);
   }, [serverConnected, firstErrorReceived, route, router, organization.slug, location]);
+
+  useEffect(() => {
+    if (serverConnected) {
+      addSuccessMessage('DSN response received');
+    }
+
+    if (firstErrorReceived) {
+      addSuccessMessage('First error received');
+    }
+  }, [serverConnected, firstErrorReceived]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
