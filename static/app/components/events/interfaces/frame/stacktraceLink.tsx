@@ -143,7 +143,7 @@ function getCoverageIcon(lineCoverage, lineNo) {
         <CoverageIcon>
           <IconCircleFill size="xs" color="green100" style={{position: 'absolute'}} />
           <IconCircle size="xs" color="green300" />
-          {'Covered'}
+          {t('Covered')}
         </CoverageIcon>
       );
     case Coverage.PARTIAL:
@@ -151,7 +151,7 @@ function getCoverageIcon(lineCoverage, lineNo) {
         <CoverageIcon>
           <IconCircleFill size="xs" color="yellow100" style={{position: 'absolute'}} />
           <IconCircle size="xs" color="yellow300" />
-          {'Partially Covered'}
+          {t('Partially Covered')}
         </CoverageIcon>
       );
     case Coverage.NOT_COVERED:
@@ -161,7 +161,7 @@ function getCoverageIcon(lineCoverage, lineNo) {
             <IconCircleFill size="xs" color="red100" style={{position: 'absolute'}} />
             <IconCircle size="xs" color="red300" />
           </CoverageIcon>
-          {'Not Covered'}
+          {t('Not Covered')}
         </CodecovContainer>
       );
     default:
