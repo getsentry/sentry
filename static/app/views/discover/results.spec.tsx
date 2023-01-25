@@ -130,11 +130,17 @@ function renderMockRequests() {
       },
       {
         key: 'environment',
-        topValues: [{count: 2, value: 'dev', name: 'dev'}],
+        topValues: [
+          {count: 2, value: 'dev', name: 'dev'},
+          {count: 1, value: 'prod', name: 'prod'},
+        ],
       },
       {
         key: 'foo',
-        topValues: [{count: 1, value: 'bar', name: 'bar'}],
+        topValues: [
+          {count: 2, value: 'bar', name: 'bar'},
+          {count: 1, value: 'baz', name: 'baz'},
+        ],
       },
     ],
   });
@@ -914,7 +920,7 @@ describe('Results', function () {
         },
       });
 
-      renderMockRequests();
+      const mockRequests = renderMockRequests();
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
 
@@ -933,6 +939,12 @@ describe('Results', function () {
       );
 
       userEvent.click(await screen.findByRole('button', {name: 'Show Tags'}));
+
+      await waitFor(() => expect(mockRequests.eventFacetsMock).toHaveBeenCalled());
+
+      // TODO(edward): update this to be less generic
+      userEvent.click(screen.getByText('environment'));
+      userEvent.click(screen.getByText('foo'));
 
       // since environment collides with the environment field, it is wrapped with `tags[...]`
       expect(

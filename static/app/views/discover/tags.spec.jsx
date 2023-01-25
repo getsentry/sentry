@@ -22,15 +22,18 @@ describe('Tags', function () {
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: '123abcd', name: '123abcd'}],
+          topValues: [{count: 3, value: '123abcd', name: '123abcd'}],
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [
+            {count: 2, value: 'abcd123', name: 'abcd123'},
+            {count: 1, value: 'anotherOne', name: 'anotherOne'},
+          ],
         },
         {
           key: 'color',
-          topValues: [{count: 2, value: 'red', name: 'red'}],
+          topValues: [{count: 3, value: 'red', name: 'red'}],
         },
       ],
     });
@@ -53,7 +56,7 @@ describe('Tags', function () {
       <Tags
         eventView={view}
         api={api}
-        totalValues={2}
+        totalValues={3}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
@@ -92,7 +95,7 @@ describe('Tags', function () {
         eventView={view}
         api={api}
         organization={org}
-        totalValues={2}
+        totalValues={3}
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
         generateUrl={generateUrl}
@@ -105,6 +108,7 @@ describe('Tags', function () {
     await waitForElementToBeRemoved(
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
+    userEvent.click(screen.getByText('environment'));
 
     userEvent.click(
       screen.getByLabelText('Add the environment abcd123 segment tag to the search query')
@@ -126,7 +130,7 @@ describe('Tags', function () {
       <Tags
         eventView={view}
         api={api}
-        totalValues={2}
+        totalValues={3}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
@@ -140,11 +144,12 @@ describe('Tags', function () {
     );
 
     expect(screen.getByText('release')).toBeInTheDocument();
-    expect(screen.getAllByText('123abcd').length).toEqual(2);
+    expect(screen.getByText('123abcd')).toBeInTheDocument();
     expect(screen.getByText('environment')).toBeInTheDocument();
     expect(screen.getByText('abcd123')).toBeInTheDocument();
     expect(screen.getByText('color')).toBeInTheDocument();
     expect(screen.getByText('red')).toBeInTheDocument();
-    expect(screen.getAllByText('100%').length).toEqual(4);
+    expect(screen.getAllByText('100%').length).toEqual(2);
+    expect(screen.getByText('66%')).toBeInTheDocument();
   });
 });
