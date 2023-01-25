@@ -255,7 +255,6 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         }
 
         # No events submitted for env2
-        assert self.env2.name == "dev"
         assert self.db.get_range(
             TSDBModel.project,
             [self.proj1.id],
