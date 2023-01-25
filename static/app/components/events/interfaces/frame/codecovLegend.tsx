@@ -30,12 +30,12 @@ export function CodecovLegend({event, frame, organization}: CodecovLegendProps) 
     projectSlug: project?.slug,
   });
 
-  if (isLoading || !data) {
+  if (isLoading || !data || !data.codecov) {
     return null;
   }
 
   if (
-    data.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS ||
+    data.codecov.status !== CodecovStatusCode.COVERAGE_EXISTS ||
     data.config?.provider.key !== 'github'
   ) {
     return null;

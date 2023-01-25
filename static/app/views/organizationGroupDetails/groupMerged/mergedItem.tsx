@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
