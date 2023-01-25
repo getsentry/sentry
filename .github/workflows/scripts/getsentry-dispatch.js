@@ -28,7 +28,7 @@ module.exports = {
 
     const pr = context.payload.pull_request;
     // sentrySHA is the sha getsentry should run against.
-    const sentrySHA = pr.merge_commit_sha || pr.head.sha;
+    const sentrySHA = pr.merge_commit_sha;
     // prSHA is the sha actions should post commit statuses too.
     const prSHA = pr.head.sha;
 
