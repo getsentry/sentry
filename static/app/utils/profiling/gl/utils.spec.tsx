@@ -207,7 +207,7 @@ describe('createShader', () => {
 
     // @ts-ignore this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).toThrow(
-      'Failed to compile shader'
+      'Failed to compile 0 shader'
     );
   });
 });
