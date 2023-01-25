@@ -46,7 +46,7 @@ export function useProfilingTransactionQuickSummary(
       key: 'profile.duration',
       order: 'desc',
     },
-    enabled: skipSlowestProfile,
+    enabled: !skipSlowestProfile,
   });
 
   const latestProfileQuery = useProfileEvents({
@@ -55,7 +55,7 @@ export function useProfilingTransactionQuickSummary(
       key: 'timestamp',
       order: 'desc',
     },
-    enabled: skipLatestProfile,
+    enabled: !skipLatestProfile,
   });
 
   const functionsQuery = useFunctions({
@@ -65,7 +65,7 @@ export function useProfilingTransactionQuickSummary(
     transaction,
     sort: '-p99',
     functionType: 'application',
-    enabled: skipFunctions,
+    enabled: !skipFunctions,
   });
 
   const slowestProfile = slowestProfileQuery?.data?.[0].data[0] ?? null;
