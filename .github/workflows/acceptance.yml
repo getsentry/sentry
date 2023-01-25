@@ -31,7 +31,8 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend: ${{ steps.changes.outputs.backend_all }}
+      backend_all: ${{ steps.changes.outputs.backend_all }}
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
@@ -71,7 +72,15 @@ jobs:
 
       - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
 
-      - name: Install dependencies
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
 
       - name: Build CSS
@@ -243,9 +252,16 @@ jobs:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
       - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
 
       - name: Build chartcuterie configuration module
         run: |

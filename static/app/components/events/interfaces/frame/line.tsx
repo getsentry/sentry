@@ -19,6 +19,7 @@ import DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
 import {SymbolicatorStatus} from '../types';
 
+import {CodecovLegend} from './codecovLegend';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import PackageLink from './packageLink';
@@ -371,8 +372,21 @@ export class Line extends Component<Props, State> {
     });
     const props = {className};
 
+    const shouldShowCodecovLegend =
+      this.props.organization?.features.includes('codecov-stacktrace-integration') &&
+      this.props.organization?.codecovAccess &&
+      !this.props.nextFrame &&
+      this.state.isExpanded;
+
     return (
       <StyledLi data-test-id="line" {...props}>
+        {shouldShowCodecovLegend && (
+          <CodecovLegend
+            event={this.props.event}
+            frame={this.props.data}
+            organization={this.props.organization}
+          />
+        )}
         {this.renderLine()}
         <Context
           frame={data}

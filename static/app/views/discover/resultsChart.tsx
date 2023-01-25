@@ -35,7 +35,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
-import {isCustomMeasurement} from '../dashboardsV2/utils';
+import {isCustomMeasurement} from '../dashboards/utils';
 
 import ChartFooter from './chartFooter';
 

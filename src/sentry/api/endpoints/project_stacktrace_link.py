@@ -131,6 +131,8 @@ def set_tags(scope: Scope, result: JSONData) -> None:
         scope.set_tag(
             "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
         )
+    if result.get("codecov") and result["codecov"].get("attemptedUrl"):
+        scope.set_tag("codecov.attempted_url", result["codecov"]["attemptedUrl"])
 
 
 @region_silo_endpoint
@@ -344,8 +346,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 logger.exception(
                                     "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                                 )
-
-                        result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
+                                
+                    try:
+                        lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
                             service=current_config["config"]["provider"]["key"],
                             ref=ref,
@@ -354,16 +357,25 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             else "sha",
                             path=current_config["outcome"]["sourcePath"],
                         )
-                        if result["lineCoverage"] and result["codecovUrl"]:
-                            result["codecovStatusCode"] = 200
-                except requests.exceptions.HTTPError as error:
-                    result["codecovStatusCode"] = error.response.status_code
-                    if error.response.status_code != 404:
-                        logger.exception(
-                            "Failed to get expected data from Codecov, pending investigation. Continuing execution."
-                        )
-                except Exception:
-                    logger.exception("Something unexpected happen. Continuing execution.")
+                        if lineCoverage and codecovUrl:
+                            result["codecov"] = {
+                                "lineCoverage": lineCoverage,
+                                "coverageUrl": codecovUrl,
+                                "status": 200,
+                            }
+                    except requests.exceptions.HTTPError as error:
+                        result["codecov"] = {
+                            "attemptedUrl": error.response.url,
+                            "status": error.response.status_code,
+                        }
+                        if error.response.status_code != 404:
+                            logger.exception(
+                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
+                            )
+                    except Exception:
+                        logger.exception("Something unexpected happen. Continuing execution.")
+                    # We don't expect coverage data if the integration does not exist (404)
+                    scope.set_tag("codecov.enabled", True)
 
             try:
                 set_tags(scope, result)

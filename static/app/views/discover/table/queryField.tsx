@@ -8,7 +8,7 @@ import SelectControl, {
 } from 'sentry/components/forms/controls/selectControl';
 import Input, {InputProps} from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
@@ -24,7 +24,7 @@ import {
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';

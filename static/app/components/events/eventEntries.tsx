@@ -5,6 +5,7 @@ import {Location} from 'history';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -30,8 +31,6 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import useApi from 'sentry/utils/useApi';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
-import {CommitRow} from '../commitRow';
-
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import {EventContexts} from './contexts';
@@ -41,6 +40,7 @@ import {EventAttachments} from './eventAttachments';
 import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
+import {EventEvidence} from './eventEvidence';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
@@ -340,18 +340,19 @@ const EventEntries = ({
         />
       )}
       {event.userReport && group && (
-        <StyledEventUserFeedback
-          report={event.userReport}
-          orgId={orgSlug}
-          issueId={group.id}
-          includeBorder={!hasErrors}
-        />
+        <EventDataSection title="User Feedback" type="user-feedback">
+          <EventUserFeedback
+            report={event.userReport}
+            orgId={orgSlug}
+            issueId={group.id}
+          />
+        </EventDataSection>
       )}
       {showTagSummary && (
         <EventTagsAndScreenshot
           event={event}
           organization={organization as Organization}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           location={location}
           isShare={isShare}
           hasContext={hasContext}
@@ -359,6 +360,7 @@ const EventEntries = ({
           onDeleteScreenshot={handleDeleteAttachment}
         />
       )}
+      <EventEvidence event={event} group={group} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}
@@ -386,7 +388,7 @@ const EventEntries = ({
         <EventAttachments
           event={event}
           orgId={orgSlug}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           location={location}
           attachments={attachments}
           onDeleteAttachment={handleDeleteAttachment}
@@ -400,7 +402,7 @@ const EventEntries = ({
       )}
       {!isShare && event.groupID && (
         <EventGroupingInfo
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           event={event}
           showGroupingConfig={
             orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
@@ -411,7 +413,7 @@ const EventEntries = ({
         <EventRRWebIntegration
           event={event}
           orgId={orgSlug}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           renderer={children => (
             <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
               {children}
@@ -517,19 +519,6 @@ const BorderlessEventEntries = styled(EventEntries)`
     padding-top: 0;
     border-top: 0;
   }
-`;
-
-type StyledEventUserFeedbackProps = {
-  includeBorder: boolean;
-};
-
-const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
-  border-radius: 0;
-  box-shadow: none;
-  padding: ${space(3)} ${space(4)} 0 40px;
-  border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
-  margin: 0;
 `;
 
 const StyledReplayEventDataSection = styled(EventDataSection)`
