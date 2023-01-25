@@ -22,8 +22,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import CellAction, {Actions} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 

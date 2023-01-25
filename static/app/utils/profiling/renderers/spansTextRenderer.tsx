@@ -64,11 +64,14 @@ class SpansTextRenderer extends TextRenderer {
     // 2. We can skip drawing and
     // Find the upper and lower bounds of the frames we need to draw so we dont end up
     // iterating over all of the root frames and avoid creating shallow copies if we dont need to.
-    const start = lowerBound(configView.left, this.spanChart.root.children);
-    const end = upperBound(configView.right, this.spanChart.root.children);
-
     // Populate the initial set of frames to draw
-    const spans: SpanChartNode[] = this.spanChart.root.children.slice(start, end);
+
+    // Note: we cannot apply the same optimization to the roots as we can to the children, because
+    // the root spans are not sorted by start time, so we cannot use binary search to find the
+    // upper and lower bounds. The reason they are not sorted is that they contain all tree roots,
+    // including the overlapping trees. The only case where it does work is if we only have a single tree root
+    // because we then know that all spans are non-overlapping and we have only one range tree
+    const spans: SpanChartNode[] = [...this.spanChart.root.children];
 
     while (spans.length > 0) {
       const span = spans.pop()!;

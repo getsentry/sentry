@@ -136,6 +136,7 @@ DATASETS = {
     Dataset.Metrics: METRICS_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
+    Dataset.Replays: {},
 }
 
 # Store the internal field names to save work later on.
@@ -445,6 +446,26 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
+def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
+    # any project will do, as they should all be from the same organization
+    try:
+        # Most of the time the project should exist, so get from cache to keep it fast
+        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    except Project.DoesNotExist:
+        # But in the case the first project doesn't exist, grab the first non deleted project
+        project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
+        if project is None:
+            raise UnqualifiedQueryError("All project_ids from the filter no longer exist")
+        organization_id = project.get("organization_id")
+
+    return organization_id
+
+
+def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> List[int]:
+    ids = [set(get_related_project_ids(k, filter_keys[k])) for k in filter_keys]
+    return list(set.union(*ids))
+
+
 def get_query_params_to_update_for_projects(query_params, with_org=False):
     """
     Get the project ID and query params that need to be updated for project
@@ -456,11 +477,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
     elif query_params.filter_keys:
         # Otherwise infer the project_ids from any related models
         with timer("get_related_project_ids"):
-            ids = [
-                set(get_related_project_ids(k, query_params.filter_keys[k]))
-                for k in query_params.filter_keys
-            ]
-            project_ids = list(set.union(*ids))
+            project_ids = infer_project_ids_from_related_models(query_params.filter_keys)
     elif query_params.conditions:
         project_ids = []
         for cond in query_params.conditions:
@@ -474,16 +491,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
             "No project_id filter, or none could be inferred from other filters."
         )
 
-    # any project will do, as they should all be from the same organization
-    try:
-        # Most of the time the project should exist, so get from cache to keep it fast
-        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
-    except Project.DoesNotExist:
-        # But in the case the first project doesn't exist, grab the first non deleted project
-        project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
-        if project is None:
-            raise UnqualifiedQueryError("All project_ids from the filter no longer exist")
-        organization_id = project.get("organization_id")
+    organization_id = get_organization_id_from_project_ids(project_ids)
 
     params = {"project": project_ids}
     if with_org:
@@ -519,14 +527,50 @@ def get_query_params_to_update_for_organizations(query_params):
     return organization_id, {"organization": organization_id}
 
 
-def _prepare_query_params(query_params):
-    kwargs = deepcopy(query_params.kwargs)
-    query_params_conditions = deepcopy(query_params.conditions)
+def _prepare_start_end(
+    start: Optional[datetime],
+    end: Optional[datetime],
+    organization_id: int,
+    group_ids: Optional[Sequence[int]],
+) -> Tuple[datetime, datetime]:
+    if not start:
+        start = datetime(2008, 5, 8)
+    if not end:
+        end = datetime.utcnow() + timedelta(seconds=1)
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
-    start = naiveify_datetime(query_params.start)
-    end = naiveify_datetime(query_params.end)
+    start = naiveify_datetime(start)
+    end = naiveify_datetime(end)
+
+    expired, start = outside_retention_with_modified_start(
+        start, end, Organization(organization_id)
+    )
+    if expired:
+        raise QueryOutsideRetentionError("Invalid date range. Please try a more recent date range.")
+
+    # if `shrink_time_window` pushed `start` after `end` it means the user queried
+    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
+    # wouldn't return any results anyway
+    new_start = shrink_time_window(group_ids, start)
+
+    # TODO (alexh) this is a quick emergency fix for an occasion where a search
+    # results in only 1 django candidate, which is then passed to snuba to
+    # check and we raised because of it. Remove this once we figure out why the
+    # candidate was returned from django at all if it existed only outside the
+    # time range of the query
+    if new_start <= end:
+        start = new_start
+
+    if start > end:
+        raise QueryOutsideGroupActivityError
+
+    return start, end
+
+
+def _prepare_query_params(query_params):
+    kwargs = deepcopy(query_params.kwargs)
+    query_params_conditions = deepcopy(query_params.conditions)
 
     with timer("get_snuba_map"):
         forward, reverse = get_snuba_translators(
@@ -562,27 +606,12 @@ def _prepare_query_params(query_params):
             else:
                 query_params_conditions.append((col, "IN", keys))
 
-    expired, start = outside_retention_with_modified_start(
-        start, end, Organization(organization_id)
+    start, end = _prepare_start_end(
+        query_params.start,
+        query_params.end,
+        organization_id,
+        query_params.filter_keys.get("group_id"),
     )
-    if expired:
-        raise QueryOutsideRetentionError("Invalid date range. Please try a more recent date range.")
-
-    # if `shrink_time_window` pushed `start` after `end` it means the user queried
-    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
-    # wouldn't return any results anyway
-    new_start = shrink_time_window(query_params.filter_keys.get("group_id"), start)
-
-    # TODO (alexh) this is a quick emergency fix for an occasion where a search
-    # results in only 1 django candidate, which is then passed to snuba to
-    # check and we raised because of it. Remove this once we figure out why the
-    # candidate was returned from django at all if it existed only outside the
-    # time range of the query
-    if new_start <= end:
-        start = new_start
-
-    if start > end:
-        raise QueryOutsideGroupActivityError
 
     kwargs.update(
         {

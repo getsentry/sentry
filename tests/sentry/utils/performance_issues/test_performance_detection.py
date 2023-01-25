@@ -268,6 +268,44 @@ class PerformanceDetectionTest(TestCase):
         _detect_performance_problems(truncated_duplicates_event, Mock(), self.project)
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
 
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_metrics_on_uncompressed_assets(self, incr_mock):
+        event = get_event("uncompressed-assets/uncompressed-script-asset")
+        _detect_performance_problems(event, Mock(), self.project)
+        assert (
+            call(
+                "performance.performance_issue.uncompressed_assets",
+                1,
+                tags={"op_resource.script": True},
+            )
+            in incr_mock.mock_calls
+        )
+        assert (
+            call(
+                "performance.performance_issue.detected",
+                instance="True",
+                tags={
+                    "sdk_name": "sentry.javascript.react",
+                    "integration_django": False,
+                    "integration_flask": False,
+                    "integration_sqlalchemy": False,
+                    "integration_mongo": False,
+                    "integration_postgres": False,
+                    "consecutive_db": False,
+                    "slow_db_query": False,
+                    "render_blocking_assets": False,
+                    "n_plus_one_db": False,
+                    "n_plus_one_db_ext": False,
+                    "file_io_main_thread": False,
+                    "n_plus_one_api_calls": False,
+                    "m_n_plus_one_db": False,
+                    "uncompressed_assets": True,
+                    "browser_name": "Chrome",
+                },
+            )
+            in incr_mock.mock_calls
+        )
+
 
 @region_silo_test
 class DetectorTypeToGroupTypeTest(unittest.TestCase):
