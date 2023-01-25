@@ -7,6 +7,7 @@ import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {AvatarProject, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
@@ -533,5 +534,15 @@ async function fetchProjects(
     results: data,
     hasMore,
     nextCursor,
+  };
+}
+
+export function getAnalyicsDataForProject(project: Project) {
+  return {
+    project_has_replay: project.hasReplays,
+    project_has_minified_stack_trace: project.hasMinifiedStackTrace,
+    project_age: getDaysSinceDate(project.dateCreated),
+    project_id: parseInt(project.id, 10),
+    project_platform: project.platform,
   };
 }
