@@ -862,12 +862,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
-
-        parts = parameterized_first_url.split("?")
-        if len(parts) > 1:
-            [path, _query] = parts
-        else:
-            path = parts[0]
+        parsed_first_url = urlparse(parameterized_first_url)
+        path = parsed_first_url.path
 
         fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
