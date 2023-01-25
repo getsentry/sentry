@@ -1016,6 +1016,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
+    # Whether to enable ingest for profile blocked main thread issues
+    "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1155,6 +1157,8 @@ SENTRY_FEATURES = {
     "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable compressed assets performance issue type
     "organizations:performance-issues-compressed-assets-detector": False,
+    # Enable render blocking assets performance issue type
+    "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers

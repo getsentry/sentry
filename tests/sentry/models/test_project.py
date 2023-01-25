@@ -19,6 +19,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -198,6 +199,26 @@ class ProjectTest(TestCase):
         assert rule2.owner is None
         assert rule3.owner is not None
         assert rule4.owner is not None
+
+    def test_get_absolute_url(self):
+        url = self.project.get_absolute_url()
+        assert (
+            url
+            == f"http://testserver/organizations/{self.organization.slug}/issues/?project={self.project.id}"
+        )
+
+        url = self.project.get_absolute_url(params={"q": "all"})
+        assert (
+            url
+            == f"http://testserver/organizations/{self.organization.slug}/issues/?q=all&project={self.project.id}"
+        )
+
+    @with_feature("organizations:customer-domains")
+    def test_get_absolute_url_customer_domains(self):
+        url = self.project.get_absolute_url()
+        assert (
+            url == f"http://{self.organization.slug}.testserver/issues/?project={self.project.id}"
+        )
 
 
 @region_silo_test

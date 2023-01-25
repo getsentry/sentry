@@ -10,8 +10,10 @@ from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
+    Organization,
     OrganizationMember,
     OrganizationOption,
+    OrganizationStatus,
     UserEmail,
 )
 from sentry.testutils import AuthProviderTestCase
@@ -1036,6 +1038,16 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # Check that we don't call send_one_time_account_confirm_link with an AnonymousUser
         resp = self.client.post(path, {"email": "foo@example.com"})
         assert resp.status_code == 200
+
+    def test_org_not_visible(self):
+        Organization.objects.filter(id=self.organization.id).update(
+            status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
+
+        resp = self.client.get(self.path, follow=True)
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("/auth/login/", 302)]
+        self.assertTemplateUsed(resp, "sentry/login.html")
 
 
 @region_silo_test

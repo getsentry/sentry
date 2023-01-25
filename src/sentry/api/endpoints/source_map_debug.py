@@ -41,6 +41,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             GLOBAL_PARAMS.PROJECT_SLUG,
             EVENT_PARAMS.EVENT_ID,
             EVENT_PARAMS.FRAME_IDX,
+            EVENT_PARAMS.EXCEPTION_IDX,
         ],
         request=None,
         responses={
@@ -66,6 +67,10 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if not frame_idx:
             raise ParseError(detail="Query parameter 'frame_idx' is required")
 
+        exception_idx = request.GET.get("exception_idx")
+        if not exception_idx:
+            raise ParseError(detail="Query parameter 'exception_idx' is required")
+
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
@@ -83,7 +88,20 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 }
             )
 
-        release = Release.objects.get(project_id=project.id, version=release_version)
+        try:
+            release = Release.objects.get(
+                organization=project.organization, version=release_version
+            )
+        except Release.DoesNotExist:
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.MISSING_RELEASE
+                        ).get_api_context()
+                    ],
+                }
+            )
         user_agent = release.user_agent
 
         if not user_agent:
@@ -110,8 +128,8 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 }
             )
 
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
+        exceptions = event.interfaces["exception"].values
+        frame_list = exceptions[int(exception_idx)].stacktrace.frames
         frame = frame_list[int(frame_idx)]
         abs_path = frame.abs_path
 

@@ -23,7 +23,7 @@ type Props = {
   location: Location;
   onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
   orgId: string;
-  projectId: string;
+  projectSlug: string;
 };
 
 type State = {
@@ -74,7 +74,7 @@ export class EventAttachments extends Component<Props, State> {
       <AttachmentPreviewWrapper>
         <AttachmentComponent
           orgId={this.props.orgId}
-          projectId={this.props.projectId}
+          projectSlug={this.props.projectSlug}
           eventId={this.props.event.id}
           attachment={attachment}
         />
@@ -92,7 +92,7 @@ export class EventAttachments extends Component<Props, State> {
   }
 
   render() {
-    const {event, projectId, orgId, location, attachments, onDeleteAttachment} =
+    const {event, projectSlug, orgId, location, attachments, onDeleteAttachment} =
       this.props;
     const crashFileStripped = event.metadata.stripped_crash;
 
@@ -111,7 +111,7 @@ export class EventAttachments extends Component<Props, State> {
         {crashFileStripped && (
           <EventAttachmentsCrashReportsNotice
             orgSlug={orgId}
-            projectSlug={projectId}
+            projectSlug={projectSlug}
             groupId={event.groupID!}
             location={location}
           />
@@ -132,7 +132,7 @@ export class EventAttachments extends Component<Props, State> {
                   <FileSize bytes={attachment.size} />
                 </Size>
                 <AttachmentUrl
-                  projectId={projectId}
+                  projectSlug={projectSlug}
                   eventId={event.id}
                   attachment={attachment}
                 >
