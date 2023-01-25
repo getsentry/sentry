@@ -23,7 +23,7 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Create GitHub job
-        uses: actions/github-script@e3cbab99d3a9b271e1b79fc96d103a4a5534998c  # v5
+        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0  # v6.3.3
         with:
           script: |
             require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/deploy`).updateChangeType({

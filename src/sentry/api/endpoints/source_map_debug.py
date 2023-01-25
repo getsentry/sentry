@@ -1,4 +1,5 @@
 from typing import List, Union
+from urllib.parse import urlparse
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound, ParseError
@@ -12,7 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Organization, Project, SourceMapProcessingIssue
+from sentry.models import Organization, Project, Release, SourceMapProcessingIssue
 
 
 class SourceMapProcessingIssueResponse(TypedDict):
@@ -40,6 +41,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             GLOBAL_PARAMS.PROJECT_SLUG,
             EVENT_PARAMS.EVENT_ID,
             EVENT_PARAMS.FRAME_IDX,
+            EVENT_PARAMS.EXCEPTION_IDX,
         ],
         request=None,
         responses={
@@ -65,13 +67,17 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if not frame_idx:
             raise ParseError(detail="Query parameter 'frame_idx' is required")
 
+        exception_idx = request.GET.get("exception_idx")
+        if not exception_idx:
+            raise ParseError(detail="Query parameter 'exception_idx' is required")
+
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
 
-        release = event.get_tag("sentry:release")
+        release_version = event.get_tag("sentry:release")
 
-        if not release:
+        if not release_version:
             return Response(
                 {
                     "errors": [
@@ -81,4 +87,63 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                     ],
                 }
             )
+
+        try:
+            release = Release.objects.get(
+                organization=project.organization, version=release_version
+            )
+        except Release.DoesNotExist:
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.MISSING_RELEASE
+                        ).get_api_context()
+                    ],
+                }
+            )
+        user_agent = release.user_agent
+
+        if not user_agent:
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.MISSING_USER_AGENT
+                        ).get_api_context()
+                    ],
+                }
+            )
+
+        num_artifacts = release.count_artifacts()
+
+        if num_artifacts == 0:
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.MISSING_SOURCEMAPS
+                        ).get_api_context()
+                    ],
+                }
+            )
+
+        exceptions = event.interfaces["exception"].values
+        frame_list = exceptions[int(exception_idx)].stacktrace.frames
+        frame = frame_list[int(frame_idx)]
+        abs_path = frame.abs_path
+
+        urlparts = urlparse(abs_path)
+
+        if not (urlparts.netloc and urlparts.scheme and urlparts.path):
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.URL_NOT_VALID
+                        ).get_api_context()
+                    ],
+                }
+            )
+
         return Response({"errors": []})

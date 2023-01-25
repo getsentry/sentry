@@ -6,7 +6,7 @@ import PanelTable, {
   PanelTableHeader,
   PanelTableProps,
 } from 'sentry/components/panels/panelTable';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -15,8 +15,8 @@ import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
-import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
-import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 
 type Props = {
   eventView: EventView;
