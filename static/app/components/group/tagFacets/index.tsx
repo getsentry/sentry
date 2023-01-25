@@ -11,6 +11,8 @@ import {formatVersion} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
+
 export const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 
 export const FRONTEND_TAGS = ['browser', 'transaction', 'release', 'url', 'environment'];
