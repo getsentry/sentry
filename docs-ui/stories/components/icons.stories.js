@@ -113,14 +113,14 @@ const Pair = styled('div')`
 
 const Icon = styled('svg')`
   --size-factor: 0.04;
-  --weight-factor: ${p => (p.weight > 500 ? 1.3 : 1)};
+  --weight-factor: ${p => (p.weight > 500 ? 1.25 : 1)};
 
   display: block;
   width: 1em;
   height: 1em;
   stroke: ${p => p.theme.textColor};
   stroke-width: calc(
-    (0.5px + var(--size-factor) * 1em) * var(--weight-factor, 1) *
+    (0.6px + var(--size-factor) * 1em) * var(--weight-factor, 1) *
       var(--optical-factor, 1)
   );
 `;

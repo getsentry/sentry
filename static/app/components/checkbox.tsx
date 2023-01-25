@@ -64,7 +64,20 @@ const Checkbox = ({
         {...props}
       />
       <StyledCheckbox aria-hidden checked={checked} size={size}>
-        {checked === true && <IconCheckmark legacySize={checkboxSizeMap[size].icon} />}
+        {checked === true && (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 14 14"
+            fill="none"
+            strokeWidth="1.5"
+            stroke="#fff"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M2.5 8L6 11.5L11.5 3" />
+          </svg>
+        )}
         {checked === 'indeterminate' && (
           <IconSubtract legacySize={checkboxSizeMap[size].icon} />
         )}
