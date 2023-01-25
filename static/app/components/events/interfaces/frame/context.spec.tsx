@@ -2,8 +2,12 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Coverage, Frame, LineCoverage} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Color} from 'sentry/utils/theme';
 
-import Context, {getCoverageColors} from './context';
+import Context, {getCoverageAnalytics, getCoverageColors} from './context';
+
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('Frame - Context', function () {
   const org = TestStubs.Organization();
@@ -34,13 +38,30 @@ describe('Frame - Context', function () {
     [234, Coverage.NOT_COVERED],
   ];
 
+  const lineColors: Array<Color | 'transparent'> = [
+    'yellow100',
+    'green100',
+    'transparent',
+    'red100',
+  ];
+
+  const primaryLineIndex = 1;
+
   it('converts coverage data to the right colors', function () {
-    expect(getCoverageColors(lines, lineCoverage)).toEqual([
-      'yellow100',
-      'green100',
-      'transparent',
-      'red100',
-    ]);
+    expect(getCoverageColors(lines, lineCoverage)).toEqual(lineColors);
+  });
+
+  it('tracks coverage analytics', function () {
+    getCoverageAnalytics(lineColors, primaryLineIndex, TestStubs.Organization());
+
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'issue_details.codecov_primary_line_coverage_shown',
+      {success: true, organization: org}
+    );
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'issue_details.codecov_surrounding_lines_coverage_shown',
+      {organization: org, success: false}
+    );
   });
 
   it("doesn't query stacktrace link if the flag is off", function () {

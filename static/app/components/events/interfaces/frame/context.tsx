@@ -21,6 +21,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Color} from 'sentry/utils/theme';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -73,6 +74,33 @@ export function getCoverageColors(
       default:
         return 'transparent';
     }
+  });
+}
+
+export function getCoverageAnalytics(
+  lineColors: Array<Color | 'transparent'>,
+  primaryLineIndex: number,
+  organization: Organization | null
+): void {
+  let primaryLineCoverageChecked = false;
+  let surroundingLinesCovered = true;
+  for (const index in lineColors) {
+    if (parseInt(index, 10) === primaryLineIndex) {
+      trackAdvancedAnalyticsEvent('issue_details.codecov_primary_line_coverage_shown', {
+        organization,
+        success: lineColors[index] !== 'transparent',
+      });
+      primaryLineCoverageChecked = true;
+    } else if (lineColors[index] === 'transparent') {
+      surroundingLinesCovered = false;
+      if (primaryLineCoverageChecked) {
+        break;
+      }
+    }
+  }
+  trackAdvancedAnalyticsEvent('issue_details.codecov_surrounding_lines_coverage_shown', {
+    organization,
+    success: surroundingLinesCovered,
   });
 }
 
@@ -182,6 +210,10 @@ const Context = ({
           const isActive = frame.lineNo === line[0];
           const hasComponents = isActive && components.length > 0;
           const showStacktraceLink = hasStacktraceLink && isActive;
+
+          if (showStacktraceLink) {
+            getCoverageAnalytics(lineColors, index, organization ? organization : null);
+          }
 
           return (
             <StyledContextLine
