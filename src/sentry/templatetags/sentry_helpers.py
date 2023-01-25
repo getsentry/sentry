@@ -105,7 +105,7 @@ def org_url(organization, path, query=None, fragment=None) -> str:
     Generate an absolute url for an organization
     """
     if not hasattr(organization, "absolute_url"):
-        raise RuntimeError("organiation parameter is not an Organization instance")
+        raise RuntimeError("organization parameter is not an Organization instance")
     return organization.absolute_url(path, query=query, fragment=fragment)
 
 
