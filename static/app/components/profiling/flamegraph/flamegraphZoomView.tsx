@@ -263,10 +263,26 @@ function FlamegraphZoomView({
 
   useEffect(() => {
     if (flamegraphState.profiles.highlightFrames) {
-      selectedFramesRef.current = flamegraph.findAllMatchingFrames(
+      let frames = flamegraph.findAllMatchingFrames(
         flamegraphState.profiles.highlightFrames.name,
         flamegraphState.profiles.highlightFrames.package
       );
+
+      // there is a chance that the reason we did not find any frames is because
+      // for node, we try to infer some package from the frontend code.
+      // If that happens, we'll try and just do a search by name. This logic
+      // is duplicated in flamegraph.tsx and should be kept in sync
+      if (
+        !frames.length &&
+        !flamegraphState.profiles.highlightFrames.package &&
+        flamegraphState.profiles.highlightFrames.name
+      ) {
+        frames = flamegraph.findAllMatchingFramesBy(
+          flamegraphState.profiles.highlightFrames.name,
+          ['name']
+        );
+      }
+      selectedFramesRef.current = frames;
     } else {
       selectedFramesRef.current = null;
     }

@@ -111,7 +111,9 @@ export class Frame extends WeightedNode {
             image += pathOrFile.charAt(i);
           }
 
-          this.image = image;
+          if (image) {
+            this.image = image;
+          }
         }
       }
     }

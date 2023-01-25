@@ -308,6 +308,35 @@ export class Flamegraph {
     return frames;
   }
 
+  findAllMatchingFramesBy(
+    query: string,
+    fields: (keyof FlamegraphFrame['frame'])[]
+  ): FlamegraphFrame[] {
+    const matches: FlamegraphFrame[] = [];
+    if (!fields.length) {
+      throw new Error('No fields provided');
+    }
+
+    if (fields.length === 1) {
+      for (let i = 0; i < this.frames.length; i++) {
+        if (this.frames[i].frame[fields[0]] === query) {
+          matches.push(this.frames[i]);
+        }
+      }
+      return matches;
+    }
+
+    for (let i = 0; i < this.frames.length; i++) {
+      for (let j = fields.length; j--; ) {
+        if (this.frames[i].frame[fields[j]] === query) {
+          matches.push(this.frames[i]);
+        }
+      }
+    }
+
+    return matches;
+  }
+
   findAllMatchingFrames(frameName?: string, framePackage?: string): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
 
