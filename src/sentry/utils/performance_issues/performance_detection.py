@@ -657,7 +657,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
-            fingerprint = fingerprint_span(span)
+            fingerprint = self._fingerprint(span)
             if span_id and fingerprint:
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
@@ -686,6 +686,10 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         span_duration = get_span_duration(span)
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
+
+    def _fingerprint(self, span):
+        hashed_spans = fingerprint_spans([span])
+        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{hashed_spans}"
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
