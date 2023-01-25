@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
@@ -156,6 +156,31 @@ describe('Tag Facets', function () {
       });
       expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
       expect(screen.getAllByText('Android 12').length).toEqual(2);
+    });
+
+    it('closes and expands tag distribution when tag header is clicked', async function () {
+      render(
+        <TagFacets
+          environments={[]}
+          groupId="1"
+          project={project}
+          tagKeys={tags}
+          tagFormatter={TAGS_FORMATTER}
+        />,
+        {
+          organization,
+        }
+      );
+      await waitFor(() => {
+        expect(tagsMock).toHaveBeenCalled();
+      });
+      expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('os'));
+      expect(screen.queryByText('iOS 16.0')).not.toBeInTheDocument();
+
+      userEvent.click(screen.getByText('os'));
+      expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
     });
   });
 });

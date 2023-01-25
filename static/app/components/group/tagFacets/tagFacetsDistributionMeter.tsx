@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
-import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -63,7 +62,8 @@ function TagFacetsDistributionMeter({
   expandByDefault,
 }: Props) {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
+  const multiValueTag = segments.length > 1;
+  const [expanded, setExpanded] = useState<boolean>(multiValueTag && !!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
   const debounceSetHovered = debounce(value => setHoveredValue(value), 70);
   const topSegments = segments.slice(0, MAX_SEGMENTS);
@@ -80,17 +80,14 @@ function TagFacetsDistributionMeter({
     return (
       <Title>
         <TitleType>{title}</TitleType>
-        <TitleDescription>
-          <Label>{topSegments[0].name || t('n/a')}</Label>
-        </TitleDescription>
-        <StyledChevron
-          direction={expanded ? 'up' : 'down'}
-          size="xs"
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
-          aria-label={`expand-${title}`}
-        />
+        <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+        {multiValueTag && (
+          <StyledChevron
+            direction={expanded ? 'up' : 'down'}
+            size="xs"
+            aria-label={`expand-${title}`}
+          />
+        )}
       </Title>
     );
   }
@@ -109,9 +106,8 @@ function TagFacetsDistributionMeter({
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
-          const segmentProps: SegmentValue = {
+          const segmentProps = {
             index,
-            to: value.url,
             onClick: () => {
               trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
                 tag: title,
@@ -142,15 +138,7 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment aria-label={t('Other')} color={colors[colors.length - 1]} />
               ) : (
-                <Segment
-                  aria-label={t(
-                    'Add the %s %s segment tag to the search query',
-                    title,
-                    value.value
-                  )}
-                  color={colors[index]}
-                  {...segmentProps}
-                >
+                <Segment color={colors[index]} {...segmentProps}>
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
                   {index === 0 && pctLabel > 6 ? `${pctLabel}%` : null}
                 </Segment>
@@ -170,7 +158,15 @@ function TagFacetsDistributionMeter({
           const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
           const focus = hoveredValue?.value === segment.value;
           return (
-            <Link key={`segment-${segment.name}-${index}`} to={segment.url}>
+            <Link
+              key={`segment-${segment.name}-${index}`}
+              to={segment.url}
+              aria-label={t(
+                'Add the %s %s segment tag to the search query',
+                title,
+                segment.value
+              )}
+            >
               <LegendRow
                 onMouseOver={() => debounceSetHovered(segment)}
                 onMouseLeave={() => debounceSetHovered(null)}
@@ -203,8 +199,13 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      {renderTitle()}
-      {renderSegments()}
+      <TagHeader
+        clickable={multiValueTag}
+        onClick={() => multiValueTag && setExpanded(!expanded)}
+      >
+        {renderTitle()}
+        {renderSegments()}
+      </TagHeader>
       {expanded && renderLegend()}
     </TagSummary>
   );
@@ -214,6 +215,10 @@ export default TagFacetsDistributionMeter;
 
 const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const TagHeader = styled('span')<{clickable?: boolean}>`
+  ${p => (p.clickable ? 'cursor: pointer' : null)};
 `;
 
 const SegmentBar = styled('div')`
@@ -239,14 +244,11 @@ const TitleType = styled('div')`
 `;
 
 const TitleDescription = styled('div')`
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   color: ${p => p.theme.gray300};
   text-align: right;
   font-size: ${p => p.theme.fontSizeSmall};
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const Label = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -257,10 +259,9 @@ const OtherSegment = styled('span')<{color: string}>`
   color: inherit;
   outline: none;
   background-color: ${p => p.color};
-  cursor: pointer;
 `;
 
-const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
+const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
   &:hover {
     color: ${p => p.theme.white};
   }
