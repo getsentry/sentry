@@ -23,7 +23,6 @@ def get_codecov_data(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
         with configure_scope() as scope:
-            scope.set_tag("codecov.attempted_url", url)
             params = {"branch": branch, "path": path}
             response = requests.get(
                 url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
