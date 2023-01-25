@@ -90,6 +90,7 @@ class PerformanceDetectionTest(TestCase):
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 0.0})
     def test_no_feature_flag_disables_creation(self):
         self.features = []
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
