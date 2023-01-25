@@ -347,7 +347,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                     "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                                 )
 
-                    try:
                         lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
                             service=current_config["config"]["provider"]["key"],
@@ -363,19 +362,19 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 "coverageUrl": codecovUrl,
                                 "status": 200,
                             }
-                    except requests.exceptions.HTTPError as error:
-                        result["codecov"] = {
-                            "attemptedUrl": error.response.url,
-                            "status": error.response.status_code,
-                        }
-                        if error.response.status_code != 404:
-                            logger.exception(
-                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
-                            )
-                    except Exception:
-                        logger.exception("Something unexpected happen. Continuing execution.")
-                    # We don't expect coverage data if the integration does not exist (404)
-                    scope.set_tag("codecov.enabled", True)
+                except requests.exceptions.HTTPError as error:
+                    result["codecov"] = {
+                        "attemptedUrl": error.response.url,
+                        "status": error.response.status_code,
+                    }
+                    if error.response.status_code != 404:
+                        logger.exception(
+                            "Failed to get expected data from Codecov, pending investigation. Continuing execution."
+                        )
+                except Exception:
+                    logger.exception("Something unexpected happen. Continuing execution.")
+                # We don't expect coverage data if the integration does not exist (404)
+                scope.set_tag("codecov.enabled", True)
 
             try:
                 set_tags(scope, result)
