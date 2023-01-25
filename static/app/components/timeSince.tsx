@@ -3,13 +3,12 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {ColorOrAlias} from 'sentry/utils/theme';
-
-import Tooltip from './tooltip';
 
 const ONE_MINUTE_IN_MS = 60000;
 

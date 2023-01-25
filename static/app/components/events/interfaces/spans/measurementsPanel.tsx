@@ -2,7 +2,7 @@ import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
