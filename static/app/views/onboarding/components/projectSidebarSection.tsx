@@ -40,14 +40,14 @@ function NewProjectSideBarSection({
   const theme = useTheme();
   const {
     firstErrorReceived,
-    sessionInProgress,
+    hasSession,
     firstTransactionReceived,
     eventLoading,
     sessionLoading,
   } = useHeartbeat({project});
 
   const loading = eventLoading || sessionLoading;
-  const serverConnected = sessionInProgress || firstTransactionReceived;
+  const serverConnected = hasSession || firstTransactionReceived;
 
   const platform = project ? project.platform || 'other' : platformOnCreate;
   const platformName = platforms.find(p => p.id === platform)?.name ?? '';
