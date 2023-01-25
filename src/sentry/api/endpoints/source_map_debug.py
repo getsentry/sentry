@@ -135,12 +135,13 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         urlparts = urlparse(abs_path)
 
-        if not (urlparts.netloc and urlparts.scheme and urlparts.path):
+        if not (urlparts.scheme and urlparts.path):
             return Response(
                 {
                     "errors": [
                         SourceMapProcessingIssue(
-                            SourceMapProcessingIssue.URL_NOT_VALID
+                            SourceMapProcessingIssue.URL_NOT_VALID,
+                            data={"absPath": abs_path},
                         ).get_api_context()
                     ],
                 }
