@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Clipboard from 'sentry/components/clipboard';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';

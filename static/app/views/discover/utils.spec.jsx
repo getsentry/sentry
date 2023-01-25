@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import EventView from 'sentry/utils/discover/eventView';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {
   decodeColumnOrder,
   downloadAsCsv,

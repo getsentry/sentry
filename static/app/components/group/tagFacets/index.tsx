@@ -11,8 +11,6 @@ import {formatVersion} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
-
 export const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 
 export const FRONTEND_TAGS = ['browser', 'transaction', 'release', 'url', 'environment'];
@@ -136,7 +134,7 @@ export default function TagFacets({
         <Fragment>
           <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
           <Content>
-            <Fragment>
+            <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
@@ -145,14 +143,14 @@ export default function TagFacets({
                 tagsData={tagsData}
                 expandFirstTag
               />
-              <TagFacetsDistributionMeterWrapper
-                groupId={groupId}
-                organization={organization}
-                project={project}
-                tagKeys={remainingTagKeys}
-                tagsData={tagsData}
-              />
-            </Fragment>
+            </span>
+            <TagFacetsDistributionMeterWrapper
+              groupId={groupId}
+              organization={organization}
+              project={project}
+              tagKeys={remainingTagKeys}
+              tagsData={tagsData}
+            />
           </Content>
         </Fragment>
       )}
