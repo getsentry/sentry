@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+
+import click
+
+from sentry.runner import configure
+
+configure()
+
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.silo import SiloMode
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+
+@click.command()
+@click.option("--dry-run", is_flag=True, default=False)
+def main(dry_run):
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+        click.echo("Can run in monolith mode only")
+        return
+
+    if dry_run:
+        click.echo("! DRY RUN MODE !")
+
+    for mapping in RangeQuerySetWrapperWithProgressBar(OrganizationMapping.objects.all()):
+        if not mapping.verified or organization_service.get_organization_by_id(
+            id=mapping.organization_id
+        ):
+            continue
+
+        if not dry_run:
+            click.echo(f"Deleting mapping {mapping.id} with slug {mapping.slug}")
+            mapping.delete()
+        else:
+            click.echo(f"Would have deleted mapping {mapping.id} with slug {mapping.slug}")
+
+    click.echo("Done!")
+
+
+if __name__ == "__main__":
+    main()
