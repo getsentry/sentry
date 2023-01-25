@@ -78,17 +78,17 @@ class ReactMixin:
                 )
                 if redirect_url:
                     return HttpResponseRedirect(redirect_url)
-
-            user = getattr(request, "user", None) or None
-            if user is not None and not isinstance(user, AnonymousUser):
-                session = getattr(request, "session", None)
-                last_active_org = (session.get("activeorg", None) or None) if session else None
-                if last_active_org:
-                    redirect_url = resolve_redirect_url(
-                        request=request, org_slug=last_active_org, user_id=user.id
-                    )
-                    if redirect_url:
-                        return HttpResponseRedirect(redirect_url)
+            else:
+                user = getattr(request, "user", None) or None
+                if user is not None and not isinstance(user, AnonymousUser):
+                    session = getattr(request, "session", None)
+                    last_active_org = (session.get("activeorg", None) or None) if session else None
+                    if last_active_org:
+                        redirect_url = resolve_redirect_url(
+                            request=request, org_slug=last_active_org, user_id=user.id
+                        )
+                        if redirect_url:
+                            return HttpResponseRedirect(redirect_url)
 
         return render_to_response("sentry/base-react.html", context=context, request=request)
 
