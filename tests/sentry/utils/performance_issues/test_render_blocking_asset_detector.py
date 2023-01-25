@@ -48,7 +48,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="6060649d4f8435d88735",
+                fingerprint="1-1004-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="resource.script",
                 desc="SELECT count() FROM table WHERE id = %s",
                 type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
