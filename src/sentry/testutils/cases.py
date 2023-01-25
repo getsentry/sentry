@@ -878,7 +878,7 @@ class AcceptanceTestCase(TransactionTestCase):
     def tearDown(self):
         # Avoid tests finishing before their API calls have finished.
         # NOTE: This is not fool-proof, it requires loading indicators to be
-        # used.
+        # used when API requests are made.
         self.wait_for_loading()
         super().tearDown()
 
