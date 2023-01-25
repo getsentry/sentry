@@ -111,7 +111,7 @@ export function Tags({
               <EventTagsPill
                 key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
                 tag={tag}
-                projectId={transaction.project_slug}
+                projectSlug={transaction.project_slug}
                 organization={organization}
                 query={query}
                 streamPath={streamPath}
