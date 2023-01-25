@@ -35,7 +35,7 @@ export function CodecovLegend({event, frame, organization}: CodecovLegendProps) 
   }
 
   if (
-    data.codecov.statusCode !== CodecovStatusCode.COVERAGE_EXISTS ||
+    data.codecov.status !== CodecovStatusCode.COVERAGE_EXISTS ||
     data.config?.provider.key !== 'github'
   ) {
     return null;

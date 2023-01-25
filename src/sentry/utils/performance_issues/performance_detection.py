@@ -1607,13 +1607,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     Checks for large assets that are affecting load time.
     """
 
-    __slots__ = "stored_problems"
+    __slots__ = ("stored_problems", "any_compression")
 
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
     type: DetectorType = DetectorType.UNCOMPRESSED_ASSETS
 
     def init(self):
         self.stored_problems = {}
+        self.any_compression = False
 
     def visit_span(self, span: Span) -> None:
         op = span.get("op", None)
@@ -1638,6 +1639,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
         # Ignore assets that are already compressed.
         if encoded_body_size != decoded_body_size:
+            # Met criteria for a compressed span somewhere in the event.
+            self.any_compression = True
             return
 
         # Ignore assets that aren't big enough to worry about.
@@ -1692,6 +1695,11 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             # This can be extended later.
             return True
         return False
+
+    def on_complete(self) -> None:
+        if not self.any_compression:
+            # Must have a compressed asset in the event to emit this perf problem.
+            self.stored_problems = {}
 
 
 # Reports metrics and creates spans for detection
