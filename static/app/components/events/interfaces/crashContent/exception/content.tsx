@@ -1,10 +1,6 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  getUnqiueFilesFromExcption,
-  SourceMapDebug,
-} from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
@@ -17,7 +13,9 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {Mechanism} from './mechanism';
 import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
+import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
+import {getUnqiueFilesFromExcption} from './useSourceMapDebug';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 

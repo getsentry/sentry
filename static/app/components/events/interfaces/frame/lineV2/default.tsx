@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {
   StacktraceFilenameTuple,
   useSourceMapDebug,
-} from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
+} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
