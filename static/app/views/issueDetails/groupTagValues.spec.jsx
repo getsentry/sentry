@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GroupTagValues from 'sentry/views/organizationGroupDetails/groupTagValues';
+import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 
 const group = TestStubs.Group();
 const tags = TestStubs.Tags();

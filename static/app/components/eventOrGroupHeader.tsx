@@ -15,7 +15,7 @@ import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';
+import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
 

@@ -13,7 +13,7 @@ import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
-import usePromptCheck from 'sentry/views/organizationGroupDetails/quickTrace/usePromptCheck';
+import usePromptCheck from 'sentry/views/issueDetails/quickTrace/usePromptCheck';
 
 type Props = {
   event: Event;
