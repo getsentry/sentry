@@ -346,17 +346,27 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
 }
 
 export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
-  try {
-    let URLString = span?.data?.url;
-    if (!URLString) {
-      const [_method, _url] = (span?.description ?? '').split(' ', 2);
-      URLString = _url;
-    }
+  let URLString;
 
-    return new URL(URLString, baseURL);
-  } catch (e) {
-    return null;
+  URLString = span?.data?.url;
+  if (URLString) {
+    try {
+      return new URL(span?.data?.url, baseURL);
+    } catch (e) {
+      // Ignore error
+    }
   }
+
+  const [_method, _url] = (span?.description ?? '').split(' ', 2);
+  URLString = _url;
+
+  try {
+    return new URL(_url, baseURL);
+  } catch (e) {
+    // Ignore error
+  }
+
+  return null;
 };
 
 export function extractQueryParameters(URLs: URL[]): ParameterLookup {

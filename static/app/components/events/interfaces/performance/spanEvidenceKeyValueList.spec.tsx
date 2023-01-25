@@ -229,6 +229,18 @@ describe('SpanEvidenceKeyValueList', () => {
           )?.toString()
         ).toEqual('http://service.io/item');
       });
+
+      it('Falls back to span description if URL is faulty', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            description: 'GET http://service.io/item',
+            data: {
+              url: '/item',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/item');
+      });
     });
 
     describe('extractQueryParameters', () => {
