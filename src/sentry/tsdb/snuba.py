@@ -84,16 +84,7 @@ class SnubaTSDB(BaseTSDB):
     # Since transactions are currently (and temporarily) written to Snuba's events storage we need to
     # include this condition to ensure they are excluded from the query. Once we switch to the
     # errors storage in Snuba, this can be omitted and transactions will be excluded by default.
-    LEGACY_events_type_condition = ["type", "!=", "transaction"]
     events_type_condition = Condition(Column("type"), Op.NEQ, "transaction")
-    # ``non_outcomes_query_settings`` are all the query settings for non outcomes based TSDB models.
-    # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
-    # other models.
-    non_outcomes_query_settings = {
-        # TSDBModel.release: SnubaModelQuerySettings(
-        #     snuba.Dataset.Events, "tags[sentry:release]", None, [LEGACY_events_type_condition]
-        # ),
-    }
 
     # ``project_filter_model_query_settings`` and ``outcomes_partial_query_settings`` are all the TSDB models for
     # outcomes
@@ -171,6 +162,9 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    # ``non_outcomes_query_settings`` are all the query settings for non outcomes based TSDB models.
+    # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
+    # other models.
     # these query settings should use SnQL style parameters instead of the legacy format
     non_outcomes_snql_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(
@@ -233,7 +227,6 @@ class SnubaTSDB(BaseTSDB):
         itertools.chain(
             project_filter_model_query_settings.items(),
             outcomes_partial_query_settings.items(),
-            non_outcomes_query_settings.items(),
             non_outcomes_snql_query_settings.items(),
         )
     )

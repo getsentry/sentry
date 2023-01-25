@@ -427,12 +427,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             ],
         }
 
-        # assert (
-        #     self.db.get_frequency_series(
-        #         TSDBModel.frequent_releases_by_group, {}, dts[0], dts[-1], rollup=3600
-        #     )
-        #     == {}
-        # )
+        assert (
+            self.db.get_frequency_series(
+                TSDBModel.frequent_releases_by_group, {}, dts[0], dts[-1], rollup=3600
+            )
+            == {}
+        )
 
     def test_result_shape(self):
         """
