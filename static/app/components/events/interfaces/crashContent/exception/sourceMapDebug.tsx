@@ -8,7 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -22,31 +22,50 @@ import {
 
 const errorMessageDescription: Record<
   SourceMapProcessingIssueType,
-  {desc: string; title: string}
+  Array<{title: string; desc?: string}>
 > = {
-  [SourceMapProcessingIssueType.UNKNOWN_ERROR]: {
-    title: t('x'),
-    desc: t('something'),
-  },
-  [SourceMapProcessingIssueType.MISSING_RELEASE]: {
-    title: t('x'),
-    desc: t('something'),
-  },
-  [SourceMapProcessingIssueType.MISSING_USER_AGENT]: {
-    title: t('x'),
-    desc: t('something'),
-  },
-  [SourceMapProcessingIssueType.MISSING_SOURCEMAPS]: {
-    title: t('x'),
-    desc: t('something'),
-  },
-  [SourceMapProcessingIssueType.URL_NOT_VALID]: {
-    title: t('The abs_path of the stack frame doesn’t match any release artifact'),
-    desc: t('something'),
-  },
+  [SourceMapProcessingIssueType.UNKNOWN_ERROR]: [
+    {
+      title: t('x'),
+      desc: t('something'),
+    },
+  ],
+  [SourceMapProcessingIssueType.MISSING_RELEASE]: [
+    {
+      title: tct('Update your [method] call to pass in the release argument', {
+        method: 'Sentry.init',
+      }),
+    },
+    {
+      title: t(
+        'Integration Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
+      ),
+    },
+  ],
+  [SourceMapProcessingIssueType.MISSING_USER_AGENT]: [
+    {
+      title: t('x'),
+      desc: t('something'),
+    },
+  ],
+  [SourceMapProcessingIssueType.MISSING_SOURCEMAPS]: [
+    {
+      title: t('x'),
+      desc: t('something'),
+    },
+  ],
+  [SourceMapProcessingIssueType.URL_NOT_VALID]: [
+    {
+      title: t('The abs_path of the stack frame doesn’t match any release artifact'),
+      desc: t('something'),
+    },
+  ],
 };
 
 interface SourcemapDebugProps {
+  /**
+   * A subset of the total error frames to validate sourcemaps
+   */
   debugFrames: StacktraceFilenameTuple[];
 }
 
@@ -79,7 +98,9 @@ function ExpandableErrorList({
               </ToggleButton>
             )}
           </ErrorTitleFlex>
-          {docsLink && <ExternalLink href={docsLink}>{t('Read Guide')}</ExternalLink>}
+          {docsLink && (
+            <DocsExternalLink href={docsLink}>{t('Read Guide')}</DocsExternalLink>
+          )}
         </ErrorTitleFlex>
 
         {expanded && <div>{children}</div>}
@@ -115,6 +136,8 @@ export function SourceMapDebug({debugFrames}: SourcemapDebugProps) {
     return null;
   }
 
+  const errorMessages = errors.map(error => errorMessageDescription[error.type]).flat();
+
   return (
     <Alert
       type="error"
@@ -122,19 +145,14 @@ export function SourceMapDebug({debugFrames}: SourcemapDebugProps) {
       icon={<IconWarning />}
       expand={
         <Fragment>
-          {errors.map(error => {
-            const details = errorMessageDescription[error.type];
-            if (!details) {
-              return null;
-            }
-
+          {errorMessages.map((message, idx) => {
             return (
               <ExpandableErrorList
-                key={error.type}
-                title={details.title}
+                key={idx}
+                title={message.title}
                 docsLink="https://example.com"
               >
-                {details.desc}
+                {message.desc}
               </ExpandableErrorList>
             );
           })}
@@ -144,7 +162,7 @@ export function SourceMapDebug({debugFrames}: SourcemapDebugProps) {
       {tn(
         'We’ve encountered %s problem de-minifying your applications source code!',
         'We’ve encountered %s problems de-minifying your applications source code!',
-        errors.length
+        errorMessages.length
       )}
     </Alert>
   );
@@ -167,4 +185,8 @@ const ErrorTitleFlex = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const DocsExternalLink = styled(ExternalLink)`
+  white-space: nowrap;
 `;

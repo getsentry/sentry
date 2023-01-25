@@ -55,7 +55,7 @@ export function Content({
 
   const orgHasSourcemapCta = organization?.features?.includes('fix-source-map-cta');
   const debugFrames = orgHasSourcemapCta
-    ? getUnqiueFilesFromExcption(values, {
+    ? getUnqiueFilesFromExcption(values, platform, {
         eventId: event.id,
         projectSlug,
         orgSlug: organization?.slug,

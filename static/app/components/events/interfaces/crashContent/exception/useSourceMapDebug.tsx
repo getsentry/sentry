@@ -61,6 +61,9 @@ export function useSourceMapDebug(
   });
 }
 
+// TODO
+const ALLOWED_PLATFORMS = ['javascript', 'node', 'react-native'];
+
 /**
  * Returns an array of unique filenames and the first frame they appear in.
  * Filters out non inApp frames and frames without a line number.
@@ -68,11 +71,16 @@ export function useSourceMapDebug(
  */
 export function getUnqiueFilesFromExcption(
   excValues: ExceptionValue[],
+  platform: string,
   props: Omit<UseSourceMapDebugProps, 'frameIdx' | 'exceptionIdx'>
 ): StacktraceFilenameTuple[] {
-  // Just disable the query if we don't have the required props
-  // This is likely on the shared event page
-  if (!props.orgSlug || !props.projectSlug || !props.eventId) {
+  // Check we have all required props and platform is supported
+  if (
+    !props.orgSlug ||
+    !props.projectSlug ||
+    !props.eventId ||
+    !ALLOWED_PLATFORMS.includes(platform)
+  ) {
     return [];
   }
 
