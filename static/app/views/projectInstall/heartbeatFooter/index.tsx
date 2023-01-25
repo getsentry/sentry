@@ -68,10 +68,10 @@ export function HeartbeatFooter({
     eventLoading,
     firstErrorReceived,
     firstTransactionReceived,
-    sessionInProgress,
+    hasSession,
   } = useHeartbeat({project});
 
-  const serverConnected = sessionInProgress || firstTransactionReceived;
+  const serverConnected = hasSession || firstTransactionReceived;
 
   useEffect(() => {
     const onUnload = (nextLocation?: Location) => {
