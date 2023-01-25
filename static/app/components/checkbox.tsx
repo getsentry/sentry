@@ -30,7 +30,7 @@ type CheckboxConfig = {
 
 const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   xs: {box: '12px', borderRadius: '2px', icon: '10px'},
-  sm: {box: '16px', borderRadius: '4px', icon: '13px'},
+  sm: {box: '16px', borderRadius: '4px', icon: '12px'},
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
@@ -154,7 +154,7 @@ const VariableWeightIcon = styled('svg')<{size: string}>`
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke: ${p => p.theme.white};
-  stroke-width: calc(1px + ${p => p.size} * 0.05);
+  stroke-width: calc(1.4px + ${p => p.size} * 0.04);
 `;
 
 export default Checkbox;
