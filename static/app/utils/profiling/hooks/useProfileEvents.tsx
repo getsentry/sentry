@@ -11,13 +11,14 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 
 type Sort<F> = {
   key: F;
   order: 'asc' | 'desc';
 };
 
-interface UseProfileEventsOptions<F> {
+export interface UseProfileEventsOptions<F = ProfilingFieldType> {
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;

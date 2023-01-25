@@ -21,6 +21,7 @@ interface UseFunctionsOptions {
   sort: string;
   transaction: string | null;
   cursor?: string;
+  enabled?: boolean;
   functionType?: 'application' | 'system' | 'all';
   selection?: PageFilters;
 }
@@ -34,6 +35,7 @@ function useFunctions({
   sort,
   cursor,
   selection,
+  enabled = true,
 }: UseFunctionsOptions): RequestState<FunctionsResult> {
   const api = useApi();
   const organization = useOrganization();
@@ -43,7 +45,7 @@ function useFunctions({
   });
 
   useEffect(() => {
-    if (selection === undefined || transaction === null) {
+    if (selection === undefined || transaction === null || !enabled) {
       return undefined;
     }
 
@@ -83,6 +85,7 @@ function useFunctions({
     selection,
     sort,
     transaction,
+    enabled,
   ]);
 
   return requestState;
