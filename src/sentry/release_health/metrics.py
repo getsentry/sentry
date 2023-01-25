@@ -16,7 +16,6 @@ from typing import (
     Union,
 )
 
-# import pytz
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, Query, Request
 from snuba_sdk.expressions import Granularity, Limit
 from snuba_sdk.query import SelectableExpression
@@ -188,8 +187,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _compute_crash_free_rate(data: Dict[str, float]) -> Optional[float]:
-        total_session_count = data.get("init", 0)
-        crash_count = data.get("crashed", 0)
+        total_session_count = data.get("init")
+
+        if total_session_count is None:
+            total_session_count = 0
+
+        crash_count = data.get("crashed")
+
+        if crash_count is None:
+            crash_count = 0
 
         if total_session_count == 0:
             return None
