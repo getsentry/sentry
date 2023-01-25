@@ -1,9 +1,10 @@
-import unittest
 from typing import List
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.models import ProjectOption
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
@@ -24,7 +25,7 @@ SECOND = 1000
 
 @region_silo_test
 @pytest.mark.django_db
-class ConsecutiveDbDetectorTest(unittest.TestCase):
+class ConsecutiveDbDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -252,3 +253,24 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         fingerprint_2 = self.find_problems(event_2)[0].fingerprint
 
         assert fingerprint_1 == fingerprint_2
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveDBSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"consecutive_db_queries_detection_rate": 0.0},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveDBSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
