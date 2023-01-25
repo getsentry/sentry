@@ -21,7 +21,7 @@ type SetHighlightAllFrames = {
 type FlamegraphProfilesAction = SetHighlightAllFrames | SetProfilesThreadId | SetRootNode;
 
 export type FlamegraphProfiles = {
-  highlightFrames: {name: string; package: string} | null;
+  highlightFrames: {name: string | undefined; package: string | undefined} | null;
   selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
 };

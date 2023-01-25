@@ -308,31 +308,15 @@ export class Flamegraph {
     return frames;
   }
 
-  findAllMatchingFrames(
-    frameOrName: FlamegraphFrame | string,
-    packageName?: string
-  ): FlamegraphFrame[] {
+  findAllMatchingFrames(frameName?: string, framePackage?: string): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
 
-    if (typeof frameOrName === 'string') {
-      for (let i = 0; i < this.frames.length; i++) {
-        if (
-          this.frames[i].frame.name === frameOrName &&
-          // the image name on a frame is optional,
-          // treat it the same as the empty string
-          (this.frames[i].frame.image || '') === packageName
-        ) {
-          matches.push(this.frames[i]);
-        }
-      }
-    } else {
-      for (let i = 0; i < this.frames.length; i++) {
-        if (
-          this.frames[i].frame.name === frameOrName.node.frame.name &&
-          this.frames[i].frame.image === frameOrName.node.frame.image
-        ) {
-          matches.push(this.frames[i]);
-        }
+    for (let i = 0; i < this.frames.length; i++) {
+      if (
+        this.frames[i].frame.name === frameName &&
+        this.frames[i].frame.image === framePackage
+      ) {
+        matches.push(this.frames[i]);
       }
     }
 
