@@ -81,11 +81,6 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
-    # Since transactions are currently (and temporarily) written to Snuba's events storage we need to
-    # include this condition to ensure they are excluded from the query. Once we switch to the
-    # errors storage in Snuba, this can be omitted and transactions will be excluded by default.
-    events_type_condition = Condition(Column("type"), Op.NEQ, "transaction")
-
     # ``project_filter_model_query_settings`` and ``outcomes_partial_query_settings`` are all the TSDB models for
     # outcomes
     project_filter_model_query_settings = {
@@ -167,12 +162,8 @@ class SnubaTSDB(BaseTSDB):
     # other models.
     # these query settings should use SnQL style parameters instead of the legacy format
     non_outcomes_snql_query_settings = {
-        TSDBModel.project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", None, [events_type_condition]
-        ),
-        TSDBModel.group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", None, [events_type_condition]
-        ),
+        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, []),
+        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, []),
         TSDBModel.group_performance: SnubaModelQuerySettings(
             snuba.Dataset.Transactions,
             "group_id",
@@ -182,10 +173,10 @@ class SnubaTSDB(BaseTSDB):
             [Function("arrayJoin", [Column("group_ids")], "group_id")],
         ),
         TSDBModel.release: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "tags[sentry:release]", None, [events_type_condition]
+            snuba.Dataset.Events, "tags[sentry:release]", None, []
         ),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:user]", [events_type_condition]
+            snuba.Dataset.Events, "group_id", "tags[sentry:user]", []
         ),
         TSDBModel.users_affected_by_perf_group: SnubaModelQuerySettings(
             snuba.Dataset.Transactions,
@@ -195,16 +186,16 @@ class SnubaTSDB(BaseTSDB):
             [Function("arrayJoin", [Column("group_ids")], "group_id")],
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "tags[sentry:user]", [events_type_condition]
+            snuba.Dataset.Events, "project_id", "tags[sentry:user]", []
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "environment", [events_type_condition]
+            snuba.Dataset.Events, "group_id", "environment", []
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:release]", [events_type_condition]
+            snuba.Dataset.Events, "group_id", "tags[sentry:release]", []
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "group_id", [events_type_condition]
+            snuba.Dataset.Events, "project_id", "group_id", []
         ),
         TSDBModel.group_generic: SnubaModelQuerySettings(
             snuba.Dataset.IssuePlatform,
