@@ -1478,6 +1478,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         groups = raw_result["groups"]
+
         # since we are grouping by release & project the number of unique
         # combination is the number of groups.
         # NOTE: (RaduW) I don't know how to get a more direct query
@@ -1486,7 +1487,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         #  a column uniqueExact(projectId, release)
         ret_val = 0
         for group in groups:
-            val = get_path(group, "totals", "value", default=0)
+            val = get_path(group, "totals", "v", default=0)
             if val > 0:
                 ret_val += 1
         return ret_val
