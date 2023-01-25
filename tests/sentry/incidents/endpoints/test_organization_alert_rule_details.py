@@ -17,6 +17,7 @@ from sentry.incidents.models import (
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 
@@ -89,6 +90,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         assert resp.status_code == 404
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -171,6 +173,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data["triggers"][0]["actions"][0]["disabled"] is True
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "put"
 
@@ -504,6 +507,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
 

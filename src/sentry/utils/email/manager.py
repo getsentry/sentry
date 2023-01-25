@@ -37,7 +37,7 @@ def get_email_addresses(
         user_option_service.delete_options(option_ids=[o.id for o in to_delete])
 
     if pending:
-        users = user_service.get_many(pending)
+        users = user_service.get_many(user_ids=pending)
         for (user_id, email) in [(user.id, user.email) for user in users]:
             if email and not is_fake_email(email):
                 results[user_id] = email

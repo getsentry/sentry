@@ -40,7 +40,7 @@ class BaseIncidentDetailsTest:
         assert resp.status_code == 404
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
     @freeze_time()
     def test_simple(self):
@@ -62,7 +62,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
     method = "put"
 

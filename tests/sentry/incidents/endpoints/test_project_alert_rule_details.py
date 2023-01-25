@@ -18,6 +18,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from sentry.utils.types import Dict
 
@@ -107,6 +108,7 @@ class AlertRuleDetailsBase(APITestCase):
         assert resp.status_code == 404
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.login_as(self.member_user)
@@ -128,6 +130,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -152,10 +155,11 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data["name"] == "what"
 
         # We validate that there's only been one change to the alert
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=resp.data["id"]
-        )
-        assert len(audit_log_entry) == 1
+        with exempt_from_silo_limits():
+            audit_log_entry = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=resp.data["id"]
+            )
+            assert len(audit_log_entry) == 1
 
     def test_not_updated_fields(self):
         test_params = self.valid_params.copy()

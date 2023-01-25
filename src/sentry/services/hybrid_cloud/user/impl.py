@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, List, Optional
 
 from django.db.models import QuerySet
 
@@ -63,6 +63,8 @@ class DatabaseBackedUserService(UserService):
         team_ids: Optional[List[int]] = None,
         is_active_memberteam: Optional[bool] = None,
         emails: Optional[List[str]] = None,
+        # TODO(hybrid-cloud): Revisit this once we have an actor implementation
+        actor_ids: Optional[List[int]] = None,
     ) -> List[User]:
         query = self.__base_user_query()
         if user_ids is not None:
@@ -85,6 +87,8 @@ class DatabaseBackedUserService(UserService):
             )
         if emails is not None:
             query = query.filter(in_iexact("emails__email", emails))
+        if actor_ids is not None:
+            query = query.filter(actor_id__in=actor_ids)
 
         return list(query)
 
@@ -138,8 +142,29 @@ class DatabaseBackedUserService(UserService):
             )
         ]
 
-    def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
-        query = self.__base_user_query().filter(id__in=user_ids)
+    def get_many(
+        self,
+        *,
+        user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
+        emails: Optional[List[str]] = None,
+        # TODO(hybrid-cloud): Revisit this once we have an actor implementation
+        actor_ids: Optional[List[int]] = None,
+    ) -> List[APIUser]:
+        query = self.query_users(
+            user_ids=user_ids,
+            is_active=is_active,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            is_active_memberteam=is_active_memberteam,
+            team_ids=team_ids,
+            emails=emails,
+            actor_ids=actor_ids,
+        )
         return [UserService.serialize_user(u) for u in query]
 
     def get_from_project(self, project_id: int) -> List[APIUser]:

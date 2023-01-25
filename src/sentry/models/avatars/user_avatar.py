@@ -1,11 +1,11 @@
 from django.db import models
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model
+from sentry.db.models import BaseManager, FlexibleForeignKey
 
 from . import AvatarBase
 
 
-@control_silo_only_model
+# @control_silo_only_model # TODO(hybrid-cloud): make this a control silo model
 class UserAvatar(AvatarBase):
     """
     A UserAvatar associates a User with their avatar photo File

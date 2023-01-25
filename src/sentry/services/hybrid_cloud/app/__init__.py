@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sentry.constants import SentryAppInstallationStatus
+from sentry.db.models.fields.jsonfield import JSONField
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
@@ -24,8 +26,9 @@ class AppService(InterfaceWithLifecycle):
         self,
         *,
         organization_ids: List[int],
-        sentry_app_ids: List[int],
         type: str,
+        sentry_app_ids: Optional[List[int]] = None,
+        sentry_app_uuids: Optional[List[str]] = None,
         group_by="sentry_app_id",
     ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
         pass
@@ -50,6 +53,17 @@ class AppService(InterfaceWithLifecycle):
             uuid=app.uuid,
             events=app.events,
             is_alertable=app.is_alertable,
+            status=app.status,
+            components=[self.serialize_sentry_app_component(c) for c in app.components.all()],
+        )
+
+    def serialize_sentry_app_component(
+        self, component: SentryAppComponent
+    ) -> ApiSentryAppComponent:
+        return ApiSentryAppComponent(
+            uuid=component.uuid,
+            type=component.type,
+            schema=component.schema,
         )
 
     def serialize_sentry_app_installation(
@@ -62,6 +76,7 @@ class AppService(InterfaceWithLifecycle):
             id=installation.id,
             organization_id=installation.organization_id,
             status=installation.status,
+            uuid=installation.uuid,
             sentry_app=self.serialize_sentry_app(app),
         )
 
@@ -86,6 +101,7 @@ class ApiSentryAppInstallation:
     id: int = -1
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
+    uuid: str = ""
     sentry_app: ApiSentryApp = field(default_factory=lambda: ApiSentryApp())
 
 
@@ -99,5 +115,14 @@ class ApiSentryApp:
     name: str = ""
     slug: str = ""
     uuid: str = ""
+    status: str = ""
     events: List[str] = field(default_factory=list)
     is_alertable: bool = False
+    components: List[ApiSentryAppComponent] = field(default_factory=list)
+
+
+@dataclass
+class ApiSentryAppComponent:
+    uuid: str = ""
+    type: str = ""
+    schema: JSONField = None

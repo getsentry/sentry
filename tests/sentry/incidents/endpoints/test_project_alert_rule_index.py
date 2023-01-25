@@ -25,6 +25,7 @@ from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializer
 pytestmark = [pytest.mark.sentry_metrics]
 
 
+@region_silo_test(stable=True)
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
 
@@ -74,6 +75,7 @@ class AlertRuleListEndpointTest(APITestCase):
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
     method = "post"
@@ -465,7 +467,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert error_message in resp.data["sentry_app"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-project-combined-rules"
 
@@ -664,6 +666,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
     method = "post"
@@ -820,6 +823,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     endpoint = "sentry-api-0-project-alert-rules"
     method = "post"

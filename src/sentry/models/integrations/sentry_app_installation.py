@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
@@ -59,9 +59,10 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_related_sentry_app_components(
         self,
         organization_ids: List[int],
-        sentry_app_ids: List[int],
         type: str,
-        group_by="sentry_app_id",
+        sentry_app_ids: Optional[List[int]] = None,
+        sentry_app_uuids: Optional[List[str]] = None,
+        group_by: str = "sentry_app_id",
     ):
         from sentry.models import SentryAppComponent
 
@@ -69,9 +70,8 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
             sentry_app_id=OuterRef("sentry_app_id"), type=type
         )
 
-        sentry_app_installations = (
+        query = (
             self.filter(**self.get_organization_filter_kwargs(organization_ids))
-            .filter(sentry_app_id__in=sentry_app_ids)
             .annotate(
                 # Cannot annotate model object only individual fields. We can convert it into SentryAppComponent instance later.
                 sentry_app_component_id=Subquery(component_query.values("id")[:1]),
@@ -80,6 +80,12 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
             )
             .filter(sentry_app_component_id__isnull=False)
         )
+        if sentry_app_ids is not None:
+            query = query.filter(sentry_app_id__in=sentry_app_ids)
+        if sentry_app_uuids is not None:
+            query = query.filter(sentry_app__uuid__in=sentry_app_uuids)
+
+        sentry_app_installations = query.all()
 
         # There should only be 1 install of a SentryApp per organization
         grouped_sentry_app_installations = {

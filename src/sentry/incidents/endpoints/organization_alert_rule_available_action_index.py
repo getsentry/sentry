@@ -55,8 +55,15 @@ def build_action_response(
         )
 
         # Sentry Apps can be alertable but not have an Alert Rule UI Component
-        component = sentry_app_installation.prepare_sentry_app_components("alert-rule-action")
+        component = next(
+            filter(
+                lambda c: c.type == "alert-rule-action",
+                sentry_app_installation.sentry_app.components,
+            ),
+            None,
+        )
         if component:
+            component = sentry_app_installation.prepare_ui_component(component)
             action_response["settings"] = component.schema.get("settings", {})
 
     return action_response
