@@ -97,6 +97,7 @@ export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
   | 'count_errors'
+  | 'count_urls'
   | 'duration'
   | 'finished_at'
   | 'id'

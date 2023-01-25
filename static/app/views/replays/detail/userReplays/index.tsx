@@ -30,11 +30,13 @@ type Props = {
   replayId: undefined | string;
   user: undefined | ReplayRecord['user'];
 };
+const HEADER_HEIGHT = 28;
+const BODY_HEIGHT = 32;
 
 const COLUMNS = [
-  ReplayColumns.user,
-  ReplayColumns.startedAt,
+  ReplayColumns.dateTime,
   ReplayColumns.duration,
+  ReplayColumns.countUrls,
   ReplayColumns.countErrors,
   ReplayColumns.activity,
 ];
@@ -147,7 +149,7 @@ function ReplaysFromUser({replayId, user}: Props) {
                       overscanRowCount={5}
                       // Adjust count by 1 because the loader doesn't know about the header row
                       rowCount={Object.keys(rows).length + 1}
-                      rowHeight={({index}) => (index === 0 ? 28 : 50)}
+                      rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
                       width={width}
                     />
                   )}
@@ -199,9 +201,14 @@ const Header = styled('div')`
 `;
 
 const Body = styled('div')<{isCurrent: boolean}>`
-  display: flex;
-  padding: ${space(0.5)} ${space(1)};
   ${p => p.theme.overflowEllipsis};
+  font-variant-numeric: tabular-nums;
+
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: ${space(1)};
+  padding: ${space(0.5)} ${space(1)};
 
   background: ${p => (p.isCurrent ? p.theme.hover : 'inherit')};
 `;

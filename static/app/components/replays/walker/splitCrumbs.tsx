@@ -66,7 +66,7 @@ function splitCrumbs({
   ));
 }
 
-export function SingleLinkSegment({
+function SingleLinkSegment({
   onClick,
   path,
 }: {
@@ -88,7 +88,7 @@ export function SingleLinkSegment({
   return <Span>{content}</Span>;
 }
 
-export function SummarySegment({
+function SummarySegment({
   crumbs,
   handleOnClick,
   startTimestampMs,

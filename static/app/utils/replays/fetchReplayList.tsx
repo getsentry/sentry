@@ -14,6 +14,7 @@ export const DEFAULT_SORT = '-started_at';
 export const REPLAY_LIST_FIELDS = [
   'activity',
   'count_errors',
+  'count_urls',
   'duration',
   'finished_at',
   'id',

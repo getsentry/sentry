@@ -1,13 +1,12 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
-import {
-  StringWalker,
-  StringWalkerSummary,
-} from 'sentry/components/replays/walker/urlWalker';
+import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -40,17 +39,16 @@ export default function TableCell({
   replay,
 }: Props) {
   switch (column) {
-    case ReplayColumns.user:
+    case ReplayColumns.dateTime:
       return (
-        <UserCell
-          key="user"
-          replay={replay}
+        <DateTimeCell
+          key="datetime"
           eventView={eventView}
           organization={organization}
           referrer={referrer}
+          replay={replay}
         />
       );
-
     case ReplayColumns.session:
       return (
         <SessionCell
@@ -77,6 +75,8 @@ export default function TableCell({
       return <DurationCell key="duration" replay={replay} />;
     case ReplayColumns.countErrors:
       return <ErrorCountCell key="countErrors" replay={replay} />;
+    case ReplayColumns.countUrls:
+      return <UrlCountCell key="countUrls" replay={replay} />;
     case ReplayColumns.activity:
       return <ActivityCell key="activity" replay={replay} />;
     default:
@@ -84,7 +84,7 @@ export default function TableCell({
   }
 }
 
-function UserCell({
+function DateTimeCell({
   eventView,
   organization,
   referrer,
@@ -94,31 +94,17 @@ function UserCell({
   const project = projects.find(p => p.id === replay.project_id);
 
   return (
-    <UserBadge
-      avatarSize={32}
-      displayName={
-        <Link
-          to={{
-            pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
-            query: {
-              referrer,
-              ...eventView.generateQueryStringObject(),
-            },
-          }}
-        >
-          {replay.user.display_name || ''}
-        </Link>
-      }
-      user={{
-        username: replay.user.display_name || '',
-        email: replay.user.email || '',
-        id: replay.user.id || '',
-        ip_address: replay.user.ip || '',
-        name: replay.user.username || '',
+    <Link
+      to={{
+        pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+        query: {
+          referrer,
+          ...eventView.generateQueryStringObject(),
+        },
       }}
-      // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-      displayEmail={<StringWalkerSummary urls={replay.urls} />}
-    />
+    >
+      <DateTime date={replay.started_at} seconds timeZone />
+    </Link>
   );
 }
 
@@ -164,9 +150,7 @@ function ProjectCell({replay}: BaseProps) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
-  return (
-    <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
-  );
+  return project ? <ProjectBadge project={project} avatarSize={16} /> : null;
 }
 
 function TransactionCell({
@@ -195,44 +179,32 @@ function TransactionCell({
 }
 
 function StartedAtCell({replay}: BaseProps) {
-  return (
-    <Item>
-      <TimeSince date={replay.started_at} />
-    </Item>
-  );
+  return <TimeSince date={replay.started_at} />;
 }
 
 function DurationCell({replay}: BaseProps) {
-  return (
-    <Item>
-      <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
-    </Item>
-  );
+  return <Duration seconds={replay.duration.asSeconds()} exact abbreviation />;
 }
 
 function ErrorCountCell({replay}: BaseProps) {
-  return <Item data-test-id="replay-table-count-errors">{replay.count_errors || 0}</Item>;
+  return <Fragment>{replay.count_errors || 0}</Fragment>;
+}
+
+function UrlCountCell({replay}: BaseProps) {
+  return <Fragment>{replay.count_urls || 0}</Fragment>;
 }
 
 function ActivityCell({replay}: BaseProps) {
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
-    <Item>
-      <ScoreBar
-        size={20}
-        score={replay?.activity ?? 1}
-        palette={scoreBarPalette}
-        radius={0}
-      />
-    </Item>
+    <ScoreBar
+      size={20}
+      score={replay?.activity ?? 1}
+      palette={scoreBarPalette}
+      radius={0}
+    />
   );
 }
-
-const Item = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 const SpanOperationBreakdown = styled('div')`
   width: 100%;

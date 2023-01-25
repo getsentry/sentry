@@ -1,7 +1,7 @@
 import {memo} from 'react';
 
 import ChevronDividedList from 'sentry/components/replays/walker/chevronDividedList';
-import splitCrumbs, {SummarySegment} from 'sentry/components/replays/walker/splitCrumbs';
+import splitCrumbs from 'sentry/components/replays/walker/splitCrumbs';
 import {
   BreadcrumbLevelType,
   BreadcrumbType,
@@ -47,16 +47,6 @@ export const StringWalker = memo(function StringWalker({urls}: StringProps) {
         startTimestampMs: 0,
         onClick: null,
       })}
-    />
-  );
-});
-
-export const StringWalkerSummary = memo(function StringSummary({urls}: StringProps) {
-  return (
-    <SummarySegment
-      crumbs={urls.map(urlToCrumb) as Crumb[]}
-      handleOnClick={null}
-      startTimestampMs={0}
     />
   );
 });

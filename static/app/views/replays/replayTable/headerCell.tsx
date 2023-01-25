@@ -10,8 +10,10 @@ type Props = {
 
 function HeaderCell({column, sort}: Props) {
   switch (column) {
-    case ReplayColumns.user:
-      return <SortableHeader label={t('User')} />;
+    case ReplayColumns.dateTime:
+      return (
+        <SortableHeader sort={sort} fieldName="started_at" label={t('Start Time')} />
+      );
 
     case ReplayColumns.session:
       return <SortableHeader label={t('Session')} />;
@@ -39,6 +41,9 @@ function HeaderCell({column, sort}: Props) {
 
     case ReplayColumns.countErrors:
       return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
+
+    case ReplayColumns.countUrls:
+      return <SortableHeader sort={sort} fieldName="count_urls" label={t('Pages')} />;
 
     case ReplayColumns.activity:
       return (
