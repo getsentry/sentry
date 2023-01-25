@@ -120,7 +120,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
         )
         url = reverse(
             "sentry-api-0-organization-events-meta",
