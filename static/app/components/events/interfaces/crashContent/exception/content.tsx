@@ -1,3 +1,4 @@
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -12,6 +13,7 @@ import {ExceptionType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {Mechanism} from './mechanism';
 import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
@@ -45,13 +47,25 @@ export function Content({
   type,
   meta,
 }: Props) {
+  // Organization context may be unavailable for the shared event view, so we
+  // avoid using the `useOrganization` hook here and directly useContext
+  // instead.
+  const organization = useContext(OrganizationContext);
   if (!values) {
     return null;
   }
 
-  const debugFrames = getUnqiueFilesFromExcption(values);
+  const orgHasSourcemapCta = organization?.features?.includes('fix-source-map-cta');
+  const debugFrames = orgHasSourcemapCta
+    ? getUnqiueFilesFromExcption(values, {
+        eventId: event.id,
+        projectSlug,
+        orgSlug: organization?.slug,
+      })
+    : [];
 
   const children = values.map((exc, excIdx) => {
+    const hasSourcemapDebug = debugFrames.some(tuple => tuple[1].exceptionIdx === excIdx);
     return (
       <div key={excIdx} className="exception">
         {defined(exc?.module) ? (
@@ -71,14 +85,8 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
-        <SetupSourceMapsAlert event={event} />
-        {debugFrames.some(tuple => tuple[2] === excIdx) && (
-          <SourceMapDebug
-            event={event}
-            projectSlug={projectSlug}
-            debugFrames={debugFrames}
-          />
-        )}
+        {!orgHasSourcemapCta && <SetupSourceMapsAlert event={event} />}
+        {hasSourcemapDebug && <SourceMapDebug debugFrames={debugFrames} />}
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL
@@ -95,6 +103,7 @@ export function Content({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
+          debugFrames={hasSourcemapDebug ? debugFrames : undefined}
         />
       </div>
     );

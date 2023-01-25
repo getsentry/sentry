@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -10,110 +10,56 @@ import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, ExceptionValue, Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface UseSourcemapDebugProps {
-  event: Event;
-  exceptionIdx: number;
-  frameIdx: number;
-  orgSlug: string;
-  projectSlug: string | undefined;
-}
+import {
+  SourceMapDebugResponse,
+  SourceMapProcessingIssueType,
+  StacktraceFilenameTuple,
+  useSourceMapDebug,
+} from './useSourceMapDebug';
 
-interface SourcemapDebugResponse {
-  errors: SourceMapProcessingIssueResponse[];
-}
-
-enum SourceMapProcessingIssueType {
-  UNKNOWN_ERROR = 'unknown_error',
-  MISSING_RELEASE = 'no_release_on_event',
-  MISSING_USER_AGENT = 'no_user_agent_on_release',
-  MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
-  URL_NOT_VALID = 'url_not_valid',
-}
-
-interface SourceMapProcessingIssueResponse {
-  data: {message: string; type: SourceMapProcessingIssueType} | null;
-  message: string;
-  type: string;
-}
-
-type StacktraceFilenameTuple = [filename: string, frameIdx: number, exceptionIdx: number];
-
-// TODO: Types
-const errorMessageDescription = {
-  [SourceMapProcessingIssueType.URL_NOT_VALID]: t(
-    'The abs_path of the stack frame doesn’t match any release artifact'
-  ),
+const errorMessageDescription: Record<
+  SourceMapProcessingIssueType,
+  {desc: string; title: string}
+> = {
+  [SourceMapProcessingIssueType.UNKNOWN_ERROR]: {
+    title: t('x'),
+    desc: t('something'),
+  },
+  [SourceMapProcessingIssueType.MISSING_RELEASE]: {
+    title: t('x'),
+    desc: t('something'),
+  },
+  [SourceMapProcessingIssueType.MISSING_USER_AGENT]: {
+    title: t('x'),
+    desc: t('something'),
+  },
+  [SourceMapProcessingIssueType.MISSING_SOURCEMAPS]: {
+    title: t('x'),
+    desc: t('something'),
+  },
+  [SourceMapProcessingIssueType.URL_NOT_VALID]: {
+    title: t('The abs_path of the stack frame doesn’t match any release artifact'),
+    desc: t('something'),
+  },
 };
-
-/**
- * Returns an array of unique filenames and the first frame they appear in.
- * Filters out non inApp frames and frames without a line number.
- * Limited to only the first 3 unique filenames.
- */
-export function getUnqiueFilesFromExcption(
-  excValues: ExceptionValue[]
-): StacktraceFilenameTuple[] {
-  // Not using .at(-1) because we need to use the index later
-  const exceptionIdx = excValues.length - 1;
-  const fileFrame = (excValues[exceptionIdx]?.stacktrace?.frames ?? [])
-    .map<[Frame, number]>((frame, idx) => [frame, idx])
-    .filter(
-      ([frame]) =>
-        frame.inApp &&
-        frame.filename &&
-        // Line number might not work for non-javascript languages
-        defined(frame.lineNo)
-    )
-    .map<StacktraceFilenameTuple>(([frame, idx]) => [frame.filename!, idx, exceptionIdx]);
-
-  return uniqBy(fileFrame, ([filename]) => filename).slice(0, 3);
-}
-
-const sourceMapDebugQuery = (
-  orgSlug: string,
-  projectSlug: string | undefined,
-  eventId: Event['id'],
-  query: Record<string, string>
-): QueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/events/${eventId}/source-map-debug/`,
-  {query},
-];
-
-function useSourceMapDebug(
-  {event, orgSlug, projectSlug, frameIdx, exceptionIdx}: UseSourcemapDebugProps,
-  options: Partial<UseQueryOptions<SourcemapDebugResponse>> = {}
-) {
-  return useQuery<SourcemapDebugResponse>(
-    sourceMapDebugQuery(orgSlug, projectSlug, event.id, {
-      frame_idx: `${frameIdx}`,
-      exception_idx: `${exceptionIdx}`,
-    }),
-    {
-      staleTime: Infinity,
-      retry: false,
-      ...options,
-    }
-  );
-}
 
 interface SourcemapDebugProps {
   debugFrames: StacktraceFilenameTuple[];
-  event: Event;
-  projectSlug: string | undefined;
 }
 
-function SourceErrorDescription({
+/**
+ * Kinda making this reuseable since we have this pattern in a few places
+ */
+function ExpandableErrorList({
   title,
-  expandedMessage,
+  children,
   docsLink,
 }: {
+  children: React.ReactNode;
   docsLink: string;
-  expandedMessage: string;
   title: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -123,7 +69,7 @@ function SourceErrorDescription({
         <ErrorTitleFlex>
           <ErrorTitleFlex>
             <strong>{title}</strong>
-            {expandedMessage && (
+            {children && (
               <ToggleButton
                 priority="link"
                 size="zero"
@@ -136,33 +82,38 @@ function SourceErrorDescription({
           {docsLink && <ExternalLink href={docsLink}>{t('Read Guide')}</ExternalLink>}
         </ErrorTitleFlex>
 
-        {expanded && <div>{expandedMessage}</div>}
+        {expanded && <div>{children}</div>}
       </StyledListItem>
     </List>
   );
 }
 
-export function SourceMapDebug({event, projectSlug, debugFrames}: SourcemapDebugProps) {
-  const organization = useOrganization();
-  const enabled = organization.features.includes('source-maps-cta');
-  // TODO: Support multiple frames
-  const [firstFrame] = debugFrames;
-  const {data, isLoading} = useSourceMapDebug(
-    {
-      event,
-      orgSlug: organization.slug,
-      projectSlug,
-      frameIdx: firstFrame[1],
-      exceptionIdx: firstFrame[2],
-    },
-    {enabled: enabled && defined(firstFrame)}
-  );
+function combineErrors(response: Array<SourceMapDebugResponse | undefined>) {
+  const errors = response
+    .map(res => res?.errors ?? [])
+    .flat()
+    .filter(defined);
+  return uniqBy(errors, error => error.type);
+}
 
-  if (isLoading || !enabled) {
+export function SourceMapDebug({debugFrames}: SourcemapDebugProps) {
+  const organization = useOrganization();
+  const [firstFrame, secondFrame, thirdFrame] = debugFrames;
+  const hasFeature = organization.features.includes('source-maps-cta');
+  const {data: firstData} = useSourceMapDebug(firstFrame?.[1], {
+    enabled: hasFeature && defined(firstFrame),
+  });
+  const {data: secondData} = useSourceMapDebug(secondFrame?.[1], {
+    enabled: hasFeature && defined(secondFrame),
+  });
+  const {data: thirdData} = useSourceMapDebug(thirdFrame?.[1], {
+    enabled: hasFeature && defined(thirdFrame),
+  });
+
+  const errors = combineErrors([firstData, secondData, thirdData]);
+  if (!hasFeature || !errors.length) {
     return null;
   }
-
-  const errors = data?.errors ?? [];
 
   return (
     <Alert
@@ -171,14 +122,22 @@ export function SourceMapDebug({event, projectSlug, debugFrames}: SourcemapDebug
       icon={<IconWarning />}
       expand={
         <Fragment>
-          {errors.map(error => (
-            <SourceErrorDescription
-              key={error.type}
-              title={error.message}
-              expandedMessage={errorMessageDescription[error.type] ?? ''}
-              docsLink="https://example.com"
-            />
-          ))}
+          {errors.map(error => {
+            const details = errorMessageDescription[error.type];
+            if (!details) {
+              return null;
+            }
+
+            return (
+              <ExpandableErrorList
+                key={error.type}
+                title={details.title}
+                docsLink="https://example.com"
+              >
+                {details.desc}
+              </ExpandableErrorList>
+            );
+          })}
         </Fragment>
       }
     >

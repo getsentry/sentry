@@ -1,9 +1,15 @@
 import styled from '@emotion/styled';
 
+import {
+  StacktraceFilenameTuple,
+  useSourceMapDebug,
+} from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import DefaultTitle from '../defaultTitle';
@@ -16,6 +22,7 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
+    debugFrames?: StacktraceFilenameTuple[];
     frameMeta?: Record<any, any>;
     onClick?: () => void;
     onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
@@ -24,6 +31,7 @@ type Props = React.ComponentProps<typeof Expander> &
 
 function Default({
   frame,
+  debugFrames,
   nextFrame,
   isHoverPreviewed,
   isExpanded,
@@ -36,6 +44,11 @@ function Default({
   frameMeta,
   ...props
 }: Props) {
+  const debugFrame = debugFrames?.find(debug => debug[0] === frame.filename);
+  const {data} = useSourceMapDebug(debugFrame?.[1], {
+    enabled: defined(debugFrame),
+  });
+
   function renderRepeats() {
     if (defined(timesRepeated) && timesRepeated > 0) {
       return (
@@ -57,6 +70,11 @@ function Default({
     <Wrapper className="title" onMouseDown={onMouseDown} onClick={onClick}>
       <VertCenterWrapper>
         <Title>
+          {data?.errors?.length ? (
+            <Tooltip skipWrapper title={t('Missing source map')}>
+              <StyledIconWarning color="red400" size="sm" />
+            </Tooltip>
+          ) : null}
           <LeadHint
             isExpanded={isExpanded}
             nextFrame={nextFrame}
@@ -83,6 +101,10 @@ function Default({
 }
 
 export default Default;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-right: ${space(0.5)};
+`;
 
 const VertCenterWrapper = styled('div')`
   display: flex;

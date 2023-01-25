@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import type {StacktraceFilenameTuple} from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
 import {Panel} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,6 +23,7 @@ type Props = {
   hasHierarchicalGrouping: boolean;
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
+  debugFrames?: StacktraceFilenameTuple[];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
@@ -33,6 +35,7 @@ function StackTrace({
   stackView,
   stacktrace,
   chainedException,
+  debugFrames,
   platform,
   newestFirst,
   groupingCurrentLevel,
@@ -116,6 +119,7 @@ function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
+        debugFrames={debugFrames}
       />
     );
   }

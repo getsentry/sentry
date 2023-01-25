@@ -46,7 +46,7 @@ function Exception({
           stackView={stackView}
           values={values}
           platform={platform}
-          projectSlug={projectId}
+          projectSlug={projectSlug}
           newestFirst={newestFirst}
           event={event}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
