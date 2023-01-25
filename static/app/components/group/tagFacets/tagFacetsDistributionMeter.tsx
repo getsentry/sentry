@@ -199,7 +199,10 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      <TagHeader onClick={() => multiValueTag && setExpanded(!expanded)}>
+      <TagHeader
+        clickable={multiValueTag}
+        onClick={() => multiValueTag && setExpanded(!expanded)}
+      >
         {renderTitle()}
         {renderSegments()}
       </TagHeader>
@@ -214,8 +217,8 @@ const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const TagHeader = styled('span')`
-  cursor: pointer;
+const TagHeader = styled('span')<{clickable?: boolean}>`
+  ${p => (p.clickable ? 'cursor: pointer' : null)};
 `;
 
 const SegmentBar = styled('div')`

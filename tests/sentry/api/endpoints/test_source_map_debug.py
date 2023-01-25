@@ -38,6 +38,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             self.project.slug,
             "invalid_id",
             frame_idx=0,
+            exception_idx=0,
             status_code=status.HTTP_404_NOT_FOUND,
         )
         assert resp.data["detail"] == "Event not found"
@@ -80,8 +81,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             },
             project_id=self.project.id,
         )
-        release = Release.objects.get(version=event.release)
-        release.update(user_agent="test_user_agent", project_id=self.project.id)
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
 
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
@@ -91,7 +92,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
         assert resp.data["errors"] == []
 
@@ -103,7 +108,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
         error = resp.data["errors"][0]
         assert error["type"] == "no_release_on_event"
@@ -114,11 +123,14 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
-        release = Release.objects.get(version=event.release)
-        release.update(project_id=self.project.id)
+        Release.objects.get(organization=self.organization, version=event.release)
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
 
         error = resp.data["errors"][0]
@@ -130,10 +142,14 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
-        release = Release.objects.get(version=event.release)
-        release.update(user_agent="test_user_agent", project_id=self.project.id)
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
         )
 
         error = resp.data["errors"][0]
@@ -153,20 +169,32 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
                                 ]
                             },
-                        }
+                        },
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
                     ]
                 },
             },
             project_id=self.project.id,
         )
-        release = Release.objects.get(version=event.release)
-        release.update(user_agent="test_user_agent", project_id=self.project.id)
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
 
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
@@ -176,7 +204,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=1,
         )
         error = resp.data["errors"][0]
         assert error["type"] == "url_not_valid"

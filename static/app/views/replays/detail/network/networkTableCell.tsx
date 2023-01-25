@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import FileSize from 'sentry/components/fileSize';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';

@@ -157,7 +157,7 @@ describe('EventTagsAndScreenshot', function () {
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
-          projectId={project.slug}
+          projectSlug={project.slug}
           location={router.location}
           attachments={[]}
           onDeleteScreenshot={() => jest.fn()}
@@ -208,7 +208,7 @@ describe('EventTagsAndScreenshot', function () {
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
-          projectId={project.slug}
+          projectSlug={project.slug}
           location={router.location}
           attachments={[]}
           onDeleteScreenshot={() => jest.fn()}
@@ -231,7 +231,7 @@ describe('EventTagsAndScreenshot', function () {
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
-          projectId={project.slug}
+          projectSlug={project.slug}
           location={router.location}
           attachments={attachments}
           onDeleteScreenshot={() => jest.fn()}
@@ -273,7 +273,7 @@ describe('EventTagsAndScreenshot', function () {
           <EventTagsAndScreenshot
             event={event}
             organization={organization}
-            projectId={project.slug}
+            projectSlug={project.slug}
             location={router.location}
             attachments={attachments}
             onDeleteScreenshot={() => jest.fn()}
@@ -325,7 +325,7 @@ describe('EventTagsAndScreenshot', function () {
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
-          projectId={project.slug}
+          projectSlug={project.slug}
           location={router.location}
           attachments={attachments}
           onDeleteScreenshot={() => jest.fn()}
@@ -381,7 +381,7 @@ describe('EventTagsAndScreenshot', function () {
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
-          projectId={project.slug}
+          projectSlug={project.slug}
           location={router.location}
           attachments={moreAttachments}
           onDeleteScreenshot={() => jest.fn()}
@@ -417,7 +417,7 @@ describe('EventTagsAndScreenshot', function () {
         <EventTagsAndScreenshot
           event={{...event, contexts}}
           organization={organization}
-          projectId={project.slug}
+          projectSlug={project.slug}
           location={router.location}
           attachments={attachments}
           onDeleteScreenshot={() => jest.fn()}
@@ -452,7 +452,7 @@ describe('EventTagsAndScreenshot', function () {
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}
-          projectId={project.slug}
+          projectSlug={project.slug}
           location={router.location}
           attachments={attachments}
           onDeleteScreenshot={() => jest.fn()}

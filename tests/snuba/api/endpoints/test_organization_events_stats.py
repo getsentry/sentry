@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 from dateutil.parser import parse as parse_date
 from django.urls import reverse
-from django.utils import timezone
 from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -100,21 +99,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=utc),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=1, minute=0, second=0) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=1, minute=0, second=0) + timedelta(minutes=2),
+            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=2),
         )
         with self.feature(
             [
@@ -123,8 +122,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ):
             response = self.do_request(
                 {
-                    "start": timezone.now().replace(hour=0, minute=0, second=0),
-                    "end": timezone.now().replace(hour=2, minute=0, second=0),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "query": f"issue:{group_info.group.qualified_short_id}",
                     "dataset": "issuePlatform",
@@ -142,21 +141,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=3, minute=0, second=0) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=3, minute=1, second=0) + timedelta(minutes=2),
+            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=2),
         )
         with self.feature(
             [
@@ -165,8 +164,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ):
             response = self.do_request(
                 {
-                    "start": timezone.now().replace(hour=0, minute=0, second=0),
-                    "end": timezone.now().replace(hour=4, minute=0, second=0),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=4)),
                     "interval": "4h",
                     "query": f"issue:{group_info.group.qualified_short_id}",
                     "dataset": "issuePlatform",
