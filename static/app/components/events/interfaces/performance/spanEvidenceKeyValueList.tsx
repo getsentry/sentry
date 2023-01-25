@@ -345,7 +345,7 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
   return pairs;
 }
 
-const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
+export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
   try {
     let URLString = span?.data?.url;
     if (!URLString) {
