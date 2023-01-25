@@ -139,43 +139,41 @@ export default function TagFacets({
         <Fragment>
           <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
           <Content>
-            <Fragment>
-              <TopDistributionWrapper data-test-id="top-distribution-wrapper">
-                <TagFacetsDistributionMeterWrapper
-                  groupId={groupId}
-                  organization={organization}
-                  project={project}
-                  tagKeys={topTagKeys}
-                  tagsData={tagsData}
-                  expandFirstTag
-                />
-              </TopDistributionWrapper>
+            <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
                 project={project}
-                tagKeys={remainingTagKeys}
+                tagKeys={topTagKeys}
                 tagsData={tagsData}
+                expandFirstTag
               />
-              <ShowAllButtonContainer>
-                <Button
-                  size="xs"
-                  to={getTagUrl(organization.slug, groupId)}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'issue_group_details.tags.show_all_tags.clicked',
-                      {
-                        platform: project?.platform,
-                        is_mobile: isMobilePlatform(project?.platform),
-                        organization,
-                      }
-                    );
-                  }}
-                >
-                  {t('View All Tags')}
-                </Button>
-              </ShowAllButtonContainer>
-            </Fragment>
+            </span>
+            <TagFacetsDistributionMeterWrapper
+              groupId={groupId}
+              organization={organization}
+              project={project}
+              tagKeys={remainingTagKeys}
+              tagsData={tagsData}
+            />
+            <ShowAllButtonContainer>
+              <Button
+                size="xs"
+                to={getTagUrl(organization.slug, groupId)}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'issue_group_details.tags.show_all_tags.clicked',
+                    {
+                      platform: project?.platform,
+                      is_mobile: isMobilePlatform(project?.platform),
+                      organization,
+                    }
+                  );
+                }}
+              >
+                {t('View All Tags')}
+              </Button>
+            </ShowAllButtonContainer>
           </Content>
         </Fragment>
       )}
@@ -246,8 +244,4 @@ const ShowAllButtonContainer = styled('div')`
 
 const Content = styled('div')`
   margin-top: ${space(2)};
-`;
-
-const TopDistributionWrapper = styled('div')`
-  margin-bottom: 60px;
 `;
