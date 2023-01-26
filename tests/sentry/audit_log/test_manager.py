@@ -42,6 +42,7 @@ class AuditLogEventManagerTest(TestCase):
         assert test_manager.get_event_id_from_api_name("test-log.entry") == 500
 
         assert log_event.render(log_entry) == "test member my_email@mail.com is admin"
+        assert False
 
     def test_duplicate_event_id(self):
         test_manager = AuditLogEventManager()
