@@ -133,6 +133,7 @@ function StackTrace({
       newestFirst={newestFirst}
       event={event}
       meta={meta}
+      debugFrames={debugFrames}
     />
   );
 }
