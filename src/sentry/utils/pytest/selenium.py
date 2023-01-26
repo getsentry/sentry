@@ -501,20 +501,7 @@ def browser(request, live_server):
 
     driver.set_window_size(window_width, window_height)
 
-    def fin():
-        # dump console log to stdout, will be shown when test fails
-        for entry in driver.get_log("browser"):
-            sys.stderr.write("[browser console] ")
-            sys.stderr.write(repr(entry))
-            sys.stderr.write("\n")
-        # Teardown Selenium.
-        try:
-            driver.quit()
-        except Exception:
-            pass
-
     request.node._driver = driver
-    request.addfinalizer(fin)
 
     browser = Browser(driver, live_server)
 
@@ -533,7 +520,18 @@ def browser(request, live_server):
         request.cls.browser = browser
     request.node.browser = browser
 
-    return driver
+    yield driver
+
+    # dump console log to stdout, will be shown when test fails
+    for entry in driver.get_log("browser"):
+        sys.stderr.write("[browser console] ")
+        sys.stderr.write(repr(entry))
+        sys.stderr.write("\n")
+    # Teardown Selenium.
+    try:
+        driver.quit()
+    except Exception:
+        pass
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
