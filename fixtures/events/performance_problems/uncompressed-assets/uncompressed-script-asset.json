@@ -61,9 +61,9 @@
       "hash": "b2978b51d54d9078"
     },
     {
-      "timestamp": 1667330086.5292,
+      "timestamp": 1667330086.9292,
       "start_timestamp": 1667330086.2861,
-      "exclusive_time": 243.100167,
+      "exclusive_time": 643.100167,
       "description": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
       "op": "resource.script",
       "span_id": "b66a5642da1edb52",
