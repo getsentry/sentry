@@ -360,7 +360,7 @@ class UIFramesRenderer {
   }
 
   getColorForFrame(): number[] {
-    return this.theme.COLORS.FRAME_FALLBACK_COLOR;
+    return this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
   }
 
   findHoveredNode(configSpaceCursor: vec2, configSpace: Rect): UIFrameNode | null {

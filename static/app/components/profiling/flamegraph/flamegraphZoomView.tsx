@@ -162,8 +162,11 @@ function FlamegraphZoomView({
     if (!flamegraphRenderer) {
       return;
     }
-    flamegraphRenderer.setSearchResults(flamegraphSearch.results.frames);
-  }, [flamegraphRenderer, flamegraphSearch.results]);
+    flamegraphRenderer.setSearchResults(
+      flamegraphSearch.query,
+      flamegraphSearch.results.frames
+    );
+  }, [flamegraphRenderer, flamegraphSearch.query, flamegraphSearch.results]);
 
   useEffect(() => {
     if (

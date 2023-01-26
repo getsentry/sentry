@@ -167,7 +167,7 @@ describe('flamegraphRenderer', () => {
         start: 0,
         end: 0,
       })
-    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR);
+    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_GRAYSCALE_COLOR);
   });
 
   it('getHoveredNode', () => {
