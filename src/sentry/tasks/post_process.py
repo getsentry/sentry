@@ -8,8 +8,9 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.exceptions import PluginError
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
@@ -314,6 +315,8 @@ def post_process_group(
     cache_key,
     group_id=None,
     group_states: Optional[GroupStates] = None,
+    occurrence_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -329,18 +332,48 @@ def post_process_group(
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        data = event_processing_store.get(cache_key)
-        if not data:
-            logger.info(
-                "post_process.skipped",
-                extra={"cache_key": cache_key, "reason": "missing_cache"},
+        if occurrence_id is None:
+            data = event_processing_store.get(cache_key)
+            if not data:
+                logger.info(
+                    "post_process.skipped",
+                    extra={"cache_key": cache_key, "reason": "missing_cache"},
+                )
+                return
+            with metrics.timer("tasks.post_process.delete_event_cache"):
+                event_processing_store.delete_by_key(cache_key)
+
+            event = process_event(data, group_id)
+        else:
+            # Note: We attempt to acquire the lock here, but we don't release it and instead just
+            # rely on the ttl. The goal here is to make sure we only ever run post process group
+            # at most once per occurrence. Even though we don't use retries on the task, this is
+            # still necessary since the consumer that sends these might reprocess a batch.
+            # TODO: It might be better to instead set a value that we delete here, similar to what
+            # we do with `event_processing_store`. If we could do this *before* the occurrence ends
+            # up in Kafka (IE via the api that will sit in front of it), then we could guarantee at
+            # most once running of post process group.
+            lock = locks.get(
+                f"ppg:{occurrence_id}-once",
+                duration=600,
+                name="post_process_w_o",
             )
-            return
 
-        with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
+            try:
+                lock.acquire()
+            except Exception:
+                # If we fail to acquire the lock, we've already run post process group for this
+                # occurrence
+                return
 
-        event = process_event(data, group_id)
+            occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
+            # Issue platform events don't use `event_processing_store`. Fetch from eventstore
+            # instead.
+            event = eventstore.get_event_by_id(project_id, occurrence.event_id, group_id=group_id)
+            event: GroupEvent = event.for_group(event.group)
+            event.occurrence = occurrence
+
+        set_current_event_project(event.project_id)
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
@@ -436,8 +469,6 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
     event = Event(
         project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
     )
-
-    set_current_event_project(event.project_id)
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
