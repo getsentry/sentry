@@ -360,6 +360,8 @@ def run_detector_on_data(detector, data):
     spans = data.get("spans", [])
     for span in spans:
         detector.visit_span(span)
+        
+        detector.on_complete()
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
