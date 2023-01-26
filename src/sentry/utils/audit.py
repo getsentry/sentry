@@ -137,7 +137,7 @@ def _complete_delete_log(delete_log: DeletedEntry, entry: AuditLogEntry) -> None
     Adds common information on a delete log from an audit entry and
     saves that delete log.
     """
-    delete_log.actor_label = entry.actor_label
+    delete_log.actor_label = entry.actor_label[:64]
     delete_log.actor_id = entry.actor_id
     delete_log.actor_key = entry.actor_key
     delete_log.ip_address = entry.ip_address

@@ -87,6 +87,7 @@ class AuditLogEntry(Model):
         loaded via `from_event` as faithfully as possible.
         """
         self._apply_actor_label()
+        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
         return AuditLogEvent(
             actor_label=self.actor_label,
             organization_id=int(
@@ -116,7 +117,7 @@ class AuditLogEntry(Model):
             ip_address=event.ip_address,
             event=event.event_id,
             data=event.data,
-            actor_label=event.actor_label,
+            actor_label=event.actor_label[:MAX_ACTOR_LABEL_LENGTH],
             target_user_id=event.target_user_id,
         )
 
