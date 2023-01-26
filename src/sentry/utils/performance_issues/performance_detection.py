@@ -353,13 +353,13 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector, data, project=None):
-    if detector.is_event_eligible(data, project):
-        spans = data.get("spans", [])
-        for span in spans:
-            detector.visit_span(span)
+def run_detector_on_data(detector, data):
+    if not detector.is_event_eligible(data):
+        return
 
-        detector.on_complete()
+    spans = data.get("spans", [])
+    for span in spans:
+        detector.visit_span(span)
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
