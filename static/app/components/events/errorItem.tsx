@@ -12,7 +12,7 @@ import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Error = {
+export type EventErrorData = {
   message: React.ReactNode;
   type: string;
   data?: {
@@ -33,7 +33,7 @@ const keyMapping = {
 };
 
 export type ErrorItemProps = {
-  error: Error;
+  error: EventErrorData;
   meta?: Record<any, any>;
 };
 
