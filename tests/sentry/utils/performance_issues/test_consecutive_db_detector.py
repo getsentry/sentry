@@ -30,10 +30,31 @@ class ConsecutiveDbDetectorTest(TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event, project=None) -> List[PerformanceProblem]:
         detector = ConsecutiveDBSpanDetector(self.settings, event)
-        run_detector_on_data(detector, event)
+        run_detector_on_data(detector, event, project)
         return list(detector.stored_problems.values())
+
+    def create_issue_event(self):
+        span_duration = 50
+        spans = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `order`.`id` FROM `books_author` WHERE `author`.`type` = $1",
+            ),
+            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
+        ]
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        return create_event(spans)
 
     def test_detects_consecutive_db_spans(self):
         span_duration = 1 * SECOND
@@ -298,3 +319,12 @@ class ConsecutiveDbDetectorTest(TestCase):
         event["sdk"] = {"name": "sentry.php.laravel"}
 
         assert self.find_problems(event) == []
+
+    def test_allows_hardcoded_orgs(self):
+        project = self.create_project()
+        event = self.create_issue_event()
+        event["sdk"] = {"name": "sentry.php.laravel"}
+
+        assert len(self.find_problems(event)) == 0
+        project.organization.slug = "laracon-eu"
+        assert len(self.find_problems(event, project)) == 1
