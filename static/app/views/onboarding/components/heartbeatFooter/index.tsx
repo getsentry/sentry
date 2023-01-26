@@ -222,7 +222,7 @@ export function HeartbeatFooter({
               ) : firstErrorReceived ? (
                 <Button
                   priority="primary"
-                  busy={projectsLoading || loading}
+                  busy={projectsLoading}
                   to={`/organizations/${organization.slug}/issues/${
                     firstErrorReceived &&
                     firstErrorReceived !== true &&
