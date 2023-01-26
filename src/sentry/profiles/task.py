@@ -73,6 +73,8 @@ def process_profile_task(
                 )
                 return
 
+            # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
+            # See comments in the function for why this happens.
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
                 project=project,
