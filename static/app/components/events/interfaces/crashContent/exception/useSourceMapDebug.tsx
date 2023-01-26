@@ -43,7 +43,7 @@ interface UseSourceMapDebugProps {
   exceptionIdx: number;
   frameIdx: number;
   orgSlug: string;
-  projectSlug: string | undefined;
+  projectSlug: string;
 }
 
 export type StacktraceFilenameQuery = {filename: string; query: UseSourceMapDebugProps};
