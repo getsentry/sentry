@@ -23,11 +23,11 @@ import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
-import {FlamegraphUIFramesTooltip} from './flamegraphUIFramesTooltip';
 import {
   CollapsibleTimelineLoadingIndicator,
   CollapsibleTimelineMessage,
 } from './collapsibleTimeline';
+import {FlamegraphUIFramesTooltip} from './flamegraphUIFramesTooltip';
 
 interface FlamegraphUIFramesProps {
   canvasBounds: Rect;
