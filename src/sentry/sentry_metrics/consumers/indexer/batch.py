@@ -344,7 +344,9 @@ class IndexerBatch:
                     )
                 continue
 
-            new_payload_value["retention_days"] = 90
+            if "retention_days" not in new_payload_value:
+                new_payload_value["retention_days"] = 90
+
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = self.use_case_id.value
 
