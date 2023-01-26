@@ -118,6 +118,40 @@ export const darkColors = {
   pink100: 'rgba(206, 59, 133, 0.1)',
 };
 
+const prismLight = {
+  '--prism-base': '#332B3B',
+  '--prism-selected': '#E9E0EB',
+  '--prism-inline-code': '#D25F7C',
+  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-highlight-background': '#E8ECF2',
+  '--prism-highlight-accent': '#C7CBD1',
+  '--prism-comment': '#72697C',
+  '--prism-punctuation': '#70697C',
+  '--prism-property': '#7A6229',
+  '--prism-selector': '#3C774A',
+  '--prism-operator': '#635D6F',
+  '--prism-variable': '#A8491A',
+  '--prism-function': '#106A9E',
+  '--prism-keyword': '#A7114A',
+};
+
+const prismDark = {
+  '--prism-base': '#F2EDF6',
+  '--prism-selected': '#865891',
+  '--prism-inline-code': '#D25F7C',
+  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-highlight-background': '#382F5C',
+  '--prism-highlight-accent': '#D25F7C',
+  '--prism-comment': '#8B7A9E',
+  '--prism-punctuation': '#B3ACC1',
+  '--prism-property': '#EAB944',
+  '--prism-selector': '#7EBE8E',
+  '--prism-operator': '#A470A7',
+  '--prism-variable': '#E58759',
+  '--prism-function': '#6CC5F9',
+  '--prism-keyword': '#E386AA',
+};
+
 const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
   dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
@@ -575,6 +609,16 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
   }),
 });
 
+const generatePrismVariables = (
+  prismColors: typeof prismLight,
+  blockBackground: string
+) =>
+  css({
+    // block background differs based on light/dark mode
+    '--prism-block-background': blockBackground,
+    ...prismColors,
+  });
+
 const iconSizes = {
   xs: '12px',
   sm: '16px',
@@ -685,6 +729,7 @@ const commonTheme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+  codeFontSize: '13px',
   headerFontSize: '22px',
 
   settings: {
@@ -857,6 +902,8 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
+  prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
+  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
@@ -880,6 +927,8 @@ export const darkTheme: Theme = {
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
+  prismVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
