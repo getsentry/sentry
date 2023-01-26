@@ -217,6 +217,10 @@
 - name: 'Team: Ingest'
   color: '8D5494'
   description: owners-ingest
+- name: 'Team: Issue Experience'
+  color: '8D5494'
+- name: 'Team: Issue Platform'
+  color: '8D5494'
 - name: 'Team: Mobile Platform'
   color: '8D5494'
   description: team-mobile
