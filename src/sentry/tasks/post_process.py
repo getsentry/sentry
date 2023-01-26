@@ -648,7 +648,8 @@ def process_commits(job: PostProcessJob) -> None:
         return
 
     from sentry.models import Commit
-    from sentry.tasks.commit_context import process_commit_context
+    from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
+    from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
 
     event = job["event"]
@@ -669,36 +670,47 @@ def process_commits(job: PostProcessJob) -> None:
                 cache.set(has_commit_key, org_has_commit, 3600)
 
             if org_has_commit:
-                group_cache_key = f"w-o-i:g-{event.group_id}"
-                if cache.get(group_cache_key):
-                    metrics.incr(
-                        "sentry.tasks.process_suspect_commits.debounce",
-                        tags={"detail": "w-o-i:g debounce"},
+                from sentry.utils.committers import get_frame_paths
+
+                event_frames = get_frame_paths(event)
+                sdk_name = get_sdk_name(event.data)
+                metric_tags = {
+                    "event": event.event_id,
+                    "group": event.group_id,
+                    "project": event.project_id,
+                }
+                if features.has("organizations:commit-context", event.project.organization):
+                    cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
+                    if cache.get(cache_key):
+                        metrics.incr(
+                            "sentry.tasks.process_commit_context.debounce",
+                            tags={**metric_tags},
+                        )
+                        return
+                    process_commit_context.delay(
+                        event_id=event.event_id,
+                        event_platform=event.platform,
+                        event_frames=event_frames,
+                        group_id=event.group_id,
+                        project_id=event.project_id,
+                        sdk_name=sdk_name,
                     )
                 else:
-                    from sentry.utils.committers import get_frame_paths
-
-                    cache.set(group_cache_key, True, 604800)  # 1 week in seconds
-                    event_frames = get_frame_paths(event)
-                    sdk_name = get_sdk_name(event.data)
-                    if features.has("organizations:commit-context", event.project.organization):
-                        process_commit_context.delay(
-                            event_id=event.event_id,
-                            event_platform=event.platform,
-                            event_frames=event_frames,
-                            group_id=event.group_id,
-                            project_id=event.project_id,
-                            sdk_name=sdk_name,
+                    cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
+                    if cache.get(cache_key):
+                        metrics.incr(
+                            "sentry.tasks.process_suspect_commits.debounce",
+                            tags={**metric_tags},
                         )
-                    else:
-                        process_suspect_commits.delay(
-                            event_id=event.event_id,
-                            event_platform=event.platform,
-                            event_frames=event_frames,
-                            group_id=event.group_id,
-                            project_id=event.project_id,
-                            sdk_name=sdk_name,
-                        )
+                        return
+                    process_suspect_commits.delay(
+                        event_id=event.event_id,
+                        event_platform=event.platform,
+                        event_frames=event_frames,
+                        group_id=event.group_id,
+                        project_id=event.project_id,
+                        sdk_name=sdk_name,
+                    )
     except UnableToAcquireLock:
         pass
 
