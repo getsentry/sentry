@@ -290,17 +290,17 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not self._can_delete(request, member, team):
             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
-        omt = None
-        try:
-            omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
-        except OrganizationMemberTeam.DoesNotExist:
-            pass
-
         if team.idp_provisioned:
             return Response(
                 {"detail": "This team is managed through your organization's identity provider."},
                 status=403,
             )
+
+        omt = None
+        try:
+            omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
+        except OrganizationMemberTeam.DoesNotExist:
+            pass
 
         else:
             self.create_audit_entry(
