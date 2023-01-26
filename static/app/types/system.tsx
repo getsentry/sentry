@@ -149,6 +149,7 @@ export interface Config {
     dsn: string;
     release: string;
     whitelistUrls: string[];
+    profilesSampleRate?: number;
   };
   singleOrganization: boolean;
   superUserCookieDomain: string | null;

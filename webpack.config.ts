@@ -525,6 +525,7 @@ if (
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
+      'Document-Policy': 'js-profiling',
     },
     // Required for getsentry
     allowedHosts: 'all',
@@ -593,6 +594,9 @@ if (IS_UI_DEV_ONLY) {
       type: 'https',
       options: httpsOptions,
     },
+    headers: {
+      'Document-Policy': 'js-profiling',
+    },
     static: {
       publicPath: '/_assets/',
     },
@@ -604,6 +608,7 @@ if (IS_UI_DEV_ONLY) {
         changeOrigin: true,
         headers: {
           Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
         },
       },
     ],

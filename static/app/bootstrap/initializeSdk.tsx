@@ -1,5 +1,6 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
+import {ProfilingIntegration} from '@sentry/profiling-node';
 import * as Sentry from '@sentry/react';
 import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
@@ -37,6 +38,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
+    new ProfilingIntegration(),
     new Integrations.BrowserTracing({
       ...(typeof routes === 'function'
         ? {
