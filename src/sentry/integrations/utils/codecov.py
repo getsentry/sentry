@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple
+from typing import Literal, Optional, Sequence, Tuple
 
 import requests
 from sentry_sdk import configure_scope
@@ -7,10 +7,11 @@ from sentry import options
 
 LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
+REF_TYPE = Literal["branch", "sha"]
 
 
 def get_codecov_data(
-    repo: str, service: str, branch: str, path: str
+    repo: str, service: str, ref: str, ref_type: REF_TYPE, path: str
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
@@ -24,7 +25,7 @@ def get_codecov_data(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
         with configure_scope() as scope:
-            params = {"branch": branch, "path": path}
+            params = {ref_type: ref, "path": path}
             response = requests.get(
                 url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
             )
