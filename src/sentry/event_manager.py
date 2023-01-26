@@ -2044,7 +2044,6 @@ def save_attachment(
     :param start_time: UNIX Timestamp (float) when the attachment was ingested.
                        If missing, the current time is used.
     """
-    # TODO(nar): This save attachment is called
     if start_time is not None:
         timestamp = to_datetime(start_time)
     else:
