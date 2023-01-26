@@ -54,11 +54,8 @@ type Props = {
 export function getCoverageColorClass(
   lines: [number, string][],
   lineCov: LineCoverage[],
-  activeLineNo: number | null
+  activeLineNo: number
 ): Array<string> {
-  if (!activeLineNo) {
-    return [];
-  }
   const lineCoverage = keyBy(lineCov, 0);
   return lines.map(([lineNo]) => {
     const coverage = lineCoverage[lineNo]
@@ -175,7 +172,7 @@ const Context = ({
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
   const lineColors: Array<string> =
-    hasCoverageData && data!.codecov?.lineCoverage!
+    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo!
       ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
       : [];
 
