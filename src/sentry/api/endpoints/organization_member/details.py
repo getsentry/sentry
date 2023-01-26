@@ -218,6 +218,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
         assigned_role = result.get("role")
+        if assigned_role and getattr(member.flags, "idp:role-restricted"):
+            return Response(
+                {
+                    "role": "This user's role is managed through your organization's identity provider."
+                },
+                status=403,
+            )
+
         if assigned_role and (assigned_role != member.role):
             allowed_roles = get_allowed_org_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
@@ -335,6 +343,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         if member.is_only_owner():
             return Response({"detail": ERR_ONLY_OWNER}, status=403)
+
+        if getattr(member.flags, "idp:provisioned"):
+            return Response(
+                {"detail": "This user is managed through your organization's identity provider."},
+                status=403,
+            )
 
         audit_data = member.get_audit_log_data()
 

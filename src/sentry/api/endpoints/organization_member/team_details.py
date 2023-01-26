@@ -171,6 +171,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         If the user is already a member of the team, this will simply return
         a 204.
+
+        If the team is provisioned through an identity provider, then the user
+        cannot join or request to join the team through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -182,6 +185,12 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)
+
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
 
         if not self._can_create_team_member(request, team):
             self._create_access_request(request, team, member)
@@ -283,6 +292,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
             pass
+
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
         else:
             self.create_audit_entry(
                 request=request,
