@@ -1,3 +1,49 @@
+23.1.1
+------
+
+### Post-GA fixes and improvements for derived code mappings
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#43323, #43325, #43310)
+
+### Stacktrace Codecov MVP (ongoing)
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43650, #43649, #43404, #43353, #43201), @jangjodi (#43032, #43517, #43407, #43116)
+
+### Various fixes & improvements
+
+- ci(acceptance): Replace selenium finalizer with yield (#43711) by @mattgauntseo-sentry
+- test(profiles): test sample stats and raw weights across formats (#43685) by @JonasBa
+- fix(release_health) : bad granularity was causing limit validation error in MetricsLayer (#43729) by @RaduW
+- ref: upgrade structlog (#43680) by @asottile-sentry
+- ref(ui) Remove error for missing router context (#43693) by @markstory
+- ref(perf-issues): Increase unc asset duration threshold (#43722) by @k-fish
+- hotfix: handle empty series returns from get_series. (#43721) by @RaduW
+- Revert "feat(codecov): Get commit sha from Git blame  (#42978)" (7d918eb7) by @getsentry-bot
+- feat(perf-issues) Add project options for consecutive db (#43701) by @DominikB2014
+- fix(perf-issues): ensure php is not allowed to detect issues (#43694) by @DominikB2014
+- feat(codecov): Get commit sha from Git blame  (#42978) by @jangjodi
+- ref(mep): Allow up to 10 custom measurements (#43719) by @jan-auer
+- (perf-issues) Add detection rate project option to UI (#43698) by @DominikB2014
+- fix(txnames): Skip deleted projects (#43716) by @jjbayer
+- feat(release-health): Switch release health backend to MetricsLayer (#43545) by @RaduW
+- chore(hybrid-cloud): remove region to control, use outbox (#43361) by @corps
+- feat(hc): Use hybrid cloud services in AuthIdentityHandler (#43035) by @RyanSkonnord
+- fix(sourcemaps): ease check on valid url and add data for invalid url issue (#43709) by @roggenkemper
+- test(acceptance): Reduce flakiness by waiting for requests to complete (#43486) by @mattgauntseo-sentry
+- ref(hybrid-cloud): test for both urls in MonitorCheckinDetails (#43690) by @cathyteng17
+- ui(codecov): Fix codecov legend border (#43704) by @snigdhas
+- fix(tasks): Do not ignore exception by default (#43696) by @Zylphrex
+- ref: retry on 500s in docker pulls (#43700) by @asottile-sentry
+- Revert "CI(dispatch): Switch to merge commit sha where possible (#43570)" (f2dd50ad) by @getsentry-bot
+
+_Plus 285 more_
+
 23.1.0
 ------
 
