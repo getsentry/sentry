@@ -109,8 +109,9 @@ const Context = ({
     },
     {
       enabled:
-        organization?.features.includes('codecov-stacktrace-integration') &&
-        organization?.codecovAccess &&
+        defined(organization) &&
+        organization.features.includes('codecov-stacktrace-integration') &&
+        organization.codecovAccess &&
         isExpanded,
     }
   );
