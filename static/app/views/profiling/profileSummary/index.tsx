@@ -122,13 +122,13 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
       {
         type: 'profile summary',
         payload: {
-          projectSlug: project.slug,
+          projectSlug: project?.slug ?? '',
           query: props.location.query,
           transaction: transaction ?? '',
         },
       },
     ];
-  }, [props.location.query, project.slug, transaction]);
+  }, [props.location.query, project?.slug, transaction]);
 
   return (
     <SentryDocumentTitle
