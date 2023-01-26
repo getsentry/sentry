@@ -7,8 +7,9 @@ on:
   # only running workflows from the main branch. Prefer to use `pull_request` when possible.
   #
   # See https://github.com/getsentry/sentry/pull/21600 for more details
-  pull_request_target:
-    types: [labeled, opened, reopened, synchronize]
+  #pull_request_target:
+  #  types: [labeled, opened, reopened, synchronize]
+  pull_request:
 
 # disable all other special privileges
 permissions:
@@ -76,6 +77,6 @@ jobs:
               github,
               context,
               core,
-              mergeCommitSha: '${{ steps.mergecommit.outputs.mergeCommitSha }}',
+              mergeCommitSha: '${{ steps.mergecommit.outputs.mergeCommitSha || github.event.pull_request.head.sha }}',
               fileChanges: ${{ toJson(steps.changes.outputs) }},
             });

@@ -12,7 +12,7 @@ async function waitForMergeCommit({github, context, core}) {
   const pullNumber = pullRequest.number;
 
   let timedOut = false;
-  let mergeable = false;
+  const mergeable = false;
   let mergeCommitSha = null;
 
   const start = new Date().getTime();
@@ -22,14 +22,15 @@ async function waitForMergeCommit({github, context, core}) {
       ...context.repo,
       pull_number: pullNumber,
     });
-    if (response.status === 200) {
-      mergeable = response.data.mergeable;
+    if (response.status === 200 && response.data.mergeable !== null) {
       if (mergeable) {
         mergeCommitSha = response.data.merge_commit_sha;
-        break;
       }
+      // If mergable is false, that means there is merge conflict
+      // or the PR cannot be merged so we want to break
+      break;
     } else {
-      core.info('None 200 response: ', response);
+      core.info('Non 200 response or PR is not mergeable: ', response);
     }
 
     await wait(WAIT_PERIOD);
