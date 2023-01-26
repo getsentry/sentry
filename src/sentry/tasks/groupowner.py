@@ -8,6 +8,7 @@ from sentry.models import Commit, Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -15,6 +16,7 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
+DEBOUNCE_CACHE_KEY = lambda group_id: f"process-suspect-commits-{group_id}"
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +24,11 @@ logger = logging.getLogger(__name__)
 def _process_suspect_commits(
     event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
+
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
+
+    cache_key = DEBOUNCE_CACHE_KEY(group_id)
 
     project = Project.objects.get_from_cache(id=project_id)
     owners = GroupOwner.objects.filter(
@@ -93,12 +98,17 @@ def _process_suspect_commits(
                             organization_id=project.organization_id,
                         )[0].delete()
 
+                cache.set(
+                    cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
+                )  # 1 week in seconds
         except Commit.DoesNotExist:
+            cache.set(cache_key, True, timedelta(days=1).total_seconds())
             logger.info(
                 "process_suspect_commits.skipped",
                 extra={"event": event_id, "reason": "no_commit"},
             )
         except Release.DoesNotExist:
+            cache.set(cache_key, True, timedelta(days=1).total_seconds())
             logger.info(
                 "process_suspect_commits.skipped",
                 extra={"event": event_id, "reason": "no_release"},
@@ -112,15 +122,28 @@ def _process_suspect_commits(
     max_retries=5,
 )
 def process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+    event_id,
+    event_platform,
+    event_frames,
+    group_id,
+    project_id,
+    sdk_name=None,
+    **kwargs,
 ):
     lock = locks.get(
         f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
     )
     try:
         with lock.acquire():
+
             _process_suspect_commits(
-                event_id, event_platform, event_frames, group_id, project_id, sdk_name, **kwargs
+                event_id,
+                event_platform,
+                event_frames,
+                group_id,
+                project_id,
+                sdk_name,
+                **kwargs,
             )
     except UnableToAcquireLock:
         pass
