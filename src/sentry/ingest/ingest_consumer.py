@@ -278,8 +278,9 @@ def _load_event(
                         proguard_uuid = _get_proguard_uuid(data)
                         mapper = _get_proguard_mapper(proguard_uuid, project)
 
-                        view_hierarchy = CachedAttachment(type=attachment_type, **attachment)
-                        view_hierarchy.key = cache_key
+                        view_hierarchy = attachment_cache.get_from_chunks(
+                            key=cache_key, type=attachment_type, **attachment
+                        )
                         view_hierarchy = json.loads(attachment_cache.get_data(view_hierarchy))
                         view_hierarchy = deobfuscate_view_hierarchy(view_hierarchy, mapper)
 
