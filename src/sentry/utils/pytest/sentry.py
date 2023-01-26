@@ -393,3 +393,8 @@ def pytest_collection_modifyitems(config, items):
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+def pytest_xdist_setupnodes():
+    # prevent out-of-order django initialization
+    os.environ.pop("DJANGO_SETTINGS_MODULE", None)
