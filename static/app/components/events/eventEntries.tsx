@@ -7,7 +7,7 @@ import uniq from 'lodash/uniq';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import type {Error} from 'sentry/components/events/errorItem';
+import type {EventErrorData} from 'sentry/components/events/errorItem';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -85,7 +85,7 @@ function hasThreadOrExceptionMinifiedFrameData(definedEvent: Event, bestThread?:
     : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
 }
 
-type ProGuardErrors = Array<Error>;
+type ProGuardErrors = Array<EventErrorData>;
 
 type Props = {
   location: Location;

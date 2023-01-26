@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import uniqWith from 'lodash/uniqWith';
 
 import {Alert} from 'sentry/components/alert';
-import {Error, ErrorItem} from 'sentry/components/events/errorItem';
+import {ErrorItem, EventErrorData} from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tn} from 'sentry/locale';
@@ -20,7 +20,7 @@ const MAX_ERRORS = 100;
 
 type EventErrorsProps = {
   event: Event;
-  proGuardErrors: Array<Error>;
+  proGuardErrors: Array<EventErrorData>;
   projectSlug: Project['slug'];
 };
 
@@ -37,22 +37,12 @@ export const EventErrors = ({event, proGuardErrors, projectSlug}: EventErrorsPro
   const orgSlug = organization.slug;
 
   const releaseVersion = event.release?.version;
-  const sourceCodeErrors = (event.errors ?? []).filter(
-    error => error.type === 'js_no_source' && error.data.url
-  );
-
-  const pathNames: Array<string> = [];
-
-  for (const sourceCodeError of sourceCodeErrors) {
-    const url = sourceCodeError.data.url;
-    if (url) {
-      const pathName = getURLPathname(url);
-
-      if (pathName) {
-        pathNames.push(pathName);
-      }
-    }
-  }
+  const pathNames = (event.errors ?? [])
+    .filter(
+      error =>
+        error.type === 'js_no_source' && error.data.url && getURLPathname(error.data.url)
+    )
+    .map(sourceCodeError => getURLPathname(sourceCodeError.data.url));
 
   const {data: releaseArtifacts} = useQuery<Artifact[]>(
     [
@@ -67,7 +57,7 @@ export const EventErrors = ({event, proGuardErrors, projectSlug}: EventErrorsPro
   const {dist: eventDistribution, errors: eventErrors = [], _meta} = event;
 
   // XXX: uniqWith returns unique errors and is not performant with large datasets
-  const otherErrors: Array<Error> =
+  const otherErrors: Array<EventErrorData> =
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
   const errors = [...otherErrors, ...proGuardErrors];
@@ -78,12 +68,8 @@ export const EventErrors = ({event, proGuardErrors, projectSlug}: EventErrorsPro
         type="error"
         showIcon
         data-test-id="event-error-alert"
-        expand={[
-          <ErrorList
-            key="event-error-details"
-            data-test-id="event-error-details"
-            symbol="bullet"
-          >
+        expand={
+          <ErrorList data-test-id="event-error-details" symbol="bullet">
             {errors.map((error, errorIdx) => {
               const data = error.data ?? {};
               const meta = _meta?.errors?.[errorIdx];
@@ -120,8 +106,8 @@ export const EventErrors = ({event, proGuardErrors, projectSlug}: EventErrorsPro
 
               return <ErrorItem key={errorIdx} error={{...error, data}} meta={meta} />;
             })}
-          </ErrorList>,
-        ]}
+          </ErrorList>
+        }
       >
         {tn(
           'There was %s problem processing this event',
