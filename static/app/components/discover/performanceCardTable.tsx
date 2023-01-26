@@ -184,7 +184,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {webVitals.map((vital, index) => (
             <MultipleEmptySubText key={vital[index]}>
-              {<StyledNotAvailable tooltip={t('No results found')} />}
+              <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -192,7 +192,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip={t('No results found')} />}
+              <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -365,7 +365,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip={t('No results found')} />}
+              <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>

@@ -175,7 +175,7 @@ function TagFacetsDistributionMeter({
                 <LegendText unfocus={unfocus}>
                   {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
                 </LegendText>
-                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
               </LegendRow>
             </Link>
           );

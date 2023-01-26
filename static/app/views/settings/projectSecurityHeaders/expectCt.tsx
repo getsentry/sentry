@@ -57,7 +57,7 @@ class ProjectExpectCtReports extends AsyncView<Props, State> {
         />
 
         <Panel>
-          <PanelHeader>{'About'}</PanelHeader>
+          <PanelHeader>{t('About')}</PanelHeader>
           <PanelBody withPadding>
             <p>
               {tct(

@@ -128,17 +128,15 @@ export class InstalledPlugin extends Component<Props> {
                 <ProjectBadge project={this.projectForBadge} />
               </IntegrationItemBox>
               <div>
-                {
-                  <StyledButton
-                    borderless
-                    icon={<IconSettings />}
-                    disabled={!hasAccess}
-                    to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
-                    data-test-id="integration-configure-button"
-                  >
-                    {t('Configure')}
-                  </StyledButton>
-                }
+                <StyledButton
+                  borderless
+                  icon={<IconSettings />}
+                  disabled={!hasAccess}
+                  to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
+                  data-test-id="integration-configure-button"
+                >
+                  {t('Configure')}
+                </StyledButton>
               </div>
               <div>
                 <Confirm
