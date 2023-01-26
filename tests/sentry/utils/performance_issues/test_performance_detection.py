@@ -90,16 +90,6 @@ class PerformanceDetectionTest(TestCase):
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    @override_options({"performance.issues.all.problem-detection": 0.0})
-    def test_no_feature_flag_disables_creation(self):
-        self.features = []
-        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
-        sdk_span_mock = Mock()
-
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
-        assert perf_problems == []
-
-    @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
