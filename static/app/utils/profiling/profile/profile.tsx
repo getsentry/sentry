@@ -87,6 +87,9 @@ export class Profile {
     if (duration < 0) {
       this.stats.negativeSamplesCount++;
     }
+    if (duration > 0) {
+      this.rawWeights.push(duration);
+    }
   }
 
   forEach(

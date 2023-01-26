@@ -63,6 +63,25 @@ describe('SampledProfile', () => {
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
 
+  it('tracks raw weights', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [0, 10, 20],
+      samples: [[0], [0], []],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}])
+    );
+    expect(profile.rawWeights.length).toBe(2);
+  });
+
   it('rebuilds the stack', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',

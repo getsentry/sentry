@@ -85,6 +85,37 @@ describe('jsSelfProfile', () => {
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
 
+  it('tracks raw weights', () => {
+    const trace: JSSelfProfiling.Trace = {
+      resources: ['app.js', 'vendor.js'],
+      frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
+      samples: [
+        {
+          timestamp: 5,
+        },
+        {
+          timestamp: 10,
+        },
+        {
+          timestamp: 15,
+        },
+      ],
+      stacks: [
+        {
+          frameId: 0,
+        },
+      ],
+    };
+
+    const profile = JSSelfProfile.FromProfile(
+      trace,
+      createFrameIndex('web', [{name: 'f0'}])
+    );
+    // For JsSelfProfile, first sample is appended with 0 weight because it
+    // contains the stack sample of when startProfile was called
+    expect(profile.rawWeights.length).toBe(2);
+  });
+
   it('handles the first stack sample differently', () => {
     const trace: JSSelfProfiling.Trace = {
       resources: ['app.js'],
