@@ -15,6 +15,8 @@ from sentry.models import (
     User,
     process_region_outbox,
 )
+from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
+from sentry.services.hybrid_cloud.log.impl import DatabaseBackedLogService
 from sentry.services.hybrid_cloud.organization_mapping import (
     ApiOrganizationMappingUpdate,
     organization_mapping_service,
@@ -65,6 +67,20 @@ def process_organization_member_updates(object_identifier: int, **kwds: Any):
     if (org_member := _maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
         return
     org_member  # TODO: When we get the org member mapping table in place, here is where we'll sync it.
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.USER_IP_EVENT)
+def process_user_ip_event(payload: Any, **kwds: Any):
+    # TODO: This will become explicit rpc
+    if payload is not None:
+        DatabaseBackedLogService().record_user_ip(event=UserIpEvent(**payload))
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
+def process_audit_log_event(payload: Any, **kwds: Any):
+    # TODO: This will become explicit rpc
+    if payload is not None:
+        DatabaseBackedLogService().record_audit_log(event=AuditLogEvent(**payload))
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
