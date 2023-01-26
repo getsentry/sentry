@@ -1596,18 +1596,35 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             use_case_id=USE_CASE_ID,
         )
 
-        series = raw_series["groups"][0]["series"]
+        groups = raw_series["groups"]
         intervals = raw_series["intervals"]
         timestamps = [int(dt.timestamp()) for dt in intervals]
 
-        # massage series from { "healthy":[10,20], "errored":[1,2]}
-        # to : [(timestamp_0, {"healthy":10, "errored":1}),(timestamp_2, {..}) ]
-        ret_series = []
-        for idx, timestamp in enumerate(timestamps):
-            value = {}
-            for key in series.keys():
-                value[key] = series[key][idx]
-            ret_series.append((timestamp, value))
+        if not groups:
+            # no data create empty series
+            empty_entry = {
+                "duration_p50": None,
+                "duration_p90": None,
+                f"{stat}": 0,
+                f"{stat}_abnormal": 0,
+                f"{stat}_crashed": 0,
+                f"{stat}_errored": 0,
+                f"{stat}_healthy": 0,
+            }
+
+            # create [(timestamp_0, copy(empty_entry)),(timestamp_2, copy(empty_entry))...]
+            ret_series = [(ts, {**empty_entry}) for ts in timestamps]
+        else:
+            series = groups[0]["series"]
+
+            # massage series from { "healthy":[10,20], "errored":[1,2]}
+            # to : [(timestamp_0, {"healthy":10, "errored":1}),(timestamp_2, {..}) ]
+            ret_series = []
+            for idx, timestamp in enumerate(timestamps):
+                value = {}
+                for key in series.keys():
+                    value[key] = series[key][idx]
+                ret_series.append((timestamp, value))
 
         return ret_series, totals  # type: ignore
 
