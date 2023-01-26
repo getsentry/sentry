@@ -261,7 +261,11 @@ function FlamegraphZoomView({
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightFrames]);
+
+    if (flamegraphRenderer) {
+      flamegraphRenderer?.setHighlightedFrames(selectedFramesRef.current);
+    }
+  }, [flamegraph, flamegraphRenderer, flamegraphState.profiles.highlightFrames]);
 
   useInteractionViewCheckPoint({
     view: flamegraphView,

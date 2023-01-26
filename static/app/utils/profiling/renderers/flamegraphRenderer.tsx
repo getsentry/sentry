@@ -335,12 +335,42 @@ class FlamegraphRenderer {
     return hoveredNode;
   }
 
+  setHighlightedFrames(frames: FlamegraphFrame[] | null) {
+    if (!this.program || !this.gl) {
+      return;
+    }
+
+    this.gl.uniform1i(this.uniforms.u_grayscale, frames && frames.length > 0 ? 1 : 0);
+
+    if (!frames) {
+      this.updateSearchResultsBuffer(new Map());
+      return;
+    }
+    const searchResultsMap = frames
+      ? frames?.reduce<Map<string, boolean>>((acc, frame) => {
+          acc.set(getFlamegraphFrameSearchId(frame), true);
+          return acc;
+        }, new Map())
+      : new Map();
+
+    this.updateSearchResultsBuffer(searchResultsMap);
+  }
+
   setSearchResults(query: string, searchResults: FlamegraphSearch['results']['frames']) {
     if (!this.program || !this.gl) {
       return;
     }
 
     this.gl.uniform1i(this.uniforms.u_grayscale, query.length > 0 ? 1 : 0);
+    this.updateSearchResultsBuffer(searchResults);
+  }
+
+  private updateSearchResultsBuffer(
+    searchResults: FlamegraphSearch['results']['frames']
+  ) {
+    if (!this.program || !this.gl) {
+      return;
+    }
 
     for (let i = 0; i < this.frames.length; i++) {
       this.searchResults.set(
