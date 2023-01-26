@@ -20,6 +20,9 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     n_plus_one_api_calls_detection_rate = serializers.FloatField(
         required=False, min_value=0, max_value=1
     )
+    consecutive_db_queries_detection_rate = serializers.FloatField(
+        required=False, min_value=0, max_value=1
+    )
 
 
 @region_silo_endpoint
