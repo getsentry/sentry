@@ -111,13 +111,15 @@ describe('Tags', function () {
     userEvent.click(screen.getByText('environment'));
 
     userEvent.click(
-      screen.getByLabelText('Add the environment abcd123 segment tag to the search query')
+      screen.getByRole('link', {
+        name: 'environment, abcd123, 66% of all events. View events with this tag value.',
+      })
     );
 
     expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
   });
 
-  it('renders tag keys, top values, and percentages', async function () {
+  it('renders tag keys', async function () {
     const api = new Client();
 
     const view = new EventView({
@@ -143,13 +145,8 @@ describe('Tags', function () {
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
 
-    expect(screen.getByText('release')).toBeInTheDocument();
-    expect(screen.getByText('123abcd')).toBeInTheDocument();
-    expect(screen.getByText('environment')).toBeInTheDocument();
-    expect(screen.getByText('abcd123')).toBeInTheDocument();
-    expect(screen.getByText('color')).toBeInTheDocument();
-    expect(screen.getByText('red')).toBeInTheDocument();
-    expect(screen.getAllByText('100%').length).toEqual(2);
-    expect(screen.getByText('66%')).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'color'})).toBeInTheDocument();
   });
 });
