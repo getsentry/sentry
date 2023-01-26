@@ -82,7 +82,10 @@ export function getCoverageColorClass(
         break;
     }
 
-    return activeLineNo === lineNo ? `active ${color}` : color;
+    if (activeLineNo !== lineNo) {
+      return color;
+    }
+    return color === '' ? 'active' : `active ${color}`;
   });
 }
 
