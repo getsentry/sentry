@@ -40,7 +40,9 @@ module.exports = {
           'sentry-pr-sha': context.payload.pull_request.head.sha,
         };
 
-        core.info(`Sending dispatch for '${workflow}': ${JSON.stringify(inputs)}`);
+        core.info(
+          `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`
+        );
 
         return github.rest.actions.createWorkflowDispatch({
           owner: 'getsentry',
