@@ -33,6 +33,7 @@ class ErrorGroupType(GroupType):
     slug = "ERROR"
     description = "Error"
     category = GroupCategory.ERROR.value
+    ignore_limit = 0
 
 
 @dataclass(frozen=True)
