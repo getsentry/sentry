@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -20,10 +20,10 @@ type Props = {
 };
 
 function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
-  const [selectedViewHierarchy] = useState(0);
   const organization = useOrganization();
 
-  const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
+  // There should be only one view hierarchy
+  const hierarchyMeta = viewHierarchies[0];
   const {isLoading, data} = useQuery<string>(
     [
       getAttachmentUrl({
