@@ -22,15 +22,18 @@ describe('Tags', function () {
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 3, value: '123abcd', name: '123abcd'}],
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [
+            {count: 2, value: 'abcd123', name: 'abcd123'},
+            {count: 1, value: 'anotherOne', name: 'anotherOne'},
+          ],
         },
         {
           key: 'color',
-          topValues: [{count: 2, value: 'red', name: 'red'}],
+          topValues: [{count: 3, value: 'red', name: 'red'}],
         },
       ],
     });
@@ -53,7 +56,7 @@ describe('Tags', function () {
       <Tags
         eventView={view}
         api={api}
-        totalValues={2}
+        totalValues={3}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
@@ -92,7 +95,7 @@ describe('Tags', function () {
         eventView={view}
         api={api}
         organization={org}
-        totalValues={2}
+        totalValues={3}
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
         generateUrl={generateUrl}
@@ -105,11 +108,45 @@ describe('Tags', function () {
     await waitForElementToBeRemoved(
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
+    userEvent.click(screen.getByText('environment'));
 
     userEvent.click(
-      screen.getByLabelText('Add the environment abcd123 segment tag to the search query')
+      screen.getByRole('link', {
+        name: 'environment, abcd123, 66% of all events. View events with this tag value.',
+      })
     );
 
     expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
+  });
+
+  it('renders tag keys', async function () {
+    const api = new Client();
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      query: 'event.type:csp',
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        api={api}
+        totalValues={3}
+        organization={org}
+        selection={{projects: [], environments: [], datetime: {}}}
+        location={{query: {}}}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
+
+    expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'color'})).toBeInTheDocument();
   });
 });

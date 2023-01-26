@@ -11,6 +11,7 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import OwnedBy from 'sentry/components/group/ownedBy';
@@ -41,8 +42,6 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-
-import FeatureBadge from '../featureBadge';
 
 import TagFacets, {
   BACKEND_TAGS,

@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
@@ -122,7 +125,19 @@ const NPlusOneAPICallsSpanEvidence = ({
         [
           makeTransactionNameRow(event),
           commonPathPrefix
-            ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), commonPathPrefix)
+            ? makeRow(
+                t('Repeating Spans (%s)', offendingSpans.length),
+                <pre className="val-string">
+                  <AnnotatedText
+                    value={
+                      <Fragment>
+                        {commonPathPrefix}
+                        <HighlightedEvidence>[Parameters]</HighlightedEvidence>
+                      </Fragment>
+                    }
+                  />
+                </pre>
+              )
             : null,
           problemParameters.length > 0
             ? makeRow(t('Parameters'), problemParameters)
@@ -132,6 +147,10 @@ const NPlusOneAPICallsSpanEvidence = ({
     />
   );
 };
+
+const HighlightedEvidence = styled('span')`
+  color: ${p => p.theme.errorText};
+`;
 
 const isRequestEntry = (entry: Entry): entry is EntryRequest => {
   return entry.type === EntryType.REQUEST;
@@ -305,7 +324,7 @@ type ParameterLookup = Record<string, string[]>;
   * @returns A condensed string describing the query parameters changing
   * between the URLs of the given span. e.g., "id:{1,2,3}"
  */
-function formatChangingQueryParameters(spans: Span[], baseURL?: string): string {
+function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[] {
   const URLs = spans
     .map(span => extractSpanURLString(span, baseURL))
     .filter((url): url is URL => url instanceof URL);
@@ -323,21 +342,31 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string 
     }
   }
 
-  return pairs.join(' ');
+  return pairs;
 }
 
-const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
-  try {
-    let URLString = span?.data?.url;
-    if (!URLString) {
-      const [_method, _url] = (span?.description ?? '').split(' ', 2);
-      URLString = _url;
-    }
+export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
+  let URLString;
 
-    return new URL(URLString, baseURL);
-  } catch (e) {
-    return null;
+  URLString = span?.data?.url;
+  if (URLString) {
+    try {
+      return new URL(span?.data?.url, baseURL);
+    } catch (e) {
+      // Ignore error
+    }
   }
+
+  const [_method, _url] = (span?.description ?? '').split(' ', 2);
+  URLString = _url;
+
+  try {
+    return new URL(_url, baseURL);
+  } catch (e) {
+    // Ignore error
+  }
+
+  return null;
 };
 
 export function extractQueryParameters(URLs: URL[]): ParameterLookup {

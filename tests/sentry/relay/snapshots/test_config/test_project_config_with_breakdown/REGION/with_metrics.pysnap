@@ -918,7 +918,7 @@ metricConditionalTagging:
 transactionMetrics:
   acceptTransactionNames: strict
   customMeasurements:
-    limit: 5
+    limit: 10
   extractCustomTags: []
   extractMetrics:
   - d:transactions/duration@millisecond

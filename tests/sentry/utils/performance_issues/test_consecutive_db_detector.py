@@ -1,9 +1,10 @@
-import unittest
 from typing import List
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.models import ProjectOption
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
@@ -24,7 +25,7 @@ SECOND = 1000
 
 @region_silo_test
 @pytest.mark.django_db
-class ConsecutiveDbDetectorTest(unittest.TestCase):
+class ConsecutiveDbDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -145,7 +146,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1007-0700523cc3ca755e447329779e50aeb19549e74f",
+                fingerprint="1-1007-12c8e51ada0049de34d58cd14d13f073b8638259",
                 op="db",
                 desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` ASC LIMIT 1",
                 type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -201,7 +202,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-1007-e6a9fc04320a924f46c7c737432bb0389d9dd095",
+                fingerprint="1-1007-3bc15c8aae3e4124dd409035f32ea2fd6835efc9",
                 op="db",
                 desc="SELECT COUNT(*) FROM `products`",
                 type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -210,3 +211,90 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
             )
         ]
+
+    def test_fingerprint_of_autogroups_match(self):
+        span_duration = 50
+        spans_1 = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
+            ),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
+        ]
+        spans_1 = [
+            modify_span_start(span, span_duration * spans_1.index(span)) for span in spans_1
+        ]  # ensure spans don't overlap
+
+        spans_2 = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
+            ),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
+        ]
+        spans_2 = [
+            modify_span_start(span, span_duration * spans_2.index(span)) for span in spans_2
+        ]  # ensure spans don't overlap
+
+        event_1 = create_event(spans_1)
+        event_2 = create_event(spans_2)
+
+        fingerprint_1 = self.find_problems(event_1)[0].fingerprint
+        fingerprint_2 = self.find_problems(event_2)[0].fingerprint
+
+        assert fingerprint_1 == fingerprint_2
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveDBSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"consecutive_db_queries_detection_rate": 0.0},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveDBSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
+
+    def test_detects_consecutive_db_does_not_detect_php(self):
+        span_duration = 50
+        spans = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `order`.`id` FROM `books_author` WHERE `author`.`type` = $1",
+            ),
+            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
+        ]
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        event = create_event(spans)
+        event["sdk"] = {"name": "sentry.php.laravel"}
+
+        assert self.find_problems(event) == []
