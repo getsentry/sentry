@@ -1,12 +1,4 @@
-import {
-  CSSProperties,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {CSSProperties, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -32,6 +24,7 @@ import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
+import {FlamegraphUIFramesTooltip} from './flamegraphUIFramesTooltip';
 
 interface FlamegraphUIFramesProps {
   canvasBounds: Rect;
@@ -44,6 +37,7 @@ interface FlamegraphUIFramesProps {
 }
 
 export function FlamegraphUIFrames({
+  canvasBounds,
   uiFrames,
   canvasPoolManager,
   uiFramesView,
@@ -61,8 +55,6 @@ export function FlamegraphUIFrames({
     'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null
   >(null);
 
-  const selectedUIFrameRef = useRef<UIFrameNode[] | null>(null);
-
   const uiFramesRenderer = useMemo(() => {
     if (!uiFramesCanvasRef) {
       return null;
@@ -71,7 +63,7 @@ export function FlamegraphUIFrames({
     return new UIFramesRenderer(uiFramesCanvasRef, uiFrames, flamegraphTheme);
   }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
-  const hoveredNode: UIFrameNode | null = useMemo(() => {
+  const hoveredNode: UIFrameNode[] | null = useMemo(() => {
     if (!configSpaceCursor || !uiFramesRenderer || !uiFramesView?.configSpace) {
       return null;
     }
@@ -213,19 +205,18 @@ export function FlamegraphUIFrames({
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
       // This essentially tracks double click action on a rectangle
       if (lastInteraction === 'click') {
-        if (
-          hoveredNode &&
-          selectedUIFrameRef.current?.length === 1 &&
-          selectedUIFrameRef.current[0] === hoveredNode
-        ) {
-          selectedUIFrameRef.current = [hoveredNode];
-          // If double click is fired on a node, then zoom into it
-          canvasPoolManager.dispatch('set config view', [
-            new Rect(hoveredNode.start, 0, hoveredNode.duration, 1),
-            uiFramesView,
-          ]);
-        }
-
+        // if (
+        //   hoveredNode &&
+        //   selectedUIFrameRef.current?.length === 1 &&
+        //   selectedUIFrameRef.current[0] === hoveredNode
+        // ) {
+        //   selectedUIFrameRef.current = [hoveredNode];
+        //   // If double click is fired on a node, then zoom into it
+        //   canvasPoolManager.dispatch('set config view', [
+        //     new Rect(hoveredNode.start, 0, hoveredNode.duration, 1),
+        //     uiFramesView,
+        //   ]);
+        // }
         // @TODO
         // canvasPoolManager.dispatch('highlight span', [
         //   hoveredNode ? [hoveredNode] : null,
@@ -236,7 +227,7 @@ export function FlamegraphUIFrames({
       setLastInteraction(null);
       setStartInteractionVector(null);
     },
-    [configSpaceCursor, hoveredNode, uiFramesView, canvasPoolManager, lastInteraction]
+    [configSpaceCursor, uiFramesView, lastInteraction]
   );
 
   // When a user click anywhere outside the spans, clear cursor and selected node
@@ -245,7 +236,7 @@ export function FlamegraphUIFrames({
       if (!uiFramesCanvasRef || uiFramesCanvasRef.contains(evt.target as Node)) {
         return;
       }
-      canvasPoolManager.dispatch('highlight span', [null, 'selected']);
+      canvasPoolManager.dispatch('highlight ui frame', [null, 'selected']);
       setConfigSpaceCursor(null);
     };
 
@@ -266,6 +257,21 @@ export function FlamegraphUIFrames({
         onMouseDown={onCanvasMouseDown}
         cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
       />
+      {hoveredNode &&
+      uiFramesRenderer &&
+      configSpaceCursor &&
+      uiFramesCanvas &&
+      uiFramesView ? (
+        <FlamegraphUIFramesTooltip
+          uiFrames={uiFrames}
+          configSpaceCursor={configSpaceCursor}
+          uiFramesCanvas={uiFramesCanvas}
+          uiFramesView={uiFramesView}
+          uiFramesRenderer={uiFramesRenderer}
+          hoveredNode={hoveredNode}
+          canvasBounds={canvasBounds}
+        />
+      ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profileGroup.type === 'loading' || profileGroup.type === 'initial' ? (
         <LoadingIndicatorContainer>

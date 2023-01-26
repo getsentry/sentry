@@ -557,10 +557,16 @@ export function findRangeBinarySearch(
     }
   }
 }
-
+/**
+ * Returns first index of value in array where value.start < target
+ * Example: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 5, returns 4 which points to value 3
+ * @param target {number}
+ * @param values {Array<T> | ReadonlyArray<T>}
+ * @returns number
+ */
 export function upperBound<T extends {end: number; start: number}>(
   target: number,
-  values: T[]
+  values: Array<T> | ReadonlyArray<T>
 ) {
   let low = 0;
   let high = values.length;
@@ -586,9 +592,16 @@ export function upperBound<T extends {end: number; start: number}>(
   return low;
 }
 
+/**
+ * Returns first index of value in array where value.end < target
+ * Example: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 5, returns 3 which points to value 4
+ * @param target {number}
+ * @param values {Array<T> | ReadonlyArray<T>}
+ * @returns number
+ */
 export function lowerBound<T extends {end: number; start: number}>(
   target: number,
-  values: T[]
+  values: Array<T> | ReadonlyArray<T>
 ) {
   let low = 0;
   let high = values.length;

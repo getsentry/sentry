@@ -13,6 +13,7 @@ import {
   pointToAndEnableVertexAttribute,
   Rect,
   resizeCanvasToDisplaySize,
+  upperBound,
 } from '../gl/utils';
 import {UIFrameNode, UIFrames} from '../uiFrames';
 
@@ -197,11 +198,17 @@ class UIFramesRenderer {
     this.gl.useProgram(this.program);
   }
 
-  getColorForFrame(): number[] {
-    return this.theme.COLORS.FRAME_FALLBACK_COLOR;
+  getColorForFrame(type: 'frozen' | 'slow'): [number, number, number, number] {
+    if (type === 'frozen') {
+      return this.theme.COLORS.UI_FRAME_COLOR_FROZEN;
+    }
+    if (type === 'slow') {
+      return this.theme.COLORS.UI_FRAME_COLOR_SLOW;
+    }
+    throw new Error(`Invalid frame type - ${type}`);
   }
 
-  findHoveredNode(configSpaceCursor: vec2, configSpace: Rect): UIFrameNode | null {
+  findHoveredNode(configSpaceCursor: vec2, configSpace: Rect): UIFrameNode[] | null {
     // ConfigSpace origin is at top of rectangle, so we need to offset bottom by 1
     // to account for size of renderered rectangle.
     if (configSpaceCursor[1] > configSpace.bottom + 1) {
@@ -216,7 +223,22 @@ class UIFramesRenderer {
       return null;
     }
 
-    // Run binary search
+    const overlaps: UIFrameNode[] = [];
+    // We can find the upper boundary, but because frames might overlap, we need to also check anything
+    // before the upper boundary to see if it overlaps... Performance does not seem to be a big concern
+    // here as the max number of slow frames we can have is max profile duration / slow frame = 30000/
+    const end = upperBound(configSpaceCursor[0], this.uiFrames.frames);
+
+    for (let i = 0; i <= end; i++) {
+      const frame = this.uiFrames.frames[i];
+      if (configSpaceCursor[0] <= frame.end && configSpaceCursor[0] >= frame.start) {
+        overlaps.push(frame);
+      }
+    }
+
+    if (overlaps.length > 0) {
+      return overlaps;
+    }
     return null;
   }
 

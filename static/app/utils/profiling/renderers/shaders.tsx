@@ -93,9 +93,9 @@ varying float v_frame_type;
 
 void main() {
   if(v_frame_type == 1.0) {
-    gl_FragColor = ${theme.COLORS.UI_FRAME_COLOR_FROZEN};
+    gl_FragColor = vec4(${theme.COLORS.UI_FRAME_COLOR_FROZEN.join(',')});
   } else {
-    gl_FragColor = ${theme.COLORS.UI_FRAME_COLOR_SLOW};
+    gl_FragColor = vec4(${theme.COLORS.UI_FRAME_COLOR_SLOW.join(',')});
   }
 }
 `;
