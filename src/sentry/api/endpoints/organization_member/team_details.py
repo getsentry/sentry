@@ -145,6 +145,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(
                 team__slug=team_slug, organizationmember=member
@@ -221,6 +222,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
@@ -288,6 +290,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not self._can_delete(request, member, team):
             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
