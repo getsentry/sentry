@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import GroupReplays from 'sentry/views/organizationGroupDetails/groupReplays';
+import GroupReplays from 'sentry/views/issueDetails/groupReplays';
 
 jest.mock('sentry/utils/useMedia', () => ({
   __esModule: true,

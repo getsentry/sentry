@@ -20,7 +20,7 @@ import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {TraceLink} from 'sentry/views/organizationGroupDetails/quickTrace/traceLink';
+import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import EventCreatedTooltip from './eventCreatedTooltip';
 import QuickTrace from './quickTrace';

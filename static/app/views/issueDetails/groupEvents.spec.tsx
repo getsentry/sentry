@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Group, Organization} from 'sentry/types';
-import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
+import {GroupEvents} from 'sentry/views/issueDetails/groupEvents';
 
 let location: Location;
 

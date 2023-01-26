@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import GroupingStore from 'sentry/stores/groupingStore';
-import {GroupMergedView} from 'sentry/views/organizationGroupDetails/groupMerged';
+import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 
 jest.mock('sentry/api');
 

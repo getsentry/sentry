@@ -7,7 +7,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
-import GroupDetails from 'sentry/views/organizationGroupDetails';
+import GroupDetails from 'sentry/views/issueDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
 

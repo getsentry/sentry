@@ -49,8 +49,8 @@ import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import ShareIssue from 'sentry/views/issueDetails/actions/shareIssue';
 import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
-import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';

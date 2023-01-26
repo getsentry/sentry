@@ -1,5 +1,5 @@
 import type {IssueCategory, ResolutionStatus} from 'sentry/types';
-import {Tab} from 'sentry/views/organizationGroupDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
