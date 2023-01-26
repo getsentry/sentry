@@ -137,6 +137,21 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
+    def test_fingerprints_events(self):
+        event = self.create_event(lambda i: "GET /clients/info")
+        [problem] = self.find_problems(event)
+
+        assert problem.fingerprint == "1-1010-3378cb14bc594ab8c1c32beca224f9c4d0b830aa"
+
+    def test_fingerprints_identical_relative_urls_together(self):
+        event1 = self.create_event(lambda i: "GET /clients/info")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: "GET /clients/info")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint == problem2.fingerprint
+
     def test_fingerprints_same_relative_urls_together(self):
         event1 = self.create_event(lambda i: f"GET /clients/info?id={i}")
         [problem1] = self.find_problems(event1)
@@ -146,7 +161,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert problem1.fingerprint == problem2.fingerprint
 
-    def test_fingerprints_same_parameterized_relative_urls_together(self):
+    def test_fingerprints_same_parameterized_integer_relative_urls_together(self):
         event1 = self.create_event(lambda i: f"GET /clients/17/info?id={i}")
         [problem1] = self.find_problems(event1)
 
