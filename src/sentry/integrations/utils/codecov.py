@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Sequence, Tuple
+from typing import Any, Literal, Optional, Sequence, Tuple
 
 import requests
 from sentry_sdk import configure_scope
@@ -10,7 +10,7 @@ CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{r
 REF_TYPE = Literal["branch", "sha"]
 
 
-def get_codecov_token() -> str:
+def get_codecov_token() -> Any:
     return options.get("codecov.client-secret")
 
 
