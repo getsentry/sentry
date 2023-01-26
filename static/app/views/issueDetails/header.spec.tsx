@@ -3,8 +3,8 @@ import {browserHistory} from 'react-router';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types';
-import GroupHeader from 'sentry/views/organizationGroupDetails/header';
-import {ReprocessingStatus} from 'sentry/views/organizationGroupDetails/utils';
+import GroupHeader from 'sentry/views/issueDetails/header';
+import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';

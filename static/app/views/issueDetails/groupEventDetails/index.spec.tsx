@@ -5,13 +5,12 @@ import {Client} from 'sentry/api';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 import GroupEventDetailsContainer, {
   GroupEventDetailsProps,
-} from 'sentry/views/organizationGroupDetails/groupEventDetails';
-import {ReprocessingStatus} from 'sentry/views/organizationGroupDetails/utils';
+} from 'sentry/views/issueDetails/groupEventDetails';
+import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-jest.mock(
-  'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails',
-  () => () => <div>GroupEventDetails</div>
-);
+jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetails', () => () => (
+  <div>GroupEventDetails</div>
+));
 
 const makeProps = (props: Partial<GroupEventDetailsProps>): GroupEventDetailsProps => {
   const mergedProps: GroupEventDetailsProps = {
