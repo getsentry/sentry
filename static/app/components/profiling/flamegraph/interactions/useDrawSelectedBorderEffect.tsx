@@ -49,7 +49,7 @@ export function useDrawSelectedBorderEffect({
           }),
           {
             BORDER_COLOR: theme.COLORS.SELECTED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: theme.SIZES.FRAME_BORDER_WIDTH,
+            BORDER_WIDTH: theme.SIZES.HIGHLIGHTED_FRAME_BORDER_WIDTH,
           },
           view.fromTransformedConfigView(canvas.physicalSpace)
         );
