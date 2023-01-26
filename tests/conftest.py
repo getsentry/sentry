@@ -4,7 +4,7 @@ import pytest
 from django.conf import settings
 
 from sentry.silo import SiloMode
-from sentry.testutils.silo import reset_test_role
+from sentry.testutils.silo import reset_test_role, restrict_role
 
 pytest_plugins = ["sentry.utils.pytest"]
 
@@ -161,6 +161,7 @@ def protect_user_deletion():
 
         default_role_name = settings.DATABASES["default"]["USER"]
         reset_test_role(role="postgres_without_user_deletions", from_role=default_role_name)
+        restrict_role(role=default_role_name, model=User, revocation_type="DELETE")
         new_databases_config["default"]["USER"] = "postgres_without_user_deletions"
         with override_settings(DATABASES=new_databases_config):
             yield
