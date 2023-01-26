@@ -6,6 +6,7 @@ import pytest
 
 from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
+from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -36,6 +37,9 @@ git_blame = [
         "age": 10,
     },
 ]
+expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
+expected_codecov_url = "https://app.codecov.io/gh/file.py."
+invalid_sha = "33be0c7da1f291e85e8de167276f21a854fe4597"
 
 
 def serialized_provider() -> Mapping[str, Any]:
@@ -331,6 +335,31 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
+    def mocked_requests_get(*args, **kwargs):
+        class MockResponse:
+            def __init__(self, json_data, status_code):
+                self.json_data = json_data
+                self.status_code = status_code
+
+            def json(self):
+                return self.json_data
+
+            def raise_for_status(self):
+                return self.status_code
+
+        if kwargs["params"].get("sha") and ["sha"] == invalid_sha:
+            return MockResponse(
+                {"error": "404: File not found"},
+                status_code=404,
+            )
+        return MockResponse(
+            {
+                "files": [{"line_coverage": expected_line_coverage}],
+                "commit_file_url": expected_codecov_url,
+            },
+            status_code=200,
+        )
+
     @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def test_get_commit_sha_valid_line_no(self, get_jwt, mock_blame):
@@ -455,6 +484,34 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "Something unexpected happen. Continuing execution.",
             )
         ]
+
+    @mock.patch("sentry.integrations.utils.codecov.get_codecov_token", return_value="token")
+    @mock.patch("sentry.integrations.utils.codecov.requests.get", side_effect=mocked_requests_get)
+    def test_get_codecov_data_with_sha(self, mock_token, mock_get):
+        line_coverage, codecov_url = get_codecov_data(
+            repo="getsentry/sentry",
+            service="github",
+            ref="93be0c7da1f291e85e8de167276f21a854fe4590",
+            ref_type="sha",
+            branch="master",
+            path="src/sentry/integrations/github/client.py",
+        )
+        assert line_coverage == expected_line_coverage
+        assert codecov_url == expected_codecov_url
+
+    @mock.patch("sentry.integrations.utils.codecov.get_codecov_token", return_value="token")
+    @mock.patch("sentry.integrations.utils.codecov.requests.get", side_effect=mocked_requests_get)
+    def test_get_codecov_data_with_branch_fallback(self, mock_token, mock_get):
+        line_coverage, codecov_url = get_codecov_data(
+            repo="getsentry/sentry",
+            service="github",
+            ref=invalid_sha,
+            ref_type="sha",
+            branch="master",
+            path="src/sentry/integrations/github/client.py",
+        )
+        assert line_coverage == expected_line_coverage
+        assert codecov_url == expected_codecov_url
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

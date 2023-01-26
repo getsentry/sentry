@@ -10,10 +10,14 @@ CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{r
 REF_TYPE = Literal["branch", "sha"]
 
 
+def get_codecov_token() -> str:
+    return options.get("codecov.client-secret")
+
+
 def get_codecov_data(
     repo: str, service: str, ref: str, ref_type: REF_TYPE, branch: str, path: str
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
-    codecov_token = options.get("codecov.client-secret")
+    codecov_token = get_codecov_token()
     line_coverage = None
     codecov_url = None
     if codecov_token:
@@ -36,6 +40,7 @@ def get_codecov_data(
                 response = requests.get(
                     url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
                 )
+                scope.set_tag("codecov.branch_fallback", True)
             scope.set_tag("codecov.http_code", response.status_code)
 
             response.raise_for_status()
