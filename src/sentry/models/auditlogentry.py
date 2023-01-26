@@ -111,6 +111,7 @@ class AuditLogEntry(Model):
         """
         return AuditLogEntry(
             organization_id=event.organization_id,
+            datetime=event.time_of_creation,
             actor_id=event.actor_user_id,
             target_object=event.target_object_id,
             ip_address=event.ip_address,
