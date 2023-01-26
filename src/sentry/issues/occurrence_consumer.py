@@ -143,6 +143,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "request",
                     "sdk",
                     "server_name",
+                    "stack_trace",
                     "trace_id",
                     "transaction",
                     "user",
