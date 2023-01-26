@@ -97,6 +97,7 @@ class AuditLogEntry(Model):
             target_object_id=self.target_object,
             ip_address=self.ip_address and str(self.ip_address),
             event_id=self.event and int(self.event),
+            target_user_id=self.target_user_id,
             data=self.data,
         )
 
@@ -116,6 +117,7 @@ class AuditLogEntry(Model):
             event=event.event_id,
             data=event.data,
             actor_label=event.actor_label,
+            target_user_id=event.target_user_id,
         )
 
     def get_actor_name(self):
