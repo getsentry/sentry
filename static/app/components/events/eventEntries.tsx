@@ -5,6 +5,7 @@ import {Location} from 'history';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -29,8 +30,6 @@ import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
-
-import {CommitRow} from '../commitRow';
 
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
@@ -341,12 +340,13 @@ const EventEntries = ({
         />
       )}
       {event.userReport && group && (
-        <StyledEventUserFeedback
-          report={event.userReport}
-          orgId={orgSlug}
-          issueId={group.id}
-          includeBorder={!hasErrors}
-        />
+        <EventDataSection title="User Feedback" type="user-feedback">
+          <EventUserFeedback
+            report={event.userReport}
+            orgId={orgSlug}
+            issueId={group.id}
+          />
+        </EventDataSection>
       )}
       {showTagSummary && (
         <EventTagsAndScreenshot
@@ -519,19 +519,6 @@ const BorderlessEventEntries = styled(EventEntries)`
     padding-top: 0;
     border-top: 0;
   }
-`;
-
-type StyledEventUserFeedbackProps = {
-  includeBorder: boolean;
-};
-
-const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
-  border-radius: 0;
-  box-shadow: none;
-  padding: ${space(3)} ${space(4)} 0 40px;
-  border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
-  margin: 0;
 `;
 
 const StyledReplayEventDataSection = styled(EventDataSection)`

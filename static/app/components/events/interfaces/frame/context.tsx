@@ -190,11 +190,11 @@ const Context = ({
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
   const hasCoverageData =
-    !isLoading && !!data && data!.codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS;
+    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
   const lineColors: Array<Color | 'transparent'> =
-    hasCoverageData && data.lineCoverage!
-      ? getCoverageColors(contextLines, data.lineCoverage)
+    hasCoverageData && data!.codecov?.lineCoverage!
+      ? getCoverageColors(contextLines, data!.codecov?.lineCoverage)
       : [];
 
   return (
