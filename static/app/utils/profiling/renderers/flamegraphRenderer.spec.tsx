@@ -257,7 +257,7 @@ describe('flamegraphRenderer', () => {
 
       // @ts-ignore we only need a partial frame mock
       results.set(getFlamegraphFrameSearchId(flamegraph.frames[0]), {});
-      renderer.setSearchResults(results);
+      renderer.setSearchResults('query', results);
 
       expect(JSON.stringify(renderer.searchResults.slice(0, 6))).toEqual(
         JSON.stringify(new Float32Array([1, 1, 1, 1, 1, 1]))
