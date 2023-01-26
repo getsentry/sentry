@@ -1,3 +1,4 @@
+from copy import copy
 from datetime import datetime
 from unittest.mock import Mock, patch
 
@@ -60,23 +61,29 @@ class TestProcessProfileConsumerStrategy(TestCase):
 
 
 def test_adjust_instruction_addr_sample_format():
+    original_frames = [
+        {"instruction_addr": "0xdeadbeef"},
+        {"instruction_addr": "0xbeefdead"},
+        {"instruction_addr": "0xfeedface"},
+    ]
     profile = {
         "version": "1",
         "profile": {
-            "frames": [
-                {"instruction_addr": "0xdeadbeef", "platform": "native"},
-                {"instruction_addr": "0xbeefdead", "platform": "native"},
-            ],
-            "stacks": [[1, 0]],
+            "frames": copy(original_frames),
+            "stacks": [[1, 0], [0, 1, 2]],
         },
         "debug_meta": {"images": []},
     }
 
     _, stacktraces = _prepare_frames_from_profile(profile)
+    assert profile["profile"]["stacks"] == [[3, 0], [4, 1, 2]]
     frames = stacktraces[0]["frames"]
 
-    assert "adjust_instruction_addr" not in frames[0]
-    assert not frames[1]["adjust_instruction_addr"]
+    for i in range(3):
+        assert frames[i] == original_frames[i]
+
+    assert frames[3] == {"instruction_addr": "0xbeefdead", "adjust_instruction_addr": False}
+    assert frames[4] == {"instruction_addr": "0xdeadbeef", "adjust_instruction_addr": False}
 
 
 def test_adjust_instruction_addr_original_format():

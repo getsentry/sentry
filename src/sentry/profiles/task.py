@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime
 from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
@@ -231,14 +232,20 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
     # in the sample format, we have a frames key containing all the frames
     if "version" in profile:
-        frames = [dict(frame) for frame in profile["profile"]["frames"]]
+        frames = profile["profile"]["frames"]
 
         for stack in profile["profile"]["stacks"]:
             if len(stack) > 0:
+                # Make a deep copy of the leaf frame with adjust_instruction_addr = False
+                # and append it to the list. This ensures correct behavior
+                # if the leaf frame also shows up in the middle of another stack.
                 first_frame_idx = stack[0]
-                frames[first_frame_idx]["adjust_instruction_addr"] = False
+                frame = deepcopy(frames[first_frame_idx])
+                frame["adjust_instruction_addr"] = False
+                frames.append(frame)
+                stack[0] = len(frames) - 1
 
-        stacktraces = [{"registers": {}, "frames": frames}]
+        stacktraces = [{"registers": {}, "frames": [dict(frame) for frame in frames]}]
     # in the original format, we need to gather frames from all samples
     else:
         stacktraces = []
