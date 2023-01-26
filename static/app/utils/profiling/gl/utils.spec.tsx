@@ -54,6 +54,7 @@ describe('upperBound', () => {
     [[1, 2, 3], 2, 1],
     [[-3, -2, -1], -2, 1],
     [[1, 2, 3], 10, 3],
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 4],
   ])(`inserts`, (args, target, insert) => {
     expect(
       upperBound(
@@ -79,6 +80,7 @@ describe('lowerBound', () => {
     [[1, 2, 3], 1, 0],
     [[-3, -2, -1], -1, 1],
     [[1, 2, 3], 10, 3],
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 3],
   ])(`inserts`, (args, target, insert) => {
     expect(
       lowerBound(
@@ -207,7 +209,7 @@ describe('createShader', () => {
 
     // @ts-ignore this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).toThrow(
-      'Failed to compile shader'
+      'Failed to compile 0 shader'
     );
   });
 });
