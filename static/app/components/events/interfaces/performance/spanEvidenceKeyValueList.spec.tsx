@@ -9,6 +9,7 @@ import {EntryType, IssueType} from 'sentry/types';
 
 import {
   extractQueryParameters,
+  extractSpanURLString,
   SpanEvidenceKeyValueList,
 } from './spanEvidenceKeyValueList';
 
@@ -201,6 +202,45 @@ describe('SpanEvidenceKeyValueList', () => {
 
       expect(parametersKeyValue).toHaveTextContent('book_id:{7,8}');
       expect(parametersKeyValue).toHaveTextContent('sort:{up,down}');
+    });
+
+    describe('extractSpanURLString', () => {
+      it('Tries to pull a URL from the span data', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            data: {
+              url: 'http://service.io',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/');
+      });
+
+      it('Pulls out a relative URL if a base is provided', () => {
+        expect(
+          extractSpanURLString(
+            {
+              span_id: 'a',
+              data: {
+                url: '/item',
+              },
+            },
+            'http://service.io'
+          )?.toString()
+        ).toEqual('http://service.io/item');
+      });
+
+      it('Falls back to span description if URL is faulty', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            description: 'GET http://service.io/item',
+            data: {
+              url: '/item',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/item');
+      });
     });
 
     describe('extractQueryParameters', () => {
