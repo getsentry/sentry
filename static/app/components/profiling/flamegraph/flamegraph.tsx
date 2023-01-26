@@ -145,8 +145,12 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   }, [organization.features]);
 
   const hasUIFrames = useMemo(() => {
-    return organization.features.includes('profiling-ui-frames');
-  }, [organization.features]);
+    const platform = props.profiles.metadata.platform;
+    return (
+      (platform === 'cocoa' || platform === 'android') &&
+      organization.features.includes('profiling-ui-frames')
+    );
+  }, [organization.features, props.profiles.metadata.platform]);
 
   const profile = useMemo(() => {
     return props.profiles.profiles.find(p => p.threadId === threadId);
