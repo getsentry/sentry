@@ -10,7 +10,6 @@ import {
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {
   CanvasPoolManager,
@@ -34,6 +33,10 @@ import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
+import {
+  CollapsibleTimelineLoadingIndicator,
+  CollapsibleTimelineMessage,
+} from './collapsibleTimeline';
 
 interface FlamegraphUIFramesProps {
   canvasBounds: Rect;
@@ -285,35 +288,15 @@ export function FlamegraphUIFrames({
       />
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profileGroup.type === 'loading' || profileGroup.type === 'initial' ? (
-        <LoadingIndicatorContainer>
-          <LoadingIndicator size={42} />
-        </LoadingIndicatorContainer>
+        <CollapsibleTimelineLoadingIndicator />
       ) : profileGroup.type === 'resolved' && uiFrames.frames.length <= 1 ? (
-        <MessageContainer>{t('Profile has no dropped or slow frames')}</MessageContainer>
+        <CollapsibleTimelineMessage>
+          {t('Profile has no dropped or slow frames')}
+        </CollapsibleTimelineMessage>
       ) : null}
     </Fragment>
   );
 }
-
-const MessageContainer = styled('p')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  color: ${p => p.theme.subText};
-`;
-
-const LoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-`;
 
 const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;
