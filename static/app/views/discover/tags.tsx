@@ -109,9 +109,8 @@ class Tags extends Component<Props, State> {
         ? Math.max(Number(totalValues), segments[0].count)
         : totalValues;
     return (
-      <li>
+      <li key={tag.key} aria-label={tag.key}>
         <TagFacetsDistributionMeter
-          key={tag.key}
           title={tag.key}
           segments={segments}
           totalValues={Number(maxTotalValues)}

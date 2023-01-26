@@ -192,7 +192,7 @@ function TagFacetsDistributionMeterWrapper({
           : [];
 
         return (
-          <li key={tagKey}>
+          <li key={tagKey} aria-label={tagKey}>
             <TagFacetsDistributionMeter
               title={tagKey}
               totalValues={topValuesTotal}

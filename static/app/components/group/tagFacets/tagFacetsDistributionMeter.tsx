@@ -92,7 +92,6 @@ function TagFacetsDistributionMeter({
               expanded ? 'Collapse' : 'Expand',
               title
             )}
-            aria-hidden
           />
         )}
       </Title>
@@ -143,9 +142,16 @@ function TagFacetsDistributionMeter({
               onMouseLeave={() => debounceSetHovered(null)}
             >
               {value.isOther ? (
-                <OtherSegment aria-label={t('Other')} color={colors[colors.length - 1]} />
+                <OtherSegment
+                  aria-label={t('Other segment')}
+                  color={colors[colors.length - 1]}
+                />
               ) : (
-                <Segment color={colors[index]} {...segmentProps}>
+                <Segment
+                  aria-label={`${value.value} ${t('segment')}`}
+                  color={colors[index]}
+                  {...segmentProps}
+                >
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
                   {index === 0 && pctLabel > 6 ? `${pctLabel}%` : null}
                 </Segment>
@@ -159,7 +165,7 @@ function TagFacetsDistributionMeter({
 
   function renderLegend() {
     return (
-      <LegendContainer aria-expanded={expanded}>
+      <LegendContainer aria-label={title}>
         {topSegments.map((segment, index) => {
           const pctLabel = Math.floor(percent(segment.count, totalValues));
           const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
