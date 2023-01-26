@@ -119,7 +119,6 @@ function SetupDocs({
   router,
   location,
 }: Props) {
-  organization.features = ['onboarding-heartbeat-footer'];
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedPlatforms = clientState?.selectedPlatforms || [];
