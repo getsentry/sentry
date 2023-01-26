@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytz
-from snuba_sdk import Limit
 
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
@@ -485,27 +484,26 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
     def test_calculated_limit(self):
 
-        with patch("sentry.tsdb.snuba.raw_snql_query") as snuba:
+        with patch("sentry.tsdb.snuba.snuba") as snuba:
             # 24h test
             rollup = 3600
             end = self.now
             start = end + timedelta(days=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-
-            assert snuba.call_args.args[0].query.limit == Limit(120)
+            assert snuba.query.call_args[1]["limit"] == 120
 
             # 14 day test
             rollup = 86400
             start = end + timedelta(days=-14, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.call_args.args[0].query.limit == Limit(70)
+            assert snuba.query.call_args[1]["limit"] == 70
 
             # 1h test
             rollup = 3600
             end = self.now
             start = end + timedelta(hours=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.call_args.args[0].query.limit == Limit(5)
+            assert snuba.query.call_args[1]["limit"] == 5
 
 
 @region_silo_test
