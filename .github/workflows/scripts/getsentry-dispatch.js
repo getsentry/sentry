@@ -41,7 +41,7 @@ module.exports = {
         };
 
         core.info(
-          `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}\n`
+          `📨 Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`
         );
 
         return github.rest.actions.createWorkflowDispatch({
