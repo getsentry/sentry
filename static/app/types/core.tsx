@@ -6,7 +6,7 @@
  */
 import type {getInterval} from 'sentry/components/charts/utils';
 import {MenuListItemProps} from 'sentry/components/menuListItem';
-import {API_ACCESS_SCOPES} from 'sentry/constants';
+import type {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user
