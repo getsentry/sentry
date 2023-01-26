@@ -9,8 +9,8 @@ import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
 import GroupEventDetails, {
   GroupEventDetailsProps,
-} from 'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
-import {ReprocessingStatus} from 'sentry/views/organizationGroupDetails/utils';
+} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 const makeDefaultMockData = (
   organization?: Organization,

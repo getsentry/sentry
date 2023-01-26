@@ -11,7 +11,7 @@ import space from 'sentry/styles/space';
 import {EventGroupInfo, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
-import {groupingFeedbackTypes} from 'sentry/views/organizationGroupDetails/grouping/grouping';
+import {groupingFeedbackTypes} from 'sentry/views/issueDetails/grouping/grouping';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';

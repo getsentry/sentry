@@ -14,7 +14,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {GroupActivity} from 'sentry/views/organizationGroupDetails/groupActivity';
+import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {
   let project;

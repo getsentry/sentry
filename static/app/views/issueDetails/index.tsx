@@ -17,7 +17,7 @@ type Props = {
   selection: PageFilters;
 } & RouteComponentProps<{groupId: string}, {}>;
 
-function OrganizationGroupDetails({selection, ...props}: Props) {
+function IssueDetailsContainer({selection, ...props}: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const api = useApi();
@@ -53,4 +53,4 @@ function OrganizationGroupDetails({selection, ...props}: Props) {
   );
 }
 
-export default withPageFilters(OrganizationGroupDetails);
+export default withPageFilters(IssueDetailsContainer);

@@ -8,9 +8,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, IssueCategory} from 'sentry/types';
 
-import UnhandledTag, {
-  TagAndMessageWrapper,
-} from '../organizationGroupDetails/unhandledTag';
+import UnhandledTag, {TagAndMessageWrapper} from '../issueDetails/unhandledTag';
 
 type Props = {
   group: Group;

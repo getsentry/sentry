@@ -3,7 +3,7 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 import {openModal} from 'sentry/actionCreators/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ModalStore from 'sentry/stores/modalStore';
-import ShareIssueModal from 'sentry/views/organizationGroupDetails/actions/shareModal';
+import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 
 describe('shareModal', () => {
   const project = TestStubs.Project();
