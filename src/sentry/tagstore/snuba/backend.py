@@ -50,7 +50,6 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
     get_organization_id_from_project_ids,
-    get_snuba_translators,
     nest_groups,
     raw_snql_query,
 )
@@ -97,14 +96,16 @@ def get_project_list(project_id):
 
 
 def _translate_filter_keys(project_ids, group_ids, environment_ids) -> Dict[str, Any]:
-    filter_keys = {"project_id": project_ids}
+    from sentry.utils.snuba import get_snuba_translators
 
+    filter_keys = {"project_id": project_ids}
     if environment_ids:
         filter_keys["environment"] = environment_ids
     if group_ids:
         filter_keys["group_id"] = group_ids
 
     forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=False)
+
     return forward(filter_keys)
 
 
