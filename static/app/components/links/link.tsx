@@ -1,7 +1,6 @@
-import {forwardRef, useContext, useEffect} from 'react';
+import {forwardRef, useContext} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -39,15 +38,6 @@ export interface LinkProps
 function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
   const route = useContext(RouteContext);
   const location = route?.location;
-  useEffect(() => {
-    // check if the router is present
-    if (!(route && location)) {
-      Sentry.captureException(
-        new Error('The link component was rendered without being wrapped by a <Router />')
-      );
-    }
-  }, [route, location]);
-
   to = normalizeUrl(to, location);
 
   if (!disabled && location) {

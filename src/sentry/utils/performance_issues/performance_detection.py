@@ -234,6 +234,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
             "n_plus_one_api_calls_detection_rate": 1.0,
+            "consecutive_db_queries_detection_rate": 1.0,
         }
     )
 
@@ -263,6 +264,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
+            "detection_rate": settings["consecutive_db_queries_detection_rate"],
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
             {
@@ -284,7 +286,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
-            "duration_threshold": 200,  # ms
+            "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
         },
     }
@@ -1049,7 +1051,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_rate"] > random.random()
+
+    def is_event_eligible(cls, event):
+        sdk_name = get_sdk_name(event) or ""
+        return "php" not in sdk_name.lower()
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
