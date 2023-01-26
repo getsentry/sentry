@@ -21,7 +21,6 @@ import msgpack
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from symbolic import ProguardMapper
 
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
@@ -30,7 +29,8 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
-from sentry.models import Project, ProjectDebugFile
+from sentry.lang.java.utils import deobfuscate_view_hierarchy, has_proguard_file
+from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_transaction
 from sentry.utils import json, metrics
@@ -274,15 +274,12 @@ def _load_event(
                 attachment_objects = []
                 for attachment in attachments:
                     attachment_type = attachment.pop("attachment_type")
-                    if attachment_type == "event.view_hierarchy" and _requires_deobfuscation(data):
-                        proguard_uuid = _get_proguard_uuid(data)
-                        mapper = _get_proguard_mapper(proguard_uuid, project)
-
+                    if attachment_type == "event.view_hierarchy" and has_proguard_file(data):
                         view_hierarchy = attachment_cache.get_from_chunks(
                             key=cache_key, type=attachment_type, **attachment
                         )
                         view_hierarchy = json.loads(attachment_cache.get_data(view_hierarchy))
-                        view_hierarchy = deobfuscate_view_hierarchy(view_hierarchy, mapper)
+                        view_hierarchy = deobfuscate_view_hierarchy(data, project, view_hierarchy)
 
                         # Unset chunks
                         attachment.pop("chunks")
@@ -460,52 +457,3 @@ def get_ingest_consumer(
     return create_batching_kafka_consumer(
         topic_names=topic_names, worker=IngestConsumerWorker(executor), **options
     )
-
-
-####
-def _get_proguard_uuid(event):
-    uuid = None
-    if "debug_meta" in event:
-        images = event["debug_meta"].get("images", [])
-        if not isinstance(images, list):
-            return
-        if event.get("project") is None:
-            return
-
-        for image in images:
-            if image.get("type") == "proguard":
-                uuid = image.get("uuid")
-
-    return uuid
-
-
-def _requires_deobfuscation(event):
-    return bool(_get_proguard_uuid(event))
-
-
-def _get_proguard_mapper(uuid, project):
-    dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
-    debug_file_path = dif_paths.get(uuid)
-    if debug_file_path is None:
-        return
-
-    mapper = ProguardMapper.open(debug_file_path)
-    if not mapper.has_line_info:
-        return
-
-    return mapper
-
-
-def deobfuscate_view_hierarchy(view_hierarchy, mapper):
-    with sentry_sdk.start_span(op="function", description="deobfuscate_view_hierarchy"):
-        windows_to_deobfuscate = [*view_hierarchy.get("windows")]
-        while windows_to_deobfuscate:
-            window = windows_to_deobfuscate.pop()
-            window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
-            if window.get("children"):
-                windows_to_deobfuscate.extend(window.get("children"))
-
-        return {
-            "rendering_system": view_hierarchy.get("rendering_system"),
-            "windows": view_hierarchy.get("windows"),
-        }
