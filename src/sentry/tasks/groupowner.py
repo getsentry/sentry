@@ -16,16 +16,19 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
+DEBOUNCE_CACHE_KEY = lambda group_id: f"process-suspect-commits-{group_id}"
 
 logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, cache_key, sdk_name=None, **kwargs
+    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
 
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
+
+    cache_key = DEBOUNCE_CACHE_KEY(group_id)
 
     project = Project.objects.get_from_cache(id=project_id)
     owners = GroupOwner.objects.filter(
@@ -124,7 +127,6 @@ def process_suspect_commits(
     event_frames,
     group_id,
     project_id,
-    cache_key=None,
     sdk_name=None,
     **kwargs,
 ):
@@ -133,8 +135,6 @@ def process_suspect_commits(
     )
     try:
         with lock.acquire():
-            if not cache_key:
-                cache_key = f"process-suspect-commits-{group_id}"
 
             _process_suspect_commits(
                 event_id,
@@ -142,7 +142,6 @@ def process_suspect_commits(
                 event_frames,
                 group_id,
                 project_id,
-                cache_key,
                 sdk_name,
                 **kwargs,
             )

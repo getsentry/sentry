@@ -648,7 +648,8 @@ def process_commits(job: PostProcessJob) -> None:
         return
 
     from sentry.models import Commit
-    from sentry.tasks.commit_context import process_commit_context
+    from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
+    from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
 
     event = job["event"]
@@ -679,7 +680,7 @@ def process_commits(job: PostProcessJob) -> None:
                     "project": event.project_id,
                 }
                 if features.has("organizations:commit-context", event.project.organization):
-                    cache_key = f"process-commit-context-{event.group_id}"
+                    cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr(
                             "sentry.tasks.process_commit_context.debounce",
@@ -692,11 +693,10 @@ def process_commits(job: PostProcessJob) -> None:
                         event_frames=event_frames,
                         group_id=event.group_id,
                         project_id=event.project_id,
-                        cache_key=cache_key,
                         sdk_name=sdk_name,
                     )
                 else:
-                    cache_key = f"process-suspect-commits-{event.group_id}"
+                    cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr(
                             "sentry.tasks.process_suspect_commits.debounce",
@@ -709,7 +709,6 @@ def process_commits(job: PostProcessJob) -> None:
                         event_frames=event_frames,
                         group_id=event.group_id,
                         project_id=event.project_id,
-                        cache_key=cache_key,
                         sdk_name=sdk_name,
                     )
     except UnableToAcquireLock:

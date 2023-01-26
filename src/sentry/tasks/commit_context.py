@@ -20,7 +20,7 @@ from sentry.utils.sdk import set_current_event_project
 
 PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
-
+DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +39,6 @@ def process_commit_context(
     event_frames,
     group_id,
     project_id,
-    cache_key=None,
     sdk_name=None,
     **kwargs,
 ):
@@ -55,8 +54,8 @@ def process_commit_context(
                 "sentry.tasks.process_commit_context.start",
                 tags={"event": event_id, "group": group_id, "project": project_id},
             )
-            if not cache_key:
-                cache_key = f"process-commit-context-{group_id}"
+
+            cache_key = DEBOUNCE_CACHE_KEY(group_id)
 
             set_current_event_project(project_id)
 
@@ -88,7 +87,13 @@ def process_commit_context(
             ).order_by("-date_added")
 
             if len(current_owners) >= PREFERRED_GROUP_OWNERS:
+                # When there exists a Suspect Committer, we want to debounce this task until that Suspect Committer hits the TTL of PREFERRED_GROUP_OWNER_AGE
                 cache_duration = timezone.now() - current_owners[0].date_added
+                cache_duration = (
+                    cache_duration
+                    if cache_duration < PREFERRED_GROUP_OWNER_AGE
+                    else PREFERRED_GROUP_OWNER_AGE
+                )
                 cache.set(cache_key, True, cache_duration.total_seconds())
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
@@ -117,7 +122,9 @@ def process_commit_context(
             frame = next(filter(lambda frame: frame.get("in_app", False), frames[::-1]), None)
 
             if not frame:
-                cache.set(cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds())
+                # When we could not find the in_app frame for the event, we will debounce the task for 1 day.
+                # New events can be unrelated to the original event and may have an "in_app" frame.
+                cache.set(cache_key, True, timedelta(days=1).total_seconds())
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
@@ -144,7 +151,9 @@ def process_commit_context(
             )
 
             if not commit_context and not selected_code_mapping:
-                cache.set(cache_key, True, timedelta(days=1).total_seconds())
+                # Couldn't find the blame with any of the code mappings, so we will debounce the task for PREFERRED_GROUP_OWNER_AGE.
+                # We will clear the debounce cache when the org adds new code mappings for the project of this group.
+                cache.set(cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds())
 
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
@@ -169,6 +178,8 @@ def process_commit_context(
                     key=commit_context.get("commitId"),
                 )
             except Commit.DoesNotExist:
+                # We couldn't find the commit in Sentry, so we will debounce the task for 1 day.
+                # TODO(nisanthan): We will not get the commit history for new customers, only the commits going forward from when they installed the source-code integration. We need a long-term fix.
                 cache.set(cache_key, True, timedelta(days=1).total_seconds())
 
                 metrics.incr(
@@ -212,9 +223,8 @@ def process_commit_context(
                     else:
                         owner.delete()
 
-            cache.set(
-                cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
-            )  # 1 week in seconds
+            # Success. We will debounce this task until this Suspect Committer hits the TTL of PREFERRED_GROUP_OWNER_AGE
+            cache.set(cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds())
             logger.info(
                 "process_commit_context.success",
                 extra={
