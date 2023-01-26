@@ -471,3 +471,53 @@ def redact_internal_sources_from_module(module):
 
     if "candidates" in module:
         module["candidates"] = [c for c in new_candidates if should_keep(c)]
+
+
+def sources_for_symbolication(project):
+    """
+    Returns a list of symbol sources to attach to a native symbolication request,
+    as well as a closure to post-process the resulting JSON response.
+    """
+
+    sources = get_sources_for_project(project) or []
+
+    # Build some maps for use in _process_response()
+    reverse_source_aliases = reverse_aliases_map(settings.SENTRY_BUILTIN_SOURCES)
+    source_names = {source["id"]: source.get("name", "unknown") for source in sources}
+
+    # Add a name for the special "sentry:project" source.
+    source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+
+    # Add names for aliased sources.
+    for source in settings.SENTRY_BUILTIN_SOURCES.values():
+        if source.get("type") == "alias":
+            source_names[source["id"]] = source.get("name", "unknown")
+
+    # Remove sources that should be ignored. This leaves a few extra entries in the alias
+    # maps and source names maps, but that's fine. The orphaned entries in the maps will just
+    # never be used.
+    sources = filter_ignored_sources(sources, reverse_source_aliases)
+
+    def _process_response(json):
+        """Post-processes the JSON response.
+
+        This modifies the candidates list from Symbolicator responses to undo aliased
+        sources, hide information about unknown sources and add names to sources rather then
+        just have their IDs.
+        """
+        for module in json.get("modules") or ():
+            for candidate in module.get("candidates") or ():
+                # Reverse internal source aliases from the response.
+                source_id = candidate["source"]
+                original_source_id = reverse_source_aliases.get(source_id)
+                if original_source_id is not None:
+                    candidate["source"] = original_source_id
+                    source_id = original_source_id
+
+                # Add a "source_name" field to save the UI a lookup.
+                candidate["source_name"] = source_names.get(source_id, "unknown")
+
+        redact_internal_sources(json)
+        return json
+
+    return (sources, _process_response)

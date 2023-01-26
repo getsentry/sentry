@@ -9,13 +9,7 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.cache import default_cache
-from sentry.lang.native.sources import (
-    INTERNAL_SOURCE_NAME,
-    filter_ignored_sources,
-    get_sources_for_project,
-    redact_internal_sources,
-    reverse_aliases_map,
-)
+from sentry.lang.native.sources import sources_for_symbolication
 from sentry.models import Organization
 from sentry.net.http import Session
 from sentry.tasks.symbolication import RetrySymbolication
@@ -43,38 +37,16 @@ class Symbolicator:
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
             )
 
+        self.project = project
         self.sess = SymbolicatorSession(
             url=base_url,
             project_id=str(project.id),
             event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
         )
-        self.options = {
-            "dif_candidates": True,
-        }
-
-        self.sources = get_sources_for_project(project) or []
-
-        # Build some maps for use in ._process_response()
-        self.reverse_source_aliases = reverse_aliases_map(settings.SENTRY_BUILTIN_SOURCES)
-        self.source_names = {source["id"]: source.get("name", "unknown") for source in self.sources}
-
-        # Add a name for the special "sentry:project" source.
-        self.source_names[INTERNAL_SOURCE_NAME] = "Sentry"
-
-        # Add names for aliased sources.
-        for source in settings.SENTRY_BUILTIN_SOURCES.values():
-            if source.get("type") == "alias":
-                self.source_names[source["id"]] = source.get("name", "unknown")
-
-        # Remove sources that should be ignored. This leaves a few extra entries in the alias
-        # maps and source names maps, but that's fine. The orphaned entries in the maps will just
-        # never be used.
-        self.sources = filter_ignored_sources(self.sources, self.reverse_source_aliases)
-
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
 
-    def _process(self, create_task, task_name):
+    def _process(self, task_name: str, path: str, **kwargs):
         task_id = default_cache.get(self.task_id_cache_key)
         json_response = None
 
@@ -92,7 +64,7 @@ class Symbolicator:
                     # upload all information to symbolicator. It will likely not
                     # have a response ready immediately, so we start polling after
                     # some timeout.
-                    json_response = create_task()
+                    json_response = self.sess.create_task(path, **kwargs)
             except ServiceUnavailable:
                 # 503 can indicate that symbolicator is restarting. Wait for a
                 # reboot, then try again. This overrides the default behavior of
@@ -120,72 +92,47 @@ class Symbolicator:
                 default_cache.delete(self.task_id_cache_key)
                 return json_response
 
-    def _process_response(self, json):
-        """Post-processes the JSON response.
-
-        This modifies the candidates list from Symbolicator responses to undo aliased
-        sources, hide information about unknown sources and add names to sources rather then
-        just have their IDs.
-        """
-        for module in json.get("modules") or ():
-            for candidate in module.get("candidates") or ():
-                # Reverse internal source aliases from the response.
-                source_id = candidate["source"]
-                original_source_id = self.reverse_source_aliases.get(source_id)
-                if original_source_id is not None:
-                    candidate["source"] = original_source_id
-                    source_id = original_source_id
-
-                # Add a "source_name" field to save the UI a lookup.
-                candidate["source_name"] = self.source_names.get(source_id, "unknown")
-
-        redact_internal_sources(json)
-        return json
-
     def process_minidump(self, minidump):
-        def upload_minidump():
-            return self.sess.create_task(
-                path="minidump",
-                data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
-                files={"upload_file_minidump": minidump},
-            )
+        (sources, process_response) = sources_for_symbolication(self.project)
+        data = {
+            "sources": json.dumps(sources),
+            "options": '{"dif_candidates": true}',
+        }
 
-        res = self._process(upload_minidump, "process_minidump")
-        return self._process_response(res)
+        res = self._process(
+            "process_minidump", "minidump", data=data, files={"upload_file_minidump": minidump}
+        )
+        return process_response(res)
 
     def process_applecrashreport(self, report):
-        def upload_applecrashreport():
-            return self.sess.create_task(
-                path="applecrashreport",
-                data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
-                files={"apple_crash_report": report},
-            )
+        (sources, process_response) = sources_for_symbolication(self.project)
+        data = {
+            "sources": json.dumps(sources),
+            "options": '{"dif_candidates": true}',
+        }
 
         res = self._process(
-            upload_applecrashreport,
             "process_applecrashreport",
+            "applecrashreport",
+            data=data,
+            files={"apple_crash_report": report},
         )
-        return self._process_response(res)
+        return process_response(res)
 
     def process_payload(self, stacktraces, modules, signal=None):
-        def symbolicate_stacktraces():
-            json = {
-                "sources": self.sources,
-                "options": self.options,
-                "stacktraces": stacktraces,
-                "modules": modules,
-            }
+        (sources, process_response) = sources_for_symbolication(self.project)
+        json = {
+            "sources": sources,
+            "options": {"dif_candidates": True},
+            "stacktraces": stacktraces,
+            "modules": modules,
+        }
 
-            if signal:
-                json["signal"] = signal
+        if signal:
+            json["signal"] = signal
 
-            return self.sess.create_task("symbolicate", json=json)
-
-        res = self._process(
-            symbolicate_stacktraces,
-            "symbolicate_stacktraces",
-        )
-        return self._process_response(res)
+        res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
+        return process_response(res)
 
 
 class TaskIdNotFound(Exception):
