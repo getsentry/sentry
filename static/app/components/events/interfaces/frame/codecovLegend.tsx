@@ -30,12 +30,12 @@ export function CodecovLegend({event, frame, organization}: CodecovLegendProps) 
     projectSlug: project?.slug,
   });
 
-  if (isLoading || !data) {
+  if (isLoading || !data || !data.codecov) {
     return null;
   }
 
   if (
-    data.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS ||
+    data.codecov.status !== CodecovStatusCode.COVERAGE_EXISTS ||
     data.config?.provider.key !== 'github'
   ) {
     return null;
@@ -74,7 +74,6 @@ const LegendIcon = styled('span')`
 const CodeCovLegendContainer = styled('div')`
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(0.25)} ${space(3)};

@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import type {SeriesOption, TooltipComponentOption} from 'echarts';
+import type {LegendComponentOption, SeriesOption, TooltipComponentOption} from 'echarts';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
@@ -130,7 +130,7 @@ type DefaultProps = {
   usageDateShowUtc: boolean;
 };
 
-type Props = DefaultProps & {
+export type UsageChartProps = DefaultProps & {
   dataCategory: DataCategory;
 
   dataTransform: ChartDataTransform;
@@ -178,7 +178,7 @@ export type ChartStats = {
   filtered?: NonNullable<SeriesOption['data']>;
 };
 
-export class UsageChart extends Component<Props, State> {
+export class UsageChart extends Component<UsageChartProps, State> {
   static defaultProps: DefaultProps = {
     categoryOptions: CHART_OPTIONS_DATACATEGORY,
     usageDateShowUtc: true,
@@ -221,7 +221,10 @@ export class UsageChart extends Component<Props, State> {
    * E.g. usageStats.accepted covers day 1-15 of a month, usageStats.projected
    * either covers day 16-30 or may not be available at all.
    */
-  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
+  static getDerivedStateFromProps(
+    nextProps: Readonly<UsageChartProps>,
+    prevState: State
+  ): State {
     const {usageDateStart, usageDateEnd, usageDateShowUtc, usageDateInterval} = nextProps;
 
     return {
@@ -334,6 +337,7 @@ export class UsageChart extends Component<Props, State> {
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.FILTERED,
@@ -341,12 +345,14 @@ export class UsageChart extends Component<Props, State> {
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.DROPPED,
         data: chartData.dropped as any, // TODO(ts)
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.PROJECTED,
@@ -354,6 +360,7 @@ export class UsageChart extends Component<Props, State> {
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
+        zlevel: 10,
       }),
     ];
 
@@ -365,9 +372,10 @@ export class UsageChart extends Component<Props, State> {
     return series;
   }
 
-  get chartLegend() {
+  get chartLegendData() {
+    const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
-    const legend = [
+    const legend: LegendComponentOption['data'] = [
       {
         name: SeriesTypes.ACCEPTED,
       },
@@ -390,6 +398,13 @@ export class UsageChart extends Component<Props, State> {
         name: SeriesTypes.PROJECTED,
       });
     }
+
+    if (chartSeries) {
+      chartSeries.forEach(chartOption => {
+        legend.push({name: `${chartOption.name}`});
+      });
+    }
+
     return legend;
   }
 
@@ -479,7 +494,7 @@ export class UsageChart extends Component<Props, State> {
               legend={Legend({
                 right: 10,
                 top: 5,
-                data: this.chartLegend,
+                data: this.chartLegendData,
                 theme,
               })}
             />

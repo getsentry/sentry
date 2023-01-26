@@ -15,7 +15,7 @@ type AddSpanOpts = {
   data?: Record<string, any>;
   description?: string;
   op?: string;
-  problemSpan?: ProblemSpan;
+  problemSpan?: ProblemSpan | ProblemSpan[];
   status?: string;
 };
 
@@ -118,19 +118,25 @@ export class TransactionEventBuilder {
 
       this.#spans.push(clonedSpan);
 
-      switch (mockSpan.problemSpan) {
-        case ProblemSpan.PARENT:
-          this.#event.perfProblem?.parentSpanIds.push(spanId);
-          break;
-        case ProblemSpan.OFFENDER:
-          this.#event.perfProblem?.offenderSpanIds.push(spanId);
-          break;
-        case ProblemSpan.CAUSE:
-          this.#event.perfProblem?.causeSpanIds.push(spanId);
-          break;
-        default:
-          break;
-      }
+      const problemSpans = Array.isArray(mockSpan.problemSpan)
+        ? mockSpan.problemSpan
+        : [mockSpan.problemSpan];
+
+      problemSpans.forEach(problemSpan => {
+        switch (problemSpan) {
+          case ProblemSpan.PARENT:
+            this.#event.perfProblem?.parentSpanIds.push(spanId);
+            break;
+          case ProblemSpan.OFFENDER:
+            this.#event.perfProblem?.offenderSpanIds.push(spanId);
+            break;
+          case ProblemSpan.CAUSE:
+            this.#event.perfProblem?.causeSpanIds.push(spanId);
+            break;
+          default:
+            break;
+        }
+      });
 
       if (clonedSpan.timestamp > this.#event.endTimestamp) {
         this.#event.endTimestamp = clonedSpan.timestamp;
@@ -153,7 +159,7 @@ export class TransactionEventBuilder {
 export class MockSpan {
   span: RawSpanType;
   children: MockSpan[] = [];
-  problemSpan: ProblemSpan | undefined;
+  problemSpan: ProblemSpan | ProblemSpan[] | undefined;
 
   /**
    *

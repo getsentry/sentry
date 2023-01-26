@@ -17,21 +17,17 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {
-  AvatarProject,
-  Group,
-  GroupActivityAssigned,
-  GroupActivityType,
-  IssueCategory,
-  Organization,
-  Project,
-} from 'sentry/types';
+import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import Projects from 'sentry/utils/projects';
+import {
+  getAnalyicsDataForEvent,
+  getAnalyicsDataForGroup,
+  getMessage,
+  getTitle,
+} from 'sentry/utils/events';
+import Projects, {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
@@ -49,22 +45,6 @@ import {
   markEventSeen,
   ReprocessingStatus,
 } from './utils';
-
-/**
- * Return the integration type for the first assignment via integration
- */
-function getAssignmentIntegration(group: Group) {
-  if (!group.activity) {
-    return '';
-  }
-  const assignmentAcitivies = group.activity.filter(
-    activity => activity.type === GroupActivityType.ASSIGNED
-  ) as GroupActivityAssigned[];
-  const integrationAssignments = assignmentAcitivies.find(
-    activity => !!activity.data.integration
-  );
-  return integrationAssignments?.data.integration || '';
-}
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -131,9 +111,15 @@ class GroupDetails extends Component<Props, State> {
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
       // if we are loading events we should record analytics after it's loaded
-      this.getEvent(this.state.group).then(
-        () => this.state.group?.project && this.trackView(this.state.group?.project)
-      );
+      this.getEvent(this.state.group).then(() => {
+        if (!this.state.group?.project) {
+          return;
+        }
+        const project = this.props.projects.find(
+          p => p.id === this.state.group?.project.id
+        );
+        project && this.trackView(project);
+      });
     }
   }
 
@@ -162,37 +148,19 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {params, location, organization, router} = this.props;
+    const {location, organization, router} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
     this.props.setRouteAnalyticsParams({
-      project_id: parseInt(project.id, 10),
-      group_id: parseInt(params.groupId, 10),
-      // group properties
-      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
-      issue_status: group?.status,
-      issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
-      issue_level: group?.level,
-      is_assigned: !!group?.assignedTo,
-      error_count: Number(group?.count || -1),
-      error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
-      group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
-      num_comments: group ? group.numComments : -1,
-      project_has_replay: group?.project.hasReplays,
-      project_has_minified_stack_trace: group?.project.hasMinifiedStackTrace,
-      project_platform: group?.project.platform,
-      has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
-      has_owner: group?.owners ? group?.owners.length > 0 : false,
-      integration_assignment_source: group ? getAssignmentIntegration(group) : '',
-      // event properties
+      ...getAnalyicsDataForGroup(group),
       ...getAnalyicsDataForEvent(event),
+      ...getAnalyicsDataForProject(project),
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-      has_otel: event?.contexts?.otel !== undefined,
       has_setup_source_maps_alert: shouldDisplaySetupSourceMapsAlert(
         organization,
         router.location.query.project,
@@ -456,15 +424,14 @@ class GroupDetails extends Component<Props, State> {
         return;
       }
 
-      const project = data.project;
-
-      markEventSeen(api, organization.slug, project.slug, params.groupId);
+      const project = this.props.projects.find(p => p.id === data.project.id);
 
       if (!project) {
         Sentry.withScope(() => {
           Sentry.captureException(new Error('Project not found'));
         });
       } else {
+        markEventSeen(api, organization.slug, project.slug, params.groupId);
         const locationWithProject = {...this.props.location};
         if (
           locationWithProject.query.project === undefined &&
@@ -491,13 +458,13 @@ class GroupDetails extends Component<Props, State> {
         browserHistory.replace(locationWithProject);
       }
 
-      this.setState({project, loadingGroup: false});
+      this.setState({project: project || data.project, loadingGroup: false});
 
       GroupStore.loadInitialData([data]);
 
       if (trackView) {
         // make sure releases have loaded before we track the view
-        groupReleasePromise.then(() => this.trackView(project));
+        groupReleasePromise.then(() => project && this.trackView(project));
       }
     } catch (error) {
       this.handleRequestError(error);

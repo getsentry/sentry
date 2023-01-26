@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
