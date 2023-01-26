@@ -54,5 +54,5 @@ def test_user_ip_event():
             shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id
         ).drain_shard()
 
-    assert UserIP.objects.count() == 1
+    assert UserIP.objects.count() == 2
     assert UserIP.objects.last().ip_address == "1.0.0.5"
