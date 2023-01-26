@@ -111,7 +111,7 @@ class UIFramesRenderer {
       this.positions[positionOffset + 11] = y2;
 
       const type = frame.type === 'frozen' ? 1 : 0;
-      const typeOffset = index * 6;
+      const typeOffset = index * VERTICES_PER_FRAME;
       this.frame_types[typeOffset] = type;
       this.frame_types[typeOffset + 1] = type;
       this.frame_types[typeOffset + 2] = type;
