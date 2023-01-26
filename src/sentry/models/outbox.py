@@ -5,7 +5,7 @@ import contextlib
 import datetime
 import sys
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Set
+from typing import Any, Generator, Iterable, List, Mapping, Set, Type, TypeVar
 
 from django.db import connections, models, router, transaction
 from django.db.models import Max
@@ -25,11 +25,15 @@ from sentry.silo import SiloMode
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
+_T = TypeVar("_T")
+
 
 class OutboxScope(IntEnum):
     ORGANIZATION_SCOPE = 0
     USER_SCOPE = 1
     WEBHOOK_SCOPE = 2
+    AUDIT_LOG_SCOPE = 3
+    USER_IP_SCOPE = 4
 
     def __str__(self):
         return self.name
@@ -45,6 +49,8 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_UPDATE = 2
     ORGANIZATION_MEMBER_UPDATE = 3
     VERIFY_ORGANIZATION_MAPPING = 4
+    AUDIT_LOG_EVENT = 5
+    USER_IP_EVENT = 6
 
     @classmethod
     def as_choices(cls):
@@ -71,7 +77,7 @@ class OutboxBase(Model):
     coalesced_columns: Iterable[str]
 
     @classmethod
-    def _unique_object_identifier(cls):
+    def next_object_identifier(cls):
         using = router.db_for_write(cls)
         with transaction.atomic(using=using):
             with connections[using].cursor() as cursor:
@@ -185,6 +191,14 @@ class OutboxBase(Model):
                 f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
             )
 
+    @classmethod
+    def for_shard(cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int) -> _T:
+        """
+        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
+        semantic of creating and instance to invoke `drain_shard` on.
+        """
+        return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
+
 
 MONOLITH_REGION_NAME = "--monolith--"
 
@@ -281,7 +295,7 @@ class ControlOutbox(OutboxBase):
             result = cls()
             result.shard_scope = OutboxScope.WEBHOOK_SCOPE
             result.shard_identifier = webhook_identifier.value
-            result.object_identifier = cls._unique_object_identifier()
+            result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
             result.payload = payload

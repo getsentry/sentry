@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.models import User
-from sentry.region_to_control.messages import UserIpEvent
+from sentry.services.hybrid_cloud.log import UserIpEvent, log_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils.geo import geo_by_addr
 
@@ -41,8 +41,6 @@ class UserIP(Model):
 
 
 def _perform_log(user: User | APIUser, ip_address: str):
-    from sentry.region_to_control.producer import user_ip_service
-
     try:
         geo = geo_by_addr(ip_address)
     except Exception:
@@ -58,4 +56,4 @@ def _perform_log(user: User | APIUser, ip_address: str):
         event.country_code = geo["country_code"]
         event.region_code = geo["region"]
 
-    user_ip_service.produce_user_ip(event)
+    log_service.record_user_ip(event=event)

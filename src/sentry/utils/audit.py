@@ -18,6 +18,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.services.hybrid_cloud.log import log_service
 
 
 def create_audit_entry(
@@ -49,7 +50,7 @@ def create_audit_entry_from_user(
     # Only create a real AuditLogEntry record if we are passing an event type
     # otherwise, we want to still log to our actual logging
     if entry.event is not None:
-        entry.save_or_write_to_kafka()
+        log_service.record_audit_log(event=entry.as_event())
 
     if entry.event == audit_log.get_event_id("ORG_REMOVE"):
         _create_org_delete_log(entry)
@@ -136,7 +137,7 @@ def _complete_delete_log(delete_log: DeletedEntry, entry: AuditLogEntry) -> None
     Adds common information on a delete log from an audit entry and
     saves that delete log.
     """
-    delete_log.actor_label = entry.actor_label
+    delete_log.actor_label = entry.actor_label[:64]
     delete_log.actor_id = entry.actor_id
     delete_log.actor_key = entry.actor_key
     delete_log.ip_address = entry.ip_address
@@ -152,7 +153,7 @@ def create_system_audit_entry(
     """
     entry = AuditLogEntry(actor_label="Sentry", **kwargs)
     if entry.event is not None:
-        entry.save_or_write_to_kafka()
+        log_service.record_audit_log(event=entry.as_event())
 
     extra = {
         "organization_id": entry.organization_id,
