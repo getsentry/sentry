@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -82,10 +83,15 @@ function TagFacetsDistributionMeter({
         <TitleType>{title}</TitleType>
         <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
         {multiValueTag && (
-          <StyledChevron
-            direction={expanded ? 'up' : 'down'}
-            size="xs"
-            aria-label={`expand-${title}`}
+          <ExpandToggleButton
+            borderless
+            size="zero"
+            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
+            aria-label={t(
+              '%s %s tag distribution',
+              expanded ? 'Collapse' : 'Expand',
+              title
+            )}
           />
         )}
       </Title>
@@ -136,9 +142,16 @@ function TagFacetsDistributionMeter({
               onMouseLeave={() => debounceSetHovered(null)}
             >
               {value.isOther ? (
-                <OtherSegment aria-label={t('Other')} color={colors[colors.length - 1]} />
+                <OtherSegment
+                  aria-label={t('Other segment')}
+                  color={colors[colors.length - 1]}
+                />
               ) : (
-                <Segment color={colors[index]} {...segmentProps}>
+                <Segment
+                  aria-label={`${value.value} ${t('segment')}`}
+                  color={colors[index]}
+                  {...segmentProps}
+                >
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
                   {index === 0 && pctLabel > 6 ? `${pctLabel}%` : null}
                 </Segment>
@@ -152,32 +165,40 @@ function TagFacetsDistributionMeter({
 
   function renderLegend() {
     return (
-      <LegendContainer>
+      <LegendContainer aria-label={title}>
         {topSegments.map((segment, index) => {
           const pctLabel = Math.floor(percent(segment.count, totalValues));
           const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
           const focus = hoveredValue?.value === segment.value;
-          return (
-            <Link
-              key={`segment-${segment.name}-${index}`}
-              to={segment.url}
-              aria-label={t(
-                'Add the %s %s segment tag to the search query',
+          const isOtherSegment =
+            index === topSegments.length - 1 && segment.value === 'other';
+          const linkLabel = isOtherSegment
+            ? t(
+                'Other %s tag values, %s of all events. View all tags.',
                 title,
-                segment.value
-              )}
-            >
-              <LegendRow
-                onMouseOver={() => debounceSetHovered(segment)}
-                onMouseLeave={() => debounceSetHovered(null)}
-              >
-                <LegendDot color={colors[index]} focus={focus} />
-                <LegendText unfocus={unfocus}>
-                  {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
-                </LegendText>
-                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
-              </LegendRow>
-            </Link>
+                `${pctLabel}%`
+              )
+            : t(
+                '%s, %s, %s of all events. View events with this tag value.',
+                title,
+                segment.value,
+                `${pctLabel}%`
+              );
+          return (
+            <li key={`segment-${segment.name}-${index}`}>
+              <Link to={segment.url} aria-label={linkLabel}>
+                <LegendRow
+                  onMouseOver={() => debounceSetHovered(segment)}
+                  onMouseLeave={() => debounceSetHovered(null)}
+                >
+                  <LegendDot color={colors[index]} focus={focus} />
+                  <LegendText unfocus={unfocus}>
+                    {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
+                  </LegendText>
+                  {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                </LegendRow>
+              </Link>
+            </li>
           );
         })}
       </LegendContainer>
@@ -199,14 +220,18 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      <TagHeader
-        clickable={multiValueTag}
-        onClick={() => multiValueTag && setExpanded(!expanded)}
-      >
-        {renderTitle()}
-        {renderSegments()}
-      </TagHeader>
-      {expanded && renderLegend()}
+      <details open={expanded} onClick={e => e.preventDefault()}>
+        <summary>
+          <TagHeader
+            clickable={multiValueTag}
+            onClick={() => multiValueTag && setExpanded(!expanded)}
+          >
+            {renderTitle()}
+            {renderSegments()}
+          </TagHeader>
+        </summary>
+        {renderLegend()}
+      </details>
     </TagSummary>
   );
 }
@@ -241,6 +266,7 @@ const TitleType = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeSmall};
   margin-right: ${space(1)};
+  align-self: center;
 `;
 
 const TitleDescription = styled('div')`
@@ -250,6 +276,7 @@ const TitleDescription = styled('div')`
   text-align: right;
   font-size: ${p => p.theme.fontSizeSmall};
   ${p => p.theme.overflowEllipsis};
+  align-self: center;
 `;
 
 const OtherSegment = styled('span')<{color: string}>`
@@ -277,7 +304,9 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   padding: 1px ${space(0.5)} 0 0;
 `;
 
-const LegendContainer = styled('div')`
+const LegendContainer = styled('ol')`
+  list-style: none;
+  padding: 0;
   margin: ${space(1)} 0;
 `;
 
@@ -320,11 +349,9 @@ const LegendPercent = styled('span')`
   flex-grow: 1;
 `;
 
-const StyledChevron = styled(IconChevron)`
-  margin: -${space(0.5)} 0 0 ${space(0.5)};
+const ExpandToggleButton = styled(Button)`
   color: ${p => p.theme.gray300};
-  min-width: ${space(1.5)};
-  margin-top: 0;
+  margin-left: ${space(0.5)};
 `;
 
 const NotApplicableLabel = styled('span')`

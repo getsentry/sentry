@@ -949,13 +949,13 @@ describe('Results', function () {
       // since environment collides with the environment field, it is wrapped with `tags[...]`
       expect(
         await screen.findByRole('link', {
-          name: 'Add the environment dev segment tag to the search query',
+          name: 'environment, dev, 100% of all events. View events with this tag value.',
         })
       ).toBeInTheDocument();
 
       expect(
         screen.getByRole('link', {
-          name: 'Add the foo bar segment tag to the search query',
+          name: 'foo, bar, 100% of all events. View events with this tag value.',
         })
       ).toBeInTheDocument();
     });

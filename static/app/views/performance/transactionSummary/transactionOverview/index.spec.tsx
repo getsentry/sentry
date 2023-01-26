@@ -793,19 +793,20 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Tag Summary');
 
-      userEvent.click(screen.getByText('environment'));
-      userEvent.click(screen.getByText('foo'));
-      // TODO(edward): Update to something better like getByLabel once we add better accessibility.
-      userEvent.click(screen.getAllByText('user')[1]);
-
       userEvent.click(
-        screen.getByLabelText('Add the environment dev segment tag to the search query')
+        screen.getByLabelText(
+          'environment, dev, 100% of all events. View events with this tag value.'
+        )
       );
       userEvent.click(
-        screen.getByLabelText('Add the foo bar segment tag to the search query')
+        screen.getByLabelText(
+          'foo, bar, 100% of all events. View events with this tag value.'
+        )
       );
       userEvent.click(
-        screen.getByLabelText('Add the user id:100 segment tag to the search query')
+        screen.getByLabelText(
+          'user, id:100, 100% of all events. View events with this tag value.'
+        )
       );
 
       expect(router.push).toHaveBeenCalledTimes(3);
@@ -1204,14 +1205,16 @@ describe('Performance > TransactionSummary', function () {
       });
 
       await screen.findByText('Tag Summary');
-      userEvent.click(screen.getByText('environment'));
-      userEvent.click(screen.getByText('foo'));
 
       userEvent.click(
-        screen.getByLabelText('Add the environment dev segment tag to the search query')
+        screen.getByLabelText(
+          'environment, dev, 100% of all events. View events with this tag value.'
+        )
       );
       userEvent.click(
-        screen.getByLabelText('Add the foo bar segment tag to the search query')
+        screen.getByLabelText(
+          'foo, bar, 100% of all events. View events with this tag value.'
+        )
       );
 
       expect(router.push).toHaveBeenCalledTimes(2);
