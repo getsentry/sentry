@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -94,17 +93,19 @@ function DateTimeCell({
   const project = projects.find(p => p.id === replay.project_id);
 
   return (
-    <Link
-      to={{
-        pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
-        query: {
-          referrer,
-          ...eventView.generateQueryStringObject(),
-        },
-      }}
-    >
-      <DateTime date={replay.started_at} seconds timeZone />
-    </Link>
+    <Item>
+      <Link
+        to={{
+          pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+          query: {
+            referrer,
+            ...eventView.generateQueryStringObject(),
+          },
+        }}
+      >
+        <DateTime date={replay.started_at} seconds timeZone />
+      </Link>
+    </Item>
   );
 }
 
@@ -118,31 +119,33 @@ function SessionCell({
   const project = projects.find(p => p.id === replay.project_id);
 
   return (
-    <UserBadge
-      avatarSize={32}
-      displayName={
-        <Link
-          to={{
-            pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
-            query: {
-              referrer,
-              ...eventView.generateQueryStringObject(),
-            },
-          }}
-        >
-          {replay.user.display_name || ''}
-        </Link>
-      }
-      user={{
-        username: replay.user.display_name || '',
-        email: replay.user.email || '',
-        id: replay.user.id || '',
-        ip_address: replay.user.ip || '',
-        name: replay.user.username || '',
-      }}
-      // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-      displayEmail={<StringWalker urls={replay.urls} />}
-    />
+    <Item padding={space(2)}>
+      <UserBadge
+        avatarSize={32}
+        displayName={
+          <Link
+            to={{
+              pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+              query: {
+                referrer,
+                ...eventView.generateQueryStringObject(),
+              },
+            }}
+          >
+            {replay.user.display_name || ''}
+          </Link>
+        }
+        user={{
+          username: replay.user.display_name || '',
+          email: replay.user.email || '',
+          id: replay.user.id || '',
+          ip_address: replay.user.ip || '',
+          name: replay.user.username || '',
+        }}
+        // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+        displayEmail={<StringWalker urls={replay.urls} />}
+      />
+    </Item>
   );
 }
 
@@ -150,7 +153,11 @@ function ProjectCell({replay}: BaseProps) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
-  return project ? <ProjectBadge project={project} avatarSize={16} /> : null;
+  return project ? (
+    <Item>
+      <ProjectBadge project={project} avatarSize={16} />
+    </Item>
+  ) : null;
 }
 
 function TransactionCell({
@@ -179,32 +186,52 @@ function TransactionCell({
 }
 
 function StartedAtCell({replay}: BaseProps) {
-  return <TimeSince date={replay.started_at} />;
+  return (
+    <Item>
+      <TimeSince date={replay.started_at} />
+    </Item>
+  );
 }
 
 function DurationCell({replay}: BaseProps) {
-  return <Duration seconds={replay.duration.asSeconds()} exact abbreviation />;
+  return (
+    <Item numeric>
+      <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
+    </Item>
+  );
 }
 
 function ErrorCountCell({replay}: BaseProps) {
-  return <Fragment>{replay.count_errors || 0}</Fragment>;
+  return <Item numeric>{replay.count_errors || 0}</Item>;
 }
 
 function UrlCountCell({replay}: BaseProps) {
-  return <Fragment>{replay.count_urls || 0}</Fragment>;
+  return <Item numeric>{replay.count_urls || 0}</Item>;
 }
 
 function ActivityCell({replay}: BaseProps) {
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
-    <ScoreBar
-      size={20}
-      score={replay?.activity ?? 1}
-      palette={scoreBarPalette}
-      radius={0}
-    />
+    <Item>
+      <ScoreBar
+        size={20}
+        score={replay?.activity ?? 1}
+        palette={scoreBarPalette}
+        radius={0}
+      />
+    </Item>
   );
 }
+
+const Item = styled('span')<{numeric?: boolean; padding?: ReturnType<typeof space>}>`
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: ${space(1)};
+  padding: ${p => (p.padding ? p.padding : `${space(0.5)} ${space(1)}`)};
+  ${p => (p.numeric ? 'justify-content: flex-end;' : '')}
+`;
 
 const SpanOperationBreakdown = styled('div')`
   width: 100%;

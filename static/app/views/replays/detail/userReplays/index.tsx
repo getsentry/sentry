@@ -124,8 +124,6 @@ function ReplaysFromUser({replayId, user}: Props) {
                       columnWidth={getColumnWidth(width)}
                       cellRenderer={cellRenderer}
                       estimatedRowSize={50}
-                      // TODO(replays): I think this should be included, but it puts all cells in position `top:0;left:0`
-                      // deferredMeasurementCache={cache}
                       fixedRowCount={1}
                       headerHeight={28}
                       height={height}
@@ -175,6 +173,8 @@ const SessionsTable = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Header = styled('div')`
@@ -201,15 +201,6 @@ const Header = styled('div')`
 `;
 
 const Body = styled('div')<{isCurrent: boolean}>`
-  ${p => p.theme.overflowEllipsis};
-  font-variant-numeric: tabular-nums;
-
-  display: flex;
-  align-items: center;
-  height: 100%;
-  gap: ${space(1)};
-  padding: ${space(0.5)} ${space(1)};
-
   background: ${p => (p.isCurrent ? p.theme.hover : 'inherit')};
 `;
 

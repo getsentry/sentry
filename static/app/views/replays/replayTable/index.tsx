@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -12,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
-import renderReplayCell from 'sentry/views/replays/replayTable/tableCell';
+import TableCell from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -61,21 +60,11 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       isLoading={isFetching}
       visibleColumns={visibleColumns}
     >
-      {replays?.map(replay => {
-        return (
-          <Fragment key={replay.id}>
-            {visibleColumns.map(column =>
-              renderReplayCell({
-                column,
-                eventView,
-                organization,
-                referrer,
-                replay,
-              })
-            )}
-          </Fragment>
-        );
-      })}
+      {replays?.map(replay =>
+        visibleColumns.map(column =>
+          TableCell({column, eventView, organization, referrer, replay})
+        )
+      )}
     </StyledPanelTable>
   );
 }
@@ -87,6 +76,7 @@ const StyledPanelTable = styled(PanelTable)<{
     p.visibleColumns
       .map(column => (column === 'session' ? 'minmax(100px, 1fr)' : 'max-content'))
       .join(' ')};
+  font-variant-numeric: tabular-nums;
 `;
 
 const StyledAlert = styled(Alert)`
