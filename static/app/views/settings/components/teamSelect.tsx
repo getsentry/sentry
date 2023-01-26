@@ -238,7 +238,7 @@ const ProjectTeamRow = ({
   disabled,
   confirmMessage,
 }: ProjectTeamRowProps) => (
-  <TeamPanelItem data-test-id="team-row">
+  <TeamPanelItem data-test-id="team-row-for-project">
     <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
       <TeamBadge team={team} />
     </StyledLink>
@@ -286,20 +286,22 @@ const MemberTeamRow = ({
     : teamRoleList.find(r => r.id === selectedTeamRole) || teamRoleList[0];
 
   return (
-    <TeamPanelItem data-test-id="team-row">
+    <TeamPanelItem data-test-id="team-row-for-member">
       <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
         <TeamBadge team={team} />
       </StyledLink>
 
       {organization.features.includes('team-roles') && onChangeTeamRole && (
-        <StyledRoleSelectControl
-          disabled={disabled || isRoleOverwritten}
-          disableUnallowed={false}
-          size="xs"
-          roles={teamRoleList}
-          value={teamRoleObj?.id}
-          onChange={option => onChangeTeamRole(team.slug, option.value)}
-        />
+        <React.Fragment>
+          <StyledRoleSelectControl
+            disabled={disabled || isRoleOverwritten}
+            disableUnallowed={false}
+            size="xs"
+            roles={teamRoleList}
+            value={teamRoleObj?.id}
+            onChange={option => onChangeTeamRole(team.slug, option.value)}
+          />
+        </React.Fragment>
       )}
 
       <Confirm
