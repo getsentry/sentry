@@ -41,7 +41,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     background-color: ${theme.backgroundSecondary};
     word-break: break-all;
     white-space: pre-wrap;
-    overflow-x: scroll;
+    overflow-x: auto;
   }
 
   code {
