@@ -97,6 +97,7 @@ export type TeamInsightsEventParameters = {
     rule_id: string;
   };
   'project_detail.change_chart': {chart_index: number; metric: string};
+  'project_detail.open_anr_issues': {};
   'project_detail.open_discover': {};
   'project_detail.open_issues': {};
   'project_detail.performance_tour.advance': BaseTour;
@@ -149,6 +150,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
+  'project_detail.open_anr_issues': 'Project Detail: Open issues from ANR rate scorecard',
   'project_detail.change_chart': 'Project Detail: Change Chart',
   'project_detail.performance_tour.advance': 'Project Detail: Performance Tour Advance',
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
