@@ -284,7 +284,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
-            "duration_threshold": 200,  # ms
+            "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
         },
     }
