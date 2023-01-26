@@ -78,7 +78,7 @@ describe('Group > AssignedTo', () => {
 
   it('renders unassigned', () => {
     render(<AssignedTo project={project} group={GROUP_1} />, {organization});
-    expect(screen.getByText('No-one')).toBeInTheDocument();
+    expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
   it('does not render chevron when disableDropdown prop is passed', () => {
