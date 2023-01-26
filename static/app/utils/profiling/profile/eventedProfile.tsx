@@ -81,17 +81,9 @@ export class EventedProfile extends Profile {
     }
   }
 
-  recordRawWeight(at: number) {
-    const weight = at - this.lastValue;
-    if (weight > 0) {
-      this.rawWeights.push(weight);
-    }
-  }
-
   enterFrame(frame: Frame, at: number): void {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
-    this.recordRawWeight(at);
 
     const lastTop = lastOfArray(this.appendOrderStack);
 
@@ -146,7 +138,6 @@ export class EventedProfile extends Profile {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
     this.trackSampleStats(at);
-    this.recordRawWeight(at);
 
     const leavingStackTop = this.appendOrderStack.pop();
 

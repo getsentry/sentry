@@ -7,6 +7,7 @@ from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     _store_transaction_name,
     clear_transaction_names,
+    get_active_projects,
     get_transaction_names,
     record_transaction_name,
 )
@@ -202,6 +203,13 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
             "/test/path/*/**",
             "/users/trans/*/**",
         }
+
+
+@pytest.mark.django_db
+def test_get_deleted_project():
+    deleted_project = Project(pk=666)
+    _store_transaction_name(deleted_project, "foo")
+    assert list(get_active_projects()) == []
 
 
 @pytest.mark.django_db
