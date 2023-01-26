@@ -179,12 +179,13 @@ function buildRoutes() {
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
+      {/* TODO: remove share/issue orgless url */}
       <Route
         path="/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
-        path="/(organizations)?/:orgId?/share/issue/:shareId/"
+        path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
