@@ -11,8 +11,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.github.client import GitHubClientMixin
 from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -67,6 +69,7 @@ def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional
         "abs_path": parameters.get("absPath"),
         "module": parameters.get("module"),
         "package": parameters.get("package"),
+        "line_no": parameters.get("lineNo"),
     }
 
 
@@ -186,6 +189,38 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     sorted_configs.insert(0, config)
         return sorted_configs
 
+    def get_commit_sha(
+        self,
+        integration_installation: GitHubClientMixin,
+        line_no: int,
+        filepath: str,
+        repository: Repository,
+        ref: str,
+    ) -> Optional[str]:
+        commit_sha = ""
+        git_blame_list = integration_installation.get_blame_for_file(
+            repository,
+            filepath,
+            ref,
+            line_no,
+        )
+        if git_blame_list:
+            for blame in git_blame_list:
+                if blame["startingLine"] <= line_no <= blame["endingLine"]:
+                    commit_sha = str(blame["commit"]["oid"])
+                    break
+        if not commit_sha:
+            logger.warning(
+                "Failed to get commit from git blame.",
+                extra={
+                    "git_blame_response": git_blame_list,
+                    "filepath": filepath,
+                    "line_no": line_no,
+                    "ref": ref,
+                },
+            )
+        return commit_sha
+
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
         filepath = ctx.get("file")
@@ -245,7 +280,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     outcome = munging_outcome
                     scope.set_tag("stacktrace_link.munged", True)
 
-                current_config = {"config": serialize(config, request.user), "outcome": outcome}
+                current_config = {
+                    "config": serialize(config, request.user),
+                    "outcome": outcome,
+                    "repository": config.repository,
+                }
 
                 # Use the provider key to split up stacktrace-link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
@@ -279,11 +318,47 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     result["codecov"] = {"status": 404}
 
                 elif codecov_enabled and codecov_cache is not False:
+                    # Get Codecov data
                     try:
+                        ref = (
+                            ctx["commit_id"]
+                            if ctx["commit_id"]
+                            else current_config["config"]["defaultBranch"]
+                        )
+
+                        # Get commit sha from Git blame
+                        gh_integrations = integrations.filter(provider="github")
+                        should_get_commit_sha = (
+                            len(gh_integrations) > 0
+                            and ref == current_config["config"]["defaultBranch"]
+                        )
+
+                        if should_get_commit_sha:
+                            try:
+                                integration_installation = gh_integrations[0].get_installation(
+                                    organization_id=project.organization_id
+                                )
+                                line_no = ctx.get("line_no")
+                                if line_no:
+                                    ref = self.get_commit_sha(
+                                        integration_installation,
+                                        int(line_no),
+                                        filepath,
+                                        current_config["repository"],
+                                        current_config["config"]["defaultBranch"],
+                                    )
+                            except Exception:
+                                logger.exception(
+                                    "Failed to get commit sha from git blame, pending investigation. Continuing execution."
+                                )
+
                         lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
                             service=current_config["config"]["provider"]["key"],
-                            branch=current_config["config"]["defaultBranch"],
+                            ref=ref,
+                            ref_type="branch"
+                            if ref == current_config["config"]["defaultBranch"]
+                            else "sha",
                             path=current_config["outcome"]["sourcePath"],
                         )
                         if lineCoverage and codecovUrl:
