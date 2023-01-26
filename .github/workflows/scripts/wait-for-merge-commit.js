@@ -22,14 +22,16 @@ async function waitForMergeCommit({github, context, core}) {
       ...context.repo,
       pull_number: pullNumber,
     });
-    if (response.status === 200) {
+    if (response.status === 200 && response.data.mergeable !== null) {
+      // If mergable is false, that means there is merge conflict
+      // or the PR cannot be merged so we want to break.
       mergeable = response.data.mergeable;
       if (mergeable) {
         mergeCommitSha = response.data.merge_commit_sha;
-        break;
       }
+      break;
     } else {
-      core.info('None 200 response: ', response);
+      core.info('Non 200 response or PR is not mergeable: ', response);
     }
 
     await wait(WAIT_PERIOD);
@@ -50,6 +52,11 @@ async function waitForMergeCommit({github, context, core}) {
   core.info(`Merge commit SHA: ${mergeCommitSha}`);
   core.info(`PR head SHA: ${pullRequest.head.sha}`);
   core.endGroup();
+
+  if (!mergeable) {
+    // setFailed will cause the action to fail
+    core.setFailed(`PR #${pullNumber} is not mergeable`);
+  }
 }
 
 module.exports = {
