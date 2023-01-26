@@ -203,11 +203,6 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
 @pytest.mark.django_db
 def test_deobfuscate_view_hierarchy(default_project, task_runner, monkeypatch, django_cache):
-    def create_proguard():
-        with zipfile.ZipFile(BytesIO(), "w") as f:
-            f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
-            create_files_from_dif_zip(f, project=default_project)
-
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
     payload = get_normalized_event(
@@ -222,7 +217,11 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, monkeypatch, d
     project_id = default_project.id
     start_time = time.time() - 3600
 
-    create_proguard()
+    # Create the proguard file
+    with zipfile.ZipFile(BytesIO(), "w") as f:
+        f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+        create_files_from_dif_zip(f, project=default_project)
+
     expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
     obfuscated_view_hierarchy = {
         "rendering_system": "Test System",
