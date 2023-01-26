@@ -99,9 +99,11 @@ function SourceMapWarning({
   const {data} = useSourceMapDebug(debugFrame?.query);
 
   return data?.errors?.length ? (
-    <Tooltip skipWrapper title={t('Missing source map')}>
-      <StyledIconWarning color="red400" size="sm" aria-label={t('Missing source map')} />
-    </Tooltip>
+    <IconWrapper>
+      <Tooltip skipWrapper title={t('Missing source map')}>
+        <IconWarning color="red400" size="sm" aria-label={t('Missing source map')} />
+      </Tooltip>
+    </IconWrapper>
   ) : null;
 }
 
@@ -534,6 +536,8 @@ const StyledLi = styled('li')`
   }
 `;
 
-const StyledIconWarning = styled(IconWarning)`
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   margin-right: ${space(0.5)};
 `;
