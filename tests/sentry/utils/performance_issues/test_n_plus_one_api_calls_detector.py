@@ -49,7 +49,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
                         "http.client",
                         duration_threshold,
                         description_maker(i),
-                        hash=hash[:10],
+                        hash=hash,
                     )
                     for i in range(count)
                 ]
