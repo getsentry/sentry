@@ -19,14 +19,14 @@ def get_codecov_data(
         owner_username, repo_name = repo.split("/")
         if service == "github":
             service = "gh"
+        path = path.lstrip("/")
         url = CODECOV_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
         with configure_scope() as scope:
-            scope.set_tag("codecov.attempted_url", url)
             params = {"branch": branch, "path": path}
             response = requests.get(
-                url, params=params, headers={"Authorization": f"tokenAuth {codecov_token}"}
+                url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
             )
             scope.set_tag("codecov.http_code", response.status_code)
 
