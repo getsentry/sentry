@@ -6,7 +6,7 @@ import {getContext, Rect} from '../gl/utils';
 
 function computeAbsoluteSampleTimestamps(
   startedAt: number,
-  weights: readonly number[]
+  weights: ReadonlyArray<number>
 ): number[] {
   if (!weights.length) {
     return [];

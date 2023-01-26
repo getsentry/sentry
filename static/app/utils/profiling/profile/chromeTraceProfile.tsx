@@ -513,6 +513,7 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
       elapsed = Math.max(elapsed + profile.timeDeltas[i + 1], elapsed);
     }
   }
+
   return {samples, sampleTimes};
 }
 
