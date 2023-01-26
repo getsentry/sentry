@@ -16,7 +16,7 @@ const ReplayTabs: Record<TabKey, string> = {
   trace: t('Trace'),
   issues: t('Issues'),
   memory: t('Memory'),
-  user: t('Other Sessions'),
+  user: t('More from User'),
 };
 
 type Props = {className?: string};
