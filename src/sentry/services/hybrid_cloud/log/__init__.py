@@ -1,7 +1,7 @@
 import abc
 import datetime
 from dataclasses import dataclass
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation
 from sentry.silo import SiloMode
@@ -26,7 +26,7 @@ class AuditLogEvent:
     actor_user_id: Optional[int] = None
     ip_address: Optional[str] = None
     target_object_id: Optional[int] = None
-    data: Optional[Mapping[str, any]] = None
+    data: Optional[Mapping[str, Any]] = None
     # TODO: Serializing actor id -- right now we just serialize the user id and label, but not the id itself.
 
 

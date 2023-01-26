@@ -34,7 +34,7 @@ class DatabaseBackedLogService(LogService):
                 # It is possible that a user existed at the time of serialization but was deleted by the time of consumption
                 # in which case we follow the database's SET NULL on delete handling.
                 entry.actor_user_id = None
-                return self.record_audit_log(event)
+                return self.record_audit_log(event=event)
             else:
                 raise
 
