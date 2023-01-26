@@ -137,6 +137,42 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
+    def test_fingerprints_same_relative_urls_together(self):
+        event1 = self.create_event(lambda i: f"GET /clients/info?id={i}")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: f"GET /clients/info?id={i*2}")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint == problem2.fingerprint
+
+    def test_fingerprints_same_parameterized_relative_urls_together(self):
+        event1 = self.create_event(lambda i: f"GET /clients/17/info?id={i}")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: f"GET /clients/16/info?id={i*2}")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint == problem2.fingerprint
+
+    def test_fingerprints_different_relative_url_separately(self):
+        event1 = self.create_event(lambda i: f"GET /clients/info?id={i}")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: f"GET /projects/details?pid={i}")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint != problem2.fingerprint
+
+    def test_fingerprints_using_full_url_path(self):
+        event1 = self.create_event(lambda i: f"GET http://service.io/clients/info?id={i}")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: f"GET /clients/info?id={i}")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint != problem2.fingerprint
+
 
 @pytest.mark.parametrize(
     "url,parameterized_url",
