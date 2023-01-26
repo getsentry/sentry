@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 import color from 'color';
 
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {DataCategory, Outcome} from 'sentry/types';
+import {Outcome} from 'sentry/types';
 
 /**
  * Exporting for use in Storybook only. Do not import this
@@ -347,10 +348,9 @@ const generateAliases = (colors: BaseColors) => ({
 });
 
 const dataCategory = {
-  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
-  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
-  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
-  [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
+  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
+  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
+  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
 };
 
 /**

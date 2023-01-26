@@ -2,7 +2,6 @@
 
 import {t} from 'sentry/locale';
 import {
-  DataCategory,
   DataCategoryExact,
   DataCategoryInfo,
   OrgRole,
@@ -229,18 +228,10 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
-export const DATA_CATEGORY_NAMES = {
-  [DataCategory.ERRORS]: t('Errors'),
-  [DataCategory.TRANSACTIONS]: t('Transactions'),
-  [DataCategory.ATTACHMENTS]: t('Attachments'),
-  [DataCategory.PROFILES]: t('Profiles'),
-  [DataCategory.REPLAYS]: t('Session Replays'),
-};
-
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
   [DataCategoryExact.ERROR]: {
-    name: 'error',
+    name: DataCategoryExact.ERROR,
     apiName: 'error',
     plural: 'errors',
     displayName: 'error',
@@ -248,7 +239,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 1,
   },
   [DataCategoryExact.TRANSACTION]: {
-    name: 'transaction',
+    name: DataCategoryExact.TRANSACTION,
     apiName: 'transaction',
     plural: 'transactions',
     displayName: 'transaction',
@@ -256,7 +247,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 2,
   },
   [DataCategoryExact.ATTACHMENT]: {
-    name: 'attachment',
+    name: DataCategoryExact.ATTACHMENT,
     apiName: 'attachment',
     plural: 'attachments',
     displayName: 'attachment',
@@ -264,7 +255,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 4,
   },
   [DataCategoryExact.PROFILE]: {
-    name: 'profile',
+    name: DataCategoryExact.PROFILE,
     apiName: 'profile',
     plural: 'profiles',
     displayName: 'profile',
@@ -272,7 +263,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 6,
   },
   [DataCategoryExact.REPLAY]: {
-    name: 'replay',
+    name: DataCategoryExact.REPLAY,
     apiName: 'replay',
     plural: 'replays',
     displayName: 'replay',
@@ -280,7 +271,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 7,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
-    name: 'transaction_processed',
+    name: DataCategoryExact.TRANSACTION_PROCESSED,
     apiName: 'transactions',
     plural: 'transactions',
     displayName: 'transaction',
@@ -288,13 +279,21 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 8,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
-    name: 'transaction_indexed',
+    name: DataCategoryExact.TRANSACTION_INDEXED,
     apiName: 'transactionIndexed',
     plural: 'indexed transactions',
     displayName: 'indexed transaction',
     titleName: t('Indexed Transactions'),
     uid: 9,
   },
+};
+
+export const DATA_CATEGORY_NAMES = {
+  [DATA_CATEGORY_INFO.error.plural]: t('Errors'),
+  [DATA_CATEGORY_INFO.transaction.plural]: t('Transactions'),
+  [DATA_CATEGORY_INFO.attachment.plural]: t('Attachments'),
+  [DATA_CATEGORY_INFO.profile.plural]: t('Profiles'),
+  [DATA_CATEGORY_INFO.replay.plural]: t('Session Replays'),
 };
 
 // Special Search characters
