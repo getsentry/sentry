@@ -7,7 +7,7 @@ import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {IssueAttachment} from 'sentry/types';
-import {types} from 'sentry/views/organizationGroupDetails/groupEventAttachments/types';
+import {types} from 'sentry/views/issueDetails/groupEventAttachments/types';
 
 type Props = {
   attachment: IssueAttachment;
