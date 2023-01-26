@@ -48,7 +48,13 @@ def get_active_projects() -> Iterator[Project]:
         # NOTE: Would be nice to do a `select_related` on project.organization
         # because we need it for the feature flag, but I don't know how to do
         # it with `get_from_cache`.
-        yield Project.objects.get_from_cache(id=project_id)
+        try:
+            yield Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            # The project has been deleted.
+            # Could theoretically delete the key here, but it has a lifetime
+            # of 24h, so probably not worth it.
+            pass
 
 
 def _store_transaction_name(project: Project, transaction_name: str) -> None:
