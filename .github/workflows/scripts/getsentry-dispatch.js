@@ -41,7 +41,10 @@ module.exports = {
         };
 
         core.info(
-          `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`
+          `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)
+            .split('\n')
+            .map(l => `    ${l}`)
+            .join('\n')}`
         );
 
         return github.rest.actions.createWorkflowDispatch({
