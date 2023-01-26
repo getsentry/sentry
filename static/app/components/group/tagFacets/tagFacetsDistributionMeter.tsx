@@ -65,7 +65,6 @@ function TagFacetsDistributionMeter({
   const multiValueTag = segments.length > 1;
   const [expanded, setExpanded] = useState<boolean>(multiValueTag && !!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
-  const debounceSetHovered = debounce(value => setHoveredValue(value), 70);
   const topSegments = segments.slice(0, MAX_SEGMENTS);
 
   function renderTitle() {
@@ -124,7 +123,7 @@ function TagFacetsDistributionMeter({
               key={value.value}
               style={{width: pct + '%'}}
               onMouseOver={() => {
-                debounceSetHovered(value);
+                setHoveredValue(value);
                 _debounceTrackHover({
                   tag: title,
                   value: value.value,
@@ -133,7 +132,7 @@ function TagFacetsDistributionMeter({
                   organization,
                 });
               }}
-              onMouseLeave={() => debounceSetHovered(null)}
+              onMouseLeave={() => setHoveredValue(null)}
             >
               {value.isOther ? (
                 <OtherSegment aria-label={t('Other')} color={colors[colors.length - 1]} />
@@ -168,8 +167,8 @@ function TagFacetsDistributionMeter({
               )}
             >
               <LegendRow
-                onMouseOver={() => debounceSetHovered(segment)}
-                onMouseLeave={() => debounceSetHovered(null)}
+                onMouseOver={() => setHoveredValue(segment)}
+                onMouseLeave={() => setHoveredValue(null)}
               >
                 <LegendDot color={colors[index]} focus={focus} />
                 <LegendText unfocus={unfocus}>
@@ -298,8 +297,18 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
   border-radius: 50%;
   flex-shrink: 0;
   background-color: ${p => p.color};
-  transition: outline 0.3s;
-  ${p => (p.focus ? `outline: ${p.theme.gray100} ${space(0.5)} solid` : null)}
+  &:after {
+    content: '';
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    outline: ${p => p.theme.gray100} ${space(0.5)} solid;
+    opacity: ${p => (p.focus ? '1' : '0')};
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
