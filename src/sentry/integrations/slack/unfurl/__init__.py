@@ -23,7 +23,7 @@ class UnfurlableUrl(NamedTuple):
 
 
 class Handler(NamedTuple):
-    matcher: Pattern[Any]
+    matcher: list[Pattern[Any]]
     arg_mapper: ArgsMapper
     fn: Callable[[HttpRequest, Integration, list[UnfurlableUrl], User | None], UnfurledUrl]
 
@@ -53,7 +53,8 @@ link_handlers = {
 
 def match_link(link: str) -> tuple[LinkType | None, Mapping[str, Any] | None]:
     for link_type, handler in link_handlers.items():
-        match = handler.matcher.match(link)
+        match = next(filter(bool, map(lambda matcher: matcher.match(link), handler.matcher)), None)
+
         if not match:
             continue
 

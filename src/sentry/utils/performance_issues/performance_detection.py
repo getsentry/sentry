@@ -108,6 +108,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
 }
 
 
@@ -233,6 +234,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
             "n_plus_one_api_calls_detection_rate": 1.0,
+            "consecutive_db_queries_detection_rate": 1.0,
         }
     )
 
@@ -262,6 +264,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
+            "detection_rate": settings["consecutive_db_queries_detection_rate"],
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
             {
@@ -283,7 +286,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
-            "duration_threshold": 200,  # ms
+            "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
         },
     }
@@ -636,6 +639,16 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             if fcp >= fcp_minimum_threshold and fcp < fcp_maximum_threshold:
                 self.fcp = fcp
 
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return features.has(
+            "organizations:performance-issues-render-blocking-assets-detector",
+            organization,
+            actor=None,
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
+
     def visit_span(self, span: Span):
         if not self.fcp:
             return
@@ -646,7 +659,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
-            fingerprint = fingerprint_span(span)
+            fingerprint = self._fingerprint(span)
             if span_id and fingerprint:
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
@@ -675,6 +688,10 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         span_duration = get_span_duration(span)
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
+
+    def _fingerprint(self, span):
+        hashed_spans = fingerprint_spans([span])
+        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{hashed_spans}"
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
@@ -1019,7 +1036,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return is_db_op and is_query
 
     def _fingerprint(self) -> str:
-        hashed_spans = fingerprint_spans(self.consecutive_db_spans)
+        prior_span_index = self.consecutive_db_spans.index(self.independent_db_spans[0]) - 1
+        hashed_spans = fingerprint_spans(
+            [self.consecutive_db_spans[prior_span_index]] + self.independent_db_spans
+        )
         return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES.value}-{hashed_spans}"
 
     def on_complete(self) -> None:
@@ -1031,7 +1051,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_rate"] > random.random()
+
+    def is_event_eligible(cls, event):
+        sdk_name = get_sdk_name(event) or ""
+        return "php" not in sdk_name.lower()
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
@@ -1593,13 +1617,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     Checks for large assets that are affecting load time.
     """
 
-    __slots__ = "stored_problems"
+    __slots__ = ("stored_problems", "any_compression")
 
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
     type: DetectorType = DetectorType.UNCOMPRESSED_ASSETS
 
     def init(self):
         self.stored_problems = {}
+        self.any_compression = False
 
     def visit_span(self, span: Span) -> None:
         op = span.get("op", None)
@@ -1624,6 +1649,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
         # Ignore assets that are already compressed.
         if encoded_body_size != decoded_body_size:
+            # Met criteria for a compressed span somewhere in the event.
+            self.any_compression = True
             return
 
         # Ignore assets that aren't big enough to worry about.
@@ -1661,6 +1688,28 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
+
+    def is_event_eligible(cls, event):
+        tags = event.get("tags", [])
+        browser_name = next(
+            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
+        )
+        if browser_name.lower() in [
+            "chrome",
+            "firefox",
+            "safari",
+            "edge",
+        ]:
+            # Only use major browsers as some mobile browser may be responsible for not sending accept-content header,
+            # which isn't fixable since you can't control what headers your users are sending.
+            # This can be extended later.
+            return True
+        return False
+
+    def on_complete(self) -> None:
+        if not self.any_compression:
+            # Must have a compressed asset in the event to emit this perf problem.
+            self.stored_problems = {}
 
 
 # Reports metrics and creates spans for detection

@@ -1,6 +1,6 @@
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
 import PlatformList from 'sentry/components/platformList';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {AvatarProject} from 'sentry/types';
 
 type Props = {

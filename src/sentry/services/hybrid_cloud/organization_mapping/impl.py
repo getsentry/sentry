@@ -78,3 +78,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         OrganizationMapping.objects.filter(
             organization_id=organization_id, date_created__lte=mapping.date_created
         ).exclude(slug=slug).delete()
+
+    def delete(self, organization_id: int) -> None:
+        OrganizationMapping.objects.filter(organization_id=organization_id).delete()

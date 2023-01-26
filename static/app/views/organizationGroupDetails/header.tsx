@@ -23,7 +23,7 @@ import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import {Item, TabList} from 'sentry/components/tabs';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -262,7 +262,7 @@ function GroupHeader({
         </Tooltip>
         {group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS && (
           <FeatureBadge
-            type="alpha"
+            type="beta"
             title={t(
               'N+1 API Calls Performance Issues are in active development and may change'
             )}
@@ -278,7 +278,7 @@ function GroupHeader({
         )}
         {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
           <FeatureBadge
-            type="alpha"
+            type="beta"
             title={t(
               'Consecutive DB Query Performance Issues are in active development and may change'
             )}
