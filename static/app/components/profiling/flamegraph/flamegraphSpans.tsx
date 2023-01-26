@@ -11,7 +11,6 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {
   CanvasPoolManager,
@@ -38,6 +37,10 @@ import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEff
 import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
+import {
+  CollapsibleTimelineLoadingIndicator,
+  CollapsibleTimelineMessage,
+} from './collapsibleTimeline';
 import {FlamegraphSpanTooltip} from './flamegraphSpanTooltip';
 
 interface FlamegraphSpansProps {
@@ -375,13 +378,15 @@ export function FlamegraphSpans({
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiledTransaction.type === 'loading' ||
       profiledTransaction.type === 'initial' ? (
-        <LoadingIndicatorContainer>
-          <LoadingIndicator size={42} />
-        </LoadingIndicatorContainer>
+        <CollapsibleTimelineLoadingIndicator />
       ) : profiledTransaction.type === 'errored' ? (
-        <MessageContainer>{t('No associated transaction found')}</MessageContainer>
+        <CollapsibleTimelineMessage>
+          {t('No associated transaction found')}
+        </CollapsibleTimelineMessage>
       ) : profiledTransaction.type === 'resolved' && spanChart.spans.length <= 1 ? (
-        <MessageContainer>{t('Transaction has no spans')}</MessageContainer>
+        <CollapsibleTimelineMessage>
+          {t('Transaction has no spans')}
+        </CollapsibleTimelineMessage>
       ) : null}
       {hoveredNode && spansRenderer && configSpaceCursor && spansCanvas && spansView ? (
         <FlamegraphSpanTooltip
@@ -397,26 +402,6 @@ export function FlamegraphSpans({
     </Fragment>
   );
 }
-
-const MessageContainer = styled('p')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  color: ${p => p.theme.subText};
-`;
-
-const LoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-`;
 
 const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;
