@@ -23,9 +23,9 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         query_params = MultiValueDict(request.GET)
 
-        fields = query_params.getlist("field", [])
-        anr_fields = ["anr_rate()", "foreground_anr_rate()"]
-        if any([field for field in fields if field in anr_fields]) and not features.has(
+        fields = set(query_params.getlist("field", []))
+        anr_fields = {"anr_rate()", "foreground_anr_rate()"}
+        if fields.intersection(anr_fields) and not features.has(
             "organizations:anr-rate", organization, actor=request.user
         ):
             return Response(
