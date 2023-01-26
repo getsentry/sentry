@@ -354,6 +354,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             ref_type="branch"
                             if ref == current_config["config"]["defaultBranch"]
                             else "sha",
+                            branch=current_config["config"]["defaultBranch"],
                             path=current_config["outcome"]["sourcePath"],
                         )
                         if lineCoverage and codecovUrl:

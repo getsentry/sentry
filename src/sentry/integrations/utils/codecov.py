@@ -11,7 +11,7 @@ REF_TYPE = Literal["branch", "sha"]
 
 
 def get_codecov_data(
-    repo: str, service: str, ref: str, ref_type: REF_TYPE, path: str
+    repo: str, service: str, ref: str, ref_type: REF_TYPE, branch: str, path: str
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
@@ -29,6 +29,13 @@ def get_codecov_data(
             response = requests.get(
                 url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
             )
+
+            # Try the branch as a fallback if the commit sha fails
+            if response.status_code == 404 and ref_type == "sha":
+                params = {"branch": branch, "path": path}
+                response = requests.get(
+                    url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
+                )
             scope.set_tag("codecov.http_code", response.status_code)
 
             response.raise_for_status()
