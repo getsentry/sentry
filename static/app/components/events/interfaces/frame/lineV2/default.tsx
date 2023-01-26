@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {
-  StacktraceFilenameTuple,
+  StacktraceFilenameQuery,
   useSourceMapDebug,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import Tooltip from 'sentry/components/tooltip';
@@ -22,7 +22,7 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    debugFrames?: StacktraceFilenameTuple[];
+    debugFrames?: StacktraceFilenameQuery[];
     frameMeta?: Record<any, any>;
     onClick?: () => void;
     onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
@@ -44,10 +44,8 @@ function Default({
   frameMeta,
   ...props
 }: Props) {
-  const debugFrame = debugFrames?.find(debug => debug[0] === frame.filename);
-  const {data} = useSourceMapDebug(debugFrame?.[1], {
-    enabled: defined(debugFrame),
-  });
+  const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
+  const {data} = useSourceMapDebug(debugFrame?.query);
 
   function renderRepeats() {
     if (defined(timesRepeated) && timesRepeated > 0) {
@@ -72,7 +70,11 @@ function Default({
         <Title>
           {data?.errors?.length ? (
             <Tooltip skipWrapper title={t('Missing source map')}>
-              <StyledIconWarning color="red400" size="sm" />
+              <StyledIconWarning
+                color="red400"
+                size="sm"
+                aria-label={t('Missing source map')}
+              />
             </Tooltip>
           ) : null}
           <LeadHint

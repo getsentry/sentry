@@ -11,7 +11,7 @@ import {StacktraceType} from 'sentry/types/stacktrace';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
-import {StacktraceFilenameTuple} from '../exception/useSourceMapDebug';
+import {StacktraceFilenameQuery} from '../exception/useSourceMapDebug';
 
 import StacktracePlatformIcon from './platformIcon';
 
@@ -20,7 +20,7 @@ type Props = {
   event: Event;
   platform: PlatformType;
   className?: string;
-  debugFrames?: StacktraceFilenameTuple[];
+  debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   includeSystemFrames?: boolean;

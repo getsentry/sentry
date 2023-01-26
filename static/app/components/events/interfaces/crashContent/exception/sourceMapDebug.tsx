@@ -10,13 +10,14 @@ import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import type {PlatformType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
   SourceMapDebugResponse,
   SourceMapProcessingIssueType,
-  StacktraceFilenameTuple,
+  StacktraceFilenameQuery,
   useSourceMapDebug,
 } from './useSourceMapDebug';
 
@@ -34,7 +35,7 @@ const errorMessageDescription: Record<
   SourceMapProcessingIssueType,
   (
     data: Record<string, string>,
-    platform: string
+    platform: PlatformType
   ) => Array<{
     title: string;
     /**
@@ -90,14 +91,6 @@ const errorMessageDescription: Record<
   ],
 };
 
-interface SourcemapDebugProps {
-  /**
-   * A subset of the total error frames to validate sourcemaps
-   */
-  debugFrames: StacktraceFilenameTuple[];
-  platform: string;
-}
-
 /**
  * Kinda making this reuseable since we have this pattern in a few places
  */
@@ -138,7 +131,7 @@ function ExpandableErrorList({
 
 function combineErrors(
   response: Array<SourceMapDebugResponse | undefined | null>,
-  platform: string
+  platform: PlatformType
 ) {
   const combinedErrors = uniqBy(
     response
@@ -160,19 +153,22 @@ function combineErrors(
   return errors;
 }
 
+interface SourcemapDebugProps {
+  /**
+   * A subset of the total error frames to validate sourcemaps
+   */
+  debugFrames: StacktraceFilenameQuery[];
+  platform: PlatformType;
+}
+
 export function SourceMapDebug({debugFrames, platform}: SourcemapDebugProps) {
   const organization = useOrganization();
   const [firstFrame, secondFrame, thirdFrame] = debugFrames;
   const hasFeature = organization?.features?.includes('fix-source-map-cta');
-  const {data: firstData} = useSourceMapDebug(firstFrame?.[1], {
-    enabled: hasFeature && defined(firstFrame),
-  });
-  const {data: secondData} = useSourceMapDebug(secondFrame?.[1], {
-    enabled: hasFeature && defined(secondFrame),
-  });
-  const {data: thirdData} = useSourceMapDebug(thirdFrame?.[1], {
-    enabled: hasFeature && defined(thirdFrame),
-  });
+  const queryOptions = {enabled: hasFeature};
+  const {data: firstData} = useSourceMapDebug(firstFrame?.query, queryOptions);
+  const {data: secondData} = useSourceMapDebug(secondFrame?.query, queryOptions);
+  const {data: thirdData} = useSourceMapDebug(thirdFrame?.query, queryOptions);
 
   const errorMessages = combineErrors([firstData, secondData, thirdData], platform);
   if (!hasFeature || !errorMessages.length) {

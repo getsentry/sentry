@@ -39,20 +39,20 @@ const sourceMapDebugQuery = ({
 ];
 
 interface UseSourceMapDebugProps {
-  eventId?: string;
-  exceptionIdx?: number;
-  frameIdx?: number;
-  orgSlug?: string;
-  projectSlug?: string | undefined;
+  eventId: string;
+  exceptionIdx: number;
+  frameIdx: number;
+  orgSlug: string;
+  projectSlug: string | undefined;
 }
 
-export type StacktraceFilenameTuple = [filename: string, query: UseSourceMapDebugProps];
+export type StacktraceFilenameQuery = {filename: string; query: UseSourceMapDebugProps};
 
 export function useSourceMapDebug(
   props?: UseSourceMapDebugProps,
   options: Partial<UseQueryOptions<SourceMapDebugResponse>> = {}
 ) {
-  return useQuery<SourceMapDebugResponse>(sourceMapDebugQuery(props ?? {}), {
+  return useQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
     staleTime: Infinity,
     retry: false,
     refetchOnWindowFocus: false,
@@ -64,6 +64,7 @@ export function useSourceMapDebug(
 
 // TODO
 const ALLOWED_PLATFORMS = ['javascript', 'node', 'react-native'];
+const MAX_FRAMES = 3;
 
 /**
  * Returns an array of unique filenames and the first frame they appear in.
@@ -74,7 +75,7 @@ export function getUnqiueFilesFromExcption(
   excValues: ExceptionValue[],
   platform: string,
   props: Omit<UseSourceMapDebugProps, 'frameIdx' | 'exceptionIdx'>
-): StacktraceFilenameTuple[] {
+): StacktraceFilenameQuery[] {
   // Check we have all required props and platform is supported
   if (
     !props.orgSlug ||
@@ -97,12 +98,12 @@ export function getUnqiueFilesFromExcption(
         // Line number might not work for non-javascript languages
         defined(frame.lineNo)
     )
-    .map<StacktraceFilenameTuple>(([frame, idx]) => [
-      frame.filename!,
-      {...props, frameIdx: idx, exceptionIdx},
-    ]);
+    .map<StacktraceFilenameQuery>(([frame, idx]) => ({
+      filename: frame.filename!,
+      query: {...props, frameIdx: idx, exceptionIdx},
+    }));
 
   // Return only the first 3 unique filenames
   // TODO: reverse only applies to newest first
-  return uniqBy(fileFrame.reverse(), ([filename]) => filename).slice(0, 3);
+  return uniqBy(fileFrame.reverse(), ({filename}) => filename).slice(0, MAX_FRAMES);
 }

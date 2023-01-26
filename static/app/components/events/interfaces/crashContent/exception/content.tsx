@@ -58,12 +58,14 @@ export function Content({
     ? getUnqiueFilesFromExcption(values, platform, {
         eventId: event.id,
         projectSlug,
-        orgSlug: organization?.slug,
+        orgSlug: organization!.slug,
       })
     : [];
 
   const children = values.map((exc, excIdx) => {
-    const hasSourcemapDebug = debugFrames.some(tuple => tuple[1].exceptionIdx === excIdx);
+    const hasSourcemapDebug = debugFrames.some(
+      ({query}) => query.exceptionIdx === excIdx
+    );
     return (
       <div key={excIdx} className="exception">
         {defined(exc?.module) ? (
