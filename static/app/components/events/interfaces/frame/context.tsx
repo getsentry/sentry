@@ -80,8 +80,11 @@ export function getCoverageColors(
 export function getCoverageAnalytics(
   lineColors: Array<Color | 'transparent'>,
   primaryLineIndex: number,
-  organization: Organization | null
+  organization?: Organization
 ): void {
+  if (!organization) {
+    return;
+  }
   let primaryLineCoverageChecked = false;
   let surroundingLinesCovered = true;
   for (const index in lineColors) {
@@ -212,7 +215,7 @@ const Context = ({
           const showStacktraceLink = hasStacktraceLink && isActive;
 
           if (showStacktraceLink) {
-            getCoverageAnalytics(lineColors, index, organization ? organization : null);
+            getCoverageAnalytics(lineColors, index, organization);
           }
 
           return (
