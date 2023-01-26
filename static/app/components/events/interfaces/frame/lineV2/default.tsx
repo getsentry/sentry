@@ -45,7 +45,9 @@ function Default({
   ...props
 }: Props) {
   const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
-  const {data} = useSourceMapDebug(debugFrame?.query);
+  const {data} = useSourceMapDebug(debugFrame?.query, {
+    enabled: !!debugFrame,
+  });
 
   function renderRepeats() {
     if (defined(timesRepeated) && timesRepeated > 0) {

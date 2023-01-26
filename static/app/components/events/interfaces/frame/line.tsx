@@ -96,7 +96,9 @@ function SourceMapWarning({
   debugFrames?: StacktraceFilenameQuery[];
 }) {
   const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
-  const {data} = useSourceMapDebug(debugFrame?.query);
+  const {data} = useSourceMapDebug(debugFrame?.query, {
+    enabled: !!debugFrame,
+  });
 
   return data?.errors?.length ? (
     <IconWrapper>

@@ -53,7 +53,7 @@ describe('SourceMapDebug', () => {
       rawStacktrace: {} as any,
     },
   ];
-  const apiUrl = `/projects/${organization.slug}/${project.slug}/events/${eventId}/source-map-debug/`;
+  const url = `/projects/${organization.slug}/${project.slug}/events/${eventId}/source-map-debug/`;
   const platform = 'javascript';
   const debugFrames = getUnqiueFilesFromExcption(exceptionValues, platform, {
     orgSlug: organization.slug,
@@ -70,7 +70,7 @@ describe('SourceMapDebug', () => {
 
   it('should show two messages for MISSING_RELEASE', async () => {
     MockApiClient.addMockResponse({
-      url: apiUrl,
+      url,
       body: {
         errors: [
           {
@@ -118,7 +118,7 @@ describe('SourceMapDebug', () => {
       data: {insertPath: 'insertPath', matchedSourcemapPath: 'matchedSourcemapPath'},
     };
     MockApiClient.addMockResponse({
-      url: apiUrl,
+      url,
       body: {errors: [error]},
       match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
     });
