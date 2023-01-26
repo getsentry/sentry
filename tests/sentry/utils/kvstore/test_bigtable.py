@@ -1,4 +1,3 @@
-import functools
 import os
 from typing import Optional
 
@@ -7,7 +6,8 @@ import pytest
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
-def create_store(request, compression: Optional[str] = None) -> BigtableKVStorage:
+@pytest.fixture
+def create_store_test(compression: Optional[str] = None) -> BigtableKVStorage:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
@@ -19,13 +19,8 @@ def create_store(request, compression: Optional[str] = None) -> BigtableKVStorag
         compression=compression,
     )
     store.bootstrap()
-    request.addfinalizer(store.destroy)
-    return store
-
-
-@pytest.fixture
-def store_factory(request):
-    return functools.partial(create_store, request)
+    yield store
+    store.destroy()
 
 
 @pytest.mark.parametrize(
@@ -37,14 +32,14 @@ def store_factory(request):
     ],
     ids=["zlib", "ident", "zstd"],
 )
+@pytest.mark.usefixtures("create_store_test")
 def test_compression_raw_values(
     compression: Optional[str],
     flag: BigtableKVStorage.Flags,
     expected_prefix: bytes,
     request,
-    store_factory,
 ) -> None:
-    store = store_factory(compression)
+    store = create_store_test(compression)
 
     key = "key"
     value = b'{"foo":"bar"}'
@@ -65,9 +60,10 @@ def test_compression_raw_values(
         assert store.flags_column not in columns
 
 
-def test_compression_compatibility(request, store_factory) -> None:
+@pytest.mark.usefixtures("create_store_test")
+def test_compression_compatibility() -> None:
     stores = {
-        compression: store_factory(compression)
+        compression: create_store_test(compression)
         for compression in BigtableKVStorage.compression_strategies.keys() | {None}
     }
 
