@@ -7,6 +7,7 @@ import uniq from 'lodash/uniq';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import type {Error} from 'sentry/components/events/errorItem';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -35,11 +36,11 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
-import {Error, EventErrors} from './errors';
 import {EventAttachments} from './eventAttachments';
 import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
+import {EventErrors} from './eventErrors';
 import {EventEvidence} from './eventEvidence';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
@@ -326,7 +327,6 @@ const EventEntries = ({
       {hasErrors && !isLoading && (
         <EventErrors
           event={event}
-          orgSlug={orgSlug}
           projectSlug={projectSlug}
           proGuardErrors={proGuardErrors}
         />

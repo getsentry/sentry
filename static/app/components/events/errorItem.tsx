@@ -12,7 +12,7 @@ import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Error = {
+export type Error = {
   message: React.ReactNode;
   type: string;
   data?: {

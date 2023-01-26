@@ -1,7 +1,7 @@
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {Error} from 'sentry/components/events/errors';
+import type {Error} from 'sentry/components/events/errorItem';
 import {EventEntries} from 'sentry/components/events/eventEntries';
 import {Group, IssueCategory} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
