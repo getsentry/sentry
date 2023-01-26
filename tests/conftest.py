@@ -1,8 +1,10 @@
 import os
 
 import pytest
+from django.conf import settings
 
 from sentry.silo import SiloMode
+from sentry.testutils.silo import reset_test_role
 
 pytest_plugins = ["sentry.utils.pytest"]
 
@@ -139,3 +141,28 @@ def validate_silo_mode():
         raise Exception(
             "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
         )
+
+
+@pytest.fixture(autouse=True)
+def protect_user_deletion():
+    # "De-escalate" the default connection's permission level to prevent queryset level User deletions, and throw errors
+    # that force the usage of the ORM to perform deletes.  Protects against potentially PII leaking code paths.
+    test_db = os.environ.get("DB", "postgres")
+    if test_db == "postgres":
+        from django.test import override_settings
+
+        from sentry.models import User
+
+        new_databases_config = dict(**settings.DATABASES)
+        new_databases_config["default"] = dict(**settings.DATABASES["default"])
+        new_databases_config[User._TEST__DELETE_CONNECTION_NAME] = dict(
+            **settings.DATABASES["default"]
+        )
+
+        default_role_name = settings.DATABASES["default"]["USER"]
+        reset_test_role(role="postgres_without_user_deletions", from_role=default_role_name)
+        new_databases_config["default"]["USER"] = "postgres_without_user_deletions"
+        with override_settings(DATABASES=new_databases_config):
+            yield
+    else:
+        yield

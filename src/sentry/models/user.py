@@ -1,4 +1,5 @@
 import logging
+import sys
 import warnings
 from typing import TYPE_CHECKING, Any, List, Sequence
 
@@ -194,13 +195,24 @@ class User(BaseModel, AbstractBaseUser):
     def class_name(self):
         return "User"
 
+    # User deletions need to be controlled -- we must validate that all deletions come through the orm, and not say,
+    # through a queryset, so that we can manage outboxes correctly.  A hard deleted user as part of a queryset
+    # interaction would lead to dangling PII scenarios once the FKs to User models are broken.
+    # In tests, we "swap out" the default connection role that lacks the privilege to actually perform deletes,
+    # and require any deletion code path to actually process with the orm path that has the correct connection.
+    _TEST__DELETE_CONNECTION_NAME = "default_with_user_deletion"
+
     def delete(self):
-        if self.username == "sentry":
-            raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        avatar = self.avatar.first()
-        if avatar:
-            avatar.delete()
-        return super().delete()
+        using = self._TEST__DELETE_CONNECTION_NAME if "pytest" in sys.modules else "default"
+        with transaction.atomic(using=using):
+            if self.username == "sentry":
+                raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
+            avatar = self.avatar.first()
+            if avatar:
+                avatar.delete()
+            for outbox in User.outboxes_for_update(self.id):
+                outbox.save()
+            return super().delete()
 
     def save(self, *args, **kwargs):
         if not self.username:
