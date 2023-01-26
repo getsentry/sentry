@@ -961,6 +961,39 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             end=self.now + timedelta(hours=4),
         ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
 
+    def test_get_data_or_conditions_parsed(self):
+        """
+        Verify parsing the legacy format with nested OR conditions works
+        """
+
+        conditions = [
+            # or conditions in the legacy format needs open and close brackets for precedence
+            # there's some special casing when parsing conditions that specifically handles this
+            [
+                [["isNull", ["environment"]], "=", 1],
+                ["environment", "IN", [self.env1.name]],
+            ]
+        ]
+
+        data1 = self.db.get_data(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            conditions=conditions,
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        )
+        data2 = self.db.get_data(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        )
+
+        # the above queries should return the same data since all groups either have:
+        # environment=None or environment=test
+        # so the condition really shouldn't be filtering anything
+        assert data1 == data2
+
 
 class AddJitterToSeriesTest(TestCase):
     def setUp(self):

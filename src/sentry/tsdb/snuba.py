@@ -336,7 +336,7 @@ class SnubaTSDB(BaseTSDB):
         aggregation: str = "count",
         group_on_model: bool = True,
         group_on_time: bool = False,
-        conditions: Optional[Sequence[ConditionGroup]] = None,
+        conditions: Optional[ConditionGroup] = None,
         use_cache: bool = False,
         jitter_value: Optional[int] = None,
         manual_group_on_time: bool = False,
