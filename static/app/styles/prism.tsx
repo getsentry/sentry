@@ -2,6 +2,10 @@ import {css, Theme} from '@emotion/react';
 
 import space from 'sentry/styles/space';
 
+/**
+ * Prism (code highlighting) styles. Added to <GlobalStyles />, so no need to import
+ * this into any component.
+ */
 export const prismStyles = (theme: Theme) => css`
   :root {
     ${theme.prismVariables};
