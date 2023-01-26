@@ -357,7 +357,6 @@ def process_event_async(
     )
 
 
-# Occurs before dispatch_task
 @trace_func(name="ingest_consumer.process_attachment_chunk")
 @metrics.wraps("ingest_consumer.process_attachment_chunk")
 def process_attachment_chunk(message, projects):
