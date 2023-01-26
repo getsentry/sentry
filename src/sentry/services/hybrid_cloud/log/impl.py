@@ -40,13 +40,13 @@ class DatabaseBackedLogService(LogService):
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
         updated, created = UserIP.objects.create_or_update(
+            user_id=event.user_id,
+            ip_address=event.ip_address,
             values=dict(
-                user_id=event.user_id,
-                ip_address=event.ip_address,
                 last_seen=event.last_seen,
                 country_code=event.country_code,
                 region_code=event.region_code,
-            )
+            ),
         )
         if not created and not updated:
             # This happens when there is an integrity error adding the UserIP -- such as when user is deleted,
