@@ -1051,6 +1051,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
+    def is_event_eligible(cls, event):
+        sdk_name = get_sdk_name(event) or ""
+        return "php" not in sdk_name.lower()
+
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
     """
