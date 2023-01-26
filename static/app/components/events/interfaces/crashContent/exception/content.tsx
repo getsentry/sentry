@@ -84,7 +84,9 @@ export function Content({
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
         {!orgHasSourcemapCta && <SetupSourceMapsAlert event={event} />}
-        {hasSourcemapDebug && <SourceMapDebug debugFrames={debugFrames} />}
+        {hasSourcemapDebug && (
+          <SourceMapDebug debugFrames={debugFrames} platform={platform} />
+        )}
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL

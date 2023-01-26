@@ -1,7 +1,7 @@
 import {useContext} from 'react';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
-import type {StacktraceFilenameTuple} from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
+import type {StacktraceFilenameTuple} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import {Panel} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';

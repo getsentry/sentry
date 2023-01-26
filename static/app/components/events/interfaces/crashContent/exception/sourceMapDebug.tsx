@@ -20,44 +20,72 @@ import {
   useSourceMapDebug,
 } from './useSourceMapDebug';
 
+const platformDocsMap = {
+  'javascript-ember': 'ember',
+  'javascript-gatsby': 'gatsby',
+  'javascript-nextjs': 'nextjs',
+  'javascript-react': 'react',
+  'javascript-remix': 'remix',
+  'javascript-svelte': 'svelte',
+  'javascript-vue': 'vue',
+};
+
 const errorMessageDescription: Record<
   SourceMapProcessingIssueType,
-  Array<{title: string; desc?: string}>
+  (
+    data: Record<string, string>,
+    platform: string
+  ) => Array<{
+    title: string;
+    /**
+     * Expandable description
+     */
+    desc?: string;
+    docsLink?: string;
+  }>
 > = {
-  [SourceMapProcessingIssueType.UNKNOWN_ERROR]: [
+  [SourceMapProcessingIssueType.UNKNOWN_ERROR]: () => [
     {
-      title: t('x'),
-      desc: t('something'),
+      title: t('UNKNOWN_ERROR'),
     },
   ],
-  [SourceMapProcessingIssueType.MISSING_RELEASE]: [
+  // This error has two messages
+  [SourceMapProcessingIssueType.MISSING_RELEASE]: (_data, platform) => [
     {
       title: tct('Update your [method] call to pass in the release argument', {
+        // Make sure method isn't translated
         method: 'Sentry.init',
       }),
+      docsLink:
+        platform === 'javascript'
+          ? 'https://docs.sentry.io/platforms/javascript/configuration/options/#release'
+          : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/configuration/options/#release`,
     },
     {
       title: t(
-        'Integration Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
+        'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
       ),
+      docsLink:
+        platform === 'javascript'
+          ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
+          : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
     },
   ],
-  [SourceMapProcessingIssueType.MISSING_USER_AGENT]: [
+  [SourceMapProcessingIssueType.MISSING_USER_AGENT]: () => [
     {
-      title: t('x'),
-      desc: t('something'),
+      title: t('MISSING_USER_AGENT'),
     },
   ],
-  [SourceMapProcessingIssueType.MISSING_SOURCEMAPS]: [
+  [SourceMapProcessingIssueType.MISSING_SOURCEMAPS]: () => [
     {
-      title: t('x'),
-      desc: t('something'),
+      title: t('MISSING_SOURCEMAPS'),
     },
   ],
-  [SourceMapProcessingIssueType.URL_NOT_VALID]: [
+  [SourceMapProcessingIssueType.URL_NOT_VALID]: () => [
     {
-      title: t('The abs_path of the stack frame doesn’t match any release artifact'),
-      desc: t('something'),
+      title: tct('The [absPath] of the stack frame doesn’t match any release artifact', {
+        absPath: <code>abs_path</code>,
+      }),
     },
   ],
 };
@@ -67,6 +95,7 @@ interface SourcemapDebugProps {
    * A subset of the total error frames to validate sourcemaps
    */
   debugFrames: StacktraceFilenameTuple[];
+  platform: string;
 }
 
 /**
@@ -77,9 +106,9 @@ function ExpandableErrorList({
   children,
   docsLink,
 }: {
-  children: React.ReactNode;
-  docsLink: string;
-  title: string;
+  title: React.ReactNode;
+  children?: React.ReactNode;
+  docsLink?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -98,9 +127,7 @@ function ExpandableErrorList({
               </ToggleButton>
             )}
           </ErrorTitleFlex>
-          {docsLink && (
-            <DocsExternalLink href={docsLink}>{t('Read Guide')}</DocsExternalLink>
-          )}
+          {docsLink}
         </ErrorTitleFlex>
 
         {expanded && <div>{children}</div>}
@@ -109,18 +136,34 @@ function ExpandableErrorList({
   );
 }
 
-function combineErrors(response: Array<SourceMapDebugResponse | undefined>) {
-  const errors = response
-    .map(res => res?.errors ?? [])
+function combineErrors(
+  response: Array<SourceMapDebugResponse | undefined | null>,
+  platform: string
+) {
+  const combinedErrors = uniqBy(
+    response
+      .map(res => res?.errors)
+      .flat()
+      .filter(defined),
+    error => error?.type
+  );
+  const errors = combinedErrors
+    .map(error => {
+      return errorMessageDescription[error.type]?.(error.data, platform).map(message => ({
+        ...message,
+        type: error.type,
+      }));
+    })
     .flat()
     .filter(defined);
-  return uniqBy(errors, error => error.type);
+
+  return errors;
 }
 
-export function SourceMapDebug({debugFrames}: SourcemapDebugProps) {
+export function SourceMapDebug({debugFrames, platform}: SourcemapDebugProps) {
   const organization = useOrganization();
   const [firstFrame, secondFrame, thirdFrame] = debugFrames;
-  const hasFeature = organization.features.includes('source-maps-cta');
+  const hasFeature = organization?.features?.includes('fix-source-map-cta');
   const {data: firstData} = useSourceMapDebug(firstFrame?.[1], {
     enabled: hasFeature && defined(firstFrame),
   });
@@ -131,12 +174,10 @@ export function SourceMapDebug({debugFrames}: SourcemapDebugProps) {
     enabled: hasFeature && defined(thirdFrame),
   });
 
-  const errors = combineErrors([firstData, secondData, thirdData]);
-  if (!hasFeature || !errors.length) {
+  const errorMessages = combineErrors([firstData, secondData, thirdData], platform);
+  if (!hasFeature || !errorMessages.length) {
     return null;
   }
-
-  const errorMessages = errors.map(error => errorMessageDescription[error.type]).flat();
 
   return (
     <Alert
@@ -150,7 +191,11 @@ export function SourceMapDebug({debugFrames}: SourcemapDebugProps) {
               <ExpandableErrorList
                 key={idx}
                 title={message.title}
-                docsLink="https://example.com"
+                docsLink={
+                  <DocsExternalLink href={message.docsLink}>
+                    {t('Read Guide')}
+                  </DocsExternalLink>
+                }
               >
                 {message.desc}
               </ExpandableErrorList>

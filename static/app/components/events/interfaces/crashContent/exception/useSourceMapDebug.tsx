@@ -9,6 +9,7 @@ export interface SourceMapDebugResponse {
 }
 
 interface SourceMapProcessingIssueResponse {
+  data: Record<string, string>;
   message: string;
   type: SourceMapProcessingIssueType;
 }
