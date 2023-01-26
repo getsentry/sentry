@@ -337,7 +337,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         </OpenInLink>
         {shouldshowCodecovFeatures(organization, match) && (
           <CodecovLink
-            coverageUrl={match.codecov?.coverageUrl}
+            coverageUrl={`${match.codecov?.coverageUrl}#L${frame.lineNo}`}
             status={match.codecov?.status}
             lineCoverage={match.codecov?.lineCoverage}
             lineNo={frame.lineNo}
