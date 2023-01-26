@@ -30,9 +30,9 @@ class ConsecutiveDbDetectorTest(TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event, project=None) -> List[PerformanceProblem]:
         detector = ConsecutiveDBSpanDetector(self.settings, event)
-        run_detector_on_data(detector, event)
+        run_detector_on_data(detector, event, project)
         return list(detector.stored_problems.values())
 
     def create_issue_event(self):
@@ -325,8 +325,6 @@ class ConsecutiveDbDetectorTest(TestCase):
         event = self.create_issue_event()
         event["sdk"] = {"name": "sentry.php.laravel"}
 
-        assert ConsecutiveDBSpanDetector.is_event_eligible(event, project) is False
-
+        assert len(self.find_problems(event)) == 0
         project.organization.slug = "laracon-eu"
-
-        assert ConsecutiveDBSpanDetector.is_event_eligible(event, project) is True
+        assert len(self.find_problems(event, project)) == 1

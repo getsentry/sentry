@@ -353,8 +353,8 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector, data):
-    if not detector.is_event_eligible(data):
+def run_detector_on_data(detector, data, project=None):
+    if not detector.is_event_eligible(data, project):
         return
 
     spans = data.get("spans", [])
