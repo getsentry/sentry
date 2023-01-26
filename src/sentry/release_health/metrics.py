@@ -714,7 +714,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=select,
             start=start,
             end=end,
-            granularity=Granularity(MINUTE),
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             groupby=groupby,
             where=where_clause,
             include_series=False,
