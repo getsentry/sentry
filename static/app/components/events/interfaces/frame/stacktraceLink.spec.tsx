@@ -224,7 +224,7 @@ describe('StacktraceLink', function () {
 
     expect(await screen.findByText('View Coverage Tests on Codecov')).toHaveAttribute(
       'href',
-      'https://app.codecov.io/gh/path/to/file.py'
+      'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
     userEvent.click(await screen.findByText('View Coverage Tests on Codecov'));
