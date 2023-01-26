@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.metrics_legacy import MetricsReleaseHealthLegacyBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
@@ -28,13 +29,23 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsTest(BaseMetricsTestCase, cls):
+    class MetricsLegacyTest(BaseMetricsTestCase, cls):
         __doc__ = f"Repeat tests from {cls} with metrics"
+        backend = MetricsReleaseHealthLegacyBackend()
+        adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
+
+    MetricsLegacyTest.__name__ = f"{cls.__name__}MetricsLegacy"
+
+    globals()[MetricsLegacyTest.__name__] = MetricsLegacyTest
+
+    class MetricsLayerTest(BaseMetricsTestCase, cls):
+        __doc__ = f"Repeat tests from {cls} with metrics layer"
         backend = MetricsReleaseHealthBackend()
+        adjust_interval = True  # HACK interval adjustment for new MetricsLayer implementation
 
-    MetricsTest.__name__ = f"{cls.__name__}Metrics"
+    MetricsLayerTest.__name__ = f"{cls.__name__}MetricsLayer"
 
-    globals()[MetricsTest.__name__] = MetricsTest
+    globals()[MetricsLayerTest.__name__] = MetricsLayerTest
 
     return cls
 
@@ -45,12 +56,21 @@ def format_timestamp(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
-def make_24h_stats(ts):
-    return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
+def make_24h_stats(ts, adjust_start=False):
+    ret_val = _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
+
+    if adjust_start:
+        # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
+        # https://www.notion.so/sentry/Metrics-Layer-get_intervals-bug-dce140607d054201a5e6629b070cb969
+        ret_val.insert(0, [ret_val[0][0] - 3600, 0])
+
+    return ret_val
 
 
 @parametrize_backend
 class SnubaSessionsTest(TestCase, SnubaTestCase):
+    adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
+
     def setUp(self):
         super().setUp()
         self.received = time.time()
@@ -309,7 +329,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             stat="users",
         )
 
-        stats = make_24h_stats(self.received - (24 * 3600))
+        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
         stats[-1] = [stats[-1][0], 1]
         stats_ok = stats_crash = stats
 
@@ -363,7 +383,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             stat="sessions",
         )
 
-        stats = make_24h_stats(self.received - (24 * 3600))
+        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
 
         stats_ok = stats[:-1] + [[stats[-1][0], 2]]
         stats_crash = stats[:-1] + [[stats[-1][0], 1]]

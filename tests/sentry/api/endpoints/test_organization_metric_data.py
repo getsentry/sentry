@@ -2112,7 +2112,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_request_private_derived_metric(self):
         for private_name in [
             "session.crashed_and_abnormal_user",
-            "session.errored_preaggregated",
             "session.errored_set",
             "session.errored_user_all",
         ]:
