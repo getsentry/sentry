@@ -15,6 +15,7 @@ import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
+  PartialMatchDebugError,
   SourceMapDebugResponse,
   SourceMapProcessingIssueType,
   StacktraceFilenameQuery,
@@ -34,7 +35,7 @@ const platformDocsMap = {
 const errorMessageDescription: Record<
   SourceMapProcessingIssueType,
   (
-    data: Record<string, string>,
+    data: any,
     platform: PlatformType
   ) => Array<{
     title: string;
@@ -87,6 +88,22 @@ const errorMessageDescription: Record<
       title: tct('The [absPath] of the stack frame doesn’t match any release artifact', {
         absPath: <code>abs_path</code>,
       }),
+    },
+  ],
+  [SourceMapProcessingIssueType.PARTIAL_MATCH]: (
+    data: PartialMatchDebugError['data'],
+    platform
+  ) => [
+    {
+      title: t(
+        'The abs_path of the stack frame is a partial match. The stack frame has the path %s which is a partial match to %s. You might need to modify the value of url-prefix.',
+        data.insertPath,
+        data.matchedSourcemapPath
+      ),
+      docsLink:
+        platform === 'javascript'
+          ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+          : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
     },
   ],
 };
@@ -142,10 +159,12 @@ function combineErrors(
   );
   const errors = combinedErrors
     .map(error => {
-      return errorMessageDescription[error.type]?.(error.data, platform).map(message => ({
-        ...message,
-        type: error.type,
-      }));
+      return errorMessageDescription[error.type]?.(error.data as any, platform).map(
+        message => ({
+          ...message,
+          type: error.type,
+        })
+      );
     })
     .flat()
     .filter(defined);
@@ -177,8 +196,9 @@ export function SourceMapDebug({debugFrames, platform}: SourcemapDebugProps) {
 
   return (
     <Alert
-      type="error"
+      startExpanded
       showIcon
+      type="error"
       icon={<IconWarning />}
       expand={
         <Fragment>

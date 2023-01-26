@@ -4,14 +4,29 @@ import type {ExceptionValue, Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 
-export interface SourceMapDebugResponse {
-  errors: SourceMapProcessingIssueResponse[];
-}
-
-interface SourceMapProcessingIssueResponse {
-  data: Record<string, string>;
+interface BaseSourceMapDebugError {
+  data: Record<string, string> | null;
   message: string;
   type: SourceMapProcessingIssueType;
+}
+
+interface UrlNotValidDebugError extends BaseSourceMapDebugError {
+  data: {absValue: string};
+  type: SourceMapProcessingIssueType.URL_NOT_VALID;
+}
+
+export interface PartialMatchDebugError extends BaseSourceMapDebugError {
+  data: {insertPath: string; matchedSourcemapPath: string};
+  type: SourceMapProcessingIssueType.PARTIAL_MATCH;
+}
+
+export type SourceMapDebugError =
+  | BaseSourceMapDebugError
+  | UrlNotValidDebugError
+  | PartialMatchDebugError;
+
+export interface SourceMapDebugResponse {
+  errors: SourceMapDebugError[];
 }
 
 export enum SourceMapProcessingIssueType {
@@ -20,6 +35,7 @@ export enum SourceMapProcessingIssueType {
   MISSING_USER_AGENT = 'no_user_agent_on_release',
   MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
   URL_NOT_VALID = 'url_not_valid',
+  PARTIAL_MATCH = 'partial_match',
 }
 
 const sourceMapDebugQuery = ({

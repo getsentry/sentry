@@ -1,9 +1,13 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ExceptionValue} from 'sentry/types';
 
 import {SourceMapDebug} from './sourceMapDebug';
-import {getUnqiueFilesFromExcption} from './useSourceMapDebug';
+import {
+  getUnqiueFilesFromExcption,
+  PartialMatchDebugError,
+  SourceMapProcessingIssueType,
+} from './useSourceMapDebug';
 
 describe('SourceMapDebug', () => {
   const organization = TestStubs.Organization({features: ['fix-source-map-cta']});
@@ -64,14 +68,14 @@ describe('SourceMapDebug', () => {
     );
   });
 
-  it('should show two messages for no_release_on_event', async () => {
+  it('should show two messages for MISSING_RELEASE', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
       body: {
         errors: [
           {
-            type: 'no_release_on_event',
-            message: 'The absolute path url is not valid',
+            type: SourceMapProcessingIssueType.MISSING_RELEASE,
+            message: '',
             data: null,
           },
         ],
@@ -82,11 +86,11 @@ describe('SourceMapDebug', () => {
     render(<SourceMapDebug debugFrames={debugFrames} platform={platform} />, {
       organization,
     });
-    const alert = await screen.findByText(
-      'We’ve encountered 2 problems de-minifying your applications source code!'
-    );
-    expect(alert).toBeInTheDocument();
-    userEvent.click(alert);
+    expect(
+      await screen.findByText(
+        'We’ve encountered 2 problems de-minifying your applications source code!'
+      )
+    ).toBeInTheDocument();
 
     // Step 1
     expect(
@@ -104,6 +108,39 @@ describe('SourceMapDebug', () => {
     expect(links[1]).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
+    );
+  });
+
+  it('should fill message with data for PARTIAL_MATCH', async () => {
+    const error: PartialMatchDebugError = {
+      type: SourceMapProcessingIssueType.PARTIAL_MATCH,
+      message: '',
+      data: {insertPath: 'insertPath', matchedSourcemapPath: 'matchedSourcemapPath'},
+    };
+    MockApiClient.addMockResponse({
+      url: apiUrl,
+      body: {errors: [error]},
+      match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
+    });
+
+    render(<SourceMapDebug debugFrames={debugFrames} platform={platform} />, {
+      organization,
+    });
+    expect(
+      await screen.findByText(
+        'We’ve encountered 1 problem de-minifying your applications source code!'
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        'The abs_path of the stack frame is a partial match. The stack frame has the path insertPath which is a partial match to matchedSourcemapPath.',
+        {exact: false}
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
     );
   });
 });
