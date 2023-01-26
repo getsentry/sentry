@@ -1,14 +1,20 @@
-from typing import List
+from typing import Callable, List, cast
+from uuid import uuid4
 
 import pytest
 
 from sentry.eventstore.models import Event
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.performance_issues.event_generators import (
+    create_event,
+    create_span,
+    get_event,
+)
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
+    DetectorType,
     NPlusOneAPICallsDetector,
     PerformanceProblem,
     get_detection_settings,
@@ -27,6 +33,30 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         detector = NPlusOneAPICallsDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
+
+    def create_event(self, description_maker: Callable[[int], str]) -> Event:
+        duration_threshold = (
+            self.settings[DetectorType.N_PLUS_ONE_API_CALLS]["duration_threshold"] + 1
+        )
+        count = self.settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] + 1
+        hash = uuid4().hex[:16]
+
+        event = cast(
+            Event,
+            create_event(
+                [
+                    create_span(
+                        "http.client",
+                        duration_threshold,
+                        description_maker(i),
+                        hash=hash[:10],
+                    )
+                    for i in range(count)
+                ]
+            ),
+        )
+
+        return event
 
     def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
