@@ -209,6 +209,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         {({onChange, onBlur, model}) => {
           const formDataset = model.getValue('dataset');
           const formEventTypes = model.getValue('eventTypes');
+          const aggregate = model.getValue('aggregate');
           const mappedValue = convertDatasetEventTypesToSource(
             formDataset,
             formEventTypes
@@ -217,20 +218,23 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <SelectControl
               value={mappedValue}
               inFieldLabel={t('Events: ')}
-              onChange={optionObj => {
-                const optionValue = optionObj.value;
-                onChange(optionValue, {});
-                onBlur(optionValue, {});
+              onChange={({value}) => {
+                onChange(value, {});
+                onBlur(value, {});
                 // Reset the aggregate to the default (which works across
                 // datatypes), otherwise we may send snuba an invalid query
                 // (transaction aggregate on events datasource = bad).
-                optionValue === 'transaction'
-                  ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
-                  : model.setValue('aggregate', DEFAULT_AGGREGATE);
+                const newAggregate =
+                  value === Datasource.TRANSACTION
+                    ? DEFAULT_TRANSACTION_AGGREGATE
+                    : DEFAULT_AGGREGATE;
+                if (alertType === 'custom' && aggregate !== newAggregate) {
+                  model.setValue('aggregate', newAggregate);
+                }
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
-                  DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                  DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
                 model.setValue('dataset', datasetFromDataSource);
                 model.setValue('eventTypes', eventTypes);
               }}
