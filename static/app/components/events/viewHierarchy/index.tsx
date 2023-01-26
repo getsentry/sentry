@@ -19,7 +19,6 @@ function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
 export type ViewHierarchyWindow = {
   alpha: number;
   height: number;
-  id: string;
   type: string;
   visible: boolean;
   width: number;
@@ -43,13 +42,12 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedWindow] = useState(0);
   const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
     viewHierarchy.windows[0]
   );
   const hierarchy = useMemo(() => {
-    return [viewHierarchy.windows[selectedWindow]];
-  }, [selectedWindow, viewHierarchy.windows]);
+    return viewHierarchy.windows;
+  }, [viewHierarchy.windows]);
 
   const renderRow: UseVirtualizedListProps<ViewHierarchyWindow>['renderRow'] = (
     r,

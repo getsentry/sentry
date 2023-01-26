@@ -14,25 +14,22 @@ window.Element.prototype.scrollTo = jest.fn();
 window.Element.prototype.scrollIntoView = jest.fn();
 
 const DEFAULT_VALUES = {alpha: 1, height: 1, width: 1, x: 1, y: 1, visible: true};
-const MOCK_DATA = {
+const DEFAULT_MOCK_DATA = {
   rendering_system: 'test-rendering-system',
   windows: [
     {
       ...DEFAULT_VALUES,
-      id: 'parent',
       type: 'Container',
       identifier: 'test_identifier',
       x: 200,
       children: [
         {
           ...DEFAULT_VALUES,
-          id: 'intermediate',
           type: 'Nested Container',
           identifier: 'nested',
           children: [
             {
               ...DEFAULT_VALUES,
-              id: 'leaf',
               type: 'Text',
               children: [],
             },
@@ -44,6 +41,11 @@ const MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
+  let MOCK_DATA;
+  beforeEach(() => {
+    MOCK_DATA = DEFAULT_MOCK_DATA;
+  });
+
   it('can continue make selections for inspecting data', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
 
@@ -106,5 +108,26 @@ describe('View Hierarchy', function () {
     userEvent.keyboard('{Enter}');
 
     expect(screen.getByText('Text')).toBeInTheDocument();
+  });
+
+  it('can render multiple windows together', function () {
+    MOCK_DATA.windows = [
+      ...MOCK_DATA.windows,
+      {
+        ...DEFAULT_VALUES,
+        type: 'Second Window',
+        children: [
+          {
+            ...DEFAULT_VALUES,
+            type: 'Second Window Child',
+            children: [],
+          },
+        ],
+      },
+    ];
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+
+    expect(screen.getByText('Second Window')).toBeInTheDocument();
+    expect(screen.getByText('Second Window Child')).toBeInTheDocument();
   });
 });
