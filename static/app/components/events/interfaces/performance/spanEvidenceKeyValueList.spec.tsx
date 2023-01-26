@@ -216,7 +216,7 @@ describe('SpanEvidenceKeyValueList', () => {
         ).toEqual('http://service.io/');
       });
 
-      it('Pulls out a relative URL is a base is provided', () => {
+      it('Pulls out a relative URL if a base is provided', () => {
         expect(
           extractSpanURLString(
             {
