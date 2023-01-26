@@ -55,10 +55,14 @@ type Props = {
 
 export function getCoverageColors(
   lines: [number, string][],
-  lineCov: LineCoverage[]
+  lineCov: LineCoverage[],
+  primaryLineNumber: number | null,
+  organization?: Organization
 ): Array<Color | 'transparent'> {
   const lineCoverage = keyBy(lineCov, 0);
-  return lines.map(([lineNo]) => {
+  let primaryLineCovered = true;
+  let surroundingLinesCovered = true;
+  const lineColors = lines.map(([lineNo]) => {
     const coverage = lineCoverage[lineNo]
       ? lineCoverage[lineNo][1]
       : Coverage.NOT_APPLICABLE;
@@ -72,39 +76,28 @@ export function getCoverageColors(
       case Coverage.NOT_APPLICABLE:
       // fallthrough
       default:
+        if (lineNo === primaryLineNumber) {
+          primaryLineCovered = false;
+        } else {
+          surroundingLinesCovered = false;
+        }
         return 'transparent';
     }
   });
-}
-
-export function getCoverageAnalytics(
-  lineColors: Array<Color | 'transparent'>,
-  primaryLineIndex: number,
-  organization?: Organization
-): void {
-  if (!organization) {
-    return;
-  }
-  let primaryLineCoverageChecked = false;
-  let surroundingLinesCovered = true;
-  for (const index in lineColors) {
-    if (parseInt(index, 10) === primaryLineIndex) {
-      trackAdvancedAnalyticsEvent('issue_details.codecov_primary_line_coverage_shown', {
+  if (organization) {
+    trackAdvancedAnalyticsEvent('issue_details.codecov_primary_line_coverage_shown', {
+      organization,
+      success: primaryLineCovered,
+    });
+    trackAdvancedAnalyticsEvent(
+      'issue_details.codecov_surrounding_lines_coverage_shown',
+      {
         organization,
-        success: lineColors[index] !== 'transparent',
-      });
-      primaryLineCoverageChecked = true;
-    } else if (lineColors[index] === 'transparent') {
-      surroundingLinesCovered = false;
-      if (primaryLineCoverageChecked) {
-        break;
+        success: surroundingLinesCovered,
       }
-    }
+    );
   }
-  trackAdvancedAnalyticsEvent('issue_details.codecov_surrounding_lines_coverage_shown', {
-    organization,
-    success: surroundingLinesCovered,
-  });
+  return lineColors;
 }
 
 const Context = ({
@@ -194,7 +187,12 @@ const Context = ({
 
   const lineColors: Array<Color | 'transparent'> =
     hasCoverageData && data!.codecov?.lineCoverage!
-      ? getCoverageColors(contextLines, data!.codecov?.lineCoverage)
+      ? getCoverageColors(
+          contextLines,
+          data!.codecov?.lineCoverage,
+          frame.lineNo,
+          organization
+        )
       : [];
 
   return (
@@ -213,10 +211,6 @@ const Context = ({
           const isActive = frame.lineNo === line[0];
           const hasComponents = isActive && components.length > 0;
           const showStacktraceLink = hasStacktraceLink && isActive;
-
-          if (showStacktraceLink) {
-            getCoverageAnalytics(lineColors, index, organization);
-          }
 
           return (
             <StyledContextLine
