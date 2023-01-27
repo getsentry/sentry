@@ -21,6 +21,17 @@ if TYPE_CHECKING:
 READ_CACHE_DURATION = 3600
 
 
+def get_duration(func):
+    def wrapper(*args, **kwargs):
+        start_time = timezone.now()
+        result = func(*args, **kwargs)
+        end_time = timezone.now()
+        duration = end_time - start_time
+        return result, duration.total_seconds()
+
+    return wrapper
+
+
 @region_silo_only_model
 class ProjectOwnership(Model):
     __include_in_export__ = True
@@ -163,8 +174,9 @@ class ProjectOwnership(Model):
         return result
 
     @classmethod
+    @get_duration
     def get_issue_owners(
-        cls, project_id, data, limit=2
+        cls, project_id, data, limit=2, experiment=False
     ) -> Sequence[
         Tuple[
             "Rule",
@@ -190,8 +202,10 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, data)
-            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
+            ownership_rules = cls._matching_ownership_rules(ownership, data, experiment)
+            codeowners_rules = (
+                cls._matching_ownership_rules(codeowners, data, experiment) if codeowners else []
+            )
 
             if not (codeowners_rules or ownership_rules):
                 return []
@@ -291,15 +305,16 @@ class ProjectOwnership(Model):
 
     @classmethod
     def _matching_ownership_rules(
-        cls, ownership: Union["ProjectOwnership", "ProjectCodeOwners"], data: Mapping[str, Any]
+        cls,
+        ownership: Union["ProjectOwnership", "ProjectCodeOwners"],
+        data: Mapping[str, Any],
+        experiment: bool = False,
     ) -> Sequence["Rule"]:
         rules = []
-        fast_search_flag = features.has(
-            "organizations:scaleable_codeowners_search", ownership.project.organization, actor=None
-        )
+
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
-                if rule.test(data, fast_search_flag):
+                if rule.test(data, experiment):
                     rules.append(rule)
 
         return rules

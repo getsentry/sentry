@@ -86,8 +86,8 @@ class Rule(namedtuple("Rule", "matcher owners")):
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any], fast_search_flag=False) -> Union[bool, Any]:
-        return self.matcher.test(data, fast_search_flag)
+    def test(self, data: Mapping[str, Any], experiment=False) -> Union[bool, Any]:
+        return self.matcher.test(data, experiment)
 
 
 class Matcher(namedtuple("Matcher", "type pattern")):
@@ -129,7 +129,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def test(self, data: PathSearchable, fast_search_flag=False) -> bool:
+    def test(self, data: PathSearchable, experiment=False) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -139,8 +139,8 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
-            fast_matching_func = lambda val, pattern: bool(codeowners_match(val, pattern))
-            slow_matching_func = (
+            new_func = lambda val, pattern: bool(codeowners_match(val, pattern))
+            baseline_func = (
                 lambda val, pattern: bool(_path_to_regex(pattern).search(val))
                 if val is not None
                 else False
@@ -151,9 +151,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-                match_frame_value_func=fast_matching_func
-                if fast_search_flag
-                else slow_matching_func,
+                match_frame_value_func=new_func if experiment else baseline_func,
             )
         return False
 
