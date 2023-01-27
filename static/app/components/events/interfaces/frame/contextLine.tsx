@@ -1,31 +1,32 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Color} from 'sentry/utils/theme';
-
 interface Props {
-  color: Color | 'transparent';
+  colorClass: string;
   isActive: boolean;
   line: [number, string];
   children?: React.ReactNode;
   className?: string;
 }
 
-const ContextLine = function ({line, isActive, children, className, color}: Props) {
+const ContextLine = function ({line, isActive, children, className, colorClass}: Props) {
   let lineWs = '';
   let lineCode = '';
   if (typeof line[1] === 'string') {
     [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m)!;
   }
   const Component = !children ? Fragment : Context;
-  const theme = useTheme();
+  const hasCoverage = colorClass !== '';
+
   return (
     <li
-      className={classNames(className, 'expandable', {active: isActive})}
+      className={classNames(
+        className,
+        'expandable',
+        hasCoverage ? colorClass : {active: isActive}
+      )}
       key={line[0]}
-      style={{backgroundColor: theme[color]}}
     >
       <Component>
         <span className="ws">{lineWs}</span>
