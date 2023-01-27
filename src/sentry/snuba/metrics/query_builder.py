@@ -10,6 +10,7 @@ __all__ = (
 )
 
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import (
@@ -69,12 +70,11 @@ from sentry.snuba.metrics.utils import (
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
-    OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
-    get_intervals,
+    get_num_intervals,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -124,7 +124,11 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
-    use_case_id: UseCaseKey, org_id: int, input_: Any, is_tag_value: bool = False
+    use_case_id: UseCaseKey,
+    org_id: int,
+    input_: Any,
+    is_tag_value: bool = False,
+    allowed_tag_keys: Optional[Dict[str, str]] = None,
 ) -> Any:
     """Translate tags in snuba condition
 
@@ -133,7 +137,16 @@ def resolve_tags(
     if input_ is None:
         return None
     if isinstance(input_, (list, tuple)):
-        elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
+        elements = [
+            resolve_tags(
+                use_case_id,
+                org_id,
+                item,
+                is_tag_value=True,
+                allowed_tag_keys=allowed_tag_keys,
+            )
+            for item in input_
+        ]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
         # drop unknown strings.
         filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
@@ -143,27 +156,49 @@ def resolve_tags(
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
-            return resolve_tags(use_case_id, org_id, input_.parameters[0])
+            return resolve_tags(
+                use_case_id,
+                org_id,
+                input_.parameters[0],
+                allowed_tag_keys=allowed_tag_keys,
+            )
         elif input_.function == "isNull":
             return Function(
                 "equals",
                 [
-                    resolve_tags(use_case_id, org_id, input_.parameters[0]),
-                    resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        input_.parameters[0],
+                        allowed_tag_keys=allowed_tag_keys,
+                    ),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        "",
+                        is_tag_value=True,
+                        allowed_tag_keys=allowed_tag_keys,
+                    ),
                 ],
             )
         elif input_.function == "match":
-            column = input_.parameters[0]
+            restricted_tag_keys = {tag: "match" for tag in FILTERABLE_TAGS}
 
-            if column.name not in FILTERABLE_TAGS:
-                raise InvalidParams(
-                    f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
-                )
+            if allowed_tag_keys is None:
+                new_allowed_tag_keys = restricted_tag_keys
+            else:
+                new_allowed_tag_keys = allowed_tag_keys.copy()
+                new_allowed_tag_keys.update(restricted_tag_keys)
 
             return Function(
                 function=input_.function,
                 parameters=[
-                    resolve_tags(use_case_id, org_id, column),
+                    resolve_tags(
+                        use_case_id,
+                        org_id,
+                        input_.parameters[0],
+                        allowed_tag_keys=new_allowed_tag_keys,
+                    ),
                     input_.parameters[1],  # We directly pass the regex.
                 ],
             )
@@ -171,7 +206,10 @@ def resolve_tags(
             return Function(
                 function=input_.function,
                 parameters=input_.parameters
-                and [resolve_tags(use_case_id, org_id, item) for item in input_.parameters],
+                and [
+                    resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                    for item in input_.parameters
+                ],
             )
     if (
         isinstance(input_, Or)
@@ -183,14 +221,24 @@ def resolve_tags(
         and c.rhs == 1
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
-        return resolve_tags(use_case_id, org_id, input_.conditions[1])
+        return resolve_tags(
+            use_case_id, org_id, input_.conditions[1], allowed_tag_keys=allowed_tag_keys
+        )
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
-                lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+                lhs=resolve_tags(
+                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                ),
                 op=Op.EQ,
-                rhs=resolve_tags(use_case_id, org_id, "", is_tag_value=True),
+                rhs=resolve_tags(
+                    use_case_id,
+                    org_id,
+                    "",
+                    is_tag_value=True,
+                    allowed_tag_keys=allowed_tag_keys,
+                ),
             )
         if (
             isinstance(input_.lhs, Function)
@@ -215,16 +263,31 @@ def resolve_tags(
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
             rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
-            return Condition(lhs=resolve_tags(use_case_id, org_id, input_.lhs), op=op, rhs=rhs_ids)
+            return Condition(
+                lhs=resolve_tags(
+                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                ),
+                op=op,
+                rhs=rhs_ids,
+            )
         return Condition(
-            lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+            lhs=resolve_tags(use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys),
             op=input_.op,
-            rhs=resolve_tags(use_case_id, org_id, input_.rhs, is_tag_value=True),
+            rhs=resolve_tags(
+                use_case_id,
+                org_id,
+                input_.rhs,
+                is_tag_value=True,
+                allowed_tag_keys=allowed_tag_keys,
+            ),
         )
 
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
-            conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
+            conditions=[
+                resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                for item in input_.conditions
+            ]
         )
     if isinstance(input_, Column):
         # If a column has the name belonging to the set, it means that we don't need to resolve its name.
@@ -247,6 +310,13 @@ def resolve_tags(
         else:
             name = input_.name
 
+        allowed = is_tag_key_allowed(name, allowed_tag_keys)
+        if not allowed:
+            raise InvalidParams(
+                f"The tag key {name} usage has been prohibited by one of the expressions "
+                f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {} }"
+            )
+
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
         if is_tag_value:
@@ -257,6 +327,14 @@ def resolve_tags(
         return input_
 
     raise InvalidParams("Unable to resolve conditions")
+
+
+def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]]) -> bool:
+    # If we have a None allow list it means we don't have any restriction on tag keys at all.
+    if allowed_tag_keys is None:
+        return True
+
+    return allowed_tag_keys.get(f"tags[{tag_key}]") is not None
 
 
 def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
@@ -372,15 +450,10 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
 
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
     date_range = timedelta(
-        seconds=int(
-            interval
-            * MetricsQuery.calculate_intervals_len(end=end, start=start, granularity=interval)
-        )
+        seconds=int(interval * get_num_intervals(end=end, start=start, granularity=interval))
     )
 
-    end = to_datetime(
-        int(interval * MetricsQuery.calculate_intervals_len(end=end, granularity=interval))
-    )
+    end = to_datetime(int(interval * get_num_intervals(start=None, end=end, granularity=interval)))
     start = end - date_range
     # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
     # if `end` is in the future. This allows for better real time results when
@@ -401,6 +474,60 @@ def get_metric_object_from_metric_field(
     return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
 
 
+class AliasMetaType(Enum):
+    """
+    This class represents the type of an alias returned from a SNQL query.
+
+    This type does not refer to the result type but rather the type of element to which the alias refers in the query
+    (e.g., MetricField, MetricGroupByField, dataset real columns, or simple tag).
+    """
+
+    TAG = 0
+    DATASET_COLUMN = 1
+    TIME_COLUMN = 2
+    SELECT_METRIC_FIELD = 3
+    GROUP_BY_METRIC_FIELD = 4
+
+
+def get_alias_meta_type(
+    returned_alias: str,
+    alias_to_metric_group_by_field: Dict[str, MetricGroupByField],
+) -> Tuple[AliasMetaType, Tuple[Optional[str], str]]:
+    # This logic is a rewrite of the logic below, which was convoluted and not very expressive.
+    #
+    # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
+    # "project_id" or "metric_id".
+    #
+    # is_tag = parsed_alias in alias_to_metric_group_by_field.keys()
+    # is_time_col = parsed_alias in [TS_COL_GROUP]
+    # is_dataset_col = parsed_alias in DATASET_COLUMNS
+    parsed_expr = parse_expression(returned_alias)
+    parsed_op, parsed_alias = parsed_expr
+
+    if parsed_alias in alias_to_metric_group_by_field:
+        field = alias_to_metric_group_by_field[parsed_alias].field
+        # This specific check is performed to extract the field from the MetricGroupByField in order
+        # to understand the target column.
+        if isinstance(field, str):
+            if field in DATASET_COLUMNS:
+                return AliasMetaType.DATASET_COLUMN, parsed_expr
+            elif field in [TS_COL_GROUP]:
+                return AliasMetaType.TIME_COLUMN, parsed_expr
+            else:
+                return AliasMetaType.TAG, parsed_expr
+        elif isinstance(field, MetricField):
+            return AliasMetaType.GROUP_BY_METRIC_FIELD, parsed_expr
+
+    # This logic has been copied from the logic before that handles specific edge cases that were assumed by the author
+    # of the original function.
+    if parsed_alias in DATASET_COLUMNS:
+        return AliasMetaType.DATASET_COLUMN, parsed_expr
+    elif parsed_alias in [TS_COL_GROUP]:
+        return AliasMetaType.TIME_COLUMN, parsed_expr
+
+    return AliasMetaType.SELECT_METRIC_FIELD, parsed_expr
+
+
 def translate_meta_results(
     meta: Sequence[Dict[str, str]],
     alias_to_metric_field: Dict[str, MetricField],
@@ -415,19 +542,13 @@ def translate_meta_results(
     """
     results = []
     for record in meta:
-        operation, column_name = parse_expression(record["name"])
+        alias_type, (parsed_op, parsed_alias) = get_alias_meta_type(
+            record["name"], alias_to_metric_group_by_field
+        )
 
-        # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
-        # "project_id" or "metric_id"
-        is_tag = column_name in alias_to_metric_group_by_field.keys()
-        is_time_col = column_name in [TS_COL_GROUP]
-        is_dataset_col = column_name in DATASET_COLUMNS
-
-        if not (is_tag or is_time_col or is_dataset_col):
-            # This handles two cases where we have an expression with an operation and an mri,
-            # or a derived metric mri that has no associated operation
+        if alias_type == AliasMetaType.SELECT_METRIC_FIELD:
             try:
-                record["name"] = get_operation_with_public_name(operation, column_name)
+                record["name"] = get_operation_with_public_name(parsed_op, parsed_alias)
                 if COMPOSITE_ENTITY_CONSTITUENT_ALIAS in record["name"]:
                     # Since instances of CompositeEntityDerivedMetric will not have meta data as they are computed post
                     # query, it suffices to set the type of that composite derived metric to any of the types of its
@@ -471,26 +592,21 @@ def translate_meta_results(
                 # For example, If we have two constituents of types "UInt64" and "Float64",
                 # then there inferred type would be "Float64"
                 continue
-        else:
-            if is_tag:
-                # since we changed value from int to str we need
-                # also want to change type
-                metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
-                if isinstance(metric_groupby_field.field, MetricField):
-                    defined_parent_meta_type = get_metric_object_from_metric_field(
-                        metric_groupby_field.field
-                    ).get_meta_type()
-                else:
-                    defined_parent_meta_type = None
+        elif alias_type == AliasMetaType.GROUP_BY_METRIC_FIELD:
+            metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
+            defined_parent_meta_type = get_metric_object_from_metric_field(
+                metric_groupby_field.field
+            ).get_meta_type()
 
-                record["type"] = (
-                    "string" if defined_parent_meta_type is None else defined_parent_meta_type
-                )
-            elif is_time_col or is_dataset_col:
-                record["name"] = column_name
+            record["type"] = defined_parent_meta_type
+        elif alias_type == AliasMetaType.TAG:
+            record["type"] = "string"
+        elif alias_type == AliasMetaType.DATASET_COLUMN or alias_type == AliasMetaType.TIME_COLUMN:
+            record["name"] = parsed_alias
 
         if record not in results:
             results.append(record)
+
     return sorted(results, key=lambda elem: elem["name"])
 
 
@@ -620,9 +736,13 @@ class SnubaQueryBuilder:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
-            Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start),
-            Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end),
         ]
+
+        if self._metrics_query.start:
+            where.append(Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start))
+        if self._metrics_query.end:
+            where.append(Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end))
+
         if not self._metrics_query.where:
             return where
 
@@ -663,7 +783,10 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_groupby(self) -> List[Column]:
+    def _build_groupby(self) -> Optional[List[Column]]:
+        if self._metrics_query.groupby is None:
+            return None
+
         groupby_cols = []
 
         for metric_groupby_obj in self._metrics_query.groupby or []:
@@ -714,7 +837,7 @@ class SnubaQueryBuilder:
             select=select,
             where=where,
             limit=limit,
-            offset=offset or Offset(0),
+            offset=offset or None,
             granularity=rollup,
             orderby=orderby,
         )
@@ -867,24 +990,21 @@ class SnubaQueryBuilder:
             ]
             orderby = self._build_orderby()
 
+            # Functionally [] and None will be the same and the same applies for Offset(0) and None.
             queries_dict[entity] = self.__build_totals_and_series_queries(
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
-                groupby=groupby,
-                orderby=orderby,
+                groupby=groupby,  # Empty group by is set to None.
+                orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,
-                offset=self._metrics_query.offset,
+                offset=self._metrics_query.offset,  # No offset is set to None.
                 rollup=self._metrics_query.granularity,
-                intervals_len=len(
-                    list(
-                        get_intervals(
-                            self._metrics_query.start,
-                            self._metrics_query.end,
-                            self._metrics_query.granularity.granularity,
-                            interval=self._metrics_query.interval,
-                        )
-                    )
+                intervals_len=get_num_intervals(
+                    self._metrics_query.start,
+                    self._metrics_query.end,
+                    self._metrics_query.granularity.granularity,
+                    interval=self._metrics_query.interval,
                 ),
             )
 
@@ -972,8 +1092,12 @@ class SnubaResultConverter:
                 # or also from raw_metrics that don't exist in clickhouse yet
                 cleaned_value = default_null_value
             else:
-                if op in OPERATIONS_PERCENTILES:
-                    value = value[0]
+                # We don't need anymore to extract the first value of quantilesIf, because we wrap it with
+                # arrayElement during query generation. I will leave this code here in case we decide to revert it,
+                # because it is quite difficult to find without proper knowledge of the metrics layer.
+                #
+                # if op in OPERATIONS_PERCENTILES:
+                #     value = value[0]
                 cleaned_value = finite_or_none(value)
 
             if bucketed_time is None:

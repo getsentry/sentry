@@ -1,7 +1,8 @@
 import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,6 +17,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
@@ -31,10 +33,12 @@ interface FlamegraphDrawerProps {
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
   onResize?: MouseEventHandler<HTMLElement>;
+  onResizeReset?: MouseEventHandler<HTMLElement>;
 }
 
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
   const params = useParams();
+  const orgSlug = useOrganization().slug;
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
@@ -169,8 +173,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <Separator />
         <ProfilingDetailsListItem>
           <FrameDrawerLabel>
-            <input
-              type="checkbox"
+            <Checkbox
+              size="xs"
               checked={recursion === 'collapsed'}
               onChange={handleRecursionChange}
             />
@@ -186,18 +190,19 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           onMouseDown={
             flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
+          onDoubleClick={
+            flamegraphPreferences.layout === 'table bottom'
+              ? props.onResizeReset
+              : undefined
+          }
         />
         <ProfilingDetailsListItem margin="none">
           <ExportProfileButton
             variant="xs"
             eventId={params.eventId}
-            orgId={params.orgId}
+            orgId={orgSlug}
             projectId={params.projectId}
-            disabled={
-              params.eventId === undefined ||
-              params.orgId === undefined ||
-              params.projectId === undefined
-            }
+            disabled={params.eventId === undefined || params.projectId === undefined}
           />
         </ProfilingDetailsListItem>
         <Separator />
@@ -249,7 +254,10 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ResizableVerticalDrawer>
           {/* The border should be 1px, but we want the actual handler to be wider
           to improve the user experience and not have users have to click on the exact pixel */}
-          <InvisibleHandler onMouseDown={props.onResize} />
+          <InvisibleHandler
+            onMouseDown={props.onResize}
+            onDoubleClick={props.onResizeReset}
+          />
         </ResizableVerticalDrawer>
       ) : null}
     </FrameDrawer>
@@ -280,10 +288,7 @@ const FrameDrawerLabel = styled('label')`
   margin-bottom: 0;
   height: 100%;
   font-weight: normal;
-
-  > input {
-    margin: 0 ${space(0.5)} 0 0;
-  }
+  gap: ${space(0.5)};
 `;
 
 // Linter produces a false positive for the grid layout. I did not manage to find out

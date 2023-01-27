@@ -16,6 +16,7 @@ export interface SpanChartNode {
   node: SpanTree['root'];
   parent: SpanChartNode | null;
   start: number;
+  text: string;
 }
 
 class SpanChart {
@@ -23,13 +24,14 @@ class SpanChart {
   root: SpanChartNode = {
     parent: null,
     node: SpanTreeNode.Root(),
+    text: 'root',
     duration: 0,
     depth: -1,
     start: 0,
     end: 0,
     children: [],
   };
-  spanTree: SpanTree;
+  spanTrees: SpanTree[];
   depth: number = 0;
   minSpanDuration: number = Number.POSITIVE_INFINITY;
   configSpace: Rect;
@@ -47,11 +49,25 @@ class SpanChart {
     this.timelineFormatter = makeTimelineFormatter(options.unit);
     this.formatter = makeFormatter(options.unit);
 
-    this.spanTree = spanTree;
+    this.spanTrees = [spanTree];
+
+    let tree = spanTree;
+    while (tree.orphanedSpans.length > 0) {
+      const newTree = new SpanTree(tree.transaction, tree.orphanedSpans);
+      // If a tree has same number of orhpaned spans as the previous tree, we are
+      // stuck in an infinite loop, so break out and do nothing.
+      if (newTree.orphanedSpans.length === tree.orphanedSpans.length) {
+        break;
+      }
+      this.spanTrees.push(newTree);
+      tree = newTree;
+    }
+
     this.spans = this.collectSpanNodes();
 
     const duration = this.toFinalUnit(
-      this.spanTree.root.span.timestamp - this.spanTree.root.span.start_timestamp
+      Math.max(...this.spanTrees.map(t => t.root.span.timestamp)) -
+        Math.min(...this.spanTrees.map(t => t.root.span.start_timestamp))
     );
 
     this.configSpace = new Rect(0, 0, duration, this.depth);
@@ -60,11 +76,20 @@ class SpanChart {
   }
 
   // Bfs over the span tree while keeping track of level depth and calling the cb fn
-  forEachSpan(cb: (node: SpanChartNode) => void) {
-    const transactionStart = this.spanTree.root.span.start_timestamp;
-    const queue: [SpanChartNode | null, SpanTreeNode][] = [[null, this.spanTree.root]];
-    let depth = 0;
+  forEachSpanOfTree(
+    tree: SpanTree,
+    depthOffset: number,
+    cb: (node: SpanChartNode) => void
+  ): number {
+    const transactionStart = tree.root.span.start_timestamp;
 
+    // We only want to collect the root most node once
+    const queue: [SpanChartNode | null, SpanTreeNode][] =
+      depthOffset === 0
+        ? [[null, tree.root]]
+        : [...tree.root.children.map(child => [null, child] as [null, SpanTreeNode])];
+
+    let depth = 0;
     while (queue.length) {
       let children_at_depth = queue.length;
 
@@ -79,8 +104,12 @@ class SpanChart {
           duration: this.toFinalUnit(duration),
           start: this.toFinalUnit(start),
           end: this.toFinalUnit(end),
+          text:
+            node.span.op && node.span.description
+              ? node.span.op + ': ' + node.span.description
+              : node.span.op || node.span.description || '<unknown span>',
           node,
-          depth,
+          depth: depth + depthOffset,
           parent,
           children: [],
         };
@@ -102,18 +131,24 @@ class SpanChart {
       }
       depth++;
     }
+
+    return depth;
   }
 
   collectSpanNodes(): SpanChartNode[] {
     const nodes: SpanChartNode[] = [];
 
+    let depth = 0;
     const visit = (node: SpanChartNode): void => {
       this.depth = Math.max(this.depth, node.depth);
       this.minSpanDuration = Math.min(this.minSpanDuration, node.duration);
       nodes.push(node);
     };
 
-    this.forEachSpan(visit);
+    for (let i = 0; i < this.spanTrees.length; i++) {
+      depth += this.forEachSpanOfTree(this.spanTrees[i], depth, visit);
+    }
+
     return nodes;
   }
 }

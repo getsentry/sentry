@@ -130,8 +130,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(
                 self.url
-                + "?field=activity&field=countErrors&field=duration&field=finishedAt&field=id"
-                "&field=projectId&field=startedAt&field=urls&field=user"
+                + "?field=activity&field=count_errors&field=duration&field=finished_at&field=id"
+                "&field=project_id&field=started_at&field=urls&field=user"
             )
             assert response.status_code == 200
 
@@ -141,12 +141,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             assert len(response_data["data"][0]) == 9
             assert "activity" in response_data["data"][0]
-            assert "countErrors" in response_data["data"][0]
+            assert "count_errors" in response_data["data"][0]
             assert "duration" in response_data["data"][0]
-            assert "finishedAt" in response_data["data"][0]
+            assert "finished_at" in response_data["data"][0]
             assert "id" in response_data["data"][0]
-            assert "projectId" in response_data["data"][0]
-            assert "startedAt" in response_data["data"][0]
+            assert "project_id" in response_data["data"][0]
+            assert "started_at" in response_data["data"][0]
             assert "urls" in response_data["data"][0]
             assert "user" in response_data["data"][0]
 
@@ -154,8 +154,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "id" in response_data["data"][0]["user"]
             assert "name" in response_data["data"][0]["user"]
             assert "email" in response_data["data"][0]["user"]
-            assert "ip_address" in response_data["data"][0]["user"]
-            assert "displayName" in response_data["data"][0]["user"]
+            assert "ip" in response_data["data"][0]["user"]
+            assert "display_name" in response_data["data"][0]["user"]
 
     def test_get_replays_minimum_field_set(self):
         """Test replay response with fields requested in production."""
@@ -192,7 +192,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(
-                self.url + "?field=id&sort=countErrors&query=test:hello OR user_id:123"
+                self.url + "?field=id&sort=count_errors&query=test:hello OR user_id:123"
             )
             assert response.status_code == 200
 
@@ -279,13 +279,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # Latest first.
-            response = self.client.get(self.url + "?sort=-startedAt")
+            response = self.client.get(self.url + "?sort=-started_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
-            response = self.client.get(self.url + "?sort=startedAt")
+            response = self.client.get(self.url + "?sort=started_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
@@ -307,13 +307,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # Latest first.
-            response = self.client.get(self.url + "?sort=-finishedAt")
+            response = self.client.get(self.url + "?sort=-finished_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
-            response = self.client.get(self.url + "?sort=finishedAt")
+            response = self.client.get(self.url + "?sort=finished_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
@@ -449,16 +449,24 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
+                "replay_type:session",
+                "error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
+                "error_id:a3a62ef6ac86415b83c2416fc2f76db1",
+                "trace_ids:4491657243ba4dbebd2f6bd62b733080",
+                "trace_id:4491657243ba4dbebd2f6bd62b733080",
+                "trace:4491657243ba4dbebd2f6bd62b733080",
+                "count_urls:1",
                 "platform:javascript",
                 "releases:version@1.3",
                 "releases:[a,version@1.3]",
-                "environment:production",
+                "release:version@1.3",
+                "release:[a,version@1.3]",
                 "duration:>15",
                 "user.id:123",
                 "user.name:username123",
                 "user.email:username@example.com",
                 "user.email:*@example.com",
-                "user.ipAddress:127.0.0.1",
+                "user.ip:127.0.0.1",
                 "sdk.name:sentry.javascript.react",
                 "os.name:macOS",
                 "os.version:15",
@@ -467,7 +475,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "dist:abc123",
                 "releases:*3",
                 "!releases:*4",
-                "countSegments:>=2",
+                "release:*3",
+                "!release:*4",
+                "count_segments:>=2",
                 "device.name:Macbook",
                 "device.brand:Apple",
                 "device.family:Macintosh",
@@ -484,12 +494,15 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Implicit And.
                 f"(id:{replay1_id} OR id:b) OR (duration:>15 platform:javascript)",
                 # Tag filters.
+                "tags[a]:m",
                 "a:m",
                 "a:[n,o]",
                 "c:*st",
                 "!c:*zz",
                 "urls:example.com",
+                "url:example.com",
                 "activity:3",
+                "activity:>2",
             ]
 
             for query in queries:
@@ -508,6 +521,15 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             # Assert returns empty result sets.
             null_queries = [
+                "!replay_type:session",
+                "!error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
+                "error_ids:123",
+                "!error_id:a3a62ef6ac86415b83c2416fc2f76db1",
+                "error_id:123",
+                "!trace_ids:4491657243ba4dbebd2f6bd62b733080",
+                "!trace_id:4491657243ba4dbebd2f6bd62b733080",
+                "!trace:4491657243ba4dbebd2f6bd62b733080",
+                "count_urls:0",
                 f"id:{replay1_id} AND id:b",
                 f"id:{replay1_id} AND duration:>1000",
                 "id:b OR duration:>1000",
@@ -517,9 +539,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "releases:*4",
                 "!releases:*3",
                 "releases:[a,b]",
+                "release:a",
+                "release:*4",
+                "!release:*3",
+                "release:[a,b]",
                 "c:*zz",
                 "!c:*st",
                 "!activity:3",
+                "activity:<2",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -637,7 +664,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                "projectId",
+                "project_id",
                 "platform",
                 "dist",
                 "duration",

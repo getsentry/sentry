@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -235,8 +235,6 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 ));
 
 Button.displayName = 'Button';
-
-export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
@@ -482,4 +480,4 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
 /**
  * Also export these styled components so we can use them as selectors
  */
-export {StyledButton, ButtonLabel, Icon};
+export {Button, StyledButton, ButtonLabel, Icon};

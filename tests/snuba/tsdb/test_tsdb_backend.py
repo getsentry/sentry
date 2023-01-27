@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytz
@@ -13,6 +13,7 @@ from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.issues import GroupType
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import aliased_query
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 def timestamp(d):
@@ -524,7 +525,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group1_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
@@ -672,7 +673,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group5"
+        group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group5"
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
@@ -734,6 +735,229 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         assert (
             self.db.get_range(TSDBModel.group_performance, [], dts[0], dts[-1], rollup=3600) == {}
         )
+
+
+@region_silo_test
+class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
+    def setUp(self):
+        super().setUp()
+
+        self.db = SnubaTSDB()
+        self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        )
+        self.proj1 = self.create_project()
+
+        self.env1 = Environment.objects.get_or_create(
+            organization_id=self.proj1.organization_id, name="test"
+        )[0]
+        self.env2 = Environment.objects.get_or_create(
+            organization_id=self.proj1.organization_id, name="dev"
+        )[0]
+        defaultenv = ""
+
+        group1_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
+        group2_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group2"
+
+        groups = {}
+        for r in range(0, 14400, 600):  # Every 10 min for 4 hours
+            event, occurrence, group_info = self.store_search_issue(
+                project_id=self.proj1.id,
+                # change every 55 min so some hours have 1 user, some have 2
+                user_id=r // 3300,
+                fingerprints=[group1_fingerprint] if ((r // 600) % 2) else [group2_fingerprint],
+                # release_version=str(r // 3600) * 10,  # 1 per hour,
+                environment=[self.env1.name, None][(r // 7200) % 3],
+                insert_time=self.now + timedelta(seconds=r),
+            )
+            if group_info:
+                groups[group_info.group.id] = group_info.group
+
+        all_groups = list(groups.values())
+        self.proj1group1 = all_groups[0]
+        self.proj1group2 = all_groups[1]
+        self.defaultenv = Environment.objects.get(name=defaultenv)
+
+    def test_range_group_manual_group_time_rollup(self):
+        project = self.create_project()
+
+        # these are the only granularities/rollups that be actually be used
+        GRANULARITIES = [
+            (10, timedelta(seconds=10), 5),
+            (60 * 60, timedelta(hours=1), 6),
+            (60 * 60 * 24, timedelta(days=1), 15),
+        ]
+
+        start = (datetime.now(timezone.utc) - timedelta(days=15)).replace(
+            hour=0, minute=0, second=0
+        )
+
+        for step, delta, times in GRANULARITIES:
+            series = [start + (delta * i) for i in range(times)]
+            series_ts = [int(to_timestamp(ts)) for ts in series]
+
+            assert self.db.get_optimal_rollup(series[0], series[-1]) == step
+
+            assert self.db.get_optimal_rollup_series(series[0], end=series[-1], rollup=None) == (
+                step,
+                series_ts,
+            )
+
+            for time_step in series:
+                _, _, group_info = self.store_search_issue(
+                    project_id=project.id,
+                    user_id=0,
+                    fingerprints=[f"test_range_group_manual_group_time_rollup-{step}"],
+                    environment=None,
+                    insert_time=time_step,
+                )
+
+            assert self.db.get_range(
+                TSDBModel.group_generic,
+                [group_info.group.id],
+                series[0],
+                series[-1],
+                rollup=None,
+            ) == {group_info.group.id: [(ts, 1) for ts in series_ts]}
+
+    def test_range_groups_mult(self):
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        )
+        dts = [now + timedelta(hours=i) for i in range(4)]
+        project = self.create_project()
+        group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group4"
+        groups = []
+        for i in range(0, 11):
+            _, _, group_info = self.store_search_issue(
+                project_id=project.id,
+                user_id=0,
+                fingerprints=[group_fingerprint],
+                environment=None,
+                insert_time=now + timedelta(minutes=i * 10),
+            )
+            if group_info:
+                groups.append(group_info.group)
+
+        group = groups[0]
+        assert self.db.get_range(
+            TSDBModel.group_generic,
+            [group.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+        ) == {
+            group.id: [
+                (timestamp(dts[0]), 6),
+                (timestamp(dts[1]), 5),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ]
+        }
+
+    def test_range_groups_simple(self):
+        project = self.create_project()
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        )
+        group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group5"
+        ids = [1, 2, 3, 4, 5]
+        groups = []
+        for r in ids:
+            # for r in range(0, 9, 1):
+            event, occurrence, group_info = self.store_search_issue(
+                project_id=project.id,
+                # change every 55 min so some hours have 1 user, some have 2
+                user_id=r,
+                fingerprints=[group_fingerprint],
+                environment=None,
+                # release_version=str(r // 3600) * 10,  # 1 per hour,
+                insert_time=now,
+            )
+            if group_info:
+                groups.append(group_info.group)
+
+        group = groups[0]
+        dts = [now + timedelta(hours=i) for i in range(4)]
+        assert self.db.get_range(
+            TSDBModel.group_generic,
+            [group.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+        ) == {
+            group.id: [
+                (timestamp(dts[0]), len(ids)),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ]
+        }
+
+    def test_range_groups(self):
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
+        # Multiple groups
+        assert self.db.get_range(
+            TSDBModel.group_generic,
+            [self.proj1group1.id, self.proj1group2.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+        ) == {
+            self.proj1group1.id: [
+                (timestamp(dts[0]), 3),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 3),
+            ],
+            self.proj1group2.id: [
+                (timestamp(dts[0]), 3),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 3),
+            ],
+        }
+        assert self.db.get_range(TSDBModel.group_generic, [], dts[0], dts[-1], rollup=3600) == {}
+
+    def test_get_distinct_counts_totals_users(self):
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_generic_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+        ) == {
+            self.proj1group1.id: 5  # 5 unique users overall
+        }
+
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_generic_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now,
+            rollup=3600,
+        ) == {
+            self.proj1group1.id: 1  # Only 1 unique user in the first hour
+        }
+
+        assert (
+            self.db.get_distinct_counts_totals(
+                TSDBModel.users_affected_by_generic_group,
+                [],
+                self.now,
+                self.now + timedelta(hours=4),
+                rollup=3600,
+            )
+            == {}
+        )
+
+    def test_get_sums(self):
+        assert self.db.get_sums(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
 
 
 class AddJitterToSeriesTest(TestCase):

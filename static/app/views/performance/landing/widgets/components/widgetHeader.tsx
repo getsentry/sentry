@@ -42,6 +42,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   position: relative;
   z-index: initial;
+  top: -${space(0.5)};
 `;
 
 const TitleContainer = styled('div')`

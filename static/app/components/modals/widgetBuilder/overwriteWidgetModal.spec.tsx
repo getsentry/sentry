@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import OverwriteWidgetModal from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

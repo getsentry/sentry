@@ -14,7 +14,7 @@ const {organization, router, routerContext} = initializeOrg({
       query: {},
       pathname: '/test',
     },
-    params: {orgId: 'org-slug'},
+    params: {},
   },
 });
 

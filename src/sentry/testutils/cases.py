@@ -905,6 +905,12 @@ class AcceptanceTestCase(TransactionTestCase):
         ):
             yield
 
+    def wait_for_loading(self):
+        self.browser.wait_until_not('[data-test-id="events-request-loading"]')
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+        self.browser.wait_until_not(".loading")
+
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
 
@@ -1948,6 +1954,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.login_as(self.user)
 
 
+@pytest.mark.migrations
 class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/

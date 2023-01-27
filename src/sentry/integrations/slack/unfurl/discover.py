@@ -15,8 +15,10 @@ from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.models import ApiKey, Integration
+from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,
@@ -105,7 +107,13 @@ def unfurl_discover(
     links: list[UnfurlableUrl],
     user: User | None,
 ) -> UnfurledUrl:
-    orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
+    organizations = Organization.objects.filter(
+        id__in=[oi.organization_id for oi in org_integrations]
+    )
+    orgs_by_slug = {org.slug: org for org in organizations}
     unfurls = {}
 
     for link in links:
@@ -262,11 +270,11 @@ def unfurl_discover(
             chart_url=url,
         ).build()
 
-    org_model = integration.organizations.first()
-    if org_model is not None and hasattr(org_model, "id"):
+    first_org_integration = org_integrations[0] if len(org_integrations) > 0 else None
+    if first_org_integration is not None and hasattr(first_org_integration, "id"):
         analytics.record(
             "integrations.slack.chart_unfurl",
-            organization_id=org_model.id,
+            organization_id=first_org_integration.organization_id,
             user_id=user.id if user else None,
             unfurls_count=len(unfurls),
         )
@@ -290,10 +298,16 @@ def map_discover_query_args(url: str, args: Mapping[str, str | None]) -> Mapping
     return dict(**args, query=query)
 
 
+discover_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
+)
+
+customer_domain_discover_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
+)
+
 handler: Handler = Handler(
     fn=unfurl_discover,
-    matcher=re.compile(
-        r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
-    ),
+    matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,
 )

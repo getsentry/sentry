@@ -1,3 +1,67 @@
+23.1.0
+------
+
+### Derived Code Mappings (GA Release - JS and Python)
+
+Python is in EA already. We will first add JS to EA and then GA both of them.
+
+For JS, this will only apply to stacktraces that have source maps applied, otherwise, it is not possible to derive code mappings.
+
+Read https://github.com/getsentry/rfcs/pull/16 for more details.
+
+By: @armenzg (#42302)
+
+### Stacktrace linking and code mapping improvements (ongoing)
+
+Various improvements to configuring Code Mappings by a customer.
+
+This milestones is simply to track the various related PRs.
+
+By: @armenzg (#43105, #43104, #42810)
+
+### Post-GA fixes and improvements for derived code mappings (ongoing)
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#43265, #43199, #42554, #42510, #42544, #42540, #42511, #42487)
+
+### Stacktrace Codecov Integration (ongoing)
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43114, #43025, #43024, #43015)
+
+### Various fixes & improvements
+
+- Revert "fix(domains) Remove usage or params.orgId in search (#43205)" (2fc1398b) by @getsentry-bot
+- ref(js): Convert events/userFeedback to a FC (#43283) by @evanpurkhiser
+- feat(replays): Remove calendar icon from Replays list table (#43252) by @ryan953
+- feat(replays): Remove the icon from the "Open Replay" preview in Issues (#43251) by @ryan953
+- ref(ui): Visually improve PageHeadingQuestionTooltip (#43277) by @evanpurkhiser
+- chore(ui): Upgrade babel, babel-loader, core-ui (#43286) by @scttcper
+- ref(scim): Use transaction instead of span (#43287) by @AniketDas-Tekky
+- feat(modal) Consolidate close prevention props (#43258) by @malwilley
+- fix(integrations): Use services to get organization data (#43284) by @leeandher
+- fix(useOverlay): Only enable maxSize modifier when open (#43193) by @vuluongj20
+- fix(domains) Use routing params in join-request route (#43271) by @markstory
+- fix(integrations): Use organization_id for finding the integration (#43279) by @leeandher
+- ref(js): Remove default Button export (#43280) by @evanpurkhiser
+- ref(js): Consistent spacing in eventEntry (#43230) by @evanpurkhiser
+- ref(replays): Rename Replay API fields to be snake_case and new names (#43206) by @ryan953
+- feat(replays): Convert fields to snake-case and add additional query aliases (#43194) by @cmanallen
+- feat(anr-rate): Update ANR rate defaults on project details (#43248) by @shruthilayaj
+- bug: Fix import of button (#43272) by @ryan953
+- Revert "ref(js): Remove default Button export (#43254)" (9f77d654) by @getsentry-bot
+- ci: Skip pip install when we have a cache hit in venv action (#43267) by @mattgauntseo-sentry
+- security(codeql): set codeql to weekly scans, on prs, and on master b… (#43213) by @mdtro
+- revert-revert: feat(hybrid-cloud): Move Integration/OrgIntegration to Control and implement IntegrationService (#43183) by @leeandher
+- chore: Add $schema to package.json + tsconfig.json (#43235) by @evanpurkhiser
+- ref(js): Export named Alert (#43255) by @evanpurkhiser
+
+_Plus 621 more_
+
 22.12.0
 -------
 

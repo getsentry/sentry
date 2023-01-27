@@ -139,6 +139,11 @@ declare namespace Profiling {
     profiles: ProfileTypes[];
   };
 
+  type FrameRender = {
+    elapsed_since_start_ns: number;
+    value: number;
+  };
+
   // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
   // sentry related features to the flamegraphs. This should happen after the MVP integration
   type Schema = {
@@ -147,6 +152,20 @@ declare namespace Profiling {
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
+    };
+    measurements?: {
+      screen_frame_rates?: {
+        unit: string;
+        values: {elapsed_since_start_ns: number; value: number}[];
+      };
+      frozen_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
+      slow_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
     };
     activeProfileIndex?: number;
     metadata: {

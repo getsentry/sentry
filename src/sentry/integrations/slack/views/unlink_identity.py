@@ -20,7 +20,7 @@ SUCCESS_UNLINKED_MESSAGE = "Your Slack identity has been unlinked from your Sent
 
 
 def build_unlinking_url(
-    integration_id: str, slack_id: str, channel_id: str, response_url: str
+    integration_id: int, slack_id: str, channel_id: str, response_url: str
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-unlink-identity",

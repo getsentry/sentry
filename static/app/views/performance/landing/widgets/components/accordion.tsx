@@ -4,30 +4,29 @@ import styled from '@emotion/styled';
 import DropdownButton from 'sentry/components/dropdownButton';
 import space from 'sentry/styles/space';
 
-type Props = {
-  content: ReactNode;
-  expandedIndex: number;
-  headers: (() => ReactNode)[];
-  setExpandedIndex: (index: number) => void;
-};
+interface AccordionItemContent {
+  content: () => ReactNode;
+  header: () => ReactNode;
+}
 
-export default function Accordion({
-  content,
-  headers,
-  expandedIndex,
-  setExpandedIndex,
-}: Props) {
+interface Props {
+  expandedIndex: number;
+  items: AccordionItemContent[];
+  setExpandedIndex: (index: number) => void;
+}
+
+export default function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
   return (
     <AccordionContainer>
-      {headers.map((header, index) => (
+      {items.map((item, index) => (
         <AccordionItem
           isExpanded={index === expandedIndex}
           currentIndex={index}
           key={index}
-          content={content}
+          content={item.content()}
           setExpandedIndex={setExpandedIndex}
         >
-          {header()}
+          {item.header()}
         </AccordionItem>
       ))}
     </AccordionContainer>

@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -14,13 +14,13 @@ import space from 'sentry/styles/space';
 import {formatVersion} from 'sentry/utils/formatters';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {
-  useResizableDrawer,
-  UseResizableDrawerOptions,
-} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  useResizableDrawer,
+  UseResizableDrawerOptions,
+} from 'sentry/utils/useResizableDrawer';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
@@ -71,40 +71,36 @@ export function ProfileDetails(props: ProfileDetailsProps) {
   const detailsBarRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
-    const initialDimensions: [number, number] | [undefined, number] =
-      flamegraphPreferences.layout === 'table bottom' ? [260, 200] : [0, 200];
+    const isSidebarLayout =
+      flamegraphPreferences.layout === 'table left' ||
+      flamegraphPreferences.layout === 'table right';
 
-    const onResize = (
-      newDimensions: [number, number],
-      maybeOldDimensions?: [number, number]
-    ) => {
+    // Only used when in sidebar layout
+    const initialSize = isSidebarLayout ? 260 : 0;
+
+    const onResize = (newSize: number, maybeOldSize?: number) => {
       if (!detailsBarRef.current) {
         return;
       }
 
-      if (
-        flamegraphPreferences.layout === 'table left' ||
-        flamegraphPreferences.layout === 'table right'
-      ) {
+      if (isSidebarLayout) {
         detailsBarRef.current.style.width = `100%`;
-        detailsBarRef.current.style.height =
-          (maybeOldDimensions?.[1] ?? newDimensions[1]) + 'px';
+        detailsBarRef.current.style.height = `${maybeOldSize ?? newSize}px`;
       } else {
-        detailsBarRef.current.style.height = ``;
-        detailsBarRef.current.style.width = ``;
+        detailsBarRef.current.style.height = '';
+        detailsBarRef.current.style.width = '';
       }
     };
 
     return {
-      initialDimensions,
+      initialSize,
       onResize,
-      direction:
-        flamegraphPreferences.layout === 'table bottom' ? 'horizontal-ltr' : 'vertical',
-      min: [0, 26],
+      direction: isSidebarLayout ? 'up' : 'left',
+      min: 26,
     };
   }, [flamegraphPreferences.layout]);
 
-  const {onMouseDown} = useResizableDrawer(resizableOptions);
+  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
 
   const organization = organizations.find(
     o => o.id === String(props.profileGroup.metadata.organizationID)
@@ -145,6 +141,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
             cursor: isResizableDetailsBar ? 'ns-resize' : undefined,
           }}
           onMouseDown={isResizableDetailsBar ? onMouseDown : undefined}
+          onDoubleClick={isResizableDetailsBar ? onDoubleClick : undefined}
         />
       </ProfilingDetailsFrameTabs>
 

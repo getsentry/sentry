@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
@@ -11,7 +11,7 @@ import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreCo
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.dynamic_sampling.utils import DEFAULT_BIASES
+from sentry.dynamic_sampling import DEFAULT_BIASES
 from sentry.models import (
     ApiToken,
     AuditLogEntry,
@@ -1215,7 +1215,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
-    @mock.patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
+    @mock.patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     def test_get_dynamic_sampling_rules_for_superuser_user(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.1
         new_biases = [

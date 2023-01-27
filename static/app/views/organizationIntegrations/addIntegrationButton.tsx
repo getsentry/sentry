@@ -1,5 +1,5 @@
-import Button, {ButtonProps} from 'sentry/components/button';
-import Tooltip from 'sentry/components/tooltip';
+import {Button, ButtonProps} from 'sentry/components/button';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {IntegrationWithConfig} from 'sentry/types';
 

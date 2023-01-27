@@ -7,6 +7,7 @@ from django.test import RequestFactory
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.models import ExternalIssue, Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -305,12 +306,12 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
         group = event.group
-
-        org_integration = self.integration.org_integration
-        org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
-        }
-        org_integration.save()
+        integration_service.update_organization_integration(
+            org_integration_id=self.integration.org_integration.id,
+            config={
+                "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
+            },
+        )
         fields = self.integration.get_link_issue_config(group)
         for field in fields:
             if field["name"] == "repo":
@@ -340,11 +341,12 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
         group = event.group
-        org_integration = self.integration.org_integration
-        org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
-        }
-        org_integration.save()
+        integration_service.update_organization_integration(
+            org_integration_id=self.integration.org_integration.id,
+            config={
+                "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
+            },
+        )
         fields = self.integration.get_create_issue_config(group, self.user)
         for field in fields:
             if field["name"] == "repo":

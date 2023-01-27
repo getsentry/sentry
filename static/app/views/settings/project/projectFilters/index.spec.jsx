@@ -18,7 +18,7 @@ describe('ProjectFilters', function () {
   function renderComponent() {
     return render(
       <ProjectFilters
-        params={{projectId: project.slug, orgId: org.slug}}
+        params={{projectId: project.slug}}
         location={{}}
         project={project}
         organization={org}

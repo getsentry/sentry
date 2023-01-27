@@ -1,18 +1,17 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -22,9 +21,8 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -43,17 +41,16 @@ import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
   location: Location;
-  router: InjectedRouter;
 }
 
-function ProfilingContent({location, router}: ProfilingContentProps) {
+function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
-    key: 'count()',
+    key: 'p99()',
     order: 'desc',
   });
 
@@ -122,24 +119,22 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
-        <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
             <Layout.Header>
-              <StyledLayoutHeaderContent>
-                <StyledHeading>
+              <Layout.HeaderContent>
+                <Layout.Title>
                   {t('Profiling')}
                   <PageHeadingQuestionTooltip
-                    title={tct(
-                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/profiling/" />
-                        ),
-                      }
+                    docsUrl="https://docs.sentry.io/product/profiling/"
+                    title={t(
+                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
                     )}
                   />
-                </StyledHeading>
-                <HeadingActions>
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1}>
                   <Button size="sm" onClick={onSetupProfilingClick}>
                     {t('Set Up Profiling')}
                   </Button>
@@ -159,8 +154,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                   >
                     {t('Join Discord')}
                   </Button>
-                </HeadingActions>
-              </StyledLayoutHeaderContent>
+                </ButtonBar>
+              </Layout.HeaderActions>
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
@@ -187,16 +182,16 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 </ActionBar>
                 {shouldShowProfilingOnboardingPanel ? (
                   <ProfilingOnboardingPanel>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
-                      {t('Read Docs')}
-                    </Button>
                     <Button onClick={onSetupProfilingClick} priority="primary">
                       {t('Set Up Profiling')}
+                    </Button>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
                     </Button>
                   </ProfilingOnboardingPanel>
                 ) : (
                   <Fragment>
-                    <ProfileCharts router={router} query={query} selection={selection} />
+                    <ProfileCharts query={query} selection={selection} />
                     <ProfileEventsTable
                       columns={FIELDS.slice()}
                       data={
@@ -222,8 +217,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 )}
               </Layout.Main>
             </Layout.Body>
-          </StyledPageContent>
-        </NoProjectMessage>
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
@@ -240,29 +235,6 @@ const FIELDS = [
 ] as const;
 
 type FieldType = typeof FIELDS[number];
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  justify-content: space-between;
-  flex-direction: row;
-`;
-
-const HeadingActions = styled('div')`
-  display: flex;
-  align-items: center;
-
-  button:not(:last-child) {
-    margin-right: ${space(1)};
-  }
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const ActionBar = styled('div')`
   display: grid;
