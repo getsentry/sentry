@@ -1,8 +1,9 @@
 import {CSSProperties, useCallback} from 'react';
 import styled from '@emotion/styled';
+import beautify from 'js-beautify';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
-import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
@@ -87,7 +88,9 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
         </Row>
         <Selector>{breadcrumb.message}</Selector>
         <CodeContainer>
-          <HTMLCode code={html} />
+          <CodeSnippet language="html">
+            {beautify.html(html, {indent_size: 2})}
+          </CodeSnippet>
         </CodeContainer>
       </List>
     </MutationListItem>
