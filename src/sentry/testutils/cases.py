@@ -1150,6 +1150,20 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    # Some snuba tests require events to be stored on the same date as
+    # the date a query is made in a docker container.
+    # Freezing time in pytest is not enough because it doesn't affect the
+    # container.
+    # To avoid the dates mismatching at UTC midnight, wait for X seconds
+    # if the date would change if getting a previous date.
+    def same_date_second_before_now(self):
+        now = datetime.utcnow()
+        altered = datetime.utcnow() - timedelta(seconds=1)
+        if now.date() != altered.date():
+            sleep = 2
+            time.sleep(sleep)
+        return before_now(seconds=1)
+
 
 class BaseMetricsTestCase(SnubaTestCase):
     snuba_endpoint = "/tests/entities/{entity}/insert"

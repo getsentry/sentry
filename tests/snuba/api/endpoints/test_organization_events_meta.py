@@ -1,4 +1,3 @@
-from datetime import timedelta
 from unittest import mock
 
 import pytest
@@ -114,13 +113,14 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["count"] == 1
 
     def test_generic_event(self):
+        sec_ago = self.same_date_second_before_now().replace(tzinfo=timezone.utc)
         """Test that the issuePlatform dataset returns data for a generic issue's short ID"""
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
+            sec_ago,
         )
         url = reverse(
             "sentry-api-0-organization-events-meta",

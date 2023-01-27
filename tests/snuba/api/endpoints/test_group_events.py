@@ -436,19 +436,20 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         )
 
     def test_generic_issue(self):
+        sec_ago = self.same_date_second_before_now().replace(tzinfo=timezone.utc)
         event_1, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
+            sec_ago,
         )
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
+            sec_ago,
         )
 
         self.login_as(user=self.user)
@@ -456,7 +457,10 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         url = f"/api/0/issues/{group_info.group.id}/events/"
         response = self.do_request(url)
 
+        data = list(map(lambda x: x["eventID"], response.data))
+
         assert response.status_code == 200, response.content
+        assert len(data) == 2
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
