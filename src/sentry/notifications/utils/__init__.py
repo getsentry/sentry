@@ -265,7 +265,7 @@ def has_alert_integration(project: Project) -> bool:
 
     # check integrations
     providers = filter(is_alert_rule_integration, list(integrations.all()))
-    provider_keys = map(lambda x: cast(str, x.key), providers)
+    provider_keys = list(map(lambda x: cast(str, x.key), providers))
     if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
 
