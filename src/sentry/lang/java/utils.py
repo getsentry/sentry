@@ -44,6 +44,11 @@ def get_proguard_mapper(uuid: str, project: Project):
 
 def deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierarchy):
     proguard_uuid = get_proguard_uuid(event_data)
+    if proguard_uuid is None:
+        # If unable to get the proguard file, return the original view hierarchy
+        # and avoid dropping the attachment
+        return view_hierarchy
+
     mapper = get_proguard_mapper(proguard_uuid, project)
 
     windows_to_deobfuscate = [*view_hierarchy.get("windows")]
