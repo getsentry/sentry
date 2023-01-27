@@ -59,7 +59,7 @@ export function CodeSnippet({
   return (
     <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
       <Header hasFileName={!!filename}>
-        {filename && <Title>{filename}</Title>}
+        {filename && <FileName>{filename}</FileName>}
         {!hideCopyButton && (
           <CopyButton
             type="button"
@@ -122,20 +122,23 @@ const Header = styled('div')<{hasFileName: boolean}>`
       height: max-content;
       max-height: 100%;
       padding: ${space(1)};
-
-      transition: opacity 0.1s ease-out;
-      opacity: 0;
-      div:hover > & {
-        opacity: 1;
-      }
     `}
 `;
 
-const Title = styled('p')`
+const FileName = styled('p')`
   ${p => p.theme.overflowEllipsis}
   margin: 0;
 `;
 
 const CopyButton = styled(Button)`
   color: ${p => p.theme.subText};
+
+  transition: opacity 0.1s ease-out;
+  opacity: 0;
+
+  p + &, /* if preceded by FileName */
+  div:hover > div > &, /* if Wrapper is hovered */
+  &.focus-visible {
+    opacity: 1;
+  }
 `;
