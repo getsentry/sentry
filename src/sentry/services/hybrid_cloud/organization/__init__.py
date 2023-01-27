@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional
 
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
@@ -192,6 +192,17 @@ class ApiOrganizationMember:
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     flags: ApiOrganizationMemberFlags = field(default_factory=lambda: ApiOrganizationMemberFlags())
+
+    def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
+        team_ids = [mt.team_id for mt in self.member_teams]
+
+        return {
+            "email": user_email,
+            "teams": team_ids,
+            "has_global_access": self.has_global_access,
+            "role": self.role,
+            "invite_status": None,
+        }
 
 
 @dataclass

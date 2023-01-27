@@ -35,7 +35,6 @@ from sentry.locks import locks
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
-from sentry.services.hybrid_cloud.audit import AuditLogMetadata, audit_log_service
 from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, auth_service
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
@@ -55,6 +54,7 @@ from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
+from ..services.hybrid_cloud.log import AuditLogEvent, log_service
 from . import manager
 
 logger = logging.getLogger("sentry.auth")
@@ -233,16 +233,18 @@ class AuthIdentityHandler:
         )
 
         if om is not None:
-            audit_log_service.log_organization_membership(
-                metadata=AuditLogMetadata(
-                    organization=self.organization,
-                    actor=user,
+            log_service.record_audit_log(
+                event=AuditLogEvent(
+                    organization_id=self.organization.id,
+                    time_of_creation=timezone.now(),
+                    event_id=audit_log.get_event_id("MEMBER_ADD"),
+                    actor_user_id=user.id,
+                    actor_label=user.username,
                     ip_address=self.request.META["REMOTE_ADDR"],
-                    target_object=om.id,
-                    target_user=user,
-                    event=audit_log.get_event_id("MEMBER_ADD"),
-                ),
-                organization_member=om,
+                    target_object_id=om.id,
+                    data=om.get_audit_log_metadata(user.email),
+                    target_user_id=user.id,
+                )
             )
 
         return om
@@ -314,15 +316,18 @@ class AuthIdentityHandler:
         self._set_linked_flag(member)
 
         if auth_is_new:
-            audit_log_service.log_auth_identity(
-                metadata=AuditLogMetadata(
-                    organization=self.organization,
-                    actor=self.user,
+            log_service.record_audit_log(
+                event=AuditLogEvent(
+                    organization_id=self.organization.id,
+                    time_of_creation=timezone.now(),
+                    event_id=audit_log.get_event_id("SSO_IDENTITY_LINK"),
+                    actor_user_id=self.user.id,
+                    actor_label=self.user.username,
                     ip_address=self.request.META["REMOTE_ADDR"],
-                    target_object=auth_identity.id,
-                    event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
-                ),
-                auth_identity=auth_identity,
+                    target_object_id=auth_identity.id,
+                    target_user_id=self.user.id,
+                    data=auth_identity.get_audit_log_data(),
+                )
             )
 
             messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
