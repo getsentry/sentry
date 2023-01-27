@@ -1,6 +1,7 @@
 import {css, Global, Theme} from '@emotion/react';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import {prismStyles} from 'sentry/styles/prism';
 
 const styles = (theme: Theme, isDark: boolean) => css`
   body {
@@ -38,11 +39,17 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   pre {
     background-color: ${theme.backgroundSecondary};
+    word-break: break-all;
+    white-space: pre-wrap;
+    overflow-x: auto;
   }
 
   code {
     background-color: transparent;
+    white-space: pre;
   }
+
+  ${prismStyles(theme)}
 
   /**
    * See https://web.dev/prefers-reduced-motion/

@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';

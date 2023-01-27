@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
@@ -74,7 +72,6 @@ export function CodeSnippet({
 }
 
 const PreContainer = styled('pre')<{unsetBorderRadiusTop?: boolean}>`
-  overflow-x: scroll;
   ${p =>
     p.unsetBorderRadiusTop
       ? `
@@ -82,13 +79,6 @@ const PreContainer = styled('pre')<{unsetBorderRadiusTop?: boolean}>`
   border-top-right-radius: 0px;
   `
       : null}
-
-  word-break: break-all;
-  white-space: pre-wrap;
-
-  code {
-    white-space: pre;
-  }
 `;
 
 const UnstyledButton = styled('button')`

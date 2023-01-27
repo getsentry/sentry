@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
@@ -79,11 +77,6 @@ export const DocumentationWrapper = styled('div')`
   .alert {
     margin-bottom: ${space(3)};
     border-radius: ${p => p.theme.borderRadius};
-  }
-
-  pre {
-    word-break: break-all;
-    white-space: pre-wrap;
   }
 
   blockquote {
