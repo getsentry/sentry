@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.dynamic_sampling import BoostEnvironmentsRulesGenerator
+from sentry.dynamic_sampling import ENVIRONMENT_GLOBS, BoostEnvironmentsRulesGenerator
 
 
 @pytest.mark.django_db
@@ -24,7 +24,7 @@ def test_generate_bias_rules(data_provider, default_project):
                         "name": "trace.environment",
                         "op": "glob",
                         "options": {"ignoreCase": True},
-                        "value": ["*dev*", "*test*"],
+                        "value": ENVIRONMENT_GLOBS,
                     }
                 ],
                 "op": "or",

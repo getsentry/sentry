@@ -1,5 +1,5 @@
 from .rules.base import generate_rules
-from .rules.biases.boost_environments_bias import BoostEnvironmentsRulesGenerator
+from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsRulesGenerator
 from .rules.biases.boost_key_transactions_bias import BoostKeyTransactionsRulesGenerator
 from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesRulesGenerator
 from .rules.biases.ignore_health_checks_bias import (
@@ -45,6 +45,7 @@ __all__ = [
     "BoostEnvironmentsRulesGenerator",
     "BoostLatestReleasesRulesGenerator",
     "LATEST_RELEASE_TTAS",
+    "ENVIRONMENT_GLOBS",
     "BOOSTED_KEY_TRANSACTION_LIMIT",
     "HEALTH_CHECK_GLOBS",
     "RESERVED_IDS",

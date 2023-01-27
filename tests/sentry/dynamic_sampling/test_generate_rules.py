@@ -8,6 +8,7 @@ from sentry_relay.processing import validate_sampling_configuration
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
     BOOSTED_KEY_TRANSACTION_LIMIT,
+    ENVIRONMENT_GLOBS,
     HEALTH_CHECK_GLOBS,
     generate_rules,
     get_redis_client_for_ds,
@@ -122,7 +123,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                     {
                         "op": "glob",
                         "name": "trace.environment",
-                        "value": ["*dev*", "*test*"],
+                        "value": ENVIRONMENT_GLOBS,
                         "options": {"ignoreCase": True},
                     }
                 ],
