@@ -660,6 +660,16 @@ urlpatterns += [
                     name="sentry-organization-member-settings-old",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/performance/$",
+                    react_page_view,
+                    name="sentry-organization-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/performance/summary/$",
+                    react_page_view,
+                    name="sentry-organization-performance-summary",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/stats/$",
                     react_page_view,
                     name="sentry-organization-stats",

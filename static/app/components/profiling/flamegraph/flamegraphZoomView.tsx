@@ -162,8 +162,11 @@ function FlamegraphZoomView({
     if (!flamegraphRenderer) {
       return;
     }
-    flamegraphRenderer.setSearchResults(flamegraphSearch.results.frames);
-  }, [flamegraphRenderer, flamegraphSearch.results]);
+    flamegraphRenderer.setSearchResults(
+      flamegraphSearch.query,
+      flamegraphSearch.results.frames
+    );
+  }, [flamegraphRenderer, flamegraphSearch.query, flamegraphSearch.results]);
 
   useEffect(() => {
     if (
@@ -258,7 +261,11 @@ function FlamegraphZoomView({
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightFrames]);
+
+    if (flamegraphRenderer) {
+      flamegraphRenderer?.setHighlightedFrames(selectedFramesRef.current);
+    }
+  }, [flamegraph, flamegraphRenderer, flamegraphState.profiles.highlightFrames]);
 
   useInteractionViewCheckPoint({
     view: flamegraphView,

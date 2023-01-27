@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional
 from bitfield.models import BitField
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -86,6 +87,25 @@ class OrganizationService(InterfaceWithLifecycle):
             return None
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
+
+    @abstractmethod
+    def add_organization_member(
+        self,
+        *,
+        organization: ApiOrganization,
+        user: APIUser,
+        flags: ApiOrganizationMemberFlags | None,
+        role: str | None,
+    ) -> ApiOrganizationMember:
+        pass
+
+    @abstractmethod
+    def add_team_member(self, *, team_id: int, organization_member: ApiOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
+        pass
 
 
 def impl_with_db() -> OrganizationService:
@@ -170,6 +190,7 @@ class ApiOrganizationMember:
     user_id: Optional[int] = None
     member_teams: List[ApiTeamMember] = field(default_factory=list)
     role: str = ""
+    has_global_access: bool = False
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     flags: ApiOrganizationMemberFlags = field(default_factory=lambda: ApiOrganizationMemberFlags())
@@ -184,6 +205,13 @@ class ApiOrganizationFlags:
     require_2fa: bool = False
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
+
+
+@dataclass
+class ApiOrganizationInvite:
+    id: int = -1
+    token: str = ""
+    email: str = ""
 
 
 @dataclass
@@ -206,6 +234,8 @@ class ApiOrganization(ApiOrganizationSummary):
 
     flags: ApiOrganizationFlags = field(default_factory=lambda: ApiOrganizationFlags())
     status: OrganizationStatus = OrganizationStatus.VISIBLE
+
+    default_role: str = ""
 
 
 @dataclass
