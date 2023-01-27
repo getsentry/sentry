@@ -72,6 +72,11 @@ function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Prop
       style={style}
     >
       <Icon level={breadcrumb.level} />
+      <TimestampButton
+        onClick={onClickTimestamp}
+        startTimestampMs={startTimestampMs}
+        timestampMs={breadcrumb.timestamp || ''}
+      />
       <Message>
         {breadcrumbHasIssue(breadcrumb) ? (
           <IssueLinkWrapper>
@@ -82,11 +87,6 @@ function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Prop
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
       </Message>
-      <TimestampButton
-        onClick={onClickTimestamp}
-        startTimestampMs={startTimestampMs}
-        timestampMs={breadcrumb.timestamp || ''}
-      />
     </ConsoleLog>
   );
 }
