@@ -158,15 +158,7 @@ function combineErrors(
       .filter(defined),
     error => error?.type
   );
-  const errors = combinedErrors
-    .map(error => {
-      return getErrorMessage(error, platform).map(message => ({
-        ...message,
-        type: error.type,
-      }));
-    })
-    .flat()
-    .filter(defined);
+  const errors = combinedErrors.map(error => getErrorMessage(error, platform)).flat();
 
   return errors;
 }
