@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Node} from 'sentry/components/events/viewHierarchy/node';
+import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
@@ -110,29 +111,50 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
-      <TreeContainer>
-        <GhostRow ref={hoveredGhostRowRef} />
-        <GhostRow ref={clickedGhostRowRef} />
-        <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
-          <RenderedItemsContainer style={containerStyles}>
-            {renderedItems}
-          </RenderedItemsContainer>
-        </ScrollContainer>
-      </TreeContainer>
-      {defined(selectedNode) && (
-        <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
-      )}
+      <Container>
+        <Left>
+          <TreeContainer>
+            <GhostRow ref={hoveredGhostRowRef} />
+            <GhostRow ref={clickedGhostRowRef} />
+            <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
+              <RenderedItemsContainer style={containerStyles}>
+                {renderedItems}
+              </RenderedItemsContainer>
+            </ScrollContainer>
+          </TreeContainer>
+          {defined(selectedNode) && (
+            <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+          )}
+        </Left>
+        <Right>
+          <Wireframe hierarchy={hierarchy} />
+        </Right>
+      </Container>
     </Fragment>
   );
 }
 
 export {ViewHierarchy};
 
+const Container = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
+
+const Left = styled('div')`
+  flex: 1;
+`;
+const Right = styled('div')`
+  flex: 1;
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
 const TreeContainer = styled('div')`
   position: relative;
   height: 400px;
   overflow: hidden;
-  overflow-y: auto;
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
