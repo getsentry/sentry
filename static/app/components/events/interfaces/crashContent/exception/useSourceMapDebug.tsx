@@ -21,13 +21,11 @@ interface MissingUserAgentDebugError extends BaseSourceMapDebugError {
 interface MissingSourcemapsDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.MISSING_SOURCEMAPS;
 }
-
 interface UrlNotValidDebugError extends BaseSourceMapDebugError {
   data: {absValue: string};
   type: SourceMapProcessingIssueType.URL_NOT_VALID;
 }
-
-export interface PartialMatchDebugError extends BaseSourceMapDebugError {
+interface PartialMatchDebugError extends BaseSourceMapDebugError {
   data: {insertPath: string; matchedSourcemapPath: string};
   type: SourceMapProcessingIssueType.PARTIAL_MATCH;
 }

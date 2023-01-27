@@ -5,7 +5,7 @@ import {ExceptionValue} from 'sentry/types';
 import {SourceMapDebug} from './sourceMapDebug';
 import {
   getUnqiueFilesFromExcption,
-  PartialMatchDebugError,
+  SourceMapDebugError,
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
 
@@ -112,7 +112,7 @@ describe('SourceMapDebug', () => {
   });
 
   it('should fill message with data for PARTIAL_MATCH', async () => {
-    const error: PartialMatchDebugError = {
+    const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.PARTIAL_MATCH,
       message: '',
       data: {insertPath: 'insertPath', matchedSourcemapPath: 'matchedSourcemapPath'},
