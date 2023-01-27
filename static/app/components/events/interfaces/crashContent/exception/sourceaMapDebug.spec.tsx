@@ -1,10 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ExceptionValue} from 'sentry/types';
 
 import {SourceMapDebug} from './sourceMapDebug';
 import {
-  getUnqiueFilesFromExcption,
+  getUniqueFilesFromException,
   SourceMapDebugError,
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
@@ -55,7 +56,7 @@ describe('SourceMapDebug', () => {
   ];
   const url = `/projects/${organization.slug}/${project.slug}/events/${eventId}/source-map-debug/`;
   const platform = 'javascript';
-  const debugFrames = getUnqiueFilesFromExcption(exceptionValues, platform, {
+  const debugFrames = getUniqueFilesFromException(exceptionValues, {
     orgSlug: organization.slug,
     projectSlug: project.slug,
     eventId,
@@ -94,7 +95,11 @@ describe('SourceMapDebug', () => {
 
     // Step 1
     expect(
-      screen.getByText('Update your Sentry.init call to pass in the release argument')
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Update your Sentry.init call to pass in the release argument'
+        )
+      )
     ).toBeInTheDocument();
     // Step 2
     expect(

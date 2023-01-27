@@ -1,8 +1,9 @@
 import uniqBy from 'lodash/uniqBy';
 
-import type {ExceptionValue, Frame} from 'sentry/types';
+import type {ExceptionValue, Frame, Organization, PlatformType} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 
 interface BaseSourceMapDebugError {
   message: string;
@@ -16,6 +17,7 @@ interface MissingReleaseDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.MISSING_RELEASE;
 }
 interface MissingUserAgentDebugError extends BaseSourceMapDebugError {
+  data: {version: string};
   type: SourceMapProcessingIssueType.MISSING_USER_AGENT;
 }
 interface MissingSourcemapsDebugError extends BaseSourceMapDebugError {
@@ -91,30 +93,81 @@ export function useSourceMapDebug(
   });
 }
 
-// TODO
-const ALLOWED_PLATFORMS = ['javascript', 'node', 'react-native'];
+export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
+  const api = useApi({persistInFlight: true});
+
+  const options = {
+    staleTime: Infinity,
+    retry: false,
+  };
+  return useQueries({
+    queries: props.map<UseQueryOptions<SourceMapDebugResponse>>(p => {
+      const key = sourceMapDebugQuery(p);
+      return {
+        queryKey: sourceMapDebugQuery(p),
+        // TODO: Move queryFn as a default in queryClient.tsx
+        queryFn: () =>
+          api.requestPromise(key[0], {
+            method: 'GET',
+            query: key[1]?.query,
+          }),
+        ...options,
+      };
+    }),
+  });
+}
+
+const ALLOWED_PLATFORMS = [
+  'node',
+  'javascript',
+  'javascript-react',
+  'javascript-angular',
+  'javascript-angularjs',
+  'javascript-backbone',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-vue',
+  'javascript-nextjs',
+  'javascript-remix',
+  'javascript-svelte',
+  // dart and unity might require more docs links
+  // 'dart',
+  // 'unity',
+];
 const MAX_FRAMES = 3;
+
+export function debugFramesEnabled({
+  platform,
+  eventId,
+  organization,
+  projectSlug,
+}: {
+  platform: PlatformType;
+  eventId?: string;
+  organization?: Organization | null;
+  projectSlug?: string;
+}) {
+  // Check we have all required props and platform is supported
+  if (!organization || !projectSlug || !eventId) {
+    return false;
+  }
+
+  if (!organization.features.includes('fix-source-map-cta')) {
+    return false;
+  }
+
+  return ALLOWED_PLATFORMS.includes(platform);
+}
 
 /**
  * Returns an array of unique filenames and the first frame they appear in.
  * Filters out non inApp frames and frames without a line number.
  * Limited to only the first 3 unique filenames.
  */
-export function getUnqiueFilesFromExcption(
+export function getUniqueFilesFromException(
   excValues: ExceptionValue[],
-  platform: string,
   props: Omit<UseSourceMapDebugProps, 'frameIdx' | 'exceptionIdx'>
 ): StacktraceFilenameQuery[] {
-  // Check we have all required props and platform is supported
-  if (
-    !props.orgSlug ||
-    !props.projectSlug ||
-    !props.eventId ||
-    !ALLOWED_PLATFORMS.includes(platform)
-  ) {
-    return [];
-  }
-
   // Not using .at(-1) because we need to use the index later
   const exceptionIdx = excValues.length - 1;
   const fileFrame = (excValues[exceptionIdx]?.stacktrace?.frames ?? [])

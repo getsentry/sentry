@@ -12,25 +12,29 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {PlatformType} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import {
   SourceMapDebugError,
   SourceMapDebugResponse,
   SourceMapProcessingIssueType,
   StacktraceFilenameQuery,
-  useSourceMapDebug,
+  useSourceMapDebugQueries,
 } from './useSourceMapDebug';
 
 const platformDocsMap = {
+  'javascript-react': 'react',
+  'javascript-angular': 'angular',
+  'javascript-angularjs': 'angularjs',
+  'javascript-backbone': 'backbone',
   'javascript-ember': 'ember',
   'javascript-gatsby': 'gatsby',
+  'javascript-vue': 'vue',
   'javascript-nextjs': 'nextjs',
-  'javascript-react': 'react',
   'javascript-remix': 'remix',
   'javascript-svelte': 'svelte',
-  'javascript-vue': 'vue',
 };
+
+const shortPath = ['javascript', 'node'];
 
 function getErrorMessage(
   error: SourceMapDebugError,
@@ -47,23 +51,20 @@ function getErrorMessage(
     case SourceMapProcessingIssueType.MISSING_RELEASE:
       return [
         {
-          title: tct('Update your [method] call to pass in the release argument', {
-            // Make sure method isn't translated
-            method: 'Sentry.init',
+          title: tct('Update your [init] call to pass in the release argument', {
+            init: <code>Sentry.init</code>,
           }),
-          docsLink:
-            platform === 'javascript'
-              ? 'https://docs.sentry.io/platforms/javascript/configuration/options/#release'
-              : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/configuration/options/#release`,
+          docsLink: shortPath.includes(platform)
+            ? `https://docs.sentry.io/platforms/${platform}/configuration/options/#release`
+            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/configuration/options/#release`,
         },
         {
           title: t(
             'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
           ),
-          docsLink:
-            platform === 'javascript'
-              ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
-              : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
+          docsLink: shortPath.includes(platform)
+            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/#uploading-source-maps-to-sentry`
+            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
         },
       ];
     case SourceMapProcessingIssueType.PARTIAL_MATCH:
@@ -74,10 +75,9 @@ function getErrorMessage(
             error.data.insertPath,
             error.data.matchedSourcemapPath
           ),
-          docsLink:
-            platform === 'javascript'
-              ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
-              : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
+          docsLink: shortPath.includes(platform)
+            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
+            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
         },
       ];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
@@ -89,19 +89,39 @@ function getErrorMessage(
     case SourceMapProcessingIssueType.MISSING_USER_AGENT:
       return [
         {
-          title: t('MISSING_USER_AGENT'),
+          title: t('Event has Release but no User-Agent'),
+          desc: tct(
+            'Integrate Sentry into your release pipeline. You can do this with a tool like Webpack or using the CLI. Please note the release must be the same as being set in your [init]. The value for this event is [version]',
+            {
+              init: <code>Sentry.init</code>,
+              version: error.data.version,
+            }
+          ),
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
       return [
         {
-          title: t('MISSING_SOURCEMAPS'),
+          title: t('Source Maps not uploaded'),
+          desc: t(
+            'It looks like you are creating but not uploading your source maps. Please refer to the instructions in our docs guide for help with troubleshooting the issue.'
+          ),
+          docsLink: shortPath.includes(platform)
+            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/`
+            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/`,
         },
       ];
     case SourceMapProcessingIssueType.URL_NOT_VALID:
       return [
         {
-          title: t('URL_NOT_VALID'),
+          title: t('Invalid Absolute Path URL'),
+          desc: t(
+            'The abs_path of the stack frame has %s which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            error.data.absValue
+          ),
+          docsLink: shortPath.includes(platform)
+            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
+            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
         },
       ];
     default:
@@ -172,16 +192,16 @@ interface SourcemapDebugProps {
 }
 
 export function SourceMapDebug({debugFrames, platform}: SourcemapDebugProps) {
-  const organization = useOrganization();
-  const [firstFrame, secondFrame, thirdFrame] = debugFrames;
-  const hasFeature = organization?.features?.includes('fix-source-map-cta');
-  const queryOptions = {enabled: hasFeature};
-  const {data: firstData} = useSourceMapDebug(firstFrame?.query, queryOptions);
-  const {data: secondData} = useSourceMapDebug(secondFrame?.query, queryOptions);
-  const {data: thirdData} = useSourceMapDebug(thirdFrame?.query, queryOptions);
+  const results = useSourceMapDebugQueries(debugFrames.map(debug => debug.query));
 
-  const errorMessages = combineErrors([firstData, secondData, thirdData], platform);
-  if (!hasFeature || !errorMessages.length) {
+  if (!results.every(result => !result.isLoading)) {
+    return null;
+  }
+  const errorMessages = combineErrors(
+    results.map(result => result.data).filter(defined),
+    platform
+  );
+  if (!errorMessages.length) {
     return null;
   }
 

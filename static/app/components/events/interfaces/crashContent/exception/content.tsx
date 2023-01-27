@@ -15,7 +15,7 @@ import {Mechanism} from './mechanism';
 import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
 import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
-import {getUnqiueFilesFromExcption} from './useSourceMapDebug';
+import {debugFramesEnabled, getUniqueFilesFromException} from './useSourceMapDebug';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
@@ -53,11 +53,16 @@ export function Content({
     return null;
   }
 
-  const orgHasSourcemapCta = !!organization?.features?.includes('fix-source-map-cta');
-  const debugFrames = orgHasSourcemapCta
-    ? getUnqiueFilesFromExcption(values, platform, {
+  const shouldDebugFrames = debugFramesEnabled({
+    platform,
+    organization,
+    eventId: event.id,
+    projectSlug,
+  });
+  const debugFrames = shouldDebugFrames
+    ? getUniqueFilesFromException(values, {
         eventId: event.id,
-        projectSlug,
+        projectSlug: projectSlug!,
         orgSlug: organization!.slug,
       })
     : [];
@@ -85,7 +90,7 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
-        {!orgHasSourcemapCta && <SetupSourceMapsAlert event={event} />}
+        {!shouldDebugFrames && <SetupSourceMapsAlert event={event} />}
         {hasSourcemapDebug && (
           <SourceMapDebug debugFrames={debugFrames} platform={platform} />
         )}
