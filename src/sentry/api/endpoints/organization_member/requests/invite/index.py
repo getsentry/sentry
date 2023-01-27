@@ -60,7 +60,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
         :param string role: the suggested role of the new member
-        :param array teams: the suggested slugs of the teams the member should belong to.
+        :param string orgRole: the suggested org-role of the new member
+        :param array teams: the teams which the member should belong to.
+        :param array teamRoles: the teams and team-roles assigned to the member
 
         :auth: required
         """
@@ -83,10 +85,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
-            if result["teams"]:
+            # Do not set team-roles when inviting a member
+            if "teams" in result or "teamRoles" in result:
+                teams = result.get("teams") or [
+                    item["teamSlug"] for item in result.get("teamRoles", [])
+                ]
                 lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member_invite")
                 with TimedRetryPolicy(10)(lock.acquire):
-                    save_team_assignments(om, result["teams"])
+                    save_team_assignments(om, teams)
 
             self.create_audit_entry(
                 request=request,

@@ -53,6 +53,8 @@ class OrganizationMemberSerializer(serializers.Serializer):
     teams = ListField(required=False, allow_null=False, default=[])  # deprecated, use teamRoles
     teamRoles = ListField(required=False, allow_null=True, default=[])
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
+    reinvite = serializers.BooleanField(required=False)
+    regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
         queryset = OrganizationMember.objects.filter(
@@ -85,7 +87,6 @@ class OrganizationMemberSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "You do not have permission to set that org-level role"
             )
-
         return role
 
     def validate_teams(self, teams):
@@ -104,10 +105,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
         roles = {item["role"] for item in teamRoles}
         valid_roles = [r.id for r in team_roles.get_all()] + [None]
         if roles.difference(valid_roles):
-            raise serializers.ValidationError(
-                "You do not have permission to set that team-level role"
-            )
-
+            raise serializers.ValidationError("Invalid team-role")
         team_slugs = [item["teamSlug"] for item in teamRoles]
         valid_teams = self.validate_teams(team_slugs)
 
@@ -219,10 +217,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         Invite a member to the organization.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :param string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
-        :param string role: the role of the new member
+        :param string role: the org-role of the new member
         :param array teams: the slugs of the teams the member should belong to.
+        :param array teamRoles: the team and team-roles assigned to the member
 
         :auth: required
         """
@@ -281,10 +280,17 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 om.token = om.generate_token()
             om.save()
 
-        if result["teams"]:
+        # breakpoint()
+        # Do not set team-roles when inviting members
+        if "teamRoles" in result or "teams" in result:
+            teams = (
+                [team for team, _ in result.get("teamRoles")]
+                if "teamRoles" in result and result["teamRoles"]
+                else result.get("teams")
+            )
             lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member")
             with TimedRetryPolicy(10)(lock.acquire):
-                save_team_assignments(om, result["teams"])
+                save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
             om.send_invite_email()
