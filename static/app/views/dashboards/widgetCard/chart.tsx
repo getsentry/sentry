@@ -19,7 +19,7 @@ import {getSeriesSelection, processTableResults} from 'sentry/components/charts/
 import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';

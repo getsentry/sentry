@@ -19,6 +19,7 @@ from sentry.models import (
 from sentry.models.release import _get_cache_key
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -241,6 +242,20 @@ class GroupTest(TestCase, SnubaTestCase):
         group = event.group
         url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)
+
+    @with_feature("organizations:customer-domains")
+    def test_get_absolute_url_customer_domains(self):
+        project = self.create_project()
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
+        )
+        org = self.organization
+        group = event.group
+        expected = f"http://{org.slug}.testserver/issues/{group.id}/events/{event.event_id}/"
+        assert expected == group.get_absolute_url(event_id=event.event_id)
+
+        expected = f"http://{org.slug}.testserver/issues/{group.id}/"
+        assert expected == group.get_absolute_url()
 
     def test_get_releases(self):
         now = timezone.now().replace(microsecond=0)

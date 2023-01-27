@@ -18,25 +18,12 @@ type SetHighlightAllFrames = {
   type: 'set highlight all frames';
 };
 
-type JumpToView = {
-  payload: {
-    frame: FlamegraphFrame;
-    threadId?: number;
-  };
-  type: 'jump to frame';
-};
-
-type FlamegraphProfilesAction =
-  | SetHighlightAllFrames
-  | SetProfilesThreadId
-  | SetRootNode
-  | JumpToView;
+type FlamegraphProfilesAction = SetHighlightAllFrames | SetProfilesThreadId | SetRootNode;
 
 export type FlamegraphProfiles = {
   highlightFrames: {name: string; package: string} | null;
   selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
-  zoomIntoFrame: FlamegraphFrame | null;
 };
 
 export function flamegraphProfilesReducer(
@@ -58,15 +45,7 @@ export function flamegraphProfilesReducer(
       return {
         ...state,
         selectedRoot: null,
-        zoomIntoFrame: null,
         threadId: action.payload,
-      };
-    }
-    case 'jump to frame': {
-      return {
-        ...state,
-        threadId: action.payload.threadId ?? state.threadId,
-        zoomIntoFrame: action.payload.frame,
       };
     }
     default: {

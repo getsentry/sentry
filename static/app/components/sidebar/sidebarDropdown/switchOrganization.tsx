@@ -118,7 +118,7 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
             {organizations && !!organizations.length && canCreateOrganization && (
               <Divider css={{marginTop: 0}} />
             )}
-            {<CreateOrganization canCreateOrganization={canCreateOrganization} />}
+            <CreateOrganization canCreateOrganization={canCreateOrganization} />
           </SwitchOrganizationMenu>
         )}
       </Fragment>

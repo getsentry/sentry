@@ -161,11 +161,9 @@ describe('dropdownMenuDeprecated', function () {
         {({getRootProps, getActorProps, getMenuProps}) => (
           <span {...getRootProps({})}>
             <button {...getActorProps({})}>Open Dropdown</button>
-            {
-              <ul {...getMenuProps({})}>
-                <li data-test-id="menu-item">Dropdown Menu Item 1</li>
-              </ul>
-            }
+            <ul {...getMenuProps({})}>
+              <li data-test-id="menu-item">Dropdown Menu Item 1</li>
+            </ul>
           </span>
         )}
       </DeprecatedDropdownMenu>
