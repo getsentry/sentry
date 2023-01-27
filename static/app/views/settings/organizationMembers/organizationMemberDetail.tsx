@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
 import {removeAuthenticator} from 'sentry/actionCreators/account';
 import {
@@ -27,7 +28,6 @@ import configStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -92,17 +92,6 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     }
   }
 
-  redirectToMemberPage() {
-    const {location, params, routes} = this.props;
-    const members = recreateRoute('members/', {
-      location,
-      routes,
-      params,
-      stepBack: -2,
-    });
-    browserHistory.push(members);
-  }
-
   handleSave = async () => {
     const {organization, params} = this.props;
     const {orgRole, teamRoles} = this.state;
@@ -111,19 +100,19 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     this.setState({busy: true});
 
     try {
-      await updateMember(this.api, {
+      const updatedMember = await updateMember(this.api, {
         orgId: organization.slug,
         memberId: params.memberId,
         data: {orgRole, teamRoles} as any,
       });
+      this.setState({member: updatedMember, busy: false});
       addSuccessMessage(t('Saved'));
-      this.redirectToMemberPage();
     } catch (resp) {
       const errorMessage =
         (resp && resp.responseJSON && resp.responseJSON.detail) || t('Could not save...');
+      this.setState({busy: false});
       addErrorMessage(errorMessage);
     }
-    this.setState({busy: false});
   };
 
   handleInvite = async (regenerate: boolean) => {
@@ -242,6 +231,19 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   get memberDeactivated() {
     return isMemberDisabledFromLimit(this.state.member);
+  }
+
+  get hasFormChanged() {
+    const {member, orgRole, teamRoles} = this.state;
+    if (!member) {
+      return false;
+    }
+
+    if (orgRole !== member.orgRole || !isEqual(teamRoles, member?.teamRoles)) {
+      return true;
+    }
+
+    return false;
   }
 
   renderMemberStatus(member: Member) {
@@ -416,7 +418,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
             priority="primary"
             busy={this.state.busy}
             onClick={this.handleSave}
-            disabled={!canEdit}
+            disabled={!canEdit || !this.hasFormChanged}
           >
             {t('Save Member')}
           </Button>
