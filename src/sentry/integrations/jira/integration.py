@@ -38,7 +38,6 @@ from sentry.shared_integrations.exceptions import (
 from sentry.tasks.integrations import migrate_issues
 from sentry.types.issues import GroupCategory
 from sentry.utils.decorators import classproperty
-from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
@@ -357,7 +356,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         output = [
             "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
+                group.get_absolute_url(params={"referrer": "jira_integration"}),
             )
         ]
 
