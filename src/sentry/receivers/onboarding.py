@@ -1,11 +1,12 @@
 import logging
+from datetime import datetime
 
+import pytz
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.event_manager import START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
 from sentry.models import (
     OnboardingTask,
     OnboardingTaskStatus,
@@ -39,6 +40,12 @@ from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
 
 logger = logging.getLogger("sentry")
+
+# Used to determine if we should or not record an analytic data
+# for a first event of a project with a minified stack trace
+START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
+    2022, 12, 14, tzinfo=pytz.UTC
+)
 
 
 def try_mark_onboarding_complete(organization_id):
@@ -403,29 +410,25 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         )
         return
 
-    # First, only enter this logic if we've never seen a minified stack trace before
-    if not project.flags.has_minified_stack_trace:
+    # Next, attempt to update the flag, but ONLY if the flag is currently not set.
+    # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
+    # This guarantees us that this analytics event will only be ever sent once.
+    affected = Project.objects.filter(
+        id=project.id, flags=F("flags").bitand(~Project.flags.has_minified_stack_trace)
+    ).update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
 
-        if project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ:
-            # Next, attempt to update the flag, but ONLY if the flag is currently not set.
-            # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
-            # This guarantees us that this analytics event will only be ever sent once.
-            affected = Project.objects.filter(
-                id=project.id, flags=F("flags").bitand(~Project.flags.has_minified_stack_trace)
-            ).update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
-
-            if affected:
-                analytics.record(
-                    "first_event_with_minified_stack_trace_for_project.sent",
-                    user_id=user.id,
-                    organization_id=project.organization_id,
-                    project_id=project.id,
-                    platform=event.platform,
-                    url=dict(event.tags).get("url", None),
-                )
-        else:
-            # If the project is older than the cutoff date, then we don't send analytics, but we still set the flag
-            project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
+    if (
+        project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
+        and affected
+    ):
+        analytics.record(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            url=dict(event.tags).get("url", None),
+        )
 
 
 transaction_processed.connect(record_user_context_received, weak=False)
