@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
@@ -79,7 +80,16 @@ export function ProfilingSlowestTransactionsPanel() {
               <LoadingIndicator />
             ) : (
               !hasProfilingTransactions && (
-                <Flex.Item>{t('No results found for your query')}</Flex.Item>
+                <Flex.Item>
+                  <EmptyStateWarning>
+                    <p>{t('No results found')}</p>
+                    <EmptyStateDescription>
+                      {t(
+                        'Transactions may not be listed due to the filters above or a low number of profiles.'
+                      )}
+                    </EmptyStateDescription>
+                  </EmptyStateWarning>
+                </Flex.Item>
               )
             )}
           </Flex>
@@ -223,4 +233,8 @@ const PanelItemBody = styled('div')`
 // TODO: simple layout stuff like this should come from a primitive component and we should really stop this `styled` nonsense
 const PanelItemBodyInner = styled('div')`
   padding-top: ${space(1.5)};
+`;
+
+const EmptyStateDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
