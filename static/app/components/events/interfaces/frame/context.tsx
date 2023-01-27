@@ -111,7 +111,7 @@ const Context = ({
       enabled:
         defined(organization) &&
         defined(project) &&
-        organization.codecovAccess &&
+        !!organization.codecovAccess &&
         organization.features.includes('codecov-stacktrace-integration') &&
         isExpanded,
     }
