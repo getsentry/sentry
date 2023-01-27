@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -131,8 +131,6 @@ export function HeartbeatFooter({
   }, [serverConnected, firstErrorReceived, route, router, organization.slug, location]);
 
   useEffect(() => {
-    clearIndicators();
-
     if (loading) {
       return;
     }
@@ -142,9 +140,9 @@ export function HeartbeatFooter({
     }
 
     if (firstErrorReceived) {
-      addSuccessMessage(t('DSN and error received'));
+      addSuccessMessage(t('First error received'));
     }
-  }, [serverConnected, firstErrorReceived, loading, projectSlug]);
+  }, [serverConnected, firstErrorReceived, loading]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
