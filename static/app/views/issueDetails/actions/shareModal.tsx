@@ -86,7 +86,7 @@ function ShareIssueModal({
   }, []);
 
   function getShareUrl() {
-    const path = `/share/issue/${group!.shareId}/`;
+    const path = `/organizations/${organization.slug}/share/issue/${group!.shareId}/`;
     const {host, protocol} = window.location;
     return `${protocol}//${host}${path}`;
   }
