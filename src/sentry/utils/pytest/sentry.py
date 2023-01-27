@@ -67,12 +67,6 @@ def pytest_configure(config):
                     "HOST": "127.0.0.1",
                 }
             )
-            settings.DATABASES["default_privileged"] = {
-                "ENGINE": "sentry.db.postgres",
-                "USER": "postgres",
-                "NAME": "sentry",
-                "HOST": "127.0.0.1",
-            }
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.

@@ -1,8 +1,7 @@
 import os
 
 import pytest
-from django.conf import settings
-from django.db import connections
+from django.db.transaction import get_connection
 
 from sentry.silo import SiloMode
 
@@ -145,20 +144,21 @@ def validate_silo_mode():
 
 @pytest.fixture(autouse=True)
 def protect_user_deletion():
+    from sentry.models.user import User
+    from sentry.testutils.silo import reset_test_role, restrict_role
+
     # "De-escalate" the default connection's permission level to prevent queryset level User deletions, and throw errors
     # that force the usage of the ORM to perform deletes.  Protects against potentially PII leaking code paths.
-    if "default_privileged" in settings.DATABASES:
-        from sentry.models.user import User
-        from sentry.testutils.silo import reset_test_role, restrict_role
+    with get_connection().cursor() as conn:
+        conn.execute("SET ROLE 'postgres'")
 
-        default_role_name = settings.DATABASES["default"]["USER"]
-        reset_test_role(role="postgres_privileged", from_role=default_role_name)
-        restrict_role(role=default_role_name, model=User, revocation_type="DELETE")
-        with connections["default_privileged"].cursor() as connection:
-            connection.execute("SET ROLE 'postgres_privileged'")
+    reset_test_role(role="postgres_unprivileged")
+    restrict_role(role="postgres_unprivileged", model=User, revocation_type="DELETE")
 
-        # settings.DATABASES["default_privileged"] = dict(
-        #     **settings.DATABASES["default"]
-        # )
-        # settings.DATABASES["default_privileged"]["USER"] = "postgres_privileged"
+    with get_connection().cursor() as conn:
+        conn.execute("SET ROLE 'postgres_unprivileged'")
+
     yield
+
+    with get_connection().cursor() as conn:
+        conn.execute("SET ROLE 'postgres'")

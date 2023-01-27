@@ -1,5 +1,4 @@
 import logging
-import sys
 import warnings
 from typing import TYPE_CHECKING, Any, List, Sequence
 
@@ -23,6 +22,7 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.postgres.roles import test_psql_role_override
 from sentry.models import LostPasswordHash
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
 from sentry.services.hybrid_cloud.user import APIUser
@@ -196,10 +196,9 @@ class User(BaseModel, AbstractBaseUser):
         return "User"
 
     def delete(self):
-        using = "default_privileged" if "pytest" in sys.modules else "default"
-        with transaction.atomic(using=using):
-            if self.username == "sentry":
-                raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
+        if self.username == "sentry":
+            raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
+        with transaction.atomic(), test_psql_role_override("postgres"):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
