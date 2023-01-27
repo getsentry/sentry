@@ -41,7 +41,7 @@ export const knowDynamicSamplingBiases = {
   [DynamicSamplingBiasType.BOOST_ENVIRONMENTS]: {
     label: t('Prioritize dev environments'),
     help: t(
-      'Captures more traces from environments that contain “dev”, “test”, “qa”, and “local”'
+      'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
     ),
   },
   [DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS]: {
