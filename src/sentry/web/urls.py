@@ -421,6 +421,11 @@ urlpatterns += [
                 ),
                 url(r"^account/", generic_react_page_view, name="sentry-account-settings-generic"),
                 url(
+                    r"^organization/auth/configure/$",
+                    OrganizationAuthSettingsView.as_view(),
+                    name="sentry-customer-domain-organization-auth-provider-settings",
+                ),
+                url(
                     r"^organization/",
                     react_page_view,
                     name="sentry-customer-domain-organization-settings",
@@ -708,6 +713,7 @@ urlpatterns += [
         react_page_view,
         name="sentry-manage-project",
     ),
+    # Avatars
     url(
         r"^avatar/(?P<avatar_id>[^\/]+)/$",
         UserAvatarPhotoView.as_view(),
