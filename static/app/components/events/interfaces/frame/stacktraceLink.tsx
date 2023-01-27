@@ -25,6 +25,7 @@ import {
   Project,
   StacktraceLinkResult,
 } from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -210,12 +211,17 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     data: match,
     isLoading,
     refetch,
-  } = useStacktraceLink({
-    event,
-    frame,
-    orgSlug: organization.slug,
-    projectSlug: project?.slug,
-  });
+  } = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization.slug,
+      projectSlug: project?.slug,
+    },
+    {
+      enabled: defined(project),
+    }
+  );
 
   useEffect(() => {
     if (isLoading || prompt.isLoading || !match) {

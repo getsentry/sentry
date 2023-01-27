@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Frame, Organization} from 'sentry/types';
 import {CodecovStatusCode} from 'sentry/types/integrations';
+import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
 
 import useStacktraceLink from './useStacktraceLink';
@@ -23,12 +24,15 @@ export function CodecovLegend({event, frame, organization}: CodecovLegendProps) 
     [projects, event]
   );
 
-  const {data, isLoading} = useStacktraceLink({
-    event,
-    frame,
-    orgSlug: organization?.slug || '',
-    projectSlug: project?.slug,
-  });
+  const {data, isLoading} = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization?.slug || '',
+      projectSlug: project?.slug,
+    },
+    {enabled: defined(project) && defined(organization)}
+  );
 
   if (isLoading || !data || !data.codecov) {
     return null;
