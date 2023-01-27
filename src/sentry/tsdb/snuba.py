@@ -169,7 +169,6 @@ class SnubaTSDB(BaseTSDB):
             "group_id",
             None,
             [],
-            # [["arrayJoin", "group_ids", "group_id"]],
             [Function("arrayJoin", [Column("group_ids")], "group_id")],
         ),
         TSDBModel.release: SnubaModelQuerySettings(
