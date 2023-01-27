@@ -158,10 +158,11 @@ class ProjectsListTest(APITestCase):
 
         # Delete the token
         SentryAppInstallationToken.objects.all().delete()
-        self.get_error_response(
+        response = self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
+        assert response._headers["www-authenticate"][1] == 'xBasic realm="api"'
 
     def get_installed_unpublished_sentry_app_access_token(self):
         self.project = self.create_project(organization=self.organization, teams=[self.team])

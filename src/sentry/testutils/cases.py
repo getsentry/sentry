@@ -3,10 +3,7 @@ from __future__ import annotations
 import responses
 
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.region_to_control.producer import (
-    MockRegionToControlMessageService,
-    region_to_control_message_service,
-)
+from sentry.models.outbox import OutboxScope, RegionOutbox
 from sentry.silo.base import SiloMode
 
 __all__ = (
@@ -45,7 +42,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Dict, List, Optional, Sequence, Union, cast
+from typing import Dict, List, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -626,27 +623,18 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             data = mock.ANY
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            cast(
-                MockRegionToControlMessageService, region_to_control_message_service
-            ).mock.write_region_to_control_message.assert_called_with(
-                dict(
-                    user_ip_event=None,
-                    audit_log_event=dict(
-                        # user_id=user.id,
-                        organization_id=organization.id,
-                        time_of_creation=mock.ANY,
-                        event_id=event,
-                        actor_label=user.email,
-                        actor_user_id=user.id,
-                        ip_address="127.0.0.1",
-                        target_object_id=target_object_id,
-                        data=data,
-                    ),
-                ),
-                True,
+            with exempt_from_silo_limits():
+                RegionOutbox.for_shard(
+                    shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
+                ).drain_shard()
+
+        with exempt_from_silo_limits():
+            query = AuditLogEntry.objects.filter(
+                organization=organization,
+                event=event,
+                target_object=target_object_id,
+                actor_id=user.id,
             )
-        else:
-            query = AuditLogEntry.objects.filter(organization=organization, event=event)
             assert query.exists()
             entry = query.get()
             assert data == entry.data
