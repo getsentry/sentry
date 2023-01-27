@@ -242,7 +242,13 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
 
   const errors = [...otherErrors, ...proguardErrors];
 
-  if (proguardErrorsLoading || errors.length === 0) {
+  if (proguardErrorsLoading) {
+    // XXX: This is necessary for acceptance tests to wait until removal since there is
+    // no visual loading state.
+    return <HiddenDiv data-test-id="event-errors-loading" />;
+  }
+
+  if (errors.length === 0) {
     return null;
   }
 
@@ -302,6 +308,10 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
     </StyledDataSection>
   );
 };
+
+const HiddenDiv = styled('div')`
+  display: none;
+`;
 
 const StyledDataSection = styled(DataSection)`
   border-top: none;
