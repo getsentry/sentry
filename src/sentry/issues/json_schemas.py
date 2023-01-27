@@ -96,7 +96,7 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             "additionalProperties": False,
         },
         "server_name": {"type": ["string", "null"], "minLength": 1},
-        "stack_trace": {
+        "stacktrace": {
             "type": ["object", "null"],
             "properties": {
                 "frames": {"type": ["array", "null"], "items": {"type": "object"}},

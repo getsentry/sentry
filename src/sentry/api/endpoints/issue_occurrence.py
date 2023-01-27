@@ -23,6 +23,7 @@ class BasicEventSerializer(serializers.Serializer):
     tags = serializers.DictField()
     timestamp = serializers.DateTimeField()
     received = serializers.DateTimeField()
+    data = serializers.DictField()
 
 
 class IssueOccurrenceSerializer(serializers.Serializer):
@@ -63,293 +64,18 @@ class IssueOccurrenceEndpoint(Endpoint):
                 "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
                 "project_id": projects[0].id,
                 "platform": "python",
-                "stack_trace": {
-                    "frames": [
-                        {"function": "0x0", "in_app": False},
-                        {"function": "0x0", "in_app": False},
-                        {"function": "start_sim", "in_app": False},
-                        {"function": "main", "in_app": False, "package": "xctest"},
-                        {"function": "_XCTestMain", "in_app": False, "package": "XCTestCore"},
-                        {
-                            "function": "-[XCTestDriver _runTests]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestObservationCenter _observeTestExecutionForBlock:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__25-[XCTestDriver _runTests]_block_invoke.184",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTExecutionWorker runWithError:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__72-[XCTExecutionWorker enqueueTestIdentifiersToRun:testIdentifiersToSkip:]_block_invoke_2",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTTestRunSession executeTestsWithIdentifiers:skippingTestsWithIdentifiers:completion:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__89-[XCTTestRunSession executeTestsWithIdentifiers:skippingTestsWithIdentifiers:completion:]_block_invoke",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {"function": "-[XCTest runTest]", "in_app": False, "package": "XCTestCore"},
-                        {
-                            "function": "-[XCTestSuite performTest:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestSuite _performProtectedSectionForTest:testSection:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__59-[XCTestSuite _performProtectedSectionForTest:testSection:]_block_invoke",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__27-[XCTestSuite performTest:]_block_invoke",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestSuite runTestBasedOnRepetitionPolicy:testRun:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {"function": "-[XCTest runTest]", "in_app": False, "package": "XCTestCore"},
-                        {
-                            "function": "-[XCTestSuite performTest:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestSuite _performProtectedSectionForTest:testSection:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__59-[XCTestSuite _performProtectedSectionForTest:testSection:]_block_invoke",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__27-[XCTestSuite performTest:]_block_invoke",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestSuite runTestBasedOnRepetitionPolicy:testRun:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {"function": "-[XCTest runTest]", "in_app": False, "package": "XCTestCore"},
-                        {
-                            "function": "-[XCTestSuite performTest:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestSuite _performProtectedSectionForTest:testSection:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__59-[XCTestSuite _performProtectedSectionForTest:testSection:]_block_invoke",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__27-[XCTestSuite performTest:]_block_invoke",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestSuite runTestBasedOnRepetitionPolicy:testRun:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {"function": "-[XCTest runTest]", "in_app": False, "package": "XCTestCore"},
-                        {
-                            "function": "-[XCTestCase performTest:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__26-[XCTestCase performTest:]_block_invoke.110",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestCase(XCTIssueHandling) _caughtUnhandledDeveloperExceptionPermittingControlFlowInterruptions:caughtInterruptionException:whileExecutingBlock:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__26-[XCTestCase performTest:]_block_invoke.119",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestCase invokeTest]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[XCTestCase(XCTIssueHandling) _caughtUnhandledDeveloperExceptionPermittingControlFlowInterruptions:caughtInterruptionException:whileExecutingBlock:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__24-[XCTestCase invokeTest]_block_invoke.78",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTFailableInvocation invokeInvocation:lastObservedErrorIssue:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTFailableInvocation invokeInvocation:withTestMethodConvention:lastObservedErrorIssue:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTFailableInvocation invokeWithAsynchronousWait:lastObservedErrorIssue:block:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTSwiftErrorObservation observeErrorsInBlock:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__81+[XCTFailableInvocation invokeWithAsynchronousWait:lastObservedErrorIssue:block:]_block_invoke.5",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "__90+[XCTFailableInvocation invokeInvocation:withTestMethodConvention:lastObservedErrorIssue:]_block_invoke_3",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "+[XCTFailableInvocation invokeStandardConventionInvocation:completion:]",
-                            "in_app": False,
-                            "package": "XCTestCore",
-                        },
-                        {
-                            "function": "-[NSInvocation invoke]",
-                            "in_app": False,
-                            "package": "CoreFoundation",
-                        },
-                        {"function": "__invoking___", "in_app": False, "package": "CoreFoundation"},
-                        {
-                            "function": "@objc SentryProfilerSwiftTests.testMetricProfiler()",
-                            "in_app": False,
-                            "package": "SentryTests",
-                        },
-                        {
-                            "function": "SentryProfilerSwiftTests.testMetricProfiler()",
-                            "in_app": False,
-                            "package": "SentryTests",
-                        },
-                        {
-                            "function": "SentryProfilerSwiftTests.forceProfilerSample()",
-                            "in_app": False,
-                            "package": "SentryTests",
-                        },
-                        {
-                            "function": "StringProtocol.appending<A>(A1)",
-                            "in_app": False,
-                            "package": "Foundation",
-                        },
-                        {
-                            "function": "-[NSString stringByAppendingString:]",
-                            "in_app": False,
-                            "package": "Foundation",
-                        },
-                        {
-                            "function": "_NSNewStringByAppendingStrings",
-                            "in_app": False,
-                            "package": "Foundation",
-                        },
-                        {
-                            "function": "-[__NSCFString getCharacters:range:]",
-                            "in_app": False,
-                            "package": "CoreFoundation",
-                        },
-                    ]
-                },
                 "tags": {"environment": "prod"},
                 "timestamp": ensure_aware(datetime.now()),
                 "received": ensure_aware(datetime.now()),
+                "data": {
+                    "stacktrace": {
+                        "frames": [
+                            {"function": "0x0", "in_app": False},
+                            {"function": "start_sim", "in_app": False},
+                            {"function": "main", "in_app": False, "package": "xctest"},
+                        ]
+                    },
+                },
             }
         else:
             event = request.data.pop("event", None)
@@ -404,8 +130,13 @@ class IssueOccurrenceEndpoint(Endpoint):
             return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         event = event_serializer.validated_data
-        occurrence["event_id"] = str(event["event_id"])
 
+        # hack to put in unserialized data
+        unserialized_data = event.pop("data")
+        if unserialized_data:
+            event.update(unserialized_data)
+
+        occurrence["event_id"] = str(event["event_id"])
         occurrence_serializer = IssueOccurrenceSerializer(data=occurrence)
         if not occurrence_serializer.is_valid():
             return Response(occurrence_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
