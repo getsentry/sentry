@@ -74,7 +74,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are a team admin or have global write access
         * If the open membership organization setting is enabled
         """
-        return request.access.has_global_access or can_admin_team(request, team)
+        return request.access.has_global_access or can_admin_team(request.access, team)
 
     def _can_delete(
         self,
@@ -98,7 +98,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        return can_admin_team(request, team)
+        return can_admin_team(request.access, team)
 
     def _create_access_request(
         self, request: Request, team: Team, member: OrganizationMember
@@ -216,7 +216,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             except KeyError:
                 return Response(status=400)
 
-            if not can_set_team_role(request, team, new_role):
+            if not can_set_team_role(request.access, team, new_role):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
             self._change_team_member_role(omt, new_role)
