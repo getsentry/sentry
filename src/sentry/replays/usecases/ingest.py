@@ -198,7 +198,18 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     # or do this in a separate arroyo step
     # also need to talk with other teams on only-once produce requirements
     if headers["segment_id"] == 0 and message.org_id:
-        project = Project.objects.get_from_cache(id=message.project_id)
+        try:
+            project = Project.objects.get_from_cache(id=message.project_id)
+        except Project.DoesNotExist:
+            logger.warning(
+                "Recording segment was received for a project that does not exist.",
+                extra={
+                    "project_id": message.project_id,
+                    "replay_id": message.replay_id,
+                },
+            )
+            return None
+
         if not project.flags.has_replays:
             first_replay_received.send_robust(project=project, sender=Project)
 
