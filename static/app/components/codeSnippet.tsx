@@ -1,15 +1,20 @@
+// Prism components need to be imported after Prism
+// eslint-disable-next-line simple-import-sort/imports
+import Prism from 'prismjs';
+import 'prismjs/components/prism-bash.min';
+
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-interface CodeSnippetProps {
+interface CodeSnippetProps extends React.HTMLAttributes<HTMLDivElement> {
   children: string;
   language: keyof typeof Prism.languages;
+  dark?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
 }
@@ -17,8 +22,11 @@ interface CodeSnippetProps {
 export function CodeSnippet({
   children,
   language,
+  dark,
   filename,
   hideCopyButton,
+  className,
+  ...wrapperProps
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -46,7 +54,7 @@ export function CodeSnippet({
       : t('Unable to copy');
 
   return (
-    <Wrapper>
+    <Wrapper className={`${className} ${dark ? 'prism-dark' : ''}`} {...wrapperProps}>
       <Header hasFileName={!!filename}>
         {filename && <Title>{filename}</Title>}
         {!hideCopyButton && (

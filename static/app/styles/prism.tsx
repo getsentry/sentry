@@ -12,7 +12,8 @@ export const prismStyles = (theme: Theme) => css`
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
-  .gatsby-highlight {
+  .gatsby-highlight,
+  .prism-dark {
     ${theme.prismDarkVariables};
   }
 
