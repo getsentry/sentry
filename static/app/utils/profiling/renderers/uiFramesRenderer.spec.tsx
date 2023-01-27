@@ -53,11 +53,11 @@ describe('UIFramesRenderer', () => {
   it.each([
     [vec2.fromValues(-1, 0), null],
     [vec2.fromValues(11, 0), null],
-    [vec2.fromValues(0, 0), [uiFrames.frames[0]]],
+    [vec2.fromValues(0.1, 0), [uiFrames.frames[0]]],
     [vec2.fromValues(2.5, 0), [uiFrames.frames[1], uiFrames.frames[2]]],
     [vec2.fromValues(4.5, 0), [uiFrames.frames[3], uiFrames.frames[4]]],
   ])('finds hovered node', (cursor, expected) => {
-    const results = renderer.findHoveredNode(cursor!, uiFrames.configSpace);
+    const results = renderer.findHoveredNode(cursor, uiFrames.configSpace);
 
     if (Array.isArray(expected) && Array.isArray(results)) {
       for (let i = 0; i < results?.length; i++) {

@@ -229,7 +229,7 @@ class UIFramesRenderer {
     // here as the max number of slow frames we can have is max profile duration / slow frame = 30000/
     const end = upperBound(configSpaceCursor[0], this.uiFrames.frames);
 
-    for (let i = 0; i <= end; i++) {
+    for (let i = 0; i < end; i++) {
       const frame = this.uiFrames.frames[i];
       if (configSpaceCursor[0] <= frame.end && configSpaceCursor[0] >= frame.start) {
         overlaps.push(frame);
