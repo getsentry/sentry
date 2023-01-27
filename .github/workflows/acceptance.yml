@@ -31,7 +31,8 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend: ${{ steps.changes.outputs.backend_all }}
+      backend_all: ${{ steps.changes.outputs.backend_all }}
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 

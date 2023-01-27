@@ -10,7 +10,7 @@ import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';

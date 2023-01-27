@@ -9,8 +9,8 @@ import {t, tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
-import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
+import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
 import Screenshot from './screenshot';
@@ -33,13 +33,13 @@ type Props = Omit<
 > & {
   attachments: ScreenshotProps['screenshot'][];
   onDeleteScreenshot: ScreenshotProps['onDelete'];
-  projectId: string;
+  projectSlug: string;
   hasContext?: boolean;
   isShare?: boolean;
 };
 
 export function EventTagsAndScreenshot({
-  projectId: projectSlug,
+  projectSlug,
   location,
   event,
   attachments,

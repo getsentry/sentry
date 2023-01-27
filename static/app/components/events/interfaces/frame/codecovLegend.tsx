@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Frame, Organization} from 'sentry/types';
 import {CodecovStatusCode} from 'sentry/types/integrations';
+import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
 
 import useStacktraceLink from './useStacktraceLink';
@@ -23,19 +24,22 @@ export function CodecovLegend({event, frame, organization}: CodecovLegendProps) 
     [projects, event]
   );
 
-  const {data, isLoading} = useStacktraceLink({
-    event,
-    frame,
-    orgSlug: organization?.slug || '',
-    projectSlug: project?.slug,
-  });
+  const {data, isLoading} = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization?.slug || '',
+      projectSlug: project?.slug,
+    },
+    {enabled: defined(project) && defined(organization)}
+  );
 
-  if (isLoading || !data) {
+  if (isLoading || !data || !data.codecov) {
     return null;
   }
 
   if (
-    data.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS ||
+    data.codecov.status !== CodecovStatusCode.COVERAGE_EXISTS ||
     data.config?.provider.key !== 'github'
   ) {
     return null;
@@ -74,7 +78,6 @@ const LegendIcon = styled('span')`
 const CodeCovLegendContainer = styled('div')`
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(0.25)} ${space(3)};
