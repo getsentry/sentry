@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytz
+from snuba_sdk import Limit
 
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
@@ -484,26 +485,27 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
     def test_calculated_limit(self):
 
-        with patch("sentry.tsdb.snuba.snuba") as snuba:
+        with patch("sentry.tsdb.snuba.raw_snql_query") as snuba:
             # 24h test
             rollup = 3600
             end = self.now
             start = end + timedelta(days=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.query.call_args[1]["limit"] == 120
+
+            assert snuba.call_args.args[0].query.limit == Limit(120)
 
             # 14 day test
             rollup = 86400
             start = end + timedelta(days=-14, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.query.call_args[1]["limit"] == 70
+            assert snuba.call_args.args[0].query.limit == Limit(70)
 
             # 1h test
             rollup = 3600
             end = self.now
             start = end + timedelta(hours=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.query.call_args[1]["limit"] == 5
+            assert snuba.call_args.args[0].query.limit == Limit(5)
 
 
 @region_silo_test
@@ -958,6 +960,39 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             start=self.now,
             end=self.now + timedelta(hours=4),
         ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
+
+    def test_get_data_or_conditions_parsed(self):
+        """
+        Verify parsing the legacy format with nested OR conditions works
+        """
+
+        conditions = [
+            # or conditions in the legacy format needs open and close brackets for precedence
+            # there's some special casing when parsing conditions that specifically handles this
+            [
+                [["isNull", ["environment"]], "=", 1],
+                ["environment", "IN", [self.env1.name]],
+            ]
+        ]
+
+        data1 = self.db.get_data(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            conditions=conditions,
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        )
+        data2 = self.db.get_data(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        )
+
+        # the above queries should return the same data since all groups either have:
+        # environment=None or environment=test
+        # so the condition really shouldn't be filtering anything
+        assert data1 == data2
 
 
 class AddJitterToSeriesTest(TestCase):
