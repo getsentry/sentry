@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {TagFacetsList} from 'sentry/components/group/tagFacets';
 import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -108,13 +109,14 @@ class Tags extends Component<Props, State> {
         ? Math.max(Number(totalValues), segments[0].count)
         : totalValues;
     return (
-      <TagFacetsDistributionMeter
-        key={tag.key}
-        title={tag.key}
-        segments={segments}
-        totalValues={Number(maxTotalValues)}
-        expandByDefault={index === 0}
-      />
+      <li key={tag.key} aria-label={tag.key}>
+        <TagFacetsDistributionMeter
+          title={tag.key}
+          segments={segments}
+          totalValues={Number(maxTotalValues)}
+          expandByDefault={index === 0}
+        />
+      </li>
     );
   }
 
@@ -145,7 +147,11 @@ class Tags extends Component<Props, State> {
     }
 
     if (tags.length > 0) {
-      return tags.map((tag, index) => this.renderTag(tag, index));
+      return (
+        <TagFacetsList>
+          {tags.map((tag, index) => this.renderTag(tag, index))}
+        </TagFacetsList>
+      );
     }
 
     return <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>;

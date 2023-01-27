@@ -239,3 +239,28 @@ class ReactPageViewTest(TestCase):
         response = self.client.get(f"/settings/{org.slug}/projects/albertos-apples/keys/")
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    def test_customer_domain_superuser(self):
+        org = self.create_organization(owner=self.user)
+        other_org = self.create_organization()
+
+        self.login_as(self.user, superuser=True)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            # Induce activeorg
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+            assert self.client.session["activeorg"] == org.slug
+
+            # Access another org as superuser
+            response = self.client.get(
+                reverse("sentry-organization-issue-list", args=[other_org.slug]),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
