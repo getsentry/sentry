@@ -88,7 +88,7 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
         </Row>
         <Selector>{breadcrumb.message}</Selector>
         <CodeContainer>
-          <CodeSnippet language="html">
+          <CodeSnippet language="html" hideCopyButton>
             {beautify.html(html, {indent_size: 2})}
           </CodeSnippet>
         </CodeContainer>
