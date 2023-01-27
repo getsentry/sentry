@@ -148,7 +148,7 @@ export function debugFramesEnabled({
   projectSlug?: string;
 }) {
   // Check we have all required props and platform is supported
-  if (!organization || !projectSlug || !eventId) {
+  if (!organization || !organization.features || !projectSlug || !eventId) {
     return false;
   }
 

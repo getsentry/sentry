@@ -80,12 +80,6 @@ function getErrorMessage(
             : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
         },
       ];
-    case SourceMapProcessingIssueType.UNKNOWN_ERROR:
-      return [
-        {
-          title: t('UNKNOWN_ERROR'),
-        },
-      ];
     case SourceMapProcessingIssueType.MISSING_USER_AGENT:
       return [
         {
@@ -97,6 +91,9 @@ function getErrorMessage(
               version: error.data.version,
             }
           ),
+          docsLink: shortPath.includes(platform)
+            ? `https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry`
+            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
@@ -124,6 +121,7 @@ function getErrorMessage(
             : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
         },
       ];
+    case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];
   }
