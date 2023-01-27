@@ -15,7 +15,7 @@ import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
-  PartialMatchDebugError,
+  SourceMapDebugError,
   SourceMapDebugResponse,
   SourceMapProcessingIssueType,
   StacktraceFilenameQuery,
@@ -32,81 +32,82 @@ const platformDocsMap = {
   'javascript-vue': 'vue',
 };
 
-const errorMessageDescription: Record<
-  SourceMapProcessingIssueType,
-  (
-    data: any,
-    platform: PlatformType
-  ) => Array<{
-    title: string;
-    /**
-     * Expandable description
-     */
-    desc?: string;
-    docsLink?: string;
-  }>
-> = {
-  [SourceMapProcessingIssueType.UNKNOWN_ERROR]: () => [
-    {
-      title: t('UNKNOWN_ERROR'),
-    },
-  ],
-  // This error has two messages
-  [SourceMapProcessingIssueType.MISSING_RELEASE]: (_data, platform) => [
-    {
-      title: tct('Update your [method] call to pass in the release argument', {
-        // Make sure method isn't translated
-        method: 'Sentry.init',
-      }),
-      docsLink:
-        platform === 'javascript'
-          ? 'https://docs.sentry.io/platforms/javascript/configuration/options/#release'
-          : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/configuration/options/#release`,
-    },
-    {
-      title: t(
-        'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
-      ),
-      docsLink:
-        platform === 'javascript'
-          ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
-          : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
-    },
-  ],
-  [SourceMapProcessingIssueType.MISSING_USER_AGENT]: () => [
-    {
-      title: t('MISSING_USER_AGENT'),
-    },
-  ],
-  [SourceMapProcessingIssueType.MISSING_SOURCEMAPS]: () => [
-    {
-      title: t('MISSING_SOURCEMAPS'),
-    },
-  ],
-  [SourceMapProcessingIssueType.URL_NOT_VALID]: () => [
-    {
-      title: tct('The [absPath] of the stack frame doesn’t match any release artifact', {
-        absPath: <code>abs_path</code>,
-      }),
-    },
-  ],
-  [SourceMapProcessingIssueType.PARTIAL_MATCH]: (
-    data: PartialMatchDebugError['data'],
-    platform
-  ) => [
-    {
-      title: t(
-        'The abs_path of the stack frame is a partial match. The stack frame has the path %s which is a partial match to %s. You might need to modify the value of url-prefix.',
-        data.insertPath,
-        data.matchedSourcemapPath
-      ),
-      docsLink:
-        platform === 'javascript'
-          ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
-          : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
-    },
-  ],
-};
+function getErrorMessage(
+  error: SourceMapDebugError,
+  platform: PlatformType
+): Array<{
+  title: string;
+  /**
+   * Expandable description
+   */
+  desc?: string;
+  docsLink?: string;
+}> {
+  switch (error.type) {
+    case SourceMapProcessingIssueType.MISSING_RELEASE:
+      return [
+        {
+          title: tct('Update your [method] call to pass in the release argument', {
+            // Make sure method isn't translated
+            method: 'Sentry.init',
+          }),
+          docsLink:
+            platform === 'javascript'
+              ? 'https://docs.sentry.io/platforms/javascript/configuration/options/#release'
+              : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/configuration/options/#release`,
+        },
+        {
+          title: t(
+            'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
+          ),
+          docsLink:
+            platform === 'javascript'
+              ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
+              : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
+        },
+      ];
+    case SourceMapProcessingIssueType.PARTIAL_MATCH:
+      return [
+        {
+          title: t(
+            'The abs_path of the stack frame is a partial match. The stack frame has the path %s which is a partial match to %s. You might need to modify the value of url-prefix.',
+            error.data.insertPath,
+            error.data.matchedSourcemapPath
+          ),
+          docsLink:
+            platform === 'javascript'
+              ? 'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+              : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
+        },
+      ];
+    case SourceMapProcessingIssueType.UNKNOWN_ERROR:
+      return [
+        {
+          title: t('UNKNOWN_ERROR'),
+        },
+      ];
+    case SourceMapProcessingIssueType.MISSING_USER_AGENT:
+      return [
+        {
+          title: t('MISSING_USER_AGENT'),
+        },
+      ];
+    case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
+      return [
+        {
+          title: t('MISSING_SOURCEMAPS'),
+        },
+      ];
+    case SourceMapProcessingIssueType.URL_NOT_VALID:
+      return [
+        {
+          title: t('URL_NOT_VALID'),
+        },
+      ];
+    default:
+      return [];
+  }
+}
 
 /**
  * Kinda making this reuseable since we have this pattern in a few places
@@ -159,12 +160,10 @@ function combineErrors(
   );
   const errors = combinedErrors
     .map(error => {
-      return errorMessageDescription[error.type]?.(error.data as any, platform).map(
-        message => ({
-          ...message,
-          type: error.type,
-        })
-      );
+      return getErrorMessage(error, platform).map(message => ({
+        ...message,
+        type: error.type,
+      }));
     })
     .flat()
     .filter(defined);

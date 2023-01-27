@@ -5,9 +5,21 @@ import {defined} from 'sentry/utils';
 import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 
 interface BaseSourceMapDebugError {
-  data: Record<string, string> | null;
   message: string;
   type: SourceMapProcessingIssueType;
+}
+
+interface UnknownErrorDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.UNKNOWN_ERROR;
+}
+interface MissingReleaseDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.MISSING_RELEASE;
+}
+interface MissingUserAgentDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.MISSING_USER_AGENT;
+}
+interface MissingSourcemapsDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.MISSING_SOURCEMAPS;
 }
 
 interface UrlNotValidDebugError extends BaseSourceMapDebugError {
@@ -21,7 +33,10 @@ export interface PartialMatchDebugError extends BaseSourceMapDebugError {
 }
 
 export type SourceMapDebugError =
-  | BaseSourceMapDebugError
+  | UnknownErrorDebugError
+  | MissingReleaseDebugError
+  | MissingUserAgentDebugError
+  | MissingSourcemapsDebugError
   | UrlNotValidDebugError
   | PartialMatchDebugError;
 

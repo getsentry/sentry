@@ -53,7 +53,7 @@ export function Content({
     return null;
   }
 
-  const orgHasSourcemapCta = organization?.features?.includes('fix-source-map-cta');
+  const orgHasSourcemapCta = !!organization?.features?.includes('fix-source-map-cta');
   const debugFrames = orgHasSourcemapCta
     ? getUnqiueFilesFromExcption(values, platform, {
         eventId: event.id,
