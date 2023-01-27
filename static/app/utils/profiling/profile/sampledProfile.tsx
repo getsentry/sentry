@@ -151,7 +151,6 @@ export class SampledProfile extends Profile {
       this.samples.push(node);
       this.weights.push(weight);
     }
-    this.rawWeights.push(weight);
   }
 
   build(): Profile {
