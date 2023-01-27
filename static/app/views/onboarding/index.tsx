@@ -21,7 +21,8 @@ import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
-import PlatformSelection from './platform';
+import OnboardingPlatform from './deprecatedPlatform';
+import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
 import {usePersistedOnboardingState} from './utils';
@@ -36,7 +37,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   projects: Project[];
 };
 
-function getOrganizationOnboardingSteps(): StepDescriptor[] {
+function getOrganizationOnboardingSteps(heartbeatFooter: boolean): StepDescriptor[] {
   return [
     {
       id: 'welcome',
@@ -45,11 +46,21 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
       cornerVariant: 'top-right',
     },
     {
-      id: 'select-platform',
-      title: t('Select platforms'),
-      Component: PlatformSelection,
-      hasFooter: true,
-      cornerVariant: 'top-left',
+      ...(heartbeatFooter
+        ? {
+            id: 'select-platform',
+            title: t('Select platform'),
+            Component: PlatformSelection,
+            hasFooter: true,
+            cornerVariant: 'top-left',
+          }
+        : {
+            id: 'select-platform',
+            title: t('Select platforms'),
+            Component: OnboardingPlatform,
+            hasFooter: true,
+            cornerVariant: 'top-left',
+          }),
     },
     {
       id: 'setup-docs',
@@ -75,7 +86,11 @@ function Onboarding(props: Props) {
     };
   }, []);
 
-  const onboardingSteps = getOrganizationOnboardingSteps();
+  const heartbeatFooter = !!props.organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+
+  const onboardingSteps = getOrganizationOnboardingSteps(heartbeatFooter);
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
@@ -192,12 +207,7 @@ function Onboarding(props: Props) {
           />
         </UpsellWrapper>
       </Header>
-      <Container
-        hasFooter={containerHasFooter}
-        hasHeartbeatFooter={
-          !!organization?.features.includes('onboarding-heartbeat-footer')
-        }
-      >
+      <Container hasFooter={containerHasFooter} heartbeatFooter={heartbeatFooter}>
         <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} onClick={handleGoBack} />
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
@@ -226,14 +236,14 @@ function Onboarding(props: Props) {
   );
 }
 
-const Container = styled('div')<{hasFooter: boolean; hasHeartbeatFooter: boolean}>`
+const Container = styled('div')<{hasFooter: boolean; heartbeatFooter: boolean}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.background};
   padding: ${p =>
-    p.hasHeartbeatFooter ? `120px ${space(3)} 0 ${space(3)}` : `120px ${space(3)}`};
+    p.heartbeatFooter ? `120px ${space(3)} 0 ${space(3)}` : `120px ${space(3)}`};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};

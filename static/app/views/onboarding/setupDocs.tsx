@@ -45,7 +45,7 @@ type Props = {
   loadingProjects?: boolean;
 } & StepProps;
 
-function ProjecDocs(props: {
+function ProjectDocs(props: {
   hasError: boolean;
   onRetry: () => void;
   platform: PlatformKey | null;
@@ -119,6 +119,10 @@ function SetupDocs({
   router,
   location,
 }: Props) {
+  const heartbeatFooter = !!organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedPlatforms = clientState?.selectedPlatforms || [];
@@ -254,26 +258,21 @@ function SetupDocs({
   return (
     <Fragment>
       <Wrapper>
-        <SidebarWrapper
-          hasHeartbeatFooter={
-            !!organization?.features.includes('onboarding-heartbeat-footer')
-          }
-        >
-          <ProjectSidebarSection
-            projects={projects}
-            selectedPlatformToProjectIdMap={Object.fromEntries(
-              selectedPlatforms.map(platform => [
-                platform,
-                platformToProjectIdMap[platform],
-              ])
-            )}
-            activeProject={project}
-            {...{checkProjectHasFirstEvent, selectProject}}
-            hasHeartbeatFooter={
-              !!organization?.features.includes('onboarding-heartbeat-footer')
-            }
-          />
-        </SidebarWrapper>
+        {!heartbeatFooter && (
+          <SidebarWrapper>
+            <ProjectSidebarSection
+              projects={projects}
+              selectedPlatformToProjectIdMap={Object.fromEntries(
+                selectedPlatforms.map(platform => [
+                  platform,
+                  platformToProjectIdMap[platform],
+                ])
+              )}
+              activeProject={project}
+              {...{checkProjectHasFirstEvent, selectProject}}
+            />
+          </SidebarWrapper>
+        )}
         <MainContent>
           {integrationSlug && !integrationUseManualSetup ? (
             <IntegrationSetup
@@ -284,7 +283,7 @@ function SetupDocs({
               }}
             />
           ) : (
-            <ProjecDocs
+            <ProjectDocs
               platform={loadedPlatform}
               project={project}
               hasError={hasError}
@@ -296,38 +295,12 @@ function SetupDocs({
       </Wrapper>
 
       {project &&
-        (organization.features?.includes('onboarding-heartbeat-footer') ? (
+        (heartbeatFooter ? (
           <HeartbeatFooter
             projectSlug={project.slug}
-            nextProjectSlug={nextProject?.slug}
             route={route}
             router={router}
             location={location}
-            onSetupNextProject={() => {
-              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-              trackAdvancedAnalyticsEvent(
-                'growth.onboarding_clicked_setup_platform_later',
-                {
-                  organization,
-                  platform: currentPlatform,
-                  project_index: projectIndex,
-                }
-              );
-              if (!project.platform || !clientState) {
-                browserHistory.push(orgIssuesURL);
-                return;
-              }
-              // if we have a next project, switch to that
-              if (nextProject) {
-                setNewProject(nextProject.id);
-              } else {
-                setClientState({
-                  ...clientState,
-                  state: 'finished',
-                });
-                browserHistory.push(orgIssuesURL);
-              }
-            }}
             newOrg
           />
         ) : (
@@ -470,12 +443,12 @@ const MainContent = styled('div')`
 // the number icon will be space(2) + 30px to the left of the margin of center column
 // so we need to offset the right margin by that much
 // also hide the sidebar if the screen is too small
-const SidebarWrapper = styled('div')<{hasHeartbeatFooter: boolean}>`
+const SidebarWrapper = styled('div')`
   margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
   @media (max-width: 1150px) {
     display: none;
   }
-  flex-basis: ${p => (p.hasHeartbeatFooter ? '256px' : '240px')};
+  flex-basis: 240px;
   flex-grow: 0;
   flex-shrink: 0;
   min-width: 240px;

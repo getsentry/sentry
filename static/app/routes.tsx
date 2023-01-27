@@ -242,7 +242,7 @@ function buildRoutes() {
           <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
-            component={make(() => import('sentry/views/onboarding/onboarding'))}
+            component={make(() => import('sentry/views/onboarding'))}
           />
         </Route>
       ) : null}
@@ -252,10 +252,7 @@ function buildRoutes() {
         key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
-        <Route
-          path=":step/"
-          component={make(() => import('sentry/views/onboarding/onboarding'))}
-        />
+        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
     </Fragment>
   );
