@@ -295,6 +295,15 @@ export class Rect {
   get bottom(): number {
     return this.top + this.height;
   }
+  get centerX(): number {
+    return this.x + this.width / 2;
+  }
+  get centerY(): number {
+    return this.y + this.height / 2;
+  }
+  get center(): vec2 {
+    return [this.centerX, this.centerY];
+  }
 
   static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
     let maybeEncodedRect = query;
@@ -859,7 +868,28 @@ export function getPhysicalSpacePositionFromOffset(offsetX: number, offsetY: num
   return vec2.scale(vec2.create(), logicalMousePos, window.devicePixelRatio);
 }
 
-export function getCenterScaleMatrix(
+export function getCenterScaleMatrixFromConfigPosition(
+  scale: number,
+  centerX: number,
+  centerY: number
+) {
+  const configCenter = vec2.fromValues(centerX, centerY);
+  const invertedConfigCenter = vec2.multiply(
+    vec2.create(),
+    vec2.fromValues(-1, -1),
+    vec2.fromValues(centerX, centerY)
+  );
+
+  const centerScaleMatrix = mat3.create();
+  mat3.fromTranslation(centerScaleMatrix, configCenter);
+  mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+  mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
+  return centerScaleMatrix;
+}
+
+// Translates the offsetX and offsetY into a config space position to find the center
+// and apply the scaling transformation from there
+export function getCenterScaleMatrixFromMousePosition(
   scale: number,
   offsetX: number,
   offsetY: number,
@@ -872,18 +902,44 @@ export function getCenterScaleMatrix(
   );
 
   const configCenter = vec2.fromValues(configSpaceMouse[0], view.configView.y);
+  return getCenterScaleMatrixFromConfigPosition(scale, configCenter[0], configCenter[1]);
+}
 
-  const invertedConfigCenter = vec2.multiply(
-    vec2.create(),
-    vec2.fromValues(-1, -1),
-    configCenter
+export function getTranslationMatrixFromConfigSpace(deltaX: number, deltaY: number) {
+  const configDelta = vec2.fromValues(deltaX, deltaY);
+  return mat3.fromTranslation(mat3.create(), configDelta);
+}
+
+// Translates the offsetX and offsetY into a config space units and return a translation
+// matrix that can be applied to the view
+export function getTranslationMatrixFromPhysicalSpace(
+  deltaX: number,
+  deltaY: number,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas,
+  multiplierX: number = 0.8,
+  multiplierY: number = 1
+) {
+  const physicalDelta = vec2.fromValues(deltaX * multiplierX, deltaY * multiplierY);
+  const physicalToConfig = mat3.invert(
+    mat3.create(),
+    view.fromConfigView(canvas.physicalSpace)
   );
+  const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
-  const centerScaleMatrix = mat3.create();
-  mat3.fromTranslation(centerScaleMatrix, configCenter);
-  mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
-  mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
-  return centerScaleMatrix;
+  const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+    m00,
+    m01,
+    m02,
+    m10,
+    m11,
+    m12,
+    0,
+    0,
+    0,
+  ]);
+
+  return getTranslationMatrixFromConfigSpace(configDelta[0], configDelta[1]);
 }
 
 export function getConfigViewTranslationBetweenVectors(
