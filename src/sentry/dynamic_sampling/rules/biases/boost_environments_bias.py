@@ -9,6 +9,13 @@ from sentry.dynamic_sampling.rules.biases.base import (
 )
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, BaseRule, RuleType
 
+ENVIRONMENT_GLOBS = [
+    "*dev*",
+    "*test*",
+    "*qa*",
+    "*local*",
+]
+
 
 class BoostEnvironmentsDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
@@ -27,7 +34,7 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
                         {
                             "op": "glob",
                             "name": "trace.environment",
-                            "value": ["*dev*", "*test*"],
+                            "value": ENVIRONMENT_GLOBS,
                             "options": {"ignoreCase": True},
                         }
                     ],

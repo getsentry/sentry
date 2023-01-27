@@ -7,6 +7,7 @@ from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling import (
+    ENVIRONMENT_GLOBS,
     HEALTH_CHECK_GLOBS,
     RESERVED_IDS,
     Platform,
@@ -53,7 +54,7 @@ DEFAULT_ENVIRONMENT_RULE = {
             {
                 "op": "glob",
                 "name": "trace.environment",
-                "value": ["*dev*", "*test*"],
+                "value": ENVIRONMENT_GLOBS,
                 "options": {"ignoreCase": True},
             }
         ],
@@ -324,7 +325,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "glob",
                             "name": "trace.environment",
-                            "value": ["*dev*", "*test*"],
+                            "value": ENVIRONMENT_GLOBS,
                             "options": {"ignoreCase": True},
                         }
                     ],
