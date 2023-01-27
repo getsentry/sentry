@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, Optional, Tuple
+from typing import IO, Iterable, List, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -54,6 +54,24 @@ class PublicReleaseFileManager(models.Manager):
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
+class ReleaseFileManager(BaseManager):  # type: ignore
+    def find_missing(self, checksums: Iterable[str], release: Release) -> List[str]:
+        if not checksums:
+            return []
+
+        checksums = [x.lower() for x in checksums]
+        missing = set(checksums)
+
+        found = ReleaseFile.objects.filter(ident__in=checksums, release_id=release.id).values(
+            "sha1"
+        )
+
+        for values in found:
+            missing.discard(list(values.values())[0])
+
+        return sorted(missing)
+
+
 @region_silo_only_model
 class ReleaseFile(Model):
     r"""
@@ -81,7 +99,7 @@ class ReleaseFile(Model):
 
     __repr__ = sane_repr("release", "ident")
 
-    objects = BaseManager()  # The default manager.
+    objects = ReleaseFileManager()
     public_objects = PublicReleaseFileManager()
 
     class Meta:

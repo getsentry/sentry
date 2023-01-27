@@ -162,6 +162,11 @@ class ReleaseFilesMixin:
 
         return Response(serialize(releasefile, request.user), status=201)
 
+    def find_missing_releasefiles(self, request: Request, release) -> Response:
+        checksums = request.GET.getlist("checksums")
+        missing = ReleaseFile.objects.find_missing(checksums, release=release)
+        return Response(missing)
+
 
 class ArtifactSource:
     """Provides artifact data to ChainPaginator on-demand"""

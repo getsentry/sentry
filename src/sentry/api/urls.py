@@ -310,6 +310,7 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
+from .endpoints.organization_missing_release_files import OrganizationMissingReleaseFilesEndpoint
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
@@ -390,6 +391,7 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_missing_release_files import ProjectMissingReleaseFilesEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
@@ -1472,6 +1474,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-release-file-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/missing-files/$",
+                    OrganizationMissingReleaseFilesEndpoint.as_view(),
+                    name="sentry-api-0-organization-missing-release-files",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$",
                     CommitFileChangeEndpoint.as_view(),
                     name="sentry-api-0-release-commitfilechange",
@@ -2066,6 +2073,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     ProjectReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-release-file-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/missing-files/$",
+                    ProjectMissingReleaseFilesEndpoint.as_view(),
+                    name="sentry-api-0-project-missing-release-files",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$",
