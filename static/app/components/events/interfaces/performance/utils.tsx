@@ -36,7 +36,7 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
     'Large render blocking assets are a type of resource that is delaying the First Contentful Paint (FCP). Delaying FCP impacts how long it takes to initially load the page for the user. The resource may take form of a script, stylesheet, image, or other asset that may require optimization. To learn more about how to fix large render blocking assets, check out these resources:'
   ),
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: t(
-    'Uncompressed assets are asset spans that take over 200ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
+    'Uncompressed assets are asset spans that take over 500ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
   ),
   [IssueType.ERROR]: '',
 };
