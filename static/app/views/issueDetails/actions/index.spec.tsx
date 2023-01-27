@@ -157,68 +157,66 @@ describe('GroupActions', function () {
     });
   });
 
-  describe('issue-actions-v2', () => {
-    const org = {...organization, features: ['issue-actions-v2', 'shared-issues']};
-    it('opens share modal from more actions dropdown', async () => {
-      render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={org}
-          disabled={false}
-        />,
-        {organization: org}
-      );
+  it('opens share modal from more actions dropdown', async () => {
+    const org = {...organization, features: ['shared-issues']};
+    render(
+      <GroupActions
+        group={group}
+        project={project}
+        organization={org}
+        disabled={false}
+      />,
+      {organization: org}
+    );
 
-      userEvent.click(screen.getByLabelText('More Actions'));
+    userEvent.click(screen.getByLabelText('More Actions'));
 
-      const openModal = jest.spyOn(ModalStore, 'openModal');
-      userEvent.click(await screen.findByText('Share'));
+    const openModal = jest.spyOn(ModalStore, 'openModal');
+    userEvent.click(await screen.findByText('Share'));
 
-      await waitFor(() => expect(openModal).toHaveBeenCalled());
+    await waitFor(() => expect(openModal).toHaveBeenCalled());
+  });
+
+  it('resolves and unresolves issue', () => {
+    const issuesApi = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
     });
 
-    it('resolves and unresolves issue', () => {
-      const issuesApi = MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/project/issues/`,
-        method: 'PUT',
-        body: {...group, status: 'resolved'},
-      });
+    const {rerender} = render(
+      <GroupActions
+        group={group}
+        project={project}
+        organization={organization}
+        disabled={false}
+      />,
+      {organization}
+    );
 
-      const {rerender} = render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={org}
-          disabled={false}
-        />,
-        {organization: org}
-      );
+    userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
-      userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    expect(issuesApi).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/project/issues/`,
+      expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
+    );
 
-      expect(issuesApi).toHaveBeenCalledWith(
-        `/projects/${org.slug}/project/issues/`,
-        expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
-      );
+    rerender(
+      <GroupActions
+        group={{...group, status: 'resolved'}}
+        project={project}
+        organization={organization}
+        disabled={false}
+      />
+    );
 
-      rerender(
-        <GroupActions
-          group={{...group, status: 'resolved'}}
-          project={project}
-          organization={org}
-          disabled={false}
-        />
-      );
+    const resolvedButton = screen.getByRole('button', {name: 'Resolved'});
+    expect(resolvedButton).toBeInTheDocument();
+    userEvent.click(resolvedButton);
 
-      const resolvedButton = screen.getByRole('button', {name: 'Resolved'});
-      expect(resolvedButton).toBeInTheDocument();
-      userEvent.click(resolvedButton);
-
-      expect(issuesApi).toHaveBeenCalledWith(
-        `/projects/${org.slug}/project/issues/`,
-        expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
-      );
-    });
+    expect(issuesApi).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/project/issues/`,
+      expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
+    );
   });
 });
