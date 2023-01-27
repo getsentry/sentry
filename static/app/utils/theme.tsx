@@ -902,8 +902,8 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-  prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
-  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
+  stacktraceActiveBackground: lightColors.gray500,
+  stacktraceActiveText: lightColors.white,
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
@@ -929,6 +929,8 @@ export const darkTheme: Theme = {
   level: generateLevelTheme(darkColors),
   prismVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  stacktraceActiveBackground: darkColors.gray200,
+  stacktraceActiveText: darkColors.white,
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
