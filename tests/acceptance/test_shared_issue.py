@@ -26,5 +26,5 @@ class SharedIssueTest(AcceptanceTestCase):
             f"/organizations/{self.org.slug}/share/issue/{event.group.get_share_id()}/"
         )
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.wait_until_test_id("event-entries-loading-false")
+        self.browser.wait_until_not('[data-test-id="event-entries-loading-false"]')
         self.browser.snapshot("shared issue python")
