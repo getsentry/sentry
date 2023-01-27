@@ -200,7 +200,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                     "errors": [
                         SourceMapProcessingIssue(
                             SourceMapProcessingIssue.DIST_MISMATCH,
-                            data={"artifactDist": artifact.dist_id, "eventDist": dist.id},
                         ).get_api_context()
                     ],
                 }
