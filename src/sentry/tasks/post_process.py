@@ -8,7 +8,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import eventstore, features
+from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -325,6 +325,7 @@ def post_process_group(
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
+        from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,  # We use the data being present/missing in the processing store; to ensure that we don't duplicate work should the forwarding consumers; need to rewind history.
@@ -332,6 +333,7 @@ def post_process_group(
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
+        occurrence = None
         if occurrence_id is None:
             data = event_processing_store.get(cache_key)
             if not data:
@@ -370,8 +372,6 @@ def post_process_group(
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
             event = eventstore.get_event_by_id(project_id, occurrence.event_id, group_id=group_id)
-            event: GroupEvent = event.for_group(event.group)
-            event.occurrence = occurrence
 
         set_current_event_project(event.project_id)
 
@@ -421,6 +421,9 @@ def post_process_group(
         group_events: Mapping[int, GroupEvent] = {
             ge.group_id: ge for ge in list(event.build_group_events())
         }
+        if occurrence is not None:
+            for ge in group_events.values():
+                ge.occurrence = occurrence
 
         multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
             (group_events.get(gs.get("id")), gs)
