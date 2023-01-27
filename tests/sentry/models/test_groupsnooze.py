@@ -63,6 +63,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
         )
         assert snooze.is_valid(test_rates=True)
 
+    @freeze_time()
     def test_user_delta_reached(self):
         for i in range(0, 100):
             self.store_event(
