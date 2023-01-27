@@ -1390,11 +1390,30 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE.value,
+            metrics=[SessionMRI.ALL.value, SessionMRI.CRASHED.value],
+            unit="sessions",
+            snql=lambda all_count, crashed_count, project_ids, org_id, metric_ids, alias=None: subtraction(
+                all_count, crashed_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
             metrics=[SessionMRI.CRASH_USER_RATE.value],
             unit="percentage",
             snql=lambda crash_user_rate_value, project_ids, org_id, metric_ids, alias=None: complement(
                 crash_user_rate_value, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_USER.value,
+            metrics=[
+                SessionMRI.ALL_USER.value,
+                SessionMRI.CRASHED_USER.value,
+            ],
+            unit="users",
+            snql=lambda all_user_count, crashed_user_count, project_ids, org_id, metric_ids, alias=None: subtraction(
+                all_user_count, crashed_user_count, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
