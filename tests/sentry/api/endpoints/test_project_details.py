@@ -140,8 +140,9 @@ class ProjectDetailsTest(APITestCase):
         assert response.data["stats"]["unresolved"] == 1
 
     def test_has_alert_integration(self):
-        integration = Integration.objects.create(provider="msteams")
-        integration.add_organization(self.organization)
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(provider="msteams")
+            integration.add_organization(self.organization)
 
         project = self.create_project()
         self.create_group(project=project)
@@ -155,8 +156,9 @@ class ProjectDetailsTest(APITestCase):
         assert response.data["hasAlertIntegrationInstalled"]
 
     def test_no_alert_integration(self):
-        integration = Integration.objects.create(provider="jira")
-        integration.add_organization(self.organization)
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(provider="jira")
+            integration.add_organization(self.organization)
 
         project = self.create_project()
         self.create_group(project=project)

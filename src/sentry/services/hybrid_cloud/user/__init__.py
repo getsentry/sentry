@@ -62,6 +62,9 @@ class APIUser:
             return self.avatar.avatar_type
         return "letter_avatar"
 
+    def get_verified_emails(self) -> List[APIUserEmail]:
+        return [email for email in self.useremails if email.is_verified]
+
     def class_name(self) -> str:
         return "User"
 

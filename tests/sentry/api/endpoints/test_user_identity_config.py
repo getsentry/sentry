@@ -63,7 +63,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         org_ident = identities[("org-identity", "dummy")]
         assert org_ident["status"] == "needed_for_org_auth"
         assert org_ident["isLogin"] is True
-        assert org_ident["organization"]["id"] == str(self.organization.id)
+        assert org_ident["organization"]["id"] == self.organization.id
 
     @mock.patch("sentry.api.serializers.models.user_identity_config.is_login_provider")
     def test_identity_needed_for_global_auth(self, mock_is_login_provider):
@@ -182,7 +182,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         assert org_ident["id"] == str(org_obj.id)
         assert org_ident["category"] == "org-identity"
         assert org_ident["status"] == "needed_for_org_auth"
-        assert org_ident["organization"]["id"] == str(self.organization.id)
+        assert org_ident["organization"]["id"] == self.organization.id
 
     def test_enforces_ownership_by_user(self):
         another_user = self.create_user()

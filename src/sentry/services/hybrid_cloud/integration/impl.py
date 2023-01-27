@@ -4,13 +4,16 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
 from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.models.user import User
 from sentry.services.hybrid_cloud import ApiPaginationArgs, ApiPaginationResult
 from sentry.services.hybrid_cloud.integration import (
     APIIntegration,
     APIOrganizationIntegration,
     IntegrationService,
 )
+from sentry.services.hybrid_cloud.user import APIUser
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -63,7 +66,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             queryset=queryset,
         )
 
-    def get_integrations(
+    def query_integrations(
         self,
         *,
         integration_ids: Iterable[int] | None = None,
@@ -72,7 +75,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         providers: List[str] | None = None,
         org_integration_status: int | None = None,
         limit: int | None = None,
-    ) -> List[APIIntegration]:
+    ):
         integration_kwargs: Dict[str, Any] = {}
         if integration_ids is not None:
             integration_kwargs["id__in"] = integration_ids
@@ -93,6 +96,50 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if limit is not None:
             integrations = integrations[:limit]
 
+    def serialize_integrations(
+        self,
+        *,
+        as_user: User | APIUser | None = None,
+        integration_ids: Iterable[int] | None = None,
+        organization_id: int | None = None,
+        status: int | None = None,
+        providers: List[str] | None = None,
+        org_integration_status: int | None = None,
+        limit: int | None = None,
+    ) -> List[Any]:
+        integrations = self.query_integrations(
+            integration_ids=integration_ids,
+            organization_id=-organization_id,
+            status=status,
+            providers=providers,
+            org_integration_status=org_integration_status,
+            limit=limit,
+        )
+
+        return serialize(  # type: ignore
+            integrations,
+            user=as_user,
+        )
+
+    def get_integrations(
+        self,
+        *,
+        integration_ids: Iterable[int] | None = None,
+        organization_id: int | None = None,
+        status: int | None = None,
+        providers: List[str] | None = None,
+        org_integration_status: int | None = None,
+        limit: int | None = None,
+    ) -> List[APIIntegration]:
+        integrations = self.query_integrations(
+            integration_ids=integration_ids,
+            organization_id=-organization_id,
+            status=status,
+            providers=providers,
+            org_integration_status=org_integration_status,
+            limit=limit,
+        )
+
         return [self._serialize_integration(integration) for integration in integrations]
 
     def get_integration(
@@ -103,6 +150,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         external_id: str | None = None,
         organization_id: int | None = None,
     ) -> APIIntegration | None:
+        # TODO: refactor this to use the query method
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
             integration_kwargs["id"] = integration_id

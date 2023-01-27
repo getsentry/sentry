@@ -6,8 +6,6 @@ from rest_framework.response import Response
 from sentry.api.exceptions import EmailVerificationRequired, SudoRequired
 from sentry.models import ApiKey
 from sentry.models.apitoken import is_api_token_auth
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import APIUser
 
 
 def is_considered_sudo(request):
@@ -40,21 +38,8 @@ def sudo_required(func):
 def email_verification_required(func):
     @wraps(func)
     def wrapped(self, request: Request, *args, **kwargs) -> Response:
-        if isinstance(request.user, User):
-            if not request.user.get_verified_emails().exists():
-                raise EmailVerificationRequired(request.user)
-        elif isinstance(request.user, APIUser):
-            has_verified_email = False
-            for email in request.user.useremails:
-                if email.is_verified:
-                    has_verified_email = True
-                    break
-            if not has_verified_email:
-                raise EmailVerificationRequired(request.user)
-        else:
-            raise NotImplementedError(
-                "email_verification_required doesn't handle this type of user input"
-            )
+        if len(request.user.get_verified_emails()) == 0:
+            raise EmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 
     return wrapped

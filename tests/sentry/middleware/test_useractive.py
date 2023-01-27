@@ -5,6 +5,7 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 from sentry.middleware.user import UserActiveMiddleware
+from sentry.models.user import User
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -31,4 +32,5 @@ class UserActiveMiddlewareTest(TestCase):
         user.last_active = None
         resp = self.middleware.process_view(req, self.view, [], {})
         assert resp is None
+        user = User.objects.get(id=user.id)
         assert timezone.now() - user.last_active < timedelta(minutes=1)

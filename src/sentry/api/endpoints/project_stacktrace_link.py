@@ -12,7 +12,8 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.utils.codecov import get_codecov_data
-from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.models import Project, RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
@@ -190,13 +191,15 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
-        integrations = Integration.objects.filter(organizations=project.organization_id)
+        integrations = integration_service.serialize_integrations(
+            organization_ids=[project.organization_id], as_user=request.user
+        )
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
-            serialize(i, request.user)
+            i
             for i in integrations
-            if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
+            if IntegrationFeatures.STACKTRACE_LINK in i["provider"]["features"]
         ]
 
         # xxx(meredith): if there are ever any changes to this query, make

@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 from sentry.constants import ObjectStatus
+from sentry.models.user import User
 from sentry.services.hybrid_cloud import (
     ApiPaginationArgs,
     ApiPaginationResult,
@@ -13,6 +14,7 @@ from sentry.services.hybrid_cloud import (
     silo_mode_delegation,
     stubbed,
 )
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -126,6 +128,23 @@ class IntegrationService(InterfaceWithLifecycle):
     ) -> List[APIIntegration]:
         """
         Returns all APIIntegrations matching the provided kwargs.
+        """
+        pass
+
+    @abstractmethod
+    def serialize_integrations(
+        self,
+        *,
+        as_user: User | APIUser | None = None,
+        integration_ids: Iterable[int] | None = None,
+        organization_id: int | None = None,
+        status: int | None = None,
+        providers: List[str] | None = None,
+        org_integration_status: int | None = None,
+        limit: int | None = None,
+    ) -> List[Any]:
+        """
+        Returns a list of serialized integrations as dicts matching the provided kwargs.
         """
         pass
 
