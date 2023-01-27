@@ -7,6 +7,7 @@ import uniq from 'lodash/uniq';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import type {EventErrorData} from 'sentry/components/events/errorItem';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -35,11 +36,11 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
-import {Error, EventErrors} from './errors';
 import {EventAttachments} from './eventAttachments';
 import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
+import {EventErrors} from './eventErrors';
 import {EventEvidence} from './eventEvidence';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
@@ -84,7 +85,7 @@ function hasThreadOrExceptionMinifiedFrameData(definedEvent: Event, bestThread?:
     : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
 }
 
-type ProGuardErrors = Array<Error>;
+type ProGuardErrors = Array<EventErrorData>;
 
 type Props = {
   location: Location;
@@ -326,7 +327,6 @@ const EventEntries = ({
       {hasErrors && !isLoading && (
         <EventErrors
           event={event}
-          orgSlug={orgSlug}
           projectSlug={projectSlug}
           proGuardErrors={proGuardErrors}
         />
@@ -340,12 +340,13 @@ const EventEntries = ({
         />
       )}
       {event.userReport && group && (
-        <StyledEventUserFeedback
-          report={event.userReport}
-          orgId={orgSlug}
-          issueId={group.id}
-          includeBorder={!hasErrors}
-        />
+        <EventDataSection title="User Feedback" type="user-feedback">
+          <EventUserFeedback
+            report={event.userReport}
+            orgId={orgSlug}
+            issueId={group.id}
+          />
+        </EventDataSection>
       )}
       {showTagSummary && (
         <EventTagsAndScreenshot
@@ -518,19 +519,6 @@ const BorderlessEventEntries = styled(EventEntries)`
     padding-top: 0;
     border-top: 0;
   }
-`;
-
-type StyledEventUserFeedbackProps = {
-  includeBorder: boolean;
-};
-
-const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
-  border-radius: 0;
-  box-shadow: none;
-  padding: ${space(3)} ${space(4)} 0 40px;
-  border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
-  margin: 0;
 `;
 
 const StyledReplayEventDataSection = styled(EventDataSection)`
