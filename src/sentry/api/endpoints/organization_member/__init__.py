@@ -6,9 +6,17 @@ from django.db import transaction
 from rest_framework.request import Request
 
 from sentry import roles
+from sentry.api.exceptions import SentryAPIException, status
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
-from sentry.roles.manager import Role
+from sentry.roles.manager import Role, TeamRole
+
+
+class InvalidTeam(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid_team"
+    message = "The team slug does not match a team in the organization"
 
 
 @transaction.atomic
@@ -37,6 +45,29 @@ def save_team_assignments(
             for team, role in new_assignments
         ]
     )
+
+
+def can_set_team_role(access: Access, team: Team, new_role: TeamRole) -> bool:
+    if not can_admin_team(access, team):
+        return False
+
+    org_role = access.get_organization_role()
+    if org_role and org_role.can_manage_team_role(new_role):
+        return True
+
+    team_role = access.get_team_role(team)
+    if team_role and team_role.can_manage(new_role):
+        return True
+
+    return False
+
+
+def can_admin_team(access: Access, team: Team) -> bool:
+    if access.has_scope("org:write"):
+        return True
+    if not access.has_team_membership(team):
+        return False
+    return access.has_team_scope(team, "team:write")
 
 
 def get_allowed_org_roles(
