@@ -904,6 +904,8 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
+  prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
+  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
