@@ -339,6 +339,21 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
 
+    def test_cannot_update_idp_role_restricted_member_role(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+            teams=[],
+            flags=OrganizationMember.flags["idp:role-restricted"],
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=403)
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+
     def test_can_update_with_retired_role_without_flag(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
@@ -546,6 +561,19 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         assert not OrganizationMember.objects.filter(
             user=other_user, organization=self.organization
         ).exists()
+
+    def test_cannot_delete_idp_provisioned_member(self):
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+            flags=OrganizationMember.flags["idp:provisioned"],
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id)
+
+        assert OrganizationMember.objects.filter(id=member_om.id).exists()
 
 
 @region_silo_test
