@@ -54,8 +54,8 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 function=is_capstone_message,
                 next_step=RunTaskInThreads(
                     processing_function=move_replay_to_permanent_storage,
-                    concurrency=16,
-                    max_pending_futures=32,
+                    concurrency=4,
+                    max_pending_futures=16,
                     next_step=CommitOffsets(commit),
                 ),
             ),
