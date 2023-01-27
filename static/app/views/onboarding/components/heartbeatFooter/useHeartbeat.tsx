@@ -21,6 +21,10 @@ export function useHeartbeat(
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstTransactionReceived, setFirstTransactionReceived] = useState(false);
   const [hasSession, setHasSession] = useState(false);
+  const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
+
+  const serverConnected = hasSession || firstTransactionReceived;
+
   const {
     isLoading: eventIsLoading,
     refetch: eventRefetch,
@@ -54,7 +58,7 @@ export function useHeartbeat(
     {
       staleTime: 0,
       refetchInterval: DEFAULT_POLL_INTERVAL,
-      enabled: !!projectId && !(hasSession || firstTransactionReceived), // Fetch only if the project is available and we if a connection to Sentry was not yet established,
+      enabled: !!projectId && !serverConnected, // Fetch only if the project is available and we if a connection to Sentry was not yet established,
       onSuccess: data => {
         const hasHealthData =
           getCount(data.groups, SessionFieldWithOperation.SESSIONS) > 0;
@@ -68,23 +72,19 @@ export function useHeartbeat(
   // *not* include sample events, while just looking at the issues list will.
   // We will wait until the project.firstEvent is set and then locate the
   // event given that event datetime
-  const {
-    data: issuesData,
-    refetch: issuesRefetch,
-    isFetchedAfterMount: issuesIsFetchedAfterMount,
-  } = useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
-    staleTime: Infinity,
-    enabled: !!firstError, // Only fetch if an error event is received,
-  });
+  const {refetch: issuesRefetch} = useQuery<Group[]>(
+    [`/projects/${organization.slug}/${projectSlug}/issues/`],
+    {
+      staleTime: 0,
+      enabled: !!firstError && !firstIssue, // Only fetch if an error event is received and we have not yet located the first issue,
+      onSuccess: data => {
+        setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
+      },
+    }
+  );
 
-  const firstErrorReceived =
-    !!firstError && issuesData
-      ? issuesData.find((issue: Group) => issue.firstSeen === firstError) || true
-      : false;
-
-  const serverConnected = hasSession || firstTransactionReceived;
-  const isFetchedAfterMount =
-    eventIsFetchedAfterMount && sessionIsFetchedAfterMount && issuesIsFetchedAfterMount;
+  const firstErrorReceived = firstIssue ?? !!firstError;
+  const isFetchedAfterMount = eventIsFetchedAfterMount && sessionIsFetchedAfterMount;
   const loading = eventIsLoading || sessionIsLoading || !isFetchedAfterMount;
 
   useEffect(() => {
