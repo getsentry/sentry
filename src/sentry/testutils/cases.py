@@ -1156,13 +1156,12 @@ class SnubaTestCase(BaseTestCase):
     # container.
     # To avoid the dates mismatching at UTC midnight, wait for X seconds
     # if the date would change if getting a previous date.
-    def same_date_second_before_now(self):
+    def same_date_before_now(self, **kwargs):
         now = datetime.utcnow()
-        altered = datetime.utcnow() - timedelta(seconds=1)
-        if now.date() != altered.date():
-            sleep = 2
-            time.sleep(sleep)
-        return before_now(seconds=1)
+        before = datetime.utcnow() - timedelta(**kwargs)
+        if now.date() != before.date():
+            time.sleep((now - before).total_seconds() + 1)
+        return before_now(**kwargs)
 
 
 class BaseMetricsTestCase(SnubaTestCase):

@@ -600,6 +600,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["data"][0]["count()"] == 1
 
     def test_generic_issue_ids_filter(self):
+        issue_time = self.same_date_before_now(minutes=15).replace(tzinfo=timezone.utc)
+
         user_data = {
             "id": self.user.id,
             "username": "user",
@@ -611,7 +613,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
+            issue_time,
             user=user_data,
         )
 
@@ -3008,6 +3010,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert result == {"catherine", "cathy@example.com"}
 
     def test_user_display_issue_platform(self):
+        issue_time = self.same_date_before_now(minutes=2).replace(tzinfo=timezone.utc)
         project1 = self.create_project()
         user_data = {
             "id": self.user.id,
@@ -3020,7 +3023,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             1,
             ["group1-fingerprint"],
             None,
-            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
+            issue_time,
             user=user_data,
         )
 

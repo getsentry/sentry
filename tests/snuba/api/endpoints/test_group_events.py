@@ -436,7 +436,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         )
 
     def test_generic_issue(self):
-        sec_ago = self.same_date_second_before_now().replace(tzinfo=timezone.utc)
+        sec_ago = self.same_date_before_now(seconds=1).replace(tzinfo=timezone.utc)
         event_1, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
