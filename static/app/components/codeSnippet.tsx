@@ -11,12 +11,14 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-interface CodeSnippetProps extends React.HTMLAttributes<HTMLDivElement> {
+interface CodeSnippetProps {
   children: string;
   language: keyof typeof Prism.languages;
+  className?: string;
   dark?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  onCopy?: (copiedCode: string) => void;
 }
 
 export function CodeSnippet({
@@ -25,8 +27,8 @@ export function CodeSnippet({
   dark,
   filename,
   hideCopyButton,
+  onCopy,
   className,
-  ...wrapperProps
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -40,6 +42,7 @@ export function CodeSnippet({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(children);
+      onCopy?.(children);
       setTooltipState('copied');
     } catch (err) {
       setTooltipState('error');
@@ -54,7 +57,7 @@ export function CodeSnippet({
       : t('Unable to copy');
 
   return (
-    <Wrapper className={`${className} ${dark ? 'prism-dark' : ''}`} {...wrapperProps}>
+    <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
       <Header hasFileName={!!filename}>
         {filename && <Title>{filename}</Title>}
         {!hideCopyButton && (
