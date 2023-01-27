@@ -34,6 +34,7 @@ function useStacktraceLink(
     {
       staleTime: Infinity,
       retry: false,
+      refetchOnWindowFocus: false,
       ...options,
     }
   );
