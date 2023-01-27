@@ -48,7 +48,7 @@ export class FlamegraphRenderer2d {
   }
 
   getColorForFrame(frame: FlamegraphFrame): number[] {
-    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
+    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
   }
 
   // We dont really need this in node, it's just here for completeness and it makes
@@ -83,7 +83,7 @@ export class FlamegraphRenderer2d {
       ).transformRect(configViewToPhysicalSpace);
 
       const colors =
-        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
+        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
       const color = colorComponentsToRgba(colors);
 
       context.fillStyle = color;
