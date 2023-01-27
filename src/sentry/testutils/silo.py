@@ -176,47 +176,43 @@ def psql_function(
     return_type="text",
 ) -> str:
     params_encoded = ", ".join(" ".join(t) for t in params)
-    pg_locals_encoded = "; ".join(" ".join(t) for t in pg_locals)
-    return f"create or replace function {name}({params_encoded}) returns text as $$ declare {pg_locals_encoded} begin {body} end $$ language 'plpsql'"
+    pg_locals_encoded = " ".join(f"{name} {t};" for name, t in pg_locals)
+    return f"create or replace function {name}({params_encoded}) returns text as $$ declare {pg_locals_encoded} begin {body} end $$ language 'plpgsql'"
 
 
-duplicate_role_body = """
-EXECUTE 'CREATE ROLE ' || to_name;
-FOR info IN
-    select * from information_schema.table_privileges where table_schema='public' and grantee = 'A'
-LOOP
-    /*this is the main statement to grant any privilege*/
-    execute 'GRANT '|| info.privilege_type ||' on table public.'|| info.table_name || ' to ' || from_name;
-END LOOP;
-return '';
-"""
+duplicate_role_func = psql_function(
+    "duplicate_role",
+    """
+    EXECUTE 'CREATE ROLE ' || to_name;
+    FOR info IN
+        select * from information_schema.table_privileges where table_schema='public' and grantee = 'A'
+    LOOP
+        /*this is the main statement to grant any privilege*/
+        execute 'GRANT '|| info.privilege_type ||' on table public.'|| info.table_name || ' to ' || from_name;
+    END LOOP;
+    return '';
+    """,
+    (("from_name", "text"), ("to_name", "text")),
+    (("info", "record"),),
+)
 
 
 # Only use this is in tests -- it's not safe to allow in any production use case.
 def duplicate_user(from_user: str, to_user: str, connection: Any):
+    connection.execute(duplicate_role_func)
     connection.execute(
-        psql_function(
-            "duplicate_role", duplicate_role_body, (("from_name", "text"), ("to_name", "text"))
-        ),
-        (("info", "record")),
-    )
-    connection.execute(
-        psql_function(
-            "SELECT duplicate_role(%s, %s)",
-            [
-                from_user,
-                to_user,
-            ],
-        )
+        "SELECT duplicate_role(%s, %s)",
+        [
+            from_user,
+            to_user,
+        ],
     )
 
 
-def reset_test_role(role: str, from_role: str | None = None):
-    for name, config in connections.databases.items():
-        with connections[name].cursor() as connection:
-            connection.execute(f"DROP ROLE IF EXISTS {role}")
-            connection.execute(f"CREATE ROLE {role}")
-            duplicate_user(from_role or config["user"], role, connection)
+def reset_test_role(role: str, from_role: str):
+    with connections["default"].cursor() as connection:
+        connection.execute(f"DROP ROLE IF EXISTS {role}")
+        duplicate_user(from_role, role, connection)
 
 
 def restrict_role_by_silo(mode: SiloMode, role: str):
@@ -229,6 +225,4 @@ def restrict_role_by_silo(mode: SiloMode, role: str):
 def restrict_role(role: str, model: Any, revocation_type: str):
     using = router.db_for_write(model)
     with connections[using].cursor() as connection:
-        connection.execute(
-            f"REVOKE {revocation_type} ON public.{model._meta.table_name} FROM {role}"
-        )
+        connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")

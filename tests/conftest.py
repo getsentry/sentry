@@ -2,9 +2,9 @@ import os
 
 import pytest
 from django.conf import settings
+from django.db import connections
 
 from sentry.silo import SiloMode
-from sentry.testutils.silo import reset_test_role, restrict_role
 
 pytest_plugins = ["sentry.utils.pytest"]
 
@@ -147,23 +147,18 @@ def validate_silo_mode():
 def protect_user_deletion():
     # "De-escalate" the default connection's permission level to prevent queryset level User deletions, and throw errors
     # that force the usage of the ORM to perform deletes.  Protects against potentially PII leaking code paths.
-    test_db = os.environ.get("DB", "postgres")
-    if test_db == "postgres":
-        from django.test import override_settings
-
-        from sentry.models import User
-
-        new_databases_config = dict(**settings.DATABASES)
-        new_databases_config["default"] = dict(**settings.DATABASES["default"])
-        new_databases_config[User._TEST__DELETE_CONNECTION_NAME] = dict(
-            **settings.DATABASES["default"]
-        )
+    if "default_privileged" in settings.DATABASES:
+        from sentry.models.user import User
+        from sentry.testutils.silo import reset_test_role, restrict_role
 
         default_role_name = settings.DATABASES["default"]["USER"]
-        reset_test_role(role="postgres_without_user_deletions", from_role=default_role_name)
+        reset_test_role(role="postgres_privileged", from_role=default_role_name)
         restrict_role(role=default_role_name, model=User, revocation_type="DELETE")
-        new_databases_config["default"]["USER"] = "postgres_without_user_deletions"
-        with override_settings(DATABASES=new_databases_config):
-            yield
-    else:
-        yield
+        with connections["default_privileged"].cursor() as connection:
+            connection.execute("SET ROLE 'postgres_privileged'")
+
+        # settings.DATABASES["default_privileged"] = dict(
+        #     **settings.DATABASES["default"]
+        # )
+        # settings.DATABASES["default_privileged"]["USER"] = "postgres_privileged"
+    yield
