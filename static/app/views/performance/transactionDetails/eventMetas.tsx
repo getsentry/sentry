@@ -24,7 +24,7 @@ import {
 import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import theme from 'sentry/utils/theme';
-import EventCreatedTooltip from 'sentry/views/organizationGroupDetails/eventCreatedTooltip';
+import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 import QuickTraceMeta from './quickTraceMeta';
 import {MetaData} from './styles';
