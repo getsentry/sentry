@@ -86,7 +86,6 @@ export function FlamegraphStateProvider(
         threadId:
           props.initialState?.profiles?.threadId ??
           DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
-        zoomIntoFrame: null,
       },
       position: {
         view: (props.initialState?.position?.view ??
@@ -180,11 +179,8 @@ export function FlamegraphStateProvider(
 
       if (defined(candidate)) {
         dispatch({
-          type: 'jump to frame',
-          payload: {
-            frame: candidate.frame,
-            threadId: candidate.threadId,
-          },
+          type: 'set thread id',
+          payload: candidate.threadId,
         });
         return;
       }
