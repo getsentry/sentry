@@ -2,7 +2,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 import {AuthProvider, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -25,12 +24,12 @@ class OrganizationAuth extends AsyncView<Props, State> {
     if (this.state.provider && access.includes('org:write')) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
-      const path = normalizeUrl(`/organizations/${organization.slug}/auth/configure/`);
+      // XXX: This does not need to be normalized for customer-domains because we're going
+      // to a django rendered view.
+      const path = `/organizations/${organization.slug}/auth/configure/`;
 
-      // Don't break the back button by first replacing the current history
-      // state so pressing back skips this react view.
-      this.props.router?.replace(path);
-      window.location.assign(path);
+      // Use replace so we don't go back to the /settings/auth and hit this path again.
+      window.location.replace(path);
     }
   }
 
