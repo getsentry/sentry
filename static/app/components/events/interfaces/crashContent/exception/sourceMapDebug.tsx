@@ -12,6 +12,9 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {PlatformType} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {
   SourceMapDebugError,
@@ -112,9 +115,9 @@ function getErrorMessage(
       return [
         {
           title: t('Invalid Absolute Path URL'),
-          desc: t(
-            'The abs_path of the stack frame has %s which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
-            error.data.absValue
+          desc: tct(
+            'The abs_path of the stack frame has [absValue] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            {absValue: <code>{error.data.absValue}</code>}
           ),
           docsLink: shortPath.includes(platform)
             ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
@@ -127,6 +130,13 @@ function getErrorMessage(
   }
 }
 
+interface ExpandableErrorListProps {
+  title: React.ReactNode;
+  children?: React.ReactNode;
+  docsLink?: React.ReactNode;
+  onExpandClick?: () => void;
+}
+
 /**
  * Kinda making this reuseable since we have this pattern in a few places
  */
@@ -134,11 +144,8 @@ function ExpandableErrorList({
   title,
   children,
   docsLink,
-}: {
-  title: React.ReactNode;
-  children?: React.ReactNode;
-  docsLink?: React.ReactNode;
-}) {
+  onExpandClick,
+}: ExpandableErrorListProps) {
   const [expanded, setExpanded] = useState(false);
   return (
     <List symbol="bullet">
@@ -150,7 +157,10 @@ function ExpandableErrorList({
               <ToggleButton
                 priority="link"
                 size="zero"
-                onClick={() => setExpanded(!expanded)}
+                onClick={() => {
+                  setExpanded(!expanded);
+                  onExpandClick?.();
+                }}
               >
                 {expanded ? t('Collapse') : t('Expand')}
               </ToggleButton>
@@ -176,7 +186,11 @@ function combineErrors(
       .filter(defined),
     error => error?.type
   );
-  const errors = combinedErrors.map(error => getErrorMessage(error, platform)).flat();
+  const errors = combinedErrors
+    .map(error =>
+      getErrorMessage(error, platform).map(message => ({...message, type: error.type}))
+    )
+    .flat();
 
   return errors;
 }
@@ -190,18 +204,38 @@ interface SourcemapDebugProps {
 }
 
 export function SourceMapDebug({debugFrames, platform}: SourcemapDebugProps) {
+  const organization = useOrganization();
   const results = useSourceMapDebugQueries(debugFrames.map(debug => debug.query));
 
-  if (!results.every(result => !result.isLoading)) {
-    return null;
-  }
+  const isLoading = results.every(result => result.isLoading);
   const errorMessages = combineErrors(
     results.map(result => result.data).filter(defined),
     platform
   );
-  if (!errorMessages.length) {
+
+  useRouteAnalyticsParams({
+    show_fix_source_map_cta: errorMessages.length > 0,
+  });
+
+  if (isLoading || !errorMessages.length) {
     return null;
   }
+
+  const handleDocsClick = (type: SourceMapProcessingIssueType) => {
+    trackAdvancedAnalyticsEvent('growth.sourcemap_docs_clicked', {
+      organization,
+      platform,
+      type,
+    });
+  };
+
+  const handleExpandClick = (type: SourceMapProcessingIssueType) => {
+    trackAdvancedAnalyticsEvent('growth.sourcemap_expand_clicked', {
+      organization,
+      platform,
+      type,
+    });
+  };
 
   return (
     <Alert
@@ -217,10 +251,14 @@ export function SourceMapDebug({debugFrames, platform}: SourcemapDebugProps) {
                 key={idx}
                 title={message.title}
                 docsLink={
-                  <DocsExternalLink href={message.docsLink}>
+                  <DocsExternalLink
+                    href={message.docsLink}
+                    onClick={() => handleDocsClick(message.type)}
+                  >
                     {t('Read Guide')}
                   </DocsExternalLink>
                 }
+                onExpandClick={() => handleExpandClick(message.type)}
               >
                 {message.desc}
               </ExpandableErrorList>

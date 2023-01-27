@@ -1,7 +1,8 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ExceptionValue} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {SourceMapDebug} from './sourceMapDebug';
 import {
@@ -9,6 +10,8 @@ import {
   SourceMapDebugError,
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
+
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('SourceMapDebug', () => {
   const organization = TestStubs.Organization({features: ['fix-source-map-cta']});
@@ -143,6 +146,42 @@ describe('SourceMapDebug', () => {
         {exact: false}
       )
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+    );
+  });
+
+  it('should expand URL_NOT_VALID description and emit an analytics event', async () => {
+    const error: SourceMapDebugError = {
+      type: SourceMapProcessingIssueType.URL_NOT_VALID,
+      message: '',
+      data: {absValue: 'absValue'},
+    };
+    MockApiClient.addMockResponse({
+      url,
+      body: {errors: [error]},
+    });
+
+    render(<SourceMapDebug debugFrames={debugFrames} platform={platform} />, {
+      organization,
+    });
+    expect(
+      await screen.findByText(
+        'We’ve encountered 1 problem de-minifying your applications source code!'
+      )
+    ).toBeInTheDocument();
+
+    const expandedMessage =
+      'The abs_path of the stack frame has absValue which is not a valid URL.';
+    expect(
+      screen.queryByText(textWithMarkupMatcher(expandedMessage))
+    ).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(1);
+
+    expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'

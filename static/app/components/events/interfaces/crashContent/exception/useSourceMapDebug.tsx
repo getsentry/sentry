@@ -136,6 +136,9 @@ const ALLOWED_PLATFORMS = [
 ];
 const MAX_FRAMES = 3;
 
+/**
+ * Check we have all required props and platform is supported
+ */
 export function debugFramesEnabled({
   platform,
   eventId,
@@ -147,7 +150,6 @@ export function debugFramesEnabled({
   organization?: Organization | null;
   projectSlug?: string;
 }) {
-  // Check we have all required props and platform is supported
   if (!organization || !organization.features || !projectSlug || !eventId) {
     return false;
   }
