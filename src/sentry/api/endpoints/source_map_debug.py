@@ -13,7 +13,14 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Organization, Project, Release, SourceMapProcessingIssue
+from sentry.models import (
+    Distribution,
+    Organization,
+    Project,
+    Release,
+    ReleaseFile,
+    SourceMapProcessingIssue,
+)
 
 
 class SourceMapProcessingIssueResponse(TypedDict):
@@ -142,6 +149,58 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                         SourceMapProcessingIssue(
                             SourceMapProcessingIssue.URL_NOT_VALID,
                             data={"absPath": abs_path},
+                        ).get_api_context()
+                    ],
+                }
+            )
+
+        release_artifacts = ReleaseFile.objects.filter(release_id=release.id)
+
+        full_matches = [
+            artifact
+            for artifact in release_artifacts
+            if urlparse(artifact.name).path == urlparts.path
+        ]
+        partial_matches = [
+            artifact
+            for artifact in release_artifacts
+            if artifact.name.endswith(urlparts.path.split("/")[-1])
+        ]
+
+        if len(full_matches) == 0:
+            if len(partial_matches) > 0:
+                return Response(
+                    {
+                        "errors": [
+                            SourceMapProcessingIssue(
+                                SourceMapProcessingIssue.PARTIAL_MATCH,
+                                data={"absPath": abs_path, "partialMatch": partial_matches[0].name},
+                            ).get_api_context()
+                        ]
+                    }
+                )
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.NO_URL_MATCH,
+                            data={"absPath": abs_path},
+                        ).get_api_context()
+                    ],
+                }
+            )
+
+        artifact = full_matches[0]
+
+        dist = Distribution.objects.get(release=release, name=event.dist)
+
+        if artifact.dist_id != dist.id:
+            return Response(
+                {
+                    "errors": [
+                        SourceMapProcessingIssue(
+                            SourceMapProcessingIssue.DIST_MISMATCH,
+                            data={"artifactDist": artifact.dist_id, "eventDist": dist.id},
                         ).get_api_context()
                     ],
                 }
