@@ -229,14 +229,16 @@ function Sidebar({location, organization}: Props) {
   );
 
   const monitors = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconTimer size="md" />}
-      label={t('Crons')}
-      to={`/organizations/${organization.slug}/crons/`}
-      id="crons"
-      isBeta
-    />
+    <Feature features={['monitors']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconTimer size="md" />}
+        label={t('Crons')}
+        to={`/organizations/${organization.slug}/crons/`}
+        id="crons"
+        isBeta
+      />
+    </Feature>
   );
 
   const replays = hasOrganization && (
