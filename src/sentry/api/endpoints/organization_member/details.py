@@ -221,7 +221,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if assigned_role and getattr(member.flags, "idp:role-restricted"):
             return Response(
                 {
-                    "role": "This user's role is managed through your organization's identity provider."
+                    "role": "This user's org-role is managed through your organization's identity provider."
                 },
                 status=403,
             )
