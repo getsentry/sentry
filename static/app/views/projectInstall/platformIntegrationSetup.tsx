@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
