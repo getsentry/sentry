@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
@@ -127,15 +127,9 @@ describe('Tag Facets', function () {
       await waitFor(() => {
         expect(tagsMock).toHaveBeenCalled();
       });
-      expect(screen.getByText('os')).toBeInTheDocument();
-      expect(screen.getAllByText('Android 12').length).toEqual(2);
-      expect(screen.getAllByText('66%').length).toEqual(2);
-      expect(screen.getByText('device')).toBeInTheDocument();
-      expect(screen.getByText('iPhone10')).toBeInTheDocument();
-      expect(screen.getByText('27%')).toBeInTheDocument();
-      expect(screen.getByText('release')).toBeInTheDocument();
-      expect(screen.getByText('106.0')).toBeInTheDocument();
-      expect(screen.getByText('100%')).toBeInTheDocument();
+      expect(screen.getByRole('listitem', {name: 'os'})).toBeInTheDocument();
+      expect(screen.getByRole('listitem', {name: 'device'})).toBeInTheDocument();
+      expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
     });
 
     it('expands first tag distribution by default', async function () {
@@ -154,8 +148,34 @@ describe('Tag Facets', function () {
       await waitFor(() => {
         expect(tagsMock).toHaveBeenCalled();
       });
-      expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
-      expect(screen.getAllByText('Android 12').length).toEqual(2);
+      expect(
+        screen.getByRole('button', {name: 'Collapse os tag distribution'})
+      ).toBeInTheDocument();
+    });
+
+    it('closes and expands tag distribution when tag header is clicked', async function () {
+      render(
+        <TagFacets
+          environments={[]}
+          groupId="1"
+          project={project}
+          tagKeys={tags}
+          tagFormatter={TAGS_FORMATTER}
+        />,
+        {
+          organization,
+        }
+      );
+      await waitFor(() => {
+        expect(tagsMock).toHaveBeenCalled();
+      });
+      expect(
+        screen.getByRole('button', {name: 'Collapse os tag distribution'})
+      ).toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', {name: 'Collapse os tag distribution'}));
+      expect(
+        screen.getByRole('button', {name: 'Expand os tag distribution'})
+      ).toBeInTheDocument();
     });
   });
 });

@@ -14,7 +14,7 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';

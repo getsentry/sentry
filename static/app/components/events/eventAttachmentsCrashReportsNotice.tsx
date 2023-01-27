@@ -1,10 +1,9 @@
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
-import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
-
-import Link from '../links/link';
+import {crashReportTypes} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
 type Props = {
   groupId: string;

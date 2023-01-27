@@ -131,7 +131,7 @@ config:
       unit: millisecond
     - name: ttfb
       unit: millisecond
-    maxCustomMeasurements: 5
+    maxCustomMeasurements: 10
   piiConfig:
     applications:
       $string:
