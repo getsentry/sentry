@@ -42,6 +42,7 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
+  MetricAlertType,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -93,6 +94,7 @@ type Props = {
 
 type State = {
   aggregate: string;
+  alertType: MetricAlertType;
   // `null` means loading
   availableActions: MetricActionTemplate[] | null;
   comparisonType: AlertRuleComparisonType;
@@ -146,9 +148,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
     const {
-      aggregate,
+      aggregate: _aggregate,
       eventTypes: _eventTypes,
-      dataset,
+      dataset: _dataset,
       name,
       showMEPAlertBanner,
     } = location?.query ?? {};
@@ -159,12 +161,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggersClone.push(createDefaultTrigger(AlertRuleTriggerType.WARNING));
     }
 
+    const aggregate = _aggregate ?? rule.aggregate;
+    const dataset = _dataset ?? rule.dataset;
+
     return {
       ...super.getDefaultState(),
 
       name: name ?? rule.name ?? '',
-      aggregate: aggregate ?? rule.aggregate,
-      dataset: dataset ?? rule.dataset,
+      aggregate,
+      dataset,
       eventTypes: eventTypes ?? rule.eventTypes ?? [],
       query: rule.query ?? '',
       timeWindow: rule.timeWindow,
@@ -182,6 +187,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       showMEPAlertBanner: showMEPAlertBanner ?? false,
+      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
     };
   }
 
@@ -448,6 +454,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    if (name === 'alertType') {
+      this.setState({
+        alertType: value as MetricAlertType,
+      });
+      return;
+    }
+
     if (
       [
         'aggregate',
@@ -457,12 +470,19 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         'environment',
         'comparisonDelta',
         'projectId',
+        'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project}) => ({
-        [name]: value,
-        project: name === 'projectId' ? projects.find(({id}) => id === value) : _project,
-      }));
+      this.setState(({project: _project, aggregate, dataset, alertType}) => {
+        const newAlertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
+        return {
+          [name]: value,
+          project:
+            name === 'projectId' ? projects.find(({id}) => id === value) : _project,
+          alertType: alertType !== newAlertType ? 'custom' : alertType,
+        };
+      });
     }
   };
 
@@ -763,6 +783,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       eventTypes,
       dataset,
       showMEPAlertBanner,
+      alertType,
     } = this.state;
 
     const chartProps = {
@@ -782,7 +803,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
     };
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
     const wizardBuilderChart = (
       <TriggersChart
@@ -872,6 +892,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                     environment: rule.environment || null,
                     owner: rule.owner,
                     projectId: project.id,
+                    alertType,
                   }}
                   saveOnBlur={false}
                   onSubmit={this.handleSubmit}
