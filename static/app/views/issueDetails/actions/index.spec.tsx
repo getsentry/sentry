@@ -3,7 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {IssueCategory} from 'sentry/types';
-import GroupActions from 'sentry/views/organizationGroupDetails/actions';
+import GroupActions from 'sentry/views/issueDetails/actions';
 
 const group = TestStubs.Group({
   id: '1337',

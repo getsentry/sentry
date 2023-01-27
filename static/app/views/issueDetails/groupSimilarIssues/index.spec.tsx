@@ -6,7 +6,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import GroupSimilarIssues from 'sentry/views/organizationGroupDetails/groupSimilarIssues';
+import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
