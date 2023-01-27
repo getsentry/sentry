@@ -127,17 +127,17 @@ function getOwnerList(
   }));
 }
 
-export function getAssignedToDisplayName(group: Group, assignedTo?: Actor) {
-  if (assignedTo?.type === 'team') {
+export function getAssignedToDisplayName(group: Group) {
+  if (group.assignedTo?.type === 'team') {
     const team = TeamStore.getById(group.assignedTo.id);
     return `#${team?.slug ?? group.assignedTo.name}`;
   }
-  if (assignedTo?.type === 'user') {
-    const user = MemberListStore.getById(assignedTo.id);
+  if (group.assignedTo?.type === 'user') {
+    const user = MemberListStore.getById(group.assignedTo.id);
     return user?.name ?? group.assignedTo.name;
   }
 
-  return group.assignedTo?.name ?? t('No-one');
+  return group.assignedTo?.name ?? t('No one');
 }
 
 function AssignedTo({group, project, event, disableDropdown = false}: AssignedToProps) {
@@ -215,16 +215,17 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
           owners={owners}
           disabled={disableDropdown}
           id={group.id}
+          assignedTo={group.assignedTo}
         >
-          {({loading, assignedTo, isOpen, getActorProps}) => (
+          {({loading, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
               <ActorWrapper>
                 {loading ? (
                   <StyledLoadingIndicator mini size={24} />
-                ) : assignedTo ? (
+                ) : group.assignedTo ? (
                   <ActorAvatar
                     data-test-id="assigned-avatar"
-                    actor={assignedTo}
+                    actor={group.assignedTo}
                     hasTooltip={false}
                     size={24}
                   />
@@ -233,7 +234,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
                     <IconUser size="md" />
                   </IconWrapper>
                 )}
-                <ActorName>{getAssignedToDisplayName(group, assignedTo)}</ActorName>
+                <ActorName>{getAssignedToDisplayName(group)}</ActorName>
               </ActorWrapper>
               {!disableDropdown && (
                 <IconChevron

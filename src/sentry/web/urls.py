@@ -421,6 +421,11 @@ urlpatterns += [
                 ),
                 url(r"^account/", generic_react_page_view, name="sentry-account-settings-generic"),
                 url(
+                    r"^organization/auth/configure/$",
+                    OrganizationAuthSettingsView.as_view(),
+                    name="sentry-customer-domain-organization-auth-provider-settings",
+                ),
+                url(
                     r"^organization/",
                     react_page_view,
                     name="sentry-customer-domain-organization-settings",
@@ -660,6 +665,16 @@ urlpatterns += [
                     name="sentry-organization-member-settings-old",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/performance/$",
+                    react_page_view,
+                    name="sentry-organization-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/performance/summary/$",
+                    react_page_view,
+                    name="sentry-organization-performance-summary",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/stats/$",
                     react_page_view,
                     name="sentry-organization-stats",
@@ -698,6 +713,7 @@ urlpatterns += [
         react_page_view,
         name="sentry-manage-project",
     ),
+    # Avatars
     url(
         r"^avatar/(?P<avatar_id>[^\/]+)/$",
         UserAvatarPhotoView.as_view(),

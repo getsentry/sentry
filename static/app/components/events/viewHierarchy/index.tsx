@@ -19,7 +19,6 @@ function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
 export type ViewHierarchyWindow = {
   alpha: number;
   height: number;
-  id: string;
   type: string;
   visible: boolean;
   width: number;
@@ -43,15 +42,22 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedWindow] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | null>(null);
+  const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
+    viewHierarchy.windows[0]
+  );
   const hierarchy = useMemo(() => {
-    return [viewHierarchy.windows[selectedWindow]];
-  }, [selectedWindow, viewHierarchy.windows]);
+    return viewHierarchy.windows;
+  }, [viewHierarchy.windows]);
 
   const renderRow: UseVirtualizedListProps<ViewHierarchyWindow>['renderRow'] = (
     r,
-    {handleExpandTreeNode}
+    {
+      handleExpandTreeNode,
+      handleRowMouseEnter,
+      handleRowClick,
+      handleRowKeyDown,
+      selectedNodeIndex,
+    }
   ) => {
     const key = `view-hierarchy-node-${r.key}`;
     const depthMarkers = Array(r.item.depth)
@@ -64,6 +70,13 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
           r.ref = n;
         }}
         style={r.styles}
+        tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+        onMouseEnter={handleRowMouseEnter}
+        onKeyDown={handleRowKeyDown}
+        onFocus={() => {
+          setSelectedNode(r.item.node);
+        }}
+        onClick={handleRowClick}
       >
         {depthMarkers}
         <Node
@@ -72,32 +85,34 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
           onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
           collapsible={!!r.item.node.children?.length}
           isExpanded={r.item.expanded}
-          onSelection={() => {
-            if (r.item.node !== selectedNode) {
-              setSelectedNode(r.item.node);
-            } else {
-              setSelectedNode(null);
-            }
-          }}
-          isSelected={selectedNode === r.item.node}
+          isFocused={selectedNodeIndex === r.key}
         />
       </TreeItem>
     );
   };
 
-  const {renderedItems, containerStyles, scrollContainerStyles} = useVirtualizedTree({
+  const {
+    renderedItems,
+    containerStyles,
+    scrollContainerStyles,
+    hoveredGhostRowRef,
+    clickedGhostRowRef,
+  } = useVirtualizedTree({
     renderRow,
     rowHeight: 20,
     scrollContainer: scrollContainerRef,
     tree: hierarchy,
     expanded: true,
     overscroll: 10,
+    initialSelectedNodeIndex: 0,
   });
 
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
       <TreeContainer>
+        <GhostRow ref={hoveredGhostRowRef} />
+        <GhostRow ref={clickedGhostRowRef} />
         <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
           <RenderedItemsContainer style={containerStyles}>
             {renderedItems}
@@ -118,7 +133,7 @@ const TreeContainer = styled('div')`
   height: 400px;
   overflow: hidden;
   overflow-y: auto;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -134,10 +149,19 @@ const RenderedItemsContainer = styled('div')`
 const TreeItem = styled('div')`
   display: flex;
   height: 20px;
+  width: 100%;
+
+  :focus {
+    outline: none;
+  }
 `;
 
 const DepthMarker = styled('div')`
   margin-left: 5px;
-  width: ${space(2)};
+  min-width: ${space(2)};
   border-left: 1px solid ${p => p.theme.gray200};
+`;
+
+const GhostRow = styled('div')`
+  top: ${space(1.5)};
 `;

@@ -259,7 +259,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {
                 "by": {},
                 "totals": {"sum(sentry.sessions.session)": 8},
-                "series": {"sum(sentry.sessions.session)": [8]},
+                "series": {"sum(sentry.sessions.session)": [0, 8]},
             }
         ]
 
@@ -301,7 +301,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {
                 "by": {},
                 "totals": {"sum(sentry.sessions.session)": 2},
-                "series": {"sum(sentry.sessions.session)": [2]},
+                "series": {"sum(sentry.sessions.session)": [0, 2]},
             }
         ]
 
@@ -335,7 +335,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {
                 "by": {},
                 "totals": {"sum(sentry.sessions.session)": 3},
-                "series": {"sum(sentry.sessions.session)": [3]},
+                "series": {"sum(sentry.sessions.session)": [0, 3]},
             }
         ]
 
@@ -369,7 +369,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {
                 "by": {},
                 "totals": {"sum(sentry.sessions.session)": 2},
-                "series": {"sum(sentry.sessions.session)": [2]},
+                "series": {"sum(sentry.sessions.session)": [0, 2]},
             }
         ]
 
@@ -410,17 +410,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         expected_output = {
             prj_foo.id: {
                 "by": {"project": prj_foo.id},
-                "series": {"sum(sentry.sessions.session)": [3.0]},
+                "series": {"sum(sentry.sessions.session)": [0, 3.0]},
                 "totals": {"sum(sentry.sessions.session)": 3.0},
             },
             self.project.id: {
                 "by": {"project": self.project.id},
-                "series": {"sum(sentry.sessions.session)": [2.0]},
+                "series": {"sum(sentry.sessions.session)": [0, 2.0]},
                 "totals": {"sum(sentry.sessions.session)": 2.0},
             },
             prj_boo.id: {
                 "by": {"project": prj_boo.id},
-                "series": {"sum(sentry.sessions.session)": [5.0]},
+                "series": {"sum(sentry.sessions.session)": [0, 5.0]},
                 "totals": {"sum(sentry.sessions.session)": 5.0},
             },
         }
@@ -2112,7 +2112,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_request_private_derived_metric(self):
         for private_name in [
             "session.crashed_and_abnormal_user",
-            "session.errored_preaggregated",
             "session.errored_set",
             "session.errored_user_all",
         ]:

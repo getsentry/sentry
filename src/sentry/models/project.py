@@ -33,7 +33,6 @@ from sentry.locks import locks
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
-from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -207,12 +206,13 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
-        url = f"/organizations/{self.organization.slug}/issues/"
+        path = f"/organizations/{self.organization.slug}/issues/"
         params = {} if params is None else params
         params["project"] = self.id
+        query = None
         if params:
-            url = url + "?" + urlencode(params)
-        return absolute_uri(url)
+            query = urlencode(params)
+        return self.organization.absolute_url(path, query=query)
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):

@@ -9,6 +9,7 @@ from freezegun import freeze_time
 
 from sentry.models import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.snuba.metrics import to_intervals
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.link_header import parse_link_header
@@ -33,6 +34,7 @@ ONE_DAY_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedel
 TWO_DAYS_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=2)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=12, minute=27, second=28, microsecond=303000)
 MOCK_DATETIME_PLUS_TEN_MINUTES = MOCK_DATETIME + datetime.timedelta(minutes=10)
+MOCK_DATETIME_PLUS_ONE_HOUR = MOCK_DATETIME + datetime.timedelta(hours=1)
 SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
 
@@ -74,6 +76,12 @@ def make_session(project, **kwargs):
 
 @region_silo_test
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
+    def adjust_start(self, date, interval):
+        return date  # sessions do not adjust start & end intervals
+
+    def adjust_end(self, date, interval):
+        return date  # sessions do not adjust start & end intervals
+
     def setUp(self):
         super().setUp()
         self.setup_fixture()
@@ -217,10 +225,15 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
 
+        # (RaduW.) Horrible hack, start and end are adjusted differently on metrics layer and in the
+        # sessions abstract this in adjust_start/adjust_end which take care of the differences
+        one_day = 24 * 60 * 60
+        expected_start = self.adjust_start(MOCK_DATETIME_START_OF_DAY, one_day)
+        expected_end = self.adjust_end(MOCK_DATETIME.replace(minute=28, second=0), one_day)
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": start_of_day_snuba_format,
-            "end": MOCK_DATETIME.replace(minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
+            "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+            "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [start_of_day_snuba_format],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
@@ -230,10 +243,15 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"project": [-1], "statsPeriod": "1d", "interval": "6h", "field": ["sum(session)"]}
         )
 
+        six_hours = 6 * 60 * 60
+        expected_start = self.adjust_start(
+            TWO_DAYS_AGO.replace(hour=18, minute=0, second=0), six_hours
+        )
+        expected_end = self.adjust_end(MOCK_DATETIME.replace(minute=28, second=0), six_hours)
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": TWO_DAYS_AGO.replace(hour=18, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
-            "end": MOCK_DATETIME.replace(minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
+            "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+            "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [
                 TWO_DAYS_AGO.replace(hour=18, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
@@ -255,10 +273,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
 
+        one_day = 24 * 60 * 60
+        expected_start = self.adjust_start(MOCK_DATETIME_START_OF_DAY, one_day)
+        expected_end = self.adjust_end(MOCK_DATETIME.replace(hour=12, minute=28, second=0), one_day)
+
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": start_of_day_snuba_format,
-            "end": MOCK_DATETIME.replace(hour=12, minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
+            "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+            "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [start_of_day_snuba_format],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
@@ -285,13 +307,20 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 }
             )
             assert response.status_code == 200, response.content
+
+            # (RaduW.) Horrible hack, start and end are adjusted differently on metrics layer and in the
+            # sessions abstract this in adjust_start/adjust_end which take care of the differences
+            ten_min = 10 * 60
+            expected_start = self.adjust_start(
+                MOCK_DATETIME.replace(hour=12, minute=0, second=0), ten_min
+            )
+            expected_end = self.adjust_end(
+                MOCK_DATETIME.replace(hour=12, minute=38, second=0), ten_min
+            )
+
             assert result_sorted(response.data) == {
-                "start": MOCK_DATETIME.replace(hour=12, minute=0, second=0).strftime(
-                    SNUBA_TIME_FORMAT
-                ),
-                "end": MOCK_DATETIME.replace(hour=12, minute=38, second=0).strftime(
-                    SNUBA_TIME_FORMAT
-                ),
+                "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+                "end": expected_end.strftime(SNUBA_TIME_FORMAT),
                 "query": "",
                 "intervals": [
                     *[
@@ -328,7 +357,9 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             if release_health.is_metrics_based():
                 # With the metrics backend, we should get exactly what we asked for,
                 # 6 intervals with 10 second length. However, because of rounding,
-                # we get it rounded to the next minute (see https://github.com/getsentry/sentry/blob/d6c59c32307eee7162301c76b74af419055b9b39/src/sentry/snuba/sessions_v2.py#L388-L392)
+                # we get it rounded to the next minute (see
+                # https://github.com/getsentry/sentry/blob/d6c59c32307eee7162301c76b74af419055b9b39/src/sentry/snuba
+                # /sessions_v2.py#L388-L392)
                 assert len(response.data["intervals"]) == 9
             else:
                 # With the sessions backend, the entire period will be aligned
@@ -361,7 +392,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         }
 
         def req(**kwargs):
-            return self.do_request(dict(default_request, **kwargs))
+            with self.feature("organizations:anr-rate"):
+                return self.do_request(dict(default_request, **kwargs))
 
         response = req()
         assert response.status_code == 200
@@ -923,7 +955,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
             "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
-
             response = self.do_request(
                 {
                     "project": [-1],
@@ -964,7 +995,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
             "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
-
             response = self.do_request(
                 {
                     "project": [-1],
@@ -1282,6 +1312,20 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
+    def adjust_start(self, start: datetime, interval: int) -> datetime:
+        # metrics align start and end to the beginning of the intervals
+        start, _end, _num_intervals = to_intervals(
+            start, start + datetime.timedelta(minutes=1), interval
+        )
+        return start
+
+    def adjust_end(self, end: datetime, interval: int) -> datetime:
+        # metrics align start and end to the beginning of the intervals
+        _start, end, _num_intervals = to_intervals(
+            end - datetime.timedelta(minutes=1), end, interval
+        )
+        return end
+
     """Repeat all tests with metrics backend"""
 
     @freeze_time(MOCK_DATETIME)
@@ -1613,7 +1657,8 @@ class OrganizationSessionsEndpointMetricsTest(
         }
 
         def req(**kwargs):
-            return self.do_request(dict(default_request, **kwargs))
+            with self.feature("organizations:anr-rate"):
+                return self.do_request(dict(default_request, **kwargs))
 
         # basic test case
         response = req()
@@ -1651,6 +1696,23 @@ class OrganizationSessionsEndpointMetricsTest(
                 },
             },
         ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_anr_rate_without_feature_flag(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["anr_rate()"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        # basic test case
+        response = req()
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "This organization does not have the ANR rate feature"}
 
     @freeze_time(MOCK_DATETIME)
     def test_crash_rate(self):
@@ -1793,7 +1855,8 @@ class OrganizationSessionsEndpointMetricsTest(
             )
         )
         for query in ('release:"" environment:""', 'release:"" OR environment:""'):
-            # Empty strings are invalid values for releases and environments, but we should still handle those cases correctly at the query layer
+            # Empty strings are invalid values for releases and environments, but we should still handle those cases
+            # correctly at the query layer
             response = self.do_request(
                 {
                     "project": self.project.id,  # project without users

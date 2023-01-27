@@ -1,14 +1,14 @@
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {Error} from 'sentry/components/events/errors';
+import type {EventErrorData} from 'sentry/components/events/errorItem';
 import {EventEntries} from 'sentry/components/events/eventEntries';
 import {Group, IssueCategory} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
 const {organization, project, router} = initializeData();
 
-async function renderComponent(event: Event, errors?: Array<Error>) {
+async function renderComponent(event: Event, errors?: Array<EventErrorData>) {
   render(
     <EventEntries
       organization={organization}
@@ -52,7 +52,7 @@ describe('EventEntries', function () {
 
   describe('EventError', function () {
     it('renders', async function () {
-      const errors: Array<Error> = [
+      const errors: Array<EventErrorData> = [
         {
           type: 'invalid_data',
           data: {
@@ -199,7 +199,7 @@ describe('EventEntries', function () {
 
           expect(errorItem.length).toBe(1);
           expect(
-            screen.getByText('Some frames appear to be minified. Did you configure the')
+            screen.getByText('Some frames appear to be minified. Did you configure the ?')
           ).toBeInTheDocument();
 
           expect(
@@ -277,7 +277,7 @@ describe('EventEntries', function () {
 
           expect(errorItem.length).toBe(1);
           expect(
-            screen.getByText('Some frames appear to be minified. Did you configure the')
+            screen.getByText('Some frames appear to be minified. Did you configure the ?')
           ).toBeInTheDocument();
 
           expect(screen.getByText('Sentry Gradle Plugin')).toBeInTheDocument();

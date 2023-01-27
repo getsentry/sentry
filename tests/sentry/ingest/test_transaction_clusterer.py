@@ -7,6 +7,7 @@ from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     _store_transaction_name,
     clear_transaction_names,
+    get_active_projects,
     get_transaction_names,
     record_transaction_name,
 )
@@ -205,24 +206,32 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 
 
 @pytest.mark.django_db
+def test_get_deleted_project():
+    deleted_project = Project(pk=666)
+    _store_transaction_name(deleted_project, "foo")
+    assert list(get_active_projects()) == []
+
+
+@pytest.mark.django_db
 def test_transaction_clusterer_generates_rules(default_project):
     def _get_projconfig_tx_rules(project: Project):
         return (
             get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
         )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    feature = "organizations:transaction-name-normalize"
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
     default_project.update_option(
         "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
     )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) == [
             # TTL is 90d, so three months to expire
             {

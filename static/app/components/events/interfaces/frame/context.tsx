@@ -1,4 +1,6 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -9,9 +11,17 @@ import {
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Frame, Organization, SentryAppComponent} from 'sentry/types';
+import {
+  CodecovStatusCode,
+  Coverage,
+  Frame,
+  LineCoverage,
+  Organization,
+  SentryAppComponent,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
@@ -21,6 +31,7 @@ import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
+import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
   components: Array<SentryAppComponent>;
@@ -40,6 +51,41 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
+export function getCoverageColorClass(
+  lines: [number, string][],
+  lineCov: LineCoverage[],
+  activeLineNo: number
+): Array<string> {
+  const lineCoverage = keyBy(lineCov, 0);
+  return lines.map(([lineNo]) => {
+    const coverage = lineCoverage[lineNo]
+      ? lineCoverage[lineNo][1]
+      : Coverage.NOT_APPLICABLE;
+
+    let color = '';
+    switch (coverage) {
+      case Coverage.COVERED:
+        color = 'covered';
+        break;
+      case Coverage.NOT_COVERED:
+        color = 'uncovered';
+        break;
+      case Coverage.PARTIAL:
+        color = 'partial';
+        break;
+      case Coverage.NOT_APPLICABLE:
+      // fallthrough
+      default:
+        break;
+    }
+
+    if (activeLineNo !== lineNo) {
+      return color;
+    }
+    return color === '' ? 'active' : `active ${color}`;
+  });
+}
+
 const Context = ({
   hasContextVars = false,
   hasContextSource = false,
@@ -58,6 +104,28 @@ const Context = ({
   registersMeta,
 }: Props) => {
   const isMobile = isMobileLanguage(event);
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
+
+  const {data, isLoading} = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization?.slug || '',
+      projectSlug: project?.slug,
+    },
+    {
+      enabled:
+        defined(organization) &&
+        defined(project) &&
+        !!organization.codecovAccess &&
+        organization.features.includes('codecov-stacktrace-integration') &&
+        isExpanded,
+    }
+  );
 
   if (
     !hasContextSource &&
@@ -102,6 +170,13 @@ const Context = ({
     !!frame.filename &&
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
+  const hasCoverageData =
+    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+
+  const lineColors: Array<string> =
+    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo!
+      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
+      : [];
 
   return (
     <Wrapper
@@ -121,7 +196,12 @@ const Context = ({
           const showStacktraceLink = hasStacktraceLink && isActive;
 
           return (
-            <StyledContextLine key={index} line={line} isActive={isActive}>
+            <StyledContextLine
+              key={index}
+              line={line}
+              isActive={isActive}
+              colorClass={lineColors[index] ?? ''}
+            >
               {hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine
@@ -182,6 +262,74 @@ const StyledContextLine = styled(ContextLine)`
   padding: 0;
   text-indent: 20px;
   z-index: 1000;
+  position: relative;
+
+  &:before {
+    content: '';
+    display: block;
+    height: 24px;
+    width: 50px;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: transparent;
+    position: absolute;
+    z-index: 1;
+  }
+
+  &:after {
+    content: '';
+    display: block;
+    width: 2px;
+    border-color: transparent;
+    position: absolute;
+    left: 50px;
+    top: 0;
+    bottom: 0;
+    z-index: 9999;
+    height: 24px;
+  }
+
+  &.covered:before {
+    background: ${p => p.theme.green100};
+  }
+
+  &.covered:after {
+    border-style: solid;
+    border-color: ${p => p.theme.green300};
+  }
+
+  &.uncovered:before {
+    background: ${p => p.theme.red100};
+  }
+
+  &.partial:before {
+    background: ${p => p.theme.yellow100};
+  }
+
+  &.partial:after {
+    border-style: dashed;
+    border-color: ${p => p.theme.yellow300};
+  }
+
+  &.active {
+    background-color: ${p => p.theme.gray400};
+  }
+
+  &.active.partial:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.yellow200};
+  }
+
+  &.active.covered:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.green200};
+  }
+
+  &.active.uncovered:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.red200};
+  }
 `;
 
 const Wrapper = styled('ol')`

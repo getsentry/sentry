@@ -14,13 +14,11 @@ type DetailsPanelProps = {
 };
 
 function DetailsPanel({data, getTitle}: DetailsPanelProps) {
-  const keyValueData = Object.entries(omit(data, 'id', 'children')).map(
-    ([key, value]) => ({
-      key,
-      value,
-      subject: key,
-    })
-  );
+  const keyValueData = Object.entries(omit(data, 'children')).map(([key, value]) => ({
+    key,
+    value,
+    subject: key,
+  }));
 
   return (
     <Container>

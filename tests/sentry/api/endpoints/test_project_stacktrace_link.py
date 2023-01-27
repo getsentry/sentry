@@ -1,11 +1,17 @@
+import logging
 from typing import Any, Mapping
 from unittest import mock
+
+import pytest
+import requests
 
 from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.cache import cache
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
 
@@ -299,6 +305,122 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
 
+class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
+    def setUp(self):
+        BaseProjectStacktraceLink.setUp(self)
+        self.code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="",
+        )
+        self.filepath = "src/path/to/file.py"
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_codecov_line_coverage_success(self, mock_integration, mock_get_codecov_data):
+        expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
+        expected_codecov_url = "https://app.codecov.io/gh/getsentry/sentry/commit/a67ea84967ed1ec42844720d9daf77be36ff73b0/blob/src/path/to/file.py"
+        expected_status_code = 200
+        mock_integration.return_value = "https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py"
+        mock_get_codecov_data.return_value = (expected_line_coverage, expected_codecov_url)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+        assert response.data["codecov"]["lineCoverage"] == expected_line_coverage
+        assert response.data["codecov"]["status"] == expected_status_code
+
+        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
+        assert cache_val is True
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_codecov_line_coverage_exception(self, mock_integration, mock_get_codecov_data):
+        self._caplog.set_level(logging.ERROR, logger="sentry")
+
+        mock_integration.return_value = "https://github.com/repo/blob/master/src/path/to/file.py"
+        mock_get_codecov_data.side_effect = Exception
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+
+        assert self._caplog.record_tuples == [
+            (
+                "sentry.api.endpoints.project_stacktrace_link",
+                logging.ERROR,
+                "Something unexpected happen. Continuing execution.",
+            )
+        ]
+
+        # Don't set the cache in the error case
+        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
+        assert cache_val is None
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_codecov_line_coverage_cached(self, mock_integration, mock_get_codecov_data):
+        mock_integration.return_value = "https://github.com/repo/blob/master/src/path/to/file.py"
+        mock_response = requests.Response()
+        mock_response.status_code = 404
+        mock_response.url = "https://codecov.io/"
+        mock_get_codecov_data.side_effect = requests.exceptions.HTTPError(response=mock_response)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+        assert response.data["codecov"]["status"] == 404
+        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
+        assert cache_val is False
+
+        # Make sure we don't make the request again
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+        assert response.data["codecov"]["status"] == 404
+        assert mock_get_codecov_data.call_count == 1
+        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
+        assert cache_val is False
+
+
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)
@@ -357,7 +479,7 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
 
         self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
 
-    def test_test_multiple_code_mapping_matches_order(self):
+    def test_multiple_code_mapping_matches_order(self):
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
 
         configs = self.code_mappings

@@ -5,18 +5,14 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
-import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {ContextTitle} from 'sentry/views/eventsV2/table/quickContext/styles';
-import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
+import {ContextTitle} from 'sentry/views/discover/table/quickContext/styles';
 
 import {Button} from '../button';
 import Link from '../links/link';
@@ -76,48 +72,19 @@ function ProfilingTransactionHovercardBody({
   project,
   organization,
 }: ProfilingTransactionHovercardProps) {
-  const {selection} = usePageFilters();
-
-  const baseQueryOptions = {
-    query: `transaction:"${transaction}"`,
-    fields: getProfilesTableFields(project.platform),
-    enabled: Boolean(transaction),
-    limit: 1,
-    referrer: 'api.profiling.profiling-transaction-hovercard',
-    refetchOnMount: false,
-    projects: [project.id],
-  };
-
-  const slowestProfileQuery = useProfileEvents({
-    ...baseQueryOptions,
-    sort: {
-      key: 'profile.duration',
-      order: 'desc',
-    },
-  });
-
-  const latestProfileQuery = useProfileEvents({
-    ...baseQueryOptions,
-    sort: {
-      key: 'timestamp',
-      order: 'desc',
-    },
-  });
-
-  const functions = useFunctions({
-    project,
-    query: '',
-    selection,
+  const {
+    slowestProfile,
+    slowestProfileQuery,
+    slowestProfileDurationMultiplier,
+    latestProfileQuery,
+    latestProfile,
+    functionsQuery,
+    functions,
+  } = useProfilingTransactionQuickSummary({
     transaction,
-    sort: '-p99',
-    functionType: 'application',
+    project,
+    referrer: 'api.profiling.profiling-transaction-hovercard',
   });
-
-  const slowestProfile = slowestProfileQuery?.data?.[0].data[0] ?? null;
-  const durationUnits = slowestProfileQuery.data?.[0].meta.units['profile.duration'];
-  const multiplier = durationUnits ? DURATION_UNITS[durationUnits] ?? 1 : 1;
-
-  const latestProfile = latestProfileQuery?.data?.[0].data[0] ?? null;
 
   const linkToFlamechartRoute = (
     profileId: string,
@@ -154,7 +121,10 @@ function ProfilingTransactionHovercardBody({
           {slowestProfile ? (
             <Flex gap={space(1)}>
               <PerformanceDuration
-                milliseconds={multiplier * (slowestProfile['profile.duration'] as number)}
+                milliseconds={
+                  slowestProfileDurationMultiplier *
+                  (slowestProfile['profile.duration'] as number)
+                }
                 abbreviation
               />
               <Link to={linkToFlamechartRoute(String(slowestProfile.id))}>
@@ -173,8 +143,8 @@ function ProfilingTransactionHovercardBody({
           <FunctionsMiniGridHeader align="right">{t('P99')}</FunctionsMiniGridHeader>
           <FunctionsMiniGridHeader align="right">{t('Count')}</FunctionsMiniGridHeader>
 
-          {functions.type === 'resolved' &&
-            functions.data.functions.map(f => {
+          {functionsQuery.type === 'resolved' &&
+            functions?.map(f => {
               const [exampleProfileIdRaw] = f.examples;
               const exampleProfileId = exampleProfileIdRaw.replaceAll('-', '');
               return (
@@ -201,7 +171,7 @@ function ProfilingTransactionHovercardBody({
               );
             })}
         </FunctionsMiniGrid>
-        {functions.type === 'loading' && (
+        {functionsQuery.type === 'loading' && (
           <Flex align="stretch" justify="center" column h="100%">
             <Flex align="center" justify="center">
               <LoadingIndicator mini />
@@ -209,7 +179,7 @@ function ProfilingTransactionHovercardBody({
           </Flex>
         )}
 
-        {functions.type === 'resolved' && functions.data.functions.length === 0 && (
+        {functionsQuery.type === 'resolved' && functions?.length === 0 && (
           <Flex align="stretch" justify="center" column h="100%">
             <Flex align="center" justify="center">
               {t('No functions data')}

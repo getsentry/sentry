@@ -29,7 +29,7 @@ export function createShader(
   }
 
   gl.deleteShader(shader);
-  throw new Error('Failed to compile shader');
+  throw new Error(`Failed to compile ${type} shader`);
 }
 
 export function createProgram(
@@ -51,6 +51,66 @@ export function createProgram(
 
   gl.deleteProgram(program);
   throw new Error('Failed to create program');
+}
+
+export function getUniform(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string
+): WebGLUniformLocation {
+  const uniform = gl.getUniformLocation(program, name);
+  if (!uniform) {
+    throw new Error(`Could not locate uniform ${name} in shader`);
+  }
+  return uniform;
+}
+
+export function getAttribute(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string
+): number {
+  const attribute = gl.getAttribLocation(program, name);
+  if (attribute === -1) {
+    throw new Error(`Could not locate attribute ${name} in shader`);
+  }
+  return attribute;
+}
+
+export function createAndBindBuffer(
+  gl: WebGLRenderingContext,
+  data: ArrayBufferView,
+  usage: number
+): WebGLBuffer {
+  const buffer = gl.createBuffer();
+  if (!buffer) {
+    throw new Error('Could not create buffer');
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, data, usage);
+  return buffer;
+}
+
+export function pointToAndEnableVertexAttribute(
+  gl: WebGLRenderingContext,
+  attribute: number,
+  attributeInfo: {
+    normalized: boolean;
+    offset: number;
+    size: number;
+    stride: number;
+    type: number;
+  }
+) {
+  gl.vertexAttribPointer(
+    attribute,
+    attributeInfo.size,
+    attributeInfo.type,
+    attributeInfo.normalized,
+    attributeInfo.stride,
+    attributeInfo.offset
+  );
+  gl.enableVertexAttribArray(attribute);
 }
 
 // Create a projection matrix with origins at 0,0 in top left corner, scaled to width/height
@@ -497,6 +557,75 @@ export function findRangeBinarySearch(
     }
   }
 }
+/**
+ * Returns first index of value in array where value.start < target
+ * Example: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 5, returns 4 which points to value 3
+ * @param target {number}
+ * @param values {Array<T> | ReadonlyArray<T>}
+ * @returns number
+ */
+export function upperBound<T extends {end: number; start: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>
+) {
+  let low = 0;
+  let high = values.length;
+
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].start < target ? 1 : 0;
+  }
+
+  while (low !== high) {
+    const mid = low + Math.floor((high - low) / 2);
+
+    if (values[mid].start < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low;
+}
+
+/**
+ * Returns first index of value in array where value.end < target
+ * Example: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 5, returns 3 which points to value 4
+ * @param target {number}
+ * @param values {Array<T> | ReadonlyArray<T>}
+ * @returns number
+ */
+export function lowerBound<T extends {end: number; start: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>
+) {
+  let low = 0;
+  let high = values.length;
+
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].end < target ? 1 : 0;
+  }
+
+  while (low !== high) {
+    const mid = low + Math.floor((high - low) / 2);
+
+    if (values[mid].end < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low;
+}
 
 export function formatColorForSpan(
   frame: SpanChartNode,
@@ -699,6 +828,29 @@ export function computeConfigViewWithStrategy(
   }
 
   return frame.withHeight(view.height);
+}
+
+export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): Rect {
+  if (frames.length === 1) {
+    return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
+  }
+  const frame = frames.reduce(
+    (min, f) => {
+      return {
+        x: Math.min(min.x, f.x),
+        y: Math.min(min.y, f.y),
+        right: Math.max(min.right, f.right),
+        bottom: 0,
+      };
+    },
+    {x: Number.MAX_SAFE_INTEGER, y: Number.MAX_SAFE_INTEGER, right: 0, bottom: 0}
+  );
+
+  return computeConfigViewWithStrategy(
+    'exact',
+    view,
+    new Rect(frame.x, frame.y, frame.right - frame.x, view.height)
+  );
 }
 
 // Compute the X and Y position based on offset and canvas resolution
