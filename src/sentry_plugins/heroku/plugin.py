@@ -8,6 +8,7 @@ from sentry.models import ApiKey, ProjectOption, Repository, User
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 
 from .client import HerokuApiClient
@@ -26,11 +27,10 @@ class HerokuReleaseHook(ReleaseHook):
         return HerokuApiClient()
 
     def handle(self, request: Request) -> Response:
-        email = None
-        if "user" in request.POST:
-            email = request.POST["user"]
-        elif "actor" in request.POST:
-            email = request.POST["actor"].get("email")
+        body = json.loads(request.body)
+        data = body.get("data")
+        email = data.get("user").get("email") or data.get("actor").get("email")
+
         try:
             user = User.objects.get(
                 email__iexact=email, sentry_orgmember_set__organization__project=self.project
@@ -45,9 +45,9 @@ class HerokuReleaseHook(ReleaseHook):
                     "email": email,
                 },
             )
-        self.finish_release(
-            version=request.POST.get("head_long"), url=request.POST.get("url"), owner=user
-        )
+        commit = data.get("slug").get("commit")
+        app_name = data.get("app").get("name")
+        self.finish_release(version=commit, url=f"http://{app_name}.herokuapp.com", owner=user)
 
     def set_refs(self, release, **values):
         if not values.get("owner", None):
@@ -148,9 +148,14 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         ]
 
     def get_release_doc_html(self, hook_url):
+        # return f"""
+        # <p>Add Sentry as a deploy hook to automatically track new releases.</p>
+        # <pre class="clippy">heroku addons:create deployhooks:http --url={hook_url}</pre>
+        # """
+
         return f"""
-        <p>Add Sentry as a deploy hook to automatically track new releases.</p>
-        <pre class="clippy">heroku addons:create deployhooks:http --url={hook_url}</pre>
+        <p>Add a Sentry release webhook to automatically track new releases.</p>
+        <pre class="clippy">heroku webhooks:add -i api:release -l notify -u {hook_url} -a YOUR_APP_NAME</pre>
         """
 
     def get_release_hook(self):
