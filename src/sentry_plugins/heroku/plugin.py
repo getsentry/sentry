@@ -29,7 +29,7 @@ class HerokuReleaseHook(ReleaseHook):
     def handle(self, request: Request) -> Response:
         body = json.loads(request.body)
         data = body.get("data")
-        email = data.get("user").get("email") or data.get("actor").get("email")
+        email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
 
         try:
             user = User.objects.get(
@@ -45,8 +45,8 @@ class HerokuReleaseHook(ReleaseHook):
                     "email": email,
                 },
             )
-        commit = data.get("slug").get("commit")
-        app_name = data.get("app").get("name")
+        commit = data.get("slug", {}).get("commit")
+        app_name = data.get("app", {}).get("name")
         self.finish_release(version=commit, url=f"http://{app_name}.herokuapp.com", owner=user)
 
     def set_refs(self, release, **values):
