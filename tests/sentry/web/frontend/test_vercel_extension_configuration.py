@@ -4,7 +4,7 @@ import responses
 
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, SentryAppInstallationForProvider
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 
@@ -58,11 +58,15 @@ class VercelExtensionConfigurationTest(TestCase):
         req_params = parse_qs(mock_request.body)
         assert req_params["code"] == ["my-code"]
 
+        app_install = SentryAppInstallationForProvider.objects.get(
+            organization=self.org, provider="vercel"
+        )
+
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
         assert (
             resp.url
-            == f"/settings/{self.org.slug}/integrations/vercel/1/?next=https%3A%2F%2Fexample.com"
+            == f"http://testserver/settings/{self.org.slug}/integrations/vercel/{app_install.id}/?next=https%3A%2F%2Fexample.com"
         )
 
     def test_logged_in_as_member(self):
@@ -117,4 +121,29 @@ class VercelExtensionConfigurationTest(TestCase):
         assert (
             resp.url
             == "/auth/login/?next=%2Fextensions%2Fvercel%2Fconfigure%2F%3FconfigurationId%3Dconfig_id%26code%3Dmy-code%26next%3Dhttps%253A%252F%252Fexample.com"
+        )
+
+    @responses.activate
+    @with_feature("organizations:integrations-deployment")
+    def test_logged_in_one_org_customer_domain(self):
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            self.path,
+            self.params,
+            SERVER_NAME=f"{self.org.slug}.testserver",
+        )
+
+        mock_request = responses.calls[0].request
+        req_params = parse_qs(mock_request.body)
+        assert req_params["code"] == ["my-code"]
+
+        # Goes straight to Vercel OAuth
+        assert resp.status_code == 302
+        app_install = SentryAppInstallationForProvider.objects.get(
+            organization=self.org, provider="vercel"
+        )
+        assert (
+            resp.url
+            == f"http://{self.org.slug}.testserver/settings/integrations/vercel/{app_install.id}/?next=https%3A%2F%2Fexample.com"
         )
