@@ -7,6 +7,7 @@ from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember, SentryAppInstallationForProvider
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from urllib.parse import urlparse
 
 
 class VercelExtensionConfigurationTest(TestCase):
@@ -78,10 +79,14 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(self.path, self.params)
 
         assert resp.status_code == 302
-        assert (
-            resp.url
-            == "/extensions/vercel/link/?configurationId=config_id&code=my-code&next=https%3A%2F%2Fexample.com"
-        )
+        assert resp.url.startswith("/extensions/vercel/link/?")
+        expected_query_string = {
+            "configurationId": ["config_id"],
+            "code": ["my-code"],
+            "next": ["https://example.com"],
+        }
+        parsed_url = urlparse(resp.url)
+        assert parse_qs(parsed_url.query) == expected_query_string
 
     def test_logged_in_many_orgs(self):
         self.login_as(self.user)
@@ -92,10 +97,14 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(self.path, self.params)
 
         assert resp.status_code == 302
-        assert (
-            resp.url
-            == "/extensions/vercel/link/?configurationId=config_id&code=my-code&next=https%3A%2F%2Fexample.com"
-        )
+        assert resp.url.startswith("/extensions/vercel/link/?")
+        expected_query_string = {
+            "configurationId": ["config_id"],
+            "code": ["my-code"],
+            "next": ["https://example.com"],
+        }
+        parsed_url = urlparse(resp.url)
+        assert parse_qs(parsed_url.query) == expected_query_string
 
     @responses.activate
     def test_choose_org(self):
@@ -108,19 +117,26 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(self.path, self.params)
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
-        assert (
-            resp.url
-            == f"/extensions/vercel/link/?configurationId=config_id&code=my-code&next=https%3A%2F%2Fexample.com&orgSlug={org.slug}"
-        )
+        assert resp.url.startswith("/extensions/vercel/link/?")
+        expected_query_string = {
+            "configurationId": ["config_id"],
+            "code": ["my-code"],
+            "next": ["https://example.com"],
+            "orgSlug": [org.slug],
+        }
+        parsed_url = urlparse(resp.url)
+        assert parse_qs(parsed_url.query) == expected_query_string
 
     def test_logged_out(self):
         resp = self.client.get(self.path, self.params)
 
         assert resp.status_code == 302
         # URL encoded post-login redirect URL=
+        assert resp.url.startswith("/auth/login/?")
+        # URL encoded post-login redirect URL=
         assert (
-            resp.url
-            == "/auth/login/?next=%2Fextensions%2Fvercel%2Fconfigure%2F%3FconfigurationId%3Dconfig_id%26code%3Dmy-code%26next%3Dhttps%253A%252F%252Fexample.com"
+            "next=%2Fextensions%2Fvercel%2Fconfigure%2F%3FconfigurationId%3Dconfig_id%26code%3Dmy-code%26next%3Dhttps%253A%252F%252Fexample.com"
+            in resp.url
         )
 
     @responses.activate
