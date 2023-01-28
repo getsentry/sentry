@@ -1336,3 +1336,27 @@ class PostProcessGroupGenericTest(
     def test_no_cache_abort(self):
         # We don't use the cache for generic issues, so skip this test
         pass
+
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_occurrence_deduping(self, mock_processor):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assert mock_processor.call_count == 1
+        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
+
+        # Calling this again should do nothing, since we've already processed this occurrence.
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Make sure we haven't called this again, since we should exit early.
+        assert mock_processor.call_count == 1
