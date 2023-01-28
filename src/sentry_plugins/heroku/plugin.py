@@ -148,11 +148,6 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         ]
 
     def get_release_doc_html(self, hook_url):
-        # return f"""
-        # <p>Add Sentry as a deploy hook to automatically track new releases.</p>
-        # <pre class="clippy">heroku addons:create deployhooks:http --url={hook_url}</pre>
-        # """
-
         return f"""
         <p>Add a Sentry release webhook to automatically track new releases.</p>
         <pre class="clippy">heroku webhooks:add -i api:release -l notify -u {hook_url} -a YOUR_APP_NAME</pre>
