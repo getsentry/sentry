@@ -196,7 +196,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         result: JSONData = {"config": None, "sourceUrl": None}
 
         integrations = integration_service.serialize_integrations(
-            organization_ids=[project.organization_id], as_user=request.user
+            organization_id=project.organization_id, as_user=request.user
         )
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature

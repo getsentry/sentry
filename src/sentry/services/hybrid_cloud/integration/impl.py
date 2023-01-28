@@ -66,7 +66,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             queryset=queryset,
         )
 
-    def query_integrations(
+    def _query_integrations(
         self,
         *,
         integration_ids: Iterable[int] | None = None,
@@ -75,7 +75,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         providers: List[str] | None = None,
         org_integration_status: int | None = None,
         limit: int | None = None,
-    ):
+    ) -> List[Integration]:
         integration_kwargs: Dict[str, Any] = {}
         if integration_ids is not None:
             integration_kwargs["id__in"] = integration_ids
@@ -96,6 +96,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if limit is not None:
             integrations = integrations[:limit]
 
+        return integrations
+
     def serialize_integrations(
         self,
         *,
@@ -107,9 +109,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         org_integration_status: int | None = None,
         limit: int | None = None,
     ) -> List[Any]:
-        integrations = self.query_integrations(
+        integrations = self._query_integrations(
             integration_ids=integration_ids,
-            organization_id=-organization_id,
+            organization_id=organization_id,
             status=status,
             providers=providers,
             org_integration_status=org_integration_status,
@@ -131,9 +133,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         org_integration_status: int | None = None,
         limit: int | None = None,
     ) -> List[APIIntegration]:
-        integrations = self.query_integrations(
+        integrations = self._query_integrations(
             integration_ids=integration_ids,
-            organization_id=-organization_id,
+            organization_id=organization_id,
             status=status,
             providers=providers,
             org_integration_status=org_integration_status,
