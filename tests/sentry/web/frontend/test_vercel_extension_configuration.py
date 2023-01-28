@@ -1,4 +1,4 @@
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
 
 import responses
 
@@ -7,7 +7,6 @@ from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember, SentryAppInstallationForProvider
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
-from urllib.parse import urlparse
 
 
 class VercelExtensionConfigurationTest(TestCase):
