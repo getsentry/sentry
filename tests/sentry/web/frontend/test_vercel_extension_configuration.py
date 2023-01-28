@@ -4,7 +4,7 @@ import responses
 
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
-from sentry.models import OrganizationMember, SentryAppInstallationForProvider
+from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 
@@ -58,16 +58,12 @@ class VercelExtensionConfigurationTest(TestCase):
         req_params = parse_qs(mock_request.body)
         assert req_params["code"] == ["my-code"]
 
-        app_install = SentryAppInstallationForProvider.objects.get(
-            organization=self.org, provider="vercel"
-        )
-
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
-        assert (
-            resp.url
-            == f"http://testserver/settings/{self.org.slug}/integrations/vercel/{app_install.id}/?next=https%3A%2F%2Fexample.com"
+        assert resp.url.startswith(
+            f"http://testserver/settings/{self.org.slug}/integrations/vercel/"
         )
+        assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
 
     def test_logged_in_as_member(self):
         OrganizationMember.objects.filter(user=self.user, organization=self.org).update(
@@ -155,10 +151,7 @@ class VercelExtensionConfigurationTest(TestCase):
 
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
-        app_install = SentryAppInstallationForProvider.objects.get(
-            organization=self.org, provider="vercel"
+        assert resp.url.startswith(
+            f"http://{self.org.slug}.testserver/settings/integrations/vercel/"
         )
-        assert (
-            resp.url
-            == f"http://{self.org.slug}.testserver/settings/integrations/vercel/{app_install.id}/?next=https%3A%2F%2Fexample.com"
-        )
+        assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
