@@ -24,11 +24,15 @@ import {
   useSourceMapDebugQueries,
 } from './useSourceMapDebug';
 
-const platformDocsMap = {
+const platformDocsMap: Record<string, string> = {
+  javascript: 'javascript',
+  node: 'node',
   'javascript-react': 'react',
   'javascript-angular': 'angular',
-  'javascript-angularjs': 'angularjs',
-  'javascript-backbone': 'backbone',
+  // Sending angularjs to angular docs since it's not supported, has limited docs
+  'javascript-angularjs': 'angular',
+  // Sending backbone to javascript docs since it's not supported
+  'javascript-backbone': 'javascript',
   'javascript-ember': 'ember',
   'javascript-gatsby': 'gatsby',
   'javascript-vue': 'vue',
@@ -37,7 +41,7 @@ const platformDocsMap = {
   'javascript-svelte': 'svelte',
 };
 
-const shortPath = ['javascript', 'node'];
+const shortPathPlatforms = ['javascript', 'node'];
 
 function getErrorMessage(
   error: SourceMapDebugError,
@@ -50,6 +54,9 @@ function getErrorMessage(
   desc?: string;
   docsLink?: string;
 }> {
+  const docPlatform = platformDocsMap[platform] ?? 'javascript';
+  const useShortPath = shortPathPlatforms.includes(docPlatform);
+
   switch (error.type) {
     case SourceMapProcessingIssueType.MISSING_RELEASE:
       return [
@@ -57,17 +64,17 @@ function getErrorMessage(
           title: tct('Update your [init] call to pass in the release argument', {
             init: <code>Sentry.init</code>,
           }),
-          docsLink: shortPath.includes(platform)
-            ? `https://docs.sentry.io/platforms/${platform}/configuration/options/#release`
-            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/configuration/options/#release`,
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/configuration/options/#release`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/configuration/options/#release`,
         },
         {
           title: t(
             'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
           ),
-          docsLink: shortPath.includes(platform)
-            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/#uploading-source-maps-to-sentry`
-            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/#uploading-source-maps-to-sentry`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/#uploading-source-maps-to-sentry`,
         },
       ];
     case SourceMapProcessingIssueType.PARTIAL_MATCH:
@@ -78,9 +85,9 @@ function getErrorMessage(
             error.data.insertPath,
             error.data.matchedSourcemapPath
           ),
-          docsLink: shortPath.includes(platform)
-            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
-            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_USER_AGENT:
@@ -94,9 +101,9 @@ function getErrorMessage(
               version: error.data.version,
             }
           ),
-          docsLink: shortPath.includes(platform)
-            ? `https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry`
-            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/#uploading-source-maps-to-sentry`,
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/#uploading-source-maps-to-sentry`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/#uploading-source-maps-to-sentry`,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
@@ -106,9 +113,9 @@ function getErrorMessage(
           desc: t(
             'It looks like you are creating but not uploading your source maps. Please refer to the instructions in our docs guide for help with troubleshooting the issue.'
           ),
-          docsLink: shortPath.includes(platform)
-            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/`
-            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/`,
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/`,
         },
       ];
     case SourceMapProcessingIssueType.URL_NOT_VALID:
@@ -119,9 +126,9 @@ function getErrorMessage(
             'The abs_path of the stack frame has [absValue] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
             {absValue: <code>{error.data.absValue}</code>}
           ),
-          docsLink: shortPath.includes(platform)
-            ? `https://docs.sentry.io/platforms/${platform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
-            : `https://docs.sentry.io/platforms/javascript/guides/${platformDocsMap[platform]}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
         },
       ];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
@@ -239,7 +246,7 @@ export function SourceMapDebug({debugFrames, platform}: SourcemapDebugProps) {
 
   return (
     <Alert
-      startExpanded
+      defaultExpanded
       showIcon
       type="error"
       icon={<IconWarning />}
