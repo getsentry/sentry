@@ -299,7 +299,7 @@ class BaseGroupSidebar extends Component<Props, State> {
                 ? BACKEND_TAGS
                 : DEFAULT_TAGS
             }
-            title={<div>{t('Tag Summary')}</div>}
+            title={<div>{t('All Tags')}</div>}
             event={event}
             tagFormatter={TAGS_FORMATTER}
             project={project}
