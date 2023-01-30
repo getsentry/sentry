@@ -134,7 +134,7 @@ export default function TagFacets({
         </TagPlaceholders>
       ) : (
         <Fragment>
-          <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
+          <SidebarSection.Title>{title || t('All Tags')}</SidebarSection.Title>
           <Content>
             <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
