@@ -6,11 +6,8 @@ import trimStart from 'lodash/trimStart';
 
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Redirect from 'sentry/utils/redirect';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-type WithDomainRedirectOptions = {
-  redirect: Array<{from: string; to: string}>;
-};
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -31,8 +28,7 @@ type WithDomainRedirectOptions = {
  * is rendered.
  */
 function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
-  WrappedComponent: RouteComponent,
-  options?: WithDomainRedirectOptions
+  WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {
     const {customerDomain, links} = window.__initialData;
@@ -62,21 +58,11 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         newParams[param] = `:${param}`;
       });
       const fullRoute = recreateRoute('', {routes, params: newParams});
-      let orglessSlugRoute = fullRoute
-        .replace(/organizations\/:orgId\/?/, '')
-        .replace(/:orgId\/?/, '');
+      const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {
         // :orgId is not present in the route, so we do not need to perform a redirect here.
         return <WrappedComponent {...props} />;
-      }
-
-      if (options && options.redirect) {
-        const result = options.redirect.find(needle => fullRoute.startsWith(needle.from));
-        if (result) {
-          const rest = fullRoute.slice(result.from.length);
-          orglessSlugRoute = `${result.to}${rest}`;
-        }
       }
 
       const orglessRedirectPath = formatPattern(orglessSlugRoute, params);
