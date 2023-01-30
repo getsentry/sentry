@@ -130,6 +130,7 @@ class HookHandleTest(TestCase):
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
         hook = HerokuReleaseHook(project)
+        hook.is_valid_signature = Mock()
         hook.set_refs = Mock()
 
         req = Mock()
@@ -150,6 +151,7 @@ class HookHandleTest(TestCase):
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
         hook = HerokuReleaseHook(project)
+        hook.is_valid_signature = Mock()
         hook.set_refs = Mock()
 
         req = Mock()
@@ -170,6 +172,7 @@ class HookHandleTest(TestCase):
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
         hook = HerokuReleaseHook(project)
+        hook.is_valid_signature = Mock()
 
         req = Mock()
         body = {
@@ -187,6 +190,7 @@ class HookHandleTest(TestCase):
         project = self.create_project()
         user = self.create_user()
         hook = HerokuReleaseHook(project)
+        hook.is_valid_signature = Mock()
 
         req = Mock()
         body = {
