@@ -685,3 +685,11 @@ class Columns(Enum):
         discover_name="app_start_type",
         alias="app_start_type",
     )
+
+    PROFILE_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="profile_id",
+        discover_name="profile_id",
+        alias="profile.id",
+    )
