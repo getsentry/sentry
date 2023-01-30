@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
@@ -204,46 +203,6 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     );
   }
 
-  customOption = orgProps => {
-    const organization = this.getOrgBySlug(orgProps.value);
-    if (!organization) {
-      return null;
-    }
-    return (
-      <components.Option {...orgProps}>
-        <IdBadge
-          organization={organization}
-          avatarSize={20}
-          displayName={organization.name}
-          avatarProps={{consistentWidth: true}}
-        />
-      </components.Option>
-    );
-  };
-
-  customValueContainer = containerProps => {
-    const valueList = containerProps.getValue();
-    // if no value set, we want to return the default component that is rendered
-    if (valueList.length === 0) {
-      return <components.ValueContainer {...containerProps} />;
-    }
-    const orgSlug = valueList[0].value;
-    const organization = this.getOrgBySlug(orgSlug);
-    if (!organization) {
-      return <components.ValueContainer {...containerProps} />;
-    }
-    return (
-      <components.ValueContainer {...containerProps}>
-        <IdBadge
-          organization={organization}
-          avatarSize={20}
-          displayName={organization.name}
-          avatarProps={{consistentWidth: true}}
-        />
-      </components.ValueContainer>
-    );
-  };
-
   renderBottom() {
     const {organization, selectedOrgSlug, provider, reloading} = this.state;
     const {FeatureList} = getIntegrationFeatureGate();
@@ -292,7 +251,14 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     const {selectedOrgSlug} = this.state;
     const options = this.state.organizations.map((org: Organization) => ({
       value: org.slug,
-      label: org.name,
+      label: (
+        <IdBadge
+          organization={org}
+          avatarSize={20}
+          displayName={org.name}
+          avatarProps={{consistentWidth: true}}
+        />
+      ),
     }));
 
     return (
@@ -315,10 +281,6 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
             value={selectedOrgSlug}
             placeholder={t('Select an organization')}
             options={options}
-            components={{
-              Option: this.customOption,
-              ValueContainer: this.customValueContainer,
-            }}
           />
         </FieldGroup>
         {this.renderBottom()}
