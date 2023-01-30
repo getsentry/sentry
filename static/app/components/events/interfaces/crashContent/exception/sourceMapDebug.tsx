@@ -175,7 +175,6 @@ function ExpandableErrorList({
           </ErrorTitleFlex>
           {docsLink}
         </ErrorTitleFlex>
-
         {expanded && <div>{children}</div>}
       </StyledListItem>
     </List>
