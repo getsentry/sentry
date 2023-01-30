@@ -245,6 +245,9 @@
 - name: 'Team: Search & Storage'
   color: '8D5494'
   description: sns
+- name: 'Team: Stacktrace'
+  color: '8D5494'
+  description: owners-stacktrace
 - name: 'Team: Support'
   color: '8D5494'
   description: ''
