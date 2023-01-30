@@ -24,7 +24,7 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
-import {generateProfileSummaryRoute} from 'sentry/utils/profiling/routes';
+import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -138,9 +138,10 @@ function SlowestTransactionPanelItem({
         <PlatformIcon platform={transactionProject?.platform} />
         <Flex.Item grow={1}>
           <Link
-            to={generateProfileSummaryRoute({
+            to={generateProfileSummaryRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: transactionProject?.slug!,
+              transaction: transaction.transaction as string,
             })}
           >
             <TextTruncateOverflow>
