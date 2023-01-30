@@ -151,6 +151,41 @@ const Context = ({
     }
   );
 
+  const contextLines = useMemo(() => {
+    if (frame.context) {
+      return isExpanded
+        ? frame.context
+        : frame.context.filter(l => l[0] === frame.lineNo);
+    }
+    return [];
+  }, [isExpanded, frame.context, frame.lineNo]);
+
+  const startLineNo = useMemo(() => {
+    return hasContextSource ? frame.context[0][0] : undefined;
+  }, [hasContextSource, frame.context]);
+  const hasStacktraceLink = useMemo(() => {
+    return (
+      frame.inApp &&
+      !!frame.filename &&
+      isExpanded &&
+      organization?.features.includes('integrations-stacktrace-link')
+    );
+  }, [frame.inApp, frame.filename, isExpanded, organization?.features]);
+  const hasCoverageData = useMemo(() => {
+    return !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+  }, [isLoading, data?.codecov?.status]);
+
+  const lineColors: Array<string> = useMemo(() => {
+    return hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo!
+      ? getCoverageColorClass(
+          contextLines,
+          data!.codecov?.lineCoverage,
+          frame.lineNo,
+          organization
+        )
+      : [];
+  }, [hasCoverageData, data, frame.lineNo, contextLines, organization]);
+
   if (
     !hasContextSource &&
     !hasContextVars &&
@@ -183,29 +218,6 @@ const Context = ({
       );
     }
   }
-
-  const contextLines = isExpanded
-    ? frame.context
-    : frame.context.filter(l => l[0] === frame.lineNo);
-
-  const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
-  const hasStacktraceLink =
-    frame.inApp &&
-    !!frame.filename &&
-    isExpanded &&
-    organization?.features.includes('integrations-stacktrace-link');
-  const hasCoverageData =
-    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
-
-  const lineColors: Array<string> =
-    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo!
-      ? getCoverageColorClass(
-          contextLines,
-          data!.codecov?.lineCoverage,
-          frame.lineNo,
-          organization
-        )
-      : [];
 
   return (
     <Wrapper
