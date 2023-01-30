@@ -176,7 +176,7 @@ def handle_owner_assignment(job):
                         should_sample = random.randint(1, 10) % 10 == 0
                         if (
                             features.has(
-                                "organizations:scaleable_codeowners_search",
+                                "organizations:scaleable-codeowners-search",
                                 project.organization,
                                 actor=None,
                             )
