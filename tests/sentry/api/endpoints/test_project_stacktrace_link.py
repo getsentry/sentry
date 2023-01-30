@@ -373,10 +373,11 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         assert commit_sha == ""
 
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @with_feature("organizations:codecov-commit-sha-from-git-blame")
     @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
     @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @with_feature("organizations:codecov-stacktrace-integration")
     def test_get_commit_sha_logger_warning(self, get_jwt, mock_blame, mock_get_stacktrace_link):
         self._caplog.set_level(logging.WARNING, logger="sentry")
         self.organization.flags.codecov_access = True
@@ -389,7 +390,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         mock_blame.return_value = []
 
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             qs_params={"file": self.filepath, "lineNo": 26},
@@ -402,6 +403,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "Failed to get commit from git blame.",
             )
         ]
+        assert response.data.get("codecov") is None
 
     @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")

@@ -312,6 +312,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
+                codecov_enabled = True
                 # Check the cache and skip querying Codecov if a query within the last hour found no integration.
                 codecov_cache = cache.get(cache_key.format(project_id=project.id))
                 if codecov_enabled and codecov_cache is False:
@@ -327,9 +328,15 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         )
 
                         # Get commit sha from Git blame
+                        codecov_commit_sha_from_git_blame_enabled = features.has(
+                            "organizations:codecov-commit-sha-from-git-blame",
+                            project.organization,
+                            actor=request.user,
+                        )
                         gh_integrations = integrations.filter(provider="github")
                         should_get_commit_sha = (
-                            len(gh_integrations) > 0
+                            codecov_commit_sha_from_git_blame_enabled
+                            and len(gh_integrations) > 0
                             and ref == current_config["config"]["defaultBranch"]
                         )
 
@@ -352,24 +359,28 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                     "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                                 )
 
-                        lineCoverage, codecovUrl = get_codecov_data(
-                            repo=current_config["config"]["repoName"],
-                            service=current_config["config"]["provider"]["key"],
-                            ref=ref,
-                            ref_type="branch"
-                            if ref == current_config["config"]["defaultBranch"]
-                            else "sha",
-                            path=current_config["outcome"]["sourcePath"],
-                        )
-                        if lineCoverage and codecovUrl:
-                            result["codecov"] = {
-                                "lineCoverage": lineCoverage,
-                                "coverageUrl": codecovUrl,
-                                "status": 200,
-                            }
+                        if not codecov_commit_sha_from_git_blame_enabled or (
+                            codecov_commit_sha_from_git_blame_enabled
+                            and ref != current_config["config"]["defaultBranch"]
+                        ):
+                            lineCoverage, codecovUrl = get_codecov_data(
+                                repo=current_config["config"]["repoName"],
+                                service=current_config["config"]["provider"]["key"],
+                                ref=ref,
+                                ref_type="branch"
+                                if ref == current_config["config"]["defaultBranch"]
+                                else "sha",
+                                path=current_config["outcome"]["sourcePath"],
+                            )
+                            if lineCoverage and codecovUrl:
+                                result["codecov"] = {
+                                    "lineCoverage": lineCoverage,
+                                    "coverageUrl": codecovUrl,
+                                    "status": 200,
+                                }
 
-                            if not codecov_cache:
-                                cache.set(cache_key.format(project_id=project.id), True, 3600)
+                                if not codecov_cache:
+                                    cache.set(cache_key.format(project_id=project.id), True, 3600)
                     except requests.exceptions.HTTPError as error:
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,
