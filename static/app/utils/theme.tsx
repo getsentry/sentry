@@ -227,6 +227,11 @@ const generateAliases = (colors: BaseColors) => ({
   backgroundSecondary: colors.surface200,
 
   /**
+   * Tertiary background color used as a stronger contrast against primary background
+   */
+  backgroundTertiary: colors.surface100,
+
+  /**
    * Background for the header of a page
    */
   headerBackground: colors.surface300,
