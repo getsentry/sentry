@@ -10,11 +10,11 @@ import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
   opaque?: boolean;
   showIcon?: boolean;
-  startExpanded?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
   type?: keyof Theme['alert'];
@@ -29,13 +29,13 @@ function Alert({
   opaque,
   system,
   expand,
-  startExpanded = false,
+  defaultExpanded = false,
   trailingItems,
   className,
   children,
   ...props
 }: AlertProps) {
-  const [isExpanded, setIsExpanded] = useState(startExpanded);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const showExpand = defined(expand);
   const showTrailingItems = defined(trailingItems);
 
