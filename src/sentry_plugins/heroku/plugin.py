@@ -1,5 +1,9 @@
+import base64
+import hmac
 import logging
+from hashlib import sha256
 
+from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +14,7 @@ from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.utils import get_secret_field_config
 
 from .client import HerokuApiClient
 
@@ -26,7 +31,24 @@ class HerokuReleaseHook(ReleaseHook):
     def get_client(self):
         return HerokuApiClient()
 
+    def is_valid_signature(self, body, heroku_hmac):
+        secret = ProjectOption.objects.get_value(project=self.project, key="heroku:webhook_secret")
+        computed_hmac = base64.b64encode(
+            hmac.new(
+                key=secret.encode("utf-8"),
+                msg=body.encode("utf-8"),
+                digestmod=sha256,
+            ).digest()
+        ).decode("utf-8")
+
+        return hmac.compare_digest(heroku_hmac, computed_hmac)
+
     def handle(self, request: Request) -> Response:
+        heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
+        if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
+            logger.error("heroku.webhook.invalid-signature", extra={"project_id": self.project.id})
+            return HttpResponse(status=401)
+
         body = json.loads(request.body)
         data = body.get("data")
         email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
@@ -128,6 +150,21 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         else:
             choices = []
         choices.extend([(repo.name, repo.name) for repo in repo_list])
+
+        webhook_secret = self.get_option("webhook_secret", project)
+        secret_field = get_secret_field_config(
+            webhook_secret,
+            "Enter the webhook signing secret shown after running the Heroku CLI command.",
+            include_prefix=True,
+        )
+        secret_field.update(
+            {
+                "name": "webhook_secret",
+                "label": "Webhook Secret",
+                "required": False,
+            }
+        )
+
         return [
             {
                 "name": "repository",
@@ -145,6 +182,7 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
                 "default": "production",
                 "help": "Specify an environment name for your Heroku deploys",
             },
+            secret_field,
         ]
 
     def get_release_doc_html(self, hook_url):
