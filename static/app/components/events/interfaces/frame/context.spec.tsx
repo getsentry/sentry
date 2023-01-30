@@ -3,7 +3,6 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Coverage, Frame, LineCoverage} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {Color} from 'sentry/utils/theme';
 
 import Context, {getCoverageColorClass} from './context';
 
@@ -53,7 +52,7 @@ describe('Frame - Context', function () {
     );
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'issue_details.codecov_surrounding_lines_coverage_shown',
-      {organization: org, success: false}
+      {organization: org, success: true}
     );
   });
 

@@ -80,7 +80,7 @@ export function getCoverageColorClass(
       case Coverage.NOT_APPLICABLE:
       // fallthrough
       default:
-        if (lineNo === primaryLineNumber) {
+        if (lineNo === activeLineNo) {
           primaryLineCovered = false;
         } else {
           surroundingLinesCovered = false;
@@ -93,7 +93,7 @@ export function getCoverageColorClass(
     }
     return color === '' ? 'active' : `active ${color}`;
   });
-  
+
   if (organization) {
     trackAdvancedAnalyticsEvent('issue_details.codecov_primary_line_coverage_shown', {
       organization,
@@ -197,10 +197,14 @@ const Context = ({
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
-
   const lineColors: Array<string> =
     hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo!
-      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo, organization)
+      ? getCoverageColorClass(
+          contextLines,
+          data!.codecov?.lineCoverage,
+          frame.lineNo,
+          organization
+        )
       : [];
 
   return (
