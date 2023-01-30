@@ -124,10 +124,10 @@ function WidgetCardContextMenu({
                   position="bottom-end"
                   disabledKeys={[...disabledKeys, 'preview']}
                 />
-                <OpenWidgetViewerButton
+                <Button
                   aria-label={t('Open Widget Viewer')}
-                  priority="link"
-                  size="zero"
+                  borderless
+                  size="xs"
                   icon={<IconExpand size="xs" />}
                   onClick={() => {
                     (seriesData || tableData) &&
@@ -257,10 +257,10 @@ function WidgetCardContextMenu({
                 position="bottom-end"
                 disabledKeys={[...disabledKeys]}
               />
-              <OpenWidgetViewerButton
+              <Button
                 aria-label={t('Open Widget Viewer')}
-                priority="link"
-                size="zero"
+                borderless
+                size="xs"
                 icon={<IconExpand size="xs" />}
                 onClick={() => {
                   setData({
@@ -293,16 +293,6 @@ const ContextWrapper = styled('div')`
 const StyledDropdownMenuControl = styled(DropdownMenu)`
   & > button {
     z-index: auto;
-  }
-`;
-
-const OpenWidgetViewerButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
-  color: ${p => p.theme.textColor};
-  &:hover {
-    color: ${p => p.theme.textColor};
-    background: ${p => p.theme.surface400};
-    border-color: transparent;
   }
 `;
 
