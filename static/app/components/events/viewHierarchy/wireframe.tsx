@@ -1,8 +1,8 @@
-import {MouseEventHandler, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {defined} from 'sentry/utils';
+import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
 
 function getCoordinates(hierarchies) {
   return hierarchies.map(hierarchy => {
@@ -59,11 +59,8 @@ function Wireframe({hierarchy}) {
 
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
-  const [dragStartCoords, setDragStartCoords] = useState<{x: number; y: number} | null>(
-    null
-  );
-  const [xOffset, setXOffset] = useState(20);
-  const [yOffset, setYOffset] = useState(20);
+  const {handlePanMove, handlePanStart, handlePanStop, isDragging, xOffset, yOffset} =
+    useMousePan();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -99,52 +96,15 @@ function Wireframe({hierarchy}) {
     },
   });
 
-  const handleMouseDown: MouseEventHandler<HTMLCanvasElement> = e => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setDragStartCoords({
-      x: e.clientX - xOffset,
-      y: e.clientY - yOffset,
-    });
-  };
-
-  const handleMouseUp: MouseEventHandler<HTMLCanvasElement> = e => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setDragStartCoords(null);
-  };
-
-  const handleMouseMove: MouseEventHandler<HTMLCanvasElement> = e => {
-    if (!defined(dragStartCoords)) {
-      return;
-    }
-
-    const {x, y} = dragStartCoords;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const mouseX = e.clientX - xOffset;
-    const mouseY = e.clientY - yOffset;
-
-    const dx = mouseX - x;
-    const dy = mouseY - y;
-
-    setXOffset(xOffset + dx);
-    setYOffset(yOffset + dy);
-  };
-
   return (
     <Container ref={containerRef}>
       <StyledCanvas
         ref={canvasRef}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseUp}
-        isDragging={defined(dragStartCoords)}
+        onMouseDown={handlePanStart}
+        onMouseUp={handlePanStop}
+        onMouseLeave={handlePanStop}
+        onMouseMove={handlePanMove}
+        isDragging={isDragging}
       />
     </Container>
   );
