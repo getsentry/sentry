@@ -198,7 +198,7 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   &[data-hovered='true']:not([tabindex='0']) {
     > div:first-child,
     > div:nth-child(2) {
-      background-color: ${p => p.theme.surface100} !important;
+      background-color: ${p => p.theme.surface200} !important;
     }
   }
 `;

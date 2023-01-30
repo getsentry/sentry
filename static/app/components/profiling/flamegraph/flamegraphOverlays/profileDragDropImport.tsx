@@ -107,7 +107,7 @@ const Overlay = styled('div')`
   place-content: center;
   z-index: ${p => p.theme.zIndex.modal};
   text-align: center;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
 `;
 
 export {ProfileDragDropImport};

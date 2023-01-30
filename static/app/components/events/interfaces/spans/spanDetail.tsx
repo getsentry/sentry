@@ -660,7 +660,7 @@ const ValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
   margin: 2px;
 `;
 
