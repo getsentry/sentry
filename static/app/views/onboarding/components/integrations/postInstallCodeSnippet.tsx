@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {IntegrationProvider} from 'sentry/types';
@@ -31,14 +31,12 @@ export default function PostInstallCodeSnippet({
           'This snippet includes an intentional error, so you can test that everything is working as soon as you set it up:'
         )}
       </p>
-      <div>
-        <CodeWrapper>
-          <code>
-            <TokenFunction>myUndefinedFunction</TokenFunction>
-            <TokenPunctuation>{token_punctuation}</TokenPunctuation>)
-          </code>
-        </CodeWrapper>
-      </div>
+      <CodeSnippet
+        dark
+        language={platform === 'python-awslambda' ? 'python' : 'javascript'}
+      >
+        {`myUndefinedFunction${token_punctuation}`}
+      </CodeSnippet>
       {isOnboarding && (
         <Fragment>
           <p>
@@ -56,18 +54,3 @@ export default function PostInstallCodeSnippet({
     </div>
   );
 }
-
-const CodeWrapper = styled('pre')`
-  padding: 1em;
-  overflow: auto;
-  background: #251f3d;
-  font-size: 15px;
-`;
-
-const TokenFunction = styled('span')`
-  color: #7cc5c4;
-`;
-
-const TokenPunctuation = styled('span')`
-  color: #b3acc1;
-`;
