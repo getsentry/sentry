@@ -107,7 +107,7 @@ function Default({
 export default Default;
 
 const StyledIconWarning = styled(IconWarning)`
-  margin-right: ${space(0.5)};
+  margin-right: ${space(1)};
 `;
 
 const VertCenterWrapper = styled('div')`

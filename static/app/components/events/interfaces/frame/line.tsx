@@ -541,5 +541,5 @@ const StyledLi = styled('li')`
 const IconWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-right: ${space(0.5)};
+  margin-right: ${space(1)};
 `;

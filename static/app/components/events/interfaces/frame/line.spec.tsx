@@ -159,7 +159,7 @@ describe('Frame - Line', function () {
           errors: [{type: 'no_release_on_event', message: '', data: null}],
         },
       });
-      render(
+      const {container} = render(
         <Line
           data={{...data, filename}}
           registers={{}}
@@ -182,6 +182,7 @@ describe('Frame - Line', function () {
         {organization: org}
       );
       expect(await screen.findByLabelText('Missing source map')).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
   });
 });
