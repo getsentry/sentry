@@ -611,7 +611,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
+            before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
 
@@ -3020,7 +3020,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             1,
             ["group1-fingerprint"],
             None,
-            timezone.now().replace(minute=0, second=0) - timedelta(minutes=1),
+            before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
 
