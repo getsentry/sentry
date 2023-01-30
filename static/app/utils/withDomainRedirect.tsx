@@ -3,7 +3,9 @@ import {formatPattern, RouteComponent, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
+import * as qs from 'query-string';
 
+import {decodeScalar} from 'sentry/utils/queryString';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Redirect from 'sentry/utils/redirect';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -71,12 +73,13 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
       }${window.location.hash}`;
 
       const paramOrgId = (params as any).orgId ?? '';
+      const referrer = decodeScalar(qs.parse(window.location.search).referrer ?? '');
 
       Sentry.withScope(function (scope) {
         const wrongOrgId = paramOrgId !== customerDomain.subdomain ? 'yes' : 'no';
         scope.setTag('isCustomerDomain', 'yes');
         scope.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
-        scope.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
+        scope.setTag('customerDomain.referrer', referrer);
         scope.setTag('customerDomain.subdomain', customerDomain.subdomain);
         scope.setTag('customerDomain.fromRoute', fullRoute);
         scope.setTag('customerDomain.redirectRoute', orglessSlugRoute);
