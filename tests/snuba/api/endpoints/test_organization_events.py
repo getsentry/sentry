@@ -71,7 +71,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
         min_age = before_now(minutes=10)
         if timestamp > min_age:
-            # Snuba does some rounding of timestamps to improve cache hits.
+            # Sentry does some rounding of timestamps to improve cache hits in snuba.
             # This can result in events not being returns if the timestamps
             # are too recent.
             raise Exception(
