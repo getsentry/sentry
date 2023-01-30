@@ -15,6 +15,7 @@ type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
   location: Location;
   organization: OrganizationSummary;
+  queryExtras?: Record<string, string>;
 };
 
 function DurationPercentileChart({currentFilter, ...props}: Props) {
@@ -36,6 +37,7 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
   );
 
   function generateFields() {
+    // TODO check for metrics here
     if (currentFilter === SpanOperationBreakdownFilter.None) {
       return [
         'percentile(transaction.duration, 0.10)',
