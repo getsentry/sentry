@@ -14,6 +14,7 @@ from sentry.search.events import constants
 from sentry.search.events.builder import QueryBuilder
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
+from sentry.utils.validators import INVALID_ID_DETAILS
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -774,4 +775,37 @@ class QueryBuilderTest(TestCase):
                 groupby_columns=[
                     "transaction",
                 ],
+            )
+
+    def test_id_filter_non_uuid(self):
+        with pytest.raises(
+            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter ID"))
+        ):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="id:foo",
+                selected_columns=["count()"],
+            )
+
+    def test_trace_id_filter_non_uuid(self):
+        with pytest.raises(
+            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter Trace ID"))
+        ):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="trace:foo",
+                selected_columns=["count()"],
+            )
+
+    def test_profile_id_filter_non_uuid(self):
+        with pytest.raises(
+            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter Profile ID"))
+        ):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="profile.id:foo",
+                selected_columns=["count()"],
             )
