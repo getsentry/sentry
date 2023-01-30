@@ -65,7 +65,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
-from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.search.events.filter import format_search_filter
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import user_service
@@ -902,14 +902,15 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
         self.conditions = (
             [
-                convert_search_filter_to_snuba_query(
+                format_search_filter(
+                    # convert_search_filter_to_snuba_query(
                     search_filter,
                     params={
                         "organization_id": organization_id,
                         "project_id": project_ids,
                         "environment_id": environment_ids,
                     },
-                )
+                )[0][0]
                 for search_filter in search_filters
                 if search_filter.key.name not in self.skip_snuba_fields
             ]

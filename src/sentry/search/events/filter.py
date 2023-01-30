@@ -656,7 +656,7 @@ def convert_search_filter_to_snuba_query(
         # most field aliases are handled above but timestamp.to_{hour,day} are
         # handled here
         if name in FIELD_ALIASES:
-            name = FIELD_ALIASES[name].get_expression(params)
+            name = FIELD_ALIASES[name].get_field(params)
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -982,10 +982,10 @@ def format_search_filter(term, params):
         # A blank term value means that this is a has filter
         if term.operator in EQUALITY_OPERATORS:
             group_ids = to_list(value)
-        else:
-            converted_filter = convert_search_filter_to_snuba_query(term, params=params)
-            if converted_filter:
-                conditions.append(converted_filter)
+
+        converted_filter = convert_search_filter_to_snuba_query(term, params=params)
+        if converted_filter:
+            conditions.append(converted_filter)
     elif name == ISSUE_ALIAS:
         operator = term.operator
         value = to_list(value)
