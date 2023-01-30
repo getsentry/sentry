@@ -36,6 +36,10 @@ describe('normalizeUrl', function () {
         '/settings/acme/developer-settings/release-bot/',
         '/settings/developer-settings/release-bot/',
       ],
+      [
+        '/settings/sentry/integrations/vercel/12345/?next=something',
+        '/settings/integrations/vercel/12345/?next=something',
+      ],
       // Account settings should stay the same
       ['/settings/account/', '/settings/account/'],
       ['/settings/account/security/', '/settings/account/security/'],
