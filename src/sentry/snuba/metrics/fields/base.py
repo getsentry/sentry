@@ -1695,7 +1695,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     ]
 }
 
-
 DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
     derived_alias.metric_mri: derived_alias
     for derived_alias in [
