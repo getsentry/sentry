@@ -252,6 +252,22 @@ class NPlusOneAPICallsDetectorTest(TestCase):
             "/clients/hello-123s/project/1343",  # uuid-like
             "/clients/hello-123s/project/*",
         ),
+        (
+            "/item/5c9b9b609c172be2a013f534/details",  # short hash
+            "/item/*/details",
+        ),
+        (
+            "/item/be9a25322d/details",  # shorter short hash
+            "/item/*/details",
+        ),
+        (
+            "/item/defaced12/details",  # false short hash
+            "/item/defaced12/details",
+        ),
+        (
+            "/item/defaced12-abba/details",  # false short hash 2
+            "/item/defaced12-abba/details",
+        ),
     ],
 )
 def test_parameterizes_url(url, parameterized_url):
