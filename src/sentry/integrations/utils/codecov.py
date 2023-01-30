@@ -37,7 +37,7 @@ def get_codecov_data(
             scope.set_tag("codecov.coverage_found", coverage_found)
 
             response.raise_for_status()
-            codecov_url = response.get("commit_file_url")
+            codecov_url = response_json.get("commit_file_url")
             scope.set_tag("codecov.url", codecov_url)
 
     return line_coverage, codecov_url
