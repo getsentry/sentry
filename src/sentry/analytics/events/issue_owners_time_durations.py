@@ -8,8 +8,8 @@ class IssueOwnersTimeDurationsEvent(analytics.Event):
         analytics.Attribute("group_id"),
         analytics.Attribute("event_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("baseline_duration", type=int),
-        analytics.Attribute("experiment_duration", type=int),
+        analytics.Attribute("baseline_duration"),
+        analytics.Attribute("experiment_duration"),
     )
 
 
