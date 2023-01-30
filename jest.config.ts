@@ -208,8 +208,8 @@ const ESM_NODE_MODULES = ['copy-text-to-clipboard'];
 const config: Config.InitialOptions = {
   verbose: false,
   collectCoverageFrom: [
-    'tests/js/spec/**/*.{js,jsx,tsx}',
     'static/app/**/*.{js,jsx,ts,tsx}',
+    '!static/app/**/*.spec.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
