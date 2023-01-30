@@ -1121,7 +1121,7 @@ SENTRY_FEATURES = {
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
     # Enable fast CODEOWNERS path matching
-    "organizations:scaleable_codeowners_search": False,
+    "organizations:scaleable-codeowners-search": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
