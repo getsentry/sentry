@@ -39,14 +39,12 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   pre {
     background-color: ${theme.backgroundSecondary};
-    word-break: break-all;
     white-space: pre-wrap;
     overflow-x: auto;
   }
 
   code {
     background-color: transparent;
-    white-space: pre;
   }
 
   ${prismStyles(theme)}
