@@ -35,12 +35,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
   pre,
   code {
     color: ${theme.textColor};
-    white-space: pre-wrap;
   }
 
   pre {
     background-color: ${theme.backgroundSecondary};
-    word-break: break-all;
+    white-space: pre-wrap;
     overflow-x: auto;
   }
 
