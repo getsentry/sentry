@@ -6,8 +6,8 @@ import pytest
 from sentry.eventstore.models import Event
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.base import DetectorType
 from sentry.utils.performance_issues.performance_detection import (
-    DetectorType,
     GroupType,
     NPlusOneDBSpanDetector,
     PerformanceProblem,
