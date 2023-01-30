@@ -123,8 +123,9 @@ function SlowestTransactionPanelItem({
   const organization = useOrganization();
   const projects = useProjects();
 
-  const transactionProject = projects.projects.find(
-    p => p.id === String(transaction['project.id'])
+  const transactionProject = useMemo(
+    () => projects.projects.find(p => p.id === String(transaction['project.id'])),
+    [projects.projects, transaction]
   );
 
   if (!transactionProject) {
@@ -149,7 +150,7 @@ function SlowestTransactionPanelItem({
         </Flex.Item>
 
         <PerformanceDuration nanoseconds={transaction['p95()'] as number} abbreviation />
-        <Button borderless size="zero" onClick={() => onOpen()}>
+        <Button borderless size="zero" onClick={onOpen}>
           <IconChevron direction={open ? 'up' : 'down'} size="xs" />
         </Button>
       </Flex>
