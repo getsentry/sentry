@@ -146,12 +146,16 @@ class EventPerformanceProblem:
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
     try:
-        # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
-        sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-        with metrics.timer(
-            "performance.detect_performance_issue", sample_rate=0.01
-        ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
-            return _detect_performance_problems(data, sdk_span, project)
+        rate = options.get("performance.issues.all.problem-detection")
+        if rate and rate > random.random():
+            # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
+            sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
+            with metrics.timer(
+                "performance.detect_performance_issue", sample_rate=0.01
+            ), sentry_sdk.start_span(
+                op="py.detect_performance_issue", description="none"
+            ) as sdk_span:
+                return _detect_performance_problems(data, sdk_span, project)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
