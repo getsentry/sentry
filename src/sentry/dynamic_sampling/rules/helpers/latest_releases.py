@@ -234,7 +234,7 @@ class ProjectBoostedReleases:
                 #
                 # We run this logic while counting the number of active release so that we can remove the lrb release
                 # in O(1) in case the number of active releases is >= the limit.
-                if lrb_release is None or timestamp < lrb_release.timestamp:
+                if lrb_release is None or timestamp < lrb_release.timestamp:  # type:ignore
                     lrb_release = LRBRelease(key=boosted_release_key, timestamp=timestamp)
                 # We count this release because it is an active release.
                 active_releases += 1
@@ -337,7 +337,8 @@ class LatestReleaseBias:
             # release with a different environment.
             #
             # In theory we could add a check that verifies whether the incoming release is already being boosted and
-            # only has a different environment and in this case use only the > but it adds complexity for no big benefit.
+            # only has a different environment and in this case use only the > but it adds complexity for no big
+            # benefit.
             if latest_release_date is None or incoming_release_date >= latest_release_date:
                 self._update_latest_release_date(timestamp=incoming_release_date)
                 return True
