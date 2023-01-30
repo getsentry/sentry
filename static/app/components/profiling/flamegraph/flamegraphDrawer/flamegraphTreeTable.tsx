@@ -327,7 +327,7 @@ const TableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.surface100};
+  background-color: ${props => props.theme.surface200};
   transition: background-color 100ms ease-in-out;
   line-height: 24px;
 
@@ -341,7 +341,7 @@ const FrameBar = styled('div')`
   overflow: auto;
   width: 100%;
   position: relative;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
   border-top: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   grid-area: table;
