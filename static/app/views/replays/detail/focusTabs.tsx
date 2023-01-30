@@ -11,8 +11,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const ReplayTabs: Record<TabKey, string> = {
   console: t('Console'),
-  dom: t('DOM Events'),
   network: t('Network'),
+  dom: t('DOM Events'),
   issues: t('Issues'),
   memory: t('Memory'),
   trace: t('Trace'),
