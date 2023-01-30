@@ -441,14 +441,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            before_now(hours=1).replace(tzinfo=timezone.utc),
         )
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            before_now(hours=1).replace(tzinfo=timezone.utc),
         )
 
         self.login_as(user=self.user)

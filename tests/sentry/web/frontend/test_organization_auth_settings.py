@@ -16,6 +16,7 @@ from sentry.models import (
     SentryAppInstallationForProvider,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -195,6 +196,23 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
         ).exists()
         assert not logger.info.called
+
+    @with_feature("organizations:customer-domains")
+    @patch("sentry.auth.helper.logger")
+    def test_basic_flow_customer_domain(self, logger):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+
+        path = reverse("sentry-customer-domain-organization-auth-provider-settings")
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature("organizations:sso-basic"):
+            resp = self.client.get(path, SERVER_NAME=f"{organization.slug}.testserver")
+
+        content = resp.content.decode("utf-8")
+        assert f"http://{organization.slug}.testserver" in content
+        assert f"http://{organization.slug}.testserver/issues" in content
+        assert f"/organziations/{organization.slug}/issues" not in content
 
     @patch("sentry.auth.helper.logger")
     @patch("sentry.auth.providers.dummy.DummyProvider.build_identity")

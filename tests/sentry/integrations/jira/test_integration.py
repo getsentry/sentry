@@ -26,7 +26,6 @@ from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 from sentry_plugins.jira.plugin import JiraPlugin
 
@@ -100,9 +99,7 @@ class JiraIntegrationTest(APITestCase):
                     )
                     % (
                         group.qualified_short_id,
-                        absolute_uri(
-                            group.get_absolute_url(params={"referrer": "jira_integration"})
-                        ),
+                        group.get_absolute_url(params={"referrer": "jira_integration"}),
                     ),
                     "label": "Description",
                     "maxRows": 10,
@@ -174,6 +171,24 @@ class JiraIntegrationTest(APITestCase):
                     "type": "select",
                 },
             ]
+
+    def test_get_create_issue_config_customer_domain(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        installation = self.integration.get_installation(self.organization.id)
+        with self.feature("organizations:customer-domains"), mock.patch.object(
+            installation, "get_client", get_client
+        ):
+            issue_config = installation.get_create_issue_config(group, self.user)
+            assert f"{self.organization.slug}.testserver" in issue_config[2]["default"]
 
     def test_get_create_issue_config_with_persisted_reporter(self):
         event = self.store_event(

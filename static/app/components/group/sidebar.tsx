@@ -11,7 +11,6 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import OwnedBy from 'sentry/components/group/ownedBy';
@@ -21,7 +20,9 @@ import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMe
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
+import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -302,7 +303,15 @@ class BaseGroupSidebar extends Component<Props, State> {
             }
             title={
               <div>
-                {t('Tag Summary')} <FeatureBadge type="beta" />
+                {t('All Tags')}
+                <TooltipWrapper>
+                  <Tooltip
+                    title={t('The tags associated with all events in this issue')}
+                    disableForVisualTest
+                  >
+                    <IconQuestion size="sm" color="gray200" />
+                  </Tooltip>
+                </TooltipWrapper>
               </div>
             }
             event={event}
@@ -399,6 +408,11 @@ const StyledAvatarList = styled(AvatarList)`
 
 const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
+`;
+
+const TooltipWrapper = styled('span')`
+  vertical-align: middle;
+  padding-left: ${space(0.5)};
 `;
 
 const GroupSidebar = withApi(withSentryRouter(BaseGroupSidebar));

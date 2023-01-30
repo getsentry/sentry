@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -130,10 +128,6 @@ class InlineDocs extends Component<Props, State> {
 const DocumentationWrapper = styled('div')`
   p {
     line-height: 1.5;
-  }
-  pre {
-    word-break: break-all;
-    white-space: pre-wrap;
   }
 `;
 
