@@ -67,7 +67,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
     def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
         if timestamp is None:
-            timestamp = before_now(minutes=1)
+            timestamp = self.ten_mins_ago
+
+        min_age = before_now(minutes=10)
+        if timestamp > min_age:
+            # Sentry does some rounding of timestamps to improve cache hits in snuba.
+            # This can result in events not being returns if the timestamps
+            # are too recent.
+            raise Exception(
+                f"Please define a timestamp older than 10 minutes to avoid flakey tests. Want a timestamp before {min_age}, got: {timestamp} "
+            )
 
         start_timestamp = None
         if duration is not None:
@@ -2135,7 +2144,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
         project2 = self.create_project()
 
-        data = self.load_data(timestamp=before_now(minutes=1))
+        data = self.load_data()
         data["transaction"] = "/count_miserable/horribilis/project2"
         data["user"] = {"email": "project2@example.com"}
         self.store_event(data, project_id=project2.id)
@@ -5449,9 +5458,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 400, response.content
 
     def test_tag_that_looks_like_aggregate(self):
-        data = self.load_data(
-            timestamp=before_now(minutes=1),
-        )
+        data = self.load_data()
         data["tags"] = {"p95": "<5k"}
         self.store_event(data, project_id=self.project.id)
 
@@ -5615,9 +5622,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert set(fields) == unit_keys
 
     def test_readable_device_name(self):
-        data = self.load_data(
-            timestamp=before_now(minutes=1),
-        )
+        data = self.load_data()
         data["tags"] = {"device": "iPhone14,3"}
         self.store_event(data, project_id=self.project.id)
 
