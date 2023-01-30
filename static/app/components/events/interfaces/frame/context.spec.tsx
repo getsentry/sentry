@@ -5,7 +5,7 @@ import {Coverage, Frame, LineCoverage} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Color} from 'sentry/utils/theme';
 
-import Context, {getCoverageColors} from './context';
+import Context, {getCoverageColorClass} from './context';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
@@ -38,22 +38,18 @@ describe('Frame - Context', function () {
     [234, Coverage.NOT_COVERED],
   ];
 
-  const lineColors: Array<Color | 'transparent'> = [
-    'yellow100',
-    'green100',
-    'transparent',
-    'red100',
-  ];
-
-  const primaryLineNumber = 231;
+  const primaryLineNumber = 233;
 
   it('converts coverage data to the right colors', function () {
-    expect(getCoverageColors(lines, lineCoverage, primaryLineNumber, org)).toEqual(
-      lineColors
-    );
+    expect(getCoverageColorClass(lines, lineCoverage, primaryLineNumber, org)).toEqual([
+      'partial',
+      'covered',
+      'active',
+      'uncovered',
+    ]);
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'issue_details.codecov_primary_line_coverage_shown',
-      {organization: org, success: true}
+      {organization: org, success: false}
     );
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'issue_details.codecov_surrounding_lines_coverage_shown',

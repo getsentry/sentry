@@ -61,18 +61,15 @@ URL_PARAMETER_REGEX = re.compile(
             [0-9a-fA-F]{12}
         \b
     ) |
-    (?P<sha1>
-        \b[0-9a-fA-F]{40}\b
-    ) |
-    (?P<md5>
-        \b[0-9a-fA-F]{32}\b
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
     ) |
     (?P<int>
         -\d+\b |
         \b\d+\b
     )
 """
-)  # From message.py
+)  # Adapted from message.py
 
 
 class DetectorType(Enum):
@@ -312,7 +309,7 @@ def _detect_performance_problems(
     ]
 
     for detector in detectors:
-        run_detector_on_data(detector, data)
+        run_detector_on_data(detector, data, project)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -353,8 +350,8 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector, data):
-    if not detector.is_event_eligible(data):
+def run_detector_on_data(detector, data, project=None):
+    if not detector.is_event_eligible(data, project):
         return
 
     spans = data.get("spans", [])
@@ -532,7 +529,7 @@ class PerformanceDetector(ABC):
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
-    def is_event_eligible(cls, event):
+    def is_event_eligible(cls, event, project: Project = None) -> bool:
         return True
 
 
@@ -784,7 +781,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         ).rstrip("?")
 
     @classmethod
-    def is_event_eligible(cls, event):
+    def is_event_eligible(cls, event, project=None):
         trace_op = event.get("contexts", {}).get("trace", {}).get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return False
@@ -864,12 +861,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
-
-        parts = parameterized_first_url.split("?")
-        if len(parts) > 1:
-            [path, _query] = parts
-        else:
-            path = parts[0]
+        parsed_first_url = urlparse(parameterized_first_url)
+        path = parsed_first_url.path
 
         fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
@@ -1053,7 +1046,13 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_rate"] > random.random()
 
-    def is_event_eligible(cls, event):
+    @classmethod
+    def is_event_eligible(cls, event, project: Project = None) -> bool:
+        # temporary hardcode of org
+        if project is not None:
+            organization = cast(Organization, project.organization)
+            if organization is not None and organization.slug == "laracon-eu":
+                return True
         sdk_name = get_sdk_name(event) or ""
         return "php" not in sdk_name.lower()
 
@@ -1689,7 +1688,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
-    def is_event_eligible(cls, event):
+    def is_event_eligible(cls, event, project: Project = None):
         tags = event.get("tags", [])
         browser_name = next(
             (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""

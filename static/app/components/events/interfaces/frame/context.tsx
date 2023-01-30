@@ -22,7 +22,6 @@ import {
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {Color} from 'sentry/utils/theme';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -53,12 +52,12 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
-export function getCoverageColors(
+export function getCoverageColorClass(
   lines: [number, string][],
   lineCov: LineCoverage[],
-  primaryLineNumber: number | null,
+  activeLineNo: number,
   organization?: Organization
-): Array<Color | 'transparent'> {
+): Array<string> {
   const lineCoverage = keyBy(lineCov, 0);
   let primaryLineCovered = true;
   let surroundingLinesCovered = true;
@@ -66,13 +65,18 @@ export function getCoverageColors(
     const coverage = lineCoverage[lineNo]
       ? lineCoverage[lineNo][1]
       : Coverage.NOT_APPLICABLE;
+
+    let color = '';
     switch (coverage) {
       case Coverage.COVERED:
-        return 'green100';
+        color = 'covered';
+        break;
       case Coverage.NOT_COVERED:
-        return 'red100';
+        color = 'uncovered';
+        break;
       case Coverage.PARTIAL:
-        return 'yellow100';
+        color = 'partial';
+        break;
       case Coverage.NOT_APPLICABLE:
       // fallthrough
       default:
@@ -81,9 +85,15 @@ export function getCoverageColors(
         } else {
           surroundingLinesCovered = false;
         }
-        return 'transparent';
+        break;
     }
+
+    if (activeLineNo !== lineNo) {
+      return color;
+    }
+    return color === '' ? 'active' : `active ${color}`;
   });
+  
   if (organization) {
     trackAdvancedAnalyticsEvent('issue_details.codecov_primary_line_coverage_shown', {
       organization,
@@ -133,8 +143,10 @@ const Context = ({
     },
     {
       enabled:
-        organization?.features.includes('codecov-stacktrace-integration') &&
-        organization?.codecovAccess &&
+        defined(organization) &&
+        defined(project) &&
+        !!organization.codecovAccess &&
+        organization.features.includes('codecov-stacktrace-integration') &&
         isExpanded,
     }
   );
@@ -185,14 +197,10 @@ const Context = ({
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
-  const lineColors: Array<Color | 'transparent'> =
-    hasCoverageData && data!.codecov?.lineCoverage!
-      ? getCoverageColors(
-          contextLines,
-          data!.codecov?.lineCoverage,
-          frame.lineNo,
-          organization
-        )
+
+  const lineColors: Array<string> =
+    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo!
+      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo, organization)
       : [];
 
   return (
@@ -217,7 +225,7 @@ const Context = ({
               key={index}
               line={line}
               isActive={isActive}
-              color={isActive ? 'transparent' : lineColors[index] ?? 'transparent'}
+              colorClass={lineColors[index] ?? ''}
             >
               {hasComponents && (
                 <ErrorBoundary mini>
@@ -279,6 +287,74 @@ const StyledContextLine = styled(ContextLine)`
   padding: 0;
   text-indent: 20px;
   z-index: 1000;
+  position: relative;
+
+  &:before {
+    content: '';
+    display: block;
+    height: 24px;
+    width: 50px;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: transparent;
+    position: absolute;
+    z-index: 1;
+  }
+
+  &:after {
+    content: '';
+    display: block;
+    width: 2px;
+    border-color: transparent;
+    position: absolute;
+    left: 50px;
+    top: 0;
+    bottom: 0;
+    z-index: 9999;
+    height: 24px;
+  }
+
+  &.covered:before {
+    background: ${p => p.theme.green100};
+  }
+
+  &.covered:after {
+    border-style: solid;
+    border-color: ${p => p.theme.green300};
+  }
+
+  &.uncovered:before {
+    background: ${p => p.theme.red100};
+  }
+
+  &.partial:before {
+    background: ${p => p.theme.yellow100};
+  }
+
+  &.partial:after {
+    border-style: dashed;
+    border-color: ${p => p.theme.yellow300};
+  }
+
+  &.active {
+    background-color: ${p => p.theme.gray400};
+  }
+
+  &.active.partial:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.yellow200};
+  }
+
+  &.active.covered:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.green200};
+  }
+
+  &.active.uncovered:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.red200};
+  }
 `;
 
 const Wrapper = styled('ol')`
