@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -222,6 +223,7 @@ export function FlamegraphTreeTable({
         <FrameCallersTableHeader>
           <FrameWeightCell>
             <TableHeaderButton onClick={() => onSortChange('self weight')}>
+              <InteractionStateLayer />
               <span>
                 {t('Self Time')}{' '}
                 <QuestionTooltip
@@ -239,6 +241,7 @@ export function FlamegraphTreeTable({
           </FrameWeightCell>
           <FrameWeightCell>
             <TableHeaderButton onClick={() => onSortChange('total weight')}>
+              <InteractionStateLayer />
               <span>
                 {t('Total Time')}{' '}
                 <QuestionTooltip
@@ -256,6 +259,7 @@ export function FlamegraphTreeTable({
           </FrameWeightCell>
           <FrameNameCell>
             <TableHeaderButton onClick={() => onSortChange('name')}>
+              <InteractionStateLayer />
               {t('Frame')}{' '}
               {sort === 'name' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
@@ -326,10 +330,6 @@ const TableHeaderButton = styled('button')`
   background-color: ${props => props.theme.surface100};
   transition: background-color 100ms ease-in-out;
   line-height: 24px;
-
-  &:hover {
-    background-color: ${props => props.theme.surface400};
-  }
 
   svg {
     width: 10px;
