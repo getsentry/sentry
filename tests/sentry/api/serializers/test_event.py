@@ -300,7 +300,7 @@ class SimpleEventSerializerTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "start_timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "timestamp": iso_format(before_now(minutes=1)),
                 "user": {"email": "test@test.com"},
                 "type": "transaction",
