@@ -31,7 +31,18 @@ git_blame = [
             "oid": "5c7dc040fe713f718193e28972b43db94e5097b4",
             "author": {"name": "Jodi Jang", "email": "jodi@example.com"},
             "message": "commit2",
-            "committedDate": "2022-10-20T17:17:15Z",
+            "committedDate": "2022-10-25T20:17:15Z",
+        },
+        "startingLine": 24,
+        "endingLine": 27,
+        "age": 10,
+    },
+    {
+        "commit": {
+            "oid": "5c7dc040fe713f718193e28972b43db94e5097b5",
+            "author": {"name": "Jodi Jang", "email": "jodi@example.com"},
+            "message": "commit2",
+            "committedDate": "2022-10-25T17:17:15Z",
         },
         "startingLine": 24,
         "endingLine": 27,
@@ -337,13 +348,13 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
 
     @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_get_commit_sha_valid_line_no(self, get_jwt, mock_blame):
+    def test_get_latest_commit_from_blame(self, get_jwt, mock_blame):
         self.integration.provider = "github"
         self.integration.save()
 
         mock_blame.return_value = git_blame
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
+        commit_sha = project_stacktrace_link_endpoint.get_latest_commit_sha_from_blame(
             integration_installation=self.integration.get_installation(
                 organization_id=self.project.organization_id
             ),
@@ -354,31 +365,14 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
 
-    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_get_commit_sha_invalid_line_no(self, get_jwt, mock_blame):
-        self.integration.provider = "github"
-        self.integration.save()
-
-        mock_blame.return_value = git_blame
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            integration_installation=self.integration.get_installation(
-                organization_id=self.project.organization_id
-            ),
-            line_no=80,
-            filepath="test/path/file.py",
-            repository=self.repo,
-            ref="main",
-        )
-        assert commit_sha == ""
-
     @with_feature("organizations:codecov-stacktrace-integration")
     @with_feature("organizations:codecov-commit-sha-from-git-blame")
     @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
     @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_get_commit_sha_logger_warning(self, get_jwt, mock_blame, mock_get_stacktrace_link):
+    def test_get_commit_sha_from_blame_logger_warning(
+        self, get_jwt, mock_blame, mock_get_stacktrace_link
+    ):
         self._caplog.set_level(logging.WARNING, logger="sentry")
         self.organization.flags.codecov_access = True
         self.organization.save()

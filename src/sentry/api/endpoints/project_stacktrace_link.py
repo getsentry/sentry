@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.github.client import GitHubClientMixin
+from sentry.integrations.client import ApiClient
 from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -189,9 +189,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     sorted_configs.insert(0, config)
         return sorted_configs
 
-    def get_commit_sha(
+    def get_latest_commit_sha_from_blame(
         self,
-        integration_installation: GitHubClientMixin,
+        integration_installation: ApiClient,
         line_no: int,
         filepath: str,
         repository: Repository,
@@ -205,10 +205,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             line_no,
         )
         if git_blame_list:
+            latest_commit = git_blame_list[0]
             for blame in git_blame_list:
-                if blame["startingLine"] <= line_no <= blame["endingLine"]:
-                    commit_sha = str(blame["commit"]["oid"])
-                    break
+                if blame["commit"]["committedDate"] > latest_commit["commit"]["committedDate"]:
+                    latest_commit = blame
+            commit_sha = latest_commit["commit"]["oid"]
         if not commit_sha:
             logger.warning(
                 "Failed to get commit from git blame.",
@@ -312,7 +313,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
-                codecov_enabled = True
+
                 # Check the cache and skip querying Codecov if a query within the last hour found no integration.
                 codecov_cache = cache.get(cache_key.format(project_id=project.id))
                 if codecov_enabled and codecov_cache is False:
@@ -347,7 +348,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 )
                                 line_no = ctx.get("line_no")
                                 if line_no:
-                                    ref = self.get_commit_sha(
+                                    ref = self.get_latest_commit_sha_from_blame(
                                         integration_installation,
                                         int(line_no),
                                         filepath,
