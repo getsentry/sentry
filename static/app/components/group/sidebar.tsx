@@ -31,6 +31,7 @@ import {
   CurrentRelease,
   Environment,
   Group,
+  IssueType,
   Organization,
   Project,
   TagWithTopValues,
@@ -91,6 +92,7 @@ class BaseGroupSidebar extends Component<Props, State> {
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
       issue_category: group.issueCategory,
+      issue_type: group.issueType ?? IssueType.ERROR,
       action_type: 'assign',
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
