@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
