@@ -317,15 +317,24 @@ describe('Performance > TransactionSummary', function () {
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'dev', name: 'dev'}],
+          topValues: [
+            {count: 2, value: 'dev', name: 'dev'},
+            {count: 1, value: 'prod', name: 'prod'},
+          ],
         },
         {
           key: 'foo',
-          topValues: [{count: 1, value: 'bar', name: 'bar'}],
+          topValues: [
+            {count: 2, value: 'bar', name: 'bar'},
+            {count: 1, value: 'baz', name: 'baz'},
+          ],
         },
         {
           key: 'user',
-          topValues: [{count: 1, value: 'id:100', name: '100'}],
+          topValues: [
+            {count: 2, value: 'id:100', name: '100'},
+            {count: 1, value: 'id:101', name: '101'},
+          ],
         },
       ],
     });
@@ -785,13 +794,19 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText('Add the environment dev segment tag to the search query')
+        screen.getByLabelText(
+          'environment, dev, 100% of all events. View events with this tag value.'
+        )
       );
       userEvent.click(
-        screen.getByLabelText('Add the foo bar segment tag to the search query')
+        screen.getByLabelText(
+          'foo, bar, 100% of all events. View events with this tag value.'
+        )
       );
       userEvent.click(
-        screen.getByLabelText('Add the user id:100 segment tag to the search query')
+        screen.getByLabelText(
+          'user, id:100, 100% of all events. View events with this tag value.'
+        )
       );
 
       expect(router.push).toHaveBeenCalledTimes(3);
@@ -1192,10 +1207,14 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText('Add the environment dev segment tag to the search query')
+        screen.getByLabelText(
+          'environment, dev, 100% of all events. View events with this tag value.'
+        )
       );
       userEvent.click(
-        screen.getByLabelText('Add the foo bar segment tag to the search query')
+        screen.getByLabelText(
+          'foo, bar, 100% of all events. View events with this tag value.'
+        )
       );
 
       expect(router.push).toHaveBeenCalledTimes(2);

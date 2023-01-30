@@ -36,7 +36,7 @@ describe('Frame - Codecov Legend', function () {
         config,
         sourceUrl: null,
         integrations: [integration],
-        codecov: {statusCode: CodecovStatusCode.COVERAGE_EXISTS},
+        codecov: {status: CodecovStatusCode.COVERAGE_EXISTS},
       },
     });
 

@@ -250,12 +250,18 @@ def schedule_invalidate_project_config(
 ):
     """Schedules the :func:`invalidate_project_config` task.
 
-    This takes care of not scheduling a duplicate task if one is already scheduled.  The
-    parameters are passed straight to the task.
+    Pass exactly one of ``organization_id``, ``project_id`` or ``public_key``. If none or
+    more than one is passed, a :exc:`TypeError` is raised.
 
+    If an invalidation task is already scheduled, this task will not schedule another one.
+
+    :param trigger: The reason for the invalidation.  This is used to tag metrics.
+    :param organization_id: Invalidates all project keys for all projects in an organization.
+    :param project_id: Invalidates all project keys for a project.
+    :param public_key: Invalidate a single public key.
     :param countdown: The time to delay running this task in seconds.  Normally there is a
-       slight delay to increase the likelihood of deduplicating invalidations but you can
-       tweak this, like e.g. the :func:`invalidate_all` task does.
+        slight delay to increase the likelihood of deduplicating invalidations but you can
+        tweak this, like e.g. the :func:`invalidate_all` task does.
     """
     from sentry.models import Project, ProjectKey
 

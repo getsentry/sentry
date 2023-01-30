@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {SegmentValue} from 'sentry/components/tagDistributionMeter';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -15,7 +15,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const COLORS = ['#3A3387', '#5F40A3', '#8C4FBD', '#B961D3', '#FEEBF9'];
+const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const MAX_SEGMENTS = 4;
 
 type Props = {
@@ -63,9 +63,9 @@ function TagFacetsDistributionMeter({
   expandByDefault,
 }: Props) {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
+  const multiValueTag = segments.length > 1;
+  const [expanded, setExpanded] = useState<boolean>(multiValueTag && !!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
-  const debounceSetHovered = debounce(value => setHoveredValue(value), 70);
   const topSegments = segments.slice(0, MAX_SEGMENTS);
 
   function renderTitle() {
@@ -80,17 +80,19 @@ function TagFacetsDistributionMeter({
     return (
       <Title>
         <TitleType>{title}</TitleType>
-        <TitleDescription>
-          <Label>{topSegments[0].name || t('n/a')}</Label>
-        </TitleDescription>
-        <StyledChevron
-          direction={expanded ? 'up' : 'down'}
-          size="xs"
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
-          aria-label={`expand-${title}`}
-        />
+        <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+        {multiValueTag && (
+          <ExpandToggleButton
+            borderless
+            size="zero"
+            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
+            aria-label={t(
+              '%s %s tag distribution',
+              expanded ? 'Collapse' : 'Expand',
+              title
+            )}
+          />
+        )}
       </Title>
     );
   }
@@ -109,9 +111,8 @@ function TagFacetsDistributionMeter({
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
-          const segmentProps: SegmentValue = {
+          const segmentProps = {
             index,
-            to: value.url,
             onClick: () => {
               trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
                 tag: title,
@@ -128,7 +129,7 @@ function TagFacetsDistributionMeter({
               key={value.value}
               style={{width: pct + '%'}}
               onMouseOver={() => {
-                debounceSetHovered(value);
+                setHoveredValue(value);
                 _debounceTrackHover({
                   tag: title,
                   value: value.value,
@@ -137,17 +138,16 @@ function TagFacetsDistributionMeter({
                   organization,
                 });
               }}
-              onMouseLeave={() => debounceSetHovered(null)}
+              onMouseLeave={() => setHoveredValue(null)}
             >
               {value.isOther ? (
-                <OtherSegment aria-label={t('Other')} color={colors[colors.length - 1]} />
+                <OtherSegment
+                  aria-label={t('Other segment')}
+                  color={colors[colors.length - 1]}
+                />
               ) : (
                 <Segment
-                  aria-label={t(
-                    'Add the %s %s segment tag to the search query',
-                    title,
-                    value.value
-                  )}
+                  aria-label={`${value.value} ${t('segment')}`}
                   color={colors[index]}
                   {...segmentProps}
                 >
@@ -164,24 +164,40 @@ function TagFacetsDistributionMeter({
 
   function renderLegend() {
     return (
-      <LegendContainer>
+      <LegendContainer aria-label={title}>
         {topSegments.map((segment, index) => {
           const pctLabel = Math.floor(percent(segment.count, totalValues));
           const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
           const focus = hoveredValue?.value === segment.value;
+          const isOtherSegment =
+            index === topSegments.length - 1 && segment.value === 'other';
+          const linkLabel = isOtherSegment
+            ? t(
+                'Other %s tag values, %s of all events. View all tags.',
+                title,
+                `${pctLabel}%`
+              )
+            : t(
+                '%s, %s, %s of all events. View events with this tag value.',
+                title,
+                segment.value,
+                `${pctLabel}%`
+              );
           return (
-            <Link key={`segment-${segment.name}-${index}`} to={segment.url}>
-              <LegendRow
-                onMouseOver={() => debounceSetHovered(segment)}
-                onMouseLeave={() => debounceSetHovered(null)}
-              >
-                <LegendDot color={colors[index]} focus={focus} />
-                <LegendText unfocus={unfocus}>
-                  {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
-                </LegendText>
-                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
-              </LegendRow>
-            </Link>
+            <li key={`segment-${segment.name}-${index}`}>
+              <Link to={segment.url} aria-label={linkLabel}>
+                <LegendRow
+                  onMouseOver={() => setHoveredValue(segment)}
+                  onMouseLeave={() => setHoveredValue(null)}
+                >
+                  <LegendDot color={colors[index]} focus={focus} />
+                  <LegendText unfocus={unfocus}>
+                    {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
+                  </LegendText>
+                  {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                </LegendRow>
+              </Link>
+            </li>
           );
         })}
       </LegendContainer>
@@ -203,9 +219,18 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      {renderTitle()}
-      {renderSegments()}
-      {expanded && renderLegend()}
+      <details open={expanded} onClick={e => e.preventDefault()}>
+        <summary>
+          <TagHeader
+            clickable={multiValueTag}
+            onClick={() => multiValueTag && setExpanded(!expanded)}
+          >
+            {renderTitle()}
+            {renderSegments()}
+          </TagHeader>
+        </summary>
+        {renderLegend()}
+      </details>
     </TagSummary>
   );
 }
@@ -216,15 +241,18 @@ const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
+const TagHeader = styled('span')<{clickable?: boolean}>`
+  ${p => (p.clickable ? 'cursor: pointer' : null)};
+`;
+
 const SegmentBar = styled('div')`
   display: flex;
   overflow: hidden;
-  border-radius: ${space(0.75)};
 `;
 
 const Title = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   justify-content: space-between;
   margin-bottom: ${space(0.25)};
   line-height: 1.1;
@@ -234,20 +262,19 @@ const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.textColor};
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
+  align-self: center;
 `;
 
 const TitleDescription = styled('div')`
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   color: ${p => p.theme.gray300};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.theme.overflowEllipsis};
-`;
-
-const Label = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  align-self: center;
 `;
 
 const OtherSegment = styled('span')<{color: string}>`
@@ -257,10 +284,9 @@ const OtherSegment = styled('span')<{color: string}>`
   color: inherit;
   outline: none;
   background-color: ${p => p.color};
-  cursor: pointer;
 `;
 
-const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
+const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
   &:hover {
     color: ${p => p.theme.white};
   }
@@ -270,13 +296,14 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
   color: ${p => p.theme.white};
   outline: none;
   background-color: ${p => p.color};
-  border-radius: 0;
   text-align: right;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 1px ${space(0.5)} 0 0;
 `;
 
-const LegendContainer = styled('div')`
+const LegendContainer = styled('ol')`
+  list-style: none;
+  padding: 0;
   margin: ${space(1)} 0;
 `;
 
@@ -297,8 +324,18 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
   border-radius: 50%;
   flex-shrink: 0;
   background-color: ${p => p.color};
-  transition: outline 0.3s;
-  ${p => (p.focus ? `outline: ${p.theme.gray100} ${space(0.5)} solid` : null)}
+  &:after {
+    content: '';
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    outline: ${p => p.theme.gray100} ${space(0.5)} solid;
+    opacity: ${p => (p.focus ? '1' : '0')};
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
@@ -319,11 +356,9 @@ const LegendPercent = styled('span')`
   flex-grow: 1;
 `;
 
-const StyledChevron = styled(IconChevron)`
-  margin: -${space(0.5)} 0 0 ${space(0.5)};
+const ExpandToggleButton = styled(Button)`
   color: ${p => p.theme.gray300};
-  min-width: ${space(1.5)};
-  margin-top: 0;
+  margin-left: ${space(0.5)};
 `;
 
 const NotApplicableLabel = styled('span')`

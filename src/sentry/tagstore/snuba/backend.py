@@ -50,6 +50,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
     get_organization_id_from_project_ids,
+    get_snuba_translators,
     nest_groups,
     raw_snql_query,
 )
@@ -93,6 +94,18 @@ def fix_tag_value_data(data):
 
 def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
+
+
+def _translate_filter_keys(project_ids, group_ids, environment_ids) -> Dict[str, Any]:
+    filter_keys = {"project_id": project_ids}
+
+    if environment_ids:
+        filter_keys["environment"] = environment_ids
+    if group_ids:
+        filter_keys["group_id"] = group_ids
+
+    forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=False)
+    return forward(filter_keys)
 
 
 class SnubaTagStorage(TagStorage):
@@ -531,7 +544,7 @@ class SnubaTagStorage(TagStorage):
     def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
-        translated_params = self._translate_filter_keys(project_ids, group_id_list, environment_ids)
+        translated_params = _translate_filter_keys(project_ids, group_id_list, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
         start, end = _prepare_start_end(
             None,
@@ -579,19 +592,6 @@ class SnubaTagStorage(TagStorage):
             )
             for group_id, data in nested_groups.items()
         }
-
-    def _translate_filter_keys(self, project_ids, group_ids, environment_ids) -> Dict[str, Any]:
-        from sentry.utils.snuba import get_snuba_translators
-
-        filter_keys = {"project_id": project_ids}
-        if environment_ids:
-            filter_keys["environment"] = environment_ids
-        if group_ids:
-            filter_keys["group_id"] = group_ids
-
-        forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=False)
-
-        return forward(filter_keys)
 
     def get_group_seen_values_for_environments(
         self, project_ids, group_id_list, environment_ids, start=None, end=None
@@ -900,7 +900,7 @@ class SnubaTagStorage(TagStorage):
     def get_generic_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
-        translated_params = self._translate_filter_keys(project_ids, group_ids, environment_ids)
+        translated_params = _translate_filter_keys(project_ids, group_ids, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
         start, end = _prepare_start_end(
             start,
