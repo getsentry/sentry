@@ -38,6 +38,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
+    MetricOperationType,
     MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
@@ -1715,21 +1716,27 @@ class ResolveTagsTestCase(TestCase):
             )
 
 
-def test_simple_query():
+@pytest.mark.parametrize(
+    "op, clickhouse_op",
+    [
+        ("min_timestamp", "minIf"),
+        ("max_timestamp", "maxIf"),
+    ],
+)
+def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
+    """
+    Tests code generation for timestamp operators
+    """
+    org_id = 1
     query_definition = MetricsQuery(
-        org_id=1,
+        org_id=org_id,
         project_ids=[1],
         select=[
-            # MetricField(op="sum", metric_mri=SessionMRI.SESSION.value),
-            # MetricField(op=None, metric_mri=SessionMRI.ALL.value),
-            # MetricField(op="min_timestamp", metric_mri=SessionMRI.ALL.value),
-            MetricField(op="min_timestamp", metric_mri=SessionMRI.SESSION.value),
+            MetricField(op=op, metric_mri=SessionMRI.SESSION.value, alias="ts"),
         ],
         start=MOCK_NOW - timedelta(days=90),
         end=MOCK_NOW,
         granularity=Granularity(3600),
-        # where=[Condition(Column("release"), Op.EQ, "staging")],
-        # groupby=[MetricGroupByField("environment")],
     )
 
     builder = SnubaQueryBuilder(
@@ -1737,10 +1744,23 @@ def test_simple_query():
     )
 
     snuba_queries, fields = builder.get_snuba_queries()
+    select = snuba_queries["metrics_counters"]["totals"].select
+    assert len(select) == 1
+    field = select[0]
 
-    # print(query_definition)
-    # print(fields)
-    for q in snuba_queries.values():
-        pass
-        # print(q["totals"])
-    # print("end")
+    expected_field = Function(
+        clickhouse_op,
+        [
+            Column("timestamp"),
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value),
+                ],
+            ),
+        ],
+        alias="ts",
+    )
+
+    assert field == expected_field

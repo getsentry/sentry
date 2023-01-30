@@ -55,6 +55,7 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    max_timestamp,
     min_timestamp,
     miserable_users,
     rate_snql_factory,
@@ -347,55 +348,6 @@ class DerivedOpDefinition(MetricOperationDefinition):
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda data, *args: data
     snql_func: Callable[..., Optional[Function]] = lambda _: None
     default_null_value: Optional[Union[int, List[Tuple[float]]]] = None
-
-
-class TimestampOp(MetricOperation):
-    def validate_can_orderby(self) -> None:
-        return
-
-    def validate_can_groupby(self) -> bool:
-        return False
-
-    def validate_can_filter(self) -> bool:
-        return False
-
-    def get_meta_type(self) -> Optional[str]:
-        return "datetime"
-
-    def run_post_query_function(
-        self,
-        data: SnubaDataType,
-        metric_mri: str,
-        alias: str,
-        idx: Optional[int] = None,
-        params: Optional[MetricOperationParams] = None,
-    ) -> SnubaDataType:
-        return data
-
-    def generate_snql_function(
-        self,
-        entity: MetricEntity,
-        use_case_id: UseCaseKey,
-        alias: str,
-        aggregate_filter: Function,
-        org_id: int,
-        params: Optional[MetricOperationParams] = None,
-    ) -> Function:
-        if self.op == "min_timestamp":
-            snuba_function = "minIf"
-        elif self.op == "max_timestamp":
-            snuba_function = "maxIf"
-        else:
-            raise InvalidParams(f"Function {self.op} is unknown.")
-
-        ret_val = Function(snuba_function, [Column("timestamp"), aggregate_filter], alias=alias)
-        return ret_val
-
-    def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
-        return cast(
-            Optional[Union[int, List[Tuple[float]]]],
-            copy.copy(DEFAULT_AGGREGATES[self.op]),
-        )
 
 
 class RawOp(MetricOperation):
@@ -1651,8 +1603,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
     ]
 }
 
-TIMESTAMP_OPS: Set[MetricOperationType] = {"max_timestamp"}
-
 DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
@@ -1728,7 +1678,17 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="min_timestamp",
             can_groupby=True,
             can_orderby=True,
+            can_filter=True,
             snql_func=min_timestamp,
+            meta_type="datetime",
+            default_null_value=None,
+        ),
+        DerivedOp(
+            op="max_timestamp",
+            can_groupby=True,
+            can_orderby=True,
+            can_filter=True,
+            snql_func=max_timestamp,
             meta_type="datetime",
             default_null_value=None,
         ),
@@ -1768,8 +1728,6 @@ def metric_object_factory(
 
     if op in DERIVED_OPS:
         metric_operation = DERIVED_OPS[op]
-    elif op in TIMESTAMP_OPS:
-        metric_operation = TimestampOp(op=op)
     else:
         metric_operation = RawOp(op=op)
 
