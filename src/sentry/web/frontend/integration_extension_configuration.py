@@ -23,9 +23,9 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
             param_string = "?%s" % urlencode({"next": self.request.GET["next"]})
 
         redirect_uri = self.organization.absolute_url(
-            f"/settings/{org_slug}/integrations/{provider}/{integration_id}/"
+            f"/settings/{org_slug}/integrations/{provider}/{integration_id}/",
+            query=param_string,
         )
-        redirect_uri = f"{redirect_uri.rstrip('/')}/{param_string}"
         return HttpResponseRedirect(redirect_uri)
 
 
