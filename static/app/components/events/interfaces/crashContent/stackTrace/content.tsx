@@ -2,6 +2,7 @@ import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {StacktraceFilenameQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
@@ -24,6 +25,7 @@ type Props = {
   event: Event;
   platform: PlatformType;
   className?: string;
+  debugFrames?: StacktraceFilenameQuery[];
   isHoverPreviewed?: boolean;
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -138,6 +140,7 @@ class Content extends Component<Props, State> {
       includeSystemFrames,
       isHoverPreviewed,
       meta,
+      debugFrames,
     } = this.props;
 
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
@@ -233,6 +236,7 @@ class Content extends Component<Props, State> {
             isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
             frameMeta={meta?.frames?.[frameIdx]}
             registersMeta={meta?.registers}
+            debugFrames={debugFrames}
           />
         );
       }

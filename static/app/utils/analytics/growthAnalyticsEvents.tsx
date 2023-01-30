@@ -1,4 +1,6 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import type {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformType} from 'sentry/types';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -44,6 +46,11 @@ type SampleEvent = {
   project_id: string;
   retries: number;
   source: string;
+};
+
+type SourceMapDebugParam = {
+  platform: PlatformType;
+  type: SourceMapProcessingIssueType;
 };
 
 // define the event key to payload mappings
@@ -110,6 +117,8 @@ export type GrowthEventParameters = {
     project_id: string;
   };
   'growth.select_platform': PlatformPickerParam;
+  'growth.sourcemap_docs_clicked': SourceMapDebugParam;
+  'growth.sourcemap_expand_clicked': SourceMapDebugParam;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
@@ -190,6 +199,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.sample_error_onboarding_link_clicked':
     'Growth: Sample Error Onboarding Link Clicked',
   'member_settings_page.loaded': 'Member Settings Page Loaded',
+  'growth.sourcemap_docs_clicked': 'SourceMap Debug: Docs Clicked',
+  'growth.sourcemap_expand_clicked': 'SourceMap Debug: Expand Clicked',
   'invite_modal.opened': 'Invite Modal: Opened',
   'invite_modal.closed': 'Invite Modal: Closed',
   'invite_modal.add_more': 'Invite Modal: Add More',

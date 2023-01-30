@@ -11,6 +11,7 @@ import {StacktraceType} from 'sentry/types/stacktrace';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
+import {StacktraceFilenameQuery} from '../exception/useSourceMapDebug';
 
 import StacktracePlatformIcon from './platformIcon';
 
@@ -19,6 +20,7 @@ type Props = {
   event: Event;
   platform: PlatformType;
   className?: string;
+  debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   includeSystemFrames?: boolean;
@@ -29,6 +31,7 @@ type Props = {
 
 function Content({
   data,
+  debugFrames,
   platform,
   event,
   newestFirst,
@@ -196,6 +199,7 @@ function Content({
             isUsedForGrouping,
             frameMeta: meta?.frames?.[frameIndex],
             registersMeta: meta?.registers,
+            debugFrames,
           };
 
           nRepeats = 0;
