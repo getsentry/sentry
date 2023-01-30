@@ -4,9 +4,14 @@ import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
 import {Button} from 'sentry/components/button';
+import {
+  StacktraceFilenameQuery,
+  useSourceMapDebug,
+} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import StrictClick from 'sentry/components/strictClick';
+import Tooltip from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
@@ -41,6 +46,7 @@ type Props = {
   data: Frame;
   event: Event;
   registers: Record<string, string>;
+  debugFrames?: StacktraceFilenameQuery[];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
   image?: React.ComponentProps<typeof DebugImage>['image'];
@@ -80,6 +86,27 @@ function makeFilter(
   }
 
   return addr;
+}
+
+function SourceMapWarning({
+  debugFrames,
+  frame,
+}: {
+  frame: Frame;
+  debugFrames?: StacktraceFilenameQuery[];
+}) {
+  const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
+  const {data} = useSourceMapDebug(debugFrame?.query, {
+    enabled: !!debugFrame,
+  });
+
+  return data?.errors?.length ? (
+    <IconWrapper>
+      <Tooltip skipWrapper title={t('Missing source map')}>
+        <IconWarning color="red400" size="sm" aria-label={t('Missing source map')} />
+      </Tooltip>
+    </IconWrapper>
+  ) : null;
 }
 
 export class Line extends Component<Props, State> {
@@ -258,16 +285,17 @@ export class Line extends Component<Props, State> {
   }
 
   renderDefaultLine() {
-    const {isHoverPreviewed} = this.props;
+    const {isHoverPreviewed, debugFrames, data} = this.props;
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title" data-test-id="title">
           <VertCenterWrapper>
+            <SourceMapWarning frame={data} debugFrames={debugFrames} />
             <div>
               {this.renderLeadHint()}
               <DefaultTitle
-                frame={this.props.data}
+                frame={data}
                 platform={this.props.platform ?? 'other'}
                 isHoverPreviewed={isHoverPreviewed}
                 meta={this.props.frameMeta}
@@ -508,4 +536,10 @@ const StyledLi = styled('li')`
       visibility: visible;
     }
   }
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-right: ${space(1)};
 `;
