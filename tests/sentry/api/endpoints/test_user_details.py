@@ -182,11 +182,12 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        resp = self.get_success_response(
+        resp = self.get_error_response(
             self.user.id,
             isSuperuser="true",
+            status_code=403,
         )
-        assert resp.data["id"] == str(self.user.id)
+        assert resp.data["detail"] == "Missing required permission to add superuser."
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_superuser
@@ -196,11 +197,12 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        resp = self.get_success_response(
+        resp = self.get_error_response(
             self.user.id,
             isStaff="true",
+            status_code=403,
         )
-        assert resp.data["id"] == str(self.user.id)
+        assert resp.data["detail"] == "Missing required permission to add admin."
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_staff

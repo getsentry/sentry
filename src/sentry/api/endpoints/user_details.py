@@ -149,7 +149,6 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string theme: UI theme, either "light", "dark", or "system"
         :auth: required
         """
-
         if request.access.has_permission("users.admin"):
             serializer_cls = PrivilegedUserSerializer
         elif is_active_superuser(request):
@@ -165,6 +164,18 @@ class UserDetailsEndpoint(UserEndpoint):
         # This serializer should NOT include privileged fields e.g. password
         if not serializer.is_valid() or not serializer_options.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        if not request.access.has_permission("users.admin"):
+            if not user.is_superuser and request.data.get("isSuperuser"):
+                return Response(
+                    {"detail": "Missing required permission to add superuser."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            elif not user.is_staff and request.data.get("isStaff"):
+                return Response(
+                    {"detail": "Missing required permission to add admin."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         # map API keys to keys in model
         key_map = {
