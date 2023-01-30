@@ -70,7 +70,7 @@ function getErrorMessage(
         },
         {
           title: t(
-            'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Not the release must be the same as in step 1.'
+            'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Note the release must be the same as in step 1.'
           ),
           docsLink: useShortPath
             ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/#uploading-source-maps-to-sentry`
