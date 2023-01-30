@@ -37,11 +37,13 @@ const recordAnalytics = (
 
 type Props = {
   forwardedRef: React.Ref<HTMLDivElement>;
+  hidePanel: () => void;
   /**
    * Fired when a task is completed. This will typically happen if there is a
    * supplemental component with the ability to complete a task
    */
   onMarkComplete: (taskKey: OnboardingTaskKey) => void;
+
   /**
    * Fired when the task has been skipped
    */
@@ -55,7 +57,7 @@ type Props = {
 };
 
 function Task(props: Props) {
-  const {task, onSkip, onMarkComplete, forwardedRef, organization} = props;
+  const {task, onSkip, onMarkComplete, forwardedRef, organization, hidePanel} = props;
   const routeContext = useRouteContext();
   const {router} = routeContext;
   const handleSkip = () => {
@@ -84,6 +86,7 @@ function Task(props: Props) {
       url.searchParams.append('referrer', 'onboarding_task');
       navigateTo(url.toString(), router);
     }
+    hidePanel();
   };
 
   if (taskIsDone(task) && task.completionSeen) {
