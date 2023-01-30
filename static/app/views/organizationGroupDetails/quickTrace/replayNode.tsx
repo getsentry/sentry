@@ -15,12 +15,10 @@ function ReplayNode({hasReplay}: Props) {
   if (hasReplay) {
     return (
       <EventNodeReplay
-        data-test-id="replay-node"
-        to={{...location, hash: '#breadcrumbs'}}
-        onClick={() => document.getElementById('breadcrumbs')?.scrollIntoView()}
-        type="black"
         icon={<IconPlay size="xs" />}
-        tooltipText=""
+        onClick={() => document.getElementById('breadcrumbs')?.scrollIntoView()}
+        to={{...location, hash: '#breadcrumbs'}}
+        type="black"
       >
         {t('Replay')}
       </EventNodeReplay>
@@ -28,7 +26,6 @@ function ReplayNode({hasReplay}: Props) {
   }
   return (
     <EventNodeReplay
-      data-test-id="replay-node"
       disabled
       icon={null}
       tooltipText={t('Replay cannot be found')}

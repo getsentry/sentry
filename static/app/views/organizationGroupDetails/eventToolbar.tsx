@@ -144,7 +144,7 @@ class GroupEventToolbar extends Component<Props> {
             />
           </NavigationContainer>
         </HeadingAndNavWrapper>
-        <Flex>
+        <TraceWithReplayWrapper>
           {isReplayEnabled && projectHasReplay ? (
             <ReplayNode hasReplay={Boolean(replayId)} />
           ) : null}
@@ -154,7 +154,7 @@ class GroupEventToolbar extends Component<Props> {
             organization={organization}
             location={location}
           />
-        </Flex>
+        </TraceWithReplayWrapper>
         <StyledGlobalAppStoreConnectUpdateAlert
           project={project}
           organization={organization}
@@ -210,7 +210,8 @@ const NavigationContainer = styled('div')`
   gap: 0 ${space(1)};
 `;
 
-const Flex = styled('div')`
+const TraceWithReplayWrapper = styled('div')`
   display: flex;
 `;
+
 export default GroupEventToolbar;
