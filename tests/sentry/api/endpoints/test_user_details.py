@@ -149,6 +149,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
     def test_superuser_can_change_is_active(self):
+        self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -162,6 +163,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert not user.is_active
 
     def test_superuser_with_permission_can_change_is_active(self):
+        self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         UserPermission.objects.create(user=superuser, permission="users.admin")
         self.login_as(user=superuser, superuser=True)
@@ -176,6 +178,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert not user.is_active
 
     def test_superuser_cannot_add_superuser(self):
+        self.user.update(is_superuser=False)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -203,6 +206,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert not user.is_staff
 
     def test_superuser_with_permission_can_add_superuser(self):
+        self.user.update(is_superuser=False)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         UserPermission.objects.create(user=superuser, permission="users.admin")
         self.login_as(user=superuser, superuser=True)
@@ -217,6 +221,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert user.is_superuser
 
     def test_superuser_with_permission_can_add_staff(self):
+        self.user.update(is_staff=False)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         UserPermission.objects.create(user=superuser, permission="users.admin")
         self.login_as(user=superuser, superuser=True)
