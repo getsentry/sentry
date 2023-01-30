@@ -1726,10 +1726,7 @@ def metric_object_factory(
     # at this point we know we have an op. Add assertion to appease mypy
     assert op is not None
 
-    if op in DERIVED_OPS:
-        metric_operation = DERIVED_OPS[op]
-    else:
-        metric_operation = RawOp(op=op)
+    metric_operation = DERIVED_OPS[op] if op in DERIVED_OPS else RawOp(op=op)
 
     metric_object = (
         DERIVED_ALIASES[metric_mri] if metric_mri in DERIVED_ALIASES else RawMetric(metric_mri)
