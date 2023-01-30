@@ -111,7 +111,7 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
-      <Container>
+      <Content>
         <Left>
           <TreeContainer>
             <GhostRow ref={hoveredGhostRowRef} />
@@ -131,14 +131,14 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
         <Right>
           <Wireframe hierarchy={hierarchy} />
         </Right>
-      </Container>
+      </Content>
     </Fragment>
   );
 }
 
 export {ViewHierarchy};
 
-const Container = styled('div')`
+const Content = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};

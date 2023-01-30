@@ -53,9 +53,7 @@ function draw(context, coordinates, xOffset, yOffset) {
 function Wireframe({hierarchy}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const coordinates = useMemo(() => {
-    return getCoordinates(hierarchy);
-  }, [hierarchy]);
+  const coordinates = useMemo(() => getCoordinates(hierarchy), [hierarchy]);
 
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
