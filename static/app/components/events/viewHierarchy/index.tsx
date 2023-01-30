@@ -146,15 +146,18 @@ const Container = styled('div')`
 `;
 
 const Left = styled('div')`
-  flex: 1;
+  width: 40%;
   display: flex;
   gap: ${space(1)};
   flex-direction: column;
+  resize: both;
 `;
+
 const Right = styled('div')`
-  flex: 1;
+  width: 60%;
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 `;
 
 const TreeContainer = styled('div')`
