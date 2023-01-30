@@ -179,14 +179,14 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert problem1.fingerprint != problem2.fingerprint
 
-    def test_fingerprints_using_full_url_path(self):
+    def test_ignores_hostname_for_fingerprinting(self):
         event1 = self.create_event(lambda i: f"GET http://service.io/clients/info?id={i}")
         [problem1] = self.find_problems(event1)
 
         event2 = self.create_event(lambda i: f"GET /clients/info?id={i}")
         [problem2] = self.find_problems(event2)
 
-        assert problem1.fingerprint != problem2.fingerprint
+        assert problem1.fingerprint == problem2.fingerprint
 
 
 @pytest.mark.parametrize(
