@@ -9,7 +9,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Actor, Commit, Group, Organization, Release} from 'sentry/types';
+import {Actor, Commit, Group, IssueType, Organization, Release} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 type Owner = {
@@ -45,11 +45,12 @@ const SuggestedAssignees = ({
         project_id: parseInt(projectId!, 10),
         group_id: parseInt(group.id, 10),
         issue_category: group.issueCategory,
+        issue_type: group.issueType ?? IssueType.ERROR,
         action_type: 'assign',
         assigned_suggestion_reason: owner.source,
       });
     },
-    [onAssign, group.id, group.issueCategory, projectId, organization]
+    [onAssign, group.id, group.issueCategory, group.issueType, projectId, organization]
   );
 
   if (loading) {

@@ -9,6 +9,7 @@ import {
   GroupActivityType,
   GroupTombstone,
   IssueCategory,
+  IssueType,
   TreeLabelPart,
 } from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
@@ -312,6 +313,7 @@ export function getAnalyicsDataForGroup(group: Group | null) {
     // overload group_id with the issue_id
     issue_id: groupId,
     issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    issue_type: group?.issueType ?? IssueType.ERROR,
     issue_status: group?.status,
     issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
     issue_level: group?.level,
