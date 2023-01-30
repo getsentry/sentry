@@ -15,10 +15,21 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models import ProjectCodeOwners, Team
     from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
+
+
+def get_duration(func):
+    def wrapper(*args, **kwargs):
+        start_time = timezone.now()
+        result = func(*args, **kwargs)
+        end_time = timezone.now()
+        duration = end_time - start_time
+        return result, duration.total_seconds()
+
+    return wrapper
 
 
 @region_silo_only_model
@@ -117,7 +128,7 @@ class ProjectOwnership(Model):
         codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
         ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
-        rules = cls._matching_ownership_rules(ownership, project_id, data)
+        rules = cls._matching_ownership_rules(ownership, data)
 
         if not rules:
             project = Project.objects.get(id=project_id)
@@ -163,8 +174,9 @@ class ProjectOwnership(Model):
         return result
 
     @classmethod
+    @get_duration
     def get_issue_owners(
-        cls, project_id, data, limit=2
+        cls, project_id, data, limit=2, experiment=False
     ) -> Sequence[
         Tuple[
             "Rule",
@@ -190,9 +202,9 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, project_id, data)
+            ownership_rules = cls._matching_ownership_rules(ownership, data, experiment)
             codeowners_rules = (
-                cls._matching_ownership_rules(codeowners, project_id, data) if codeowners else []
+                cls._matching_ownership_rules(codeowners, data, experiment) if codeowners else []
             )
 
             if not (codeowners_rules or ownership_rules):
@@ -293,12 +305,16 @@ class ProjectOwnership(Model):
 
     @classmethod
     def _matching_ownership_rules(
-        cls, ownership: "ProjectOwnership", project_id: int, data: Mapping[str, Any]
+        cls,
+        ownership: Union["ProjectOwnership", "ProjectCodeOwners"],
+        data: Mapping[str, Any],
+        experiment: bool = False,
     ) -> Sequence["Rule"]:
         rules = []
+
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
-                if rule.test(data):
+                if rule.test(data, experiment):
                     rules.append(rule)
 
         return rules
