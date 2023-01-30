@@ -435,13 +435,20 @@ AUTHENTICATION_BACKENDS = (
 )
 
 AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "sentry.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 6},
+        "OPTIONS": {"min_length": 8},
     },
     {
         "NAME": "sentry.auth.password_validation.MaximumLengthValidator",
         "OPTIONS": {"max_length": 256},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
