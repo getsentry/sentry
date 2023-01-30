@@ -61,18 +61,15 @@ URL_PARAMETER_REGEX = re.compile(
             [0-9a-fA-F]{12}
         \b
     ) |
-    (?P<sha1>
-        \b[0-9a-fA-F]{40}\b
-    ) |
-    (?P<md5>
-        \b[0-9a-fA-F]{32}\b
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
     ) |
     (?P<int>
         -\d+\b |
         \b\d+\b
     )
 """
-)  # From message.py
+)  # Adapted from message.py
 
 
 class DetectorType(Enum):
@@ -864,12 +861,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
-
-        parts = parameterized_first_url.split("?")
-        if len(parts) > 1:
-            [path, _query] = parts
-        else:
-            path = parts[0]
+        parsed_first_url = urlparse(parameterized_first_url)
+        path = parsed_first_url.path
 
         fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
