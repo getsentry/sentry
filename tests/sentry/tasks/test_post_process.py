@@ -990,8 +990,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
-                cache_key=self.cache_key,
-                group_id=self.created_event.group_id,
+                event=self.created_event,
             )
         assert GroupOwner.objects.get(
             group=self.created_event.group,
