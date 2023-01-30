@@ -256,7 +256,7 @@ class EventTest(TestCase):
                 "culprit": "app/components/events/eventEntries in map",
                 "type": "transaction",
                 "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
