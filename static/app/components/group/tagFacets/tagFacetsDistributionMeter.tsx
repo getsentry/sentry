@@ -15,7 +15,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const COLORS = ['#3A3387', '#5F40A3', '#8C4FBD', '#B961D3', '#FEEBF9'];
+const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const MAX_SEGMENTS = 4;
 
 type Props = {
@@ -248,12 +248,11 @@ const TagHeader = styled('span')<{clickable?: boolean}>`
 const SegmentBar = styled('div')`
   display: flex;
   overflow: hidden;
-  border-radius: ${space(0.75)};
 `;
 
 const Title = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   justify-content: space-between;
   margin-bottom: ${space(0.25)};
   line-height: 1.1;
@@ -263,7 +262,7 @@ const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.textColor};
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
   align-self: center;
 `;
@@ -273,7 +272,7 @@ const TitleDescription = styled('div')`
   display: flex;
   color: ${p => p.theme.gray300};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.theme.overflowEllipsis};
   align-self: center;
 `;
@@ -297,7 +296,6 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   color: ${p => p.theme.white};
   outline: none;
   background-color: ${p => p.color};
-  border-radius: 0;
   text-align: right;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 1px ${space(0.5)} 0 0;

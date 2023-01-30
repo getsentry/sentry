@@ -302,7 +302,7 @@ class BaseGroupSidebar extends Component<Props, State> {
             }
             title={
               <div>
-                {t('Tag Summary')} <FeatureBadge type="beta" />
+                {t('All Tags')} <FeatureBadge type="beta" />
               </div>
             }
             event={event}
