@@ -61,18 +61,15 @@ URL_PARAMETER_REGEX = re.compile(
             [0-9a-fA-F]{12}
         \b
     ) |
-    (?P<sha1>
-        \b[0-9a-fA-F]{40}\b
-    ) |
-    (?P<md5>
-        \b[0-9a-fA-F]{32}\b
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
     ) |
     (?P<int>
         -\d+\b |
         \b\d+\b
     )
 """
-)  # From message.py
+)  # Adapted from message.py
 
 
 class DetectorType(Enum):
@@ -234,6 +231,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
             "n_plus_one_api_calls_detection_rate": 1.0,
+            "consecutive_db_queries_detection_rate": 1.0,
         }
     )
 
@@ -263,6 +261,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
+            "detection_rate": settings["consecutive_db_queries_detection_rate"],
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
             {
@@ -284,7 +283,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
-            "duration_threshold": 200,  # ms
+            "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
         },
     }
@@ -310,7 +309,7 @@ def _detect_performance_problems(
     ]
 
     for detector in detectors:
-        run_detector_on_data(detector, data)
+        run_detector_on_data(detector, data, project)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -351,8 +350,8 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector, data):
-    if not detector.is_event_eligible(data):
+def run_detector_on_data(detector, data, project=None):
+    if not detector.is_event_eligible(data, project):
         return
 
     spans = data.get("spans", [])
@@ -530,7 +529,7 @@ class PerformanceDetector(ABC):
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
-    def is_event_eligible(cls, event):
+    def is_event_eligible(cls, event, project: Project = None) -> bool:
         return True
 
 
@@ -657,7 +656,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
-            fingerprint = fingerprint_span(span)
+            fingerprint = self._fingerprint(span)
             if span_id and fingerprint:
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
@@ -686,6 +685,10 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         span_duration = get_span_duration(span)
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
+
+    def _fingerprint(self, span):
+        hashed_spans = fingerprint_spans([span])
+        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{hashed_spans}"
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
@@ -778,7 +781,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         ).rstrip("?")
 
     @classmethod
-    def is_event_eligible(cls, event):
+    def is_event_eligible(cls, event, project=None):
         trace_op = event.get("contexts", {}).get("trace", {}).get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return False
@@ -858,12 +861,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
-
-        parts = parameterized_first_url.split("?")
-        if len(parts) > 1:
-            [path, _query] = parts
-        else:
-            path = parts[0]
+        parsed_first_url = urlparse(parameterized_first_url)
+        path = parsed_first_url.path
 
         fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
@@ -1045,7 +1044,17 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_rate"] > random.random()
+
+    @classmethod
+    def is_event_eligible(cls, event, project: Project = None) -> bool:
+        # temporary hardcode of org
+        if project is not None:
+            organization = cast(Organization, project.organization)
+            if organization is not None and organization.slug == "laracon-eu":
+                return True
+        sdk_name = get_sdk_name(event) or ""
+        return "php" not in sdk_name.lower()
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
@@ -1679,7 +1688,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
-    def is_event_eligible(cls, event):
+    def is_event_eligible(cls, event, project: Project = None):
         tags = event.get("tags", [])
         browser_name = next(
             (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""

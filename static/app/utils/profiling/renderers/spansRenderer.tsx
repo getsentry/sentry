@@ -100,7 +100,7 @@ export class SpanChartRenderer2D {
       return this.pattern;
     }
     return (
-      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
+      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR
     );
   }
 

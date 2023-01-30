@@ -2,15 +2,12 @@ import {Fragment, ReactNode, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Event, Organization, Project, TagWithTopValues} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
-import {isMobilePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -137,45 +134,25 @@ export default function TagFacets({
         </TagPlaceholders>
       ) : (
         <Fragment>
-          <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
+          <SidebarSection.Title>{title || t('All Tags')}</SidebarSection.Title>
           <Content>
-            <Fragment>
-              <TopDistributionWrapper data-test-id="top-distribution-wrapper">
-                <TagFacetsDistributionMeterWrapper
-                  groupId={groupId}
-                  organization={organization}
-                  project={project}
-                  tagKeys={topTagKeys}
-                  tagsData={tagsData}
-                  expandFirstTag
-                />
-              </TopDistributionWrapper>
+            <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
                 project={project}
-                tagKeys={remainingTagKeys}
+                tagKeys={topTagKeys}
                 tagsData={tagsData}
+                expandFirstTag
               />
-              <ShowAllButtonContainer>
-                <Button
-                  size="xs"
-                  to={getTagUrl(organization.slug, groupId)}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'issue_group_details.tags.show_all_tags.clicked',
-                      {
-                        platform: project?.platform,
-                        is_mobile: isMobilePlatform(project?.platform),
-                        organization,
-                      }
-                    );
-                  }}
-                >
-                  {t('View All Tags')}
-                </Button>
-              </ShowAllButtonContainer>
-            </Fragment>
+            </span>
+            <TagFacetsDistributionMeterWrapper
+              groupId={groupId}
+              organization={organization}
+              project={project}
+              tagKeys={remainingTagKeys}
+              tagsData={tagsData}
+            />
           </Content>
         </Fragment>
       )}
@@ -199,7 +176,7 @@ function TagFacetsDistributionMeterWrapper({
   expandFirstTag?: boolean;
 }) {
   return (
-    <Fragment>
+    <TagFacetsList>
       {tagKeys.map((tagKey, index) => {
         const tagWithTopValues = tagsData[tagKey];
         const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
@@ -215,23 +192,20 @@ function TagFacetsDistributionMeterWrapper({
           : [];
 
         return (
-          <TagFacetsDistributionMeter
-            key={tagKey}
-            title={tagKey}
-            totalValues={topValuesTotal}
-            segments={segments}
-            onTagClick={() => undefined}
-            project={project}
-            expandByDefault={expandFirstTag && index === 0}
-          />
+          <li key={tagKey} aria-label={tagKey}>
+            <TagFacetsDistributionMeter
+              title={tagKey}
+              totalValues={topValuesTotal}
+              segments={segments}
+              onTagClick={() => undefined}
+              project={project}
+              expandByDefault={expandFirstTag && index === 0}
+            />
+          </li>
         );
       })}
-    </Fragment>
+    </TagFacetsList>
   );
-}
-
-function getTagUrl(orgSlug: string, groupId: string) {
-  return `/organizations/${orgSlug}/issues/${groupId}/tags/`;
 }
 
 const TagPlaceholders = styled('div')`
@@ -240,14 +214,12 @@ const TagPlaceholders = styled('div')`
   grid-auto-flow: row;
 `;
 
-const ShowAllButtonContainer = styled('div')`
-  margin-top: ${space(3)};
-`;
-
 const Content = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const TopDistributionWrapper = styled('div')`
-  margin-bottom: 60px;
+export const TagFacetsList = styled('ol')`
+  list-style: none;
+  padding: 0;
+  margin: 0 0 ${space(2)};
 `;
