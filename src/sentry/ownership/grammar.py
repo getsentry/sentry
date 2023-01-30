@@ -86,7 +86,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any], experiment=False) -> Union[bool, Any]:
+    def test(self, data: Mapping[str, Any], experiment: bool = False) -> Union[bool, Any]:
         return self.matcher.test(data, experiment)
 
 
@@ -129,7 +129,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def test(self, data: PathSearchable, experiment=False) -> bool:
+    def test(self, data: PathSearchable, experiment: bool = False) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
