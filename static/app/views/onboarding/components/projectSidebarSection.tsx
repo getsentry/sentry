@@ -60,11 +60,11 @@ function NewProjectSideBarSection({
         ) : !project ? (
           <Beat color={theme.pink400}>{t('Project deleted')}</Beat>
         ) : firstErrorReceived ? (
-          <Beat color={theme.successText}>{t('DSN and error received')}</Beat>
+          <Beat color={theme.successText}>{t('SDK connected and error received')}</Beat>
         ) : serverConnected ? (
           <Beat color={theme.pink400}>{t('Awaiting first error')}</Beat>
         ) : (
-          <Beat color={theme.pink400}>{t('Awaiting DSN response')}</Beat>
+          <Beat color={theme.pink400}>{t('Awaiting SDK connection')}</Beat>
         )}
       </MiddleWrapper>
       {firstErrorReceived ? (

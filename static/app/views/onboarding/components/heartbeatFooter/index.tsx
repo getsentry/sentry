@@ -131,18 +131,20 @@ export function HeartbeatFooter({
   }, [serverConnected, firstErrorReceived, route, router, organization.slug, location]);
 
   useEffect(() => {
-    if (loading) {
+    if (loading || !serverConnected) {
       return;
     }
 
-    if (serverConnected) {
-      addSuccessMessage(t('DSN response received'));
+    addSuccessMessage(t('SDK Connected'));
+  }, [serverConnected, loading]);
+
+  useEffect(() => {
+    if (loading || !firstErrorReceived) {
+      return;
     }
 
-    if (firstErrorReceived) {
-      addSuccessMessage(t('First error received'));
-    }
-  }, [serverConnected, firstErrorReceived, loading]);
+    addSuccessMessage(t('First error received'));
+  }, [firstErrorReceived, loading]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
@@ -169,7 +171,7 @@ export function HeartbeatFooter({
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
               <IconCheckmark size="sm" isCircled />
-              {t('DSN response received')}
+              {t('SDK Connected')}
             </Beat>
             <Beat status={BeatStatus.COMPLETE}>
               <IconCheckmark size="sm" isCircled />
@@ -180,7 +182,7 @@ export function HeartbeatFooter({
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
               <IconCheckmark size="sm" isCircled />
-              {t('DSN response received')}
+              {t('SDK Connected')}
             </Beat>
             <Beat status={BeatStatus.AWAITING}>
               <PulsingIndicator>2</PulsingIndicator>
@@ -191,7 +193,7 @@ export function HeartbeatFooter({
           <Fragment>
             <Beat status={BeatStatus.AWAITING}>
               <PulsingIndicator>1</PulsingIndicator>
-              {t('Awaiting DSN response')}
+              {t('Awaiting SDK connection')}
             </Beat>
             <Beat status={BeatStatus.PENDING}>
               <PulsingIndicator>2</PulsingIndicator>
