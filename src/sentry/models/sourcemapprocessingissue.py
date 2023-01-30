@@ -13,6 +13,7 @@ class SourceMapProcessingIssue:
     NO_URL_MATCH = "no_url_match"
     PARTIAL_MATCH = "partial_match"
     DIST_MISMATCH = "dist_mismatch"
+    DIST_NOT_FOUND = "dist_not_found"
 
     _messages = {
         UNKNOWN_ERROR: "Unknown error",
@@ -23,6 +24,7 @@ class SourceMapProcessingIssue:
         NO_URL_MATCH: "The absolute path url does not match any source maps",
         PARTIAL_MATCH: "The absolute path url is a partial match",
         DIST_MISMATCH: "The dist values do not match",
+        DIST_NOT_FOUND: "The dist value was not found",
     }
 
     @classmethod

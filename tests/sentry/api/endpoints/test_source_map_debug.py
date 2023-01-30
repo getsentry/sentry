@@ -352,8 +352,10 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
 
+        event_dist = Distribution.objects.get(name="my-dist", release=release)
+
         dist = Distribution.objects.create(
-            organization_id=self.organization.id, name="diff_dist", release_id=release.id
+            organization_id=self.organization.id, name="diff-dist", release_id=release.id
         )
 
         ReleaseFile.objects.create(
@@ -375,3 +377,4 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "dist_mismatch"
         assert error["message"] == "The dist values do not match"
+        assert error["data"] == {"eventDist": event_dist.id, "artifactDist": dist.id}
