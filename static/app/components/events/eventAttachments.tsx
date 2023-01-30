@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  useDeleteEventAttachmentOptimistic,
+  useFetchEventAttachments,
+} from 'sentry/actionCreators/events';
 import AttachmentUrl from 'sentry/components/events/attachmentUrl';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
@@ -9,6 +13,7 @@ import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJso
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
+import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {IssueAttachment} from 'sentry/types';
@@ -19,9 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
 type EventAttachmentsProps = {
-  attachments: IssueAttachment[];
   event: Event;
-  onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
   projectSlug: string;
 };
 
@@ -89,18 +92,34 @@ const InlineEventAttachment = ({
   );
 };
 
-export const EventAttachments = ({
-  attachments,
-  event,
-  onDeleteAttachment,
-  projectSlug,
-}: EventAttachmentsProps) => {
+export const EventAttachments = ({event, projectSlug}: EventAttachmentsProps) => {
   const organization = useOrganization();
   const location = useLocation();
+  const {
+    data: attachments = [],
+    isError,
+    refetch,
+  } = useFetchEventAttachments({
+    orgSlug: organization.slug,
+    projectSlug,
+    eventId: event.id,
+  });
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
   const [attachmentPreviews, setAttachmentPreviews] = useState<AttachmentPreviewOpenMap>(
     {}
   );
   const crashFileStripped = event.metadata.stripped_crash;
+
+  if (isError) {
+    return (
+      <EventDataSection type="attachments" title="Attachments">
+        <LoadingError
+          onRetry={refetch}
+          message={t('An error occurred while fetching attachments')}
+        />
+      </EventDataSection>
+    );
+  }
 
   if (!attachments.length && !crashFileStripped) {
     return null;
@@ -153,7 +172,14 @@ export const EventAttachments = ({
                   <div>
                     <EventAttachmentActions
                       url={url}
-                      onDelete={onDeleteAttachment}
+                      onDelete={(attachmentId: string) =>
+                        deleteAttachment({
+                          orgSlug: organization.slug,
+                          projectSlug,
+                          eventId: event.id,
+                          attachmentId,
+                        })
+                      }
                       onPreview={_attachmentId => togglePreview(attachment)}
                       withPreviewButton
                       previewIsOpen={attachmentPreviewIsOpen(

@@ -1,29 +1,40 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
+import isEmpty from 'lodash/isEmpty';
 
+import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {tn} from 'sentry/locale';
-import {EventAttachment} from 'sentry/types';
+import {Event} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
 import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
 
-const FIVE_SECONDS_IN_MS = 5 * 1000;
-
 type Props = {
+  event: Event;
   projectSlug: string;
-  viewHierarchies: EventAttachment[];
 };
 
-function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
+function EventViewHierarchy({projectSlug, event}: Props) {
   const organization = useOrganization();
 
-  // There should be only one view hierarchy
+  const {data: attachments} = useFetchEventAttachments(
+    {
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+    },
+    {notifyOnChangeProps: ['data']}
+  );
+  const viewHierarchies =
+    attachments?.filter(attachment => attachment.type === 'event.view_hierarchy') ?? [];
   const hierarchyMeta = viewHierarchies[0];
+
+  // There should be only one view hierarchy
   const {isLoading, data} = useQuery<string>(
     [
       getAttachmentUrl({
@@ -33,7 +44,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
         projectSlug,
       }),
     ],
-    {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
+    {staleTime: Infinity, enabled: !isEmpty(viewHierarchies)}
   );
 
   // Memoize the JSON parsing because downstream hooks depend on
@@ -50,6 +61,10 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
       return null;
     }
   }, [data]);
+
+  if (isEmpty(viewHierarchies)) {
+    return null;
+  }
 
   // TODO(nar): This loading behaviour is subject to change
   if (isLoading || !data) {
