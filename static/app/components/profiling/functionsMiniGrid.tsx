@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 
 interface FunctionsMiniGridProps {
   functions: SuspectFunction[] | null;
@@ -22,13 +22,15 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
 
   const linkToFlamechartRoute = (
     profileId: string,
-    query?: {frameName: string; framePackage: string}
+    frameName: string,
+    framePackage: string
   ) => {
-    return generateProfileFlamechartRouteWithQuery({
+    return generateProfileFlamechartRouteWithHighlightFrame({
       orgSlug: organization.slug,
       projectSlug: project.slug,
       profileId,
-      query,
+      frameName,
+      framePackage,
     });
   };
   return (
@@ -45,12 +47,7 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
             <Fragment key={idx}>
               <FunctionsMiniGridCell title={f.name}>
                 <FunctionNameTextTruncate>
-                  <Link
-                    to={linkToFlamechartRoute(exampleProfileId, {
-                      frameName: f.name,
-                      framePackage: f.package,
-                    })}
-                  >
+                  <Link to={linkToFlamechartRoute(exampleProfileId, f.name, f.package)}>
                     {f.name}
                   </Link>
                 </FunctionNameTextTruncate>
