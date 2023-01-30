@@ -874,11 +874,7 @@ export function getCenterScaleMatrixFromConfigPosition(
   centerY: number
 ) {
   const configCenter = vec2.fromValues(centerX, centerY);
-  const invertedConfigCenter = vec2.multiply(
-    vec2.create(),
-    vec2.fromValues(-1, -1),
-    vec2.fromValues(centerX, centerY)
-  );
+  const invertedConfigCenter = vec2.fromValues(-centerX, -centerY);
 
   const centerScaleMatrix = mat3.create();
   mat3.fromTranslation(centerScaleMatrix, configCenter);
