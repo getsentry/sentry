@@ -346,7 +346,6 @@ INSTALLED_APPS = (
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
-    "sentry.lang.native.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
@@ -1016,6 +1015,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
+    # Whether to enable ingest for profile blocked main thread issues
+    "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1147,6 +1148,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
     "organizations:performance-new-widget-designs": False,
+    # Enable metrics-backed transaction summary view
+    "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable slow DB performance issue type
@@ -1155,6 +1158,8 @@ SENTRY_FEATURES = {
     "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable compressed assets performance issue type
     "organizations:performance-issues-compressed-assets-detector": False,
+    # Enable render blocking assets performance issue type
+    "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers

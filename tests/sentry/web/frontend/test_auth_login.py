@@ -431,6 +431,26 @@ class AuthLoginCustomerDomainTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
+    def test_renders_correct_template_existent_org(self):
+        resp = self.client.get(
+            self.path,
+            HTTP_HOST=f"{self.organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/", 302)]
+        self.assertTemplateUsed("sentry/organization-login.html")
+
+    def test_renders_correct_template_nonexistent_org(self):
+        resp = self.client.get(
+            self.path,
+            HTTP_HOST="does-not-exist.testserver",
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/login.html")
+
     def test_login_valid_credentials(self):
         # load it once for test cookie
         self.client.get(self.path)
@@ -446,6 +466,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             ("http://albertos-apples.testserver/auth/login/", 302),
             ("http://testserver/organizations/new/", 302),
         ]
+        self.assertTemplateUsed("sentry/login.html")
 
     def test_login_valid_credentials_with_org(self):
         self.create_organization(name="albertos-apples", owner=self.user)

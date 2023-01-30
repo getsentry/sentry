@@ -16,12 +16,16 @@ export class CanvasView<T extends {configSpace: Rect}> {
   minWidth: number;
   depthOffset: number;
   barHeight: number;
+
   model: T;
+  canvas: FlamegraphCanvas;
+  mode: 'contain' | 'cover' = 'contain';
 
   constructor({
     canvas,
     options,
     model,
+    mode,
   }: {
     canvas: FlamegraphCanvas;
     model: T;
@@ -32,10 +36,13 @@ export class CanvasView<T extends {configSpace: Rect}> {
       inverted?: boolean;
       minWidth?: number;
     };
+    mode?: 'contain' | 'cover';
   }) {
+    this.mode = mode || this.mode;
     this.inverted = !!options.inverted;
     this.minWidth = options.minWidth ?? 0;
     this.model = model;
+    this.canvas = canvas;
     this.depthOffset = options.depthOffset ?? 0;
     this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 0;
 
@@ -67,6 +74,16 @@ export class CanvasView<T extends {configSpace: Rect}> {
   }
 
   private _initConfigSpace(canvas: FlamegraphCanvas): void {
+    if (this.mode === 'cover') {
+      this.configSpace = new Rect(
+        0,
+        0,
+        this.model.configSpace.width,
+        this.model.configSpace.height + this.depthOffset
+      );
+      return;
+    }
+
     this.configSpace = new Rect(
       0,
       0,
@@ -79,6 +96,10 @@ export class CanvasView<T extends {configSpace: Rect}> {
   }
 
   private _initConfigView(canvas: FlamegraphCanvas, space: Rect): void {
+    if (this.mode === 'cover') {
+      this.configView = Rect.From(space);
+      return;
+    }
     this.configView = Rect.From(space).withHeight(
       canvas.physicalSpace.height / this.barHeight
     );

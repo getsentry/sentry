@@ -20,7 +20,9 @@ import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMe
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
+import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -41,8 +43,6 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-
-import FeatureBadge from '../featureBadge';
 
 import TagFacets, {
   BACKEND_TAGS,
@@ -303,7 +303,15 @@ class BaseGroupSidebar extends Component<Props, State> {
             }
             title={
               <div>
-                {t('Tag Summary')} <FeatureBadge type="beta" />
+                {t('All Tags')}
+                <TooltipWrapper>
+                  <Tooltip
+                    title={t('The tags associated with all events in this issue')}
+                    disableForVisualTest
+                  >
+                    <IconQuestion size="sm" color="gray200" />
+                  </Tooltip>
+                </TooltipWrapper>
               </div>
             }
             event={event}
@@ -400,6 +408,11 @@ const StyledAvatarList = styled(AvatarList)`
 
 const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
+`;
+
+const TooltipWrapper = styled('span')`
+  vertical-align: middle;
+  padding-left: ${space(0.5)};
 `;
 
 const GroupSidebar = withApi(withSentryRouter(BaseGroupSidebar));

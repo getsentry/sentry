@@ -14,10 +14,12 @@ from sentry.integrations import IntegrationFeatures
 from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
+cache_key = "codecov_integration_exists:{project_id}"
 
 
 def get_link(
@@ -128,6 +130,8 @@ def set_tags(scope: Scope, result: JSONData) -> None:
         scope.set_tag(
             "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
         )
+    if result.get("codecov") and result["codecov"].get("attemptedUrl"):
+        scope.set_tag("codecov.attempted_url", result["codecov"]["attemptedUrl"])
 
 
 @region_silo_endpoint
@@ -217,13 +221,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             for config in configs:
                 # If all code mappings fail to match a stack_root it means that there's no working code mapping
                 if not filepath.startswith(config.stack_root):
-                    # Later on, if there are matching code mappings this will be overwritten
+                    # This may be overwritten if a valid code mapping is found
                     result["error"] = "stack_root_mismatch"
                     continue
 
                 outcome = {}
                 munging_outcome = {}
-                # If the platform is a mobile language, get_link will never get the right URL without munging
+                # Munging is required for get_link to work with mobile platforms
                 if ctx["platform"] in ["java", "cocoa", "other"]:
                     munging_outcome = try_path_munging(config, filepath, ctx)
                 if not munging_outcome:
@@ -234,23 +238,22 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if not outcome.get("sourceUrl"):
                         munging_outcome = try_path_munging(config, filepath, ctx)
                         if munging_outcome:
-                            # Let's send the error to Sentry in order to investigate
+                            # Report errors to Sentry for investigation
                             logger.error("We should never be able to reach this code.")
-                # If we failed to munge we should keep the original outcome
+                # Keep the original outcome if munging failed
                 if munging_outcome:
                     outcome = munging_outcome
                     scope.set_tag("stacktrace_link.munged", True)
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
 
-                # use the provider key to be able to split up stacktrace
-                # link metrics by integration type
+                # Use the provider key to split up stacktrace-link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
                 scope.set_tag("integration_provider", provider)  # e.g. github
 
+                # Stop processing if a match is found
                 if outcome.get("sourceUrl") and outcome["sourceUrl"]:
                     result["sourceUrl"] = outcome["sourceUrl"]
-                    # if we found a match, we can break
                     break
 
             # Post-processing before exiting scope context
@@ -262,7 +265,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                should_get_codecov_data = (
+                codecov_enabled = bool(
                     features.has(
                         "organizations:codecov-stacktrace-integration",
                         project.organization,
@@ -270,24 +273,43 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
-                if should_get_codecov_data:
+                # Check the cache and skip querying Codecov if a query within the last hour found no integration.
+                codecov_cache = cache.get(cache_key.format(project_id=project.id))
+                if codecov_enabled and codecov_cache is False:
+                    result["codecov"] = {"status": 404}
+
+                elif codecov_enabled and codecov_cache is not False:
                     try:
-                        result["lineCoverage"], result["codecovUrl"] = get_codecov_data(
+                        lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
                             service=current_config["config"]["provider"]["key"],
                             branch=current_config["config"]["defaultBranch"],
                             path=current_config["outcome"]["sourcePath"],
                         )
-                        if result["lineCoverage"] and result["codecovUrl"]:
-                            result["codecovStatusCode"] = 200
+                        if lineCoverage and codecovUrl:
+                            result["codecov"] = {
+                                "lineCoverage": lineCoverage,
+                                "coverageUrl": codecovUrl,
+                                "status": 200,
+                            }
+
+                            if not codecov_cache:
+                                cache.set(cache_key.format(project_id=project.id), True, 3600)
                     except requests.exceptions.HTTPError as error:
-                        result["codecovStatusCode"] = error.response.status_code
-                        if error.response.status_code != 404:
+                        result["codecov"] = {
+                            "attemptedUrl": error.response.url,
+                            "status": error.response.status_code,
+                        }
+                        if error.response.status_code == 404 and not codecov_cache:
+                            cache.set(cache_key.format(project_id=project.id), False, 3600)
+                        else:
                             logger.exception(
                                 "Failed to get expected data from Codecov, pending investigation. Continuing execution."
                             )
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
+                    # We don't expect coverage data if the integration does not exist (404)
+                    scope.set_tag("codecov.enabled", True)
 
             try:
                 set_tags(scope, result)

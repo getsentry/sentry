@@ -32,6 +32,7 @@ precision mediump float;
 
 uniform vec2 u_border_width;
 uniform bool u_draw_border;
+uniform bool u_grayscale;
 
 varying vec4 v_color;
 varying vec4 v_bounds;
@@ -47,22 +48,59 @@ void main() {
 
   float width = maxX - minX;
 
-  if (v_is_search_result == 1.0) {
-    gl_FragColor = ${theme.COLORS.SEARCH_RESULT_FRAME_COLOR};
-  } else if (u_draw_border) {
+  vec4 color = vec4(v_color);
+
+  if(u_grayscale && v_is_search_result == 0.0) {
+    color = vec4(${theme.COLORS.FRAME_GRAYSCALE_COLOR.join(',')});
+  }
+
+  if (u_draw_border) {
     if(width <= u_border_width.x) {
       if(v_pos.y > minY && v_pos.y < maxY){
-        gl_FragColor = vec4(v_color);
+        gl_FragColor = color;
       } else {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
       }
     } else if (v_pos.x > minX && v_pos.x < maxX && v_pos.y > minY && v_pos.y < maxY) {
-      gl_FragColor = vec4(v_color);
+      gl_FragColor = color;
     } else {
       gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     }
   } else {
-    gl_FragColor = vec4(v_color);
+    gl_FragColor = color;
+  }
+}
+`;
+
+export const uiFramesVertext = () => `
+  attribute vec2 a_position;
+  attribute float a_frame_type;
+
+  uniform mat3 u_model;
+  uniform mat3 u_projection;
+
+  varying float v_frame_type;
+
+  void main() {
+    vec2 scaled = (u_model * vec3(a_position.xy, 1)).xy;
+    vec2 pos = (u_projection * vec3(scaled.xy, 1)).xy;
+
+    gl_Position = vec4(pos, 0.0, 1.0);
+
+    v_frame_type = a_frame_type;
+  }
+`;
+
+export const uiFramesFragment = (theme: FlamegraphTheme) => `
+precision mediump float;
+
+varying float v_frame_type;
+
+void main() {
+  if(v_frame_type == 1.0) {
+    gl_FragColor = vec4(${theme.COLORS.UI_FRAME_COLOR_FROZEN.join(',')});
+  } else {
+    gl_FragColor = vec4(${theme.COLORS.UI_FRAME_COLOR_SLOW.join(',')});
   }
 }
 `;
