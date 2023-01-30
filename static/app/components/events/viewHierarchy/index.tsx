@@ -123,7 +123,9 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
             </ScrollContainer>
           </TreeContainer>
           {defined(selectedNode) && (
-            <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+            <DetailsContainer>
+              <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+            </DetailsContainer>
           )}
         </Left>
         <Right>
@@ -140,10 +142,14 @@ const Container = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  max-height: 700px;
 `;
 
 const Left = styled('div')`
   flex: 1;
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: column;
 `;
 const Right = styled('div')`
   flex: 1;
@@ -153,11 +159,18 @@ const Right = styled('div')`
 
 const TreeContainer = styled('div')`
   position: relative;
-  height: 400px;
+  height: 70%;
   overflow: hidden;
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
+`;
+
+const DetailsContainer = styled('div')`
+  max-height: 30%;
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: auto;
 `;
 
 const ScrollContainer = styled('div')`
