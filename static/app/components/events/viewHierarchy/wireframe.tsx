@@ -1,6 +1,8 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {MouseEventHandler, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+
+import {defined} from 'sentry/utils';
 
 function getCoordinates(hierarchies) {
   return hierarchies.map(hierarchy => {
@@ -26,14 +28,23 @@ function getCoordinates(hierarchies) {
   });
 }
 
-function draw(context, coordinates) {
+function draw(context, coordinates, xOffset, yOffset) {
+  // Make areas with more overlayed elements darker
+  context.globalCompositeOperation = 'overlay';
+
   coordinates.forEach(hierarchy => {
     hierarchy.forEach(({x, y, width, height}) => {
-      context.fillStyle = 'white';
+      // Prepare rectangles for drawing
+      context.fillStyle = 'rgb(88, 74, 192)';
       context.strokeStyle = 'black';
-      context.rect(x, y, width, height);
-      context.setLineDash([5, 2.5]);
+      context.lineWidth = 1;
+      context.rect(x + xOffset, y + yOffset, width, height);
+
+      // Draw the rectangles
+      context.globalAlpha = '0.005';
       context.fill();
+
+      context.globalAlpha = '1';
       context.stroke();
     });
   });
@@ -45,7 +56,14 @@ function Wireframe({hierarchy}) {
   const coordinates = useMemo(() => {
     return getCoordinates(hierarchy);
   }, [hierarchy]);
+
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
+
+  const [dragStartCoords, setDragStartCoords] = useState<{x: number; y: number} | null>(
+    null
+  );
+  const [xOffset, setXOffset] = useState(20);
+  const [yOffset, setYOffset] = useState(20);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -58,8 +76,8 @@ function Wireframe({hierarchy}) {
     canvas.height = dimensions.height || container.clientHeight;
 
     const context = canvas.getContext('2d');
-    draw(context, coordinates);
-  }, [coordinates, dimensions]);
+    draw(context, coordinates, xOffset, yOffset);
+  }, [coordinates, dimensions, xOffset, yOffset]);
 
   useResizeObserver({
     ref: containerRef,
@@ -81,9 +99,53 @@ function Wireframe({hierarchy}) {
     },
   });
 
+  const handleMouseDown: MouseEventHandler<HTMLCanvasElement> = e => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setDragStartCoords({
+      x: e.clientX - xOffset,
+      y: e.clientY - yOffset,
+    });
+  };
+
+  const handleMouseUp: MouseEventHandler<HTMLCanvasElement> = e => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setDragStartCoords(null);
+  };
+
+  const handleMouseMove: MouseEventHandler<HTMLCanvasElement> = e => {
+    if (!defined(dragStartCoords)) {
+      return;
+    }
+
+    const {x, y} = dragStartCoords;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const mouseX = e.clientX - xOffset;
+    const mouseY = e.clientY - yOffset;
+
+    const dx = mouseX - x;
+    const dy = mouseY - y;
+
+    setXOffset(xOffset + dx);
+    setYOffset(yOffset + dy);
+  };
+
   return (
     <Container ref={containerRef}>
-      <StyledCanvas ref={canvasRef} />
+      <StyledCanvas
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseUp}
+        isDragging={defined(dragStartCoords)}
+      />
     </Container>
   );
 }
@@ -95,6 +157,7 @@ const Container = styled('div')`
   width: 100%;
 `;
 
-const StyledCanvas = styled('canvas')`
+const StyledCanvas = styled('canvas')<{isDragging: boolean}>`
   background-color: ${p => p.theme.surface100};
+  cursor: ${p => (p.isDragging ? 'grabbing' : 'grab')};
 `;
