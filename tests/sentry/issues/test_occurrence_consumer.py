@@ -46,6 +46,12 @@ def get_test_message(
             "event_id": uuid.uuid4().hex,
             "project_id": project_id,
             "platform": "genesis",
+            "stacktrace": {
+                "frames": [
+                    {"function": "0x0", "in_app": False},
+                    {"function": "start_sim", "in_app": False},
+                ],
+            },
             "tags": {},
             "timestamp": now.isoformat(),
             "received": now.isoformat(),
