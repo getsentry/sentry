@@ -1713,3 +1713,34 @@ class ResolveTagsTestCase(TestCase):
                     rhs=1,
                 ),
             )
+
+
+def test_simple_query():
+    query_definition = MetricsQuery(
+        org_id=1,
+        project_ids=[1],
+        select=[
+            # MetricField(op="sum", metric_mri=SessionMRI.SESSION.value),
+            # MetricField(op=None, metric_mri=SessionMRI.ALL.value),
+            # MetricField(op="min_timestamp", metric_mri=SessionMRI.ALL.value),
+            MetricField(op="min_timestamp", metric_mri=SessionMRI.SESSION.value),
+        ],
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+        # where=[Condition(Column("release"), Op.EQ, "staging")],
+        # groupby=[MetricGroupByField("environment")],
+    )
+
+    builder = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+    )
+
+    snuba_queries, fields = builder.get_snuba_queries()
+
+    # print(query_definition)
+    # print(fields)
+    for q in snuba_queries.values():
+        pass
+        # print(q["totals"])
+    # print("end")
