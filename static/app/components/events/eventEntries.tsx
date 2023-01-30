@@ -189,9 +189,7 @@ const EventEntries = ({
       {!isShare && hasEventAttachmentsFeature && (
         <EventAttachments
           event={event}
-          orgId={orgSlug}
           projectSlug={projectSlug}
-          location={location}
           attachments={attachments}
           onDeleteAttachment={handleDeleteAttachment}
         />
