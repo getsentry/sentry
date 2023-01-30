@@ -196,6 +196,9 @@
 - name: 'Team: Dev Infrastructure'
   color: '8D5494'
   description: dev-infra
+- name: 'Team: Discover & Dashboards'
+  color: '8D5494'
+  description: discover-n-dashboards
 - name: 'Team: Ecosystem'
   color: '8D5494'
   description: ''
@@ -221,6 +224,9 @@
   color: '8D5494'
 - name: 'Team: Issue Platform'
   color: '8D5494'
+- name: 'Team: Mobile Developer Experience'
+  color: '8D5494'
+  description: team-mdx
 - name: 'Team: Mobile Platform'
   color: '8D5494'
   description: team-mobile
