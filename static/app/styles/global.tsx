@@ -141,10 +141,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .traceback {
           border-color: ${theme.border};
 
-          ol.context > li {
-            color: ${theme.subText};
-          }
-
           &.in-app-traceback {
             .frame {
               &.leads-to-app {
