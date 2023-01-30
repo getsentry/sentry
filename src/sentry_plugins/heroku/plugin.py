@@ -155,7 +155,6 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         secret_field = get_secret_field_config(
             webhook_secret,
             "Enter the webhook signing secret shown after running the Heroku CLI command.",
-            include_prefix=True,
         )
         secret_field.update(
             {
