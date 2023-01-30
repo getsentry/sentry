@@ -183,11 +183,11 @@ class AdminUserEdit extends AsyncView<Props, State> {
           apiEndpoint={this.userEndpoint}
           requireChanges
           onSubmitError={err => {
-            addErrorMessage(err?.responseJSON?.detail ?? null);
+            addErrorMessage(err?.responseJSON?.detail);
           }}
           onSubmitSuccess={data => {
             this.setState({user: data});
-            addSuccessMessage('User account updated.');
+            addSuccessMessage(t('User account updated.'));
           }}
           extraButton={
             <Button
