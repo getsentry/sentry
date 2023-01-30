@@ -1,4 +1,4 @@
-import type {IssueCategory, ResolutionStatus} from 'sentry/types';
+import type {IssueCategory, IssueType, ResolutionStatus} from 'sentry/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
@@ -9,6 +9,7 @@ type RuleViewed = {
 type IssueDetailsWithAlert = {
   group_id: number;
   issue_category: IssueCategory;
+  issue_type: IssueType;
   project_id: number;
   /** The time that the alert was initially fired. */
   alert_date?: string;
