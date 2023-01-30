@@ -61,18 +61,15 @@ URL_PARAMETER_REGEX = re.compile(
             [0-9a-fA-F]{12}
         \b
     ) |
-    (?P<sha1>
-        \b[0-9a-fA-F]{40}\b
-    ) |
-    (?P<md5>
-        \b[0-9a-fA-F]{32}\b
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
     ) |
     (?P<int>
         -\d+\b |
         \b\d+\b
     )
 """
-)  # From message.py
+)  # Adapted from message.py
 
 
 class DetectorType(Enum):
