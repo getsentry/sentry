@@ -89,15 +89,39 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert team.org_role == "owner"
 
+    def test_put_team_org_role__success_with_org_role_from_team(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        member_team = self.create_team(org_role="owner")
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[member_team]
+        )
+        self.login_as(user)
+
+        self.get_success_response(team.organization.slug, team.slug, org_role="owner")
+
+        team = Team.objects.get(id=team.id)
+        assert team.org_role == "owner"
+
     def test_put_team_org_role__not_owner(self):
         team = self.team
         user = self.create_user("foo@example.com")
-        self.create_member(user=user, organization=self.organization, role="member")
+        member = self.create_member(user=user, organization=self.organization, role="member")
         self.login_as(user)
 
-        self.get_error_response(
+        response = self.get_error_response(
             team.organization.slug, team.slug, org_role="owner", status_code=403
         )
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
+        member.update(role="admin")
+        response = self.get_error_response(
+            team.organization.slug, team.slug, orgRole="owner", status_code=403
+        )
+        assert response.data["detail"] == "You must have the role of owner to perform this action."
 
         team = Team.objects.get(id=team.id)
         assert not team.org_role

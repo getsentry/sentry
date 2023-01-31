@@ -80,9 +80,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
                                owners can set this value.
         :auth: required
         """
-        if request.data.get("orgRole") and str(request.access.get_organization_role()) != "Owner":
+        if (
+            request.data.get("orgRole")
+            and roles.get_top_dog() not in request.access.get_organization_roles()
+        ):
             return Response(
-                {"detail": "You must be an organization owner to perform this action."},
+                {
+                    "detail": f"You must have the role of {roles.get_top_dog().id} to perform this action."
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
