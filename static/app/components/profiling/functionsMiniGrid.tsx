@@ -1,4 +1,4 @@
-import {CSSProperties, Fragment} from 'react';
+import {CSSProperties, Fragment, SyntheticEvent} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -13,12 +13,13 @@ import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/pro
 
 interface FunctionsMiniGridProps {
   functions: SuspectFunction[] | null;
+  onLinkClick: (e: SyntheticEvent) => void;
   organization: Organization;
   project: Project;
 }
 
 export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
-  const {organization, project, functions} = props;
+  const {organization, project, functions, onLinkClick} = props;
 
   const linkToFlamechartRoute = (
     profileId: string,
@@ -47,7 +48,10 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
             <Fragment key={idx}>
               <FunctionsMiniGridCell title={f.name}>
                 <FunctionNameTextTruncate>
-                  <Link to={linkToFlamechartRoute(exampleProfileId, f.name, f.package)}>
+                  <Link
+                    to={linkToFlamechartRoute(exampleProfileId, f.name, f.package)}
+                    onClick={onLinkClick}
+                  >
                     {f.name}
                   </Link>
                 </FunctionNameTextTruncate>
