@@ -23,6 +23,7 @@ import withProjects from 'sentry/utils/withProjects';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
+import {HeartbeatFooter} from './components/heartbeatFooter';
 import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
@@ -112,6 +113,9 @@ function SetupDocs({
   projects: rawProjects,
   search,
   loadingProjects,
+  route,
+  router,
+  location,
 }: Props) {
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
@@ -248,7 +252,11 @@ function SetupDocs({
   return (
     <Fragment>
       <Wrapper>
-        <SidebarWrapper>
+        <SidebarWrapper
+          hasHeartbeatFooter={
+            !!organization?.features.includes('onboarding-heartbeat-footer')
+          }
+        >
           <ProjectSidebarSection
             projects={projects}
             selectedPlatformToProjectIdMap={Object.fromEntries(
@@ -259,6 +267,9 @@ function SetupDocs({
             )}
             activeProject={project}
             {...{checkProjectHasFirstEvent, selectProject}}
+            hasHeartbeatFooter={
+              !!organization?.features.includes('onboarding-heartbeat-footer')
+            }
           />
         </SidebarWrapper>
         <MainContent>
@@ -282,43 +293,78 @@ function SetupDocs({
         </MainContent>
       </Wrapper>
 
-      {project && (
-        <FirstEventFooter
-          project={project}
-          organization={organization}
-          isLast={!nextProject}
-          hasFirstEvent={checkProjectHasFirstEvent(project)}
-          onClickSetupLater={() => {
-            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-            trackAdvancedAnalyticsEvent(
-              'growth.onboarding_clicked_setup_platform_later',
-              {
-                organization,
-                platform: currentPlatform,
-                project_index: projectIndex,
+      {project &&
+        (organization.features?.includes('onboarding-heartbeat-footer') ? (
+          <HeartbeatFooter
+            projectSlug={project.slug}
+            nextProjectSlug={nextProject?.slug}
+            route={route}
+            router={router}
+            location={location}
+            onSetupNextProject={() => {
+              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+              trackAdvancedAnalyticsEvent(
+                'growth.onboarding_clicked_setup_platform_later',
+                {
+                  organization,
+                  platform: currentPlatform,
+                  project_index: projectIndex,
+                }
+              );
+              if (!project.platform || !clientState) {
+                browserHistory.push(orgIssuesURL);
+                return;
               }
-            );
-            if (!project.platform || !clientState) {
-              browserHistory.push(normalizeUrl(orgIssuesURL));
-              return;
-            }
-            // if we have a next project, switch to that
-            if (nextProject) {
-              setNewProject(nextProject.id);
-            } else {
-              setClientState({
-                ...clientState,
-                state: 'finished',
-              });
-              browserHistory.push(orgIssuesURL);
-            }
-          }}
-          handleFirstIssueReceived={() => {
-            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
-            setHasFirstEventMap(newHasFirstEventMap);
-          }}
-        />
-      )}
+              // if we have a next project, switch to that
+              if (nextProject) {
+                setNewProject(nextProject.id);
+              } else {
+                setClientState({
+                  ...clientState,
+                  state: 'finished',
+                });
+                browserHistory.push(orgIssuesURL);
+              }
+            }}
+            newOrg
+          />
+        ) : (
+          <FirstEventFooter
+            project={project}
+            organization={organization}
+            isLast={!nextProject}
+            hasFirstEvent={checkProjectHasFirstEvent(project)}
+            onClickSetupLater={() => {
+              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+              trackAdvancedAnalyticsEvent(
+                'growth.onboarding_clicked_setup_platform_later',
+                {
+                  organization,
+                  platform: currentPlatform,
+                  project_index: projectIndex,
+                }
+              );
+              if (!project.platform || !clientState) {
+                browserHistory.push(orgIssuesURL);
+                return;
+              }
+              // if we have a next project, switch to that
+              if (nextProject) {
+                setNewProject(nextProject.id);
+              } else {
+                setClientState({
+                  ...clientState,
+                  state: 'finished',
+                });
+                browserHistory.push(orgIssuesURL);
+              }
+            }}
+            handleFirstIssueReceived={() => {
+              const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+              setHasFirstEventMap(newHasFirstEventMap);
+            }}
+          />
+        ))}
     </Fragment>
   );
 }
@@ -415,12 +461,12 @@ const MainContent = styled('div')`
 // the number icon will be space(2) + 30px to the left of the margin of center column
 // so we need to offset the right margin by that much
 // also hide the sidebar if the screen is too small
-const SidebarWrapper = styled('div')`
+const SidebarWrapper = styled('div')<{hasHeartbeatFooter: boolean}>`
   margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
   @media (max-width: 1150px) {
     display: none;
   }
-  flex-basis: 240px;
+  flex-basis: ${p => (p.hasHeartbeatFooter ? '256px' : '240px')};
   flex-grow: 0;
   flex-shrink: 0;
   min-width: 240px;
