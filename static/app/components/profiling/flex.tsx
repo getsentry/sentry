@@ -72,13 +72,8 @@ const FlexItem = styled('div')<FlexItemProps>`
   overflow: hidden;
 `;
 
-type FlexNamespace = typeof FlexContainer & {
-  Container: typeof FlexContainer;
-  Item: typeof FlexItem;
-};
-
-export const Flex = FlexContainer as FlexNamespace;
-Object.assign(FlexContainer, {
+export const Flex = Object.assign(FlexContainer, {
+  ...FlexContainer,
   Container: FlexContainer,
   Item: FlexItem,
 });
