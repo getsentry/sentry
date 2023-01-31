@@ -2,14 +2,14 @@ import base64
 from functools import cached_property
 
 from django.test import RequestFactory
-from freezegun import freeze_time
 
 from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.models import ApiKey, ApiToken, OutboxScope, RegionOutbox, UserIP
+from sentry.models import ApiKey, ApiToken, UserIP
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
 from sentry.utils.auth import login
 
@@ -23,15 +23,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
             assert request.user == self.user
         else:
             assert request.user == user_service.serialize_user(self.user)
-
-    def assert_user_ip(self, request):
-        with exempt_from_silo_limits():
-            # Force the user object to materialize
-            request.user.id  # noqa
-            RegionOutbox.for_shard(
-                shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=self.user.id
-            ).drain_shard()
-            assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
     def setUp(self):
         from django.core.cache import cache
@@ -54,9 +45,12 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         with exempt_from_silo_limits():
             assert login(request, self.user)
-        with freeze_time("2000-01-01"):
+        with outbox_runner():
             self.middleware.process_request(request)
-            self.assert_user_ip(request)
+            # Force the user object to materialize
+            request.user.id  # noqa
+        with exempt_from_silo_limits():
+            assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
         assert request.user.is_authenticated
         self.assert_user_equals(request)
