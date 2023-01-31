@@ -3,7 +3,19 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
-const {organization} = initializeOrg();
+const mockProject = TestStubs.Project();
+const {router, organization, routerContext} = initializeOrg({
+  organization: {},
+  project: mockProject,
+  projects: [mockProject],
+  router: {
+    routes: [],
+    location: {
+      pathname: '/organizations/org-slug/issues/1/',
+      query: {},
+    },
+  },
+});
 describe('Tag Facets', function () {
   let tagsMock;
   const project = TestStubs.Project();
@@ -176,6 +188,68 @@ describe('Tag Facets', function () {
       expect(
         screen.getByRole('button', {name: 'Expand os tag distribution'})
       ).toBeInTheDocument();
+    });
+
+    it('links to events with selected tag value', async function () {
+      render(
+        <TagFacets
+          environments={[]}
+          groupId="1"
+          project={project}
+          tagKeys={tags}
+          tagFormatter={TAGS_FORMATTER}
+        />,
+        {
+          context: routerContext,
+          organization,
+          router,
+        }
+      );
+      await waitFor(() => {
+        expect(tagsMock).toHaveBeenCalled();
+      });
+      userEvent.click(
+        screen.getByRole('button', {name: 'Expand device tag distribution'})
+      );
+      expect(
+        screen.getByRole('link', {
+          name: 'device, iPhone10, 27% of all events. View events with this tag value.',
+        })
+      ).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/1/events/?query=device%3AiPhone10'
+      );
+    });
+
+    it('links to tags tab', async function () {
+      render(
+        <TagFacets
+          environments={[]}
+          groupId="1"
+          project={project}
+          tagKeys={tags}
+          tagFormatter={TAGS_FORMATTER}
+        />,
+        {
+          context: routerContext,
+          organization,
+          router,
+        }
+      );
+      await waitFor(() => {
+        expect(tagsMock).toHaveBeenCalled();
+      });
+      userEvent.click(
+        screen.getByRole('button', {name: 'Expand device tag distribution'})
+      );
+      expect(
+        screen.getByRole('link', {
+          name: 'Other device tag values, 13% of all events. View all tags.',
+        })
+      ).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/1/tags/device/?referrer=tag-distribution-meter'
+      );
     });
   });
 });

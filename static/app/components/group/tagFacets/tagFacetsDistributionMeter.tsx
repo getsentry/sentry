@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
@@ -13,6 +14,8 @@ import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
@@ -25,6 +28,7 @@ type Props = {
   colors?: string[];
   expandByDefault?: boolean;
   onTagClick?: (title: string, value: TagSegment) => void;
+  otherUrl?: LocationDescriptor;
   project?: Project;
 };
 
@@ -61,7 +65,9 @@ function TagFacetsDistributionMeter({
   onTagClick,
   project,
   expandByDefault,
+  otherUrl,
 }: Props) {
+  const location = useLocation();
   const organization = useOrganization();
   const multiValueTag = segments.length > 1;
   const [expanded, setExpanded] = useState<boolean>(multiValueTag && !!expandByDefault);
@@ -207,13 +213,23 @@ function TagFacetsDistributionMeter({
   const totalVisible = topSegments.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < totalValues;
 
+  const query = appendExcludeTagValuesCondition(
+    location.query.query,
+    title,
+    topSegments.map(({value}) => value)
+  );
+  const excludeTopSegmentsUrl: LocationDescriptor = {
+    ...location,
+    query: {...location.query, query},
+  };
+
   if (hasOther) {
     topSegments.push({
       isOther: true,
       name: t('Other'),
       value: 'other',
       count: totalValues - totalVisible,
-      url: '',
+      url: otherUrl ?? excludeTopSegmentsUrl ?? '',
     });
   }
 
