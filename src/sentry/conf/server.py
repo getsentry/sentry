@@ -667,6 +667,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
+    Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
