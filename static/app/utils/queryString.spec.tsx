@@ -76,6 +76,34 @@ describe('appendTagCondition', function () {
   });
 });
 
+describe('appendExcludeTagValuesCondition', function () {
+  it('excludes tag values', function () {
+    const result = utils.appendExcludeTagValuesCondition(null, 'color', [
+      'red',
+      'blue',
+      'green',
+    ]);
+    expect(result).toEqual('!color:[red, blue, green]');
+  });
+  it('excludes tag values on an existing query', function () {
+    const result = utils.appendExcludeTagValuesCondition('user.id:123', 'color', [
+      'red',
+      'blue',
+      'green',
+    ]);
+    expect(result).toEqual('user.id:123 !color:[red, blue, green]');
+  });
+  it('wraps double quotes when a space exists in the tag value', function () {
+    const result = utils.appendExcludeTagValuesCondition(null, 'color', [
+      'red',
+      'ocean blue',
+      '"green"',
+      '"sky blue"',
+    ]);
+    expect(result).toEqual('!color:[red, "ocean blue", "\\"green\\"", "\\"sky blue\\""]');
+  });
+});
+
 describe('decodeScalar()', function () {
   it('unwraps array values', function () {
     expect(utils.decodeScalar(['one', 'two'])).toEqual('one');
