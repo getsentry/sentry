@@ -29,16 +29,25 @@ def get_codecov_data(
             response = requests.get(
                 url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
             )
-            scope.set_tag("codecov.http_code", response.status_code)
+            tags = {
+                "codecov.request_url": url,
+                "codecov.request_path": path,
+                "codecov.request_branch": branch,
+                "codecov.http_code": response.status_code,
+            }
+
             response_json = response.json()
             files = response_json.get("files")
             line_coverage = files[0].get("line_coverage") if files else None
 
             coverage_found = line_coverage not in [None, [], [[]]]
-            scope.set_tag("codecov.coverage_found", coverage_found)
+            tags["codecov.coverage_found"] = coverage_found
+
+            codecov_url = response_json.get("commit_file_url", "")
+            tags["codecov.coverage_url"] = codecov_url
+            for key, value in tags.items():
+                scope.set_tag(key, value)
 
             response.raise_for_status()
-            codecov_url = response_json.get("commit_file_url")
-            scope.set_tag("codecov.url", codecov_url)
 
     return line_coverage, codecov_url
