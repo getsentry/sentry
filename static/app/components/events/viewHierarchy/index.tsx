@@ -143,7 +143,6 @@ const Content = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   height: 700px;
-  max-height: 700px;
 `;
 
 const Left = styled('div')`
