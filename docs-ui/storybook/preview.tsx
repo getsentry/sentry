@@ -154,6 +154,7 @@ addParameters({
           'Buttons',
           'Tables',
           'Forms',
+          'Segmented Control',
           'Data Visualization',
           'Alerts',
           'Tags',
