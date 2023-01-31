@@ -34,6 +34,7 @@ import space from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
+  IssueType,
   Organization,
   Project,
   ResolutionStatus,
@@ -114,6 +115,7 @@ class Actions extends Component<Props> {
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
       issue_category: group.issueCategory,
+      issue_type: group.issueType ?? IssueType.ERROR,
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
       alert_date:

@@ -1,14 +1,13 @@
 import {useCallback, useContext} from 'react';
 import {Link} from 'react-router';
-import styled from '@emotion/styled';
 
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useOrganization from 'sentry/utils/useOrganization';
+import LinkContainer from 'sentry/views/issueDetails/linkContainer';
 
 type TraceLinkProps = {
   event: Event;
@@ -43,19 +42,3 @@ export function TraceLink({event}: TraceLinkProps) {
     </LinkContainer>
   );
 }
-
-const LinkContainer = styled('span')`
-  margin-left: ${space(1)};
-  padding-left: ${space(1)};
-  position: relative;
-
-  &:before {
-    display: block;
-    position: absolute;
-    content: '';
-    left: 0;
-    top: 2px;
-    height: 14px;
-    border-left: 1px solid ${p => p.theme.border};
-  }
-`;
