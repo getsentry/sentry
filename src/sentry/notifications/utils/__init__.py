@@ -507,4 +507,4 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
         url = get_url_from_span(self.repeating_spans)
         parsed_url = urlparse(url)
-        return f"{parsed_url.path}[Parameters]"
+        return f"{parsed_url.path}"
