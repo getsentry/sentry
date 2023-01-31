@@ -2,8 +2,11 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 
 type ProfilingEventSource =
   | 'slowest_transaction_panel'
-  | 'transaction_hovercard'
-  | 'transaction_details';
+  | 'transaction_details'
+  | 'transaction_hovercard.trigger'
+  | 'transaction_hovercard.latest_profile'
+  | 'transaction_hovercard.slowest_profile'
+  | 'transaction_hovercard.suspect_function';
 
 interface EventPayloadWithProjectDetails {
   project_id: string | number | undefined;

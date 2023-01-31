@@ -49,7 +49,7 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
       onClick={() =>
         trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
           organization,
-          source: 'slowest_transaction_panel',
+          source: 'transaction_hovercard.trigger',
         })
       }
     >
@@ -117,13 +117,6 @@ export function ProfilingTransactionHovercardBody({
     });
   };
 
-  const handleLinkToFlamechartAnalyticEvent = () => {
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
-      organization,
-      source: 'transaction_hovercard',
-    });
-  };
-
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_ui_events.transaction_hovercard_view', {
       organization,
@@ -140,7 +133,12 @@ export function ProfilingTransactionHovercardBody({
           {latestProfile ? (
             <Link
               to={linkToFlamechartRoute(String(latestProfile.id))}
-              onClick={handleLinkToFlamechartAnalyticEvent}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                  organization,
+                  source: 'transaction_hovercard.latest_profile',
+                })
+              }
             >
               {getShortEventId(String(latestProfile!.id))}
             </Link>
@@ -164,7 +162,12 @@ export function ProfilingTransactionHovercardBody({
               />
               <Link
                 to={linkToFlamechartRoute(String(slowestProfile.id))}
-                onClick={handleLinkToFlamechartAnalyticEvent}
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                    organization,
+                    source: 'transaction_hovercard.slowest_profile',
+                  })
+                }
               >
                 ({getShortEventId(String(slowestProfile?.id))})
               </Link>
@@ -180,7 +183,12 @@ export function ProfilingTransactionHovercardBody({
           functions={functions}
           organization={organization}
           project={project}
-          onLinkClick={handleLinkToFlamechartAnalyticEvent}
+          onLinkClick={() =>
+            trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+              organization,
+              source: 'transaction_hovercard.suspect_function',
+            })
+          }
         />
         {functionsQuery.type === 'loading' && <FunctionsMiniGridLoading />}
 
