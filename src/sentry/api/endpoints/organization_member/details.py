@@ -18,7 +18,6 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS
-from sentry.app import locks
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuthIdentity,
@@ -32,7 +31,6 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles, team_roles
 from sentry.utils import metrics
-from sentry.utils.retries import TimedRetryPolicy
 
 from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
 from .index import OrganizationMemberSerializer
@@ -201,18 +199,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         # on the teams, the team-roles can be overwritten later
         if "teamRoles" in result or "teams" in result:
             try:
-                lock = locks.get(f"org:member:{member.id}", duration=5, name="org_member_details")
-                with TimedRetryPolicy(10)(lock.acquire):
-                    if "teamRoles" in result:
-                        # If orgs do not have the flag, we'll set their team-roles to None
-                        team_roles = (
-                            result.get("teamRoles")
-                            if features.has("organizations:team-roles", organization)
-                            else [(team, None) for team, _ in result.get("teamRoles", [])]
-                        )
-                        save_team_assignments(member, None, team_roles)
-                    elif "teams" in result:
-                        save_team_assignments(member, result.get("teams"))
+                if "teamRoles" in result:
+                    # If orgs do not have the flag, we'll set their team-roles to None
+                    team_roles = (
+                        result.get("teamRoles")
+                        if features.has("organizations:team-roles", organization)
+                        else [(team, None) for team, _ in result.get("teamRoles", [])]
+                    )
+                    save_team_assignments(member, None, team_roles)
+                elif "teams" in result:
+                    save_team_assignments(member, result.get("teams"))
             except InvalidTeam:
                 return Response({"teams": "Invalid team"}, status=400)
 

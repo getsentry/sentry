@@ -9,11 +9,9 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.locks import locks
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.utils.retries import TimedRetryPolicy
 
 from ... import save_team_assignments
 from ...index import OrganizationMemberSerializer
@@ -90,9 +88,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 teams = result.get("teams") or [
                     item["teamSlug"] for item in result.get("teamRoles", [])
                 ]
-                lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member_invite")
-                with TimedRetryPolicy(10)(lock.acquire):
-                    save_team_assignments(om, teams)
+                save_team_assignments(om, teams)
 
             self.create_audit_entry(
                 request=request,

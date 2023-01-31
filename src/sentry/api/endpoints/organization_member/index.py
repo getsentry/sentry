@@ -15,14 +15,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
-from sentry.locks import locks
 from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
 from sentry.models.authenticator import available_authenticators
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
 from sentry.utils import metrics
-from sentry.utils.retries import TimedRetryPolicy
 
 from . import get_allowed_org_roles, save_team_assignments
 
@@ -280,7 +278,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 om.token = om.generate_token()
             om.save()
 
-        # breakpoint()
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:
             teams = (
@@ -288,9 +285,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 if "teamRoles" in result and result["teamRoles"]
                 else result.get("teams")
             )
-            lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member")
-            with TimedRetryPolicy(10)(lock.acquire):
-                save_team_assignments(om, teams)
+            save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
             om.send_invite_email()
