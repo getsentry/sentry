@@ -61,13 +61,18 @@ describe('View Hierarchy Wireframe', function () {
   });
 
   describe('calculateScale', function () {
+    let maxCoordinateDimensions: {height: number; width: number},
+      actual: number,
+      border: {x: number; y: number};
+
     const bounds = {
       height: 10,
       width: 10,
     };
-    const border = {x: 0, y: 0};
 
-    let maxCoordinateDimensions, actual;
+    beforeEach(function () {
+      border = {x: 0, y: 0};
+    });
 
     it('zooms in on small content', function () {
       maxCoordinateDimensions = {height: 2, width: 2};
@@ -91,6 +96,13 @@ describe('View Hierarchy Wireframe', function () {
       maxCoordinateDimensions = {height: 10, width: 32};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
       expect(actual).toEqual(0.3125);
+    });
+
+    it('factors in the border', function () {
+      maxCoordinateDimensions = {height: 20, width: 20};
+      border = {x: 2, y: 2};
+      actual = calculateScale(bounds, maxCoordinateDimensions, border);
+      expect(actual).toEqual(0.4);
     });
   });
 });
