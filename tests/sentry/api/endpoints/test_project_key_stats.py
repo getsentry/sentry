@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import freezegun
 
 from sentry.constants import DataCategory
@@ -127,10 +129,13 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert response.status_code == 400
 
     def test_date_conditions(self):
+        start = before_now(days=1)
+        end = before_now()
+        # Add an event in the event window
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
-                "timestamp": before_now(hours=1),
+                "timestamp": start + timedelta(hours=1),
                 "project_id": self.project.id,
                 "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
@@ -140,10 +145,11 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
             },
             2,
         )
+        # Add an event before/outside the event window
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
-                "timestamp": before_now(days=10),
+                "timestamp": start - timedelta(hours=48),
                 "project_id": self.project.id,
                 "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
@@ -156,12 +162,11 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         response = self.client.get(
             self.path,
             data={
-                "since": before_now(days=1).timestamp(),
-                "until": before_now().timestamp(),
+                "since": start.timestamp(),
+                "until": end.timestamp(),
             },
         )
         assert response.status_code == 200, response.content
-
         result = [bucket for bucket in response.data if bucket["total"] > 0][0]
         assert type(result["ts"]) == int
         assert result["total"] == 2, response.data
