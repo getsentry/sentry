@@ -22,7 +22,7 @@ from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
-from .base import DetectorType, PerformanceDetector, get_span_duration
+from .base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
 from .performance_problem import PerformanceProblem
 from .types import PerformanceProblemsMap, Span
 
@@ -71,19 +71,6 @@ URL_PARAMETER_REGEX = re.compile(
     )
 """
 )  # Adapted from message.py
-
-
-DETECTOR_TYPE_TO_GROUP_TYPE = {
-    DetectorType.SLOW_DB_QUERY: GroupType.PERFORMANCE_SLOW_DB_QUERY,
-    DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-    DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-    DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
-    DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.UNCOMPRESSED_ASSETS: GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
-}
 
 
 class EventPerformanceProblem:
