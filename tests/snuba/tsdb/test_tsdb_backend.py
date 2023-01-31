@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytz
-from snuba_sdk import Limit
+from snuba_sdk import Flags, Limit
 
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
@@ -12,6 +12,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.issues import GroupType
+from sentry.utils import snuba
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import aliased_query
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -993,6 +994,25 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         # environment=None or environment=test
         # so the condition really shouldn't be filtering anything
         assert data1 == data2
+
+    def test_query_snql_consistent_override_option(self):
+        override_options = {"consistent": True, "bad_option": True}
+        with snuba.options_override(override_options):
+            with patch("sentry.tsdb.snuba.raw_snql_query") as raw_snql_query:
+                self.db.get_data(
+                    model=TSDBModel.group_generic,
+                    keys=[self.proj1group1.id, self.proj1group2.id],
+                    conditions=[],
+                    start=self.now,
+                    end=self.now + timedelta(hours=4),
+                )
+                assert raw_snql_query.call_count == 1
+                request_flags: Flags = raw_snql_query.call_args.args[0].flags
+                assert request_flags.consistent
+                assert not request_flags.debug
+                assert not request_flags.turbo
+                assert not request_flags.totals
+                assert not request_flags.legacy
 
 
 class AddJitterToSeriesTest(TestCase):

@@ -10,6 +10,7 @@ from snuba_sdk import (
     Column,
     Direction,
     Entity,
+    Flags,
     Function,
     Granularity,
     Limit,
@@ -436,6 +437,19 @@ class SnubaTSDB(BaseTSDB):
                         Condition(Column(time_column), Op.LT, end),
                     ]
 
+            extras = {
+                "consistent",
+                "turbo",
+                "debug",
+                "dry_run",
+            }
+            found = {
+                extra: snuba.OVERRIDE_OPTIONS.get(extra)
+                for extra in extras
+                if snuba.OVERRIDE_OPTIONS.get(extra)
+            }
+            flags = Flags(**found)
+
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
@@ -448,6 +462,7 @@ class SnubaTSDB(BaseTSDB):
                     granularity=Granularity(rollup),
                     limit=Limit(limit),
                 ),
+                flags=flags,
             )
             query_result = raw_snql_query(
                 snql_request, referrer=f"tsdb-modelid:{model.value}", use_cache=use_cache
