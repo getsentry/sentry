@@ -16,7 +16,11 @@ class GroupType:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        _group_type_registry[cls.__name__] = cls
+        if _group_type_registry.get(cls.type_id):
+            raise ValueError(
+                f"A group type with the type_id {cls.type_id} has already been registered."
+            )
+        _group_type_registry[cls.type_id] = cls
 
     def __post_init__(self):
         valid_categories = [category.value for category in GroupCategory]
@@ -26,6 +30,13 @@ class GroupType:
 
 def get_group_types_by_category(category):
     return [child.type_id for child in GroupType.__subclasses__() if child.category == category]
+
+
+def get_group_type_by_slug(slug):
+    for group_type in _group_type_registry.values():
+        if group_type.slug == slug:
+            return group_type
+    raise ValueError(f"No group type with the slug {slug} is registered.")
 
 
 @dataclass(frozen=True)
