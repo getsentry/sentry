@@ -322,14 +322,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         has_error_commit = True if ctx.get("commit_id") else False
                         ref = ctx["commit_id"] if has_error_commit else None
                         # Get commit sha from Git blame
-                        use_git_blame_sha = features.has(
+                        fetch_commit_sha = features.has(
                             "organizations:codecov-commit-sha-from-git-blame",
                             project.organization,
                             actor=request.user,
                         )
                         gh_integrations = integrations.filter(provider="github")
                         should_get_commit_sha = (
-                            use_git_blame_sha and gh_integrations and not has_error_commit
+                            fetch_commit_sha and gh_integrations and not has_error_commit
                         )
 
                         if should_get_commit_sha:
@@ -352,7 +352,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
                         # Call codecov API if codecov-commit-sha-from-git-blame flag is enabled
                         # or getting ref from git blame was successful
-                        if not use_git_blame_sha or ref:
+                        if not fetch_commit_sha or ref:
                             lineCoverage, codecovUrl = get_codecov_data(
                                 repo=current_config["config"]["repoName"],
                                 service=current_config["config"]["provider"]["key"],
