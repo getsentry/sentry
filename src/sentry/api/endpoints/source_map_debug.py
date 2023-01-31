@@ -13,6 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.lang.javascript.processor import discover_sourcemap, fetch_file
 from sentry.models import (
     Distribution,
     Organization,
@@ -82,17 +83,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if event is None:
             raise NotFound(detail="Event not found")
 
-        release_version = event.get_tag("sentry:release")
-
-        if not release_version:
-            return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
-
-        try:
-            release = Release.objects.get(
-                organization=project.organization, version=release_version
-            )
-        except Release.DoesNotExist:
-            return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
+        release_response = self._extract_release(event, project)
+        if type(release_response) is Response:
+            return release_response
+        else:
+            release = release_response
 
         user_agent = release.user_agent
 
@@ -114,32 +109,34 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         release_artifacts = ReleaseFile.objects.filter(release_id=release.id)
 
-        full_matches, partial_matches = self._find_mathches(release_artifacts, urlparts)
+        find_matching_artifact_response = self._find_matching_artifact(
+            release_artifacts, urlparts, abs_path
+        )
 
-        if len(full_matches) == 0:
-            if len(partial_matches) > 0:
-                return self._create_response(
-                    issue=SourceMapProcessingIssue.PARTIAL_MATCH,
-                    data={"absPath": abs_path, "partialMatch": partial_matches[0].name},
-                )
-            return self._create_response(
-                issue=SourceMapProcessingIssue.NO_URL_MATCH, data={"absPath": abs_path}
-            )
+        if type(find_matching_artifact_response) is Response:
+            return find_matching_artifact_response
+        else:
+            artifact = find_matching_artifact_response
 
-        artifact = full_matches[0]
+        dist_response = self._verify_dist_matches(release, event, artifact)
+        if type(dist_response) is Response:
+            return dist_response
+        else:
+            dist = dist_response
 
-        try:
-            dist = Distribution.objects.get(release=release, name=event.dist)
-        except Distribution.DoesNotExist:
-            return self._create_response(
-                issue=SourceMapProcessingIssue.DIST_NOT_FOUND, data={"eventDist": event.dist}
-            )
+        sourcemap_url = discover_sourcemap(fetch_file(artifact.name, project, release, dist))
 
-        if artifact.dist_id != dist.id:
-            return self._create_response(
-                issue=SourceMapProcessingIssue.DIST_MISMATCH,
-                data={"eventDist": dist.id, "artifactDist": artifact.dist_id},
-            )
+        sourcemap_artifact_response = self._find_matching_artifact(
+            release_artifacts, urlparse(sourcemap_url), sourcemap_url
+        )
+        if type(sourcemap_artifact_response) is Response:
+            return sourcemap_artifact_response
+        else:
+            sourcemap_artifact = sourcemap_artifact_response
+
+        sourcemap_dist_response = self._verify_dist_matches(release, event, sourcemap_artifact)
+        if type(sourcemap_dist_response) is Response:
+            return sourcemap_dist_response
 
         return self._create_response()
 
@@ -169,3 +166,62 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             if artifact.name.endswith(urlparts.path.split("/")[-1])
         ]
         return full_matches, partial_matches
+
+    def _extract_release(self, event, project):
+        release_version = event.get_tag("sentry:release")
+
+        if not release_version:
+            return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
+        try:
+            release = Release.objects.get(
+                organization=project.organization, version=release_version
+            )
+        except Release.DoesNotExist:
+            return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
+
+        return release
+
+    def _verify_dist_matches(self, release, event, artifact, sourcemap=False):
+
+        dist_issue = (
+            SourceMapProcessingIssue.DIST_MISMATCH
+            if not sourcemap
+            else SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND
+        )
+
+        try:
+            dist = Distribution.objects.get(release=release, name=event.dist)
+        except Distribution.DoesNotExist:
+            return self._create_response(
+                issue=SourceMapProcessingIssue.DIST_NOT_FOUND, data={"eventDist": event.dist}
+            )
+
+        if artifact.dist_id != dist.id:
+            return self._create_response(
+                issue=dist_issue,
+                data={"eventDist": dist.id, "artifactDist": artifact.dist_id},
+            )
+        return dist
+
+    def _find_matching_artifact(self, release_artifacts, urlparts, abs_path, sourcemap=False):
+        full_matches, partial_matches = self._find_mathches(release_artifacts, urlparts)
+
+        partial_issue = (
+            SourceMapProcessingIssue.PARTIAL_MATCH
+            if not sourcemap
+            else SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND
+        )
+        no_match_issue = (
+            SourceMapProcessingIssue.NO_URL_MATCH
+            if not sourcemap
+            else SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND
+        )
+
+        if len(full_matches) == 0:
+            if len(partial_matches) > 0:
+                return self._create_response(
+                    issue=partial_issue,
+                    data={"absPath": abs_path, "partialMatch": partial_matches[0].name},
+                )
+            return self._create_response(issue=no_match_issue, data={"absPath": abs_path})
+        return full_matches[0]

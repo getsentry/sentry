@@ -70,7 +70,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://example.com/application.js",
+                                        "abs_path": "webpack:///./app/api.tsx",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -92,8 +92,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
             release_id=release.id,
-            file=File.objects.create(name="application.js", type="release.file"),
-            name="https://example.com/application.js",
+            file=File.objects.create(name="./app/api.tsx", type="release.file"),
+            name="webpack:///./app/api.tsx",
             # change dist to something else
             dist_id=dist.id,
         )
