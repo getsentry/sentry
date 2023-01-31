@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from sentry.models import File, Release, ReleaseFile
+from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -62,6 +62,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             data={
                 "event_id": "a" * 32,
                 "release": "my-release",
+                "dist": "my-dist",
                 "exception": {
                     "values": [
                         {
@@ -69,7 +70,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://example.com/application.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -84,11 +85,17 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
 
+        dist = Distribution.objects.get(
+            organization_id=self.organization.id, name="my-dist", release_id=release.id
+        )
+
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
             release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
-            name="http://example.com/application.js",
+            name="https://example.com/application.js",
+            # change dist to something else
+            dist_id=dist.id,
         )
 
         resp = self.get_success_response(
@@ -98,6 +105,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             frame_idx=0,
             exception_idx=0,
         )
+
         assert resp.data["errors"] == []
 
     @with_feature("organizations:fix-source-map-cta")
@@ -214,3 +222,159 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["type"] == "url_not_valid"
         assert error["message"] == "The absolute path url is not valid"
         assert error["data"] == {"absPath": "app.example.com/static/static/js/main.fa8fe19f.js"}
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_partial_url_match(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/static/js/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "partial_match"
+        assert error["message"] == "The absolute path url is a partial match"
+        assert error["data"] == {
+            "absPath": "https://app.example.com/static/static/js/application.js",
+            "partialMatch": "http://example.com/application.js",
+        }
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_no_url_match(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_url_match"
+        assert error["message"] == "The absolute path url does not match any source maps"
+        assert error["data"] == {
+            "absPath": "https://app.example.com/static/static/js/main.fa8fe19f.js"
+        }
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_dist_mismatch(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        event_dist = Distribution.objects.get(name="my-dist", release=release)
+
+        dist = Distribution.objects.create(
+            organization_id=self.organization.id, name="diff-dist", release_id=release.id
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="https://example.com/application.js",
+            # change dist to something else
+            dist_id=dist.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        error = resp.data["errors"][0]
+        assert error["type"] == "dist_mismatch"
+        assert error["message"] == "The dist values do not match"
+        assert error["data"] == {"eventDist": event_dist.id, "artifactDist": dist.id}

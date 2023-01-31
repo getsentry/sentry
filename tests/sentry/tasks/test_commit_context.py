@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.models import Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import process_commit_context
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -102,6 +103,33 @@ class TestCommitContext(TestCase):
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         ).context == {"commitId": self.commit.id}
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        side_effect=ApiError(text="integration_failed"),
+    )
+    def test_failed_to_fetch_commit_context_record(self, mock_get_commit_context, mock_record):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        mock_record.assert_called_with(
+            "integrations.failed_to_fetch_commit_context",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            code_mapping_id=self.code_mapping.id,
+            group_id=self.event.group_id,
+            provider="github",
+            error_message="integration_failed",
+        )
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
@@ -226,6 +254,65 @@ class TestCommitContext(TestCase):
         self.commit_2 = self.create_commit(
             project=self.project,
             repo=self.repo,
+            author=self.commit_author_2,
+            key="somekey",
+            message="placeholder commit message",
+        )
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+        assert GroupOwner.objects.filter(group=self.event.group).exists()
+        assert len(GroupOwner.objects.filter(group=self.event.group)) == 1
+        owner = GroupOwner.objects.get(group=self.event.group)
+        assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
+        assert owner.user is None
+        assert owner.team is None
+        assert owner.context == {"commitId": self.commit_2.id}
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value={
+            "commitId": "somekey",
+            "committedDate": "",
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "randomuser@sentry.io",
+        },
+    )
+    def test_multiple_matching_code_mappings_but_only_1_repository_has_the_commit_in_db(
+        self, mock_get_commit_context
+    ):
+
+        self.integration_2 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub",
+            external_id="github:2",
+        )
+
+        self.repo_2 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="another/example",
+            integration_id=self.integration_2.id,
+        )
+        self.code_mapping_2 = self.create_code_mapping(
+            repo=self.repo_2, project=self.project, stack_root="src", source_root="src"
+        )
+
+        self.commit_author_2 = self.create_commit_author(
+            project=self.project,
+        )
+        self.commit_2 = self.create_commit(
+            project=self.project,
+            repo=self.repo_2,
             author=self.commit_author_2,
             key="somekey",
             message="placeholder commit message",

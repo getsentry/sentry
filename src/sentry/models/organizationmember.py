@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -395,8 +395,21 @@ class OrganizationMember(Model):
         )
 
     def get_scopes(self) -> FrozenSet[str]:
-        role_obj = organization_roles.get(self.role)
-        return self.organization.get_scopes(role_obj)
+        # include org roles from team membership
+        team_org_roles = self.get_org_roles_from_teams()
+        team_org_roles.append(self.role)
+        scopes = set()
+
+        for role in team_org_roles:
+            role_obj = organization_roles.get(role)
+            scopes.update(self.organization.get_scopes(role_obj))
+        return frozenset(scopes)
+
+    def get_org_roles_from_teams(self):
+        # results in an extra query when calling get_scopes()
+        return list(
+            self.teams.all().filter(~Q(org_role=None)).values_list("org_role", flat=True).distinct()
+        )
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """

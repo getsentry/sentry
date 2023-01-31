@@ -11,11 +11,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const ReplayTabs: Record<TabKey, string> = {
   console: t('Console'),
-  dom: t('DOM Events'),
   network: t('Network'),
-  trace: t('Trace'),
+  dom: t('DOM Events'),
   issues: t('Issues'),
   memory: t('Memory'),
+  trace: t('Trace'),
 };
 
 type Props = {className?: string};
