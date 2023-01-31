@@ -4,21 +4,23 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, roles
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import ScheduledDeletion, Team, TeamStatus
 
 
-class TeamSerializer(serializers.ModelSerializer):
+class TeamSerializer(CamelSnakeModelSerializer):
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+    org_role = serializers.ChoiceField(choices=roles.get_choices(), default=None)
 
     class Meta:
         model = Team
-        fields = ("name", "slug")
+        fields = ("name", "slug", "org_role")
 
     def validate_slug(self, value):
         qs = Team.objects.filter(slug=value, organization=self.instance.organization).exclude(
@@ -74,8 +76,16 @@ class TeamDetailsEndpoint(TeamEndpoint):
         :param string name: the new name for the team.
         :param string slug: a new slug for the team.  It has to be unique
                             and available.
+        :param string orgRole: an organization role for the team. Only
+                               owners can set this value.
         :auth: required
         """
+        if request.data.get("orgRole") and str(request.access.get_organization_role()) != "Owner":
+            return Response(
+                {"detail": "You must be an organization owner to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()

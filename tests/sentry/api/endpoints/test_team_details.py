@@ -79,6 +79,41 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
+    def test_put_team_org_role__success(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        self.get_success_response(team.organization.slug, team.slug, org_role="owner")
+
+        team = Team.objects.get(id=team.id)
+        assert team.org_role == "owner"
+
+    def test_put_team_org_role__not_owner(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="member")
+        self.login_as(user)
+
+        self.get_error_response(
+            team.organization.slug, team.slug, org_role="owner", status_code=403
+        )
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
+    def test_put_team_org_role__invalid_role(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        self.get_error_response(
+            team.organization.slug, team.slug, org_role="onwer", status_code=400
+        )
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
 
 @region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
