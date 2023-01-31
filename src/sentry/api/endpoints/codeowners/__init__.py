@@ -27,7 +27,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         model = ProjectCodeOwners
         fields = ["raw", "code_mapping_id", "organization_integration_id"]
 
-    def get_max_length(self):
+    def get_max_length(self) -> int:
         if features.has(
             "organizations:scaleable-codeowners-search",
             self.context["ownership"].project.organization,
