@@ -349,17 +349,31 @@ def perf_to_email_html(
     if not problem:
         return ""
 
-    parent_span, repeating_spans = get_parent_and_repeating_spans(spans, problem)
+    context = PerformanceProblemContext(problem, spans)
 
-    context = {
-        "transaction_name": get_span_evidence_value_problem(problem),
-        "parent_span": get_span_evidence_value(parent_span) if parent_span else None,
-        "repeating_spans": get_span_evidence_value(repeating_spans),
-        "num_repeating_spans": str(len(problem.offender_span_ids))
-        if problem.offender_span_ids
-        else "",
-    }
-    return render_to_string("sentry/emails/transactions.html", context)
+    return render_to_string("sentry/emails/transactions.html", context.to_dict())
+
+
+@dataclass
+class PerformanceProblemContext:
+    problem: PerformanceProblem
+    spans: Union[List[Dict[str, Union[str, float]]], None]
+
+    def __post_init__(self):
+        parent_span, repeating_spans = get_parent_and_repeating_spans(self.spans, self.problem)
+
+        self.parent_span = parent_span
+        self.repeating_spans = repeating_spans
+
+    def to_dict(self):
+        return {
+            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "parent_span": get_span_evidence_value(self.parent_span),
+            "repeating_spans": get_span_evidence_value(self.repeating_spans),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+            if self.problem.offender_span_ids
+            else "",
+        }
 
 
 def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
