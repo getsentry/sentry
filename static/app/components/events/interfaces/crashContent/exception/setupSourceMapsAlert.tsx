@@ -1,8 +1,5 @@
 import {Alert} from 'sentry/components/alert';
-import {
-  isEventFromBrowserJavaScriptSDK,
-  isFrameFilenamePathlike,
-} from 'sentry/components/events/interfaces/spans/utils';
+import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -18,6 +15,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {eventHasSourceMaps} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+
+import {isFrameFilenamePathlike} from './util';
 
 // This list must always be updated with the documentation.
 // Ideally it would be nice if we could send a request validating that this URL exists,

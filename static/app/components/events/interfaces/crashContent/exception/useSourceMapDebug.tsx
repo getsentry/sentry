@@ -1,10 +1,11 @@
 import uniqBy from 'lodash/uniqBy';
 
-import {isFrameFilenamePathlike} from 'sentry/components/events/interfaces/spans/utils';
 import type {ExceptionValue, Frame, Organization, PlatformType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+
+import {isFrameFilenamePathlike} from './util';
 
 interface BaseSourceMapDebugError {
   message: string;
