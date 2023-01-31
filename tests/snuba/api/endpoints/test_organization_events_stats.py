@@ -33,7 +33,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.login_as(user=self.user)
         self.authed_user = self.user
 
-        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.event_window_start = before_now(days=1).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.event_window_end = self.event_window_start + timedelta(hours=2)
 
         self.project = self.create_project()
         self.project2 = self.create_project()
@@ -43,7 +46,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "a" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                "timestamp": iso_format(self.event_window_start + timedelta(minutes=10)),
                 "fingerprint": ["group1"],
                 "tags": {"sentry:user": self.user.email},
             },
@@ -53,7 +56,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "b" * 32,
                 "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                "timestamp": iso_format(self.event_window_start + timedelta(hours=1, minutes=10)),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -63,7 +66,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "c" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                "timestamp": iso_format(self.event_window_start + timedelta(hours=1, minutes=12)),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -85,8 +88,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_simple(self):
         response = self.do_request(
             {
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
             },
         )
@@ -99,21 +102,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc),
+            self.event_window_start.replace(tzinfo=utc) + timedelta(minutes=10),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=1),
+            self.event_window_start.replace(tzinfo=utc) + timedelta(hours=1, minutes=10),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=2),
+            self.event_window_start.replace(tzinfo=utc) + timedelta(hours=1, minutes=12),
         )
         with self.feature(
             [
@@ -122,8 +125,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ):
             response = self.do_request(
                 {
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "query": f"issue:{group_info.group.qualified_short_id}",
                     "dataset": "issuePlatform",
@@ -136,26 +139,27 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         """Test that a 4h interval returns the correct generic event stats.
         This follows a different code path than 1h or 1d as the IssuePlatformTimeSeriesQueryBuilder
         does some calculation to create the time column."""
+        start = self.event_window_start.replace(tzinfo=utc) - timedelta(hours=4)
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            start + timedelta(minutes=10),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            start + timedelta(minutes=10),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=2),
+            start + timedelta(minutes=12),
         )
         with self.feature(
             [
@@ -164,8 +168,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ):
             response = self.do_request(
                 {
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=4)),
+                    "start": iso_format(start),
+                    "end": iso_format(start + timedelta(hours=4)),
                     "interval": "4h",
                     "query": f"issue:{group_info.group.qualified_short_id}",
                     "dataset": "issuePlatform",
@@ -177,8 +181,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_misaligned_last_bucket(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago - timedelta(minutes=30)),
-                "end": iso_format(self.day_ago + timedelta(hours=1, minutes=30)),
+                "start": iso_format(self.event_window_start - timedelta(minutes=30)),
+                "end": iso_format(self.event_window_end - timedelta(minutes=30)),
                 "interval": "1h",
                 "partial": "1",
             },
@@ -208,7 +212,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "d" * 32,
                 "message": "something",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "timestamp": iso_format(self.event_window_start + timedelta(minutes=12)),
                 "tags": {"sentry:user": self.user2.email},
                 "fingerprint": ["group2"],
             },
@@ -216,8 +220,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "user_count",
             },
@@ -229,8 +233,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "user_count",
             },
@@ -241,8 +245,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "event_count",
             },
@@ -253,8 +257,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_with_event_count_flag(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "event_count",
             },
@@ -290,8 +294,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         # Shouldn't count towards apdex
         data = load_data(
             "transaction",
-            start_timestamp=self.day_ago + timedelta(minutes=(1)),
-            timestamp=self.day_ago + timedelta(minutes=(3)),
+            start_timestamp=self.event_window_start + timedelta(minutes=(10)),
+            timestamp=self.event_window_start + timedelta(minutes=(13)),
         )
         data["transaction"] = "/apdex/new/"
         data["user"] = {"email": "1@example.com"}
@@ -300,8 +304,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "apdex()",
                 "project": [self.project.id],
@@ -331,8 +335,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                start_timestamp=self.day_ago + timedelta(minutes=(1 + idx)),
-                timestamp=self.day_ago + timedelta(minutes=(1 + idx), milliseconds=event[1]),
+                start_timestamp=self.event_window_start + timedelta(minutes=(10 + idx)),
+                timestamp=self.event_window_start
+                + timedelta(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/apdex/new/{event[0]}"
@@ -341,8 +346,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "apdex()",
             },
@@ -370,8 +375,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "apdex()",
             },
@@ -385,8 +390,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": ["user_count", "apdex()"],
             },
@@ -407,8 +412,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_aggregate_function_count(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "count()",
             },
@@ -419,8 +424,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_invalid_aggregate(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "rubbish",
             },
@@ -430,8 +435,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_aggregate_function_user_count(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "count_unique(user)",
             },
@@ -442,8 +447,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_aggregate_invalid(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": "nope(lol)",
             },
@@ -461,7 +466,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                         "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
-                            self.day_ago + timedelta(hours=hour, minutes=minute)
+                            self.event_window_start + timedelta(hours=hour, minutes=minute)
                         ),
                         "fingerprint": ["group1"],
                         "tags": {"sentry:user": self.user.email},
@@ -472,8 +477,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         for axis in ["epm()", "tpm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_start + timedelta(hours=6)),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": project.id,
@@ -498,7 +503,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                         "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
-                            self.day_ago + timedelta(hours=hour, minutes=minute)
+                            self.event_window_start + timedelta(hours=hour, minutes=minute)
                         ),
                         "fingerprint": ["group1"],
                         "tags": {"sentry:user": self.user.email},
@@ -509,8 +514,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         for axis in ["epm()", "tpm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_start + timedelta(hours=24)),
                     "interval": "24h",
                     "yAxis": axis,
                     "project": project.id,
@@ -533,7 +538,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                         "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
-                            self.day_ago + timedelta(minutes=minute, seconds=second)
+                            self.event_window_start + timedelta(minutes=minute, seconds=second)
                         ),
                         "fingerprint": ["group1"],
                         "tags": {"sentry:user": self.user.email},
@@ -544,8 +549,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         for axis in ["eps()", "tps()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_start + timedelta(minutes=6)),
                     "interval": "1m",
                     "yAxis": axis,
                     "project": project.id,
@@ -570,7 +575,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                         "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
-                            self.day_ago + timedelta(minutes=minute, seconds=second)
+                            self.event_window_start + timedelta(minutes=minute, seconds=second)
                         ),
                         "fingerprint": ["group1"],
                         "tags": {"sentry:user": self.user.email},
@@ -580,8 +585,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=1)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_start + timedelta(minutes=1)),
                 "interval": "1s",
                 "yAxis": "eps()",
                 "project": project.id,
@@ -662,8 +667,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_conditional_filter(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "query": "id:{} OR id:{}".format("a" * 32, "b" * 32),
                 "interval": "30m",
                 "yAxis": "count()",
@@ -679,8 +684,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_simple_multiple_yaxis(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": ["user_count", "event_count"],
             },
@@ -701,8 +706,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_equation_yaxis(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": ["equation|count() / 100"],
             },
@@ -718,8 +723,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_equation_mixed_multi_yaxis(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": ["count()", "equation|count() * 100"],
             },
@@ -740,8 +745,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_equation_multi_yaxis(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": ["equation|count() / 100", "equation|count() * 100"],
             },
@@ -764,7 +769,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "d" * 32,
                 "message": "not good",
-                "timestamp": iso_format(self.day_ago - timedelta(minutes=10)),
+                "timestamp": iso_format(self.event_window_start - timedelta(minutes=10)),
                 "fingerprint": ["group3"],
             },
             project_id=self.project.id,
@@ -773,8 +778,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "end": iso_format(self.day_ago),
-                "start": iso_format(self.day_ago - timedelta(hours=24)),
+                "start": iso_format(self.event_window_start - timedelta(hours=24)),
+                "end": iso_format(self.event_window_start),
                 "query": 'message:"not good"',
                 "interval": "1d",
                 "yAxis": "count()",
@@ -788,8 +793,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "yAxis": ["user_count", "event_count", "epm()", "eps()"],
             },
@@ -868,8 +873,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_with_zerofill(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "30m",
             },
         )
@@ -883,8 +888,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ]
 
     def test_without_zerofill(self):
-        start = iso_format(self.day_ago)
-        end = iso_format(self.day_ago + timedelta(hours=2))
+        start = iso_format(self.event_window_start)
+        end = iso_format(self.event_window_end)
         response = self.do_request(
             data={
                 "start": start,
@@ -907,29 +912,32 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.data["end"] == parse_date(end).timestamp()
 
     def test_comparison(self):
+
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=1)),
+                "timestamp": iso_format(self.event_window_start + timedelta(days=-1, minutes=10)),
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=2)),
+                "timestamp": iso_format(self.event_window_start + timedelta(days=-1, minutes=12)),
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=1)),
+                "timestamp": iso_format(
+                    self.event_window_start + timedelta(days=-1, hours=1, minutes=10)
+                ),
             },
             project_id=self.project2.id,
         )
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "comparisonDelta": int(timedelta(days=1).total_seconds()),
             }
@@ -944,8 +952,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_comparison_invalid(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 "comparisonDelta": "17h",
             },
@@ -970,8 +978,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_equations_divide_by_zero(self):
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": iso_format(self.event_window_start),
+                "end": iso_format(self.event_window_end),
                 "interval": "1h",
                 # force a 0 in the denominator by doing 1 - 1
                 # since a 0 literal is illegal as the denominator
@@ -1010,7 +1018,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         for _ in range(7):
             self.store_event(
                 data={
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=12)),
                     "tags": {"count": "9001"},
                 },
                 project_id=self.project2.id,
@@ -1018,8 +1026,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         # Query for count and count()
         data = {
-            "start": iso_format(self.day_ago),
-            "end": iso_format(self.day_ago + timedelta(minutes=3)),
+            "start": iso_format(self.event_window_start),
+            "end": iso_format(self.event_window_start + timedelta(minutes=13)),
             "interval": "1h",
             "yAxis": "count()",
             "orderby": ["-count()"],
@@ -1048,20 +1056,25 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.event_window_start = before_now(days=1).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.event_window_end = self.event_window_start + timedelta(hours=2)
 
         self.project = self.create_project()
         self.project2 = self.create_project()
         self.user2 = self.create_user()
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
+        transaction_data["start_timestamp"] = iso_format(
+            self.event_window_start + timedelta(minutes=10)
+        )
+        transaction_data["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=12))
         transaction_data["tags"] = {"shared-tag": "yup"}
         self.event_data = [
             {
                 "data": {
                     "message": "poof",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup"},
                     "fingerprint": ["group1"],
@@ -1072,7 +1085,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "voof",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "timestamp": iso_format(
+                        self.event_window_start + timedelta(hours=1, minutes=2)
+                    ),
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
                     "tags": {"shared-tag": "yup"},
@@ -1083,7 +1098,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1094,7 +1109,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "oh no",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1107,7 +1122,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "sorta bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1118,7 +1133,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "not so bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1154,8 +1169,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 data={
                     # make sure to query the project with 0 events
                     "project": project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1179,8 +1194,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 data={
                     # make sure to query the project with 0 events
                     "project": project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1204,8 +1219,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 data={
                     # make sure to query the project with 0 events
                     "project": project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": ["count()", "count_unique(user)"],
                     "orderby": ["-count()"],
@@ -1231,8 +1246,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1264,7 +1279,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         event_data = {
             "data": {
                 "message": "poof",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "timestamp": iso_format(self.event_window_start + timedelta(minutes=10)),
                 "user": {"email": self.user.email},
                 "tags": {"count": "9001"},
                 "fingerprint": ["group1"],
@@ -1278,8 +1293,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         # Query for count and count()
         data = {
-            "start": iso_format(self.day_ago),
-            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "start": iso_format(self.event_window_start),
+            "end": iso_format(self.event_window_end),
             "interval": "1h",
             "yAxis": "count()",
             "orderby": ["-count()"],
@@ -1309,7 +1324,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "poof",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=10)),
                     "user": {"email": self.user.email},
                     "tags": {"count": "9001"},
                     "fingerprint": ["group1"],
@@ -1320,7 +1335,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "poof2",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=10)),
                     "user": {"email": self.user.email},
                     "tags": {"count": "abc"},
                     "fingerprint": ["group1"],
@@ -1336,8 +1351,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         # Query for count and count()
         data = {
-            "start": iso_format(self.day_ago),
-            "end": iso_format(self.day_ago + timedelta(hours=1)),
+            "start": iso_format(self.event_window_start),
+            "end": iso_format(self.event_window_end),
             "interval": "1h",
             "yAxis": "count()",
             "orderby": ["-count"],
@@ -1350,14 +1365,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert response.data["9001"]["data"][0][1] == [{"count": 7}]
             assert response.data["abc"]["data"][0][1] == [{"count": 3}]
-            assert response.data["Other"]["data"][0][1] == [{"count": 16}]
+            assert response.data["Other"]["data"][0][1] == [{"count": 15}]
 
     def test_tag_with_conflicting_function_alias_with_other_multiple_groupings(self):
         event_data = [
             {
                 "data": {
                     "message": "abc",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=10)),
                     "user": {"email": self.user.email},
                     "tags": {"count": "2"},
                     "fingerprint": ["group1"],
@@ -1368,7 +1383,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "def",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=10)),
                     "user": {"email": self.user.email},
                     "tags": {"count": "9001"},
                     "fingerprint": ["group1"],
@@ -1384,8 +1399,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         # Query for count and count()
         data = {
-            "start": iso_format(self.day_ago),
-            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "start": iso_format(self.event_window_start),
+            "end": iso_format(self.event_window_end),
             "interval": "2d",
             "yAxis": "count()",
             "orderby": ["-count"],
@@ -1402,8 +1417,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     def test_top_events_limits(self):
         data = {
-            "start": iso_format(self.day_ago),
-            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "start": iso_format(self.event_window_start),
+            "end": iso_format(self.event_window_end),
             "interval": "1h",
             "yAxis": "count()",
             "orderby": ["-count()"],
@@ -1427,8 +1442,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1463,8 +1478,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1503,8 +1518,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1532,8 +1547,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1567,8 +1582,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1589,8 +1604,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-p99()"],
@@ -1612,16 +1627,18 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def test_top_events_with_functions_on_different_transactions(self):
         """Transaction2 has less events, but takes longer so order should be self.transaction then transaction2"""
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["start_timestamp"] = iso_format(
+            self.event_window_start + timedelta(minutes=10)
+        )
+        transaction_data["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=14))
         transaction_data["transaction"] = "/foo_bar/"
         transaction2 = self.store_event(transaction_data, project_id=self.project.id)
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-p99()"],
@@ -1646,16 +1663,18 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     def test_top_events_with_query(self):
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["start_timestamp"] = iso_format(
+            self.event_window_start + timedelta(minutes=10)
+        )
+        transaction_data["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=14))
         transaction_data["transaction"] = "/foo_bar/"
         self.store_event(transaction_data, project_id=self.project.id)
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-p99()"],
@@ -1683,8 +1702,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1717,8 +1736,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "epm()",
                     "orderby": ["-count()"],
@@ -1751,8 +1770,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": ["epm()", "count()"],
                     "orderby": ["-count()"],
@@ -1794,8 +1813,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1829,15 +1848,15 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         prototype["message"] = "not handled"
         prototype["exception"]["values"][0]["value"] = "not handled"
         prototype["exception"]["values"][0]["mechanism"]["handled"] = False
-        prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        prototype["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=10))
         self.store_event(data=prototype, project_id=project.id)
 
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1856,8 +1875,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1891,8 +1910,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -1915,8 +1934,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()", "user"],
@@ -1945,8 +1964,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()", "user"],
@@ -1975,8 +1994,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2015,8 +2034,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2049,8 +2068,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2097,8 +2116,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2125,8 +2144,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2167,8 +2186,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     # the double underscores around the version alias is because of a comma and quote
@@ -2201,8 +2220,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "equation|count() / 100",
                     "orderby": ["-count()"],
@@ -2318,8 +2337,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2333,9 +2352,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         # these are the timestamps corresponding to the events stored
         timestamps = [
-            self.day_ago + timedelta(minutes=2),
-            self.day_ago + timedelta(hours=1, minutes=2),
-            self.day_ago + timedelta(minutes=4),
+            self.event_window_start + timedelta(minutes=12),
+            self.event_window_start + timedelta(hours=1, minutes=2),
+            self.event_window_start + timedelta(minutes=2),
         ]
         timestamp_hours = [timestamp.replace(minute=0, second=0) for timestamp in timestamps]
         timestamp_days = [timestamp.replace(hour=0, minute=0, second=0) for timestamp in timestamps]
@@ -2353,8 +2372,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2382,8 +2401,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     def test_top_events_with_field_overlapping_other_key(self):
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["start_timestamp"] = iso_format(
+            self.event_window_start + timedelta(minutes=10)
+        )
+        transaction_data["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=14))
         transaction_data["transaction"] = OTHER_KEY
         for i in range(5):
             data = transaction_data.copy()
@@ -2395,8 +2416,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
@@ -2423,8 +2444,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["count()"],
@@ -2446,8 +2467,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-equation[0]"],
@@ -2470,8 +2491,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.event_window_start),
+                    "end": iso_format(self.event_window_end),
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
