@@ -1,4 +1,4 @@
-import React, {CSSProperties, Fragment} from 'react';
+import {CSSProperties, Fragment, SyntheticEvent} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -13,7 +13,7 @@ import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/pro
 
 interface FunctionsMiniGridProps {
   functions: SuspectFunction[] | null;
-  onLinkClick: (e: React.SyntheticEvent) => void;
+  onLinkClick: (e: SyntheticEvent) => void;
   organization: Organization;
   project: Project;
 }
