@@ -12,34 +12,48 @@ import {LayoutGroup, motion} from 'framer-motion';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {FormSize} from 'sentry/utils/theme';
 
-export interface SegmentedControlItemProps extends ItemProps<any> {
-  key: React.Key;
+export interface SegmentedControlItemProps<Value extends string> extends ItemProps<any> {
+  key: Value;
   disabled?: boolean;
 }
 
 type Priority = 'default' | 'primary';
-export interface SegmentedControlProps extends AriaRadioGroupProps, CollectionBase<any> {
+export interface SegmentedControlProps<Value extends string>
+  extends Omit<AriaRadioGroupProps, 'value' | 'defaultValue' | 'onChange'>,
+    CollectionBase<any> {
+  defaultValue?: Value;
   disabled?: AriaRadioGroupProps['isDisabled'];
+  onChange?: (value: Value) => void;
   priority?: Priority;
   size?: FormSize;
+  value?: Value;
 }
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-export function SegmentedControl({
+export function SegmentedControl<Value extends string>({
+  value,
+  defaultValue,
+  onChange,
   size = 'md',
   priority = 'default',
   disabled,
   ...props
-}: SegmentedControlProps) {
+}: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
   const collection = useCollection(props, collectionFactory);
   const ariaProps: AriaRadioGroupProps = {
     ...props,
+    // Cast value/defaultValue as string to comply with AriaRadioGroupProps. This is safe
+    // as value and defaultValue are already strings (their type, Value, extends string)
+    value: value as string,
+    defaultValue: defaultValue as string,
+    onChange: onChange && (val => onChange(val as Value)),
     orientation: 'horizontal',
     isDisabled: disabled,
   };
+
   const state = useRadioGroupState(ariaProps);
   const {radioGroupProps} = useRadioGroup(ariaProps, state);
 
@@ -69,7 +83,9 @@ export function SegmentedControl({
   );
 }
 
-SegmentedControl.Item = Item as (props: SegmentedControlItemProps) => JSX.Element;
+SegmentedControl.Item = Item as <Value extends string>(
+  props: SegmentedControlItemProps<Value>
+) => JSX.Element;
 
 interface SegmentProps extends AriaRadioProps {
   lastKey: string;
