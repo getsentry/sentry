@@ -664,7 +664,6 @@ def _resolve_project_threshold_config(project_ids, org_id):
 def operation_if_column_snql(
     operation, aggregate_filter, org_id, use_case_id, if_column, if_value, alias
 ):
-    ...
     return Function(
         operation,
         [
@@ -687,6 +686,17 @@ def operation_if_column_snql(
     )
 
 
+def timestamp_column_snql(operation: str, aggregate_filter, org_id, use_case_id, alias):
+    return Function(
+        operation,
+        [
+            Column("timestamp"),
+            aggregate_filter,
+        ],
+        alias=alias,
+    )
+
+
 def sum_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_value, alias=None):
     return operation_if_column_snql(
         "sumIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
@@ -697,3 +707,11 @@ def uniq_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_val
     return operation_if_column_snql(
         "uniqIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
     )
+
+
+def min_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
+    return timestamp_column_snql("minIf", aggregate_filter, org_id, use_case_id, alias)
+
+
+def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
+    return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
