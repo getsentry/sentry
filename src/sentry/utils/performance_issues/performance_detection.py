@@ -22,7 +22,13 @@ from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
-from .base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
+from .base import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    PerformanceDetector,
+    get_span_duration,
+    get_url_from_span,
+)
 from .performance_problem import PerformanceProblem
 from .types import PerformanceProblemsMap, Span
 
@@ -370,22 +376,6 @@ def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bo
         return True
     else:
         return query and not query.endswith("...")
-
-
-def get_url_from_span(span: Span) -> str:
-    data = span.get("data") or {}
-    url = data.get("url") or ""
-    if not url:
-        # If data is missing, fall back to description
-        description = span.get("description") or ""
-        parts = description.split(" ", 1)
-        if len(parts) == 2:
-            url = parts[1]
-
-    if type(url) is dict:
-        url = url.get("pathname") or ""
-
-    return url
 
 
 def total_span_time(span_list: List[Dict[str, Any]]) -> float:
