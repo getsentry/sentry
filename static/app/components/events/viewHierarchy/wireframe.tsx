@@ -52,7 +52,7 @@ function Wireframe({hierarchy}) {
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
   const {handlePanMove, handlePanStart, handlePanStop, isDragging, xOffset, yOffset} =
-    useMousePan();
+    useMousePan({initialXOffset: 20, initialYOffset: 20});
 
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
