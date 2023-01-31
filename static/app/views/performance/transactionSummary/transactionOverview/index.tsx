@@ -134,7 +134,6 @@ function OverviewContentWrapper(props: ChildProps) {
 
   const totals: TotalValues | null =
     (tableData?.data?.[0] as {[k: string]: number}) ?? null;
-
   return (
     <SummaryContent
       location={location}

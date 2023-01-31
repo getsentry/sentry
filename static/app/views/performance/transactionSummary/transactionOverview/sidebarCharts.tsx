@@ -30,12 +30,15 @@ import {
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 
 import {
   anomaliesRouteWithQuery,
@@ -244,6 +247,13 @@ function SidebarChartsContainer({
   const query = eventView.query;
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
+  const mepSetting = useMEPSettingContext();
+  const display = decodeScalar(
+    location.query.display,
+    DisplayModes.DURATION
+  ) as DisplayModes;
+  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, display);
+
   const axisLineConfig = {
     scale: true,
     axisLine: {
@@ -374,6 +384,7 @@ function SidebarChartsContainer({
       yAxis={['apdex()', 'failure_rate()', 'epm()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
+      queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {
         const series = results
