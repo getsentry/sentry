@@ -406,6 +406,7 @@ class OrganizationMember(Model):
         return frozenset(scopes)
 
     def get_org_roles_from_teams(self):
+        # results in an extra query when calling get_scopes()
         return list(
             self.teams.all().filter(~Q(org_role=None)).values_list("org_role", flat=True).distinct()
         )
