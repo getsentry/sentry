@@ -28,7 +28,6 @@ class AuditLogEvent:
     target_object_id: Optional[int] = None
     data: Optional[Mapping[str, Any]] = None
     target_user_id: Optional[int] = None
-    # TODO: Serializing actor id -- right now we just serialize the user id and label, but not the id itself.
 
 
 class LogService(InterfaceWithLifecycle):

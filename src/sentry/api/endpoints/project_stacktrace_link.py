@@ -219,13 +219,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             for config in configs:
                 # If all code mappings fail to match a stack_root it means that there's no working code mapping
                 if not filepath.startswith(config.stack_root):
-                    # Later on, if there are matching code mappings this will be overwritten
+                    # This may be overwritten if a valid code mapping is found
                     result["error"] = "stack_root_mismatch"
                     continue
 
                 outcome = {}
                 munging_outcome = {}
-                # If the platform is a mobile language, get_link will never get the right URL without munging
+                # Munging is required for get_link to work with mobile platforms
                 if ctx["platform"] in ["java", "cocoa", "other"]:
                     munging_outcome = try_path_munging(config, filepath, ctx)
                 if not munging_outcome:
@@ -236,23 +236,22 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if not outcome.get("sourceUrl"):
                         munging_outcome = try_path_munging(config, filepath, ctx)
                         if munging_outcome:
-                            # Let's send the error to Sentry in order to investigate
+                            # Report errors to Sentry for investigation
                             logger.error("We should never be able to reach this code.")
-                # If we failed to munge we should keep the original outcome
+                # Keep the original outcome if munging failed
                 if munging_outcome:
                     outcome = munging_outcome
                     scope.set_tag("stacktrace_link.munged", True)
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
 
-                # use the provider key to be able to split up stacktrace
-                # link metrics by integration type
+                # Use the provider key to split up stacktrace-link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
                 scope.set_tag("integration_provider", provider)  # e.g. github
 
+                # Stop processing if a match is found
                 if outcome.get("sourceUrl") and outcome["sourceUrl"]:
                     result["sourceUrl"] = outcome["sourceUrl"]
-                    # if we found a match, we can break
                     break
 
             # Post-processing before exiting scope context
@@ -264,7 +263,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                should_get_codecov_data = (
+                codecov_enabled = bool(
                     features.has(
                         "organizations:codecov-stacktrace-integration",
                         project.organization,
@@ -272,7 +271,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
-                if should_get_codecov_data:
+
+                if codecov_enabled:
                     try:
                         lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
@@ -286,6 +286,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 "coverageUrl": codecovUrl,
                                 "status": 200,
                             }
+
                     except requests.exceptions.HTTPError as error:
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,

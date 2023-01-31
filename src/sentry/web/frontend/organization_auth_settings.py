@@ -13,7 +13,6 @@ from sentry.auth.helper import AuthHelper
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
-from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
@@ -171,8 +170,8 @@ class OrganizationAuthSettingsView(OrganizationView):
         context = {
             "form": form,
             "pending_links_count": pending_links_count,
-            "login_url": absolute_uri(Organization.get_url(organization.slug)),
-            "settings_url": absolute_uri(
+            "login_url": organization.absolute_url(Organization.get_url(organization.slug)),
+            "settings_url": organization.absolute_url(
                 reverse("sentry-organization-settings", args=[organization.slug])
             ),
             "auth_provider": auth_provider,

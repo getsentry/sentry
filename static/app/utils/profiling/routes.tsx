@@ -102,6 +102,33 @@ export function generateProfileFlamechartRouteWithQuery({
   };
 }
 
+export function generateProfileFlamechartRouteWithHighlightFrame({
+  orgSlug,
+  projectSlug,
+  profileId,
+  frameName,
+  framePackage,
+  query,
+}: {
+  frameName: string;
+  framePackage: string;
+  orgSlug: Organization['slug'];
+  profileId: Trace['id'];
+  projectSlug: Project['slug'];
+  query?: Location['query'];
+}): LocationDescriptor {
+  return generateProfileFlamechartRouteWithQuery({
+    orgSlug,
+    projectSlug,
+    profileId,
+    query: {
+      ...query,
+      frameName,
+      framePackage,
+    },
+  });
+}
+
 export function generateProfileDetailsRouteWithQuery({
   orgSlug,
   projectSlug,

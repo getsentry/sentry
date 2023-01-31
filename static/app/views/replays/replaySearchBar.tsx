@@ -37,7 +37,7 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   pageFilters: PageFilters;
 };
 
-function SearchBar(props: Props) {
+function ReplaySearchBar(props: Props) {
   return (
     <SmartSearchBar
       {...props}
@@ -50,10 +50,9 @@ function SearchBar(props: Props) {
       savedSearchType={SavedSearchType.REPLAY}
       maxMenuHeight={500}
       hasRecentSearches
-      highlightUnsupportedTags
       fieldDefinitionGetter={getReplayFieldDefinition}
     />
   );
 }
 
-export default SearchBar;
+export default ReplaySearchBar;

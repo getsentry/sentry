@@ -127,7 +127,8 @@ def process_profile_task(
         )
         return
 
-    if not _insert_vroom_profile(profile=profile):
+    success, produce_to_kafka = _insert_vroom_profile(profile=profile)
+    if not success:
         _track_outcome(
             profile=profile,
             project=project,
@@ -136,39 +137,34 @@ def process_profile_task(
         )
         return
 
-    _initialize_producer()
+    if produce_to_kafka:
+        _initialize_producer()
 
-    try:
-        _insert_eventstream_call_tree(profile=profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="failed-to-produce-functions",
-        )
-        return
+        try:
+            _insert_eventstream_call_tree(profile=profile)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="failed-to-produce-functions",
+            )
+            return
 
-    try:
-        _insert_eventstream_profile(profile=profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="failed-to-produce-metadata",
-        )
-        return
+        try:
+            _insert_eventstream_profile(profile=profile)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="failed-to-produce-metadata",
+            )
+            return
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
-
-    metrics.gauge(
-        "process_profile.kafka_producer.queue.size",
-        len(_profiles_kafka_producer._KafkaProducer__producer),  # type: ignore
-        sample_rate=1.0,
-    )
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -609,7 +605,7 @@ def _get_event_instance_for_legacy(profile: Profile) -> Any:
 
 
 @metrics.wraps("process_profile.insert_vroom_profile")
-def _insert_vroom_profile(profile: Profile) -> bool:
+def _insert_vroom_profile(profile: Profile) -> Tuple[bool, bool]:
     original_timestamp = profile["received"]
 
     try:
@@ -621,8 +617,10 @@ def _insert_vroom_profile(profile: Profile) -> bool:
 
         if response.status == 204:
             profile["call_trees"] = {}
+            return True, False
         elif response.status == 200:
             profile["call_trees"] = json.loads(response.data, use_rapid_json=True)["call_trees"]
+            return True, True
         elif response.status == 429:
             raise VroomTimeout
         else:
@@ -631,11 +629,10 @@ def _insert_vroom_profile(profile: Profile) -> bool:
                 tags={"platform": profile["platform"], "reason": "bad status"},
                 sample_rate=1.0,
             )
-            return False
-        return True
+            return False, False
     except RecursionError as e:
         sentry_sdk.capture_exception(e)
-        return True
+        return True, True
     except VroomTimeout:
         raise
     except Exception as e:
@@ -645,7 +642,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             tags={"platform": profile["platform"], "reason": "encountered error"},
             sample_rate=1.0,
         )
-        return False
+        return False, False
     finally:
         profile["received"] = original_timestamp
 
