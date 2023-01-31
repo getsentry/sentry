@@ -542,7 +542,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "sessions_upper_bound": iso_format_snuba_datetime(max_date),
             }
         else:
-            return {
+            return {  # type: ignore
                 "sessions_lower_bound": None,
                 "sessions_upper_bound": None,
             }
