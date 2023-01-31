@@ -21,7 +21,7 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
 from .base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
-from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
+from .detectors import NPlusOneAPICallsDetector
 from .performance_problem import PerformanceProblem
 from .types import Span
 
