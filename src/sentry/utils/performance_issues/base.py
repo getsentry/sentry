@@ -135,19 +135,3 @@ def get_span_duration(span: Span) -> timedelta:
     return timedelta(seconds=span.get("timestamp", 0)) - timedelta(
         seconds=span.get("start_timestamp", 0)
     )
-
-
-def get_url_from_span(span: Span) -> str:
-    data = span.get("data") or {}
-    url = data.get("url") or ""
-    if not url:
-        # If data is missing, fall back to description
-        description = span.get("description") or ""
-        parts = description.split(" ", 1)
-        if len(parts) == 2:
-            url = parts[1]
-
-    if type(url) is dict:
-        url = url.get("pathname") or ""
-
-    return url

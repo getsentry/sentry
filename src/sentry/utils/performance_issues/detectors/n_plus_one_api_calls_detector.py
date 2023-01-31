@@ -11,13 +11,7 @@ from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
 
-from ..base import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
-    DetectorType,
-    PerformanceDetector,
-    get_span_duration,
-    get_url_from_span,
-)
+from ..base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
 from ..performance_problem import PerformanceProblem
 from ..types import PerformanceProblemsMap, Span
 
@@ -233,3 +227,19 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             span_a["hash"] == span_b["hash"]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
+
+
+def get_url_from_span(span: Span) -> str:
+    data = span.get("data") or {}
+    url = data.get("url") or ""
+    if not url:
+        # If data is missing, fall back to description
+        description = span.get("description") or ""
+        parts = description.split(" ", 1)
+        if len(parts) == 2:
+            url = parts[1]
+
+    if type(url) is dict:
+        url = url.get("pathname") or ""
+
+    return url
