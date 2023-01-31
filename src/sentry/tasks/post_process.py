@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import timedelta
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
@@ -8,7 +9,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features
+from sentry import analytics, features
 from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -167,9 +168,33 @@ def handle_owner_assignment(job):
                         # see ProjectOwnership.get_issue_owners
                         issue_owners = []
                     else:
-                        issue_owners = ProjectOwnership.get_issue_owners(
-                            group.project_id, event.data
+
+                        issue_owners, baseline_duration = ProjectOwnership.get_issue_owners(
+                            project.id, event.data
                         )
+
+                        should_sample = random.randint(1, 10) % 10 == 0
+                        if (
+                            features.has(
+                                "organizations:scaleable-codeowners-search",
+                                project.organization,
+                                actor=None,
+                            )
+                            and should_sample
+                        ):
+
+                            _, experiment_duration = ProjectOwnership.get_issue_owners(
+                                project.id, event.data, experiment=True
+                            )
+
+                            analytics.record(
+                                "issue_owners.time_durations",
+                                group_id=group.id,
+                                project_id=project.id,
+                                event_id=event.event_id,
+                                baseline_duration=baseline_duration,
+                                experiment_duration=experiment_duration,
+                            )
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.handle_group_owners"

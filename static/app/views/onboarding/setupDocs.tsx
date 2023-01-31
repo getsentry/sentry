@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css, Theme} from '@emotion/react';
@@ -417,14 +415,7 @@ const Content = styled(motion.div)`
   }
 
   code {
-    font-size: 87.5%;
     color: ${p => p.theme.pink400};
-  }
-
-  pre code {
-    color: inherit;
-    font-size: inherit;
-    white-space: pre;
   }
 
   h2 {

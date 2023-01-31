@@ -17,17 +17,23 @@ from snuba_sdk import (
     Query,
     Request,
 )
-from snuba_sdk.conditions import Condition, ConditionGroup, Op
-from snuba_sdk.legacy import parse_condition
+from snuba_sdk.conditions import Condition, ConditionGroup, Op, Or
+from snuba_sdk.entity import get_required_time_column
+from snuba_sdk.legacy import is_condition, parse_condition
 from snuba_sdk.query import SelectableExpression
 
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
-from sentry.tagstore.snuba.backend import _translate_filter_keys
+from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
-from sentry.utils.snuba import infer_project_ids_from_related_models, nest_groups, raw_snql_query
+from sentry.utils.snuba import (
+    get_snuba_translators,
+    infer_project_ids_from_related_models,
+    nest_groups,
+    raw_snql_query,
+)
 
 
 @dataclasses.dataclass
@@ -74,54 +80,6 @@ class SnubaTSDB(BaseTSDB):
     Read methods are supported only for models based on group/event data and
     will return empty results for unsupported models.
     """
-
-    # Since transactions are currently (and temporarily) written to Snuba's events storage we need to
-    # include this condition to ensure they are excluded from the query. Once we switch to the
-    # errors storage in Snuba, this can be omitted and transactions will be excluded by default.
-    events_type_condition = ["type", "!=", "transaction"]
-    # ``non_outcomes_query_settings`` are all the query settings for non outcomes based TSDB models.
-    # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
-    # other models.
-    non_outcomes_query_settings = {
-        TSDBModel.project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", None, [events_type_condition]
-        ),
-        TSDBModel.group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", None, [events_type_condition]
-        ),
-        TSDBModel.group_performance: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            None,
-            [],
-            [["arrayJoin", "group_ids", "group_id"]],
-        ),
-        TSDBModel.release: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "tags[sentry:release]", None, [events_type_condition]
-        ),
-        TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:user]", [events_type_condition]
-        ),
-        TSDBModel.users_affected_by_perf_group: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            "tags[sentry:user]",
-            [],
-            [["arrayJoin", "group_ids", "group_id"]],
-        ),
-        TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "tags[sentry:user]", [events_type_condition]
-        ),
-        TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "environment", [events_type_condition]
-        ),
-        TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:release]", [events_type_condition]
-        ),
-        TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "group_id", [events_type_condition]
-        ),
-    }
 
     # ``project_filter_model_query_settings`` and ``outcomes_partial_query_settings`` are all the TSDB models for
     # outcomes
@@ -199,8 +157,45 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    # ``non_outcomes_query_settings`` are all the query settings for non outcomes based TSDB models.
+    # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
+    # other models.
     # these query settings should use SnQL style parameters instead of the legacy format
     non_outcomes_snql_query_settings = {
+        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, []),
+        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, []),
+        TSDBModel.group_performance: SnubaModelQuerySettings(
+            snuba.Dataset.Transactions,
+            "group_id",
+            None,
+            [],
+            [Function("arrayJoin", [Column("group_ids")], "group_id")],
+        ),
+        TSDBModel.release: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "tags[sentry:release]", None, []
+        ),
+        TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", "tags[sentry:user]", []
+        ),
+        TSDBModel.users_affected_by_perf_group: SnubaModelQuerySettings(
+            snuba.Dataset.Transactions,
+            "group_id",
+            "tags[sentry:user]",
+            [],
+            [Function("arrayJoin", [Column("group_ids")], "group_id")],
+        ),
+        TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", "tags[sentry:user]", []
+        ),
+        TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", "environment", []
+        ),
+        TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", "tags[sentry:release]", []
+        ),
+        TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", "group_id", []
+        ),
         TSDBModel.group_generic: SnubaModelQuerySettings(
             snuba.Dataset.IssuePlatform,
             "group_id",
@@ -222,7 +217,6 @@ class SnubaTSDB(BaseTSDB):
         itertools.chain(
             project_filter_model_query_settings.items(),
             outcomes_partial_query_settings.items(),
-            non_outcomes_query_settings.items(),
             non_outcomes_snql_query_settings.items(),
         )
     )
@@ -264,48 +258,6 @@ class SnubaTSDB(BaseTSDB):
 
         return known_rollups if known_rollups else synthetic_rollup
 
-    def __manual_group_on_time_aggregation_sqnl(
-        self, rollup, time_column_alias
-    ) -> SelectableExpression:
-        def rollup_agg(rollup_granularity: int, alias: str):
-            if rollup_granularity == 60:
-                return Function(
-                    "toUnixTimestamp", [Function("toStartOfMinute", [Column("timestamp")])], alias
-                )
-            elif rollup_granularity == 3600:
-                return Function(
-                    "toUnixTimestamp", [Function("toStartOfHour", [Column("timestamp")])], alias
-                )
-            elif rollup_granularity == 3600 * 24:
-                return Function(
-                    "toUnixTimestamp",
-                    [Function("toDateTime", [Function("toDate", [Column("timestamp")])])],
-                    alias,
-                )
-            else:
-                return None
-
-        # if we don't have an explicit function mapped to this rollup, we have to calculate it on the fly
-        # multiply(intDiv(toUInt32(toUnixTimestamp(timestamp)), granularity)))
-        synthetic_rollup = Function(
-            "multiply",
-            [
-                Function(
-                    "intDiv",
-                    [
-                        Function("toUInt32", [Function("toUnixTimestamp", [Column("timestamp")])]),
-                        rollup,
-                    ],
-                ),
-                rollup,
-            ],
-            time_column_alias,
-        )
-
-        known_rollups = rollup_agg(rollup, time_column_alias)
-
-        return known_rollups if known_rollups else synthetic_rollup
-
     def get_data(
         self,
         model,
@@ -322,6 +274,22 @@ class SnubaTSDB(BaseTSDB):
         jitter_value=None,
     ):
         if model in self.non_outcomes_snql_query_settings:
+            # no way around having to explicitly map legacy condition format to SnQL since this function
+            # is used everywhere that expects `conditions` to be legacy format
+            parsed_conditions = []
+            for cond in conditions or ():
+                if not is_condition(cond):
+                    or_conditions = []
+                    for or_cond in cond:
+                        or_conditions.append(parse_condition(or_cond))
+
+                    if len(or_conditions) > 1:
+                        parsed_conditions.append(Or(or_conditions))
+                    else:
+                        parsed_conditions.extend(or_conditions)
+                else:
+                    parsed_conditions.append(parse_condition(cond))
+
             return self.__get_data_snql(
                 model,
                 keys,
@@ -332,14 +300,13 @@ class SnubaTSDB(BaseTSDB):
                 "count" if aggregation == "count()" else aggregation,
                 group_on_model,
                 group_on_time,
-                # no way around having to explicitly map legacy condition format to SnQL since this function
-                # is used everywhere that expects `conditions` to be legacy format
-                [parse_condition(c) for c in conditions] if conditions is not None else [],
+                parsed_conditions,
                 use_cache,
                 jitter_value,
                 manual_group_on_time=(
                     model in (TSDBModel.group_generic, TSDBModel.users_affected_by_generic_group)
                 ),
+                is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
             )
         else:
             return self.__get_data_legacy(
@@ -368,10 +335,11 @@ class SnubaTSDB(BaseTSDB):
         aggregation: str = "count",
         group_on_model: bool = True,
         group_on_time: bool = False,
-        conditions: Optional[Sequence[ConditionGroup]] = None,
+        conditions: Optional[ConditionGroup] = None,
         use_cache: bool = False,
         jitter_value: Optional[int] = None,
         manual_group_on_time: bool = False,
+        is_grouprelease: bool = False,
     ):
         """
         Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
@@ -422,7 +390,7 @@ class SnubaTSDB(BaseTSDB):
         ]
 
         if group_on_time and manual_group_on_time:
-            aggregations.append(self.__manual_group_on_time_aggregation_sqnl(rollup, "time"))
+            aggregations.append(manual_group_on_time_aggregation(rollup, "time"))
 
         if keys:
             start = to_datetime(series[0])
@@ -442,32 +410,38 @@ class SnubaTSDB(BaseTSDB):
                 conditions += model_query_settings.conditions
 
             project_ids = infer_project_ids_from_related_models(keys_map)
-            group_ids = keys_map.get("group_id")
-            env_ids = keys_map.get("environment")
-
-            translated_filter_keys = _translate_filter_keys(project_ids, group_ids, env_ids)
+            keys_map["project_id"] = project_ids
+            forward, reverse = get_snuba_translators(keys_map, is_grouprelease)
 
             # resolve filter_key values to the right values environment.id -> environment.name, etc.
-            mapped_filter_conditions = [
-                Condition(Column(k), Op.IN, list(v)) for k, v in translated_filter_keys.items()
-            ]
-            # map filter keys to conditional expressions
-            where_conds = (
-                [
+            mapped_filter_conditions = []
+            for col, f_keys in forward(deepcopy(keys_map)).items():
+                if f_keys:
+                    if len(f_keys) == 1 and None in f_keys:
+                        mapped_filter_conditions.append(Condition(Column(col), Op.IS_NULL))
+                    else:
+                        mapped_filter_conditions.append(Condition(Column(col), Op.IN, f_keys))
+
+            where_conds = conditions + mapped_filter_conditions
+            if manual_group_on_time:
+                where_conds += [
                     Condition(Column("timestamp"), Op.GTE, start),
                     Condition(Column("timestamp"), Op.LT, end),
                 ]
-                + conditions
-                + mapped_filter_conditions
-            )
+            else:
+                time_column = get_required_time_column(model_dataset.value)
+                if time_column:
+                    where_conds += [
+                        Condition(Column(time_column), Op.GTE, start),
+                        Condition(Column(time_column), Op.LT, end),
+                    ]
 
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
                 query=Query(
                     match=Entity(model_dataset.value),
-                    select=[Column(s) for s in model_query_settings.selected_columns or ()]
-                    + aggregations,
+                    select=(model_query_settings.selected_columns or []) + aggregations,
                     where=where_conds,
                     groupby=[Column(g) for g in groupby] if groupby else None,
                     orderby=orderby,
@@ -478,8 +452,12 @@ class SnubaTSDB(BaseTSDB):
             query_result = raw_snql_query(
                 snql_request, referrer=f"tsdb-modelid:{model.value}", use_cache=use_cache
             )
+            if manual_group_on_time:
+                translated_results = {"data": query_result["data"]}
+            else:
+                translated_results = {"data": [reverse(d) for d in query_result["data"]]}
+            result = nest_groups(translated_results["data"], groupby, [aggregated_as])
 
-            result = nest_groups(query_result["data"], groupby, [aggregated_as])
         else:
             # don't bother querying snuba since we probably won't have the proper filter conditions to return
             # reasonable data (invalid query)
