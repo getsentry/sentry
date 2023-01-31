@@ -82,14 +82,14 @@ function Wireframe({hierarchy}) {
         return;
       }
 
-      const {clientWidth = 0, clientHeight = 0} = containerRef.current;
+      const {clientWidth, clientHeight} = containerRef.current;
       const needsResize =
         dimensions.width !== clientWidth || dimensions.height !== clientHeight;
 
       if (needsResize) {
         setDimensions({
-          width: containerRef.current?.clientWidth ?? 0,
-          height: containerRef.current?.clientHeight ?? 0,
+          width: clientWidth ?? 0,
+          height: clientHeight ?? 0,
         });
       }
     },
