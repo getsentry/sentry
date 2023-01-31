@@ -16,7 +16,7 @@ import {eventHasSourceMaps} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import {isFrameFilenamePathlike} from './util';
+import {isFrameFilenamePathlike} from './utils';
 
 // This list must always be updated with the documentation.
 // Ideally it would be nice if we could send a request validating that this URL exists,

@@ -5,7 +5,7 @@ import {defined} from 'sentry/utils';
 import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-import {isFrameFilenamePathlike} from './util';
+import {isFrameFilenamePathlike} from './utils';
 
 interface BaseSourceMapDebugError {
   message: string;
