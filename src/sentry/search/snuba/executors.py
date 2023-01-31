@@ -45,7 +45,7 @@ from sentry.issues.search import (
 )
 from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.fields import DateArg
-from sentry.search.events.filter import format_search_filter
+from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
 from sentry.types.issues import PERFORMANCE_TYPES, GroupCategory, GroupType
 from sentry.utils import json, metrics, snuba
@@ -156,16 +156,26 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         """Converts the SearchFilter format into snuba-compatible clauses"""
         converted_filters: list[Optional[Sequence[Any]]] = []
         for search_filter in search_filters or ():
+            conditions, projects_to_filter, group_ids = format_search_filter(
+                # convert_search_filter_to_snuba_query(
+                search_filter,
+                params={
+                    "organization_id": organization_id,
+                    "project_id": project_ids,
+                    "environment": environments,
+                },
+            )
             converted_filters.append(
-                format_search_filter(
-                    # convert_search_filter_to_snuba_query(
+                conditions[0]
+                if conditions
+                else convert_search_filter_to_snuba_query(
                     search_filter,
                     params={
                         "organization_id": organization_id,
                         "project_id": project_ids,
                         "environment": environments,
                     },
-                )[0][0]
+                )
             )
 
         return converted_filters

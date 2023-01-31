@@ -65,7 +65,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
-from sentry.search.events.filter import format_search_filter
+from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import user_service
@@ -900,23 +900,32 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if end_params:
             self.end = min(end_params)
 
-        self.conditions = (
-            [
-                format_search_filter(
-                    # convert_search_filter_to_snuba_query(
-                    search_filter,
-                    params={
-                        "organization_id": organization_id,
-                        "project_id": project_ids,
-                        "environment_id": environment_ids,
-                    },
-                )[0][0]
-                for search_filter in search_filters
-                if search_filter.key.name not in self.skip_snuba_fields
-            ]
-            if search_filters is not None
-            else []
-        )
+        conditions = []
+        if search_filters is not None:
+            for search_filter in search_filters:
+                if search_filter.key.name not in self.skip_snuba_fields:
+                    formatted_conditions, projects_to_filter, group_ids = format_search_filter(
+                        # convert_search_filter_to_snuba_query(
+                        search_filter,
+                        params={
+                            "organization_id": organization_id,
+                            "project_id": project_ids,
+                            "environment_id": environment_ids,
+                        },
+                    )
+                    conditions.append(
+                        formatted_conditions[0]
+                        if formatted_conditions
+                        else convert_search_filter_to_snuba_query(
+                            search_filter,
+                            params={
+                                "organization_id": organization_id,
+                                "project_id": project_ids,
+                                "environment_id": environment_ids,
+                            },
+                        )
+                    )
+        self.conditions = conditions
 
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
