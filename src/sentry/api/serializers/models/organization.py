@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -63,7 +63,8 @@ if TYPE_CHECKING:
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
 # the OrganizationOption.
-ORGANIZATION_OPTIONS_AS_FEATURES = {
+OptionFeature = Tuple[str, Callable[[OrganizationOption], bool]]
+ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
     "sentry:project-rate-limit": [
         ("legacy-rate-limits", lambda opt: True),
     ],
