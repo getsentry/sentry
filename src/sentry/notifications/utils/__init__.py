@@ -46,7 +46,7 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
@@ -349,7 +349,7 @@ def perf_to_email_html(
     if not problem:
         return ""
 
-    context = PerformanceProblemContext(problem, spans)
+    context = PerformanceProblemContext.from_problem_and_spans(problem, spans)
 
     return render_to_string("sentry/emails/transactions.html", context.to_dict())
 
@@ -369,6 +369,27 @@ class PerformanceProblemContext:
         return {
             "transaction_name": get_span_evidence_value_problem(self.problem),
             "parent_span": get_span_evidence_value(self.parent_span),
+            "repeating_spans": get_span_evidence_value(self.repeating_spans),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+            if self.problem.offender_span_ids
+            else "",
+        }
+
+    @classmethod
+    def from_problem_and_spans(
+        cls, problem: PerformanceProblem, spans: Union[List[Dict[str, Union[str, float]]], None]
+    ):
+        if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
+            return NPlusOneAPICallProblemContext(problem, spans)
+        else:
+            return cls(problem, spans)
+
+
+@dataclass
+class NPlusOneAPICallProblemContext(PerformanceProblemContext):
+    def to_dict(self):
+        return {
+            "transaction_name": get_span_evidence_value_problem(self.problem),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
             if self.problem.offender_span_ids
