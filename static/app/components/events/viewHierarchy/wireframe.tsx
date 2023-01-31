@@ -46,18 +46,12 @@ export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
 function getMaxDimensions(coordinates) {
   let maxWidth = 0;
   let maxHeight = 0;
-
   coordinates.forEach(hierarchy => {
-    let currWidth = 0;
-    let currHeight = 0;
     hierarchy.forEach(({x, y, width, height}) => {
-      currWidth = Math.max(x + width, currWidth);
-      currHeight = Math.max(y + height, currHeight);
+      maxWidth = Math.max(x + width, maxWidth);
+      maxHeight = Math.max(y + height, maxHeight);
     });
-    maxWidth = Math.max(maxWidth, currWidth);
-    maxHeight = Math.max(maxHeight, currHeight);
   });
-
   return {
     width: maxWidth,
     height: maxHeight,
@@ -87,26 +81,26 @@ function Wireframe({hierarchy}) {
 
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
-      // Make areas with more overlayed elements darker
-      context.globalCompositeOperation = 'overlay';
-
-      // TODO(nar): calculate proper center offsets
       const maxDimensions = getMaxDimensions(coordinates);
-      const xCenter = 20;
-      const yCenter = 20;
 
       // Set the scaling
       const scalingFactor = calculateScale(dimensions, maxDimensions, {
-        x: xCenter,
-        y: yCenter,
+        x: 20,
+        y: 20,
       });
       context.scale(scalingFactor, scalingFactor);
+
+      // Multiply by the scaling factor because that is the "real" size of the content
+      const xCenter =
+        Math.abs(dimensions.width - maxDimensions.width * scalingFactor) / 2;
+      const yCenter =
+        Math.abs(dimensions.height - maxDimensions.height * scalingFactor) / 2;
 
       // Translate the canvas to account for mouse panning
       // and centering
       context.translate(
         (xOffset + xCenter) / scalingFactor,
-        (yOffset + yCenter / 2) / scalingFactor
+        (yOffset + yCenter) / scalingFactor
       );
 
       coordinates.forEach(hierarchyCoords => {
