@@ -37,6 +37,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 import {ProfileCharts} from './landing/profileCharts';
+import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
@@ -116,6 +117,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
+  const isNewProfilingDashboardEnabled = organization.features.includes(
+    'profiling-dashboard-redesign'
+  );
+
+  // isNewProfilingDashboardEnabled = false;
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -191,7 +198,22 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   </ProfilingOnboardingPanel>
                 ) : (
                   <Fragment>
-                    <ProfileCharts query={query} selection={selection} />
+                    {isNewProfilingDashboardEnabled ? (
+                      <PanelsGrid>
+                        <ProfilingSlowestTransactionsPanel />
+                        <ProfileCharts
+                          query={query}
+                          selection={selection}
+                          hideCount={isNewProfilingDashboardEnabled}
+                        />
+                      </PanelsGrid>
+                    ) : (
+                      <ProfileCharts
+                        query={query}
+                        selection={selection}
+                        hideCount={isNewProfilingDashboardEnabled}
+                      />
+                    )}
                     <ProfileEventsTable
                       columns={FIELDS.slice()}
                       data={
@@ -241,6 +263,17 @@ const ActionBar = styled('div')`
   gap: ${space(2)};
   grid-template-columns: min-content auto;
   margin-bottom: ${space(2)};
+`;
+
+// TODO: another simple primitive that can easily be <Grid columns={2} />
+const PanelsGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  gap: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 100%;
+  }
 `;
 
 export default ProfilingContent;

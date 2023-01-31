@@ -18,7 +18,7 @@ type Sort<F> = {
   order: 'asc' | 'desc';
 };
 
-export interface UseProfileEventsOptions<F = ProfilingFieldType> {
+export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;
@@ -33,7 +33,7 @@ export interface UseProfileEventsOptions<F = ProfilingFieldType> {
 
 type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
 
-type EventsResultsDataRow<F extends string> = {
+export type EventsResultsDataRow<F extends string = ProfilingFieldType> = {
   [K in F]: string | number | null;
 };
 
