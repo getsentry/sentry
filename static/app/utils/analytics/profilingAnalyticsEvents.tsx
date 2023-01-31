@@ -5,6 +5,11 @@ type ProfilingEventSource =
   | 'transaction_hovercard'
   | 'transaction_details';
 
+interface EventPayloadWithProjectDetails {
+  project_id: string | number | undefined;
+  project_platform: PlatformKey | undefined;
+}
+
 export type ProfilingEventParameters = {
   'profiling_views.give_feedback_action': {};
   'profiling_views.go_to_flamegraph': {source: ProfilingEventSource};
@@ -16,18 +21,9 @@ export type ProfilingEventParameters = {
   'profiling_views.onboarding_action': {
     action: 'done' | 'dismissed';
   };
-  'profiling_views.profile_details': {
-    project_id: string | number | undefined;
-    project_platform: PlatformKey | undefined;
-  };
-  'profiling_views.profile_flamegraph': {
-    project_id: string | number | undefined;
-    project_platform: PlatformKey | undefined;
-  };
-  'profiling_views.profile_summary': {
-    project_id: string | number | undefined;
-    project_platform: PlatformKey | undefined;
-  };
+  'profiling_views.profile_details': EventPayloadWithProjectDetails;
+  'profiling_views.profile_flamegraph': EventPayloadWithProjectDetails;
+  'profiling_views.profile_summary': EventPayloadWithProjectDetails;
   'profiling_views.visit_discord_channel': {};
 };
 
