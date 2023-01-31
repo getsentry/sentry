@@ -33,7 +33,7 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
     'Slow DB Queries are SELECT query spans that take longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
   ),
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: t(
-    'Large render blocking assets are a type of resource that is delaying the First Contentful Paint (FCP). Delaying FCP impacts how long it takes to initially load the page for the user. The resource may take form of a script, stylesheet, image, or other asset that may require optimization. To learn more about how to fix large render blocking assets, check out these resources:'
+    'Large render blocking assets are a type of resource span delaying First Contentful Paint (FCP). Delaying FCP means it takes more time to initially load the page for the user. Spans that end after FCP are not as critical as those that end before it. The resource span may take form of a script, stylesheet, image, or other asset that requires optimization. To learn more about how to fix large render blocking assets, check out these resources:'
   ),
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: t(
     'Uncompressed assets are asset spans that take over 500ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
