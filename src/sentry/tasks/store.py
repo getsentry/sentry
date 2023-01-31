@@ -710,6 +710,7 @@ def _do_save_event(
                     processing.event_processing_store.delete_by_key(cache_key)
         except Exception:
             metrics.incr("events.save_event.exception", tags={"event_type": event_type})
+            raise
 
         finally:
             reprocessing2.mark_event_reprocessed(data)
