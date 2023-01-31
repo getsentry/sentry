@@ -136,26 +136,28 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         """Test that a 4h interval returns the correct generic event stats.
         This follows a different code path than 1h or 1d as the IssuePlatformTimeSeriesQueryBuilder
         does some calculation to create the time column."""
+        # Use an event window that is unaffected by other tests.
+        start = self.day_ago - timedelta(hours=4)
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            start.replace(tzinfo=utc) + timedelta(minutes=10),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            start.replace(tzinfo=utc) + timedelta(minutes=10),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=2),
+            start.replace(tzinfo=utc) + timedelta(minutes=11),
         )
         with self.feature(
             [
@@ -164,8 +166,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ):
             response = self.do_request(
                 {
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=4)),
+                    "start": iso_format(start),
+                    "end": iso_format(start + timedelta(hours=4)),
                     "interval": "4h",
                     "query": f"issue:{group_info.group.qualified_short_id}",
                     "dataset": "issuePlatform",
