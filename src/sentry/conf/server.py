@@ -1218,6 +1218,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-view-hierarchies": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
+    # Disables multiselect platform in the onboarding flow
+    "organizations:onboarding-remove-multi-select-platform": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
