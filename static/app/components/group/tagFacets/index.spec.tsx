@@ -244,7 +244,7 @@ describe('Tag Facets', function () {
       );
       expect(
         screen.getByRole('link', {
-          name: 'Other device tag values, 13% of all events. View all tags.',
+          name: 'Other device tag values, 13% of all events. View other tags.',
         })
       ).toHaveAttribute(
         'href',

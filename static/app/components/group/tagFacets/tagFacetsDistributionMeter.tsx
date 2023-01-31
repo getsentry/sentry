@@ -179,7 +179,7 @@ function TagFacetsDistributionMeter({
             index === topSegments.length - 1 && segment.value === 'other';
           const linkLabel = isOtherSegment
             ? t(
-                'Other %s tag values, %s of all events. View all tags.',
+                'Other %s tag values, %s of all events. View other tags.',
                 title,
                 `${pctLabel}%`
               )

@@ -192,7 +192,7 @@ describe('Tags', function () {
     userEvent.click(screen.getByRole('button', {name: 'Expand color tag distribution'}));
     expect(
       screen.getByRole('link', {
-        name: 'Other color tag values, 16% of all events. View all tags.',
+        name: 'Other color tag values, 16% of all events. View other tags.',
       })
     ).toHaveAttribute(
       'href',
