@@ -1,9 +1,16 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
 
+type ProfilingEventSource =
+  | 'slowest_transaction_panel'
+  | 'transaction_hovercard'
+  | 'transaction_details';
+
 export type ProfilingEventParameters = {
   'profiling_views.give_feedback_action': {};
-  'profiling_views.go_to_flamegraph': {source: string};
-  'profiling_views.go_to_transaction': {source: string};
+  'profiling_views.go_to_flamegraph': {source: ProfilingEventSource};
+  'profiling_views.go_to_transaction': {
+    source: ProfilingEventSource;
+  };
   'profiling_views.landing': {};
   'profiling_views.onboarding': {};
   'profiling_views.onboarding_action': {
