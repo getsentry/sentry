@@ -1,26 +1,35 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
 
+type ProfilingEventSource =
+  | 'slowest_transaction_panel'
+  | 'transaction_details'
+  | 'transaction_hovercard.trigger'
+  | 'transaction_hovercard.latest_profile'
+  | 'transaction_hovercard.slowest_profile'
+  | 'transaction_hovercard.suspect_function';
+
+interface EventPayloadWithProjectDetails {
+  project_id: string | number | undefined;
+  project_platform: PlatformKey | undefined;
+}
+
 export type ProfilingEventParameters = {
+  // ui interactions
+  'profiling_ui_events.transaction_hovercard_view': {};
+  // views & nav
   'profiling_views.give_feedback_action': {};
-  'profiling_views.go_to_flamegraph': {source: string};
-  'profiling_views.go_to_transaction': {source: string};
+  'profiling_views.go_to_flamegraph': {source: ProfilingEventSource};
+  'profiling_views.go_to_transaction': {
+    source: ProfilingEventSource;
+  };
   'profiling_views.landing': {};
   'profiling_views.onboarding': {};
   'profiling_views.onboarding_action': {
     action: 'done' | 'dismissed';
   };
-  'profiling_views.profile_details': {
-    project_id: string | number | undefined;
-    project_platform: PlatformKey | undefined;
-  };
-  'profiling_views.profile_flamegraph': {
-    project_id: string | number | undefined;
-    project_platform: PlatformKey | undefined;
-  };
-  'profiling_views.profile_summary': {
-    project_id: string | number | undefined;
-    project_platform: PlatformKey | undefined;
-  };
+  'profiling_views.profile_details': EventPayloadWithProjectDetails;
+  'profiling_views.profile_flamegraph': EventPayloadWithProjectDetails;
+  'profiling_views.profile_summary': EventPayloadWithProjectDetails;
   'profiling_views.visit_discord_channel': {};
 };
 
@@ -37,4 +46,6 @@ export const profilingEventMap: Record<EventKey, string> = {
   'profiling_views.onboarding_action': 'Profiling Actions: Onboarding Action',
   'profiling_views.give_feedback_action': 'Profiling Actions: Feedback Action',
   'profiling_views.visit_discord_channel': 'Profiling Actions: Visit Discord Channel',
+  'profiling_ui_events.transaction_hovercard_view':
+    'Profiling Actions: Viewed Transaction Hovercard',
 };
