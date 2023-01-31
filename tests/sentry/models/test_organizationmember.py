@@ -10,6 +10,7 @@ from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -260,6 +261,24 @@ class OrganizationMemberTest(TestCase):
 
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
+
+    def test_scopes_with_team_org_role(self):
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            role="member",
+            email="test@example.com",
+        )
+        owner = OrganizationMember.objects.create(
+            organization=self.organization,
+            role="owner",
+            email="owner@example.com",
+        )
+        owner_member_scopes = member.get_scopes() | owner.get_scopes()
+
+        team = self.create_team(organization=self.organization, org_role="owner")
+        OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
+
+        assert member.get_scopes() == owner_member_scopes
 
     def test_get_contactable_members_for_org(self):
         organization = self.create_organization()
