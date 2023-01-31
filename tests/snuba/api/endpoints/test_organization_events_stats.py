@@ -1066,7 +1066,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         self.user2 = self.create_user()
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = iso_format(
-            self.event_window_start + timedelta(minutes=10)
+            self.event_window_start + timedelta(minutes=12)
         )
         transaction_data["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=12))
         transaction_data["tags"] = {"shared-tag": "yup"}
@@ -1925,7 +1925,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 1
 
-        results = data[",".join([self.transaction.transaction, "120000"])]
+        results = data[",".join([self.transaction.transaction, "0"])]
         assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
@@ -2348,13 +2348,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
         data = response.data
-        assert len(data) == 3
+        assert len(data) == 2
 
         # these are the timestamps corresponding to the events stored
         timestamps = [
             self.event_window_start + timedelta(minutes=12),
-            self.event_window_start + timedelta(hours=1, minutes=2),
-            self.event_window_start + timedelta(minutes=2),
+            self.event_window_start + timedelta(hours=1, minutes=12),
+            self.event_window_start + timedelta(minutes=12),
         ]
         timestamp_hours = [timestamp.replace(minute=0, second=0) for timestamp in timestamps]
         timestamp_days = [timestamp.replace(hour=0, minute=0, second=0) for timestamp in timestamps]
