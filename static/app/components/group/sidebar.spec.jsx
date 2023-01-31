@@ -136,6 +136,7 @@ describe('GroupSidebar', function () {
         />,
         {organization}
       );
+      expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(2);
       expect(tagsMock).toHaveBeenCalledWith(
         '/issues/1/tags/',
