@@ -77,8 +77,14 @@ function Wireframe({hierarchy}) {
 
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
-  const {handlePanMove, handlePanStart, handlePanStop, isDragging, xOffset, yOffset} =
-    useMousePan();
+  const {
+    handlePanMove,
+    handlePanStart,
+    handlePanStop,
+    isDragging,
+    xOffset: xPanOffset,
+    yOffset: yPanOffset,
+  } = useMousePan();
 
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
@@ -100,8 +106,8 @@ function Wireframe({hierarchy}) {
       // Translate the canvas to account for mouse panning
       // and centering
       context.translate(
-        (xOffset + xCenter) / scalingFactor,
-        (yOffset + yCenter) / scalingFactor
+        (xPanOffset + xCenter) / scalingFactor,
+        (yPanOffset + yCenter) / scalingFactor
       );
 
       coordinates.forEach(hierarchyCoords => {
@@ -122,7 +128,7 @@ function Wireframe({hierarchy}) {
         });
       });
     },
-    [coordinates, dimensions, xOffset, yOffset]
+    [coordinates, dimensions, xPanOffset, yPanOffset]
   );
 
   useEffect(() => {
