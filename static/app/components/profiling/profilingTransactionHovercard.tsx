@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
@@ -123,6 +123,12 @@ export function ProfilingTransactionHovercardBody({
       source: 'transaction_hovercard',
     });
   };
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_ui_events.transaction_hovercard_view', {
+      organization,
+    });
+  }, [organization]);
 
   return (
     <Flex gap={space(3)} column>
