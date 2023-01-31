@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
@@ -7,11 +7,11 @@ import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
 
 type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
 
-function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
+export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
   return hierarchies.map(hierarchy => {
     const newHierarchy: Rect[] = [];
 
-    let nodesToProcess = [hierarchy];
+    const nodesToProcess = [hierarchy];
     while (nodesToProcess.length) {
       const node = nodesToProcess.pop();
 
@@ -19,6 +19,7 @@ function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
         continue;
       }
 
+      // Fetch coordinates off the current node
       newHierarchy.push({
         x: node.x ?? 0,
         y: node.y ?? 0,
@@ -27,45 +28,19 @@ function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
       });
 
       if ((node.children ?? []).length !== 0) {
+        // Update the children's coords relative to the parent
         const newChildren =
           node.children?.map(child => ({
             ...child,
             x: child.x + (node.x ?? 0),
             y: child.y + (node.y ?? 0),
           })) ?? [];
-        nodesToProcess = [...nodesToProcess, ...newChildren];
+
+        nodesToProcess.push(...newChildren);
       }
     }
 
     return newHierarchy;
-  });
-}
-
-function draw(
-  context: CanvasRenderingContext2D,
-  coordinates: Rect[][],
-  xOffset: number,
-  yOffset: number
-) {
-  // Make areas with more overlayed elements darker
-  context.globalCompositeOperation = 'overlay';
-
-  coordinates.forEach(hierarchy => {
-    hierarchy.forEach(({x, y, width, height}) => {
-      // Prepare rectangles for drawing
-      context.fillStyle = 'rgb(88, 74, 192)';
-      context.strokeStyle = 'black';
-      context.lineWidth = 1;
-      context.rect(x + xOffset, y + yOffset, width, height);
-
-      // Draw the rectangles
-      context.globalAlpha = 0.005;
-      context.fill();
-
-      // Draw the outlines
-      context.globalAlpha = 1;
-      context.stroke();
-    });
   });
 }
 
@@ -79,6 +54,32 @@ function Wireframe({hierarchy}) {
   const {handlePanMove, handlePanStart, handlePanStop, isDragging, xOffset, yOffset} =
     useMousePan();
 
+  const draw = useCallback(
+    (context: CanvasRenderingContext2D) => {
+      // Make areas with more overlayed elements darker
+      context.globalCompositeOperation = 'overlay';
+
+      coordinates.forEach(hierarchyCoords => {
+        hierarchyCoords.forEach(({x, y, width, height}) => {
+          // Prepare rectangles for drawing
+          context.fillStyle = 'rgb(88, 74, 192)';
+          context.strokeStyle = 'black';
+          context.lineWidth = 1;
+          context.rect(x + xOffset, y + yOffset, width, height);
+
+          // Draw the rectangles
+          context.globalAlpha = 0.005;
+          context.fill();
+
+          // Draw the outlines
+          context.globalAlpha = 1;
+          context.stroke();
+        });
+      });
+    },
+    [coordinates, xOffset, yOffset]
+  );
+
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -91,9 +92,9 @@ function Wireframe({hierarchy}) {
 
     const context = canvas.getContext('2d');
     if (context) {
-      draw(context, coordinates, xOffset, yOffset);
+      draw(context);
     }
-  }, [coordinates, dimensions, xOffset, yOffset]);
+  }, [dimensions.height, dimensions.width, draw]);
 
   useResizeObserver({
     ref: containerRef,
