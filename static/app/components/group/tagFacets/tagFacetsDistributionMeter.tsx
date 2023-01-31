@@ -86,18 +86,16 @@ function TagFacetsDistributionMeter({
       <Title>
         <TitleType>{title}</TitleType>
         <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
-        {
-          <ExpandToggleButton
-            borderless
-            size="zero"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
-            aria-label={t(
-              '%s %s tag distribution',
-              expanded ? 'Collapse' : 'Expand',
-              title
-            )}
-          />
-        }
+        <ExpandToggleButton
+          borderless
+          size="zero"
+          icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
+          aria-label={t(
+            '%s %s tag distribution',
+            expanded ? 'Collapse' : 'Expand',
+            title
+          )}
+        />
       </Title>
     );
   }
