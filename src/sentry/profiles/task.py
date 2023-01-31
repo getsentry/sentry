@@ -247,12 +247,12 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
                 frames.append(frame)
                 stack[0] = len(frames) - 1
 
-        stacktraces = [{"registers": {}, "frames": [dict(frame) for frame in frames]}]
+        stacktraces = [{"registers": {}, "frames": frames}]
     # in the original format, we need to gather frames from all samples
     else:
         stacktraces = []
         for s in profile["sampled_profile"]["samples"]:
-            frames = [dict(frame) for frame in s["frames"]]
+            frames = s["frames"]
 
             if len(frames) > 0:
                 frames[0]["adjust_instruction_addr"] = False
