@@ -32,7 +32,6 @@ MONITOR_LIMIT = 10_000
 CHECKINS_LIMIT = 10_000
 
 
-
 @instrumented_task(name="sentry.tasks.check_monitors", time_limit=15, soft_time_limit=10)
 def check_monitors(current_datetime=None):
     if current_datetime is None:
