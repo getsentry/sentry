@@ -88,6 +88,8 @@ function Wireframe({hierarchy}) {
 
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
+      // Make areas with more overlayed elements darker
+      context.globalCompositeOperation = 'overlay';
       const maxDimensions = getMaxDimensions(coordinates);
 
       // Set the scaling
