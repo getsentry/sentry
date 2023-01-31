@@ -2,7 +2,6 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Coverage, Frame, LineCoverage} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import Context, {getCoverageColorClass} from './context';
 
@@ -40,20 +39,11 @@ describe('Frame - Context', function () {
   const primaryLineNumber = 233;
 
   it('converts coverage data to the right colors', function () {
-    expect(getCoverageColorClass(lines, lineCoverage, primaryLineNumber, org)).toEqual([
-      'partial',
-      'covered',
-      'active',
-      'uncovered',
+    expect(getCoverageColorClass(lines, lineCoverage, primaryLineNumber)).toEqual([
+      ['partial', 'covered', 'active', 'uncovered'],
+      false,
+      true,
     ]);
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-      'issue_details.codecov_primary_line_coverage_shown',
-      {organization: org, success: false}
-    );
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-      'issue_details.codecov_surrounding_lines_coverage_shown',
-      {organization: org, success: true}
-    );
   });
 
   it("doesn't query stacktrace link if the flag is off", function () {

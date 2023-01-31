@@ -21,7 +21,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -55,9 +55,8 @@ type Props = {
 export function getCoverageColorClass(
   lines: [number, string][],
   lineCov: LineCoverage[],
-  activeLineNo: number,
-  organization?: Organization
-): Array<string> {
+  activeLineNo: number
+): [Array<string>, boolean, boolean] {
   const lineCoverage = keyBy(lineCov, 0);
   let primaryLineCovered = true;
   let surroundingLinesCovered = true;
@@ -94,20 +93,7 @@ export function getCoverageColorClass(
     return color === '' ? 'active' : `active ${color}`;
   });
 
-  if (organization) {
-    trackAdvancedAnalyticsEvent('issue_details.codecov_primary_line_coverage_shown', {
-      organization,
-      success: primaryLineCovered,
-    });
-    trackAdvancedAnalyticsEvent(
-      'issue_details.codecov_surrounding_lines_coverage_shown',
-      {
-        organization,
-        success: surroundingLinesCovered,
-      }
-    );
-  }
-  return lineColors;
+  return [lineColors, primaryLineCovered, surroundingLinesCovered];
 }
 
 const Context = ({
@@ -151,6 +137,30 @@ const Context = ({
     }
   );
 
+  const contextLines = isExpanded
+    ? frame?.context
+    : frame?.context?.filter(l => l[0] === frame.lineNo);
+
+  const hasCoverageData =
+    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+
+  const [lineColors, primaryLineCovered, surroundingLinesCovered]: (
+    | Array<string>
+    | boolean
+  )[] =
+    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo! && contextLines
+      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
+      : [];
+
+  useRouteAnalyticsParams(
+    hasCoverageData
+      ? {
+          primary_line_covered: primaryLineCovered,
+          surrounding_lines_covered: surroundingLinesCovered,
+        }
+      : {}
+  );
+
   if (
     !hasContextSource &&
     !hasContextVars &&
@@ -184,28 +194,12 @@ const Context = ({
     }
   }
 
-  const contextLines = isExpanded
-    ? frame.context
-    : frame.context.filter(l => l[0] === frame.lineNo);
-
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
   const hasStacktraceLink =
     frame.inApp &&
     !!frame.filename &&
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
-  const hasCoverageData =
-    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
-
-  const lineColors: Array<string> =
-    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo!
-      ? getCoverageColorClass(
-          contextLines,
-          data!.codecov?.lineCoverage,
-          frame.lineNo,
-          organization
-        )
-      : [];
 
   return (
     <Wrapper

@@ -76,8 +76,6 @@ export type TeamInsightsEventParameters = {
   'issue_details.attachment_tab.screenshot_modal_download': {};
   'issue_details.attachment_tab.screenshot_modal_opened': {};
   'issue_details.attachment_tab.screenshot_title_clicked': {};
-  'issue_details.codecov_primary_line_coverage_shown': {success: boolean};
-  'issue_details.codecov_surrounding_lines_coverage_shown': {success: boolean};
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': {};
@@ -132,10 +130,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Attachment Tab: Screenshot downloaded from modal',
   'issue_details.attachment_tab.screenshot_modal_opened':
     'Attachment Tab: Screenshot modal opened',
-  'issue_details.codecov_primary_line_coverage_shown':
-    'Issue Details: Codecov coverage for primary line shown',
-  'issue_details.codecov_surrounding_lines_coverage_shown':
-    'Issue Details: Codecov coverage for surrounding lines shown',
   'issue_details.event_json_clicked': 'Issue Details: Event JSON Clicked',
   'issue_details.event_navigation_clicked': 'Issue Details: Event Navigation Clicked',
   'issue_details.issue_tab.screenshot_dropdown_deleted':
