@@ -55,6 +55,8 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    max_timestamp,
+    min_timestamp,
     miserable_users,
     rate_snql_factory,
     satisfaction_count_transaction,
@@ -1601,7 +1603,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
     ]
 }
 
-
 DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
@@ -1673,9 +1674,26 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=uniq_if_column_snql,
             default_null_value=0,
         ),
+        DerivedOp(
+            op="min_timestamp",
+            can_groupby=True,
+            can_orderby=True,
+            can_filter=True,
+            snql_func=min_timestamp,
+            meta_type="datetime",
+            default_null_value=None,
+        ),
+        DerivedOp(
+            op="max_timestamp",
+            can_groupby=True,
+            can_orderby=True,
+            can_filter=True,
+            snql_func=max_timestamp,
+            meta_type="datetime",
+            default_null_value=None,
+        ),
     ]
 }
-
 
 DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
     derived_alias.metric_mri: derived_alias
@@ -1708,6 +1726,7 @@ def metric_object_factory(
     assert op is not None
 
     metric_operation = DERIVED_OPS[op] if op in DERIVED_OPS else RawOp(op=op)
+
     metric_object = (
         DERIVED_ALIASES[metric_mri] if metric_mri in DERIVED_ALIASES else RawMetric(metric_mri)
     )

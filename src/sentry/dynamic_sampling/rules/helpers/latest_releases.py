@@ -337,7 +337,8 @@ class LatestReleaseBias:
             # release with a different environment.
             #
             # In theory we could add a check that verifies whether the incoming release is already being boosted and
-            # only has a different environment and in this case use only the > but it adds complexity for no big benefit.
+            # only has a different environment and in this case use only the > but it adds complexity for no big
+            # benefit.
             if latest_release_date is None or incoming_release_date >= latest_release_date:
                 self._update_latest_release_date(timestamp=incoming_release_date)
                 return True

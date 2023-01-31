@@ -100,13 +100,13 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             {
                 "name": "sentry.sessions.session",
                 "type": "counter",
-                "operations": ["sum"],
+                "operations": ["max_timestamp", "min_timestamp", "sum"],
                 "unit": None,
             },
             {
                 "name": "sentry.sessions.user",
                 "type": "set",
-                "operations": ["count_unique"],
+                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
                 "unit": None,
             },
             {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
@@ -187,9 +187,24 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         response = self.get_success_response(self.organization.slug, project=[self.project.id])
 
         assert response.data == [
-            {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
-            {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
-            {"name": "metric3", "type": "set", "operations": ["count_unique"], "unit": None},
+            {
+                "name": "metric1",
+                "type": "counter",
+                "operations": ["max_timestamp", "min_timestamp", "sum"],
+                "unit": None,
+            },
+            {
+                "name": "metric2",
+                "type": "set",
+                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
+                "unit": None,
+            },
+            {
+                "name": "metric3",
+                "type": "set",
+                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
+                "unit": None,
+            },
         ]
 
         self.store_session(
@@ -228,7 +243,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 {
                     "name": "sentry.sessions.session.error",
                     "type": "set",
-                    "operations": ["count_unique"],
+                    "operations": ["count_unique", "max_timestamp", "min_timestamp"],
                     "unit": None,
                 },
                 {
@@ -360,7 +375,9 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                         "count",
                         "histogram",
                         "max",
+                        "max_timestamp",
                         "min",
+                        "min_timestamp",
                         "p50",
                         "p75",
                         "p90",
@@ -389,7 +406,9 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                         "count",
                         "histogram",
                         "max",
+                        "max_timestamp",
                         "min",
+                        "min_timestamp",
                         "p50",
                         "p75",
                         "p90",
@@ -409,7 +428,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 {
                     "name": "transaction.user",
                     "type": "set",
-                    "operations": ["count_unique"],
+                    "operations": ["count_unique", "max_timestamp", "min_timestamp"],
                     "unit": None,
                 },
                 {

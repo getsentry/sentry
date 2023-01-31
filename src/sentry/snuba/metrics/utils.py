@@ -88,6 +88,8 @@ MetricOperationType = Literal[
     "team_key_transaction",
     "sum_if_column",
     "uniq_if_column",
+    "min_timestamp",
+    "max_timestamp",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -126,7 +128,11 @@ MetricEntity = Literal[
 ]
 
 OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {"sum": "sumIf"},
+    "metrics_counters": {
+        "sum": "sumIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
+    },
     "metrics_distributions": {
         "avg": "avgIf",
         "count": "countIf",
@@ -139,8 +145,14 @@ OP_TO_SNUBA_FUNCTION = {
         "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
         "sum": "sumIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
     },
-    "metrics_sets": {"count_unique": "uniqIf"},
+    "metrics_sets": {
+        "count_unique": "uniqIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
+    },
 }
 GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
@@ -250,6 +262,8 @@ DERIVED_OPERATIONS = (
     "transform_null_to_unparameterized",
     "sum_if_column",
     "uniq_if_column",
+    "min_timestamp",
+    "max_timestamp",
 )
 OPERATIONS = (
     (
