@@ -50,7 +50,6 @@ function SearchBar(props: Props) {
       savedSearchType={SavedSearchType.REPLAY}
       maxMenuHeight={500}
       hasRecentSearches
-      highlightUnsupportedTags
       fieldDefinitionGetter={getReplayFieldDefinition}
     />
   );
