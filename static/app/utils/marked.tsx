@@ -1,5 +1,6 @@
 import dompurify from 'dompurify';
 import marked from 'marked'; // eslint-disable-line no-restricted-imports
+import Prism from 'prismjs';
 
 import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
 
@@ -49,6 +50,13 @@ class NoParagraphRenderer extends SafeRenderer {
 marked.setOptions({
   renderer: new SafeRenderer(),
   sanitize: true,
+
+  highlight: (code, lang) => {
+    if (Prism.languages[lang]) {
+      return Prism.highlight(code, Prism.languages[lang], lang);
+    }
+    return code;
+  },
 
   // Silence sanitize deprecation warning in test / ci (CI sets NODE_NV
   // to production, but specifies `CI`).
