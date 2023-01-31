@@ -55,6 +55,30 @@ export function appendTagCondition(
   return currentQuery;
 }
 
+export function appendExcludeTagValuesCondition(
+  query: QueryValue,
+  key: string,
+  values: string[]
+): string {
+  let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
+  const filteredValuesCondition = `[${values
+    .map(value => {
+      if (typeof value === 'string' && /[\s"]/g.test(value)) {
+        value = `"${escapeDoubleQuotes(value)}"`;
+      }
+      return value;
+    })
+    .join(', ')}]`;
+
+  if (currentQuery) {
+    currentQuery += ` !${key}:${filteredValuesCondition}`;
+  } else {
+    currentQuery = `!${key}:${filteredValuesCondition}`;
+  }
+
+  return currentQuery;
+}
+
 // This function has multiple signatures to help with typing in callers.
 export function decodeScalar(value: QueryValue): string | undefined;
 export function decodeScalar(value: QueryValue, fallback: string): string;
@@ -102,6 +126,7 @@ const queryString = {
   formatQueryString,
   addQueryParamsToExistingUrl,
   appendTagCondition,
+  appendExcludeTagValuesCondition,
 };
 
 export default queryString;
