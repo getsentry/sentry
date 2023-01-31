@@ -155,7 +155,7 @@ class Team(Model):
     )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
-    org_role = models.CharField(max_length=32, default=None, null=True)
+    org_role = models.CharField(max_length=32, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))
 
