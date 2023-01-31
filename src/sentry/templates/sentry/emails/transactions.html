@@ -36,5 +36,15 @@
             </td>
         </tr>
         {% endif %}
+        {% if parameters %}
+        <tr>
+            <th>{% trans "Parameters" %}</th>
+            {% for parameter in parameters %}
+            <td>
+                <code>{{ parameter|truncatechars:100 }}</code>
+            </td>
+            {% endfor %}
+        </tr>
+        {% endif %}
     </tbody>
 </table>

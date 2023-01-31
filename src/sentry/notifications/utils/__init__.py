@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -16,7 +17,7 @@ from typing import (
     Union,
     cast,
 )
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
 from django.utils.http import urlencode
@@ -489,12 +490,12 @@ class PerformanceProblemContext:
             return cls(problem, spans)
 
 
-@dataclass
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
     def to_dict(self):
         return {
             "transaction_name": get_span_evidence_value_problem(self.problem),
             "repeating_spans": self.path_prefix,
+            "parameters": self.parameters,
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
             if self.problem.offender_span_ids
             else "",
@@ -507,4 +508,28 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
         url = get_url_from_span(self.repeating_spans)
         parsed_url = urlparse(url)
-        return f"{parsed_url.path}"
+        return f"{parsed_url.path}[Parameters]"
+
+    @property
+    def parameters(self):
+        if not self.spans or len(self.spans) == 0:
+            return ""
+
+        urls = [
+            get_url_from_span(span)
+            for span in self.spans
+            if span.get("span_id") in self.problem.offender_span_ids
+        ]
+
+        all_parameters = defaultdict(list)
+
+        for url in urls:
+            parsed_url = urlparse(url)
+            parameters = parse_qs(parsed_url.query)
+
+            for key, value in parameters.items():
+                all_parameters[key] += value
+
+        return [
+            "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
+        ]
