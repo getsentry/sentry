@@ -5,8 +5,6 @@ import {Coverage, Frame, LineCoverage} from 'sentry/types';
 
 import Context, {getCoverageColorClass} from './context';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
-
 describe('Frame - Context', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.Project({});
