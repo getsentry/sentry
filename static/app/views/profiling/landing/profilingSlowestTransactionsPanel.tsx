@@ -19,6 +19,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   EventsResultsDataRow,
   useProfileEvents,
@@ -122,7 +123,6 @@ function SlowestTransactionPanelItem({
 }: SlowestTransactionPanelItemProps) {
   const organization = useOrganization();
   const projects = useProjects();
-
   const transactionProject = useMemo(
     () => projects.projects.find(p => p.id === String(transaction['project.id'])),
     [projects.projects, transaction]
@@ -143,6 +143,12 @@ function SlowestTransactionPanelItem({
               projectSlug: transactionProject?.slug!,
               transaction: transaction.transaction as string,
             })}
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+                source: 'slowest_transaction_panel',
+                organization,
+              });
+            }}
           >
             <TextTruncateOverflow>
               {transaction.transaction as string}
@@ -202,6 +208,12 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
         functions={functions}
         organization={organization}
         project={project}
+        onLinkClick={() =>
+          trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+            organization,
+            source: 'slowest_transaction_panel',
+          })
+        }
       />
     </PanelItemBodyInner>
   );

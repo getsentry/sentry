@@ -121,8 +121,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     'profiling-dashboard-redesign'
   );
 
-  // isNewProfilingDashboardEnabled = false;
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>

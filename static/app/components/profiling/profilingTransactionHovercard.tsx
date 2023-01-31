@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
@@ -12,6 +12,7 @@ import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOver
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getShortEventId} from 'sentry/utils/events';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {
@@ -42,7 +43,19 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
     transaction,
   });
 
-  const triggerLink = <Link to={linkToSummary}>{transaction}</Link>;
+  const triggerLink = (
+    <Link
+      to={linkToSummary}
+      onClick={() =>
+        trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+          organization,
+          source: 'transaction_hovercard.trigger',
+        })
+      }
+    >
+      {transaction}
+    </Link>
+  );
 
   if (!organization.features.includes('profiling-dashboard-redesign')) {
     return triggerLink;
@@ -104,6 +117,12 @@ export function ProfilingTransactionHovercardBody({
     });
   };
 
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_ui_events.transaction_hovercard_view', {
+      organization,
+    });
+  }, [organization]);
+
   return (
     <Flex gap={space(3)} column>
       <Flex justify="space-between">
@@ -112,7 +131,15 @@ export function ProfilingTransactionHovercardBody({
           isLoading={latestProfileQuery.isLoading}
         >
           {latestProfile ? (
-            <Link to={linkToFlamechartRoute(String(latestProfile.id))}>
+            <Link
+              to={linkToFlamechartRoute(String(latestProfile.id))}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                  organization,
+                  source: 'transaction_hovercard.latest_profile',
+                })
+              }
+            >
               {getShortEventId(String(latestProfile!.id))}
             </Link>
           ) : (
@@ -133,7 +160,15 @@ export function ProfilingTransactionHovercardBody({
                 }
                 abbreviation
               />
-              <Link to={linkToFlamechartRoute(String(slowestProfile.id))}>
+              <Link
+                to={linkToFlamechartRoute(String(slowestProfile.id))}
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                    organization,
+                    source: 'transaction_hovercard.slowest_profile',
+                  })
+                }
+              >
                 ({getShortEventId(String(slowestProfile?.id))})
               </Link>
             </Flex>
@@ -148,6 +183,12 @@ export function ProfilingTransactionHovercardBody({
           functions={functions}
           organization={organization}
           project={project}
+          onLinkClick={() =>
+            trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+              organization,
+              source: 'transaction_hovercard.suspect_function',
+            })
+          }
         />
         {functionsQuery.type === 'loading' && <FunctionsMiniGridLoading />}
 
