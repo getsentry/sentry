@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {EventNode} from 'sentry/components/quickTrace/styles';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -12,10 +14,12 @@ type Props = {
 
 function ReplayNode({hasReplay}: Props) {
   const location = useLocation();
+  const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
+
   if (hasReplay) {
     return (
       <EventNodeReplay
-        icon={<IconPlay size="xs" />}
+        icon={<StyledIcon size="xs" isDarkmode={isDarkmode} />}
         onClick={() => document.getElementById('breadcrumbs')?.scrollIntoView()}
         to={{...location, hash: '#breadcrumbs'}}
         type="black"
@@ -35,6 +39,10 @@ function ReplayNode({hasReplay}: Props) {
     </EventNodeReplay>
   );
 }
+
+const StyledIcon = styled(IconPlay)<{isDarkmode: boolean}>`
+  fill: ${p => (p.isDarkmode ? p.theme.black : p.theme.white)};
+`;
 
 export const EventNodeReplay = styled(EventNode)`
   display: inline-flex;
