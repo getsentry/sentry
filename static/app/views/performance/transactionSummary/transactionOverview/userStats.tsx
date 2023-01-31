@@ -44,7 +44,10 @@ function UserStats({
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
-    const threshold: number | undefined = totals.project_threshold_config[1];
+    // TODO how to get this using metrics?
+    const threshold: number | undefined = totals.project_threshold_config
+      ? totals.project_threshold_config[1]
+      : undefined;
     const miserableUsers: number | undefined = totals['count_miserable_user()'];
     const userMiseryScore: number = totals['user_misery()'];
     const totalUsers = totals['count_unique_user()'];
