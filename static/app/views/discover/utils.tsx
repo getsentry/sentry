@@ -30,6 +30,7 @@ import {
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
+  PROFILING_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
@@ -483,6 +484,12 @@ export function generateFieldOptions({
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }
+
+  // Strip tracing features if the org doesn't have access.
+  if (!organization.features.includes('profiling')) {
+    fieldKeys = fieldKeys.filter(item => !PROFILING_FIELDS.includes(item));
+  }
+
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
   // Index items by prefixed keys as custom tags can overlap both fields and
