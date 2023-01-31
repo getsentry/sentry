@@ -1074,7 +1074,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "poof",
-                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=12)),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup"},
                     "fingerprint": ["group1"],
@@ -1086,7 +1086,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 "data": {
                     "message": "voof",
                     "timestamp": iso_format(
-                        self.event_window_start + timedelta(hours=1, minutes=2)
+                        self.event_window_start + timedelta(hours=1, minutes=12)
                     ),
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
@@ -1098,7 +1098,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "very bad",
-                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=12)),
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1109,7 +1109,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "oh no",
-                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=12)),
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1122,7 +1122,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "sorta bad",
-                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=12)),
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1133,7 +1133,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "not so bad",
-                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=2)),
+                    "timestamp": iso_format(self.event_window_start + timedelta(minutes=12)),
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
