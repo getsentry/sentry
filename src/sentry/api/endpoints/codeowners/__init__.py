@@ -30,7 +30,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
     def get_max_length(self) -> int:
         if features.has(
             "organizations:scaleable-codeowners-search",
-            self.context["ownership"].project.organization,
+            self.context["project"].organization,
         ):
             return HIGHER_MAX_RAW_LENGTH
         return MAX_RAW_LENGTH
