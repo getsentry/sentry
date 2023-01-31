@@ -17,11 +17,12 @@ function getCoordinates(hierarchies) {
         height: node.height ?? 0,
       });
       if ((node.children ?? []).length !== 0) {
-        node.children.forEach(child => {
-          child.x = child.x + (node.x ?? 0);
-          child.y = child.y + (node.y ?? 0);
-        });
-        nodesToProcess = [...nodesToProcess, ...node.children];
+        const newChildren = node.children.map(child => ({
+          ...child,
+          x: child.x + (node.x ?? 0),
+          y: child.y + (node.y ?? 0),
+        }));
+        nodesToProcess = [...nodesToProcess, ...newChildren];
       }
     }
     return results;
