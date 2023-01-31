@@ -4,8 +4,9 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 
 describe('SegmentedControl', function () {
   it('renders with uncontrolled value', function () {
+    const onChange = jest.fn();
     render(
-      <SegmentedControl aria-label="Test" defaultValue="1">
+      <SegmentedControl aria-label="Test" defaultValue="1" onChange={onChange}>
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
         <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
         <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
@@ -26,6 +27,12 @@ describe('SegmentedControl', function () {
 
     // First option is selected by default
     expect(screen.getByRole('radio', {name: 'Option 1'})).toBeChecked();
+
+    // Click on second option
+    userEvent.click(screen.getByRole('radio', {name: 'Option 2'}));
+
+    // onChange function is called with the new key
+    expect(onChange).toHaveBeenCalledWith('2');
   });
 
   it('renders with controlled value', function () {
