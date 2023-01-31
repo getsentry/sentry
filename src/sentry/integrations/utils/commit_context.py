@@ -52,6 +52,7 @@ def find_commit_context_for_event(
                 "integrations.failed_to_fetch_commit_context",
                 organization_id=code_mapping.organization_integration.organization_id,
                 project_id=code_mapping.project.id,
+                group_id=extra["group"],
                 code_mapping_id=code_mapping.id,
                 provider=integration.provider,
                 error_message=e.text,
