@@ -62,6 +62,7 @@ import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
+import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
@@ -404,6 +405,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   useEffect(() => {
     if (flamegraphView && spansView) {
       const minWidthBetweenViews = Math.min(flamegraphView.minWidth, spansView.minWidth);
+
       flamegraphView.setMinWidth(minWidthBetweenViews);
       spansView.setMinWidth(minWidthBetweenViews);
 
@@ -622,6 +624,9 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     },
     [flamegraphRenderer]
   );
+
+  // Register keyboard navigation
+  useViewKeyboardNavigation(flamegraphView, canvasPoolManager);
 
   // referenceNode is passed down to the flamegraphdrawer and is used to determine
   // the weights of each frame. In other words, in case there is no user selected root, then all
