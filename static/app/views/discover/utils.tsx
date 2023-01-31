@@ -485,7 +485,7 @@ export function generateFieldOptions({
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }
 
-  // Strip tracing features if the org doesn't have access.
+  // Strip profiling features if the org doesn't have access.
   if (!organization.features.includes('profiling')) {
     fieldKeys = fieldKeys.filter(item => !PROFILING_FIELDS.includes(item));
   }
