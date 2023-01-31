@@ -43,7 +43,10 @@ export default function CreateProjectsFooter({
   genSkipOnboardingLink,
   clearPlatforms,
 }: Props) {
-  const heartbeatFooter = organization.features.includes('onboarding-heartbeat-footer');
+  const singleSelectPlatform = !!organization?.features.includes(
+    'onboarding-remove-multiselect-platform'
+  );
+
   const api = useApi();
   const {teams} = useTeams();
   const [persistedOnboardingState, setPersistedOnboardingState] =
@@ -56,7 +59,9 @@ export default function CreateProjectsFooter({
     }
 
     try {
-      addLoadingMessage(heartbeatFooter ? t('Creating project') : t('Creating projects'));
+      addLoadingMessage(
+        singleSelectPlatform ? t('Creating project') : t('Creating projects')
+      );
 
       const responses = await Promise.all(
         platforms
@@ -87,7 +92,9 @@ export default function CreateProjectsFooter({
       setTimeout(onComplete);
     } catch (err) {
       addErrorMessage(
-        heartbeatFooter ? t('Failed to create project') : t('Failed to create projects')
+        singleSelectPlatform
+          ? t('Failed to create project')
+          : t('Failed to create projects')
       );
       Sentry.captureException(err);
     }
@@ -103,7 +110,7 @@ export default function CreateProjectsFooter({
       {genSkipOnboardingLink()}
       <SelectionWrapper>
         {platforms.length ? (
-          heartbeatFooter ? (
+          singleSelectPlatform ? (
             <Fragment>
               <div>{platforms.map(renderPlatform)}</div>
               <PlatformSelected>
