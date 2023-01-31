@@ -156,6 +156,13 @@ export default function TagFacets({
           </Content>
         </Fragment>
       )}
+      {Object.keys(tagsData).length === 0 && (
+        <p data-test-id="no-tags">
+          {environments.length
+            ? t('No tags found in the selected environments')
+            : t('No tags found')}
+        </p>
+      )}
     </SidebarSection.Wrap>
   );
 }

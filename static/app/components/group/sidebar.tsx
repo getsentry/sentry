@@ -16,8 +16,6 @@ import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import OwnedBy from 'sentry/components/group/ownedBy';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
-import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
-import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import Tooltip from 'sentry/components/tooltip';
@@ -244,8 +242,7 @@ class BaseGroupSidebar extends Component<Props, State> {
 
   render() {
     const {event, group, organization, project, environments} = this.props;
-    const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
-    const projectId = project.slug;
+    const {allEnvironmentsGroupData, currentRelease} = this.state;
     const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
     const hasStreamlineTargetingFeature = organization.features.includes(
       'streamline-targeting-context'
@@ -290,91 +287,35 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        {organization.features.includes('issue-details-tag-improvements') ? (
-          <TagFacets
-            environments={environments}
-            groupId={group.id}
-            tagKeys={
-              isMobilePlatform(project?.platform)
-                ? MOBILE_TAGS
-                : frontend.some(val => val === project?.platform)
-                ? FRONTEND_TAGS
-                : backend.some(val => val === project?.platform)
-                ? BACKEND_TAGS
-                : DEFAULT_TAGS
-            }
-            title={
-              <div>
-                {t('All Tags')}
-                <TooltipWrapper>
-                  <Tooltip
-                    title={t('The tags associated with all events in this issue')}
-                    disableForVisualTest
-                  >
-                    <IconQuestion size="sm" color="gray200" />
-                  </Tooltip>
-                </TooltipWrapper>
-              </div>
-            }
-            event={event}
-            tagFormatter={TAGS_FORMATTER}
-            project={project}
-          />
-        ) : (
-          <SidebarSection.Wrap>
-            <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
-            <SidebarSection.Content>
-              {!tagsWithTopValues ? (
-                <TagPlaceholders>
-                  <Placeholder height="40px" />
-                  <Placeholder height="40px" />
-                  <Placeholder height="40px" />
-                  <Placeholder height="40px" />
-                </TagPlaceholders>
-              ) : (
-                group.tags.map(tag => {
-                  const tagWithTopValues = tagsWithTopValues[tag.key];
-                  const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-                  const topValuesTotal = tagWithTopValues
-                    ? tagWithTopValues.totalValues
-                    : 0;
-
-                  return (
-                    <GroupTagDistributionMeter
-                      key={tag.key}
-                      tag={tag.key}
-                      totalValues={topValuesTotal}
-                      topValues={topValues}
-                      name={tag.name}
-                      organization={organization}
-                      projectId={projectId}
-                      group={group}
-                      onTagClick={(title, value) => {
-                        trackAdvancedAnalyticsEvent(
-                          'issue_group_details.tags_distribution.bar.clicked',
-                          {
-                            tag: title,
-                            value: value.name,
-                            platform: project.platform,
-                            is_mobile: isMobilePlatform(project?.platform),
-                            organization,
-                          }
-                        );
-                      }}
-                    />
-                  );
-                })
-              )}
-              {group.tags.length === 0 && (
-                <p data-test-id="no-tags">
-                  {environments.length
-                    ? t('No tags found in the selected environments')
-                    : t('No tags found')}
-                </p>
-              )}
-            </SidebarSection.Content>
-          </SidebarSection.Wrap>
-        )}
+        <TagFacets
+          environments={environments}
+          groupId={group.id}
+          tagKeys={
+            isMobilePlatform(project?.platform)
+              ? MOBILE_TAGS
+              : frontend.some(val => val === project?.platform)
+              ? FRONTEND_TAGS
+              : backend.some(val => val === project?.platform)
+              ? BACKEND_TAGS
+              : DEFAULT_TAGS
+          }
+          title={
+            <div>
+              {t('All Tags')}
+              <TooltipWrapper>
+                <Tooltip
+                  title={t('The tags associated with all events in this issue')}
+                  disableForVisualTest
+                >
+                  <IconQuestion size="sm" color="gray200" />
+                </Tooltip>
+              </TooltipWrapper>
+            </div>
+          }
+          event={event}
+          tagFormatter={TAGS_FORMATTER}
+          project={project}
+        />
 
         {this.renderParticipantData()}
         {hasIssueActionsV2 && this.renderSeenByList()}
@@ -389,12 +330,6 @@ const PageFiltersContainer = styled('div')`
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const TagPlaceholders = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-auto-flow: row;
 `;
 
 const ExternalIssues = styled('div')`
