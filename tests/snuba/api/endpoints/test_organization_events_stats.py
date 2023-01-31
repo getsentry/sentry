@@ -1068,7 +1068,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data["start_timestamp"] = iso_format(
             self.event_window_start + timedelta(minutes=12)
         )
-        transaction_data["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=12))
+        transaction_data["timestamp"] = iso_format(self.event_window_start + timedelta(minutes=14))
         transaction_data["tags"] = {"shared-tag": "yup"}
         self.event_data = [
             {
