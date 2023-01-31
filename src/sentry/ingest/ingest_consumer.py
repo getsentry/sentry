@@ -279,7 +279,7 @@ def _load_event(
                             key=cache_key, type=attachment_type, **attachment
                         )
                         view_hierarchy = json.loads(attachment_cache.get_data(view_hierarchy))
-                        view_hierarchy = deobfuscate_view_hierarchy(data, project, view_hierarchy)
+                        deobfuscate_view_hierarchy(data, project, view_hierarchy)
 
                         # Unset chunks
                         attachment.pop("chunks")
