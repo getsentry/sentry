@@ -36,11 +36,6 @@ const Title = styled('header')`
 `;
 
 const Container = styled('div')`
-  margin-top: ${space(1)};
-  border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
   padding-bottom: 0;
-  max-height: 400px;
-  overflow: auto;
 `;
