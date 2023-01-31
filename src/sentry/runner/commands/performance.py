@@ -29,17 +29,15 @@ def detect(filename, detector_class, verbose):
     using default detector settings with every detector. Filename should be a
     path to a JSON event data file.
     """
-    from sentry.utils.performance_issues import detectors, performance_detection
+    from sentry.utils.performance_issues import performance_detection
     from sentry.utils.performance_issues.base import PerformanceDetector
 
-    detector_lookup = {**detectors.__dict__, **performance_detection.__dict__}
-
     if detector_class:
-        detector_classes = [detector_lookup[detector_class]]
+        detector_classes = [performance_detection.__dict__[detector_class]]
     else:
         detector_classes = [
             cls
-            for _, cls in detector_lookup.items()
+            for _, cls in performance_detection.__dict__.items()
             if isclass(cls) and issubclass(cls, PerformanceDetector) and cls != PerformanceDetector
         ]
 
