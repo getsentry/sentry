@@ -1,10 +1,7 @@
 import {Component, Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
-import keyBy from 'lodash/keyBy';
-import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -32,7 +29,6 @@ import {
   IssueType,
   Organization,
   Project,
-  TagWithTopValues,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -64,7 +60,6 @@ type State = {
   allEnvironmentsGroupData?: Group;
   currentRelease?: CurrentRelease;
   error?: boolean;
-  tagsWithTopValues?: Record<string, TagWithTopValues>;
 };
 
 class BaseGroupSidebar extends Component<Props, State> {
@@ -73,13 +68,6 @@ class BaseGroupSidebar extends Component<Props, State> {
   componentDidMount() {
     this.fetchAllEnvironmentsGroupData();
     this.fetchCurrentRelease();
-    this.fetchTagData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.environments, this.props.environments)) {
-      this.fetchTagData();
-    }
   }
 
   trackAssign: React.ComponentProps<typeof AssignedTo>['onAssign'] = () => {
@@ -127,26 +115,6 @@ class BaseGroupSidebar extends Component<Props, State> {
       this.setState({currentRelease});
     } catch {
       this.setState({error: true});
-    }
-  }
-
-  async fetchTagData() {
-    const {api, group} = this.props;
-
-    try {
-      // Fetch the top values for the current group's top tags.
-      const data = await api.requestPromise(`/issues/${group.id}/tags/`, {
-        query: pickBy({
-          key: group.tags.map(tag => tag.key),
-          environment: this.props.environments.map(env => env.name),
-        }),
-      });
-      this.setState({tagsWithTopValues: keyBy(data, 'key')});
-    } catch {
-      this.setState({
-        tagsWithTopValues: {},
-        error: true,
-      });
     }
   }
 
