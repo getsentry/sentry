@@ -62,6 +62,7 @@ function draw(
       context.globalAlpha = 0.005;
       context.fill();
 
+      // Draw the outlines
       context.globalAlpha = 1;
       context.stroke();
     });
@@ -130,6 +131,9 @@ function Wireframe({hierarchy}) {
 
 export {Wireframe};
 
+// This container wraps the canvas so we can stretch it to fit
+// the space we want and then read the width and height
+// to resize the canvas
 const Container = styled('div')`
   height: 100%;
   width: 100%;
