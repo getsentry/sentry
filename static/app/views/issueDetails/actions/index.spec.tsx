@@ -1,21 +1,32 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import GlobalModal from 'sentry/components/globalModal';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {IssueCategory} from 'sentry/types';
 import GroupActions from 'sentry/views/issueDetails/actions';
+
+const project = TestStubs.ProjectDetails({
+  id: '2448',
+  name: 'project name',
+  slug: 'project',
+});
 
 const group = TestStubs.Group({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
   issueCategory: IssueCategory.ERROR,
-});
-
-const project = TestStubs.ProjectDetails({
-  id: '2448',
-  name: 'project name',
-  slug: 'project',
+  project,
 });
 
 const organization = TestStubs.Organization({
@@ -158,24 +169,82 @@ describe('GroupActions', function () {
   });
 
   describe('issue-actions-v2', () => {
-    const org = {...organization, features: ['issue-actions-v2', 'shared-issues']};
+    const org = {
+      ...organization,
+      features: ['issue-actions-v2', 'shared-issues'],
+      access: [...organization.access, 'event:admin'],
+    };
+
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+
     it('opens share modal from more actions dropdown', async () => {
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'PUT',
+        body: {},
+      });
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={org}
-          disabled={false}
-        />,
+        <Fragment>
+          <GlobalModal />
+          <GroupActions
+            group={group}
+            project={project}
+            organization={org}
+            disabled={false}
+          />
+        </Fragment>,
         {organization: org}
       );
 
       userEvent.click(screen.getByLabelText('More Actions'));
-
-      const openModal = jest.spyOn(ModalStore, 'openModal');
       userEvent.click(await screen.findByText('Share'));
 
-      await waitFor(() => expect(openModal).toHaveBeenCalled());
+      const modal = screen.getByRole('dialog');
+      expect(within(modal).getByText('Share Issue')).toBeInTheDocument();
+      expect(updateMock).toHaveBeenCalled();
+    });
+
+    it('opens delete confirm modal from more actions dropdown', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'PUT',
+        body: {},
+      });
+      const deleteMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'DELETE',
+        body: {},
+      });
+      render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions
+            group={group}
+            project={project}
+            organization={org}
+            disabled={false}
+          />
+        </Fragment>,
+        {organization: org}
+      );
+
+      userEvent.click(screen.getByLabelText('More Actions'));
+      userEvent.click(await screen.findByTestId('delete-issue'));
+
+      const modal = screen.getByRole('dialog');
+      expect(
+        within(modal).getByText(/Deleting this issue is permanent/)
+      ).toBeInTheDocument();
+
+      userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
+
+      expect(deleteMock).toHaveBeenCalled();
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: `/organizations/${org.slug}/issues/`,
+        query: {project: project.id},
+      });
     });
 
     it('resolves and unresolves issue', () => {

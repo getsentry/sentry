@@ -49,6 +49,7 @@ import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAct
 import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import ShareIssue from 'sentry/views/issueDetails/actions/shareIssue';
 import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
@@ -140,7 +141,12 @@ class Actions extends Component<Props> {
         complete: () => {
           clearIndicators();
 
-          browserHistory.push(`/${organization.slug}/${project.slug}/`);
+          browserHistory.push(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {project: project.id},
+            })
+          );
         },
       }
     );
@@ -217,7 +223,12 @@ class Actions extends Component<Props> {
       data: {discard: true},
       success: response => {
         GroupStore.onDiscardSuccess(id, group.id, response);
-        browserHistory.push(`/${organization.slug}/${project.slug}/`);
+        browserHistory.push(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: project.id},
+          })
+        );
       },
       error: error => {
         GroupStore.onDiscardError(id, group.id, error);
