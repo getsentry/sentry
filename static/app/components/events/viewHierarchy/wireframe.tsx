@@ -7,6 +7,7 @@ import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
 
 const RECT_FILL_ALPHA = 0.005;
 const RECT_OUTLINE_ALPHA = 1;
+const MIN_BORDER_SIZE = 20;
 
 type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
 
@@ -61,11 +62,11 @@ function getMaxDimensions(coordinates) {
 function calculateScale(
   bounds: {height: number; width: number},
   maxCoordinateDimensions: {height: number; width: number},
-  offsets: {x: number; y: number}
+  border: {x: number; y: number}
 ) {
   return Math.min(
-    (bounds.width - offsets.x) / maxCoordinateDimensions.width,
-    (bounds.height - offsets.y) / maxCoordinateDimensions.height
+    (bounds.width - border.x) / maxCoordinateDimensions.width,
+    (bounds.height - border.y) / maxCoordinateDimensions.height
   );
 }
 
@@ -77,7 +78,7 @@ function Wireframe({hierarchy}) {
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
   const {handlePanMove, handlePanStart, handlePanStop, isDragging, xOffset, yOffset} =
-    useMousePan({initialXOffset: 0, initialYOffset: 0});
+    useMousePan();
 
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
@@ -85,8 +86,8 @@ function Wireframe({hierarchy}) {
 
       // Set the scaling
       const scalingFactor = calculateScale(dimensions, maxDimensions, {
-        x: 20,
-        y: 20,
+        x: MIN_BORDER_SIZE,
+        y: MIN_BORDER_SIZE,
       });
       context.scale(scalingFactor, scalingFactor);
 
