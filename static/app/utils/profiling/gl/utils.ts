@@ -868,16 +868,11 @@ export function getPhysicalSpacePositionFromOffset(offsetX: number, offsetY: num
   return vec2.scale(vec2.create(), logicalMousePos, window.devicePixelRatio);
 }
 
-export function getCenterScaleMatrixFromConfigPosition(
-  scale: number,
-  centerX: number,
-  centerY: number
-) {
-  const configCenter = vec2.fromValues(centerX, centerY);
-  const invertedConfigCenter = vec2.fromValues(-centerX, -centerY);
+export function getCenterScaleMatrixFromConfigPosition(scale: number, center: vec2) {
+  const invertedConfigCenter = vec2.fromValues(-center[0], -center[1]);
 
   const centerScaleMatrix = mat3.create();
-  mat3.fromTranslation(centerScaleMatrix, configCenter);
+  mat3.fromTranslation(centerScaleMatrix, center);
   mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
   mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
   return centerScaleMatrix;
@@ -887,18 +882,14 @@ export function getCenterScaleMatrixFromConfigPosition(
 // and apply the scaling transformation from there
 export function getCenterScaleMatrixFromMousePosition(
   scale: number,
-  offsetX: number,
-  offsetY: number,
+  cursor: vec2,
   view: CanvasView<any>,
   canvas: FlamegraphCanvas
 ): mat3 {
-  const configSpaceMouse = view.getConfigViewCursor(
-    vec2.fromValues(offsetX, offsetY),
-    canvas
-  );
+  const configSpaceMouse = view.getConfigViewCursor(cursor, canvas);
 
   const configCenter = vec2.fromValues(configSpaceMouse[0], view.configView.y);
-  return getCenterScaleMatrixFromConfigPosition(scale, configCenter[0], configCenter[1]);
+  return getCenterScaleMatrixFromConfigPosition(scale, configCenter);
 }
 
 export function getTranslationMatrixFromConfigSpace(deltaX: number, deltaY: number) {

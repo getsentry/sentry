@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {vec2} from 'gl-matrix';
 
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -27,6 +28,11 @@ export function useViewKeyboardNavigation(
         return;
       }
 
+      const elementType = document.activeElement?.nodeName.toLowerCase();
+      if (elementType === 'input' || elementType === 'textarea') {
+        return;
+      }
+
       if (event.key === 'w') {
         if (inertia.current === null) {
           inertia.current = 1;
@@ -34,8 +40,7 @@ export function useViewKeyboardNavigation(
         canvasPoolManager.dispatch('transform config view', [
           getCenterScaleMatrixFromConfigPosition(
             0.99 * inertia.current,
-            view.configView.centerX,
-            view.configView.y
+            vec2.fromValues(view.configView.centerX, view.configView.y)
           ),
           view,
         ]);
@@ -49,8 +54,7 @@ export function useViewKeyboardNavigation(
         canvasPoolManager.dispatch('transform config view', [
           getCenterScaleMatrixFromConfigPosition(
             1.01 * inertia.current,
-            view.configView.centerX,
-            view.configView.y
+            vec2.fromValues(view.configView.centerX, view.configView.y)
           ),
           view,
         ]);

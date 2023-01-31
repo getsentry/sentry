@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {vec2} from 'gl-matrix';
 
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -20,8 +21,7 @@ export function useWheelCenterZoom(
       canvasPoolManager.dispatch('transform config view', [
         getCenterScaleMatrixFromMousePosition(
           scale,
-          evt.offsetX,
-          evt.offsetY,
+          vec2.fromValues(evt.offsetX, evt.offsetY),
           view,
           canvas
         ),
