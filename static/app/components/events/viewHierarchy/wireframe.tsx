@@ -2,34 +2,51 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
 
-function getCoordinates(hierarchies) {
+type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
+
+function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
   return hierarchies.map(hierarchy => {
-    const results: any[] = [];
+    const newHierarchy: Rect[] = [];
+
     let nodesToProcess = [hierarchy];
     while (nodesToProcess.length) {
       const node = nodesToProcess.pop();
-      results.push({
+
+      if (!node) {
+        continue;
+      }
+
+      newHierarchy.push({
         x: node.x ?? 0,
         y: node.y ?? 0,
         width: node.width ?? 0,
         height: node.height ?? 0,
       });
+
       if ((node.children ?? []).length !== 0) {
-        const newChildren = node.children.map(child => ({
-          ...child,
-          x: child.x + (node.x ?? 0),
-          y: child.y + (node.y ?? 0),
-        }));
+        const newChildren =
+          node.children?.map(child => ({
+            ...child,
+            x: child.x + (node.x ?? 0),
+            y: child.y + (node.y ?? 0),
+          })) ?? [];
         nodesToProcess = [...nodesToProcess, ...newChildren];
       }
     }
-    return results;
+
+    return newHierarchy;
   });
 }
 
-function draw(context, coordinates, xOffset, yOffset) {
+function draw(
+  context: CanvasRenderingContext2D,
+  coordinates: Rect[][],
+  xOffset: number,
+  yOffset: number
+) {
   // Make areas with more overlayed elements darker
   context.globalCompositeOperation = 'overlay';
 
@@ -42,10 +59,10 @@ function draw(context, coordinates, xOffset, yOffset) {
       context.rect(x + xOffset, y + yOffset, width, height);
 
       // Draw the rectangles
-      context.globalAlpha = '0.005';
+      context.globalAlpha = 0.005;
       context.fill();
 
-      context.globalAlpha = '1';
+      context.globalAlpha = 1;
       context.stroke();
     });
   });
@@ -72,7 +89,9 @@ function Wireframe({hierarchy}) {
     canvas.height = dimensions.height || container.clientHeight;
 
     const context = canvas.getContext('2d');
-    draw(context, coordinates, xOffset, yOffset);
+    if (context) {
+      draw(context, coordinates, xOffset, yOffset);
+    }
   }, [coordinates, dimensions, xOffset, yOffset]);
 
   useResizeObserver({
