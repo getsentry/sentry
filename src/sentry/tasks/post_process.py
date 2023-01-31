@@ -448,6 +448,10 @@ def run_post_process_job(job: PostProcessJob):
         try:
             pipeline_step(job)
         except Exception:
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.exception",
+                tags={"issue_category": group_event.group.issue_category},
+            )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": group_event, "group": group_event.group},
