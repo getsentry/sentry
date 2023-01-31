@@ -336,7 +336,8 @@ const StyledContextLine = styled(ContextLine)`
   }
 
   &.active {
-    background-color: ${p => p.theme.gray400};
+    background: ${p => p.theme.stacktraceActiveBackground};
+    color: ${p => p.theme.stacktraceActiveText};
   }
 
   &.active.partial:before {

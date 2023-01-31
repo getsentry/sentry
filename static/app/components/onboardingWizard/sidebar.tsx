@@ -171,6 +171,7 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
         key={`${task.task}`}
         onSkip={makeTaskUpdater('skipped')}
         onMarkComplete={makeTaskUpdater('complete')}
+        hidePanel={onClose}
       />
     );
   }
