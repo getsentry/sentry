@@ -526,7 +526,7 @@ def digest(request):
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
-        perf_event = make_performance_event(project)
+        perf_event = make_performance_event(project, "transaction-n-plus-one")
         # don't clobber error issue ids
         perf_event.group.id = i + 100
         perf_group = perf_event.group
