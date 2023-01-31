@@ -479,7 +479,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
         if response.status == 204:
-            profile["call_trees"] = {}
             return True
         elif response.status == 429:
             raise VroomTimeout
