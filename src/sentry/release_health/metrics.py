@@ -16,7 +16,7 @@ from typing import (
     Union,
 )
 
-from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, Direction, Op
 from snuba_sdk.expressions import Granularity, Limit
 
 from sentry.models import Environment
@@ -41,14 +41,11 @@ from sentry.release_health.base import (
     ReleaseSessionsTimeBounds,
     SessionsQueryConfig,
     SessionsQueryResult,
-    SnubaAppID,
     StatsPeriod,
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, reverse_resolve
-from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import (
     MetricField,
     MetricGroupByField,
@@ -61,7 +58,7 @@ from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
+from sentry.utils.snuba import QueryOutsideRetentionError
 
 SMALLEST_METRICS_BUCKET = 10
 
@@ -1285,7 +1282,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ret_val.append((by.get("project_id"), by.get("release")))
         return ret_val
 
-    # TODO RaduW 23.Jan.2023 Reimplement when the Metrics Layer adds support for timestamps
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
@@ -1297,59 +1293,47 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # TODO: assumption about retention?
         start = now - timedelta(days=90)
 
-        project_ids: List[ProjectId] = [x[0] for x in project_releases]
-        org_id = self._get_org_id(project_ids)
-        release_column_name = resolve_tag_key(USE_CASE_ID, org_id, "release")
-        releases = [x[1] for x in project_releases]
-        releases_ids = resolve_many_weak(USE_CASE_ID, org_id, releases)
+        project_ids = [proj_id for proj_id, _release in project_releases]
+        projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        query_cols = [
-            Column("project_id"),
-            Column(release_column_name),
-            Function("min", [Column("bucketed_time")], "oldest"),
+        where = [filter_releases_by_project_release(project_releases)]
+
+        groupby = [
+            MetricGroupByField(field="release"),
+            MetricGroupByField(field="project_id"),
+        ]
+        select = [
+            MetricField(metric_mri=SessionMRI.SESSION.value, alias="oldest", op="min_timestamp"),
         ]
 
-        group_by = [
-            Column("project_id"),
-            Column(release_column_name),
-        ]
-
-        where_clause = [
-            Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(
-                Column("metric_id"),
-                Op.EQ,
-                resolve(USE_CASE_ID, org_id, SessionMRI.SESSION.value),
-            ),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, now),
-            Condition(Column(release_column_name), Op.IN, releases_ids),
-        ]
-
-        query = Query(
-            match=Entity(EntityKey.MetricsCounters.value),
-            select=query_cols,
-            where=where_clause,
-            groupby=group_by,
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=now,
+            groupby=groupby,
+            where=where,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            include_series=False,
+            include_totals=True,
         )
-        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
-        rows = raw_snql_query(
-            request,
-            referrer="release_health.metrics.get_oldest_health_data_for_releases",
-            use_cache=False,
-        )["data"]
 
-        result = {}
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
 
-        for row in rows:
-            result[
-                row["project_id"],
-                reverse_resolve(USE_CASE_ID, org_id, row[release_column_name]),
-            ] = row["oldest"]
-
-        return result
+        ret_val = {}
+        groups = raw_result["groups"]
+        for group in groups:
+            by = group.get("by")
+            proj_id = by.get("project_id")
+            release = by.get("release")
+            totals = group.get("totals")
+            ret_val[(proj_id, release)] = totals["oldest"]
+        return ret_val
 
     def get_project_releases_count(
         self,
