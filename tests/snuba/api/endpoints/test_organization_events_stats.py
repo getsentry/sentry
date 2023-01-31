@@ -1304,6 +1304,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
+    @pytest.mark.xfail(
+        reason="The response.data[Other] returns 15 locally and returns 16 or 15 remotely."
+    )
     def test_tag_with_conflicting_function_alias_with_other_single_grouping(self):
         event_data = [
             {
