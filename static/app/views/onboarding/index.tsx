@@ -37,7 +37,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   projects: Project[];
 };
 
-function getOrganizationOnboardingSteps(heartbeatFooter: boolean): StepDescriptor[] {
+function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDescriptor[] {
   return [
     {
       id: 'welcome',
@@ -46,7 +46,7 @@ function getOrganizationOnboardingSteps(heartbeatFooter: boolean): StepDescripto
       cornerVariant: 'top-right',
     },
     {
-      ...(heartbeatFooter
+      ...(singleSelectPlatform
         ? {
             id: 'select-platform',
             title: t('Select platform'),
@@ -90,7 +90,11 @@ function Onboarding(props: Props) {
     'onboarding-heartbeat-footer'
   );
 
-  const onboardingSteps = getOrganizationOnboardingSteps(heartbeatFooter);
+  const singleSelectPlatform = !!props.organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+
+  const onboardingSteps = getOrganizationOnboardingSteps(singleSelectPlatform);
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 

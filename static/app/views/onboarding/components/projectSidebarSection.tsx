@@ -15,7 +15,6 @@ import testableTransition from 'sentry/utils/testableTransition';
 type Props = {
   activeProject: Project | null;
   checkProjectHasFirstEvent: (project: Project) => boolean;
-  hasHeartbeatFooter: boolean;
   projects: Project[];
   selectProject: (newProjectId: string) => void;
   // A map from selected platform keys to the projects created by onboarding.

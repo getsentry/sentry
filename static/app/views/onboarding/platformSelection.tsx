@@ -18,6 +18,7 @@ export function PlatformSelection(props: StepProps) {
   );
 
   const [clientState] = usePersistedOnboardingState();
+
   useEffect(() => {
     if (clientState) {
       setSelectedPlatform(clientState.selectedPlatforms[0]);

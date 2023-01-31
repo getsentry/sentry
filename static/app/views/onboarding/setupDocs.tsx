@@ -120,6 +120,9 @@ function SetupDocs({
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
   );
+  const singleSelectPlatform = !!organization?.features.includes(
+    'onboarding-remove-multiselect-platform'
+  );
 
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
@@ -256,7 +259,7 @@ function SetupDocs({
   return (
     <Fragment>
       <Wrapper>
-        {!heartbeatFooter && (
+        {!singleSelectPlatform && (
           <SidebarWrapper>
             <ProjectSidebarSection
               projects={projects}
@@ -434,12 +437,12 @@ const MainContent = styled('div')`
 // the number icon will be space(2) + 30px to the left of the margin of center column
 // so we need to offset the right margin by that much
 // also hide the sidebar if the screen is too small
-const SidebarWrapper = styled('div')<{hasHeartbeatFooter: boolean}>`
+const SidebarWrapper = styled('div')`
   margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
   @media (max-width: 1150px) {
     display: none;
   }
-  flex-basis: ${p => (p.hasHeartbeatFooter ? '256px' : '240px')};
+  flex-basis: 240px;
   flex-grow: 0;
   flex-shrink: 0;
   min-width: 240px;
