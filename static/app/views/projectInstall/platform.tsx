@@ -25,6 +25,7 @@ import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
 
 type Props = {
   api: Client;
@@ -91,7 +92,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
   }
 
   render() {
-    const {organization, params} = this.props;
+    const {params, organization} = this.props;
     const {projectId} = params;
 
     const platform = platforms.find(p => p.id === params.platform);
@@ -104,6 +105,9 @@ class ProjectInstallPlatform extends Component<Props, State> {
     const performanceOverviewLink = `/organizations/${organization.slug}/performance/`;
     const gettingStartedLink = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
     const platformLink = platform.link ?? undefined;
+    const showPerformancePrompt = performancePlatforms.includes(
+      platform.id as PlatformKey
+    );
 
     return (
       <Fragment>
@@ -151,7 +155,35 @@ class ProjectInstallPlatform extends Component<Props, State> {
             </Fragment>
           )}
 
-          {this.isGettingStarted && (
+          {this.isGettingStarted && showPerformancePrompt && (
+            <Feature
+              features={['performance-view']}
+              hookName="feature-disabled:performance-new-project"
+            >
+              {({hasFeature}) => {
+                if (hasFeature) {
+                  return null;
+                }
+                return (
+                  <StyledAlert type="info" showIcon>
+                    {t(
+                      `Your selected platform supports performance, but your organization does not have performance enabled.`
+                    )}
+                  </StyledAlert>
+                );
+              }}
+            </Feature>
+          )}
+
+          {this.isGettingStarted &&
+          !!organization?.features.includes('onboarding-heartbeat-footer') ? (
+            <HeartbeatFooter
+              projectSlug={projectId}
+              route={this.props.route}
+              router={this.props.router}
+              location={this.props.location}
+            />
+          ) : (
             <Projects
               key={`${organization.slug}-${projectId}`}
               orgId={organization.slug}
@@ -167,55 +199,29 @@ class ProjectInstallPlatform extends Component<Props, State> {
                       }
                     : {};
 
-                const showPerformancePrompt = performancePlatforms.includes(
-                  platform.id as PlatformKey
-                );
-
                 return (
-                  <Fragment>
-                    {showPerformancePrompt && (
-                      <Feature
-                        features={['performance-view']}
-                        hookName="feature-disabled:performance-new-project"
-                      >
-                        {({hasFeature}) => {
-                          if (hasFeature) {
-                            return null;
-                          }
-                          return (
-                            <StyledAlert type="info" showIcon>
-                              {t(
-                                `Your selected platform supports performance, but your organization does not have performance enabled.`
-                              )}
-                            </StyledAlert>
-                          );
-                        }}
-                      </Feature>
-                    )}
-
-                    <StyledButtonBar gap={1}>
-                      <Button
-                        priority="primary"
-                        busy={projectsLoading}
-                        to={{
-                          pathname: issueStreamLink,
-                          query: projectFilter,
-                          hash: '#welcome',
-                        }}
-                      >
-                        {t('Take me to Issues')}
-                      </Button>
-                      <Button
-                        busy={projectsLoading}
-                        to={{
-                          pathname: performanceOverviewLink,
-                          query: projectFilter,
-                        }}
-                      >
-                        {t('Take me to Performance')}
-                      </Button>
-                    </StyledButtonBar>
-                  </Fragment>
+                  <StyledButtonBar gap={1}>
+                    <Button
+                      priority="primary"
+                      busy={projectsLoading}
+                      to={{
+                        pathname: issueStreamLink,
+                        query: projectFilter,
+                        hash: '#welcome',
+                      }}
+                    >
+                      {t('Take me to Issues')}
+                    </Button>
+                    <Button
+                      busy={projectsLoading}
+                      to={{
+                        pathname: performanceOverviewLink,
+                        query: projectFilter,
+                      }}
+                    >
+                      {t('Take me to Performance')}
+                    </Button>
+                  </StyledButtonBar>
                 );
               }}
             </Projects>
