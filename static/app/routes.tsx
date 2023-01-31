@@ -19,11 +19,11 @@ import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList/container';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
-import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
@@ -179,8 +179,13 @@ function buildRoutes() {
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
+      {/* TODO: remove share/issue orgless url */}
       <Route
         path="/share/issue/:shareId/"
+        component={make(() => import('sentry/views/sharedGroupDetails'))}
+      />
+      <Route
+        path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
@@ -242,7 +247,7 @@ function buildRoutes() {
           <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
-            component={make(() => import('sentry/views/onboarding/onboarding'))}
+            component={make(() => import('sentry/views/onboarding'))}
           />
         </Route>
       ) : null}
@@ -252,10 +257,7 @@ function buildRoutes() {
         key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
-        <Route
-          path=":step/"
-          component={make(() => import('sentry/views/onboarding/onboarding'))}
-        />
+        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
     </Fragment>
   );
@@ -944,16 +946,7 @@ function buildRoutes() {
         <Route
           path=":orgId/"
           name={t('Organization')}
-          component={withDomainRedirect(NoOp, {
-            redirect: [
-              {
-                // If /settings/:orgId/ is encountered, then redirect to /settings/organization/ rather than redirecting
-                // to /settings/.
-                from: '/settings/:orgId/',
-                to: '/settings/organization/',
-              },
-            ],
-          })}
+          component={withDomainRedirect(NoOp)}
           key="org-settings"
         >
           {orgSettingsRoutes}
@@ -1697,70 +1690,54 @@ function buildRoutes() {
       <Fragment>
         <IndexRoute
           component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupEventDetails'))
+            make(() => import('sentry/views/issueDetails/groupEventDetails'))
           )}
         />
         <Route
           path={TabPaths[Tab.REPLAYS]}
-          component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupReplays'))
-          )}
+          component={hoc(make(() => import('sentry/views/issueDetails/groupReplays')))}
         />
         <Route
           path={TabPaths[Tab.ACTIVITY]}
-          component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupActivity'))
-          )}
+          component={hoc(make(() => import('sentry/views/issueDetails/groupActivity')))}
         />
         <Route
           path={TabPaths[Tab.EVENTS]}
-          component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupEvents'))
-          )}
+          component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
         />
         <Route
           path={TabPaths[Tab.TAGS]}
-          component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupTags'))
-          )}
+          component={hoc(make(() => import('sentry/views/issueDetails/groupTags')))}
         />
         <Route
           path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupTagValues')
-          )}
+          component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
         />
         <Route
           path={TabPaths[Tab.USER_FEEDBACK]}
           component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupUserFeedback'))
+            make(() => import('sentry/views/issueDetails/groupUserFeedback'))
           )}
         />
         <Route
           path={TabPaths[Tab.ATTACHMENTS]}
           component={hoc(
-            make(
-              () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
-            )
+            make(() => import('sentry/views/issueDetails/groupEventAttachments'))
           )}
         />
         <Route
           path={TabPaths[Tab.SIMILAR_ISSUES]}
           component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupSimilarIssues'))
+            make(() => import('sentry/views/issueDetails/groupSimilarIssues'))
           )}
         />
         <Route
           path={TabPaths[Tab.MERGED]}
-          component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/groupMerged'))
-          )}
+          component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
         />
         <Route
           path={TabPaths[Tab.GROUPING]}
-          component={hoc(
-            make(() => import('sentry/views/organizationGroupDetails/grouping'))
-          )}
+          component={hoc(make(() => import('sentry/views/issueDetails/grouping')))}
         />
       </Fragment>
     );
@@ -1778,9 +1755,7 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/organizations/:orgId/issues/:groupId/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/organizationGroupDetails'))
-        )}
+        component={withDomainRedirect(make(() => import('sentry/views/issueDetails')))}
         key="org-issues-group-id"
       >
         {issueDetailsChildRoutes({forCustomerDomain: false})}
@@ -1788,9 +1763,7 @@ function buildRoutes() {
       {usingCustomerDomain ? (
         <Route
           path="/issues/:groupId/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/organizationGroupDetails'))
-          )}
+          component={withDomainRequired(make(() => import('sentry/views/issueDetails')))}
           key="orgless-issues-group-id-route"
         >
           {issueDetailsChildRoutes({forCustomerDomain: true})}
@@ -1946,16 +1919,7 @@ function buildRoutes() {
       <Route
         path="/:orgId/:projectId/getting-started/"
         component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted')),
-          {
-            redirect: [
-              {
-                // If /:orgId/:projectId/getting-started/* is encountered, then redirect to /getting-started/:projectId/*
-                from: '/:orgId/:projectId/getting-started/',
-                to: '/getting-started/:projectId/',
-              },
-            ],
-          }
+          make(() => import('sentry/views/projectInstall/gettingStarted'))
         )}
         key="org-getting-started"
       >

@@ -1,5 +1,5 @@
-import type {IssueCategory, ResolutionStatus} from 'sentry/types';
-import {Tab} from 'sentry/views/organizationGroupDetails/types';
+import type {IssueCategory, IssueType, ResolutionStatus} from 'sentry/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
@@ -9,6 +9,7 @@ type RuleViewed = {
 type IssueDetailsWithAlert = {
   group_id: number;
   issue_category: IssueCategory;
+  issue_type: IssueType;
   project_id: number;
   /** The time that the alert was initially fired. */
   alert_date?: string;
@@ -97,6 +98,7 @@ export type TeamInsightsEventParameters = {
     rule_id: string;
   };
   'project_detail.change_chart': {chart_index: number; metric: string};
+  'project_detail.open_anr_issues': {};
   'project_detail.open_discover': {};
   'project_detail.open_issues': {};
   'project_detail.performance_tour.advance': BaseTour;
@@ -149,6 +151,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
+  'project_detail.open_anr_issues': 'Project Detail: Open issues from ANR rate scorecard',
   'project_detail.change_chart': 'Project Detail: Change Chart',
   'project_detail.performance_tour.advance': 'Project Detail: Performance Tour Advance',
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',

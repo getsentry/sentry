@@ -17,9 +17,9 @@ from snuba_sdk import (
     Query,
     Request,
 )
-from snuba_sdk.conditions import Condition, ConditionGroup, Op
+from snuba_sdk.conditions import Condition, ConditionGroup, Op, Or
 from snuba_sdk.entity import get_required_time_column
-from snuba_sdk.legacy import parse_condition
+from snuba_sdk.legacy import is_condition, parse_condition
 from snuba_sdk.query import SelectableExpression
 
 from sentry.constants import DataCategory
@@ -169,7 +169,6 @@ class SnubaTSDB(BaseTSDB):
             "group_id",
             None,
             [],
-            # [["arrayJoin", "group_ids", "group_id"]],
             [Function("arrayJoin", [Column("group_ids")], "group_id")],
         ),
         TSDBModel.release: SnubaModelQuerySettings(
@@ -275,6 +274,22 @@ class SnubaTSDB(BaseTSDB):
         jitter_value=None,
     ):
         if model in self.non_outcomes_snql_query_settings:
+            # no way around having to explicitly map legacy condition format to SnQL since this function
+            # is used everywhere that expects `conditions` to be legacy format
+            parsed_conditions = []
+            for cond in conditions or ():
+                if not is_condition(cond):
+                    or_conditions = []
+                    for or_cond in cond:
+                        or_conditions.append(parse_condition(or_cond))
+
+                    if len(or_conditions) > 1:
+                        parsed_conditions.append(Or(or_conditions))
+                    else:
+                        parsed_conditions.extend(or_conditions)
+                else:
+                    parsed_conditions.append(parse_condition(cond))
+
             return self.__get_data_snql(
                 model,
                 keys,
@@ -285,9 +300,7 @@ class SnubaTSDB(BaseTSDB):
                 "count" if aggregation == "count()" else aggregation,
                 group_on_model,
                 group_on_time,
-                # no way around having to explicitly map legacy condition format to SnQL since this function
-                # is used everywhere that expects `conditions` to be legacy format
-                [parse_condition(c) for c in conditions] if conditions is not None else [],
+                parsed_conditions,
                 use_cache,
                 jitter_value,
                 manual_group_on_time=(
@@ -322,7 +335,7 @@ class SnubaTSDB(BaseTSDB):
         aggregation: str = "count",
         group_on_model: bool = True,
         group_on_time: bool = False,
-        conditions: Optional[Sequence[ConditionGroup]] = None,
+        conditions: Optional[ConditionGroup] = None,
         use_cache: bool = False,
         jitter_value: Optional[int] = None,
         manual_group_on_time: bool = False,
