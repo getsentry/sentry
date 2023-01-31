@@ -126,9 +126,7 @@ class AuthLoginView(BaseView):
 
     def _handle_login(self, request: Request, user, organization: Optional[Organization]):
         login(request, user, organization_id=organization.id if organization else None)
-        self.determine_active_organization(
-            request,
-        )
+        self.determine_active_organization(request)
 
     def handle_basic_auth(self, request: Request, **kwargs):
         op = request.POST.get("op")
@@ -141,9 +139,13 @@ class AuthLoginView(BaseView):
         )
 
         if request.method == "GET" and request.subdomain and org_exists:
-            url = reverse("sentry-auth-organization", args=[request.subdomain])
-            # Only redirect to /auth/login/orgslug/ if the current requesting path is not the same.
-            if request.path_info != url:
+            urls = [
+                reverse("sentry-auth-organization", args=[request.subdomain]),
+                reverse("sentry-register"),
+            ]
+            # Only redirect if the URL is not register or login paths.
+            if request.path_info not in urls:
+                url = urls[0]
                 url_prefix = generate_organization_url(request.subdomain)
                 url = absolute_uri(url, url_prefix=url_prefix)
                 return HttpResponseRedirect(url)
@@ -176,7 +178,6 @@ class AuthLoginView(BaseView):
 
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
             self._handle_login(request, user, organization)
 
             # can_register should only allow a single registration
@@ -199,6 +200,7 @@ class AuthLoginView(BaseView):
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
+                self.determine_active_organization(request, invite_helper.organization.slug)
                 response = self.redirect_to_org(request)
                 remove_invite_details_from_session(request)
 

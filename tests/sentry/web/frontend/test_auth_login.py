@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import cached_property
 from unittest import mock
 from urllib.parse import urlencode
@@ -6,6 +7,7 @@ import pytest
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import urlquote
 
 from sentry import newsletter, options
@@ -224,6 +226,7 @@ class AuthLoginTest(TestCase):
         # Invitation was accepted
         assert len(invite_helper.accept_invite.mock_calls) == 1
         assert resp.status_code == 302
+        assert "/organizations/new/" in resp["Location"]
 
     def test_register_renders_correct_template(self):
         options.set("auth.allow-registration", True)
@@ -268,6 +271,35 @@ class AuthLoginTest(TestCase):
         )
         assert resp.status_code == 302
         assert len(invite_helper.accept_invite.mock_calls) == 1
+
+    def test_register_new_user_accepts_invite_using_session(self):
+        invite = self.create_member(
+            email="member@example.com",
+            token="abcdef",
+            token_expires_at=timezone.now() + timedelta(hours=24),
+            organization_id=self.organization.id,
+        )
+        self.session["can_register"] = True
+        self.session["invite_token"] = invite.token
+        self.session["invite_member_id"] = invite.id
+        self.save_session()
+
+        self.client.get(self.path)
+        resp = self.client.post(
+            self.path,
+            {
+                "username": "member@example.com",
+                "password": "foobar",
+                "name": "Foo Bar",
+                "op": "register",
+            },
+        )
+        assert resp.status_code == 302
+        assert f"/organizations/{self.organization.slug}/issues/" in resp["Location"]
+        invite.refresh_from_db()
+        assert invite.user_id
+        assert invite.token is None
+        assert invite.user.username == "member@example.com"
 
     def test_redirects_to_relative_next_url(self):
         next = "/welcome"
