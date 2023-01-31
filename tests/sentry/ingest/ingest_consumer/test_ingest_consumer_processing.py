@@ -202,9 +202,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
 
 @pytest.mark.django_db
-def test_deobfuscate_view_hierarchy(default_project, task_runner, monkeypatch, django_cache):
-    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
-
+def test_deobfuscate_view_hierarchy(default_project, task_runner):
     payload = get_normalized_event(
         {
             "message": "hello world",
