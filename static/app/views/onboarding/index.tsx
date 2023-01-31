@@ -91,7 +91,7 @@ function Onboarding(props: Props) {
   );
 
   const singleSelectPlatform = !!props.organization?.features.includes(
-    'onboarding-heartbeat-footer'
+    'onboarding-remove-multiselect-platform'
   );
 
   const onboardingSteps = getOrganizationOnboardingSteps(singleSelectPlatform);

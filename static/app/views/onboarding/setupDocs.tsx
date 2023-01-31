@@ -120,6 +120,7 @@ function SetupDocs({
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
   );
+
   const singleSelectPlatform = !!organization?.features.includes(
     'onboarding-remove-multiselect-platform'
   );
