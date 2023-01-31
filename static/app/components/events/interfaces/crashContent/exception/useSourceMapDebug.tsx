@@ -1,5 +1,6 @@
 import uniqBy from 'lodash/uniqBy';
 
+import {isFrameFilenamePathlike} from 'sentry/components/events/interfaces/spans/utils';
 import type {ExceptionValue, Frame, Organization, PlatformType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
@@ -177,8 +178,10 @@ export function getUniqueFilesFromException(
     .map<[Frame, number]>((frame, idx) => [frame, idx])
     .filter(
       ([frame]) =>
+        // Only debug inApp frames
         frame.inApp &&
-        frame.filename &&
+        // Only debug frames with a filename that are not <anonymous> etc.
+        !isFrameFilenamePathlike(frame) &&
         // Line number might not work for non-javascript languages
         defined(frame.lineNo)
     )

@@ -8,10 +8,11 @@ import set from 'lodash/set';
 import moment from 'moment';
 
 import {Organization} from 'sentry/types';
-import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
+import {EntrySpans, EntryType, EventTransaction, Frame} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
+import {getFileExtension} from 'sentry/utils/fileExtension';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
@@ -500,6 +501,25 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.remix',
     'sentry.javascript.svelte',
   ].includes(sdkName.toLowerCase());
+}
+
+const fileNameBlocklist = ['@webkit-masked-url'];
+export function isFrameFilenamePathlike(frame: Frame): boolean {
+  let filename = '';
+  try {
+    filename = new URL(frame.absPath ?? '').pathname.split('/').reverse()[0];
+  } catch {
+    // do nothing
+  }
+
+  return (
+    // If all filenames are anonymous, we do not want to show this alert
+    (frame.filename === '<anonymous>' && frame.inApp) ||
+    // If all function names are on the blocklist, we do not want to show this alert
+    fileNameBlocklist.includes(frame.function ?? '') ||
+    // If all absolute paths do not have a file extension, we do not want to show this alert
+    (!!frame.absPath && !getFileExtension(filename))
+  );
 }
 
 // Durationless ops from: https://github.com/getsentry/sentry-javascript/blob/0defcdcc2dfe719343efc359d58c3f90743da2cd/packages/apm/src/integrations/tracing.ts#L629-L688
