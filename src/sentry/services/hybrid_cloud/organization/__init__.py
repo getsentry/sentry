@@ -105,6 +105,10 @@ class OrganizationService(InterfaceWithLifecycle):
     def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
         pass
 
+    @abstractmethod
+    def get_all_org_roles(self, organization_member: ApiOrganizationMember) -> List[str]:
+        pass
+
 
 def impl_with_db() -> OrganizationService:
     from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
@@ -134,6 +138,7 @@ class ApiTeam:
     organization_id: int = -1
     slug: str = ""
     actor_id: int | None = None
+    org_role: str = ""
 
     def class_name(self) -> str:
         return "Team"
