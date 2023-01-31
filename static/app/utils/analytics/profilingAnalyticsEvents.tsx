@@ -11,6 +11,9 @@ interface EventPayloadWithProjectDetails {
 }
 
 export type ProfilingEventParameters = {
+  // ui interactions
+  'profiling_ui_events.transaction_hovercard_view': {};
+  // views & nav
   'profiling_views.give_feedback_action': {};
   'profiling_views.go_to_flamegraph': {source: ProfilingEventSource};
   'profiling_views.go_to_transaction': {
@@ -40,4 +43,6 @@ export const profilingEventMap: Record<EventKey, string> = {
   'profiling_views.onboarding_action': 'Profiling Actions: Onboarding Action',
   'profiling_views.give_feedback_action': 'Profiling Actions: Feedback Action',
   'profiling_views.visit_discord_channel': 'Profiling Actions: Visit Discord Channel',
+  'profiling_ui_events.transaction_hovercard_view':
+    'Profiling Actions: Viewed Transaction Hovercard',
 };
