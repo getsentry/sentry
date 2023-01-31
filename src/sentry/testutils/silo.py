@@ -170,7 +170,11 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
 
 def reset_test_role(role: str):
     with connections["default"].cursor() as connection:
-        connection.execute(f"DROP ROLE IF EXISTS {role}")
+        connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
+        if connection.fetchone():
+            connection.execute(f"REASSIGN OWNED BY {role} TO postgres")
+            connection.execute(f"DROP OWNED BY {role} CASCADE")
+            connection.execute(f"DROP ROLE {role}")
         connection.execute(f"CREATE ROLE {role}")
         connection.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
         connection.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")

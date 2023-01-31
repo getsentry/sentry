@@ -25,6 +25,11 @@ class UserTest(TestCase):
             User.objects.filter(id=user.id).delete()
         assert User.objects.count() == 1
 
+    def test_hybrid_cloud_deletion(self):
+        pass
+        # with outbox_runner():
+        #     pass
+
     def test_get_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
