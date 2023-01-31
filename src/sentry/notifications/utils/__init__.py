@@ -16,6 +16,7 @@ from typing import (
     Union,
     cast,
 )
+from urllib.parse import urlparse
 
 from django.db.models import Count
 from django.utils.http import urlencode
@@ -48,6 +49,7 @@ from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     PerformanceProblem,
@@ -390,11 +392,20 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
     def to_dict(self):
         return {
             "transaction_name": get_span_evidence_value_problem(self.problem, False),
-            "repeating_spans": get_span_evidence_value(self.repeating_spans),
+            "repeating_spans": self.path_prefix,
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
             if self.problem.offender_span_ids
             else "",
         }
+
+    @property
+    def path_prefix(self):
+        if not self.repeating_spans or len(self.repeating_spans) == 0:
+            return ""
+
+        url = get_url_from_span(self.repeating_spans)
+        parsed_url = urlparse(url)
+        return f"{parsed_url.path}[Parameters]"
 
 
 def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
