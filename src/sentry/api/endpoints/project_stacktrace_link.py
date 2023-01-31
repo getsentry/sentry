@@ -205,11 +205,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             line_no,
         )
         if git_blame_list:
-            latest_commit = git_blame_list[0]
-            for blame in git_blame_list:
-                if blame["commit"]["committedDate"] > latest_commit["commit"]["committedDate"]:
-                    latest_commit = blame
-            commit_sha = latest_commit["commit"]["oid"]
+            git_blame_list.sort(key=lambda blame: blame["commit"]["committedDate"])
+            commit_sha = git_blame_list[-1]["commit"]["oid"]
         if not commit_sha:
             logger.warning(
                 "Failed to get commit from git blame.",
@@ -322,23 +319,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 elif codecov_enabled and codecov_cache is not False:
                     # Get Codecov data
                     try:
-                        ref = (
-                            ctx["commit_id"]
-                            if ctx["commit_id"]
-                            else current_config["config"]["defaultBranch"]
-                        )
-
+                        has_error_commit = True if ctx.get("commit_id") else False
+                        ref = ctx["commit_id"] if has_error_commit else None
                         # Get commit sha from Git blame
-                        codecov_commit_sha_from_git_blame_enabled = features.has(
+                        use_git_blame_sha = features.has(
                             "organizations:codecov-commit-sha-from-git-blame",
                             project.organization,
                             actor=request.user,
                         )
                         gh_integrations = integrations.filter(provider="github")
                         should_get_commit_sha = (
-                            codecov_commit_sha_from_git_blame_enabled
-                            and len(gh_integrations) > 0
-                            and ref == current_config["config"]["defaultBranch"]
+                            use_git_blame_sha and gh_integrations and not has_error_commit
                         )
 
                         if should_get_commit_sha:
@@ -346,31 +337,27 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 integration_installation = gh_integrations[0].get_installation(
                                     organization_id=project.organization_id
                                 )
-                                line_no = ctx.get("line_no")
-                                if line_no:
-                                    ref = self.get_latest_commit_sha_from_blame(
-                                        integration_installation,
-                                        int(line_no),
-                                        filepath,
-                                        current_config["repository"],
-                                        current_config["config"]["defaultBranch"],
-                                    )
+                                line_no = ctx.get("line_no", 0)
+                                ref = self.get_latest_commit_sha_from_blame(
+                                    integration_installation,
+                                    line_no,
+                                    filepath,
+                                    current_config["repository"],
+                                    current_config["config"]["defaultBranch"],
+                                )
                             except Exception:
                                 logger.exception(
                                     "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                                 )
 
-                        if not codecov_commit_sha_from_git_blame_enabled or (
-                            codecov_commit_sha_from_git_blame_enabled
-                            and ref != current_config["config"]["defaultBranch"]
-                        ):
+                        # Call codecov API if codecov-commit-sha-from-git-blame flag is enabled
+                        # or getting ref from git blame was successful
+                        if not use_git_blame_sha or ref:
                             lineCoverage, codecovUrl = get_codecov_data(
                                 repo=current_config["config"]["repoName"],
                                 service=current_config["config"]["provider"]["key"],
-                                ref=ref,
-                                ref_type="branch"
-                                if ref == current_config["config"]["defaultBranch"]
-                                else "sha",
+                                ref=ref if ref else current_config["config"]["defaultBranch"],
+                                ref_type="sha" if ref else "branch",
                                 path=current_config["outcome"]["sourcePath"],
                             )
                             if lineCoverage and codecovUrl:
