@@ -188,7 +188,7 @@ def make_error_event(request, project, platform):
     return event
 
 
-def make_performance_event(project):
+def make_performance_event(project, sample_name: str):
     with override_options(
         {
             "performance.issues.all.problem-detection": 1.0,
@@ -197,7 +197,7 @@ def make_performance_event(project):
     ):
         perf_data = dict(
             load_data(
-                "transaction-n-plus-one",
+                sample_name,
                 timestamp=datetime(2017, 9, 6, 0, 0),
             )
         )
