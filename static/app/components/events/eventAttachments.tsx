@@ -18,7 +18,6 @@ import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {IssueAttachment} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
@@ -94,7 +93,6 @@ const InlineEventAttachment = ({
 
 export const EventAttachments = ({event, projectSlug}: EventAttachmentsProps) => {
   const organization = useOrganization();
-  const location = useLocation();
   const {
     data: attachments = [],
     isError,
@@ -145,7 +143,6 @@ export const EventAttachments = ({event, projectSlug}: EventAttachmentsProps) =>
           orgSlug={organization.slug}
           projectSlug={projectSlug}
           groupId={event.groupID!}
-          location={location}
         />
       )}
 
