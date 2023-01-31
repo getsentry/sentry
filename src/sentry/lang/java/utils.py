@@ -43,11 +43,19 @@ def get_proguard_mapper(uuid: str, project: Project):
 
 
 def deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierarchy):
+    """
+    Deobfuscates a view hierarchy in-place.
+
+    If we're unable to fetch a ProGuard uuid or unable to init the mapper,
+    then the view hierarchy remains unmodified.
+    """
     proguard_uuid = get_proguard_uuid(event_data)
     if proguard_uuid is None:
         return
 
     mapper = get_proguard_mapper(proguard_uuid, project)
+    if mapper is None:
+        return
 
     windows_to_deobfuscate = [*view_hierarchy.get("windows")]
     while windows_to_deobfuscate:
