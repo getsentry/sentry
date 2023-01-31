@@ -13,9 +13,9 @@ from sentry.testutils.performance_issues.event_generators import (
 )
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
+from sentry.utils.performance_issues.detectors import NPlusOneAPICallsDetector
 from sentry.utils.performance_issues.performance_detection import (
     DetectorType,
-    NPlusOneAPICallsDetector,
     PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
