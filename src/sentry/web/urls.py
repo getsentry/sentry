@@ -550,7 +550,7 @@ urlpatterns += [
     # Discover
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
-    url(r"^join-request/", react_page_view, name="join-request"),
+    url(r"^join-request/", GenericReactPageView.as_view(auth_required=False), name="join-request"),
     # Activity
     url(r"^activity/", react_page_view, name="activity"),
     # Stats
