@@ -25,11 +25,7 @@ import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-<<<<<<< HEAD
 import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
-=======
-import {HeartbeatFooter} from 'sentry/views/projectInstall/heartbeatFooter';
->>>>>>> master
 
 type Props = {
   api: Client;
@@ -231,16 +227,6 @@ class ProjectInstallPlatform extends Component<Props, State> {
             </Projects>
           )}
         </div>
-        {this.isGettingStarted &&
-          organization.features?.includes('onboarding-heartbeat-footer') && (
-            <HeartbeatFooter
-              projectSlug={projectId}
-              issueStreamLink={issueStreamLink}
-              performanceOverviewLink={performanceOverviewLink}
-              route={this.props.route}
-              router={this.props.router}
-            />
-          )}
       </Fragment>
     );
   }
