@@ -1925,7 +1925,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 1
 
-        results = data[",".join([self.transaction.transaction, "0"])]
+        results = data[",".join([self.transaction.transaction, "120000"])]
         assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
@@ -2348,7 +2348,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
         data = response.data
-        assert len(data) == 2
+        assert len(data) == 3
 
         # these are the timestamps corresponding to the events stored
         timestamps = [
