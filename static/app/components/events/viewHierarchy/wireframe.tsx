@@ -44,7 +44,7 @@ export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
   });
 }
 
-function getMaxDimensions(coordinates) {
+export function getMaxDimensions(coordinates) {
   let maxWidth = 0;
   let maxHeight = 0;
   coordinates.forEach(hierarchy => {
@@ -59,7 +59,7 @@ function getMaxDimensions(coordinates) {
   };
 }
 
-function calculateScale(
+export function calculateScale(
   bounds: {height: number; width: number},
   maxCoordinateDimensions: {height: number; width: number},
   border: {x: number; y: number}
