@@ -130,8 +130,6 @@ def set_tags(scope: Scope, result: JSONData) -> None:
         scope.set_tag(
             "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
         )
-    if result.get("codecov") and result["codecov"].get("attemptedUrl"):
-        scope.set_tag("codecov.attempted_url", result["codecov"]["attemptedUrl"])
 
 
 @region_silo_endpoint
@@ -273,6 +271,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
+                scope.set_tag("codecov.enabled", codecov_enabled)
                 # Check the cache and skip querying Codecov if a query within the last hour found no integration.
                 codecov_cache = cache.get(cache_key.format(project_id=project.id))
                 if codecov_enabled and codecov_cache is False:
@@ -309,7 +308,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
                     # We don't expect coverage data if the integration does not exist (404)
-                    scope.set_tag("codecov.enabled", True)
 
             try:
                 set_tags(scope, result)
