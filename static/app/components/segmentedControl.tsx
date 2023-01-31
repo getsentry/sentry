@@ -231,6 +231,13 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
       : `calc(${p.theme.borderRadius} - 1px)`};
   box-shadow: 0 0 2px rgba(43, 34, 51, 0.16);
 
+  input.focus-visible ~ & {
+    box-shadow: ${p =>
+      p.priority === 'primary'
+        ? `0 0 0 3px ${p.theme.focus}`
+        : `0 0 0 2px ${p.theme.focusBorder}`};
+  }
+
   ${p =>
     p.priority === 'primary' &&
     `
@@ -244,13 +251,6 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
       right: -1px;
     }
   `}
-
-  input.focus-visible ~ & {
-    box-shadow: ${p =>
-      p.priority === 'primary'
-        ? `0 0 0 3px ${p.theme.focus}`
-        : `0 0 0 2px ${p.theme.focusBorder}`};
-  }
 `;
 
 const LabelWrap = styled('span')`
