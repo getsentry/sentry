@@ -80,16 +80,22 @@ class TeamDetailsEndpoint(TeamEndpoint):
                                owners can set this value.
         :auth: required
         """
-        if (
-            request.data.get("orgRole")
-            and roles.get_top_dog() not in request.access.get_organization_roles()
-        ):
-            return Response(
-                {
-                    "detail": f"You must have the role of {roles.get_top_dog().id} to perform this action."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        if request.data.get("orgRole"):
+            if team.idp_provisioned:
+                return Response(
+                    {
+                        "detail": "This team is managed through your organization's identity provider."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            elif roles.get_top_dog() not in request.access.get_organization_roles():
+                return Response(
+                    {
+                        "detail": f"You must have the role of {roles.get_top_dog().id} to perform this action."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():

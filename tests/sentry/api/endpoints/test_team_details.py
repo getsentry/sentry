@@ -138,6 +138,22 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
+    def test_put_team_org_role__idp_provisioned_team(self):
+        team = self.create_team(idp_provisioned=True)
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        response = self.get_error_response(
+            team.organization.slug, team.slug, org_role="owner", status_code=403
+        )
+
+        assert (
+            response.data["detail"]
+            == "This team is managed through your organization's identity provider."
+        )
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
 
 @region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
