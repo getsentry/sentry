@@ -5,6 +5,9 @@ import {useResizeObserver} from '@react-aria/utils';
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
 
+const RECT_FILL_ALPHA = 0.005;
+const RECT_OUTLINE_ALPHA = 1;
+
 type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
 
 export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
@@ -13,11 +16,7 @@ export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
 
     const nodesToProcess = [hierarchy];
     while (nodesToProcess.length) {
-      const node = nodesToProcess.pop();
-
-      if (!node) {
-        continue;
-      }
+      const node = nodesToProcess.pop()!;
 
       // Fetch coordinates off the current node
       newHierarchy.push({
@@ -32,8 +31,8 @@ export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
         const newChildren =
           node.children?.map(child => ({
             ...child,
-            x: child.x + (node.x ?? 0),
-            y: child.y + (node.y ?? 0),
+            x: (child.x ?? 0) + (node.x ?? 0),
+            y: (child.y ?? 0) + (node.y ?? 0),
           })) ?? [];
 
         nodesToProcess.push(...newChildren);
@@ -68,11 +67,11 @@ function Wireframe({hierarchy}) {
           context.rect(x + xOffset, y + yOffset, width, height);
 
           // Draw the rectangles
-          context.globalAlpha = 0.005;
+          context.globalAlpha = RECT_FILL_ALPHA;
           context.fill();
 
           // Draw the outlines
-          context.globalAlpha = 1;
+          context.globalAlpha = RECT_OUTLINE_ALPHA;
           context.stroke();
         });
       });

@@ -2,7 +2,12 @@ import {MouseEventHandler, useState} from 'react';
 
 import {defined} from 'sentry/utils';
 
-export function useMousePan({initialXOffset, initialYOffset}) {
+type UseMousePanProps = {
+  initialXOffset: number;
+  initialYOffset: number;
+};
+
+export function useMousePan({initialXOffset, initialYOffset}: UseMousePanProps) {
   const [dragStartCoords, setDragStartCoords] = useState<{x: number; y: number} | null>(
     null
   );

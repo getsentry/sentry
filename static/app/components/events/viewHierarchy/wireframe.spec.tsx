@@ -25,11 +25,11 @@ const MOCK_HIERARCHY = [
     ],
   },
   {x: 10, y: 0, width: 20, height: 20},
-];
+] as ViewHierarchyWindow[];
 
 describe('View Hierarchy Wireframe', function () {
   it('properly calculates coordinates', function () {
-    const actual = getCoordinates(MOCK_HIERARCHY as ViewHierarchyWindow[]);
+    const actual = getCoordinates(MOCK_HIERARCHY);
 
     // One array for each root
     expect(actual).toEqual([
