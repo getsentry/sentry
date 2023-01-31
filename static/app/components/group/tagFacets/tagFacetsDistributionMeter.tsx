@@ -69,8 +69,7 @@ function TagFacetsDistributionMeter({
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const multiValueTag = segments.length > 1;
-  const [expanded, setExpanded] = useState<boolean>(multiValueTag && !!expandByDefault);
+  const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
   const topSegments = segments.slice(0, MAX_SEGMENTS);
 
@@ -87,7 +86,7 @@ function TagFacetsDistributionMeter({
       <Title>
         <TitleType>{title}</TitleType>
         <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
-        {multiValueTag && (
+        {
           <ExpandToggleButton
             borderless
             size="zero"
@@ -98,7 +97,7 @@ function TagFacetsDistributionMeter({
               title
             )}
           />
-        )}
+        }
       </Title>
     );
   }
@@ -237,10 +236,7 @@ function TagFacetsDistributionMeter({
     <TagSummary>
       <details open={expanded} onClick={e => e.preventDefault()}>
         <summary>
-          <TagHeader
-            clickable={multiValueTag}
-            onClick={() => multiValueTag && setExpanded(!expanded)}
-          >
+          <TagHeader clickable onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
             {renderSegments()}
           </TagHeader>
