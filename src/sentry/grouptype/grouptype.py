@@ -23,14 +23,15 @@ class GroupType:
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
-    def get_category_by_slug(self, slug: str):
-        return _group_type_registry[slug].category
+
+def get_group_types_by_category(category):
+    return [child.type_id for child in GroupType.__subclasses__() if child.category == category]
 
 
 @dataclass(frozen=True)
 class ErrorGroupType(GroupType):
     type_id = 1
-    slug = "ERROR"
+    slug = "error"
     description = "Error"
     category = GroupCategory.ERROR.value
     ignore_limit = 0
@@ -39,7 +40,7 @@ class ErrorGroupType(GroupType):
 @dataclass(frozen=True)
 class SlowDBQueryGroupType(GroupType):
     type_id = 1001
-    slug = "PERFORMANCE_SLOW_DB_QUERY"
+    slug = "performance_slow_db_query"
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
     ignore_limit = 100
@@ -48,7 +49,7 @@ class SlowDBQueryGroupType(GroupType):
 @dataclass(frozen=True)
 class PerformanceRenderBlockingAssetSpanGroupType(GroupType):
     type_id = 1004
-    slug = "PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN"
+    slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
 
@@ -56,7 +57,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(GroupType):
 @dataclass(frozen=True)
 class PerformanceNPlusOneGroupType(GroupType):
     type_id = 1006
-    slug = "PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
+    slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
 
@@ -64,7 +65,7 @@ class PerformanceNPlusOneGroupType(GroupType):
 @dataclass(frozen=True)
 class PerformanceConsecutiveDBQueriesGroupType(GroupType):
     type_id = 1007
-    slug = "PERFORMANCE_CONSECUTIVE_DB_QUERIES"
+    slug = "performance_consecutive_db_queries"
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
 
@@ -72,7 +73,7 @@ class PerformanceConsecutiveDBQueriesGroupType(GroupType):
 @dataclass(frozen=True)
 class PerformanceFileIOMainThreadGroupType(GroupType):
     type_id = 1008
-    slug = "PERFORMANCE_FILE_IO_MAIN_THREAD"
+    slug = "performance_file_io_main_thread"
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
 
@@ -80,7 +81,7 @@ class PerformanceFileIOMainThreadGroupType(GroupType):
 @dataclass(frozen=True)
 class PerformanceNPlusOneAPICallsGroupType(GroupType):
     type_id = 1010
-    slug = "PERFORMANCE_N_PLUS_ONE_API_CALLS"
+    slug = "performance_n_plus_one_api_calls"
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
 
@@ -88,7 +89,7 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
 @dataclass(frozen=True)
 class PerformanceMNPlusOneDBQueriesGroupType(GroupType):
     type_id = 1011
-    slug = "PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES"
+    slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
 
@@ -96,7 +97,7 @@ class PerformanceMNPlusOneDBQueriesGroupType(GroupType):
 @dataclass(frozen=True)
 class PerformanceUncompressedAssetsGroupType(GroupType):
     type_id = 1012
-    slug = "PERFORMANCE_UNCOMPRESSED_ASSETS"
+    slug = "performance_uncompressed_assets"
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
 
@@ -104,6 +105,6 @@ class PerformanceUncompressedAssetsGroupType(GroupType):
 @dataclass(frozen=True)
 class ProfileBlockedThreadGroupType(GroupType):
     type_id = 2000
-    slug = "PROFILE_BLOCKED_THREAD"
+    slug = "profile_blocked_thread"
     description = "Blocked Thread"
     category = GroupCategory.PROFILE.value
