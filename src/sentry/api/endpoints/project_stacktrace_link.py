@@ -337,10 +337,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 integration_installation = gh_integrations[0].get_installation(
                                     organization_id=project.organization_id
                                 )
-                                line_no = ctx.get("line_no", 0)
+                                line_no = ctx.get("line_no")
                                 ref = self.get_latest_commit_sha_from_blame(
                                     integration_installation,
-                                    line_no,
+                                    int(line_no) if line_no else 0,
                                     filepath,
                                     current_config["repository"],
                                     current_config["config"]["defaultBranch"],
