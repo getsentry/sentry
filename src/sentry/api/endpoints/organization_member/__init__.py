@@ -7,10 +7,12 @@ from rest_framework.request import Request
 
 from sentry import roles
 from sentry.api.exceptions import SentryAPIException, status
+from sentry.app import locks
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
 from sentry.roles.manager import Role, TeamRole
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class InvalidTeam(SentryAPIException):
@@ -25,26 +27,31 @@ def save_team_assignments(
     teams: List[Team] | None,
     teams_with_roles: List[Tuple[Team, str]] | None = None,
 ):
-    if teams_with_roles:
-        # Map will avoid O(n * n) search later
-        team_role_map = {team.slug: role_id for team, role_id in teams_with_roles}
-        target_teams = [team for team, _ in teams_with_roles]
-    elif teams:
-        team_role_map = {}
-        target_teams = teams
-    else:
-        team_role_map = {}
-        target_teams = []
-
-    new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
-
-    OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
-    OrganizationMemberTeam.objects.bulk_create(
-        [
-            OrganizationMemberTeam(organizationmember=organization_member, team=team, role=role)
-            for team, role in new_assignments
-        ]
+    # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
+    lock = locks.get(
+        f"org:member:{organization_member.id}", duration=5, name="save_team_assignment"
     )
+    with TimedRetryPolicy(10)(lock.acquire):
+        if teams_with_roles:
+            # Map will avoid O(n * n) search later
+            team_role_map = {team.slug: role_id for team, role_id in teams_with_roles}
+            target_teams = [team for team, _ in teams_with_roles]
+        elif teams:
+            team_role_map = {}
+            target_teams = teams
+        else:
+            team_role_map = {}
+            target_teams = []
+
+        new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
+
+        OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+        OrganizationMemberTeam.objects.bulk_create(
+            [
+                OrganizationMemberTeam(organizationmember=organization_member, team=team, role=role)
+                for team, role in new_assignments
+            ]
+        )
 
 
 def can_set_team_role(access: Access, team: Team, new_role: TeamRole) -> bool:
