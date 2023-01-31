@@ -135,10 +135,10 @@ class Access(abc.ABC):
             return cast(OrganizationRole, organization_roles.get(self.role))
         return None
 
-    def get_organization_roles(self) -> Iterable[OrganizationRole] | None:
+    def get_organization_roles(self) -> Iterable[OrganizationRole]:
         if self.roles is not None:
             return [cast(OrganizationRole, organization_roles.get(r)) for r in self.roles]
-        return None
+        return []
 
     @abc.abstractmethod
     def has_team_access(self, team: Team) -> bool:
@@ -221,7 +221,7 @@ class DbAccess(Access):
 
     @property
     def roles(self) -> Iterable[str] | None:
-        return self._member.get_all_roles() if self._member else None
+        return self._member.get_all_org_roles() if self._member else None
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:

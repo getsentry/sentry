@@ -84,7 +84,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         user = self.create_user("foo@example.com")
         self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
-        self.get_success_response(team.organization.slug, team.slug, org_role="owner")
+        self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
 
         team = Team.objects.get(id=team.id)
         assert team.org_role == "owner"
@@ -98,26 +98,31 @@ class TeamUpdateTest(TeamDetailsTestBase):
         )
         self.login_as(user)
 
-        self.get_success_response(team.organization.slug, team.slug, org_role="owner")
+        self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
 
         team = Team.objects.get(id=team.id)
         assert team.org_role == "owner"
 
-    def test_put_team_org_role__not_owner(self):
+    def test_put_team_org_role__member(self):
         team = self.team
         user = self.create_user("foo@example.com")
-        member = self.create_member(user=user, organization=self.organization, role="member")
+        self.create_member(user=user, organization=self.organization, role="member")
         self.login_as(user)
 
         response = self.get_error_response(
-            team.organization.slug, team.slug, org_role="owner", status_code=403
+            team.organization.slug, team.slug, orgRole="owner", status_code=403
         )
         assert response.data["detail"] == "You do not have permission to perform this action."
 
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
-        member.update(role="admin")
+    def test_put_team_org_role__admin(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="admin")
+        self.login_as(user)
+
         response = self.get_error_response(
             team.organization.slug, team.slug, orgRole="owner", status_code=403
         )
@@ -131,9 +136,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         user = self.create_user("foo@example.com")
         self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
-        self.get_error_response(
-            team.organization.slug, team.slug, org_role="onwer", status_code=400
-        )
+        self.get_error_response(team.organization.slug, team.slug, orgRole="onwer", status_code=400)
 
         team = Team.objects.get(id=team.id)
         assert not team.org_role
@@ -144,7 +147,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
         response = self.get_error_response(
-            team.organization.slug, team.slug, org_role="owner", status_code=403
+            team.organization.slug, team.slug, orgRole="owner", status_code=403
         )
 
         assert (
