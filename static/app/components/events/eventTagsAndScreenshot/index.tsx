@@ -47,11 +47,14 @@ export function EventTagsAndScreenshot({
   hasContext = false,
 }: Props) {
   const {tags = []} = event;
-  const {data: attachments} = useFetchEventAttachments({
-    orgSlug: organization.slug,
-    projectSlug,
-    eventId: event.id,
-  });
+  const {data: attachments} = useFetchEventAttachments(
+    {
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+    },
+    {enabled: !isShare}
+  );
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
   const screenshots =
     attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];

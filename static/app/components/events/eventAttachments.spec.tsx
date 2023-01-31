@@ -16,6 +16,14 @@ describe('EventAttachments', function () {
     event,
   };
 
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+      body: [],
+    });
+  });
+
   it('shows attachments limit reached notice', function () {
     render(<EventAttachments {...props} />, {context: routerContext});
 

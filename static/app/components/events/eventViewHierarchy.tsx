@@ -7,7 +7,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {tn} from 'sentry/locale';
-import {Event} from 'sentry/types';
+import {Event, IssueAttachment} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -32,19 +33,21 @@ function EventViewHierarchy({projectSlug, event}: Props) {
   );
   const viewHierarchies =
     attachments?.filter(attachment => attachment.type === 'event.view_hierarchy') ?? [];
-  const hierarchyMeta = viewHierarchies[0];
+  const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
 
   // There should be only one view hierarchy
   const {isLoading, data} = useQuery<string>(
     [
-      getAttachmentUrl({
-        attachment: hierarchyMeta,
-        eventId: hierarchyMeta.event_id,
-        orgId: organization.slug,
-        projectSlug,
-      }),
+      defined(hierarchyMeta)
+        ? getAttachmentUrl({
+            attachment: hierarchyMeta,
+            eventId: hierarchyMeta.event_id,
+            orgId: organization.slug,
+            projectSlug,
+          })
+        : '',
     ],
-    {staleTime: Infinity, enabled: !isEmpty(viewHierarchies)}
+    {staleTime: Infinity, enabled: defined(hierarchyMeta)}
   );
 
   // Memoize the JSON parsing because downstream hooks depend on

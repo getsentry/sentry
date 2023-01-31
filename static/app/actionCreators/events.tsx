@@ -20,6 +20,7 @@ import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatch
 import {QueryKey, useMutation, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Options = {
   organization: OrganizationSummary;
@@ -231,11 +232,15 @@ export const useFetchEventAttachments = (
   {orgSlug, projectSlug, eventId}: FetchEventAttachmentParameters,
   options: Partial<UseQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
+  const organization = useOrganization();
   return useQuery<FetchEventAttachmentResponse>(
     [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`],
     {
       staleTime: Infinity,
       ...options,
+      enabled:
+        (organization.features?.includes('event-attachments') ?? false) &&
+        options.enabled !== false,
     }
   );
 };
