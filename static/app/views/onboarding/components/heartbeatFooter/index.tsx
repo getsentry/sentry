@@ -119,18 +119,20 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
   }, [serverConnected, firstErrorReceived, route, router, organization.slug, location]);
 
   useEffect(() => {
-    if (loading) {
+    if (loading || !serverConnected) {
       return;
     }
 
-    if (serverConnected) {
-      addSuccessMessage(t('DSN response received'));
+    addSuccessMessage(t('SDK Connected'));
+  }, [serverConnected, loading]);
+
+  useEffect(() => {
+    if (loading || !firstErrorReceived) {
+      return;
     }
 
-    if (firstErrorReceived) {
-      addSuccessMessage(t('First error received'));
-    }
-  }, [serverConnected, firstErrorReceived, loading]);
+    addSuccessMessage(t('First error received'));
+  }, [firstErrorReceived, loading]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>

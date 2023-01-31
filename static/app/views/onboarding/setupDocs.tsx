@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css, Theme} from '@emotion/react';
@@ -390,14 +388,7 @@ const Content = styled(motion.div)`
   }
 
   code {
-    font-size: 87.5%;
     color: ${p => p.theme.pink400};
-  }
-
-  pre code {
-    color: inherit;
-    font-size: inherit;
-    white-space: pre;
   }
 
   h2 {
@@ -443,12 +434,12 @@ const MainContent = styled('div')`
 // the number icon will be space(2) + 30px to the left of the margin of center column
 // so we need to offset the right margin by that much
 // also hide the sidebar if the screen is too small
-const SidebarWrapper = styled('div')`
+const SidebarWrapper = styled('div')<{hasHeartbeatFooter: boolean}>`
   margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
   @media (max-width: 1150px) {
     display: none;
   }
-  flex-basis: 240px;
+  flex-basis: ${p => (p.hasHeartbeatFooter ? '256px' : '240px')};
   flex-grow: 0;
   flex-shrink: 0;
   min-width: 240px;

@@ -15,6 +15,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 type Props = {
   activeProject: Project | null;
   checkProjectHasFirstEvent: (project: Project) => boolean;
+  hasHeartbeatFooter: boolean;
   projects: Project[];
   selectProject: (newProjectId: string) => void;
   // A map from selected platform keys to the projects created by onboarding.
@@ -106,6 +107,9 @@ const ProjectWrapper = styled('div')<{disabled: boolean; isActive: boolean}>`
     ${SubHeader} {
       color: ${p.theme.gray400};
     }
+    ${Beat} {
+      color: ${p.theme.gray400};
+    }
     ${NameWrapper} {
       text-decoration-line: line-through;
     }
@@ -143,4 +147,8 @@ const NameWrapper = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+`;
+
+const Beat = styled('div')<{color: string}>`
+  color: ${p => p.color};
 `;

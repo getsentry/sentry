@@ -179,14 +179,14 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert problem1.fingerprint != problem2.fingerprint
 
-    def test_fingerprints_using_full_url_path(self):
+    def test_ignores_hostname_for_fingerprinting(self):
         event1 = self.create_event(lambda i: f"GET http://service.io/clients/info?id={i}")
         [problem1] = self.find_problems(event1)
 
         event2 = self.create_event(lambda i: f"GET /clients/info?id={i}")
         [problem2] = self.find_problems(event2)
 
-        assert problem1.fingerprint != problem2.fingerprint
+        assert problem1.fingerprint == problem2.fingerprint
 
 
 @pytest.mark.parametrize(
@@ -251,6 +251,22 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         (
             "/clients/hello-123s/project/1343",  # uuid-like
             "/clients/hello-123s/project/*",
+        ),
+        (
+            "/item/5c9b9b609c172be2a013f534/details",  # short hash
+            "/item/*/details",
+        ),
+        (
+            "/item/be9a25322d/details",  # shorter short hash
+            "/item/*/details",
+        ),
+        (
+            "/item/defaced12/details",  # false short hash
+            "/item/defaced12/details",
+        ),
+        (
+            "/item/defaced12-abba/details",  # false short hash 2
+            "/item/defaced12-abba/details",
         ),
     ],
 )

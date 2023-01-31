@@ -179,8 +179,13 @@ function buildRoutes() {
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
+      {/* TODO: remove share/issue orgless url */}
       <Route
         path="/share/issue/:shareId/"
+        component={make(() => import('sentry/views/sharedGroupDetails'))}
+      />
+      <Route
+        path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
@@ -941,16 +946,7 @@ function buildRoutes() {
         <Route
           path=":orgId/"
           name={t('Organization')}
-          component={withDomainRedirect(NoOp, {
-            redirect: [
-              {
-                // If /settings/:orgId/ is encountered, then redirect to /settings/organization/ rather than redirecting
-                // to /settings/.
-                from: '/settings/:orgId/',
-                to: '/settings/organization/',
-              },
-            ],
-          })}
+          component={withDomainRedirect(NoOp)}
           key="org-settings"
         >
           {orgSettingsRoutes}
@@ -1923,16 +1919,7 @@ function buildRoutes() {
       <Route
         path="/:orgId/:projectId/getting-started/"
         component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted')),
-          {
-            redirect: [
-              {
-                // If /:orgId/:projectId/getting-started/* is encountered, then redirect to /getting-started/:projectId/*
-                from: '/:orgId/:projectId/getting-started/',
-                to: '/getting-started/:projectId/',
-              },
-            ],
-          }
+          make(() => import('sentry/views/projectInstall/gettingStarted'))
         )}
         key="org-getting-started"
       >
