@@ -43,6 +43,38 @@ export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
   });
 }
 
+function getMaxDimensions(coordinates) {
+  let maxWidth = 0;
+  let maxHeight = 0;
+
+  coordinates.forEach(hierarchy => {
+    let currWidth = 0;
+    let currHeight = 0;
+    hierarchy.forEach(({x, y, width, height}) => {
+      currWidth = Math.max(x + width, currWidth);
+      currHeight = Math.max(y + height, currHeight);
+    });
+    maxWidth = Math.max(maxWidth, currWidth);
+    maxHeight = Math.max(maxHeight, currHeight);
+  });
+
+  return {
+    width: maxWidth,
+    height: maxHeight,
+  };
+}
+
+function calculateScale(
+  bounds: {height: number; width: number},
+  maxCoordinateDimensions: {height: number; width: number},
+  offsets: {x: number; y: number}
+) {
+  return Math.min(
+    (bounds.width - offsets.x) / maxCoordinateDimensions.width,
+    (bounds.height - offsets.y) / maxCoordinateDimensions.height
+  );
+}
+
 function Wireframe({hierarchy}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -51,12 +83,31 @@ function Wireframe({hierarchy}) {
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
   const {handlePanMove, handlePanStart, handlePanStop, isDragging, xOffset, yOffset} =
-    useMousePan({initialXOffset: 20, initialYOffset: 20});
+    useMousePan({initialXOffset: 0, initialYOffset: 0});
 
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
       // Make areas with more overlayed elements darker
       context.globalCompositeOperation = 'overlay';
+
+      // TODO(nar): calculate proper center offsets
+      const maxDimensions = getMaxDimensions(coordinates);
+      const xCenter = 20;
+      const yCenter = 20;
+
+      // Set the scaling
+      const scalingFactor = calculateScale(dimensions, maxDimensions, {
+        x: xCenter,
+        y: yCenter,
+      });
+      context.scale(scalingFactor, scalingFactor);
+
+      // Translate the canvas to account for mouse panning
+      // and centering
+      context.translate(
+        (xOffset + xCenter) / scalingFactor,
+        (yOffset + yCenter / 2) / scalingFactor
+      );
 
       coordinates.forEach(hierarchyCoords => {
         hierarchyCoords.forEach(({x, y, width, height}) => {
@@ -64,7 +115,7 @@ function Wireframe({hierarchy}) {
           context.fillStyle = 'rgb(88, 74, 192)';
           context.strokeStyle = 'black';
           context.lineWidth = 1;
-          context.rect(x + xOffset, y + yOffset, width, height);
+          context.rect(x, y, width, height);
 
           // Draw the rectangles
           context.globalAlpha = RECT_FILL_ALPHA;
@@ -76,7 +127,7 @@ function Wireframe({hierarchy}) {
         });
       });
     },
-    [coordinates, xOffset, yOffset]
+    [coordinates, dimensions, xOffset, yOffset]
   );
 
   useEffect(() => {
