@@ -25,6 +25,7 @@ import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {HeartbeatFooter} from 'sentry/views/projectInstall/heartbeatFooter';
 
 type Props = {
   api: Client;
@@ -91,7 +92,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
   }
 
   render() {
-    const {organization, params} = this.props;
+    const {params, organization} = this.props;
     const {projectId} = params;
 
     const platform = platforms.find(p => p.id === params.platform);
@@ -104,6 +105,9 @@ class ProjectInstallPlatform extends Component<Props, State> {
     const performanceOverviewLink = `/organizations/${organization.slug}/performance/`;
     const gettingStartedLink = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
     const platformLink = platform.link ?? undefined;
+    const showPerformancePrompt = performancePlatforms.includes(
+      platform.id as PlatformKey
+    );
 
     return (
       <Fragment>
@@ -151,48 +155,44 @@ class ProjectInstallPlatform extends Component<Props, State> {
             </Fragment>
           )}
 
-          {this.isGettingStarted && (
-            <Projects
-              key={`${organization.slug}-${projectId}`}
-              orgId={organization.slug}
-              slugs={[projectId]}
-              passthroughPlaceholderProject={false}
+          {this.isGettingStarted && showPerformancePrompt && (
+            <Feature
+              features={['performance-view']}
+              hookName="feature-disabled:performance-new-project"
             >
-              {({projects, initiallyLoaded, fetching, fetchError}) => {
-                const projectsLoading = !initiallyLoaded && fetching;
-                const projectFilter =
-                  !projectsLoading && !fetchError && projects.length
-                    ? {
-                        project: (projects[0] as Project).id,
-                      }
-                    : {};
-
-                const showPerformancePrompt = performancePlatforms.includes(
-                  platform.id as PlatformKey
-                );
-
+              {({hasFeature}) => {
+                if (hasFeature) {
+                  return null;
+                }
                 return (
-                  <Fragment>
-                    {showPerformancePrompt && (
-                      <Feature
-                        features={['performance-view']}
-                        hookName="feature-disabled:performance-new-project"
-                      >
-                        {({hasFeature}) => {
-                          if (hasFeature) {
-                            return null;
-                          }
-                          return (
-                            <StyledAlert type="info" showIcon>
-                              {t(
-                                `Your selected platform supports performance, but your organization does not have performance enabled.`
-                              )}
-                            </StyledAlert>
-                          );
-                        }}
-                      </Feature>
+                  <StyledAlert type="info" showIcon>
+                    {t(
+                      `Your selected platform supports performance, but your organization does not have performance enabled.`
                     )}
+                  </StyledAlert>
+                );
+              }}
+            </Feature>
+          )}
 
+          {this.isGettingStarted &&
+            !organization.features?.includes('onboarding-heartbeat-footer') && (
+              <Projects
+                key={`${organization.slug}-${projectId}`}
+                orgId={organization.slug}
+                slugs={[projectId]}
+                passthroughPlaceholderProject={false}
+              >
+                {({projects, initiallyLoaded, fetching, fetchError}) => {
+                  const projectsLoading = !initiallyLoaded && fetching;
+                  const projectFilter =
+                    !projectsLoading && !fetchError && projects.length
+                      ? {
+                          project: (projects[0] as Project).id,
+                        }
+                      : {};
+
+                  return (
                     <StyledButtonBar gap={1}>
                       <Button
                         priority="primary"
@@ -215,12 +215,21 @@ class ProjectInstallPlatform extends Component<Props, State> {
                         {t('Take me to Performance')}
                       </Button>
                     </StyledButtonBar>
-                  </Fragment>
-                );
-              }}
-            </Projects>
-          )}
+                  );
+                }}
+              </Projects>
+            )}
         </div>
+        {this.isGettingStarted &&
+          organization.features?.includes('onboarding-heartbeat-footer') && (
+            <HeartbeatFooter
+              projectSlug={projectId}
+              issueStreamLink={issueStreamLink}
+              performanceOverviewLink={performanceOverviewLink}
+              route={this.props.route}
+              router={this.props.router}
+            />
+          )}
       </Fragment>
     );
   }
