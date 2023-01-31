@@ -389,7 +389,7 @@ class PerformanceProblemContext:
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
     def to_dict(self):
         return {
-            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "transaction_name": get_span_evidence_value_problem(self.problem, False),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
             if self.problem.offender_span_ids
