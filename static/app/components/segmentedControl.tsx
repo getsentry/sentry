@@ -305,6 +305,8 @@ const VisibleLabel = styled('span')<{
 
   user-select: none;
   font-weight: ${p => (p.isSelected ? 600 : 400)};
+  letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
+  text-align: center;
   ${getTextColor}
   ${p => p.theme.overflowEllipsis}
 `;
