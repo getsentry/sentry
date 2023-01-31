@@ -11,7 +11,6 @@ from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.cache import cache
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
 git_blame = [
@@ -422,9 +421,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         assert response.data["codecov"]["lineCoverage"] == expected_line_coverage
         assert response.data["codecov"]["status"] == expected_status_code
 
-        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
-        assert cache_val is True
-
     @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
@@ -480,10 +476,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             )
         ]
 
-        # Don't set the cache in the error case
-        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
-        assert cache_val is None
-
     @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
@@ -505,24 +497,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             },
         )
         assert response.data["codecov"]["status"] == 404
-        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
-        assert cache_val is False
-
-        # Make sure we don't make the request again
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-            },
-        )
-        assert response.data["codecov"]["status"] == 404
-        assert mock_get_codecov_data.call_count == 1
-        cache_val = cache.get(f"codecov_integration_exists:{self.project.id}")
-        assert cache_val is False
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

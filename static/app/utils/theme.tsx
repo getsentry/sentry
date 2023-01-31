@@ -12,15 +12,17 @@ export const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
-  surface100: '#FAF9FB',
-  surface200: '#FFFFFF',
+  surface100: '#F5F3F7',
+  surface200: '#FAF9FB',
   surface300: '#FFFFFF',
+  surface400: '#FFFFFF',
+
   /**
    * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
    * (hover/press) states.
    * @deprecated
    */
-  surface400: '#F5F3F7',
+  surface500: '#F5F3F7',
 
   gray500: '#2B2233',
   gray400: '#3E3446',
@@ -74,15 +76,17 @@ export const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
-  surface100: '#1A141F',
-  surface200: '#241D2A',
-  surface300: '#2C2433',
+  surface100: '#18121C',
+  surface200: '#1A141F',
+  surface300: '#241D2A',
+  surface400: '#2C2433',
+
   /**
    * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
    * (hover/press) states.
    * @deprecated
    */
-  surface400: '#362E3E',
+  surface500: '#362E3E',
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
@@ -205,27 +209,32 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: colors.surface100,
+  bodyBackground: colors.surface200,
 
   /**
    * Primary background color
    */
-  background: colors.surface200,
+  background: colors.surface300,
 
   /**
    * Elevated background color
    */
-  backgroundElevated: colors.surface300,
+  backgroundElevated: colors.surface400,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: colors.surface100,
+  backgroundSecondary: colors.surface200,
+
+  /**
+   * Tertiary background color used as a stronger contrast against primary background
+   */
+  backgroundTertiary: colors.surface100,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: colors.surface200,
+  headerBackground: colors.surface300,
 
   /**
    * Primary border color
@@ -275,7 +284,7 @@ const generateAliases = (colors: BaseColors) => ({
    * interaction (hover/press) states.
    * @deprecated
    */
-  hover: colors.surface400,
+  hover: colors.surface500,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -317,7 +326,7 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    *
    */
-  rowBackground: colors.surface300,
+  rowBackground: colors.surface400,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
@@ -348,7 +357,7 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Overlay for partial opacity
    */
-  overlayBackgroundAlpha: color(colors.surface100).alpha(0.7).string(),
+  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
 
   /**
    * Tag progress bars
@@ -487,7 +496,7 @@ const generateBadgeTheme = (colors: BaseColors) => ({
 
 const generateTagTheme = (colors: BaseColors) => ({
   default: {
-    background: colors.surface300,
+    background: colors.surface400,
     border: colors.gray200,
     iconColor: colors.gray300,
   },
@@ -914,6 +923,8 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
+  stacktraceActiveBackground: lightColors.gray500,
+  stacktraceActiveText: lightColors.white,
   prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
   prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
   sidebar: {
@@ -941,6 +952,8 @@ export const darkTheme: Theme = {
   level: generateLevelTheme(darkColors),
   prismVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  stacktraceActiveBackground: darkColors.gray200,
+  stacktraceActiveText: darkColors.white,
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
