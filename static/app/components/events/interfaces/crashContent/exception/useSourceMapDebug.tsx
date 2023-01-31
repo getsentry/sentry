@@ -31,6 +31,15 @@ interface PartialMatchDebugError extends BaseSourceMapDebugError {
   data: {insertPath: string; matchedSourcemapPath: string};
   type: SourceMapProcessingIssueType.PARTIAL_MATCH;
 }
+interface DistMismatchDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.DIST_MISMATCH;
+}
+interface DistNotFoundDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.DIST_NOT_FOUND;
+}
+interface NoURLMatchDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.NO_URL_MATCH;
+}
 
 export type SourceMapDebugError =
   | UnknownErrorDebugError
@@ -38,7 +47,10 @@ export type SourceMapDebugError =
   | MissingUserAgentDebugError
   | MissingSourcemapsDebugError
   | UrlNotValidDebugError
-  | PartialMatchDebugError;
+  | PartialMatchDebugError
+  | DistMismatchDebugError
+  | DistNotFoundDebugError
+  | NoURLMatchDebugError;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -50,7 +62,10 @@ export enum SourceMapProcessingIssueType {
   MISSING_USER_AGENT = 'no_user_agent_on_release',
   MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
   URL_NOT_VALID = 'url_not_valid',
+  NO_URL_MATCH = 'no_url_match',
   PARTIAL_MATCH = 'partial_match',
+  DIST_MISMATCH = 'dist_mismatch',
+  DIST_NOT_FOUND = 'dist_not_found',
 }
 
 const sourceMapDebugQuery = ({

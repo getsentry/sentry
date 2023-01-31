@@ -42,6 +42,7 @@ const platformDocsMap: Record<string, string> = {
 };
 
 const shortPathPlatforms = ['javascript', 'node'];
+const sentryInit = <code>Sentry.init</code>;
 
 function getErrorMessage(
   error: SourceMapDebugError,
@@ -62,7 +63,7 @@ function getErrorMessage(
       return [
         {
           title: tct('Update your [init] call to pass in the release argument', {
-            init: <code>Sentry.init</code>,
+            init: sentryInit,
           }),
           docsLink: useShortPath
             ? `https://docs.sentry.io/platforms/${docPlatform}/configuration/options/#release`
@@ -97,7 +98,7 @@ function getErrorMessage(
           desc: tct(
             'Integrate Sentry into your release pipeline. You can do this with a tool like Webpack or using the CLI. Please note the release must be the same as being set in your [init]. The value for this event is [version]',
             {
-              init: <code>Sentry.init</code>,
+              init: sentryInit,
               version: error.data.version,
             }
           ),
@@ -125,6 +126,33 @@ function getErrorMessage(
           desc: tct(
             'The abs_path of the stack frame has [absValue] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
             {absValue: <code>{error.data.absValue}</code>}
+          ),
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
+        },
+      ];
+    case SourceMapProcessingIssueType.NO_URL_MATCH:
+      return [
+        {
+          title: t('Absolute Path Mismatch'),
+          desc: tct(
+            'The [absPath] of the stack frame doesn’t match any release artifact. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            {absPath: <code>abs_path</code>}
+          ),
+          docsLink: useShortPath
+            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
+            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
+        },
+      ];
+    case SourceMapProcessingIssueType.DIST_NOT_FOUND:
+    case SourceMapProcessingIssueType.DIST_MISMATCH:
+      return [
+        {
+          title: t('Absolute Path Mismatch'),
+          desc: tct(
+            'The distribution identifier you are providing doesn’t match. The [dist] value configured in your [init] must be the same as the one used during source map upload. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            {init: sentryInit, dist: <code>dist</code>}
           ),
           docsLink: useShortPath
             ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
