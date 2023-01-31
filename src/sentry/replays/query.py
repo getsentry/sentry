@@ -630,16 +630,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     "user_id": _grouped_unique_scalar_value(column_name="user_id"),
     "user_email": _grouped_unique_scalar_value(column_name="user_email"),
     "user_name": _grouped_unique_scalar_value(column_name="user_name"),
-    "user_ip": Function(
-        "IPv4NumToString",
-        parameters=[
-            _grouped_unique_scalar_value(
-                column_name="ip_address_v4",
-                aliased=False,
-            )
-        ],
-        alias="user_ip",
-    ),
+    "user_ip": _grouped_unique_values(column_name="ip_address_v4", alias="user_ip"),
     "os_name": _grouped_unique_scalar_value(column_name="os_name"),
     "os_version": _grouped_unique_scalar_value(column_name="os_version"),
     "browser_name": _grouped_unique_scalar_value(column_name="browser_name"),

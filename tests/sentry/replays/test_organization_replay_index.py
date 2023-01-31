@@ -779,3 +779,34 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
+
+    def test_get_replays_no_user_data(self):
+        """Test returned replays can not partially fall outside of range."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(days=1)
+        replay1_timestamp1 = datetime.datetime.now()
+
+        self.store_replays(
+            mock_replay(
+                replay1_timestamp0,
+                project.id,
+                replay1_id,
+                segment_id=0,
+                replay_start_timestamp=int(replay1_timestamp1.timestamp()),
+                user_id=None,
+                user_name=None,
+                user_email=None,
+                ipv4=None,
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert response_data["data"][0]["user"]["display_name"] == "Scrubbed User ({})".format(
+                response_data["data"][0]["id"]
+            )
