@@ -17,7 +17,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import getPlatformName from 'sentry/utils/getPlatformName';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -48,25 +47,15 @@ async function openChangeRouteModal(
 type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> & {
   projectSlug: Project['slug'];
   newOrg?: boolean;
-  nextProjectSlug?: Project['slug'];
-  onSetupNextProject?: () => void;
 };
 
-export function HeartbeatFooter({
-  projectSlug,
-  router,
-  route,
-  location,
-  newOrg,
-  nextProjectSlug,
-  onSetupNextProject,
-}: Props) {
+export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: Props) {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
 
   const {initiallyLoaded, fetchError, fetching, projects} = useProjects({
     orgId: organization.id,
-    slugs: nextProjectSlug ? [projectSlug, nextProjectSlug] : [projectSlug],
+    slugs: [projectSlug],
   });
 
   const projectsLoading = !initiallyLoaded && fetching;
@@ -74,11 +63,6 @@ export function HeartbeatFooter({
   const project =
     !projectsLoading && !fetchError && projects.length
       ? projects.find(proj => proj.slug === projectSlug)
-      : undefined;
-
-  const nextProject =
-    !projectsLoading && !fetchError && projects.length === 2
-      ? projects.find(proj => proj.slug === nextProjectSlug)
       : undefined;
 
   const {loading, firstErrorReceived, serverConnected} = useHeartbeat(
@@ -95,6 +79,7 @@ export function HeartbeatFooter({
         nextLocation?.pathname !== `/onboarding/${organization.slug}/setup-docs/`;
 
       const isSetupDocsForNewOrgBackButton = `/onboarding/${organization.slug}/select-platform/`;
+      const isWelcomeForNewOrgBackButton = `/onboarding/${organization.slug}/welcome/`;
 
       const isGettingStartedForExistingOrg =
         location.pathname === `/${orgId}/${projectId}/getting-started/${platform}/` ||
@@ -109,7 +94,10 @@ export function HeartbeatFooter({
         // Next Location is always available when user clicks on a item with a new route
         if (nextLocation) {
           // Back button in the onboarding of new orgs
-          if (nextLocation.pathname === isSetupDocsForNewOrgBackButton) {
+          if (
+            nextLocation.pathname === isSetupDocsForNewOrgBackButton ||
+            nextLocation.pathname === isWelcomeForNewOrgBackButton
+          ) {
             return true;
           }
 
@@ -171,7 +159,7 @@ export function HeartbeatFooter({
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
               <IconCheckmark size="sm" isCircled />
-              {t('SDK Connected')}
+              {t('DSN response received')}
             </Beat>
             <Beat status={BeatStatus.COMPLETE}>
               <IconCheckmark size="sm" isCircled />
@@ -182,7 +170,7 @@ export function HeartbeatFooter({
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
               <IconCheckmark size="sm" isCircled />
-              {t('SDK Connected')}
+              {t('DSN response received')}
             </Beat>
             <Beat status={BeatStatus.AWAITING}>
               <PulsingIndicator>2</PulsingIndicator>
@@ -193,7 +181,7 @@ export function HeartbeatFooter({
           <Fragment>
             <Beat status={BeatStatus.AWAITING}>
               <PulsingIndicator>1</PulsingIndicator>
-              {t('Awaiting SDK connection')}
+              {t('Awaiting DSN response')}
             </Beat>
             <Beat status={BeatStatus.PENDING}>
               <PulsingIndicator>2</PulsingIndicator>
@@ -206,17 +194,6 @@ export function HeartbeatFooter({
         <ButtonBar gap={1}>
           {newOrg ? (
             <Fragment>
-              {nextProject &&
-                (loading ? (
-                  <LoadingPlaceholderButton width="125px" />
-                ) : (
-                  <Button busy={projectsLoading} onClick={onSetupNextProject}>
-                    {nextProject.platform
-                      ? t('Setup %s', getPlatformName(nextProject.platform))
-                      : t('Next Platform')}
-                  </Button>
-                ))}
-
               {loading ? (
                 <LoadingPlaceholderButton width="135px" />
               ) : firstErrorReceived ? (

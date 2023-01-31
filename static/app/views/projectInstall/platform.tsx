@@ -109,6 +109,10 @@ class ProjectInstallPlatform extends Component<Props, State> {
       platform.id as PlatformKey
     );
 
+    const heartbeatFooter = !!organization?.features.includes(
+      'onboarding-heartbeat-footer'
+    );
+
     return (
       <Fragment>
         <StyledPageHeader>
@@ -175,8 +179,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
             </Feature>
           )}
 
-          {this.isGettingStarted &&
-          !!organization?.features.includes('onboarding-heartbeat-footer') ? (
+          {this.isGettingStarted && heartbeatFooter ? (
             <HeartbeatFooter
               projectSlug={projectId}
               route={this.props.route}
