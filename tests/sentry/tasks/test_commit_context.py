@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.models import Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import process_commit_context
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -102,6 +103,33 @@ class TestCommitContext(TestCase):
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         ).context == {"commitId": self.commit.id}
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        side_effect=ApiError(text="integration_failed"),
+    )
+    def test_failed_to_fetch_commit_context_record(self, mock_get_commit_context, mock_record):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        mock_record.assert_called_with(
+            "integrations.failed_to_fetch_commit_context",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            code_mapping_id=self.code_mapping.id,
+            group_id=self.event.group_id,
+            provider="github",
+            error_message="integration_failed",
+        )
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
