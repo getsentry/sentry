@@ -22,6 +22,6 @@ def get_asset_url(module: str, path: str) -> str:
 
     Example:
     {% asset_url 'sentry' 'images/sentry.png' %}
-    =>  "/_static/74d127b78dc7daf2c51f/sentry/sentry.png"
+    =>  "/_static/74d127b78dc7daf2c51f/sentry/images/sentry.png"
     """
     return "{}/{}/{}".format(settings.STATIC_URL.rstrip("/"), module, path.lstrip("/"))
