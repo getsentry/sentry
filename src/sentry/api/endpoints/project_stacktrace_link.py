@@ -10,6 +10,7 @@ from sentry import analytics, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.client import ApiClient
 from sentry.integrations.utils.codecov import get_codecov_data
@@ -217,6 +218,37 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             )
         return commit_sha
 
+    def get_ref(
+        self,
+        integrations: BaseQuerySet,
+        org_id: int,
+        line_no: int,
+        filepath: str,
+        repo: Repository,
+        branch: str,
+    ) -> Optional[str]:
+        # Get commit sha from Git blame if valid
+        gh_integrations = integrations.filter(provider="github")
+        should_get_commit_sha = gh_integrations
+        ref = None
+        if should_get_commit_sha:
+            try:
+                integration_installation = gh_integrations[0].get_installation(
+                    organization_id=org_id
+                )
+                ref = self.get_latest_commit_sha_from_blame(
+                    integration_installation,
+                    line_no,
+                    filepath,
+                    repo,
+                    branch,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to get commit sha from git blame, pending investigation. Continuing execution."
+                )
+        return ref
+
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
         filepath = ctx.get("file")
@@ -309,44 +341,27 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     and project.organization.flags.codecov_access
                 )
 
-                # Check the cache and skip querying Codecov if a query within the last hour found no integration.
-                codecov_cache = cache.get(cache_key.format(project_id=project.id))
-                if codecov_enabled and codecov_cache is False:
-                    result["codecov"] = {"status": 404}
-
-                elif codecov_enabled and codecov_cache is not False:
+                if codecov_enabled:
                     # Get Codecov data
                     try:
-                        has_error_commit = True if ctx.get("commit_id") else False
+                        # Get ref
+                        has_error_commit = bool(ctx.get("commit_id"))
                         ref = ctx["commit_id"] if has_error_commit else None
-                        # Get commit sha from Git blame
                         fetch_commit_sha = features.has(
                             "organizations:codecov-commit-sha-from-git-blame",
                             project.organization,
                             actor=request.user,
                         )
-                        gh_integrations = integrations.filter(provider="github")
-                        should_get_commit_sha = (
-                            fetch_commit_sha and gh_integrations and not has_error_commit
-                        )
-
-                        if should_get_commit_sha:
-                            try:
-                                integration_installation = gh_integrations[0].get_installation(
-                                    organization_id=project.organization_id
-                                )
-                                line_no = ctx.get("line_no")
-                                ref = self.get_latest_commit_sha_from_blame(
-                                    integration_installation,
-                                    int(line_no) if line_no else 0,
-                                    filepath,
-                                    current_config["repository"],
-                                    current_config["config"]["defaultBranch"],
-                                )
-                            except Exception:
-                                logger.exception(
-                                    "Failed to get commit sha from git blame, pending investigation. Continuing execution."
-                                )
+                        line_no = ctx.get("line_no")
+                        if not has_error_commit and fetch_commit_sha:
+                            self.get_ref(
+                                integrations,
+                                project.organization_id,
+                                int(line_no) if line_no else 0,
+                                filepath,
+                                current_config["repository"],
+                                current_config["config"]["defaultBranch"],
+                            )
 
                         # Call codecov API if codecov-commit-sha-from-git-blame flag is enabled
                         # or getting ref from git blame was successful
