@@ -740,6 +740,9 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+    if "consistent" in OVERRIDE_OPTIONS:
+        request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
+
     params: SnubaQueryBody = (request, lambda x: x, lambda x: x)
     return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
 
@@ -753,6 +756,9 @@ def bulk_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+    if "consistent" in OVERRIDE_OPTIONS:
+        for request in requests:
+            request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
     params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
