@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime
 from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
@@ -72,6 +73,8 @@ def process_profile_task(
                 )
                 return
 
+            # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
+            # See comments in the function for why this happens.
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
                 project=project,
@@ -166,12 +169,6 @@ def process_profile_task(
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
-    metrics.gauge(
-        "process_profile.kafka_producer.queue.size",
-        len(_profiles_kafka_producer._KafkaProducer__producer),  # type: ignore
-        sample_rate=1.0,
-    )
-
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
 SHOULD_DEOBFUSCATE = frozenset(["android"])
@@ -227,18 +224,41 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
     modules = profile["debug_meta"]["images"]
 
+    # NOTE: the usage of `adjust_instruction_addr` assumes that all
+    # the profilers on all the platforms are walking stacks right from a
+    # suspended threads cpu context
+
     # in the sample format, we have a frames key containing all the frames
     if "version" in profile:
-        stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
+        frames = profile["profile"]["frames"]
+
+        for stack in profile["profile"]["stacks"]:
+            if len(stack) > 0:
+                # Make a deep copy of the leaf frame with adjust_instruction_addr = False
+                # and append it to the list. This ensures correct behavior
+                # if the leaf frame also shows up in the middle of another stack.
+                first_frame_idx = stack[0]
+                frame = deepcopy(frames[first_frame_idx])
+                frame["adjust_instruction_addr"] = False
+                frames.append(frame)
+                stack[0] = len(frames) - 1
+
+        stacktraces = [{"registers": {}, "frames": frames}]
     # in the original format, we need to gather frames from all samples
     else:
-        stacktraces = [
-            {
-                "registers": {},
-                "frames": s["frames"],
-            }
-            for s in profile["sampled_profile"]["samples"]
-        ]
+        stacktraces = []
+        for s in profile["sampled_profile"]["samples"]:
+            frames = s["frames"]
+
+            if len(frames) > 0:
+                frames[0]["adjust_instruction_addr"] = False
+
+            stacktraces.append(
+                {
+                    "registers": {},
+                    "frames": frames,
+                }
+            )
     return (modules, stacktraces)
 
 

@@ -14,12 +14,10 @@ from sentry.integrations import IntegrationFeatures
 from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
-cache_key = "codecov_integration_exists:{project_id}"
 
 
 def get_link(
@@ -130,8 +128,6 @@ def set_tags(scope: Scope, result: JSONData) -> None:
         scope.set_tag(
             "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
         )
-    if result.get("codecov") and result["codecov"].get("attemptedUrl"):
-        scope.set_tag("codecov.attempted_url", result["codecov"]["attemptedUrl"])
 
 
 @region_silo_endpoint
@@ -273,12 +269,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     )
                     and project.organization.flags.codecov_access
                 )
-                # Check the cache and skip querying Codecov if a query within the last hour found no integration.
-                codecov_cache = cache.get(cache_key.format(project_id=project.id))
-                if codecov_enabled and codecov_cache is False:
-                    result["codecov"] = {"status": 404}
-
-                elif codecov_enabled and codecov_cache is not False:
+                scope.set_tag("codecov.enabled", codecov_enabled)
+                if codecov_enabled:
                     try:
                         lineCoverage, codecovUrl = get_codecov_data(
                             repo=current_config["config"]["repoName"],
@@ -293,23 +285,18 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                                 "status": 200,
                             }
 
-                            if not codecov_cache:
-                                cache.set(cache_key.format(project_id=project.id), True, 3600)
                     except requests.exceptions.HTTPError as error:
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,
                             "status": error.response.status_code,
                         }
-                        if error.response.status_code == 404 and not codecov_cache:
-                            cache.set(cache_key.format(project_id=project.id), False, 3600)
-                        else:
+                        if error.response.status_code != 404:
                             logger.exception(
                                 "Failed to get expected data from Codecov, pending investigation. Continuing execution."
                             )
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
                     # We don't expect coverage data if the integration does not exist (404)
-                    scope.set_tag("codecov.enabled", True)
 
             try:
                 set_tags(scope, result)
