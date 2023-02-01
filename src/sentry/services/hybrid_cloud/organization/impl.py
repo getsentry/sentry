@@ -297,8 +297,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_all_org_roles(self, organization_member: ApiOrganizationMember) -> List[str]:
         team_ids = [mt.team_id for mt in organization_member.member_teams]
-        return list(
+        org_roles = list(
             Team.objects.filter(~Q(org_role=None), id__in=team_ids)
             .values_list("org_role", flat=True)
             .distinct()
         )
+        org_roles.append(organization_member.role)
+        return org_roles

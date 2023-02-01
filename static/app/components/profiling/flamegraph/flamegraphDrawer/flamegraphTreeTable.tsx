@@ -11,10 +11,11 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {
-  UseVirtualizedListProps,
   useVirtualizedTree,
+  UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 import {FrameCallersTableCell} from './flamegraphDrawer';
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
@@ -140,7 +141,7 @@ export function FlamegraphTreeTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
-  const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
+  const renderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] = useCallback(
     (
       r,
       {
@@ -176,6 +177,42 @@ export function FlamegraphTreeTable({
     [contextMenu, formatDuration, referenceNode, getFrameColor]
   );
 
+  // This is slighlty unfortunate and ugly, but because our two columns are sticky
+  // we need to scroll the container to the left when we scroll to a node. This
+  // should be resolved when we split the virtualization between containers and sync scroll,
+  // but is a larger undertaking and will take a bit longer
+  const onScrollToNode: UseVirtualizedTreeProps<FlamegraphFrame>['onScrollToNode'] =
+    useCallback(
+      (
+        node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined,
+        scrollContainer: HTMLElement | null,
+        coordinates?: {depth: number; top: number}
+      ) => {
+        if (node) {
+          const lastCell = node.ref?.lastChild?.firstChild as
+            | HTMLElement
+            | null
+            | undefined;
+          if (lastCell) {
+            lastCell.scrollIntoView({
+              block: 'nearest',
+            });
+
+            const left = -328 + (node.item.depth * 14 + 8);
+            scrollContainer?.scrollBy({
+              left,
+            });
+          }
+        } else if (coordinates) {
+          const left = -328 + (coordinates.depth * 14 + 8);
+          scrollContainer?.scrollBy({
+            left,
+          });
+        }
+      },
+      []
+    );
+
   const {
     renderedItems,
     scrollContainerStyles,
@@ -188,6 +225,7 @@ export function FlamegraphTreeTable({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
+    onScrollToNode,
     renderRow,
     scrollContainer: scrollContainerRef,
     rowHeight: 24,

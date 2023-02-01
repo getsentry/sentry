@@ -971,6 +971,8 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
+    # Enables getting commit sha from git blame for codecov.
+    "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
     # Enables automatically deriving of code mappings as a dry run for early adopters
@@ -2371,6 +2373,15 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "symstore"},
         "filters": {"filetypes": ["pe", "pdb", "portablepdb"]},
         "url": "https://msdl.microsoft.com/download/symbols/",
+        "is_public": True,
+    },
+    "nuget": {
+        "type": "http",
+        "id": "sentry:nuget",
+        "name": "NuGet.org",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["portablepdb"]},
+        "url": "https://symbols.nuget.org/download/symbols/",
         "is_public": True,
     },
     "citrix": {
