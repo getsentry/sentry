@@ -145,7 +145,6 @@ function getErrorMessage(
             : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`,
         },
       ];
-    case SourceMapProcessingIssueType.DIST_NOT_FOUND:
     case SourceMapProcessingIssueType.DIST_MISMATCH:
       return [
         {

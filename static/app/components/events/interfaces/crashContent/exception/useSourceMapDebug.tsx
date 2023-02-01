@@ -36,9 +36,6 @@ interface PartialMatchDebugError extends BaseSourceMapDebugError {
 interface DistMismatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.DIST_MISMATCH;
 }
-interface DistNotFoundDebugError extends BaseSourceMapDebugError {
-  type: SourceMapProcessingIssueType.DIST_NOT_FOUND;
-}
 interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
@@ -51,7 +48,6 @@ export type SourceMapDebugError =
   | UrlNotValidDebugError
   | PartialMatchDebugError
   | DistMismatchDebugError
-  | DistNotFoundDebugError
   | NoURLMatchDebugError;
 
 export interface SourceMapDebugResponse {
@@ -67,7 +63,6 @@ export enum SourceMapProcessingIssueType {
   NO_URL_MATCH = 'no_url_match',
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
-  DIST_NOT_FOUND = 'dist_not_found',
 }
 
 const sourceMapDebugQuery = ({

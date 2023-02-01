@@ -156,7 +156,7 @@ describe('SourceMapDebug', () => {
     const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.URL_NOT_VALID,
       message: '',
-      data: {absValue: 'absValue'},
+      data: {absPath: 'absValue'},
     };
     MockApiClient.addMockResponse({
       url,
