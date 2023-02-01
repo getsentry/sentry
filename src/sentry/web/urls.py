@@ -557,8 +557,8 @@ urlpatterns += [
     url(r"^stats/", react_page_view, name="stats"),
     # Replays
     url(r"^replays/", react_page_view, name="replays"),
-    # Monitors
-    url(r"^monitors/", react_page_view, name="monitors"),
+    # Crons
+    url(r"^crons/", react_page_view, name="crons"),
     # Releases
     url(r"^releases/", react_page_view, name="releases"),
     # User Feedback
