@@ -294,9 +294,7 @@ const DropdownItem = ({
         {tct("The field [field] isn't supported here. ", {
           field: <strong>{item.desc}</strong>,
         })}
-        {tct('[highlight:See all searchable properties in the docs.]', {
-          highlight: <Highlight />,
-        })}
+        <Highlight>{t('See all searchable properties in the docs.')}</Highlight>
       </Invalid>
     );
   } else if (item.type === ItemType.LINK) {
