@@ -3,7 +3,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
 import {TraceKnownData, TraceKnownDataType} from './types';
@@ -31,7 +31,7 @@ export function TraceEventContext({event, data}: Props) {
   return (
     <ErrorBoundary mini>
       <KeyValueList
-        data={geKnownData<TraceKnownData, TraceKnownDataType>({
+        data={getKnownData<TraceKnownData, TraceKnownDataType>({
           data,
           meta,
           knownDataTypes: traceKnownDataValues,

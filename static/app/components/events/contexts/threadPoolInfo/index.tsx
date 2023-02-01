@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event, ThreadPoolInfoContext} from 'sentry/types/event';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {
   getThreadPoolInfoKnownDataDetails,
@@ -28,7 +28,7 @@ export function ThreadPoolInfoEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<
+        data={getKnownData<
           ThreadPoolInfoContext,
           keyof typeof threadPoolInfoKnownDataValues
         >({

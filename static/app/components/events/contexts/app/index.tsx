@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {getAppKnownDataDetails} from './getAppKnownDataDetails';
 import {AppData, AppKnownDataType} from './types';
@@ -30,7 +30,7 @@ export function AppEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<AppData, AppKnownDataType>({
+        data={getKnownData<AppData, AppKnownDataType>({
           data,
           meta,
           knownDataTypes: appKnownDataValues,

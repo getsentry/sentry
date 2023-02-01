@@ -7,7 +7,7 @@ import {AvatarUser} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {getUserKnownDataDetails} from './getUserKnownDataDetails';
 
@@ -51,7 +51,7 @@ export function UserEventContext({data, event}: Props) {
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
       <ContextBlock
-        data={geKnownData<UserEventContextData, UserKnownDataType>({
+        data={getKnownData<UserEventContextData, UserKnownDataType>({
           data,
           meta,
           knownDataTypes: userKnownDataValues,

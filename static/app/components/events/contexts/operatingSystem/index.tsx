@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
 import {
@@ -31,7 +31,7 @@ export function OperatingSystemEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<OperatingSystemKnownData, OperatingSystemKnownDataType>({
+        data={getKnownData<OperatingSystemKnownData, OperatingSystemKnownDataType>({
           data,
           meta,
           knownDataTypes: operatingSystemKnownDataValues,
