@@ -55,7 +55,7 @@ def query_replays_collection(
     """Query aggregated replay collection."""
     conditions = []
     if environment:
-        conditions.append(Condition(Column("environment"), Op.IN, environment))
+        conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     sort_ordering = get_valid_sort_commands(
         sort,
@@ -68,7 +68,8 @@ def query_replays_collection(
         project_ids=project_ids,
         start=start,
         end=end,
-        where=conditions,
+        where=[],
+        having=conditions,
         fields=fields,
         sorting=sort_ordering,
         pagination=paginators,
@@ -91,6 +92,7 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
+        having=[],
         fields=[],
         sorting=[],
         pagination=None,
@@ -104,6 +106,7 @@ def query_replays_dataset(
     start: datetime,
     end: datetime,
     where: List[Condition],
+    having: List[Condition],
     fields: List[str],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
@@ -122,19 +125,32 @@ def query_replays_dataset(
         query=Query(
             match=Entity("replays"),
             select=make_select_statement(fields, sorting, search_filters),
+            # Be careful adding conditions to this query.  You must only filter by columns that
+            # are true for every column in the set!
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
+                # We don't actually know when a replay is finished ingesting until we reach the
+                # end of the dataset.  For this reason we scan to the end and then in the having
+                # clause we ask if the replay is in range.  This is more expensive but is required
+                # to ensure correct operation and is especially pertinent in the case where an
+                # archive request was submitted.
+                #
+                # Hard deletes may be more appropriate for replays than archival records.
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, start),
                 *where,
             ],
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Make sure we're not too old.
+                Condition(Column("finished_at"), Op.LT, end),
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
+                # Other conditions.
+                *having,
             ],
             orderby=sorting,
             groupby=[Column("replay_id")],
@@ -599,6 +615,7 @@ QUERY_ALIAS_COLUMN_MAP = {
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
     "finished_at": Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+    # Because duration considers the max timestamp, archive requests can alter the duration.
     "duration": Function(
         "dateDiff",
         parameters=["second", Column("started_at"), Column("finished_at")],
