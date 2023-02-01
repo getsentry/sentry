@@ -313,4 +313,7 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
             response = self.client.get(self.url, query, format="json")
 
         assert response.status_code == 400, response.content
-        assert response.content == b'{"detail":"Invalid search query"}', response.content
+        assert response.content == (
+            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be '
+            b'escaped."}'
+        ), response.content

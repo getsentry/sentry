@@ -58,10 +58,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
 
         try:
             replay_ids_mapping = get_replay_id_mappings(request, params, snuba_params)
-        except ValueError as e:
+        except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except InvalidSearchQuery:
-            return Response({"detail": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
 
         replay_results = query_replays_count(
             project_ids=[p.id for p in snuba_params.projects],
