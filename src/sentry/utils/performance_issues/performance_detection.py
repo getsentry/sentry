@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from urllib.parse import urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
@@ -49,6 +50,7 @@ CONTAINS_PARAMETER_REGEX = re.compile(
         ]
     )
 )
+ASSET_HASH_REGEX = re.compile(r"-[A-Fa-f0-9]{32}\.")  # Rails
 
 
 class EventPerformanceProblem:
@@ -526,9 +528,15 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
 
-    def _fingerprint(self, span):
-        hashed_spans = fingerprint_spans([span])
-        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{hashed_spans}"
+    def _fingerprint(self, span: Span):
+        url_hash = self._url_hash(span)
+        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{url_hash}"
+
+    def _url_hash(self, span: Span) -> str:
+        url = urlparse(span.get("description") or "")
+        stripped_path = ASSET_HASH_REGEX.sub("%s", url.path)
+        stripped_url = url._replace(path=stripped_path, query="").geturl()
+        return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
