@@ -77,7 +77,6 @@ export type TeamInsightsEventParameters = {
   'issue_details.attachment_tab.screenshot_modal_download': {};
   'issue_details.attachment_tab.screenshot_modal_opened': {};
   'issue_details.attachment_tab.screenshot_title_clicked': {};
-  'issue_details.codecov_link_clicked': {};
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': {};
@@ -157,5 +156,4 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
   'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
-  'issue_details.codecov_link_clicked': 'Issue Details: Codecov Link Clicked',
 };
