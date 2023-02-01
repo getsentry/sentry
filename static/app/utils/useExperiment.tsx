@@ -1,4 +1,5 @@
 import {useCallback, useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
 import ConfigStore from 'sentry/stores/configStore';
@@ -10,6 +11,7 @@ import {
   OrgExperiments,
   UserExperiments,
 } from 'sentry/types/experiments';
+import {defined} from 'sentry/utils';
 import {logExperiment as logExperimentAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -41,16 +43,47 @@ type UseExperimentReturnValue<E extends ExperimentKey> = {
 function useExperimentAssignment(experiment: ExperimentKey) {
   const organization = useOrganization();
   const {user} = useLegacyStore(ConfigStore);
-  const {type} = experimentConfig[experiment];
+  const config = experimentConfig[experiment];
 
-  if (type === ExperimentType.Organization) {
-    const key = experiment as keyof OrgExperiments;
-    return organization?.experiments?.[key] ?? unassignedValue;
+  if (!config) {
+    Sentry.withScope(scope => {
+      scope.setExtra('experiment', experiment);
+      Sentry.captureMessage(
+        'useExperiment called with an experiment that does not exist in the config.'
+      );
+    });
+
+    return unassignedValue;
   }
 
-  if (type === ExperimentType.User) {
+  if (config.type === ExperimentType.Organization) {
+    const key = experiment as keyof OrgExperiments;
+    const assignment = organization.experiments?.[key];
+    if (!defined(assignment)) {
+      Sentry.withScope(scope => {
+        scope.setExtra('experiment', experiment);
+        scope.setExtra('orgExperiments', organization.experiments);
+        Sentry.captureMessage(
+          'useExperiment called with org experiment but no matching experiment exists on the org.'
+        );
+      });
+    }
+    return assignment ?? unassignedValue;
+  }
+
+  if (config.type === ExperimentType.User) {
     const key = experiment as keyof UserExperiments;
-    return user?.experiments?.[key] ?? unassignedValue;
+    const assignment = user?.experiments?.[key];
+    if (!defined(assignment)) {
+      Sentry.withScope(scope => {
+        scope.setExtra('experiment', experiment);
+        scope.setExtra('userExperiments', user?.experiments);
+        Sentry.captureMessage(
+          'useExperiment called with user experiment but no matching experiment exists on the user.'
+        );
+      });
+    }
+    return assignment ?? unassignedValue;
   }
 
   return unassignedValue;
