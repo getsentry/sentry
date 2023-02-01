@@ -52,7 +52,7 @@ class EventAttributeConditionTest(RuleTestCase):
                 },
                 "app": {
                     "in_foreground": True,
-                }
+                },
             },
         }
         data.update(kwargs)
