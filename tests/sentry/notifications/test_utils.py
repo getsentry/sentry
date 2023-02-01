@@ -286,7 +286,7 @@ class PerformanceProblemContextTestCase(TestCase):
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
                 parent_span_ids=[],
                 cause_span_ids=[],
-                offender_span_ids=["b93d2be92cd64fd5", "054ba3a374d543eb"],
+                offender_span_ids=["b93d2be92cd64fd5", "054ba3a374d543eb", "563712f9722fb09"],
             ),
             [
                 {
@@ -297,6 +297,7 @@ class PerformanceProblemContextTestCase(TestCase):
                     "span_id": "054ba3a374d543eb",
                     "description": "GET https://resource.io/resource?id=2",
                 },
+                {"span_id": "563712f9722fb09", "description": "GET https://resource.io/resource"},
             ],
         )
 
@@ -304,5 +305,5 @@ class PerformanceProblemContextTestCase(TestCase):
             "transaction_name": "/resources",
             "repeating_spans": "/resource",
             "parameters": ["{id: 1,2}"],
-            "num_repeating_spans": "2",
+            "num_repeating_spans": "3",
         }
