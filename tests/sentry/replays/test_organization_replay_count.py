@@ -296,3 +296,24 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
         expected = {replay1_id: 1, replay2_id: 1}
         assert response.status_code == 200, response.content
         assert response.data == expected
+
+    def test_replay_count_invalid_search_query(self):
+        replay1_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+
+        with self.feature(self.features):
+            query = {"query": 'transaction:["root ("/")"]'}
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 400, response.content
+        assert response.content == (
+            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be '
+            b'escaped."}'
+        ), response.content
