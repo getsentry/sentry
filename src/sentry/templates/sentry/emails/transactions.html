@@ -32,8 +32,18 @@
         <tr>
             <th>{% blocktrans %} Repeating Spans ({{ num_repeating_spans }}) {% endblocktrans %}</th>
             <td>
-                <code>{{ repeating_spans|truncatechars:75 }}</code>
+                <code>{{ repeating_spans|truncatechars:75 }}{% if parameters %}<span class="parameter-placeholder">[{% trans "Parameters" %}]</span>{% endif %}</code>
             </td>
+        </tr>
+        {% endif %}
+        {% if parameters %}
+        <tr>
+            <th>{% trans "Parameters" %}</th>
+            {% for parameter in parameters %}
+            <td>
+                <code>{{ parameter|truncatechars:100 }}</code>
+            </td>
+            {% endfor %}
         </tr>
         {% endif %}
     </tbody>
