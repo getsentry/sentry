@@ -396,8 +396,7 @@ class OrganizationMember(Model):
 
     def get_scopes(self) -> FrozenSet[str]:
         # include org roles from team membership
-        team_org_roles = self.get_org_roles_from_teams()
-        team_org_roles.append(self.role)
+        team_org_roles = self.get_all_org_roles()
         scopes = set()
 
         for role in team_org_roles:
@@ -410,6 +409,11 @@ class OrganizationMember(Model):
         return list(
             self.teams.all().filter(~Q(org_role=None)).values_list("org_role", flat=True).distinct()
         )
+
+    def get_all_org_roles(self):
+        all_org_roles = self.get_org_roles_from_teams()
+        all_org_roles.append(self.role)
+        return all_org_roles
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
