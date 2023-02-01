@@ -362,6 +362,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     "active": True,
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": "member",
                 },
                 status_codes=["201"],
             ),
@@ -371,6 +372,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         Create a new Organization Member via a SCIM Users POST Request.
         - `userName` should be set to the SAML field used for email, and active should be set to `true`.
+        - `sentryOrgRole` can only be `admin`, `manager`, `billing`, or `member`.
         - Sentry's SCIM API doesn't currently support setting users to inactive,
         and the member will be deleted if active is set to `false`.
         - The API also does not support setting secondary emails.
