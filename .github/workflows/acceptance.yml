@@ -260,7 +260,7 @@ jobs:
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
-          action-name: 'Acceptance Visual Snapshot'
+          action-name: 'Backend Visual Snapshot'
           artifact-name: 'acceptance-snapshots'
           base-branch: 'master'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
@@ -366,28 +366,55 @@ jobs:
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
-  # This check runs once all dependant jobs have passed
-  trigger-visual-snapshots:
-    needs: [chartcuterie-visual-diff, backend-visual-diff, frontend-visual-diff]
-    name: triggers visual snapshot
-    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
-    if: always()
-    runs-on: ubuntu-20.04
-    steps:
-      # If any jobs we depend on fail, we will fail
-      - name: Check for failures
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
-        run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
-
-  # Since Visual Snapshot is a required check we need to pretend to have run
+  # The following fake-*visual-snapshot steps do the following:
+  #     - The sentry GitHub repo is configured to require "* Visual Snapshot"
+  #       actions.
+  #     - This requirement is satisfied by the visual snapshot service which
+  #       creates these statuses and is configured in the *-visual-diff
+  #       steps in this workflow.
+  #     - If the acceptance tests aren't run, then the fake-*-visual-snapshot
+  #       step will run, creating a check that statisfies the repo requirement.
+  # TODO (mattgaunt): Remove this once the required check is changed for the
+  # new visual snapshots.
   fake-visual-snapshot:
     name: Visual Snapshot
     needs: [files-changed]
-    # Opposite condition to "trigger * visual snapshot" required checks
-    if: needs.files-changed.outputs.acceptance_all != 'true'
+    if: always()
     runs-on: ubuntu-20.04
     steps:
       - name: Sentaur attack
         run: |
           echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"
+
+  fake-frontend-visual-snapshot:
+    name: Frontend Visual Snapshot
+    needs: [files-changed]
+    # Opposite condition to "trigger * visual snapshot" required checks
+    if: needs.files-changed.outputs.acceptance_frontend != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the Frontend Visual Snapshot to satisfy Github required checks"
+
+  fake-backend-visual-snapshot:
+    name: Backend Visual Snapshot
+    needs: [files-changed]
+    # Opposite condition to "trigger * visual snapshot" required checks
+    if: needs.files-changed.outputs.acceptance_backend != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the Backend Visual Snapshot to satisfy Github required checks"
+
+  fake-chartcuterie-visual-snapshot:
+    name: Chartcuterie Visual Snapshot
+    needs: [files-changed]
+    # Opposite condition to "trigger * visual snapshot" required checks
+    if: needs.files-changed.outputs.acceptance_backend != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the Chartcuterie Visual Snapshot to satisfy Github required checks"
