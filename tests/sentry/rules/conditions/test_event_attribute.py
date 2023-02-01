@@ -50,6 +50,9 @@ class EventAttributeConditionTest(RuleTestCase):
                     "screen_dpi": 123,
                     "screen_density": 2.5,
                 },
+                "app": {
+                    "in_foreground": True,
+                }
             },
         }
         data.update(kwargs)
@@ -725,5 +728,17 @@ class EventAttributeConditionTest(RuleTestCase):
                 "attribute": "device.screen_density",
                 "value": "400",
             }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_app_in_foreground(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "app.in_foreground", "value": "True"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "app.in_foreground", "value": "False"}
         )
         self.assertDoesNotPass(rule, event)
