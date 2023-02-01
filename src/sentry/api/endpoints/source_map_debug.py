@@ -84,6 +84,8 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         release_version = event.get_tag("sentry:release")
 
+        filename = self._get_filename(event, exception_idx, frame_idx)
+
         if not release_version:
             return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
 
@@ -111,7 +113,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         if not (urlparts.scheme and urlparts.path):
             return self._create_response(
-                issue=SourceMapProcessingIssue.URL_NOT_VALID, data={"absValue": abs_path}
+                issue=SourceMapProcessingIssue.URL_NOT_VALID, data={"absPath": abs_path}
             )
 
         release_artifacts = ReleaseFile.objects.filter(release_id=release.id)
@@ -123,10 +125,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             if len(partial_matches) > 0:
                 return self._create_response(
                     issue=SourceMapProcessingIssue.PARTIAL_MATCH,
-                    data={"insertPath": abs_path, "matchedSourcemapPath": partial_matches[0].name},
+                    data={
+                        "absPath": abs_path,
+                        "partialMatchPath": partial_matches[0].name,
+                        "fileName": filename,
+                    },
                 )
             return self._create_response(
-                issue=SourceMapProcessingIssue.NO_URL_MATCH, data={"absPath": abs_path}
+                issue=SourceMapProcessingIssue.NO_URL_MATCH,
+                data={"absPath": abs_path, "fileName": filename},
             )
 
         artifact = full_matches[0]
@@ -135,13 +142,14 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             dist = Distribution.objects.get(release=release, name=event.dist)
         except Distribution.DoesNotExist:
             return self._create_response(
-                issue=SourceMapProcessingIssue.DIST_MISMATCH, data={"eventDist": event.dist}
+                issue=SourceMapProcessingIssue.DIST_MISMATCH,
+                data={"eventDist": event.dist, "fileName": filename},
             )
 
         if artifact.dist_id != dist.id:
             return self._create_response(
                 issue=SourceMapProcessingIssue.DIST_MISMATCH,
-                data={"eventDist": dist.id, "artifactDist": artifact.dist_id},
+                data={"eventDist": dist.id, "artifactDist": artifact.dist_id, "fileName": filename},
             )
 
         return self._create_response()
@@ -159,6 +167,13 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         frame = frame_list[int(frame_idx)]
         abs_path = frame.abs_path
         return abs_path
+
+    def _get_filename(self, event, exception_idx, frame_idx):
+        exceptions = event.interfaces["exception"].values
+        frame_list = exceptions[int(exception_idx)].stacktrace.frames
+        frame = frame_list[int(frame_idx)]
+        filename = frame.filename
+        return filename
 
     def _find_matches(self, release_artifacts, unified_path):
         full_matches = [artifact for artifact in release_artifacts if artifact.name == unified_path]
