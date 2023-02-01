@@ -533,7 +533,9 @@ class OrganizationMember(Model):
             )
             .exclude(id=self.id)
             .exists()
-        ) or not OrganizationMemberTeam.objects.filter(
+        ) and not OrganizationMemberTeam.objects.filter(
             team__in=self.organization.get_teams_with_org_role(organization_roles.get_top_dog().id)
+        ).exclude(
+            organizationmember_id=self.id
         ).exists()
         return is_only_owner
