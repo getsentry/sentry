@@ -164,7 +164,7 @@ const Context = ({
     ? frame.context
     : frame.context.filter(l => l[0] === frame.lineNo);
 
-  const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
+  const startLineNo = hasContextSource ? frame.context[0][0] : 0;
   const hasStacktraceLink =
     frame.inApp &&
     !!frame.filename &&
@@ -181,7 +181,7 @@ const Context = ({
   return (
     <Wrapper
       start={startLineNo}
-      startLineNo={startLineNo ?? 0}
+      startLineNo={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
     >
       {defined(frame.errors) && (
@@ -260,13 +260,8 @@ const StyledIconFlag = styled(IconFlag)`
 
 const StyledContextLine = styled(ContextLine)`
   background: inherit;
-  padding: 0;
   z-index: 1000;
-  position: relative;
-
-  &::marker {
-    content: '';
-  }
+  list-style: none;
 
   &:before {
     content: counter(frame);
@@ -277,6 +272,7 @@ const StyledContextLine = styled(ContextLine)`
     height: 24px;
     background: transparent;
     z-index: 1;
+    min-width: 58px;
   }
 
   &.covered:before {
