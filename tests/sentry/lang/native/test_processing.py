@@ -178,6 +178,54 @@ def test_filter_frames():
     assert len(filtered_frames) == 0
 
 
+def test_instruction_addr_adjustment_auto():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, None)
+
+    assert "adjust_instruction_addr" not in processed_frames[0].keys()
+    assert "adjust_instruction_addr" not in processed_frames[1].keys()
+
+
+def test_instruction_addr_adjustment_all():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, "all")
+
+    assert processed_frames[0]["adjust_instruction_addr"]
+    assert "adjust_instruction_addr" not in processed_frames[1].keys()
+
+
+def test_instruction_addr_adjustment_all_but_first():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, "all_but_first")
+
+    assert not processed_frames[0]["adjust_instruction_addr"]
+    assert "adjust_instruction_addr" not in processed_frames[1].keys()
+
+
+def test_instruction_addr_adjustment_none():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, "none")
+
+    assert not processed_frames[0]["adjust_instruction_addr"]
+    assert not processed_frames[1]["adjust_instruction_addr"]
+
+
 @pytest.mark.django_db
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_il2cpp_symbolication(mock_symbolicator, default_project):
