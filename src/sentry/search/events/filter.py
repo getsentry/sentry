@@ -4,20 +4,10 @@ from datetime import datetime
 from functools import reduce
 from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
-from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
-from sentry import eventstore
-from sentry.api.event_search import (
-    AggregateFilter,
-    ParenExpression,
-    SearchBoolean,
-    SearchFilter,
-    SearchKey,
-    SearchValue,
-    parse_search_query,
-)
+from sentry.api.event_search import AggregateFilter, SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
@@ -46,16 +36,11 @@ from sentry.search.events.constants import (
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
+from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.utils import parse_release
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
-
-
-def is_condition(term):
-    return isinstance(term, (tuple, list)) and len(term) == 3 and term[1] in OPERATOR_TO_FUNCTION
 
 
 def translate_transaction_status(val: str) -> str:
@@ -71,62 +56,6 @@ def to_list(value: Union[List[str], str]) -> List[str]:
     if isinstance(value, list):
         return value
     return [value]
-
-
-def convert_condition_to_function(cond):
-    if len(cond) != 3:
-        return cond
-    function = OPERATOR_TO_FUNCTION.get(cond[1])
-    if not function:
-        # It's hard to make this error more specific without exposing internals to the end user
-        raise InvalidSearchQuery(f"Operator {cond[1]} is not a valid condition operator.")
-
-    return [function, [cond[0], cond[2]]]
-
-
-def convert_array_to_tree(operator, terms):
-    """
-    Convert an array of conditions into a binary tree joined by the operator.
-    """
-    if len(terms) == 1:
-        return terms[0]
-    elif len(terms) == 2:
-        return [operator, terms]
-    elif terms[1] in ["IN", "NOT IN"]:
-        return terms
-
-    return [operator, [terms[0], convert_array_to_tree(operator, terms[1:])]]
-
-
-def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
-    name = aggregate_filter.key.name
-    value = aggregate_filter.value.value
-
-    if params is not None and name in params.get("aliases", {}):
-        return params["aliases"][name].converter(aggregate_filter)
-
-    value = (
-        int(to_timestamp(value)) if isinstance(value, datetime) and name != "timestamp" else value
-    )
-
-    if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
-        return [["isNull", [name]], aggregate_filter.operator, 1]
-
-    function = resolve_field(name, params, functions_acl=FUNCTIONS.keys())
-    if function.aggregate is not None:
-        name = function.aggregate[-1]
-
-    return [name, aggregate_filter.operator, value]
-
-
-def convert_function_to_condition(func):
-    if len(func) != 2:
-        return func
-    operator = FUNCTION_TO_OPERATOR.get(func[0])
-    if not operator:
-        return [func, "=", 1]
-
-    return [func[1][0], operator, func[1][1]]
 
 
 def _environment_filter_converter(
@@ -700,250 +629,6 @@ def convert_search_filter_to_snuba_query(
             return [is_null_condition, condition]
         else:
             return condition
-
-
-def flatten_condition_tree(tree, condition_function):
-    """
-    Take a binary tree of conditions, and flatten all of the terms using the condition function.
-    E.g. f( and(and(b, c), and(d, e)), and ) -> [b, c, d, e]
-    """
-    stack = [tree]
-    flattened = []
-    while len(stack) > 0:
-        item = stack.pop(0)
-        if item[0] == condition_function:
-            stack.extend(item[1])
-        else:
-            flattened.append(item)
-
-    return flattened
-
-
-def convert_snuba_condition_to_function(term, params=None):
-    if isinstance(term, ParenExpression):
-        return convert_search_boolean_to_snuba_query(term.children, params)
-
-    group_ids = []
-    projects_to_filter = []
-    if isinstance(term, SearchFilter):
-        conditions, projects_to_filter, group_ids = format_search_filter(term, params)
-        group_ids = group_ids if group_ids else []
-        if conditions:
-            conditions_to_and = []
-            for cond in conditions:
-                if is_condition(cond):
-                    conditions_to_and.append(convert_condition_to_function(cond))
-                else:
-                    conditions_to_and.append(
-                        convert_array_to_tree(
-                            SNUBA_OR, [convert_condition_to_function(c) for c in cond]
-                        )
-                    )
-
-            condition_tree = None
-            if len(conditions_to_and) == 1:
-                condition_tree = conditions_to_and[0]
-            elif len(conditions_to_and) > 1:
-                condition_tree = convert_array_to_tree(SNUBA_AND, conditions_to_and)
-            return condition_tree, None, projects_to_filter, group_ids
-    elif isinstance(term, AggregateFilter):
-        converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
-        return None, convert_condition_to_function(converted_filter), projects_to_filter, group_ids
-
-    return None, None, projects_to_filter, group_ids
-
-
-def convert_search_boolean_to_snuba_query(terms, params=None):
-    if len(terms) == 1:
-        return convert_snuba_condition_to_function(terms[0], params)
-
-    # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
-    # basic sanitization of the query: can't have two operators next to each other, and can't
-    # start or end a query with an operator.
-    prev = None
-    new_terms = []
-    term = None
-
-    for term in terms:
-        if prev:
-            if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
-                raise InvalidSearchQuery(
-                    f"Missing condition in between two condition operators: '{prev} {term}'"
-                )
-        else:
-            if SearchBoolean.is_operator(term):
-                raise InvalidSearchQuery(
-                    f"Condition is missing on the left side of '{term}' operator"
-                )
-
-        if term != SearchBoolean.BOOLEAN_AND:
-            new_terms.append(term)
-        prev = term
-    if term is not None and SearchBoolean.is_operator(term):
-        raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
-    terms = new_terms
-
-    # We put precedence on AND, which sort of counter-intuitively means we have to split the query
-    # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
-    # query on each OR.
-    # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on
-    # the two sides. If there is no OR, split the first element out to AND
-    index = None
-    lhs, rhs = None, None
-    operator = None
-    try:
-        index = terms.index(SearchBoolean.BOOLEAN_OR)
-        lhs, rhs = terms[:index], terms[index + 1 :]
-        operator = SNUBA_OR
-    except Exception:
-        lhs, rhs = terms[:1], terms[1:]
-        operator = SNUBA_AND
-
-    (
-        lhs_condition,
-        lhs_having,
-        projects_to_filter,
-        group_ids,
-    ) = convert_search_boolean_to_snuba_query(lhs, params)
-    (
-        rhs_condition,
-        rhs_having,
-        rhs_projects_to_filter,
-        rhs_group_ids,
-    ) = convert_search_boolean_to_snuba_query(rhs, params)
-
-    projects_to_filter.extend(rhs_projects_to_filter)
-    group_ids.extend(rhs_group_ids)
-
-    if operator == SNUBA_OR and (lhs_condition or rhs_condition) and (lhs_having or rhs_having):
-        raise InvalidSearchQuery(
-            "Having an OR between aggregate filters and normal filters is invalid."
-        )
-
-    condition, having = None, None
-    if lhs_condition or rhs_condition:
-        args = list(filter(None, [lhs_condition, rhs_condition]))
-        if not args:
-            condition = None
-        elif len(args) == 1:
-            condition = args[0]
-        else:
-            condition = [operator, args]
-
-    if lhs_having or rhs_having:
-        args = list(filter(None, [lhs_having, rhs_having]))
-        if not args:
-            having = None
-        elif len(args) == 1:
-            having = args[0]
-        else:
-            having = [operator, args]
-
-    return condition, having, projects_to_filter, group_ids
-
-
-def get_filter(query=None, params=None, parser_config_overrides=None):
-    """
-    Returns an eventstore filter given the search text provided by the user and
-    URL params
-    """
-    # NOTE: this function assumes project permissions check already happened
-    parsed_terms = []
-    if query is not None:
-        try:
-            parsed_terms = parse_search_query(
-                query, params=params, config_overrides=parser_config_overrides
-            )
-        except ParseError as e:
-            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
-
-    kwargs = {
-        "start": None,
-        "end": None,
-        "conditions": [],
-        "having": [],
-        "user_id": None,
-        "organization_id": None,
-        "team_id": [],
-        "project_ids": [],
-        "group_ids": [],
-        "condition_aggregates": [],
-        "aliases": params.get("aliases", {}) if params is not None else {},
-    }
-
-    projects_to_filter = []
-    if any(
-        isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
-        for term in parsed_terms
-    ):
-        (
-            condition,
-            having,
-            found_projects_to_filter,
-            group_ids,
-        ) = convert_search_boolean_to_snuba_query(parsed_terms, params)
-
-        if condition:
-            and_conditions = flatten_condition_tree(condition, SNUBA_AND)
-            for func in and_conditions:
-                kwargs["conditions"].append(convert_function_to_condition(func))
-        if having:
-            kwargs["condition_aggregates"] = [
-                term.key.name for term in parsed_terms if isinstance(term, AggregateFilter)
-            ]
-            and_having = flatten_condition_tree(having, SNUBA_AND)
-            for func in and_having:
-                kwargs["having"].append(convert_function_to_condition(func))
-        if found_projects_to_filter:
-            projects_to_filter = list(set(found_projects_to_filter))
-        if group_ids is not None:
-            kwargs["group_ids"].extend(list(set(group_ids)))
-    else:
-        projects_to_filter = set()
-        for term in parsed_terms:
-            if isinstance(term, SearchFilter):
-                conditions, found_projects_to_filter, group_ids = format_search_filter(term, params)
-                if len(conditions) > 0:
-                    kwargs["conditions"].extend(conditions)
-                if found_projects_to_filter:
-                    projects_to_filter.update(found_projects_to_filter)
-                if group_ids is not None:
-                    kwargs["group_ids"].extend(group_ids)
-            elif isinstance(term, AggregateFilter):
-                converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
-                kwargs["condition_aggregates"].append(term.key.name)
-                if converted_filter:
-                    kwargs["having"].append(converted_filter)
-        projects_to_filter = list(projects_to_filter)
-
-    # Keys included as url params take precedent if same key is included in search
-    # They are also considered safe and to have had access rules applied unlike conditions
-    # from the query string.
-    if params:
-        for key in ("start", "end"):
-            kwargs[key] = params.get(key, None)
-        if "user_id" in params:
-            kwargs["user_id"] = params["user_id"]
-        if "organization_id" in params:
-            kwargs["organization_id"] = params["organization_id"]
-        if "team_id" in params:
-            kwargs["team_id"] = params["team_id"]
-        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
-        if "project_id" in params:
-            if projects_to_filter:
-                kwargs["project_ids"] = projects_to_filter
-            else:
-                kwargs["project_ids"] = params["project_id"]
-        if "environment" in params:
-            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
-            kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
-        if "group_ids" in params:
-            kwargs["group_ids"] = to_list(params["group_ids"])
-        # Deprecated alias, use `group_ids` instead
-        if ISSUE_ID_ALIAS in params:
-            kwargs["group_ids"] = to_list(params["issue.id"])
-
-    return eventstore.Filter(**kwargs)
 
 
 def format_search_filter(term, params):
