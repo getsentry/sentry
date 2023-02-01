@@ -712,7 +712,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if request:
             url = request.get("url", "") or ""
             method = request.get("method", "") or ""
-            if url.endswith("/graphql") or method.lower() in ["post", "get"]:
+            if url.endswith("/graphql") and method.lower() in ["post", "get"]:
                 return False
 
         return "php" not in sdk_name.lower()
