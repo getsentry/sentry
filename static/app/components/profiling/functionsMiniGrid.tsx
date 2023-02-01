@@ -42,7 +42,7 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
 
       {functions &&
         functions.map((f, idx) => {
-          const [exampleProfileIdRaw] = f.examples;
+          const exampleProfileIdRaw = f.worst;
           const exampleProfileId = exampleProfileIdRaw.replaceAll('-', '');
           return (
             <Fragment key={idx}>
