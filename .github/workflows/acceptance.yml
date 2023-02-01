@@ -248,7 +248,7 @@ jobs:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [backend]
-    name: trigger acceptance visual snapshot
+    name: trigger backend visual snapshot
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
