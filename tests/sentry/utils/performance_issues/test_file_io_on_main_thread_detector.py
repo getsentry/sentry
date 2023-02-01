@@ -35,7 +35,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 @region_silo_test
 @pytest.mark.django_db
-class NPlusOneAPICallsDetectorTest(TestCase):
+class FileIOMainThreadDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -77,7 +77,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problem = self.find_problems(event)[0]
         assert problem.title == "File IO on Main Thread"
 
-    def test_duplicate_calls_do_not_change_callstackc(self):
+    def test_duplicate_calls_do_not_change_callstack(self):
         event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         single_span_problem = self.find_problems(event)[0]
