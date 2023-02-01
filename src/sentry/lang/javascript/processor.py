@@ -163,6 +163,17 @@ def discover_sourcemap(result):
     """
     Given a UrlResult object, attempt to discover a sourcemap URL.
     """
+    # There might be a scenario where `abs_path` of the frame points to the page
+    # route itself, like https://sentry.io/something (eg. when inlined script throws).
+    # In this case, we would normally skip mapping this frame, as there's no way to
+    # do that in the first place. However some developers, have their tools configured,
+    # so that inlined script end up with `sourceMappingURL` pragma at the end of their
+    # HTML page. When this happen, we'll detect it as a valid sourcemap, and assign
+    # malformed url like https://sentry.io/assets/vendor.42.js.map</script></body></html>
+    # as the discovered sourcemap url. This check tries to prevent that from happening.
+    if is_html_response(result):
+        return None
+
     # When coercing the headers returned by urllib to a dict
     # all keys become lowercase so they're normalized
     sourcemap = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
@@ -726,18 +737,23 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
     # NOTE: possible to have JS files that don't actually end w/ ".js", but
     # this should catch 99% of cases
-    if urlsplit(url).path.endswith(".js"):
-        # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
-        # This cannot parse as valid JS/JSON.
-        # NOTE: not relying on Content-Type header because apps often don't set this correctly
-        # Discard leading whitespace (often found before doctype)
-        body_start = result.body[:20].lstrip()
-
-        if body_start[:1] == b"<":
-            error = {"type": EventError.JS_INVALID_CONTENT, "url": url}
-            raise http.CannotFetch(error)
+    if urlsplit(url).path.endswith(".js") and is_html_response(result):
+        error = {"type": EventError.JS_INVALID_CONTENT, "url": url}
+        raise http.CannotFetch(error)
 
     return result
+
+
+def is_html_response(result):
+    # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
+    # This cannot parse as valid JS/JSON.
+    # NOTE: not relying on Content-Type header because apps often don't set this correctly
+    # Discard leading whitespace (often found before doctype)
+    body_start = result.body[:20].lstrip()
+
+    if body_start[:1] == b"<":
+        return True
+    return False
 
 
 def get_max_age(headers):
