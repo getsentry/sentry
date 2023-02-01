@@ -158,6 +158,7 @@ jobs:
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
+
   backend:
     if: needs.files-changed.outputs.acceptance_backend == 'true'
     needs: files-changed
