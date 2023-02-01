@@ -19,12 +19,16 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils import (
     NotificationRuleDetails,
+    NPlusOneAPICallProblemContext,
+    PerformanceProblemContext,
     get_email_link_extra_params,
     get_group_settings_link,
     get_rules,
 )
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 class NotificationHelpersTest(TestCase):
@@ -212,4 +216,93 @@ class NotificationHelpersTest(TestCase):
                 "alert_rule_id": str(rule_detail.id),
             }
             for rule_detail in rule_details
+        }
+
+
+class PerformanceProblemContextTestCase(TestCase):
+    def test_creates_correct_context(self):
+        assert (
+            PerformanceProblemContext.from_problem_and_spans(
+                PerformanceProblem(
+                    fingerprint="",
+                    op="",
+                    desc="",
+                    type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                    parent_span_ids=[],
+                    cause_span_ids=[],
+                    offender_span_ids=[],
+                ),
+                [],
+            ).__class__
+            == PerformanceProblemContext
+        )
+
+        assert (
+            PerformanceProblemContext.from_problem_and_spans(
+                PerformanceProblem(
+                    fingerprint="",
+                    op="",
+                    desc="",
+                    type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+                    parent_span_ids=[],
+                    cause_span_ids=[],
+                    offender_span_ids=[],
+                ),
+                [],
+            ).__class__
+            == NPlusOneAPICallProblemContext
+        )
+
+    def test_returns_n_plus_one_db_query_context(self):
+        context = PerformanceProblemContext(
+            PerformanceProblem(
+                fingerprint=f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-153198dd61706844cf3d9a922f6f82543df8125f",
+                op="db",
+                desc="SELECT * FROM table",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                parent_span_ids=["b93d2be92cd64fd5"],
+                cause_span_ids=[],
+                offender_span_ids=["054ba3a374d543eb"],
+            ),
+            [
+                {"span_id": "b93d2be92cd64fd5", "description": "SELECT * FROM parent_table"},
+                {"span_id": "054ba3a374d543eb", "description": "SELECT * FROM table WHERE id=%s"},
+            ],
+        )
+
+        assert context.to_dict() == {
+            "transaction_name": "db - SELECT * FROM table",
+            "parent_span": "SELECT * FROM parent_table",
+            "repeating_spans": "SELECT * FROM table WHERE id=%s",
+            "num_repeating_spans": "1",
+        }
+
+    def test_returns_n_plus_one_api_call_context(self):
+        context = NPlusOneAPICallProblemContext(
+            PerformanceProblem(
+                fingerprint=f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value}-153198dd61706844cf3d9a922f6f82543df8125f",
+                op="http.client",
+                desc="/resources",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["b93d2be92cd64fd5", "054ba3a374d543eb"],
+            ),
+            [
+                {
+                    "span_id": "b93d2be92cd64fd5",
+                    "description": "GET https://resource.io/resource?id=1",
+                },
+                {
+                    "span_id": "054ba3a374d543eb",
+                    "description": "GET https://resource.io/resource?id=2",
+                },
+            ],
+        )
+
+        assert context.to_dict() == {
+            "transaction_name": "/resources",
+            "repeating_spans": "/resource",
+            "parameters": ["{id: 1,2}"],
+            "num_repeating_spans": "2",
         }
