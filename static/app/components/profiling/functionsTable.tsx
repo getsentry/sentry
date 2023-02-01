@@ -192,7 +192,6 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'package',
   'count',
   'p75',
-  'p95',
   'p99',
   'examples',
 ];
