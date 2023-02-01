@@ -11,20 +11,14 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasRulesGenerator,
 )
 from sentry.dynamic_sampling.rules.helpers.latest_releases import ProjectBoostedReleases
-from sentry.dynamic_sampling.rules.utils import (
-    RELEASE_BOOST_FACTOR,
-    RESERVED_IDS,
-    BaseRule,
-    RuleType,
-)
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, BaseRule, RuleType, dynamic_factor
 
 
 class BoostLatestReleasesDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE],
-            "baseSampleRate": bias_params.base_sample_rate,
-            "sampleRate": min(1.0, bias_params.base_sample_rate * RELEASE_BOOST_FACTOR),
+            "factor": dynamic_factor(bias_params.base_sample_rate, 1.5),
             "boostedReleases": ProjectBoostedReleases(
                 bias_params.project.id
             ).get_extended_boosted_releases(),
@@ -39,7 +33,10 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
             List[BaseRule],
             [
                 {
-                    "sampleRate": bias_data["sampleRate"],
+                    "samplingStrategy": {
+                        "type": "factor",
+                        "value": bias_data["factor"],
+                    },
                     "type": "trace",
                     "active": True,
                     "condition": {
@@ -76,7 +73,7 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                     # of interpolating the adoption growth with the reduction in sample rate.
                     "decayingFn": {
                         "type": "linear",
-                        "decayedSampleRate": bias_data["baseSampleRate"],
+                        "decayedValue": 1.0,
                     },
                 }
                 for idx, boosted_release in enumerate(boosted_releases)

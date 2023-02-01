@@ -26,7 +26,10 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
         return [
             {
-                "sampleRate": 1,
+                "samplingStrategy": {
+                    "type": "sampleRate",
+                    "value": 1.0,
+                },
                 "type": "trace",
                 "condition": {
                     "op": "or",

@@ -22,7 +22,10 @@ class UniformRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
         return [
             {
-                "sampleRate": bias_data["sampleRate"],
+                "samplingStrategy": {
+                    "type": "sampleRate",
+                    "value": bias_data["sampleRate"],
+                },
                 "type": "trace",
                 "active": True,
                 "condition": {
