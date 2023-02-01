@@ -155,3 +155,19 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
         assert self.find_problems(event) == []
+
+    def test_does_not_detect_if_missing_size(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=1000.0),
+            ],
+        }
+        assert self.find_problems(event) == []
