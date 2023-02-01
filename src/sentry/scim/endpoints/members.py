@@ -342,7 +342,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         operation_id="Provision a New Organization Member",
         parameters=[GLOBAL_PARAMS.ORG_SLUG],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"userName": serializers.EmailField()}
+            name="SCIMMemberProvision",
+            fields={
+                "userName": serializers.EmailField(),
+                "sentryOrgRole": serializers.CharField(required=False),
+            },
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,
@@ -362,7 +366,6 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     "active": True,
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "meta": {"resourceType": "User"},
-                    "sentryOrgRole": "member",
                 },
                 status_codes=["201"],
             ),
