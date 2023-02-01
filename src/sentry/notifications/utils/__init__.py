@@ -464,13 +464,13 @@ class PerformanceProblemContext:
     problem: PerformanceProblem
     spans: Union[List[Dict[str, Union[str, float]]], None]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         parent_span, repeating_spans = get_parent_and_repeating_spans(self.spans, self.problem)
 
         self.parent_span = parent_span
         self.repeating_spans = repeating_spans
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, str | List[str]]:
         return {
             "transaction_name": get_span_evidence_value_problem(self.problem),
             "parent_span": get_span_evidence_value(self.parent_span),
@@ -483,7 +483,7 @@ class PerformanceProblemContext:
     @classmethod
     def from_problem_and_spans(
         cls, problem: PerformanceProblem, spans: Union[List[Dict[str, Union[str, float]]], None]
-    ):
+    ) -> PerformanceProblemContext:
         if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
             return NPlusOneAPICallProblemContext(problem, spans)
         else:
@@ -491,7 +491,7 @@ class PerformanceProblemContext:
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, str | List[str]]:
         return {
             "transaction_name": get_span_evidence_value_problem(self.problem),
             "repeating_spans": self.path_prefix,
@@ -502,7 +502,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
         }
 
     @property
-    def path_prefix(self):
+    def path_prefix(self) -> str:
         if not self.repeating_spans or len(self.repeating_spans) == 0:
             return ""
 
@@ -511,9 +511,9 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
         return f"{parsed_url.path}[Parameters]"
 
     @property
-    def parameters(self):
+    def parameters(self) -> List[str]:
         if not self.spans or len(self.spans) == 0:
-            return ""
+            return []
 
         urls = [
             get_url_from_span(span)
@@ -521,7 +521,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
             if span.get("span_id") in self.problem.offender_span_ids
         ]
 
-        all_parameters = defaultdict(list)
+        all_parameters: Mapping[str, List[str]] = defaultdict(list)
 
         for url in urls:
             parsed_url = urlparse(url)
