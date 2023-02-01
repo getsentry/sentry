@@ -3,7 +3,6 @@ from typing import Any, List, Tuple, Type
 from uuid import uuid4
 
 from django.apps import apps
-from django.core.cache import cache
 from django.db.models import Manager, Max
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import (
@@ -13,6 +12,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import (
 from sentry.models import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.utils import json, redis
 
 
 def deletion_silo_modes() -> List[SiloMode]:
@@ -25,18 +25,29 @@ def deletion_silo_modes() -> List[SiloMode]:
     return result
 
 
-# TODO: do not use django caches, use either redis, or db.
+def get_watermark_key(prefix: str, field: HybridCloudForeignKey) -> str:
+    return f"{prefix}.{field.model._meta.db_table}.{field.name}"
+
+
 def get_watermark(prefix: str, field: HybridCloudForeignKey) -> Tuple[int, str]:
-    return cache.get(f"{prefix}.{field.model._meta.db_table}.{field.name}") or (0, uuid4().hex)
+    with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
+        key = get_watermark_key(prefix, field)
+        v = client.get(key)
+        if v is None:
+            result = (0, uuid4().hex)
+            client.set(key, json.dumps(result))
+            return result
+        return tuple(json.loads(v))
 
 
 def set_watermark(
     prefix: str, field: HybridCloudForeignKey, value: int, prev_transaction_id: str
 ) -> None:
-    return cache.set(
-        f"{prefix}.{field.model._meta.db_table}.{field.name}",
-        (value, sha1(prev_transaction_id.encode("utf8") + bytes([value])).hexdigest()),
-    )
+    with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
+        client.set(
+            get_watermark_key(prefix, field),
+            json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
+        )
 
 
 def chunk_watermark_batch(
@@ -107,6 +118,11 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
         )
 
 
+# Convenience wrapper for mocking in tests
+def get_batch_size() -> int:
+    return 3000
+
+
 def _process_tombstone_reconcilition(
     field: HybridCloudForeignKey,
     model: Any,
@@ -122,7 +138,7 @@ def _process_tombstone_reconcilition(
     watermark_target: str = "r" if row_after_tombstone else "t"
 
     low, up, has_more, tid = chunk_watermark_batch(
-        prefix, field, watermark_manager, batch_size=3000
+        prefix, field, watermark_manager, batch_size=get_batch_size()
     )
     to_delete_ids: List[int]
     if low < up:
@@ -130,7 +146,7 @@ def _process_tombstone_reconcilition(
             r.id
             for r in model.objects.raw(
                 f"""
-        SELECT r.id FROM {model._meta.db_table} r LEFT JOIN {tombstone_cls._meta.db_table} t
+        SELECT r.id FROM {model._meta.db_table} r JOIN {tombstone_cls._meta.db_table} t
             ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
             WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
         """,

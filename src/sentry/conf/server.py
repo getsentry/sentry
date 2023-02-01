@@ -806,7 +806,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 60 * 25},
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
-        "task": "sentry.tasks.deletion.schedule_hybrid_cloud_foreign_key_jobs",
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         "schedule": timedelta(minutes=15),
     },
     "monitor-release-adoption": {
