@@ -266,6 +266,7 @@ const StyledContextLine = styled(ContextLine)`
   &:before {
     content: counter(frame);
     counter-increment: frame;
+    text-align: center;
     padding-left: ${space(3)};
     padding-right: ${space(1.5)};
     display: inline-block;
@@ -273,11 +274,12 @@ const StyledContextLine = styled(ContextLine)`
     background: transparent;
     z-index: 1;
     min-width: 58px;
+    border-right-style: solid;
+    border-right-color: transparent;
   }
 
   &.covered:before {
     background: ${p => p.theme.green100};
-    border-right-style: solid;
     border-right-color: ${p => p.theme.green300};
   }
 
