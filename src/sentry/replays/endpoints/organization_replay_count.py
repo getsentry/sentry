@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.event_search import parse_search_query
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
@@ -59,6 +60,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             replay_ids_mapping = get_replay_id_mappings(request, params, snuba_params)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except InvalidSearchQuery:
+            return Response({"detail": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
 
         replay_results = query_replays_count(
             project_ids=[p.id for p in snuba_params.projects],
