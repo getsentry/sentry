@@ -340,7 +340,7 @@ jobs:
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
   chartcuterie-visual-diff:
-    if: always() and needs.files-changed.outputs.acceptance_backend == 'true'
+    if: always() && needs.files-changed.outputs.acceptance_backend == 'true'
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [chartcuterie]
