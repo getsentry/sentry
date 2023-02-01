@@ -1,4 +1,5 @@
 import {useContext} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Placeholder from 'sentry/components/placeholder';
@@ -26,7 +27,7 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
   }
 
   if (quickTrace?.isLoading) {
-    return <Placeholder height="24px" />;
+    return <GrowingPlaceholder height="24px" />;
   }
 
   return (
@@ -39,5 +40,10 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
     />
   );
 }
+
+const GrowingPlaceholder = styled(Placeholder)`
+  flex-grow: 1;
+  width: auto;
+`;
 
 export default QuickTrace;
