@@ -595,6 +595,7 @@ register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
 register("performance.issues.render_blocking_assets.fcp_minimum_threshold", default=2000.0)
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
+register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
