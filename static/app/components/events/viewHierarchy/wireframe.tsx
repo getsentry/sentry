@@ -7,11 +7,12 @@ import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-const RECT_FILL_ALPHA = 0.005;
-const RECT_OUTLINE_ALPHA = 1;
 const MIN_BORDER_SIZE = 20;
 
 type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
+
+// tree
+// -> node,x, y, width, height
 
 export function getCoordinates(
   hierarchies: ViewHierarchyWindow[],
@@ -95,6 +96,10 @@ function Wireframe({hierarchy, project}: WireframeProps) {
 
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
+  const maxDimensions = useMemo(() => {
+    return getMaxDimensions(coordinates);
+  }, [coordinates]);
+
   const {
     handlePanMove,
     handlePanStart,
@@ -107,8 +112,6 @@ function Wireframe({hierarchy, project}: WireframeProps) {
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
       // Make areas with more overlayed elements darker
-      context.globalCompositeOperation = 'overlay';
-      const maxDimensions = getMaxDimensions(coordinates);
 
       // Set the scaling
       const scalingFactor = calculateScale(dimensions, maxDimensions, {
@@ -130,25 +133,17 @@ function Wireframe({hierarchy, project}: WireframeProps) {
         (yPanOffset + yCenter) / scalingFactor
       );
 
+      context.fillStyle = 'rgb(88, 74, 192)';
+      context.strokeStyle = 'black';
+      context.lineWidth = 1;
+
       coordinates.forEach(hierarchyCoords => {
         hierarchyCoords.forEach(({x, y, width, height}) => {
-          // Prepare rectangles for drawing
-          context.fillStyle = 'rgb(88, 74, 192)';
-          context.strokeStyle = 'black';
-          context.lineWidth = 1;
-          context.rect(x, y, width, height);
-
-          // Draw the rectangles
-          context.globalAlpha = RECT_FILL_ALPHA;
-          context.fill();
-
-          // Draw the outlines
-          context.globalAlpha = RECT_OUTLINE_ALPHA;
-          context.stroke();
+          context.strokeRect(x, y, width, height);
         });
       });
     },
-    [coordinates, dimensions, xPanOffset, yPanOffset]
+    [coordinates, maxDimensions, dimensions, xPanOffset, yPanOffset]
   );
 
   useEffect(() => {
