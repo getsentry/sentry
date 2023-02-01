@@ -1,0 +1,56 @@
+import cloneDeep from 'lodash/cloneDeep';
+
+import {EntryException, Event} from 'sentry/types';
+
+import {getUniqueFilesFromException} from './useSourceMapDebug';
+
+function modifyEventFrames(event: Event, modify: any): Event {
+  const modifiedEvent = cloneDeep(event);
+  modifiedEvent.entries[0].data.values[0].stacktrace.frames =
+    event.entries[0].data.values[0].stacktrace.frames.map(frame => ({
+      ...frame,
+      ...modify,
+    }));
+  return modifiedEvent;
+}
+
+describe('getUniqueFilesFromException', () => {
+  const props = {eventId: '0', orgSlug: '0', projectSlug: '0'};
+
+  it('returns an array of frame filenames with required props', function () {
+    const event = TestStubs.EventStacktraceException({
+      platform: 'javascript',
+    });
+    const result = getUniqueFilesFromException(
+      (event.entries as EntryException[])[0].data.values!,
+      props
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      filename: 'application',
+      query: {
+        eventId: '0',
+        exceptionIdx: 0,
+        frameIdx: 1,
+        orgSlug: '0',
+        projectSlug: '0',
+      },
+    });
+  });
+
+  it('does NOT use frames if all filenames are anonymous', function () {
+    const event = modifyEventFrames(
+      TestStubs.EventStacktraceException({
+        platform: 'javascript',
+      }),
+      {filename: '<anonymous>'}
+    );
+    const result = getUniqueFilesFromException(
+      (event.entries as EntryException[])[0].data.values!,
+      props
+    );
+
+    expect(result).toHaveLength(0);
+  });
+});
