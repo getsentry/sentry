@@ -1,60 +1,86 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
+import {mat3, vec2} from 'gl-matrix';
 
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
-import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
+import {Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+
+function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]): Rect {
+  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
+
+  useLayoutEffect(() => {
+    if (!canvases.length) {
+      return undefined;
+    }
+
+    if (canvases.some(c => c === null)) {
+      return undefined;
+    }
+
+    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
+      const contentRect =
+        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
+
+      setCanvasBounds(
+        new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+      );
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [canvases]);
+
+  return bounds;
+}
 
 const MIN_BORDER_SIZE = 20;
 
-type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
-
-export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
-  return hierarchies.map(hierarchy => {
-    const newHierarchy: Rect[] = [];
-
-    const nodesToProcess = [hierarchy];
-    while (nodesToProcess.length) {
-      const node = nodesToProcess.pop()!;
-
-      // Fetch coordinates off the current node
-      newHierarchy.push({
-        x: node.x ?? 0,
-        y: node.y ?? 0,
-        width: node.width ?? 0,
-        height: node.height ?? 0,
-      });
-
-      if ((node.children ?? []).length !== 0) {
-        // Update the children's coords relative to the parent
-        const newChildren =
-          node.children?.map(child => ({
-            ...child,
-            x: (child.x ?? 0) + (node.x ?? 0),
-            y: (child.y ?? 0) + (node.y ?? 0),
-          })) ?? [];
-
-        nodesToProcess.push(...newChildren);
-      }
-    }
-
-    return newHierarchy;
-  });
+interface ViewNode {
+  node: ViewHierarchyWindow;
+  rect: Rect;
 }
 
-export function getMaxDimensions(coordinates) {
-  let maxWidth = 0;
-  let maxHeight = 0;
-  coordinates.forEach(hierarchy => {
-    hierarchy.forEach(({x, y, width, height}) => {
-      maxWidth = Math.max(x + width, maxWidth);
-      maxHeight = Math.max(y + height, maxHeight);
-    });
-  });
-  return {
-    width: maxWidth,
-    height: maxHeight,
-  };
+export function getCoordinates(
+  hierarchies: ViewHierarchyWindow[],
+  shiftChildrenByParent: boolean = true
+): {list: ViewNode[]; maxHeight: number; maxWidth: number} {
+  const list: any[] = [];
+  const queue: any[] = [...hierarchies.map(h => [null, h])];
+
+  let maxWidth = Number.MIN_SAFE_INTEGER;
+  let maxHeight = Number.MIN_SAFE_INTEGER;
+
+  while (queue.length) {
+    const [parent, child] = queue.pop();
+
+    const node = {
+      node: child,
+      rect:
+        shiftChildrenByParent && parent
+          ? new Rect(
+              (parent.x ?? 0) + (child.x ?? 0),
+              (parent.y ?? 0) + (child.y ?? 0),
+              child.width ?? 0,
+              child.height ?? 0
+            )
+          : new Rect(child.x ?? 0, child.y ?? 0, child.width ?? 0, child.height ?? 0),
+    };
+    list.push(node);
+
+    maxWidth = Math.max(maxWidth, node.rect.x + (node.rect.width ?? 0));
+    maxHeight = Math.max(maxHeight, node.rect.y + (node.rect.height ?? 0));
+
+    if (defined(child.children) && child.children.length) {
+      child.children.forEach(c => {
+        queue.push([child, c]);
+      });
+    }
+  }
+
+  return {list, maxWidth, maxHeight};
 }
 
 export function calculateScale(
@@ -68,109 +94,137 @@ export function calculateScale(
   );
 }
 
-function Wireframe({hierarchy}) {
+type WireframeProps = {
+  hierarchy: ViewHierarchyWindow[];
+  project: Project;
+};
+
+function Wireframe({hierarchy, project}: WireframeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const coordinates = useMemo(() => getCoordinates(hierarchy), [hierarchy]);
+  const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
-  const [dimensions, setDimensions] = useState({width: 0, height: 0});
+  const canvases = useMemo(() => {
+    return canvasRef ? [canvasRef] : [];
+  }, [canvasRef]);
 
-  const maxDimensions = useMemo(() => {
-    return getMaxDimensions(coordinates);
-  }, [coordinates]);
+  const canvasSize = useResizeCanvasObserver(canvases);
 
-  const {
-    handlePanMove,
-    handlePanStart,
-    handlePanStop,
-    isDragging,
-    xOffset: xPanOffset,
-    yOffset: yPanOffset,
-  } = useMousePan();
+  const coordinates = useMemo(
+    () => getCoordinates(hierarchy, project.platform !== 'flutter'),
+    [hierarchy, project]
+  );
+
+  const scale = useMemo(() => {
+    return (
+      calculateScale(
+        {width: canvasSize.width ?? 0, height: canvasSize.height ?? 0},
+        {width: coordinates.maxWidth, height: coordinates.maxHeight},
+        {
+          x: MIN_BORDER_SIZE,
+          y: MIN_BORDER_SIZE,
+        }
+      ) * window.devicePixelRatio
+    );
+  }, [coordinates, canvasSize]);
+
+  const transformationMatrix = useMemo(() => {
+    // prettier-ignore
+    return mat3.fromValues(
+      scale,0,0,
+      0,scale,0,
+      0,0,1
+    );
+  }, [scale]);
 
   const draw = useCallback(
-    (context: CanvasRenderingContext2D) => {
-      // Make areas with more overlayed elements darker
+    (modelToView: mat3) => {
+      const context = canvasRef?.getContext('2d');
+      if (!context) {
+        return;
+      }
+
+      context.resetTransform();
+      context.clearRect(
+        0,
+        0,
+        (canvasSize.width ?? 0) * window.devicePixelRatio,
+        (canvasSize.height ?? 0) * window.devicePixelRatio
+      );
 
       // Set the scaling
-      const scalingFactor = calculateScale(dimensions, maxDimensions, {
-        x: MIN_BORDER_SIZE,
-        y: MIN_BORDER_SIZE,
-      });
-      context.scale(scalingFactor, scalingFactor);
-
-      // Multiply by the scaling factor because that is the "real" size of the content
-      const xCenter =
-        Math.abs(dimensions.width - maxDimensions.width * scalingFactor) / 2;
-      const yCenter =
-        Math.abs(dimensions.height - maxDimensions.height * scalingFactor) / 2;
-
-      // Translate the canvas to account for mouse panning
-      // and centering
-      context.translate(
-        (xPanOffset + xCenter) / scalingFactor,
-        (yPanOffset + yCenter) / scalingFactor
+      context.setTransform(
+        modelToView[0],
+        modelToView[3],
+        modelToView[1],
+        modelToView[4],
+        modelToView[6],
+        modelToView[7]
       );
 
       context.fillStyle = 'rgb(88, 74, 192)';
       context.strokeStyle = 'black';
       context.lineWidth = 1;
 
-      coordinates.forEach(hierarchyCoords => {
-        hierarchyCoords.forEach(({x, y, width, height}) => {
-          context.strokeRect(x, y, width, height);
-        });
-      });
+      for (let i = 0; i < coordinates.list.length; i++) {
+        context.strokeRect(
+          coordinates.list[i].rect.x,
+          coordinates.list[i].rect.y,
+          coordinates.list[i].rect.width,
+          coordinates.list[i].rect.height
+        );
+      }
     },
-    [coordinates, maxDimensions, dimensions, xPanOffset, yPanOffset]
+    [coordinates, canvasRef, canvasSize]
   );
 
   useEffect(() => {
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    if (!canvas || !container) {
-      return;
+    if (!canvasRef) {
+      return undefined;
     }
 
-    canvas.width = dimensions.width || container.clientWidth;
-    canvas.height = dimensions.height || container.clientHeight;
+    let start: vec2 | null;
+    const handleMouseDown = (e: MouseEvent) => {
+      start = vec2.fromValues(e.offsetX, e.offsetY);
+    };
 
-    const context = canvas.getContext('2d');
-    if (context) {
-      draw(context);
-    }
-  }, [dimensions.height, dimensions.width, draw]);
+    const handleMouseMove = (e: MouseEvent) => {
+      if (start) {
+        const end = vec2.fromValues(e.offsetX, e.offsetY);
+        const delta = vec2.sub(vec2.create(), start, end);
+        const inverse = mat3.invert(mat3.create(), transformationMatrix);
 
-  useResizeObserver({
-    ref: containerRef,
-    onResize: () => {
-      if (!containerRef.current) {
-        return;
+        vec2.transformMat3(delta, delta, inverse);
+        mat3.add(
+          transformationMatrix,
+          transformationMatrix,
+          mat3.fromValues(0, 0, 0, 0, 0, 0, delta[0], delta[1], 0)
+        );
+        draw(transformationMatrix);
       }
+    };
 
-      const {clientWidth, clientHeight} = containerRef.current;
-      const needsResize =
-        dimensions.width !== clientWidth || dimensions.height !== clientHeight;
+    const handleMouseUp = () => {
+      start = null;
+    };
 
-      if (needsResize) {
-        setDimensions({
-          width: clientWidth ?? 0,
-          height: clientHeight ?? 0,
-        });
-      }
-    },
-  });
+    const options: AddEventListenerOptions & EventListenerOptions = {passive: true};
+
+    canvasRef.addEventListener('mousedown', handleMouseDown, options);
+    canvasRef.addEventListener('mousemove', handleMouseMove, options);
+    canvasRef.addEventListener('mouseup', handleMouseUp, options);
+
+    draw(transformationMatrix);
+
+    return () => {
+      canvasRef.removeEventListener('mousedown', handleMouseDown, options);
+      canvasRef.removeEventListener('mousemove', handleMouseMove, options);
+      canvasRef.removeEventListener('mouseup', handleMouseUp, options);
+    };
+  }, [transformationMatrix, canvasRef, draw]);
 
   return (
     <Container ref={containerRef}>
-      <StyledCanvas
-        ref={canvasRef}
-        onMouseDown={handlePanStart}
-        onMouseUp={handlePanStop}
-        onMouseLeave={handlePanStop}
-        onMouseMove={handlePanMove}
-        isDragging={isDragging}
-      />
+      <StyledCanvas ref={r => setCanvasRef(r)} isDragging={false} />
     </Container>
   );
 }
@@ -188,4 +242,6 @@ const Container = styled('div')`
 const StyledCanvas = styled('canvas')<{isDragging: boolean}>`
   background-color: ${p => p.theme.surface100};
   cursor: ${p => (p.isDragging ? 'grabbing' : 'grab')};
+  width: 100%;
+  height: 100%;
 `;
