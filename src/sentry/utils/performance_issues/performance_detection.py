@@ -173,6 +173,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "render_blocking_fcp_ratio": options.get(
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
+            "render_blocking_bytes_min": options.get(
+                "performance.issues.render_blocking_assets.size_threshold"
+            ),
             "n_plus_one_api_calls_detection_rate": 1.0,
             "consecutive_db_queries_detection_rate": 1.0,
         }
@@ -189,6 +192,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
             "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
             "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
+            "minimum_size_bytes": settings["render_blocking_bytes_min"],  # in bytes
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
@@ -252,7 +256,7 @@ def _detect_performance_problems(
     ]
 
     for detector in detectors:
-        run_detector_on_data(detector, data, project)
+        run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -293,8 +297,8 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector, data, project=None):
-    if not detector.is_event_eligible(data, project):
+def run_detector_on_data(detector, data):
+    if not detector.is_event_eligible(data):
         return
 
     spans = data.get("spans", [])
@@ -524,6 +528,12 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         if span_end_timestamp >= fcp_timestamp:
             return False
 
+        minimum_size_bytes = self.settings.get("minimum_size_bytes")
+        data = span.get("data", None)
+        encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
+        if encoded_body_size < minimum_size_bytes:
+            return False
+
         span_duration = get_span_duration(span)
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
@@ -703,12 +713,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return self.settings["detection_rate"] > random.random()
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
-        # temporary hardcode of org
-        if project is not None:
-            organization = cast(Organization, project.organization)
-            if organization is not None and organization.slug == "laracon-eu":
-                return True
+    def is_event_eligible(cls, event) -> bool:
         sdk_name = get_sdk_name(event) or ""
         return "php" not in sdk_name.lower()
 
@@ -1344,7 +1349,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
-    def is_event_eligible(cls, event, project: Project = None):
+    def is_event_eligible(cls, event):
         tags = event.get("tags", [])
         browser_name = next(
             (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
