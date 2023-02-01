@@ -365,7 +365,7 @@ jobs:
 
   # This check runs once all dependant jobs have passed
   trigger-visual-snapshots:
-    needs: [chartcuterie-visual-diff, acceptance-visual-diff, frontend-visual-diff]
+    needs: [chartcuterie-visual-diff, backend-visual-diff, frontend-visual-diff]
     name: triggers visual snapshot
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
