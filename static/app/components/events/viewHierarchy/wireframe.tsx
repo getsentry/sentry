@@ -15,7 +15,7 @@ type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
 
 export function getCoordinates(
   hierarchies: ViewHierarchyWindow[],
-  accountForParentPositioning: boolean = true
+  shiftChildrenByParent: boolean = true
 ) {
   return hierarchies.map(hierarchy => {
     const newHierarchy: Rect[] = [];
@@ -35,7 +35,7 @@ export function getCoordinates(
       if (defined(node.children) && node.children.length) {
         // Update the children's coords relative to the parent
         const newChildren = node.children.map(child => {
-          if (accountForParentPositioning) {
+          if (shiftChildrenByParent) {
             return {
               ...child,
               x: (child.x ?? 0) + (node.x ?? 0),

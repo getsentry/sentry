@@ -33,7 +33,7 @@ const MOCK_HIERARCHY = [
 
 describe('View Hierarchy Wireframe', function () {
   describe('getCoordinates', function () {
-    it('properly calculates coordinates', function () {
+    it('properly calculates coordinates and shift children by default', function () {
       const actual = getCoordinates(MOCK_HIERARCHY);
 
       // One array for each root
@@ -42,6 +42,20 @@ describe('View Hierarchy Wireframe', function () {
           {x: 0, y: 0, width: 10, height: 10},
           {x: 10, y: 5, width: 10, height: 10},
           {x: 12, y: 7, width: 5, height: 5},
+        ],
+        [{x: 10, y: 0, width: 20, height: 20}],
+      ]);
+    });
+
+    it('does not shift children when specified', function () {
+      const actual = getCoordinates(MOCK_HIERARCHY, false);
+
+      // One array for each root
+      expect(actual).toEqual([
+        [
+          {x: 0, y: 0, width: 10, height: 10},
+          {x: 10, y: 5, width: 10, height: 10},
+          {x: 2, y: 2, width: 5, height: 5},
         ],
         [{x: 10, y: 0, width: 20, height: 20}],
       ]);
