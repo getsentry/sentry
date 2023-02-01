@@ -507,6 +507,16 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
             assert snuba.call_args.args[0].query.limit == Limit(5)
 
+    @patch("sentry.utils.snuba.OVERRIDE_OPTIONS", new={"consistent": True})
+    def test_tsdb_with_consistent(self):
+        with patch("sentry.utils.snuba._apply_cache_and_build_results") as snuba:
+            rollup = 3600
+            end = self.now
+            start = end + timedelta(days=-1, seconds=rollup)
+            self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
+            assert snuba.call_args.args[0][0][0].query.limit == Limit(120)
+            assert snuba.call_args.args[0][0][0].flags.consistent is True
+
 
 @region_silo_test
 class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
