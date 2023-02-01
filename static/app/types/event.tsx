@@ -575,6 +575,14 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
+export enum ProfileContextKey {
+  PROFILE_ID = 'profile_id',
+}
+
+export interface ProfileContext {
+  [ProfileContextKey.PROFILE_ID]?: string;
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -696,8 +704,9 @@ interface EventBase {
 }
 
 interface TraceEventContexts extends EventContexts {
-  trace?: TraceContextType;
+  profile?: ProfileContext;
 }
+
 export interface EventTransaction
   extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
   contexts: TraceEventContexts;
