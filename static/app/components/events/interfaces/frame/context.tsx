@@ -181,6 +181,7 @@ const Context = ({
   return (
     <Wrapper
       start={startLineNo}
+      startLineNo={startLineNo ?? 0}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
     >
       {defined(frame.errors) && (
@@ -260,43 +261,28 @@ const StyledIconFlag = styled(IconFlag)`
 const StyledContextLine = styled(ContextLine)`
   background: inherit;
   padding: 0;
-  text-indent: 20px;
   z-index: 1000;
   position: relative;
 
-  &:before {
+  &::marker {
     content: '';
-    display: block;
-    height: 24px;
-    width: 50px;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    background: transparent;
-    position: absolute;
-    z-index: 1;
   }
 
-  &:after {
-    content: '';
-    display: block;
-    width: 2px;
-    border-color: transparent;
-    position: absolute;
-    left: 50px;
-    top: 0;
-    bottom: 0;
-    z-index: 9999;
+  &:before {
+    content: counter(frame);
+    counter-increment: frame;
+    padding-left: ${space(3)};
+    padding-right: ${space(1.5)};
+    display: inline-block;
     height: 24px;
+    background: transparent;
+    z-index: 1;
   }
 
   &.covered:before {
     background: ${p => p.theme.green100};
-  }
-
-  &.covered:after {
-    border-style: solid;
-    border-color: ${p => p.theme.green300};
+    border-right-style: solid;
+    border-right-color: ${p => p.theme.green300};
   }
 
   &.uncovered:before {
@@ -305,11 +291,8 @@ const StyledContextLine = styled(ContextLine)`
 
   &.partial:before {
     background: ${p => p.theme.yellow100};
-  }
-
-  &.partial:after {
-    border-style: dashed;
-    border-color: ${p => p.theme.yellow300};
+    border-right-style: dashed;
+    border-right-color: ${p => p.theme.yellow300};
   }
 
   &.active {
@@ -333,7 +316,9 @@ const StyledContextLine = styled(ContextLine)`
   }
 `;
 
-const Wrapper = styled('ol')`
+const Wrapper = styled('ol')<{startLineNo: number}>`
+  counter-reset: frame ${p => p.startLineNo - 1};
+
   && {
     border-radius: 0;
   }
