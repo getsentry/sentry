@@ -94,24 +94,22 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 def get_org_roles(
     org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
-) -> Mapping[int, str]:
+) -> Mapping[int, list[str]]:
     """Get the role the user has in each org"""
     if not user.is_authenticated:
         return {}
 
     if optimization:
-        if optimization.access.role is not None:
+        if optimization.access.roles is not None:
             return {
-                optimization.access.api_user_organization_context.organization.id: optimization.access.role
+                optimization.access.api_user_organization_context.organization.id: optimization.access.roles
             }
         return {}
 
     # map of org id to role
     return {
-        om["organization_id"]: om["role"]
-        for om in OrganizationMember.objects.filter(
-            user_id=user.id, organization__in=set(org_ids)
-        ).values("role", "organization_id")
+        om.organization.id: om.get_all_org_roles()
+        for om in OrganizationMember.objects.filter(user_id=user.id, organization__in=set(org_ids))
     }
 
 
@@ -143,6 +141,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     isPending: bool
     memberCount: int
     avatar: SerializedAvatarFields
+    orgRole: str
 
 
 @register(Team)
@@ -181,7 +180,7 @@ class TeamSerializer(Serializer):  # type: ignore
             maybe_singular_api_access_org_context(self.access, org_ids) if self.access else None
         )
 
-        org_roles = get_org_roles(org_ids, user, optimization=optimization)
+        all_org_roles = get_org_roles(org_ids, user, optimization=optimization)
 
         member_totals = get_member_totals(item_list, user)
         team_memberships = _get_team_memberships(item_list, user, optimization=optimization)
@@ -193,27 +192,28 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            org_role = org_roles.get(team.organization_id)
+            org_roles = all_org_roles.get(team.organization_id)
+            is_member = False
+            has_access = False
+            team_role = None
 
-            if team.id in team_memberships:
-                is_member = True
-                team_role = team_memberships[team.id]
-                if team_role is None:
-                    team_role = roles.get_minimum_team_role(org_role).id
-            else:
-                is_member = False
-                team_role = None
+            for org_role in org_roles:
+                if team.id in team_memberships:
+                    is_member = True
+                    if team_memberships[team.id] is not None:
+                        team_role = team_memberships[team.id]
+                    elif team_role is None:
+                        team_role = roles.get_minimum_team_role(org_role).id
 
-            if is_member:
-                has_access = True
-            elif is_superuser:
-                has_access = True
-            elif team.organization.flags.allow_joinleave:
-                has_access = True
-            elif org_role and roles.get(org_role).is_global:
-                has_access = True
-            else:
-                has_access = False
+                if is_member:
+                    has_access = True
+                elif is_superuser:
+                    has_access = True
+                elif team.organization.flags.allow_joinleave:
+                    has_access = True
+                elif org_role and roles.get(org_role).is_global:
+                    has_access = True
+
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
@@ -275,6 +275,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
             "avatar": avatar,
+            "orgRole": obj.org_role,
         }
 
         # Expandable attributes.
