@@ -79,6 +79,7 @@ class PerformanceConsecutiveDBQueriesGroupType(GroupType):
     slug = "performance_consecutive_db_queries"
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 15
 
 
 @dataclass(frozen=True)
