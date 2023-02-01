@@ -144,10 +144,7 @@ const Context = ({
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
-  const [lineColors, primaryLineCovered, surroundingLinesCovered]: (
-    | Array<string>
-    | boolean
-  )[] =
+  const [lineColors = [], primaryLineCovered, surroundingLinesCovered] =
     hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo! && contextLines
       ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
       : [];
