@@ -439,6 +439,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(environment="garbage")
         assert response.status_code == 404
 
+    def test_project(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.min_ago),
+                "environment": "production",
+            },
+            project_id=self.project.id,
+        )
+        project = self.project
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"project:{project.slug}")
+        assert len(response.data) == 1
+
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -541,6 +556,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.get_success_response(query=short_id, shortIdLookup=1)
+        assert len(response.data) == 1
+
+    def test_lookup_by_short_id_alias(self):
+        group = self.group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"issue:{short_id}", shortIdLookup=1)
         assert len(response.data) == 1
 
     def test_lookup_by_short_id_ignores_project_list(self):

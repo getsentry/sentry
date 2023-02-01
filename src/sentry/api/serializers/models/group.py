@@ -905,7 +905,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
             for search_filter in search_filters:
                 if search_filter.key.name not in self.skip_snuba_fields:
                     formatted_conditions, projects_to_filter, group_ids = format_search_filter(
-                        # convert_search_filter_to_snuba_query(
                         search_filter,
                         params={
                             "organization_id": organization_id,
