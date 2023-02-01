@@ -138,7 +138,7 @@ jobs:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [frontend]
-    name: trigger frontend visual snapshot
+    name: run frontend visual snapshot
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
@@ -244,7 +244,7 @@ jobs:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [backend]
-    name: trigger backend visual snapshot
+    name: run backend visual snapshot
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
@@ -337,7 +337,7 @@ jobs:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [chartcuterie]
-    name: trigger chartcuterie visual snapshot
+    name: run chartcuterie visual snapshot
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
