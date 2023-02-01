@@ -62,20 +62,13 @@ function getErrorMessage(
     case SourceMapProcessingIssueType.MISSING_RELEASE:
       return [
         {
-          title: tct('Update your [init] call to pass in the release argument', {
-            init: sentryInit,
-          }),
+          title: t('Event missing Release tag'),
+          desc: t(
+            'Integrate Sentry into your release pipeline. You can do this with a tool like Webpack or using the CLI.'
+          ),
           docsLink: useShortPath
             ? `https://docs.sentry.io/platforms/${docPlatform}/configuration/options/#release`
             : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/configuration/options/#release`,
-        },
-        {
-          title: t(
-            'Integrate Sentry into your release pipeline. You can do this with a tool like webpack or using the CLI. Note the release must be the same as in step 1.'
-          ),
-          docsLink: useShortPath
-            ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/#uploading-source-maps-to-sentry`
-            : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/#uploading-source-maps-to-sentry`,
         },
       ];
     case SourceMapProcessingIssueType.PARTIAL_MATCH:
