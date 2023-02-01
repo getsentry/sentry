@@ -123,7 +123,7 @@ describe('SourceMapDebug', () => {
     const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.PARTIAL_MATCH,
       message: '',
-      data: {insertPath: 'insertPath', matchedSourcemapPath: 'matchedSourcemapPath'},
+      data: {absPath: 'insertPath', partialMatchPath: 'matchedSourcemapPath'},
     };
     MockApiClient.addMockResponse({
       url,

@@ -30,7 +30,7 @@ interface UrlNotValidDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.URL_NOT_VALID;
 }
 interface PartialMatchDebugError extends BaseSourceMapDebugError {
-  data: {insertPath: string; matchedSourcemapPath: string};
+  data: {absPath: string; partialMatchPath: string};
   type: SourceMapProcessingIssueType.PARTIAL_MATCH;
 }
 interface DistMismatchDebugError extends BaseSourceMapDebugError {

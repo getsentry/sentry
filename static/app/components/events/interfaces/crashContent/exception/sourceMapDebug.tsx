@@ -83,8 +83,8 @@ function getErrorMessage(
         {
           title: t(
             'The abs_path of the stack frame is a partial match. The stack frame has the path %s which is a partial match to %s. You might need to modify the value of url-prefix.',
-            error.data.insertPath,
-            error.data.matchedSourcemapPath
+            error.data.absPath,
+            error.data.partialMatchPath
           ),
           docsLink: useShortPath
             ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
