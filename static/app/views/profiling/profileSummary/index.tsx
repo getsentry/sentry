@@ -10,7 +10,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
+import {
+  ProfilingBreadcrumbs,
+  ProfilingBreadcrumbsProps,
+} from 'sentry/components/profiling/profilingBreadcrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -108,6 +111,25 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     [props.location]
   );
 
+  const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
+    return [
+      {
+        type: 'landing',
+        payload: {
+          query: props.location.query,
+        },
+      },
+      {
+        type: 'profile summary',
+        payload: {
+          projectSlug: project?.slug ?? '',
+          query: props.location.query,
+          transaction: transaction ?? '',
+        },
+      },
+    ];
+  }, [props.location.query, project?.slug, transaction]);
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -124,24 +146,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               <Fragment>
                 <Layout.Header>
                   <Layout.HeaderContent>
-                    <Breadcrumb
+                    <ProfilingBreadcrumbs
                       organization={organization}
-                      trails={[
-                        {
-                          type: 'landing',
-                          payload: {
-                            query: props.location.query,
-                          },
-                        },
-                        {
-                          type: 'profile summary',
-                          payload: {
-                            projectSlug: project.slug,
-                            query: props.location.query,
-                            transaction,
-                          },
-                        },
-                      ]}
+                      trails={breadcrumbTrails}
                     />
                     <Layout.Title>
                       {project ? (

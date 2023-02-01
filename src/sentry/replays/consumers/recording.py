@@ -14,7 +14,6 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from sentry_sdk.tracing import Span
 
-from sentry.replays.lib.consumer import LogExceptionStep
 from sentry.replays.usecases.ingest import (
     RecordingMessage,
     RecordingSegmentChunkMessage,
@@ -49,19 +48,15 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> Any:
-        return LogExceptionStep(
-            message="Invalid recording specified.",
-            logger=logger,
-            next_step=TransformStep(
-                function=move_chunks_to_cache_or_skip,
-                next_step=FilterStep(
-                    function=is_capstone_message,
-                    next_step=RunTaskInThreads(
-                        processing_function=move_replay_to_permanent_storage,
-                        concurrency=16,
-                        max_pending_futures=32,
-                        next_step=CommitOffsets(commit),
-                    ),
+        return TransformStep(
+            function=move_chunks_to_cache_or_skip,
+            next_step=FilterStep(
+                function=is_capstone_message,
+                next_step=RunTaskInThreads(
+                    processing_function=move_replay_to_permanent_storage,
+                    concurrency=4,
+                    max_pending_futures=16,
+                    next_step=CommitOffsets(commit),
                 ),
             ),
         )

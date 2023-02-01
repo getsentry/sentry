@@ -11,13 +11,14 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 
 type Sort<F> = {
   key: F;
   order: 'asc' | 'desc';
 };
 
-interface UseProfileEventsOptions<F> {
+export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;
@@ -32,7 +33,7 @@ interface UseProfileEventsOptions<F> {
 
 type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
 
-type EventsResultsDataRow<F extends string> = {
+export type EventsResultsDataRow<F extends string = ProfilingFieldType> = {
   [K in F]: string | number | null;
 };
 

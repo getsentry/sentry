@@ -33,6 +33,9 @@ jobs:
       acceptance_frontend: ${{ steps.changes.outputs.acceptance_frontend }}
       acceptance_backend: ${{ steps.changes.outputs.acceptance_backend }}
       acceptance_all: ${{ steps.changes.outputs.acceptance_all }}
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+      backend_all: ${{ steps.changes.outputs.backend_all }}
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 

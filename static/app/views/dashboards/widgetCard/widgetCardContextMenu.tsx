@@ -5,8 +5,7 @@ import {Location} from 'history';
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
@@ -125,10 +124,10 @@ function WidgetCardContextMenu({
                   position="bottom-end"
                   disabledKeys={[...disabledKeys, 'preview']}
                 />
-                <OpenWidgetViewerButton
+                <Button
                   aria-label={t('Open Widget Viewer')}
-                  priority="link"
-                  size="zero"
+                  borderless
+                  size="xs"
                   icon={<IconExpand size="xs" />}
                   onClick={() => {
                     (seriesData || tableData) &&
@@ -258,10 +257,10 @@ function WidgetCardContextMenu({
                 position="bottom-end"
                 disabledKeys={[...disabledKeys]}
               />
-              <OpenWidgetViewerButton
+              <Button
                 aria-label={t('Open Widget Viewer')}
-                priority="link"
-                size="zero"
+                borderless
+                size="xs"
                 icon={<IconExpand size="xs" />}
                 onClick={() => {
                   setData({
@@ -291,19 +290,9 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
-const StyledDropdownMenuControl = styled(DropdownMenuControl)`
+const StyledDropdownMenuControl = styled(DropdownMenu)`
   & > button {
     z-index: auto;
-  }
-`;
-
-const OpenWidgetViewerButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
-  color: ${p => p.theme.textColor};
-  &:hover {
-    color: ${p => p.theme.textColor};
-    background: ${p => p.theme.surface400};
-    border-color: transparent;
   }
 `;
 

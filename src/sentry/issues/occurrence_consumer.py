@@ -32,12 +32,14 @@ class InvalidEventPayloadError(Exception):
 
 def get_occurrences_ingest_consumer(
     consumer_type: str,
+    strict_offset_reset: bool,
 ) -> StreamProcessor[KafkaPayload]:
-    return create_ingest_occurences_consumer(consumer_type)
+    return create_ingest_occurences_consumer(consumer_type, strict_offset_reset)
 
 
 def create_ingest_occurences_consumer(
-    topic_name: str, **options: Any
+    topic_name: str,
+    strict_offset_reset: bool,
 ) -> StreamProcessor[KafkaPayload]:
     kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
     create_topics(kafka_cluster, [topic_name])
@@ -47,6 +49,7 @@ def create_ingest_occurences_consumer(
             get_kafka_consumer_cluster_options(kafka_cluster),
             auto_offset_reset="latest",
             group_id="occurrence-consumer",
+            strict_offset_reset=strict_offset_reset,
         )
     )
 
@@ -140,6 +143,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "request",
                     "sdk",
                     "server_name",
+                    "stacktrace",
                     "trace_id",
                     "transaction",
                     "user",

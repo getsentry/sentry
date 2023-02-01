@@ -8,6 +8,7 @@ class IntegrationsFailedToFetchCommitContext(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
         analytics.Attribute("code_mapping_id"),
+        analytics.Attribute("group_id"),
         analytics.Attribute("provider", type=str),
         analytics.Attribute("error_message", type=str),
     )

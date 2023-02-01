@@ -1,17 +1,17 @@
 import {Fragment, ReactNode, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Event, Organization, Project, TagWithTopValues} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
-import {isMobilePlatform} from 'sentry/utils/platform';
+import {appendTagCondition} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
@@ -137,47 +137,34 @@ export default function TagFacets({
         </TagPlaceholders>
       ) : (
         <Fragment>
-          <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
+          <SidebarSection.Title>{title || t('All Tags')}</SidebarSection.Title>
           <Content>
-            <Fragment>
-              <TopDistributionWrapper data-test-id="top-distribution-wrapper">
-                <TagFacetsDistributionMeterWrapper
-                  groupId={groupId}
-                  organization={organization}
-                  project={project}
-                  tagKeys={topTagKeys}
-                  tagsData={tagsData}
-                  expandFirstTag
-                />
-              </TopDistributionWrapper>
+            <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
                 project={project}
-                tagKeys={remainingTagKeys}
+                tagKeys={topTagKeys}
                 tagsData={tagsData}
+                expandFirstTag
               />
-              <ShowAllButtonContainer>
-                <Button
-                  size="xs"
-                  to={getTagUrl(organization.slug, groupId)}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'issue_group_details.tags.show_all_tags.clicked',
-                      {
-                        platform: project?.platform,
-                        is_mobile: isMobilePlatform(project?.platform),
-                        organization,
-                      }
-                    );
-                  }}
-                >
-                  {t('View All Tags')}
-                </Button>
-              </ShowAllButtonContainer>
-            </Fragment>
+            </span>
+            <TagFacetsDistributionMeterWrapper
+              groupId={groupId}
+              organization={organization}
+              project={project}
+              tagKeys={remainingTagKeys}
+              tagsData={tagsData}
+            />
           </Content>
         </Fragment>
+      )}
+      {Object.keys(tagsData).length === 0 && (
+        <p data-test-id="no-tags">
+          {environments.length
+            ? t('No tags found in the selected environments')
+            : t('No tags found')}
+        </p>
       )}
     </SidebarSection.Wrap>
   );
@@ -198,40 +185,53 @@ function TagFacetsDistributionMeterWrapper({
   tagsData: Record<string, TagWithTopValues>;
   expandFirstTag?: boolean;
 }) {
+  const location = useLocation();
+  const query = {...location.query};
   return (
-    <Fragment>
+    <TagFacetsList>
       {tagKeys.map((tagKey, index) => {
         const tagWithTopValues = tagsData[tagKey];
         const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
         const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
 
-        const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${tagKey}/?referrer=tag-distribution-meter`;
+        const otherTagValuesUrl = `/organizations/${organization.slug}/issues/${groupId}/tags/${tagKey}/?referrer=tag-distribution-meter`;
+        const eventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
         const segments = topValues
-          ? topValues.map(value => ({
-              ...value,
-              url,
-            }))
+          ? topValues.map(value => {
+              // Create a link to the events page with a tag condition on the selected value
+              const url: LocationDescriptor = {
+                ...location,
+                query: {
+                  ...query,
+                  query: appendTagCondition(null, tagKey, value.value),
+                },
+                pathname: eventsPath,
+              };
+
+              return {
+                ...value,
+                url,
+              };
+            })
           : [];
 
         return (
-          <TagFacetsDistributionMeter
-            key={tagKey}
-            title={tagKey}
-            totalValues={topValuesTotal}
-            segments={segments}
-            onTagClick={() => undefined}
-            project={project}
-            expandByDefault={expandFirstTag && index === 0}
-          />
+          <li key={tagKey} aria-label={tagKey}>
+            <TagFacetsDistributionMeter
+              title={tagKey}
+              totalValues={topValuesTotal}
+              segments={segments}
+              onTagClick={() => undefined}
+              project={project}
+              expandByDefault={expandFirstTag && index === 0}
+              otherUrl={otherTagValuesUrl}
+            />
+          </li>
         );
       })}
-    </Fragment>
+    </TagFacetsList>
   );
-}
-
-function getTagUrl(orgSlug: string, groupId: string) {
-  return `/organizations/${orgSlug}/issues/${groupId}/tags/`;
 }
 
 const TagPlaceholders = styled('div')`
@@ -240,14 +240,12 @@ const TagPlaceholders = styled('div')`
   grid-auto-flow: row;
 `;
 
-const ShowAllButtonContainer = styled('div')`
-  margin-top: ${space(3)};
-`;
-
 const Content = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const TopDistributionWrapper = styled('div')`
-  margin-bottom: 60px;
+export const TagFacetsList = styled('ol')`
+  list-style: none;
+  padding: 0;
+  margin: 0 0 ${space(2)};
 `;
