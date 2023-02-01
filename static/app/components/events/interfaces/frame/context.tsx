@@ -289,6 +289,7 @@ const StyledContextLine = styled(ContextLine)`
     text-align: center;
     padding-left: ${space(3)};
     padding-right: ${space(1.5)};
+    margin-right: ${space(1.5)};
     display: inline-block;
     height: 24px;
     background: transparent;
