@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, SessionAuthentication, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import ApiToken
 from sentry.security import capture_security_activity
 
@@ -23,10 +24,14 @@ class ApiTokensEndpoint(Endpoint):
 
     @never_cache
     def get(self, request: Request) -> Response:
+        user_id = request.user.id
+        if is_active_superuser(request):
+            user_id = request.GET.get("userId")
+
         token_list = list(
-            ApiToken.objects.filter(
-                application__isnull=True, user_id=request.user.id
-            ).select_related("application")
+            ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
+                "application"
+            )
         )
 
         return Response(serialize(token_list, request.user))
@@ -59,12 +64,13 @@ class ApiTokensEndpoint(Endpoint):
 
     @never_cache
     def delete(self, request: Request):
+        user_id = request.user.id
+        if is_active_superuser(request):
+            user_id = request.data.get("userId")
         token = request.data.get("token")
         if not token:
             return Response({"token": ""}, status=400)
 
-        ApiToken.objects.filter(
-            user_id=request.user.id, token=token, application__isnull=True
-        ).delete()
+        ApiToken.objects.filter(user_id=user_id, token=token, application__isnull=True).delete()
 
         return Response(status=204)
