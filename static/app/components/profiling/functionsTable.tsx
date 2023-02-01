@@ -196,7 +196,7 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'examples',
 ];
 
-const COLUMNS: Record<TableColumnKey, TableColumn> = {
+const COLUMNS: Record<Exclude<TableColumnKey, 'p95'>, TableColumn> = {
   name: {
     key: 'name',
     name: t('Name'),
