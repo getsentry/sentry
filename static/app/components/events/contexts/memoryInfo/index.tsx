@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event, MemoryInfoContext} from 'sentry/types/event';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {
   getMemoryInfoKnownDataDetails,
@@ -26,7 +26,7 @@ export function MemoryInfoEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<MemoryInfoContext, keyof typeof memoryInfoKnownDataValues>({
+        data={getKnownData<MemoryInfoContext, keyof typeof memoryInfoKnownDataValues>({
           data,
           meta,
           knownDataTypes: memoryInfoKnownDataValues,
