@@ -179,8 +179,11 @@ class TeamSerializerTest(TestCase):
     def test_member_on_owner_team_access(self):
         user = self.create_user(username="foo")
         organization = self.create_organization()
+        manager_team = self.create_team(organization=organization, org_role="manager")
         owner_team = self.create_team(organization=organization, org_role="owner")
-        self.create_member(user=user, organization=organization, role="member", teams=[owner_team])
+        self.create_member(
+            user=user, organization=organization, role="member", teams=[manager_team, owner_team]
+        )
         team = self.create_team(organization=organization)
 
         result = serialize(team, user)

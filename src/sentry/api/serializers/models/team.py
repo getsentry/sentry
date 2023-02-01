@@ -39,6 +39,7 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
+from sentry.roles import organization_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -107,8 +108,17 @@ def get_org_roles(
         return {}
 
     # map of org id to role
+    # can have multiple org roles through team membership
+    # return them sorted to figure out highest team role
     return {
-        om.organization.id: om.get_all_org_roles()
+        om.organization.id: [
+            role.id
+            for role in sorted(
+                [organization_roles.get(role) for role in om.get_all_org_roles()],
+                key=lambda r: r.priority,
+                reverse=True,
+            )
+        ]
         for om in OrganizationMember.objects.filter(user_id=user.id, organization__in=set(org_ids))
     }
 
@@ -200,10 +210,12 @@ class TeamSerializer(Serializer):  # type: ignore
             for org_role in org_roles:
                 if team.id in team_memberships:
                     is_member = True
-                    if team_memberships[team.id] is not None:
+                    # org roles are sorted from high to low priority
+                    # team_role will be the minimum team role for the highest priority role
+                    if team_role is None:
                         team_role = team_memberships[team.id]
-                    elif team_role is None:
-                        team_role = roles.get_minimum_team_role(org_role).id
+                        if team_role is None:
+                            team_role = roles.get_minimum_team_role(org_role).id
 
                 if is_member:
                     has_access = True
