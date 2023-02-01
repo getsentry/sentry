@@ -32,7 +32,7 @@ def get_codecov_data(
             tags = {
                 "codecov.request_url": url,
                 "codecov.request_path": path,
-                "codecov.request_branch": branch,
+                "codecov.request_ref": ref,
                 "codecov.http_code": response.status_code,
             }
 
