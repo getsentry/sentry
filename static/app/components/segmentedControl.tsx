@@ -324,6 +324,7 @@ const VisibleLabel = styled('span')<{
   font-weight: ${p => (p.isSelected ? 600 : 400)};
   letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
   text-align: center;
+  line-height: ${p => p.theme.text.lineHeightBody};
   ${getTextColor}
   ${p => p.theme.overflowEllipsis}
 `;
