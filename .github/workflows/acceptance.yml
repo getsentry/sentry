@@ -232,7 +232,7 @@ jobs:
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
           action-name: 'Backend Visual Snapshot'
-          artifact-name: 'acceptance-snapshots'
+          artifact-name: 'backend-snapshots'
           base-branch: 'master'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
