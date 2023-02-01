@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {geKnownData} from '../contexts/utils';
+import {getKnownData} from '../contexts/utils';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
 import {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
@@ -37,7 +37,7 @@ export const EventExtraData = memo(
       >
         {!defined(event.context) ? null : (
           <ContextBlock
-            data={geKnownData<TEventExtraData, EventExtraDataType>({
+            data={getKnownData<TEventExtraData, EventExtraDataType>({
               data: event.context,
               knownDataTypes: Object.keys(event.context),
               meta: event._meta?.context,
