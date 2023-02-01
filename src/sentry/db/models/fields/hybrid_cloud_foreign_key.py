@@ -13,6 +13,8 @@ from django.db import models
 
 __all__ = "HybridCloudForeignKey"
 
+from typing import Any, Tuple
+
 from django.apps import apps
 
 
@@ -22,9 +24,17 @@ class HybridCloudForeignKeyCascadeBehavior(IntEnum):
 
 
 class HybridCloudForeignKey(models.BigIntegerField):  # type: ignore
-    foreign_table_name: str
-    foreign_model: type  # In the future, this might get dropped in favor of just the foreign_table_name.
     on_delete: HybridCloudForeignKeyCascadeBehavior
+    foreign_model_name: str
+
+    @property
+    def foreign_model(self) -> Any:
+        parts = self.foreign_model_name.split(".")
+        return apps.get_model(app_label=parts[0], model_name=parts[1])
+
+    @property
+    def foreign_table_name(self) -> str:
+        return self.foreign_model._meta.db_table
 
     def __init__(
         self, foreign_model: str, *, on_delete: HybridCloudForeignKeyCascadeBehavior | str, **kwds
@@ -39,9 +49,11 @@ class HybridCloudForeignKey(models.BigIntegerField):  # type: ignore
         assert (
             len(parts) == 2
         ), f"{self.__class__.__name__} model reference must be <app>.<ModelName>, got {foreign_model}"
-        self.foreign_model = model = apps.get_model(app_label=parts[0], model_name=parts[1])
-        foreign_table_name = model._meta.db_table
+        self.foreign_model_name = foreign_model
 
-        self.foreign_table_name = foreign_table_name
+        kwds.setdefault("db_index", True)
+        super().__init__(**kwds)
 
-        super().__init__(db_index=True, **kwds)
+    def deconstruct(self) -> Tuple[Any, Any, Any, Any]:
+        (name, path, args, kwds) = super().deconstruct()
+        return name, path, [self.foreign_model_name], dict(on_delete=self.on_delete, **kwds)

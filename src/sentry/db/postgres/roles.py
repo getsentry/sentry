@@ -18,11 +18,11 @@ def test_psql_role_override(role_name: str, using: str | None = None):
         yield
         return
 
-    conn = get_connection(using)
-    conn.execute("SELECT user")
-    (cur,) = conn.fetchone()
-    conn.execute("SET ROLE %s", [role_name])
-    try:
-        yield
-    finally:
-        conn.execute("SET ROLE %s", [cur])
+    with get_connection(using).cursor() as conn:
+        conn.execute("SELECT user")
+        (cur,) = conn.fetchone()
+        conn.execute("SET ROLE %s", [role_name])
+        try:
+            yield
+        finally:
+            conn.execute("SET ROLE %s", [cur])

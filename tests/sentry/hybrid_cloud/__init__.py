@@ -4,7 +4,6 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 
 from sentry.db.models.base import ModelSiloLimit
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.silo import SiloMode
 
 
@@ -68,9 +67,3 @@ def validate_model_no_cross_silo_foreign_keys(
 
             validate_relation_does_not_cross_silo_foreign_keys(model, field.related_model)
             validate_relation_does_not_cross_silo_foreign_keys(field.related_model, model)
-
-
-def find_hybrid_cloud_foreign_keys(model: Type[Model]):
-    for field in model._meta.fields:
-        if isinstance(field, HybridCloudForeignKey):
-            yield field

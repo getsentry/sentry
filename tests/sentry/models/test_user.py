@@ -1,8 +1,17 @@
 import pytest
 from django.db import ProgrammingError, transaction
 
-from sentry.models import Authenticator, OrganizationMember, OrganizationMemberTeam, User, UserEmail
+from sentry.models import (
+    Authenticator,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    SavedSearch,
+    User,
+    UserEmail,
+)
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 
 
@@ -26,9 +35,22 @@ class UserTest(TestCase):
         assert User.objects.count() == 1
 
     def test_hybrid_cloud_deletion(self):
-        pass
-        # with outbox_runner():
-        #     pass
+        user = self.create_user()
+        user_id = user.id
+        self.create_saved_search(name="some-search", owner=user)
+
+        with outbox_runner():
+            user.delete()
+
+        assert not User.objects.filter(id=user_id).exists()
+
+        # cascade is asynchronous, ensure there is still related search,
+        assert SavedSearch.objects.filter(owner_id=user_id).exists()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Ensure they are all now gone.
+        assert not SavedSearch.objects.filter(owner_id=user_id).exists()
 
     def test_get_projects(self):
         user = self.create_user()

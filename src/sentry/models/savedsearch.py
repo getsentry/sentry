@@ -74,7 +74,7 @@ class SavedSearch(Model):
     # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
     # search is visibile to.
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="cascade", null=True)
-    owner = FlexibleForeignKey("sentry.User", null=True)
+    # owner = FlexibleForeignKey("sentry.User", null=True)
 
     # Defines who can see the saved search
     visibility = models.CharField(
@@ -88,7 +88,7 @@ class SavedSearch(Model):
         constraints = [
             # Each user may only have one pinned search
             UniqueConstraint(
-                fields=["organization", "owner", "type"],
+                fields=["organization", "owner_id", "type"],
                 condition=Q(visibility=Visibility.OWNER_PINNED),
                 name="sentry_savedsearch_pinning_constraint",
             ),

@@ -1370,4 +1370,7 @@ class Factories:
 
     @staticmethod
     def create_saved_search(name: str, **kwargs):
+        if "owner" in kwargs:
+            owner = kwargs.pop("owner")
+            kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
         return SavedSearch.objects.create(name=name, **kwargs)

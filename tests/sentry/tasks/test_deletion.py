@@ -17,7 +17,8 @@ from sentry.models import (
     Team,
 )
 from sentry.signals import pending_delete
-from sentry.tasks.deletion import delete_groups, reattempt_deletions, run_scheduled_deletions
+from sentry.tasks.deletion.groups import delete_groups
+from sentry.tasks.deletion.scheduled import reattempt_deletions, run_scheduled_deletions
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

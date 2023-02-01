@@ -5,7 +5,6 @@ import pytest
 from django.db.transaction import get_connection
 
 from sentry.silo import SiloMode
-from tests.sentry.hybrid_cloud import find_hybrid_cloud_foreign_keys, iter_models
 
 pytest_plugins = ["sentry.utils.pytest"]
 
@@ -146,7 +145,9 @@ def validate_silo_mode():
 
 @pytest.fixture(autouse=True)
 def protect_user_deletion():
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.testutils.silo import reset_test_role, restrict_role
+    from tests.sentry.hybrid_cloud import iter_models
 
     with get_connection().cursor() as conn:
         conn.execute("SET ROLE 'postgres'")
@@ -156,8 +157,10 @@ def protect_user_deletion():
     # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
     seen_models: MutableSet[type] = set()
     for model in iter_models():
-        for hkfc in find_hybrid_cloud_foreign_keys(model):
-            fk_model = hkfc.foreign_model
+        for field in model._meta.fields:
+            if not isinstance(field, HybridCloudForeignKey):
+                continue
+            fk_model = field.foreign_model
             if fk_model is None or fk_model in seen_models:
                 continue
             seen_models.add(fk_model)

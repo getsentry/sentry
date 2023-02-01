@@ -805,6 +805,10 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25},
     },
+    "schedule-hybrid-cloud-foreign-key-jobs": {
+        "task": "sentry.tasks.deletion.schedule_hybrid_cloud_foreign_key_jobs",
+        "schedule": timedelta(minutes=15),
+    },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
         "schedule": crontab(minute=0),
