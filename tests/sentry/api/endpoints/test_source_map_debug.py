@@ -93,7 +93,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             organization_id=self.project.organization_id,
             release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
-            name="https://example.com/application.js",
+            name="~/application.js",
             # change dist to something else
             dist_id=dist.id,
         )
@@ -111,7 +111,26 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
     @with_feature("organizations:fix-source-map-cta")
     def test_event_has_no_release(self):
         event = self.store_event(
-            data={"event_id": "a" * 32},
+            data={
+                "event_id": "a" * 32,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
             project_id=self.project.id,
         )
 
@@ -129,7 +148,28 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
     @with_feature("organizations:fix-source-map-cta")
     def test_release_has_no_user_agent(self):
         event = self.store_event(
-            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
         )
         Release.objects.get(organization=self.organization, version=event.release)
 
@@ -144,11 +184,33 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "no_user_agent_on_release"
         assert error["message"] == "The release is missing a user agent"
+        assert error["data"] == {"version": "my-release"}
 
     @with_feature("organizations:fix-source-map-cta")
     def test_release_has_no_artifacts(self):
         event = self.store_event(
-            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
         )
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
@@ -178,6 +240,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                                 "frames": [
                                     {
                                         "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -190,6 +253,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                                 "frames": [
                                     {
                                         "abs_path": "app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/static/js/main.fa8fe19f.js",
                                         "lineno": 5,
                                         "colno": 45,
                                     }
@@ -237,6 +301,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                                 "frames": [
                                     {
                                         "abs_path": "https://app.example.com/static/static/js/application.js",
+                                        "filename": "/static/static/js/application.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -271,7 +336,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["message"] == "The absolute path url is a partial match"
         assert error["data"] == {
             "absPath": "https://app.example.com/static/static/js/application.js",
-            "partialMatch": "http://example.com/application.js",
+            "partialMatchPath": "http://example.com/application.js",
+            "fileName": "/static/static/js/application.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")
@@ -288,6 +354,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                                 "frames": [
                                     {
                                         "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -320,7 +387,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["type"] == "no_url_match"
         assert error["message"] == "The absolute path url does not match any source maps"
         assert error["data"] == {
-            "absPath": "https://app.example.com/static/static/js/main.fa8fe19f.js"
+            "absPath": "https://app.example.com/static/static/js/main.fa8fe19f.js",
+            "fileName": "/static/static/js/main.fa8fe19f.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")
@@ -338,6 +406,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                                 "frames": [
                                     {
                                         "abs_path": "https://example.com/application.js",
+                                        "filename": "/application.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -362,7 +431,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             organization_id=self.project.organization_id,
             release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
-            name="https://example.com/application.js",
+            name="~/application.js",
             # change dist to something else
             dist_id=dist.id,
         )
@@ -377,4 +446,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "dist_mismatch"
         assert error["message"] == "The dist values do not match"
-        assert error["data"] == {"eventDist": event_dist.id, "artifactDist": dist.id}
+        assert error["data"] == {
+            "eventDist": event_dist.id,
+            "artifactDist": dist.id,
+            "fileName": "/application.js",
+        }
