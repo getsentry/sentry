@@ -267,12 +267,3 @@ class ConsecutiveDbDetectorTest(TestCase):
         event["sdk"] = {"name": "sentry.php.laravel"}
 
         assert self.find_problems(event) == []
-
-    def test_allows_hardcoded_orgs(self):
-        project = self.create_project()
-        event = self.create_issue_event()
-        event["sdk"] = {"name": "sentry.php.laravel"}
-
-        assert len(self.find_problems(event)) == 0
-        project.organization.slug = "laracon-eu"
-        assert len(self.find_problems(event, project)) == 1
