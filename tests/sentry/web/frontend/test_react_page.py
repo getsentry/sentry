@@ -240,7 +240,7 @@ class ReactPageViewTest(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
 
-    def test_customer_domain_superuser(self):
+    def test_customer_domain_non_member_org_superuser(self):
         org = self.create_organization(owner=self.user)
         other_org = self.create_organization()
 
@@ -257,10 +257,34 @@ class ReactPageViewTest(TestCase):
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
             assert self.client.session["activeorg"] == org.slug
 
-            # Access another org as superuser
+            # Access another org as superuser on non-customer domain
             response = self.client.get(
                 reverse("sentry-organization-issue-list", args=[other_org.slug]),
                 follow=True,
             )
             assert response.status_code == 200
             assert response.redirect_chain == []
+
+    def test_customer_domain_superuser(self):
+        org = self.create_organization(owner=self.user)
+        other_org = self.create_organization(slug="albertos-apples")
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            # Induce activeorg
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+            assert self.client.session["activeorg"] == org.slug
+
+            # Access another org as superuser on customer domain
+            response = self.client.get("/", HTTP_HOST=f"{other_org.slug}.testserver", follow=True)
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                (f"http://{other_org.slug}.testserver/issues/", 302),
+            ]
