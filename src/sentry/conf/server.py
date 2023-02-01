@@ -2373,6 +2373,15 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
+    "nuget": {
+        "type": "http",
+        "id": "sentry:nuget",
+        "name": "NuGet.org",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["portablepdb"]},
+        "url": "https://symbols.nuget.org/download/symbols/",
+        "is_public": True,
+    },
     "citrix": {
         "type": "http",
         "id": "sentry:citrix",
