@@ -254,7 +254,7 @@ def _detect_performance_problems(
     ]
 
     for detector in detectors:
-        run_detector_on_data(detector, data, project)
+        run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -295,8 +295,8 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector, data, project=None):
-    if not detector.is_event_eligible(data, project):
+def run_detector_on_data(detector, data):
+    if not detector.is_event_eligible(data):
         return
 
     spans = data.get("spans", [])
@@ -707,7 +707,6 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     @classmethod
     def is_event_eligible(cls, event, project: Project = None) -> bool:
         request = event.get("request", None) or None
-
         sdk_name = get_sdk_name(event) or ""
 
         if request:
@@ -1350,7 +1349,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
-    def is_event_eligible(cls, event, project: Project = None):
+    def is_event_eligible(cls, event):
         tags = event.get("tags", [])
         browser_name = next(
             (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
