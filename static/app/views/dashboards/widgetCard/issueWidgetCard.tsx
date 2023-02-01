@@ -80,7 +80,7 @@ export function IssueWidgetCard({
 }
 
 const LoadingPlaceholder = styled(Placeholder)`
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.surface300};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`

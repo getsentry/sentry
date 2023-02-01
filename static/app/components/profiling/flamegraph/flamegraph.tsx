@@ -62,6 +62,7 @@ import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
+import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
@@ -122,8 +123,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const {sorting, view, xAxis} = useFlamegraphPreferences();
-  const {threadId, selectedRoot, zoomIntoFrame, highlightFrames} =
-    useFlamegraphProfiles();
+  const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -287,26 +287,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             previousView.configView.withHeight(newView.configView.height)
           );
         }
-      } else if (
-        // When the profile changes, it may be because it finally loaded and if a zoom
-        // was specified, this should be used as the initial view.
-        defined(zoomIntoFrame)
-      ) {
-        const newConfigView = computeConfigViewWithStrategy(
-          'min',
-          newView.configView,
-          new Rect(
-            zoomIntoFrame.start,
-            zoomIntoFrame.depth,
-            zoomIntoFrame.end - zoomIntoFrame.start,
-            1
-          )
-        );
-        newView.setConfigView(newConfigView);
-        return newView;
-      }
-
-      if (defined(highlightFrames)) {
+      } else if (defined(highlightFrames)) {
         const frames = flamegraph.findAllMatchingFrames(
           highlightFrames.name,
           highlightFrames.package
@@ -328,9 +309,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       // Because we render empty flamechart while we fetch the data, we need to make sure
       // to have some heuristic when the data is fetched to determine if we should
       // initialize the config view to the full view or a predefined value
-      if (
+      else if (
         !defined(highlightFrames) &&
-        !defined(zoomIntoFrame) &&
         position.view &&
         !position.view.isEmpty() &&
         previousView?.model === LOADING_OR_FALLBACK_FLAMEGRAPH
@@ -346,7 +326,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoFrame, xAxis]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, xAxis]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -425,6 +405,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   useEffect(() => {
     if (flamegraphView && spansView) {
       const minWidthBetweenViews = Math.min(flamegraphView.minWidth, spansView.minWidth);
+
       flamegraphView.setMinWidth(minWidthBetweenViews);
       spansView.setMinWidth(minWidthBetweenViews);
 
@@ -643,6 +624,9 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     },
     [flamegraphRenderer]
   );
+
+  // Register keyboard navigation
+  useViewKeyboardNavigation(flamegraphView, canvasPoolManager);
 
   // referenceNode is passed down to the flamegraphdrawer and is used to determine
   // the weights of each frame. In other words, in case there is no user selected root, then all
