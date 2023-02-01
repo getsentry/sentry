@@ -14,11 +14,11 @@ from .mail import COMMIT_EXAMPLE, MailPreview, get_shared_context, make_performa
 
 
 class DebugPerformanceIssueEmailView(View):
-    def get(self, request):
+    def get(self, request, sample_name="transaction-n-plus-one"):
         project = Project.objects.first()
         org = project.organization
         project.update_option("sentry:performance_issue_creation_rate", 1.0)
-        perf_event = make_performance_event(project)
+        perf_event = make_performance_event(project, sample_name)
         if request.GET.get("is_test", False):
             perf_event.group.id = 1
         perf_group = perf_event.group
