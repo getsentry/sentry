@@ -497,9 +497,11 @@ def _track_outcome(
 
 @metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
+    original_timestamp = profile["received"]
+
     try:
         profile["received"] = (
-            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
+            datetime.utcfromtimestamp(original_timestamp).replace(tzinfo=timezone.utc).isoformat()
         )
 
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
@@ -525,3 +527,5 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             sample_rate=1.0,
         )
         return False
+    finally:
+        profile["received"] = original_timestamp
