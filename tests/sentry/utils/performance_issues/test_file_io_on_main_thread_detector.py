@@ -77,6 +77,16 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problem = self.find_problems(event)[0]
         assert problem.title == "File IO on Main Thread"
 
+    def test_duplicate_calls_do_not_change_callstackc(self):
+        event = get_event("file-io-on-main-thread")
+        event["spans"][0]["data"]["blocked_main_thread"] = True
+        single_span_problem = self.find_problems(event)[0]
+        single_problem_fingerprint = single_span_problem.fingerprint
+        event["spans"].append(event["spans"][0])
+        double_span_problem = self.find_problems(event)[0]
+        assert double_span_problem.title == "File IO on Main Thread"
+        assert double_span_problem.fingerprint == single_problem_fingerprint
+
     def test_file_io_with_proguard(self):
         event = get_event("file-io-on-main-thread-with-obfuscation")
         event["project"] = self.project.id

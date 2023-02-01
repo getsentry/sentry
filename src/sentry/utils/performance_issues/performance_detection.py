@@ -1383,14 +1383,14 @@ class FileIOMainThreadDetector(PerformanceDetector):
                 )
 
     def _fingerprint(self, span_list) -> str:
-        call_stack_strings = []
-        overall_stack = []
+        call_stack_strings = set()
+        overall_stack = set()
         for span in span_list:
             for item in span.get("data", {}).get("call_stack", []):
                 module = self._deobfuscate_module(item.get("module", ""))
                 function = self._deobfuscate_function(item)
-                call_stack_strings.append(f"{module}.{function}")
-            overall_stack.append(".".join(call_stack_strings))
+                call_stack_strings.add(f"{module}.{function}")
+            overall_stack.add(".".join(call_stack_strings))
         call_stack = "-".join(overall_stack).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-{hashed_stack}"
