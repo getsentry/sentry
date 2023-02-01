@@ -1,5 +1,9 @@
+import base64
+import hmac
 import logging
+from hashlib import sha256
 
+from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,7 +12,9 @@ from sentry.models import ApiKey, ProjectOption, Repository, User
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.utils import get_secret_field_config
 
 from .client import HerokuApiClient
 
@@ -25,7 +31,20 @@ class HerokuReleaseHook(ReleaseHook):
     def get_client(self):
         return HerokuApiClient()
 
-    def handle(self, request: Request) -> Response:
+    def is_valid_signature(self, body, heroku_hmac):
+        secret = ProjectOption.objects.get_value(project=self.project, key="heroku:webhook_secret")
+        computed_hmac = base64.b64encode(
+            hmac.new(
+                key=secret.encode("utf-8"),
+                msg=body.encode("utf-8"),
+                digestmod=sha256,
+            ).digest()
+        ).decode("utf-8")
+
+        return hmac.compare_digest(heroku_hmac, computed_hmac)
+
+    def handle_legacy(self, request: Request) -> Response:
+        """Code path to handle deploy hooks. Delete after Feb 17th 2023 - https://blog.heroku.com/deployhooks-sunset"""
         email = None
         if "user" in request.POST:
             email = request.POST["user"]
@@ -48,6 +67,46 @@ class HerokuReleaseHook(ReleaseHook):
         self.finish_release(
             version=request.POST.get("head_long"), url=request.POST.get("url"), owner=user
         )
+
+    def handle(self, request: Request) -> Response:
+        heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
+
+        if heroku_hmac:
+            if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
+                logger.error(
+                    "heroku.webhook.invalid-signature", extra={"project_id": self.project.id}
+                )
+                return HttpResponse(status=401)
+
+            body = json.loads(request.body)
+            data = body.get("data")
+            email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
+
+            try:
+                user = User.objects.get(
+                    email__iexact=email, sentry_orgmember_set__organization__project=self.project
+                )
+            except (User.DoesNotExist, User.MultipleObjectsReturned):
+                user = None
+                logger.info(
+                    "owner.missing",
+                    extra={
+                        "organization_id": self.project.organization_id,
+                        "project_id": self.project.id,
+                        "email": email,
+                    },
+                )
+            commit = data.get("slug", {}).get("commit")
+            app_name = data.get("app", {}).get("name")
+            if app_name:
+                self.finish_release(
+                    version=commit, url=f"http://{app_name}.herokuapp.com", owner=user
+                )
+            else:
+                self.finish_release(version=commit, owner=user)
+
+        else:
+            self.handle_legacy(request)  # TODO delete this else after Feb 17th 2023
 
     def set_refs(self, release, **values):
         if not values.get("owner", None):
@@ -128,6 +187,20 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         else:
             choices = []
         choices.extend([(repo.name, repo.name) for repo in repo_list])
+
+        webhook_secret = self.get_option("webhook_secret", project)
+        secret_field = get_secret_field_config(
+            webhook_secret,
+            "Enter the webhook signing secret shown after running the Heroku CLI command.",
+        )
+        secret_field.update(
+            {
+                "name": "webhook_secret",
+                "label": "Webhook Secret",
+                "required": False,
+            }
+        )
+
         return [
             {
                 "name": "repository",
@@ -145,12 +218,13 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
                 "default": "production",
                 "help": "Specify an environment name for your Heroku deploys",
             },
+            secret_field,
         ]
 
     def get_release_doc_html(self, hook_url):
         return f"""
-        <p>Add Sentry as a deploy hook to automatically track new releases.</p>
-        <pre class="clippy">heroku addons:create deployhooks:http --url={hook_url}</pre>
+        <p>Add a Sentry release webhook to automatically track new releases.</p>
+        <pre class="clippy">heroku webhooks:add -i api:release -l notify -u {hook_url} -a YOUR_APP_NAME</pre>
         """
 
     def get_release_hook(self):
