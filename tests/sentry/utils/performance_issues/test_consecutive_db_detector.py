@@ -321,25 +321,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         assert self.find_problems(event) == []
 
     def test_ignores_graphql(self):
-        span_duration = 50
-        spans = [
-            create_span(
-                "db",
-                span_duration,
-                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
-            ),
-            create_span(
-                "db",
-                span_duration,
-                "SELECT `order`.`id` FROM `books_author` WHERE `author`.`type` = $1",
-            ),
-            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
-        ]
-        spans = [
-            modify_span_start(span, span_duration * spans.index(span)) for span in spans
-        ]  # ensure spans don't overlap
-
-        event = create_event(spans)
+        event = self.create_issue_event()
         assert len(self.find_problems(event)) == 1
         event["request"] = {"url": "https://url.dev/api/graphql", "method": "POST"}
         assert self.find_problems(event) == []
