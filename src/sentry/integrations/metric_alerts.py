@@ -87,17 +87,16 @@ def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=
     text = get_incident_status_text(alert_rule, metric_value)
     title = f"{status}: {alert_rule.name}"
 
-    title_link = absolute_uri(
+    title_link = alert_rule.organization.absolute_url(
         reverse(
             "sentry-metric-alert-details",
             kwargs={
                 "organization_slug": alert_rule.organization.slug,
                 "alert_rule_id": alert_rule.id,
             },
-        )
+        ),
+        query=parse.urlencode({"alert": str(incident.identifier)}),
     )
-    params = parse.urlencode({"alert": str(incident.identifier)})
-    title_link += f"?{params}"
 
     return {
         "title": title,
@@ -137,19 +136,20 @@ def metric_alert_attachment_info(
     else:
         status = INCIDENT_STATUS[IncidentStatus.CLOSED]
 
+    query = None
+    if selected_incident:
+        query = parse.urlencode({"alert": str(selected_incident.identifier)})
     title = f"{status}: {alert_rule.name}"
-    title_link = absolute_uri(
+    title_link = alert_rule.organization.absolute_url(
         reverse(
             "sentry-metric-alert-details",
             kwargs={
                 "organization_slug": alert_rule.organization.slug,
                 "alert_rule_id": alert_rule.id,
             },
-        )
+        ),
+        query=query,
     )
-    if selected_incident:
-        params = parse.urlencode({"alert": str(selected_incident.identifier)})
-        title_link += f"?{params}"
 
     if metric_value is None:
         if (
