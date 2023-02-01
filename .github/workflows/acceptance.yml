@@ -131,6 +131,23 @@ jobs:
           files: .artifacts/coverage/*
           type: frontend
 
+  # *-visual-diff steps are seperate jobs because the previous steps are
+  # typically shared so we have to wait for all of them to complete to diff
+  # them.
+  frontend-visual-diff:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [frontend]
+    name: trigger frontend visual snapshot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
@@ -140,6 +157,7 @@ jobs:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
 
   backend:
     if: needs.files-changed.outputs.acceptance_backend == 'true'
@@ -228,6 +246,20 @@ jobs:
         uses: ./.github/actions/artifacts
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
+  backend-visual-diff:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [backend]
+    name: trigger backend visual snapshot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
@@ -313,6 +345,20 @@ jobs:
         uses: ./.github/actions/artifacts
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
+  chartcuterie-visual-diff:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [chartcuterie]
+    name: trigger chartcuterie visual snapshot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
