@@ -5,6 +5,8 @@ import {defined} from 'sentry/utils';
 import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
+import {isFrameFilenamePathlike} from './utils';
+
 interface BaseSourceMapDebugError {
   message: string;
   type: SourceMapProcessingIssueType;
@@ -192,8 +194,10 @@ export function getUniqueFilesFromException(
     .map<[Frame, number]>((frame, idx) => [frame, idx])
     .filter(
       ([frame]) =>
+        // Only debug inApp frames
         frame.inApp &&
-        frame.filename &&
+        // Only debug frames with a filename that are not <anonymous> etc.
+        !isFrameFilenamePathlike(frame) &&
         // Line number might not work for non-javascript languages
         defined(frame.lineNo)
     )
