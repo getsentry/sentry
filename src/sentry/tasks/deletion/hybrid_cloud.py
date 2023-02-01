@@ -6,7 +6,6 @@ from django.apps import apps
 from django.core.cache import cache
 from django.db.models import Manager, Max
 
-from sentry import deletions
 from sentry.db.models.fields.hybrid_cloud_foreign_key import (
     HybridCloudForeignKey,
     HybridCloudForeignKeyCascadeBehavior,
@@ -114,6 +113,8 @@ def _process_tombstone_reconcilition(
     tombstone_cls: Type[TombstoneBase],
     row_after_tombstone: bool,
 ) -> bool:
+    from sentry import deletions
+
     prefix = "row" if row_after_tombstone else "tombstone"
     watermark_manager: Manager = (
         field.model.objects if row_after_tombstone else tombstone_cls.objects
