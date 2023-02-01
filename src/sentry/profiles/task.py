@@ -7,7 +7,6 @@ from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
-from django.utils import timezone
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
@@ -498,10 +497,6 @@ def _track_outcome(
 @metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
     try:
-        profile["received"] = (
-            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
-        )
-
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
         if response.status == 204:
