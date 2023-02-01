@@ -85,6 +85,10 @@ acceptance_backend: &acceptance_backend
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
 
+acceptance_all: &acceptance_all
+  - *acceptance_frontend
+  - *acceptance_backend
+
 plugins: &plugins
   - *backend_all
   - 'src/sentry_plugins/**/*.html'

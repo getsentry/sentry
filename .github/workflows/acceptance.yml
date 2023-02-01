@@ -382,7 +382,7 @@ jobs:
     name: Visual Snapshot
     needs: [files-changed]
     # Opposite condition to "trigger * visual snapshot" required checks
-    if: needs.files-changed.outputs.acceptance_backend != 'true' && needs.files-changed.outputs.acceptance_frontend != 'true'
+    if: needs.files-changed.outputs.acceptance_all != 'true'
     runs-on: ubuntu-20.04
     steps:
       - name: Sentaur attack
