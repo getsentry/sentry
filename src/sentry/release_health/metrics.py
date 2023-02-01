@@ -61,6 +61,7 @@ from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
 
 SMALLEST_METRICS_BUCKET = 10
+SENTRY_FIRST_COMMIT_DATE = datetime(2008, 5, 8, tzinfo=timezone.utc)
 
 # Whenever a snuba query agains the old sessions table is done without both 1)
 # an explicit rollup 2) a groupby some timestamp/bucket, Snuba will pick a
@@ -458,10 +459,18 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         projects, org_id = self._get_projects_and_org_id([project_id])
 
         select = [
-            MetricField(metric_mri=SessionMRI.SESSION.value, alias="min1", op="min_timestamp"),
-            MetricField(metric_mri=SessionMRI.SESSION.value, alias="max1", op="max_timestamp"),
-            MetricField(metric_mri=SessionMRI.RAW_DURATION.value, alias="min2", op="min_timestamp"),
-            MetricField(metric_mri=SessionMRI.RAW_DURATION.value, alias="max2", op="max_timestamp"),
+            MetricField(
+                metric_mri=SessionMRI.SESSION.value, alias="min_counter_date", op="min_timestamp"
+            ),
+            MetricField(
+                metric_mri=SessionMRI.SESSION.value, alias="max_counter_date", op="max_timestamp"
+            ),
+            MetricField(
+                metric_mri=SessionMRI.RAW_DURATION.value, alias="min_dist_date", op="min_timestamp"
+            ),
+            MetricField(
+                metric_mri=SessionMRI.RAW_DURATION.value, alias="max_dist_date", op="max_timestamp"
+            ),
         ]
 
         where = []
@@ -488,7 +497,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             org_id=org_id,
             project_ids=[project_id],
             select=select,
-            start=datetime(2008, 5, 8, tzinfo=timezone.utc),  # Sentry first commit
+            start=SENTRY_FIRST_COMMIT_DATE,
             end=datetime.now(timezone.utc) + timedelta(seconds=10),
             where=where,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
@@ -511,8 +520,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def clean_date_string(d: Optional[str]) -> Optional[str]:
             # This check is added because if there are no sessions found, then the
-            # aggregations query return both the sessions_lower_bound and the
-            # sessions_upper_bound as `0` timestamp and we do not want that behaviour
+            # aggregation queries return both the sessions_lower_bound and the
+            # sessions_upper_bound as `0` timestamp, and we do not want that behaviour
             # by default
             # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
             # is rendered as '0000-00-00 00:00:00' in clickhouse shell
@@ -526,10 +535,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         max_date = None
         if groups:
             totals = groups[0]["totals"]
-            min_date = clean_date_string(totals.get("min1"))
-            max_date = clean_date_string(totals.get("max1"))
-            min_date2 = clean_date_string(totals.get("min2"))
-            max_date2 = clean_date_string(totals.get("max2"))
+            min_date = clean_date_string(totals.get("min_counter_date"))
+            max_date = clean_date_string(totals.get("max_counter_date"))
+            min_date2 = clean_date_string(totals.get("min_dist_date"))
+            max_date2 = clean_date_string(totals.get("max_dist_date"))
 
             if min_date is None or (min_date2 is not None and min_date > min_date2):
                 min_date = min_date2
