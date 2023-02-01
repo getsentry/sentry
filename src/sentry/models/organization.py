@@ -7,7 +7,7 @@ from typing import FrozenSet, Optional, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -622,6 +622,14 @@ class Organization(Model, SnowflakeIdMixin):
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
+
+    def get_teams_with_org_role(self, role):
+        from sentry.models.team import Team
+
+        if role:
+            return Team.objects.filter(org_role=role, organization=self)
+
+        return Team.objects.filter(~Q(org_role=None), organization=self)
 
     # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
     @classmethod
