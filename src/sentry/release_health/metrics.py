@@ -489,7 +489,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 Condition(
                     lhs=Column(name="tags[environment]"),
                     op=Op.IN,
-                    rhs=environments,
+                    rhs=list(environments),
                 )
             )
 
