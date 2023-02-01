@@ -369,6 +369,21 @@ jobs:
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
+  # This is a required check and is helpful to flag to users when something
+  # has gone wrong with a previous step
+  trigger-visual-snapshots:
+    needs: [chartcuterie-visual-diff, backend-visual-diff, frontend-visual-diff]
+    name: triggers visual snapshot
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
+    runs-on: ubuntu-20.04
+    steps:
+      # If any jobs we depend on fail, we will fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
   # The following fake-*visual-snapshot steps do the following:
   #     - The sentry GitHub repo is configured to require "* Visual Snapshot"
   #       actions.
@@ -387,16 +402,6 @@ jobs:
       - name: Sentaur attack
         run: |
           echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"
-
-  fake-triggers-visual-snapshot:
-    name: triggers visual snapshot
-    if: always()
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Sentaur attack
-        run: |
-          echo "This check pretends to be the trigger visual snapshot to satisfy Github required checks"
-
 
   fake-frontend-visual-snapshot:
     name: Frontend Visual Snapshot
