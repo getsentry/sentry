@@ -437,20 +437,22 @@ def post_process_group(
 
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
-    if group_event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
+    issue_category = group_event.group.issue_category
+    if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE
     else:
         # specific pipelines for issue types
-        pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[group_event.group.issue_category]
+        pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[issue_category]
 
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
         except Exception:
+            issue_category_metric = issue_category.name.lower() if issue_category else None
             metrics.incr(
                 "sentry.tasks.post_process.post_process_group.exception",
-                tags={"issue_category": group_event.group.issue_category},
+                tags={"issue_category": issue_category_metric},
             )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
