@@ -114,6 +114,7 @@ describe('Exception Content', function () {
         event={event}
         values={event.entries[0].data.values}
         meta={event._meta.entries[0].data.values}
+        projectSlug={project.slug}
       />,
       {organization, router, context: routerContext}
     );
