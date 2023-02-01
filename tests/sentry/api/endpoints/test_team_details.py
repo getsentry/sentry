@@ -79,6 +79,84 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
+    def test_put_team_org_role__success(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
+
+        team = Team.objects.get(id=team.id)
+        assert team.org_role == "owner"
+
+    def test_put_team_org_role__success_with_org_role_from_team(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        member_team = self.create_team(org_role="owner")
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[member_team]
+        )
+        self.login_as(user)
+
+        self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
+
+        team = Team.objects.get(id=team.id)
+        assert team.org_role == "owner"
+
+    def test_put_team_org_role__member(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="member")
+        self.login_as(user)
+
+        response = self.get_error_response(
+            team.organization.slug, team.slug, orgRole="owner", status_code=403
+        )
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
+    def test_put_team_org_role__admin(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="admin")
+        self.login_as(user)
+
+        response = self.get_error_response(
+            team.organization.slug, team.slug, orgRole="owner", status_code=403
+        )
+        assert response.data["detail"] == "You must have the role of owner to perform this action."
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
+    def test_put_team_org_role__invalid_role(self):
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        self.get_error_response(team.organization.slug, team.slug, orgRole="onwer", status_code=400)
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
+    def test_put_team_org_role__idp_provisioned_team(self):
+        team = self.create_team(idp_provisioned=True)
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        response = self.get_error_response(
+            team.organization.slug, team.slug, orgRole="owner", status_code=403
+        )
+
+        assert (
+            response.data["detail"]
+            == "This team is managed through your organization's identity provider."
+        )
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
 
 @region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
