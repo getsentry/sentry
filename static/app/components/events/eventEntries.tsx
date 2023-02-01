@@ -180,7 +180,7 @@ const EventEntries = ({
         !!attachments.filter(attachment => attachment.type === 'event.view_hierarchy')
           .length && (
           <EventViewHierarchy
-            projectSlug={projectSlug}
+            project={project}
             viewHierarchies={attachments.filter(
               attachment => attachment.type === 'event.view_hierarchy'
             )}

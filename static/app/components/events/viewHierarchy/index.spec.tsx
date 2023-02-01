@@ -41,13 +41,14 @@ const DEFAULT_MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
+  const mockProject = TestStubs.Project();
   let MOCK_DATA;
   beforeEach(() => {
     MOCK_DATA = DEFAULT_MOCK_DATA;
   });
 
   it('can continue make selections for inspecting data', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockProject} />);
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Container - test_identifier')).toHaveLength(2);
@@ -68,7 +69,7 @@ describe('View Hierarchy', function () {
   });
 
   it('can expand and collapse by clicking the icon', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockProject} />);
 
     expect(screen.queryByText('Text')).toBeInTheDocument();
 
@@ -86,7 +87,7 @@ describe('View Hierarchy', function () {
   });
 
   it('can navigate with keyboard shortcuts after a selection', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockProject} />);
 
     userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
 
@@ -97,7 +98,7 @@ describe('View Hierarchy', function () {
   });
 
   it('can expand/collapse with the keyboard', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockProject} />);
 
     userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
 
@@ -125,7 +126,7 @@ describe('View Hierarchy', function () {
         ],
       },
     ];
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockProject} />);
 
     expect(screen.getByText('Second Window')).toBeInTheDocument();
     expect(screen.getByText('Second Window Child')).toBeInTheDocument();

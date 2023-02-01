@@ -43,6 +43,7 @@ const MOCK_DATA = JSON.stringify({
 });
 
 describe('Event View Hierarchy', function () {
+  const mockProject = TestStubs.Project();
   let mockAttachment;
   beforeEach(function () {
     mockAttachment = TestStubs.EventAttachment();
@@ -54,13 +55,13 @@ describe('Event View Hierarchy', function () {
 
   it('does not collapse all nodes when update triggers re-render', async function () {
     const {rerender} = render(
-      <EventViewHierarchy projectSlug="mock" viewHierarchies={[mockAttachment]} />
+      <EventViewHierarchy project={mockProject} viewHierarchies={[mockAttachment]} />
     );
 
     expect(await screen.findByText('Nested Container - nested')).toBeInTheDocument();
 
     rerender(
-      <EventViewHierarchy projectSlug="mock" viewHierarchies={[mockAttachment]} />
+      <EventViewHierarchy project={mockProject} viewHierarchies={[mockAttachment]} />
     );
 
     expect(await screen.findByText('Nested Container - nested')).toBeInTheDocument();

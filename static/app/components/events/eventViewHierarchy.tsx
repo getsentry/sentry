@@ -5,7 +5,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {tn} from 'sentry/locale';
-import {EventAttachment} from 'sentry/types';
+import {EventAttachment, Project} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -15,11 +15,11 @@ import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
 const FIVE_SECONDS_IN_MS = 5 * 1000;
 
 type Props = {
-  projectSlug: string;
+  project: Project;
   viewHierarchies: EventAttachment[];
 };
 
-function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
+function EventViewHierarchy({project, viewHierarchies}: Props) {
   const organization = useOrganization();
 
   // There should be only one view hierarchy
@@ -30,7 +30,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
         attachment: hierarchyMeta,
         eventId: hierarchyMeta.event_id,
         orgId: organization.slug,
-        projectSlug,
+        projectSlug: project.slug,
       }),
     ],
     {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
@@ -62,7 +62,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
       title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
     >
       <ErrorBoundary mini>
-        <ViewHierarchy viewHierarchy={hierarchy} />
+        <ViewHierarchy viewHierarchy={hierarchy} project={project} />
       </ErrorBoundary>
     </EventDataSection>
   );

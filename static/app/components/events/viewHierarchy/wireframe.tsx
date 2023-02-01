@@ -4,6 +4,8 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
+import {Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 const RECT_FILL_ALPHA = 0.005;
 const RECT_OUTLINE_ALPHA = 1;
@@ -11,7 +13,10 @@ const MIN_BORDER_SIZE = 20;
 
 type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
 
-export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
+export function getCoordinates(
+  hierarchies: ViewHierarchyWindow[],
+  accountForParentPositioning: boolean = true
+) {
   return hierarchies.map(hierarchy => {
     const newHierarchy: Rect[] = [];
 
@@ -27,14 +32,19 @@ export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
         height: node.height ?? 0,
       });
 
-      if ((node.children ?? []).length !== 0) {
+      if (defined(node.children) && node.children.length) {
         // Update the children's coords relative to the parent
-        const newChildren =
-          node.children?.map(child => ({
-            ...child,
-            x: (child.x ?? 0) + (node.x ?? 0),
-            y: (child.y ?? 0) + (node.y ?? 0),
-          })) ?? [];
+        const newChildren = node.children.map(child => {
+          if (accountForParentPositioning) {
+            return {
+              ...child,
+              x: (child.x ?? 0) + (node.x ?? 0),
+              y: (child.y ?? 0) + (node.y ?? 0),
+            };
+          }
+
+          return {...child};
+        });
 
         nodesToProcess.push(...newChildren);
       }
@@ -70,10 +80,18 @@ export function calculateScale(
   );
 }
 
-function Wireframe({hierarchy}) {
+type WireframeProps = {
+  hierarchy: ViewHierarchyWindow[];
+  project: Project;
+};
+
+function Wireframe({hierarchy, project}: WireframeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const coordinates = useMemo(() => getCoordinates(hierarchy), [hierarchy]);
+  const coordinates = useMemo(
+    () => getCoordinates(hierarchy, project.platform !== 'flutter'),
+    [hierarchy, project]
+  );
 
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 

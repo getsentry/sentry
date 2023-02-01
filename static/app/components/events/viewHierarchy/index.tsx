@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   useVirtualizedTree,
@@ -36,10 +37,11 @@ export type ViewHierarchyData = {
 };
 
 type ViewHierarchyProps = {
+  project: Project;
   viewHierarchy: ViewHierarchyData;
 };
 
-function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
+function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -129,7 +131,7 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
           )}
         </Left>
         <Right>
-          <Wireframe hierarchy={hierarchy} />
+          <Wireframe hierarchy={hierarchy} project={project} />
         </Right>
       </Content>
     </Fragment>
