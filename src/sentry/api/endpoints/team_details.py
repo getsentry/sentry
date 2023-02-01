@@ -89,6 +89,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+            # users should not be able to set the role of a team to something higher than themselves
+            # only allow the top dog to do this so they can set the org_role to any role in the org
             elif roles.get_top_dog() not in request.access.get_organization_roles():
                 return Response(
                     {
