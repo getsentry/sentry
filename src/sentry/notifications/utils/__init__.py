@@ -493,7 +493,7 @@ class PerformanceProblemContext:
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
     def to_dict(self) -> Dict[str, str | List[str]]:
         return {
-            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "transaction_name": self.problem.desc,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
@@ -508,7 +508,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
         url = get_url_from_span(self.repeating_spans)
         parsed_url = urlparse(url)
-        return f"{parsed_url.path}[Parameters]"
+        return parsed_url.path
 
     @property
     def parameters(self) -> List[str]:
