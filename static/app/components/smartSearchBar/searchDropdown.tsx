@@ -292,7 +292,7 @@ const DropdownItem = ({
     children = (
       <Invalid>
         {tct("The field [field] isn't supported here. ", {
-          field: <strong>{item.desc}</strong>,
+          field: <code>{item.desc}</code>,
         })}
         {tct('[highlight:See all searchable properties in the docs.]', {
           highlight: <Highlight />,
@@ -598,12 +598,10 @@ const Invalid = styled(`span`)`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.gray400};
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
 
-  span {
-    white-space: pre;
+  code {
+    font-weight: bold;
+    padding: 0;
   }
 `;
 
