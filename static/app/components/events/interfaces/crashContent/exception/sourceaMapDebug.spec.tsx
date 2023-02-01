@@ -72,7 +72,7 @@ describe('SourceMapDebug', () => {
     );
   });
 
-  it('should show two messages for MISSING_RELEASE', async () => {
+  it('should show message for MISSING_RELEASE', async () => {
     MockApiClient.addMockResponse({
       url,
       body: {
@@ -92,30 +92,15 @@ describe('SourceMapDebug', () => {
     });
     expect(
       await screen.findByText(
-        'We’ve encountered 2 problems de-minifying your applications source code!'
+        'We’ve encountered 1 problem de-minifying your applications source code!'
       )
     ).toBeInTheDocument();
 
     // Step 1
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'Update your Sentry.init call to pass in the release argument'
-        )
-      )
-    ).toBeInTheDocument();
-    // Step 2
-    expect(
-      screen.getByText(/Integrate Sentry into your release pipeline/)
-    ).toBeInTheDocument();
-    const links = screen.getAllByRole('link', {name: 'Read Guide'});
-    expect(links[0]).toHaveAttribute(
+    expect(screen.getByText('Event missing Release tag')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/configuration/options/#release'
-    );
-    expect(links[1]).toHaveAttribute(
-      'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
     );
   });
 
@@ -123,7 +108,7 @@ describe('SourceMapDebug', () => {
     const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.PARTIAL_MATCH,
       message: '',
-      data: {insertPath: 'insertPath', matchedSourcemapPath: 'matchedSourcemapPath'},
+      data: {absPath: 'insertPath', partialMatchPath: 'matchedSourcemapPath'},
     };
     MockApiClient.addMockResponse({
       url,
@@ -156,7 +141,7 @@ describe('SourceMapDebug', () => {
     const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.URL_NOT_VALID,
       message: '',
-      data: {absValue: 'absValue'},
+      data: {absPath: 'absValue'},
     };
     MockApiClient.addMockResponse({
       url,
