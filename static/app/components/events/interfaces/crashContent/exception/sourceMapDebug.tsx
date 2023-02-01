@@ -138,7 +138,7 @@ function getErrorMessage(
           title: t('Absolute Path Mismatch'),
           desc: tct(
             'The [absPath] of the stack frame doesn’t match any release artifact. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
-            {absPath: <code>abs_path</code>}
+            {absPath: <code>{error.data.absPath}</code>}
           ),
           docsLink: useShortPath
             ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`

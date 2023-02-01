@@ -37,6 +37,7 @@ interface DistMismatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.DIST_MISMATCH;
 }
 interface NoURLMatchDebugError extends BaseSourceMapDebugError {
+  data: {absPath: string};
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
 
