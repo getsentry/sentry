@@ -24,7 +24,7 @@ interface MissingSourcemapsDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.MISSING_SOURCEMAPS;
 }
 interface UrlNotValidDebugError extends BaseSourceMapDebugError {
-  data: {absValue: string};
+  data: {absPath: string};
   type: SourceMapProcessingIssueType.URL_NOT_VALID;
 }
 interface PartialMatchDebugError extends BaseSourceMapDebugError {

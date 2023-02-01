@@ -124,8 +124,8 @@ function getErrorMessage(
         {
           title: t('Invalid Absolute Path URL'),
           desc: tct(
-            'The abs_path of the stack frame has [absValue] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
-            {absValue: <code>{error.data.absValue}</code>}
+            'The abs_path of the stack frame has [absPath] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            {absPath: <code>{error.data.absPath}</code>}
           ),
           docsLink: useShortPath
             ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames`
