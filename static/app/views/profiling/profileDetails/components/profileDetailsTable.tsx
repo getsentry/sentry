@@ -16,7 +16,6 @@ import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -109,7 +108,7 @@ export function ProfileDetailsTable() {
     [setPaginationCursor, setSearchQuery, debouncedSearch]
   );
 
-  useEffectAfterFirstRender(() => {
+  useEffect(() => {
     setFilteredDataBySearch(search(searchQuery ?? ''));
     // purposely omitted `searchQuery` as we only want this to run once.
     // future search filters are called by handleSearch
