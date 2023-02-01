@@ -30,9 +30,9 @@ class ConsecutiveDbDetectorTest(TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_problems(self, event: Event, project=None) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = ConsecutiveDBSpanDetector(self.settings, event)
-        run_detector_on_data(detector, event, project)
+        run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
     def create_issue_event(self, span_duration=50):
