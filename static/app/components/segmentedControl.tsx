@@ -153,7 +153,8 @@ function Segment({
 
 const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-auto-flow: column;
   background: ${p =>
     p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
   border: solid 1px ${p => p.theme.border};
