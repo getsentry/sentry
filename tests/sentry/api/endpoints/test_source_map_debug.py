@@ -93,7 +93,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             organization_id=self.project.organization_id,
             release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
-            name="https://example.com/application.js",
+            name="~/application.js",
             # change dist to something else
             dist_id=dist.id,
         )
@@ -144,6 +144,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "no_user_agent_on_release"
         assert error["message"] == "The release is missing a user agent"
+        assert error["data"] == {"version": "my-release"}
 
     @with_feature("organizations:fix-source-map-cta")
     def test_release_has_no_artifacts(self):
@@ -221,7 +222,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "url_not_valid"
         assert error["message"] == "The absolute path url is not valid"
-        assert error["data"] == {"absPath": "app.example.com/static/static/js/main.fa8fe19f.js"}
+        assert error["data"] == {"absValue": "app.example.com/static/static/js/main.fa8fe19f.js"}
 
     @with_feature("organizations:fix-source-map-cta")
     def test_partial_url_match(self):
@@ -270,8 +271,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["type"] == "partial_match"
         assert error["message"] == "The absolute path url is a partial match"
         assert error["data"] == {
-            "absPath": "https://app.example.com/static/static/js/application.js",
-            "partialMatch": "http://example.com/application.js",
+            "insertPath": "https://app.example.com/static/static/js/application.js",
+            "matchedSourcemapPath": "http://example.com/application.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")
@@ -362,7 +363,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             organization_id=self.project.organization_id,
             release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
-            name="https://example.com/application.js",
+            name="~/application.js",
             # change dist to something else
             dist_id=dist.id,
         )
