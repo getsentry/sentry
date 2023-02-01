@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import requests
 from rest_framework.request import Request
@@ -15,6 +15,7 @@ from sentry.integrations import IntegrationFeatures
 from sentry.integrations.client import ApiClient
 from sentry.integrations.utils.codecov import get_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -216,23 +217,33 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             )
         return commit_sha
 
-    def get_ref(
+    def fetch_codecov_data(
         self,
+        has_error_commit: bool,
+        ref: Optional[str],
         integrations: BaseQuerySet,
-        org_id: int,
+        org: Organization,
+        user: Request.user,
         line_no: int,
         filepath: str,
         repo: Repository,
         branch: str,
-    ) -> Optional[str]:
+        service: str,
+        path: str,
+    ) -> Optional[Dict[str, Any]]:
+        fetch_commit_sha = features.has(
+            "organizations:codecov-commit-sha-from-git-blame",
+            org,
+            actor=user,
+        )
         # Get commit sha from Git blame if valid
         gh_integrations = integrations.filter(provider="github")
-        should_get_commit_sha = gh_integrations
-        ref = None
+        should_get_commit_sha = fetch_commit_sha and gh_integrations and not has_error_commit
+
         if should_get_commit_sha:
             try:
                 integration_installation = gh_integrations[0].get_installation(
-                    organization_id=org_id
+                    organization_id=org.id
                 )
                 ref = self.get_latest_commit_sha_from_blame(
                     integration_installation,
@@ -245,7 +256,25 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 logger.exception(
                     "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                 )
-        return ref
+
+        # Call codecov API if codecov-commit-sha-from-git-blame flag is not enabled
+        # or getting ref from git blame was successful
+        codecov_data = None
+        if not fetch_commit_sha or ref:
+            lineCoverage, codecovUrl = get_codecov_data(
+                repo=repo.name,
+                service=service,
+                ref=ref if ref else branch,
+                ref_type="sha" if ref else "branch",
+                path=path,
+            )
+            if lineCoverage and codecovUrl:
+                codecov_data = {
+                    "lineCoverage": lineCoverage,
+                    "coverageUrl": codecovUrl,
+                    "status": 200,
+                }
+        return codecov_data
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -342,42 +371,22 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 if codecov_enabled:
                     # Get Codecov data
                     try:
-                        # Get ref
-                        has_error_commit = bool(ctx.get("commit_id"))
-                        ref = ctx["commit_id"] if has_error_commit else None
-                        fetch_commit_sha = features.has(
-                            "organizations:codecov-commit-sha-from-git-blame",
-                            project.organization,
-                            actor=request.user,
-                        )
                         line_no = ctx.get("line_no")
-                        if not has_error_commit and fetch_commit_sha:
-                            self.get_ref(
-                                integrations,
-                                project.organization_id,
-                                int(line_no) if line_no else 0,
-                                filepath,
-                                current_config["repository"],
-                                current_config["config"]["defaultBranch"],
-                            )
-
-                        # Call codecov API if codecov-commit-sha-from-git-blame flag is enabled
-                        # or getting ref from git blame was successful
-                        if not fetch_commit_sha or ref:
-                            lineCoverage, codecovUrl = get_codecov_data(
-                                repo=current_config["config"]["repoName"],
-                                service=current_config["config"]["provider"]["key"],
-                                ref=ref if ref else current_config["config"]["defaultBranch"],
-                                ref_type="sha" if ref else "branch",
-                                path=current_config["outcome"]["sourcePath"],
-                            )
-                            if lineCoverage and codecovUrl:
-                                result["codecov"] = {
-                                    "lineCoverage": lineCoverage,
-                                    "coverageUrl": codecovUrl,
-                                    "status": 200,
-                                }
-
+                        codecov_data = self.fetch_codecov_data(
+                            has_error_commit := bool(ctx.get("commit_id")),
+                            ref=ctx["commit_id"] if has_error_commit else None,
+                            integrations=integrations,
+                            org=project.organization,
+                            user=request.user,
+                            line_no=int(line_no) if line_no else 0,
+                            filepath=filepath,
+                            repo=current_config["repository"],
+                            branch=current_config["config"]["defaultBranch"],
+                            service=current_config["config"]["provider"]["key"],
+                            path=current_config["outcome"]["sourcePath"],
+                        )
+                        if codecov_data:
+                            result["codecov"] = codecov_data
                     except requests.exceptions.HTTPError as error:
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,
