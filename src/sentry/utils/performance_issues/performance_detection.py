@@ -696,12 +696,15 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     @classmethod
     def is_event_eligible(cls, event, project: Project = None) -> bool:
-        # temporary hardcode of org
-        if project is not None:
-            organization = cast(Organization, project.organization)
-            if organization is not None and organization.slug == "laracon-eu":
-                return True
+        request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
+
+        if request:
+            url = request.get("url", "") or ""
+            method = request.get("method", "") or ""
+            if url.endswith("/graphql") or method.lower() in ["post", "get"]:
+                return False
+
         return "php" not in sdk_name.lower()
 
 

@@ -320,11 +320,26 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_allows_hardcoded_orgs(self):
-        project = self.create_project()
-        event = self.create_issue_event()
-        event["sdk"] = {"name": "sentry.php.laravel"}
+    def test_ignores_graphql(self):
+        span_duration = 50
+        spans = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `order`.`id` FROM `books_author` WHERE `author`.`type` = $1",
+            ),
+            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
+        ]
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
 
-        assert len(self.find_problems(event)) == 0
-        project.organization.slug = "laracon-eu"
-        assert len(self.find_problems(event, project)) == 1
+        event = create_event(spans)
+        assert len(self.find_problems(event)) == 1
+        event["request"] = {"url": "https://url.dev/api/graphql", "method": "POST"}
+        assert self.find_problems(event) == []
