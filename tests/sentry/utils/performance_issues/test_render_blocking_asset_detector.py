@@ -42,7 +42,15 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 }
             },
             "spans": [
-                create_span("resource.script", duration=1000.0),
+                create_span(
+                    "resource.script",
+                    duration=1000.0,
+                    data={
+                        "Transfer Size": 1200000,
+                        "Encoded Body Size": 1200000,
+                        "Decoded Body Size": 2000000,
+                    },
+                ),
             ],
         }
 
@@ -122,4 +130,28 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
 
+        assert self.find_problems(event) == []
+
+    def test_does_not_detect_if_too_small(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span(
+                    "resource.script",
+                    duration=1000.0,
+                    data={
+                        "Transfer Size": 900000,
+                        "Encoded Body Size": 900000,
+                        "Decoded Body Size": 1700000,
+                    },
+                ),
+            ],
+        }
         assert self.find_problems(event) == []
