@@ -9,11 +9,15 @@ from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouptype.grouptype import get_group_types_by_category
+from sentry.grouptype.grouptype import (
+    GroupType,
+    get_group_type_by_type_id,
+    get_group_types_by_category,
+)
 from sentry.models import EventAttachment, EventError, GroupHash, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query
-from sentry.types.issues import GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.safe import get_path
@@ -361,8 +365,8 @@ class DetailedEventSerializer(EventSerializer):
             return None
         converted_problem = convert_dict_key_case(perf_problem, snake_to_camel_case)
         issue_type = perf_problem.get("type")
-        if issue_type in [type.value for type in GroupType]:
-            converted_problem["issueType"] = GroupType(issue_type).name.lower()
+        if issue_type in [type.type_id for type in GroupType.__subclasses__()]:
+            converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
         else:
             converted_problem["issueType"] = "Issue"
         return converted_problem

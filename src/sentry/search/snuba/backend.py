@@ -13,7 +13,7 @@ from django.utils.functional import SimpleLazyObject
 from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.grouptype.grouptype import get_group_types_by_category
+from sentry.grouptype.grouptype import ErrorGroupType, get_group_types_by_category
 from sentry.models import (
     Environment,
     Group,
@@ -40,7 +40,7 @@ from sentry.search.snuba.executors import (
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
 )
-from sentry.types.issues import GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -542,7 +542,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             queryset_conditions.update(
                 {
                     "message": QCallbackCondition(
-                        lambda query: Q(type=GroupType.ERROR.value)
+                        lambda query: Q(type=ErrorGroupType.type_id)
                         | _perf_issue_message_condition(query)
                     )
                     # negation should only apply on the message search icontains, we have to include the
