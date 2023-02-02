@@ -1,18 +1,11 @@
-import {Component} from 'react';
-
-import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
-import ConfigStore from 'sentry/stores/configStore';
 import {Organization} from 'sentry/types';
 import {
   ExperimentAssignment,
   ExperimentKey,
   Experiments,
   ExperimentType,
-  OrgExperiments,
-  UserExperiments,
 } from 'sentry/types/experiments';
-import {logExperiment} from 'sentry/utils/analytics';
-import getDisplayName from 'sentry/utils/getDisplayName';
+import {useExperiment} from 'sentry/utils/useExperiment';
 
 type Options<E extends ExperimentKey, L extends boolean> = {
   /**
@@ -85,11 +78,7 @@ function withExperiment<
   type Props = Omit<P, keyof InjectedExperimentProps<E, L>> &
     ExpectedProps<Experiments[E]['type']>;
 
-  return class extends Component<Props> {
-    static displayName = `withExperiment[${experiment}](${getDisplayName(
-      ExperimentComponent
-    )})`;
-
+  return function (incomingProps: Props) {
     // NOTE(ts): Because of the type complexity of this HoC, typescript
     // has a hard time understanding how to narrow Experiments[E]['type']
     // when we type assert on it.
@@ -99,53 +88,19 @@ function withExperiment<
     //
     // We DO guarantee the external API of this HoC is typed accurately.
 
-    componentDidMount() {
-      if (!injectLogExperiment) {
-        this.logExperiment();
-      }
-    }
+    const WrappedComponent = ExperimentComponent as React.JSXElementConstructor<any>;
 
-    getProps<Q extends ExperimentType>() {
-      return this.props as unknown as ExpectedProps<Q>;
-    }
+    const {experimentAssignment, logExperiment} = useExperiment(experiment, {
+      logExperimentOnMount: !injectLogExperiment,
+    });
 
-    get config() {
-      return experimentConfig[experiment];
-    }
+    const props = {
+      experimentAssignment,
+      ...(injectLogExperiment ? {logExperiment} : {}),
+      ...incomingProps,
+    } as unknown;
 
-    get experimentAssignment() {
-      const {type} = this.config;
-
-      if (type === ExperimentType.Organization) {
-        const key = experiment as keyof OrgExperiments;
-        return this.getProps<typeof type>().organization.experiments[key];
-      }
-
-      if (type === ExperimentType.User) {
-        const key = experiment as keyof UserExperiments;
-        return ConfigStore.get('user').experiments[key];
-      }
-
-      return unassignedValue;
-    }
-
-    logExperiment = () =>
-      logExperiment({
-        key: experiment,
-        organization: this.getProps<ExperimentType.Organization>().organization,
-      });
-
-    render() {
-      const WrappedComponent = ExperimentComponent as React.JSXElementConstructor<any>;
-
-      const props = {
-        experimentAssignment: this.experimentAssignment,
-        ...(injectLogExperiment ? {logExperiment: this.logExperiment} : {}),
-        ...this.props,
-      } as unknown;
-
-      return <WrappedComponent {...(props as P)} />;
-    }
+    return <WrappedComponent {...(props as P)} />;
   };
 }
 
