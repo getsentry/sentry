@@ -505,6 +505,23 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
+    def test_can_delete_owner_if_other_owners_through_teams(self):
+        # two members of an owner team
+        member = self.create_user("bar@example.com")
+        member2 = self.create_user("foo@example.com")
+        team = self.create_team(org_role="owner")
+        owner = self.create_member(
+            organization=self.organization, role="member", user=member, teams=[team]
+        )
+        self.create_member(
+            organization=self.organization, role="member", user=member2, teams=[team]
+        )
+
+        self.login_as(member)
+        self.get_success_response(self.organization.slug, owner.id)
+
+        assert not OrganizationMember.objects.filter(id=owner.id).exists()
+
     def test_can_delete_self(self):
         other_user = self.create_user("bar@example.com")
         self.create_member(organization=self.organization, role="member", user=other_user)
@@ -574,6 +591,23 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, member_om.id)
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
+
+    def test_can_delete_with_org_role_from_team(self):
+        member = self.create_user("bar@example.com")
+        team = self.create_team(org_role="manager")
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+
+        member_user = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, role="manager", user=member_user
+        )
+
+        self.login_as(member)
+        self.get_success_response(self.organization.slug, member_om.id)
+
+        assert not OrganizationMember.objects.filter(
+            user=member_user, organization=self.organization
+        ).exists()
 
 
 @region_silo_test

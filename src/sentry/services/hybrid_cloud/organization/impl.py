@@ -4,8 +4,6 @@ import dataclasses
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
 
-from django.db.models import Q
-
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -298,7 +296,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def get_all_org_roles(self, organization_member: ApiOrganizationMember) -> List[str]:
         team_ids = [mt.team_id for mt in organization_member.member_teams]
         org_roles = list(
-            Team.objects.filter(~Q(org_role=None), id__in=team_ids)
+            Team.objects.filter(id__in=team_ids)
+            .exclude(org_role=None)
             .values_list("org_role", flat=True)
             .distinct()
         )
