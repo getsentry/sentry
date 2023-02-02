@@ -10,8 +10,15 @@ from urllib.parse import parse_qs, urlparse
 from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
+from sentry.utils import metrics
 
-from ..base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
+from ..base import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    PerformanceDetector,
+    get_span_duration,
+    get_url_from_span,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import PerformanceProblemsMap, Span
 
@@ -206,7 +213,15 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def _fingerprint(self) -> str:
-        parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
+        first_url = get_url_from_span(self.spans[0])
+        parameterized_first_url = self.parameterize_url(first_url)
+
+        metrics.incr(
+            "performance.performance_issues.n1-api-calls.parameterize-url",
+            sample_rate=1.0,
+            tags={"is_different": parameterized_first_url != first_url},
+        )
+
         parsed_first_url = urlparse(parameterized_first_url)
         path = parsed_first_url.path
 
@@ -227,19 +242,3 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             span_a["hash"] == span_b["hash"]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
-
-
-def get_url_from_span(span: Span) -> str:
-    data = span.get("data") or {}
-    url = data.get("url") or ""
-    if not url:
-        # If data is missing, fall back to description
-        description = span.get("description") or ""
-        parts = description.split(" ", 1)
-        if len(parts) == 2:
-            url = parts[1]
-
-    if type(url) is dict:
-        url = url.get("pathname") or ""
-
-    return url

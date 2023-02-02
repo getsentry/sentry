@@ -55,7 +55,7 @@ def query_replays_collection(
     """Query aggregated replay collection."""
     conditions = []
     if environment:
-        conditions.append(Condition(Column("environment"), Op.IN, environment))
+        conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     sort_ordering = get_valid_sort_commands(
         sort,
@@ -68,7 +68,8 @@ def query_replays_collection(
         project_ids=project_ids,
         start=start,
         end=end,
-        where=conditions,
+        where=[],
+        having=conditions,
         fields=fields,
         sorting=sort_ordering,
         pagination=paginators,
@@ -91,6 +92,7 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
+        having=[],
         fields=[],
         sorting=[],
         pagination=None,
@@ -104,6 +106,7 @@ def query_replays_dataset(
     start: datetime,
     end: datetime,
     where: List[Condition],
+    having: List[Condition],
     fields: List[str],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
@@ -122,19 +125,32 @@ def query_replays_dataset(
         query=Query(
             match=Entity("replays"),
             select=make_select_statement(fields, sorting, search_filters),
+            # Be careful adding conditions to this query.  You must only filter by columns that
+            # are true for every column in the set!
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
+                # We don't actually know when a replay is finished ingesting until we reach the
+                # end of the dataset.  For this reason we scan to the end and then in the having
+                # clause we ask if the replay is in range.  This is more expensive but is required
+                # to ensure correct operation and is especially pertinent in the case where an
+                # archive request was submitted.
+                #
+                # Hard deletes may be more appropriate for replays than archival records.
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, start),
                 *where,
             ],
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Make sure we're not too old.
+                Condition(Column("finished_at"), Op.LT, end),
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
+                # Other conditions.
+                *having,
             ],
             orderby=sorting,
             groupby=[Column("replay_id")],
@@ -377,7 +393,7 @@ class ReplayQueryConfig(QueryConfig):
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
     user_name = String(field_alias="user.name", query_alias="user_name")
-    user_ip_address = String(field_alias="user.ip", query_alias="user_ip")
+    user_ip_address = ListField(field_alias="user.ip", query_alias="user_ip")
     os_name = String(field_alias="os.name", query_alias="os_name")
     os_version = String(field_alias="os.version", query_alias="os_version")
     browser_name = String(field_alias="browser.name", query_alias="browser_name")
@@ -599,6 +615,7 @@ QUERY_ALIAS_COLUMN_MAP = {
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
     "finished_at": Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+    # Because duration considers the max timestamp, archive requests can alter the duration.
     "duration": Function(
         "dateDiff",
         parameters=["second", Column("started_at"), Column("finished_at")],
@@ -631,11 +648,11 @@ QUERY_ALIAS_COLUMN_MAP = {
     "user_email": _grouped_unique_scalar_value(column_name="user_email"),
     "user_name": _grouped_unique_scalar_value(column_name="user_name"),
     "user_ip": Function(
-        "IPv4NumToString",
+        "groupUniqArray",
         parameters=[
-            _grouped_unique_scalar_value(
-                column_name="ip_address_v4",
-                aliased=False,
+            Function(
+                "IPv4NumToString",
+                parameters=[Column("ip_address_v4")],
             )
         ],
         alias="user_ip",
@@ -684,8 +701,8 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
 
 def collect_aliases(fields: List[str]) -> List[str]:
     """Return a unique list of aliases required to satisfy the fields."""
-    # is_archived is a required field.  It must always be selected.
-    result = {"is_archived"}
+    # Required fields.
+    result = {"is_archived", "finished_at", "agg_environment"}
 
     saw_tags = False
     for field in fields:
