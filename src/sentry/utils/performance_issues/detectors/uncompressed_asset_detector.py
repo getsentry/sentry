@@ -4,7 +4,7 @@ from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
 
-from ..base import DetectorType, PerformanceDetector, get_span_duration, fingerprint_spans
+from ..base import DetectorType, PerformanceDetector, fingerprint_spans, get_span_duration
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
