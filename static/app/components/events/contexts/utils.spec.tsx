@@ -1,4 +1,4 @@
-import {geKnownData, getUnknownData} from 'sentry/components/events/contexts/utils';
+import {getKnownData, getUnknownData} from 'sentry/components/events/contexts/utils';
 
 describe('contexts utils', function () {
   describe('getUnknownData', function () {
@@ -37,7 +37,7 @@ describe('contexts utils', function () {
 
       const knownDataTypes = ['device_app_hash', 'build_type', 'app_name'];
 
-      const knownData = geKnownData({
+      const knownData = getKnownData({
         data,
         knownDataTypes,
         onGetKnownDataDetails: v => {
@@ -86,7 +86,7 @@ describe('contexts utils', function () {
       const data = {device_app_hash: 'abc'};
       const knownDataTypes = ['device_app_hash'];
 
-      const knownData = geKnownData({
+      const knownData = getKnownData({
         data,
         knownDataTypes,
         raw: true,

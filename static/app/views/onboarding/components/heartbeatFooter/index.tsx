@@ -10,6 +10,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IdBadge from 'sentry/components/idBadge';
 import Placeholder from 'sentry/components/placeholder';
+import {usingCustomerDomain} from 'sentry/constants';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
@@ -74,16 +75,29 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
     const onUnload = (nextLocation?: Location) => {
       const {orgId, platform, projectId} = router.params;
 
-      const isSetupDocsForNewOrg =
-        location.pathname === `/onboarding/${organization.slug}/setup-docs/` &&
-        nextLocation?.pathname !== `/onboarding/${organization.slug}/setup-docs/`;
+      let isSetupDocsForNewOrg =
+        location.pathname === `/onboarding/setup-docs/` &&
+        nextLocation?.pathname !== `/onboarding/setup-docs/`;
 
-      const isSetupDocsForNewOrgBackButton = `/onboarding/${organization.slug}/select-platform/`;
-      const isWelcomeForNewOrgBackButton = `/onboarding/${organization.slug}/welcome/`;
+      let isGettingStartedForExistingOrg =
+        location.pathname === `/projects/${projectId}/getting-started/${platform}/` ||
+        location.pathname === `/getting-started/${projectId}/${platform}/`;
 
-      const isGettingStartedForExistingOrg =
-        location.pathname === `/${orgId}/${projectId}/getting-started/${platform}/` ||
-        location.pathname === `/organizations/${orgId}/${projectId}/getting-started/`;
+      let isSetupDocsForNewOrgBackButton = `/onboarding/select-platform/`;
+      let isWelcomeForNewOrgBackButton = `/onboarding/welcome/`;
+
+      if (!usingCustomerDomain) {
+        isSetupDocsForNewOrg =
+          location.pathname === `/onboarding/${organization.slug}/setup-docs/` &&
+          nextLocation?.pathname !== `/onboarding/${organization.slug}/setup-docs/`;
+
+        isGettingStartedForExistingOrg =
+          location.pathname === `/${orgId}/${projectId}/getting-started/${platform}/` ||
+          location.pathname === `/organizations/${orgId}/${projectId}/getting-started/`;
+
+        isSetupDocsForNewOrgBackButton = `/onboarding/${organization.slug}/select-platform/`;
+        isWelcomeForNewOrgBackButton = `/onboarding/${organization.slug}/welcome/`;
+      }
 
       if (isSetupDocsForNewOrg || isGettingStartedForExistingOrg) {
         // TODO(Priscila): I have to adjust this to check for all selected projects in the onboarding of new orgs

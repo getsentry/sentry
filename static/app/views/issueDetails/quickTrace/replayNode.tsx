@@ -12,10 +12,11 @@ type Props = {
 
 function ReplayNode({hasReplay}: Props) {
   const location = useLocation();
+
   if (hasReplay) {
     return (
       <EventNodeReplay
-        icon={<IconPlay size="xs" />}
+        icon={<StyledIcon size="xs" />}
         onClick={() => document.getElementById('breadcrumbs')?.scrollIntoView()}
         to={{...location, hash: '#breadcrumbs'}}
         type="black"
@@ -35,6 +36,10 @@ function ReplayNode({hasReplay}: Props) {
     </EventNodeReplay>
   );
 }
+
+const StyledIcon = styled(IconPlay)`
+  fill: ${p => p.theme.backgroundTertiary};
+`;
 
 export const EventNodeReplay = styled(EventNode)`
   display: inline-flex;
