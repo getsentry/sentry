@@ -161,15 +161,12 @@ export class OrganizationStats extends Component<Props> {
   }
 
   /**
-   * Note: For now, we're checking for both project-stats and global-views to enable this new UI
-   * This may change once we GA the project-stats feature flag. These are the planned scenarios:
-   *  - w/o global-views: Project Selector defaults to first project, hence no more 'Org Stats' w/o global-views
-   *  - w/ global-views: Project Selector defaults to 'My Projects', behaviour for 'Org Stats' is preserved
+   * Note: Since we're not checking for 'global-views', orgs without that flag will only ever get
+   * the single page view. This is a trade-off of using the global project header,
+   * but creates product consistency, since it's a paid feature to view data across projects
    */
   get hasProjectStats(): boolean {
-    return ['project-stats', 'global-views'].every(flag =>
-      this.props.organization.features.includes(flag)
-    );
+    return this.props.organization.features.includes('project-stats');
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
