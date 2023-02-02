@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Protocol, Sequence, Tuple
 
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
@@ -64,6 +64,7 @@ class ProjectOptionRuleStore:
         return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
 
     def write(self, project: Project, rules: RuleSet) -> None:
+        """Writes the rules to project options, sorted by depth."""
         sorted_rules = self._sort(rules)
         project.update_option(self._option_name, sorted_rules)
 
@@ -111,16 +112,27 @@ def _get_rules(project: Project) -> RuleSet:
     return ProjectOptionRuleStore().read(project)
 
 
-def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
+def get_sorted_rules(
+    project: Project, amount: Optional[int] = None
+) -> List[Tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
     The rules are fetched from project options rather than redis, because
     project options is the more persistent store.
 
-    The rules are ordered by specifity, meaning that rules that go deeper
-    into the URL tree occur first.
+    The rules are ordered by depth (deeper in the URL tree go first) and usage
+    (more recently used go first), in that order.
     """
-    return ProjectOptionRuleStore().read_sorted(project)
+    if amount is not None and amount < 1:
+        return []
+    rules = ProjectOptionRuleStore().read_sorted(project)
+    # Even if there are fewer rules than the given amount, sort them. Keeping
+    # always the same order allows the rules to disappear for not being used.
+    rules = sorted(rules, key=lambda r: r[1], reverse=True)
+    if amount is not None and amount >= 0:
+        rules = rules[:amount]
+    rules = sorted(rules, key=lambda r: r[0].count("/"), reverse=True)
+    return rules
 
 
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:

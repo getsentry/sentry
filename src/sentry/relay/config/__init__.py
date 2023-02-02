@@ -181,11 +181,15 @@ class TransactionNameRule(TypedDict):
     redaction: TransactionNameRuleRedaction
 
 
+#: Maximum number of transaction name rules in a project config.
+TRANSACTION_NAMES_MAX_RULES = 25
+
+
 def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
-    cluster_rules = get_sorted_rules(project)
+    cluster_rules = get_sorted_rules(project, TRANSACTION_NAMES_MAX_RULES)
     if not cluster_rules:
         return None
 

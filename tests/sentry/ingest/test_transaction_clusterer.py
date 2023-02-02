@@ -14,6 +14,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     _get_rules,
+    get_sorted_rules,
     update_rules,
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
@@ -137,6 +138,49 @@ def test_sort_rules():
 
 
 @pytest.mark.django_db
+def test_sorted_rules(default_project):
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(default_project, [ReplacementRule("foo/foo/foo")])
+    with freeze_time("2002-02-02 02:00:00"):
+        update_rules(default_project, [ReplacementRule("bar")])
+    with freeze_time("2003-03-03 03:00:00"):
+        update_rules(default_project, [ReplacementRule("baz/baz")])
+    with freeze_time("2004-04-04 04:00:00"):
+        update_rules(default_project, [ReplacementRule("qux/qux")])
+
+    no_limit = get_sorted_rules(default_project)
+    assert no_limit == [
+        ("foo/foo/foo", 946688400),
+        ("qux/qux", 1081051200),
+        ("baz/baz", 1046660400),
+        ("bar", 1012615200),
+    ]
+
+    all = get_sorted_rules(default_project, 4)
+    assert all == [
+        ("foo/foo/foo", 946688400),
+        ("qux/qux", 1081051200),
+        ("baz/baz", 1046660400),
+        ("bar", 1012615200),
+    ]
+
+    ancient = get_sorted_rules(default_project, 3)
+    assert ancient == [("qux/qux", 1081051200), ("baz/baz", 1046660400), ("bar", 1012615200)]
+
+    recent = get_sorted_rules(default_project, 2)
+    assert recent == [
+        ("qux/qux", 1081051200),
+        ("baz/baz", 1046660400),
+    ]
+
+    last = get_sorted_rules(default_project, 1)
+    assert last == [("qux/qux", 1081051200)]
+
+    nothing = get_sorted_rules(default_project, 0)
+    assert nothing == []
+
+
+@pytest.mark.django_db
 def test_save_rules(default_project):
     project = default_project
 
@@ -235,14 +279,14 @@ def test_transaction_clusterer_generates_rules(default_project):
         assert _get_projconfig_tx_rules(default_project) == [
             # TTL is 90d, so three months to expire
             {
-                "pattern": "/rule/*/0/**",
-                "expiry": "1970-04-01T00:00:00+00:00",
+                "pattern": "/rule/*/1/**",
+                "expiry": "1970-04-01T00:00:01+00:00",
                 "scope": {"source": "url"},
                 "redaction": {"method": "replace", "substitution": "*"},
             },
             {
-                "pattern": "/rule/*/1/**",
-                "expiry": "1970-04-01T00:00:01+00:00",
+                "pattern": "/rule/*/0/**",
+                "expiry": "1970-04-01T00:00:00+00:00",
                 "scope": {"source": "url"},
                 "redaction": {"method": "replace", "substitution": "*"},
             },
