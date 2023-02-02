@@ -1,19 +1,10 @@
 from __future__ import annotations
 
-import hashlib
-import os
-import random
-import re
-from datetime import timedelta
-from urllib.parse import parse_qs, urlparse
-
 from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
 
-from ..base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
 from ..performance_problem import PerformanceProblem
-from ..types import PerformanceProblemsMap, Span
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
