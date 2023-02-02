@@ -126,7 +126,6 @@ describe('NotificationSettings', function () {
     // There are 9 notification setting Selects/Toggles.
     [
       'alerts',
-      'activeRelease',
       'workflow',
       'deploy',
       'approval',
@@ -134,10 +133,6 @@ describe('NotificationSettings', function () {
       'email',
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
     ].forEach(field => {
-      if (field === 'activeRelease') {
-        expect(screen.getByText('Release Issues')).toBeInTheDocument();
-        return;
-      }
       expect(
         screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
