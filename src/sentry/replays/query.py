@@ -393,7 +393,7 @@ class ReplayQueryConfig(QueryConfig):
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
     user_name = String(field_alias="user.name", query_alias="user_name")
-    user_ip_address = ListField(field_alias="user.ip", query_alias="user_ip")
+    user_ip_address = String(field_alias="user.ip", query_alias="user_ip")
     os_name = String(field_alias="os.name", query_alias="os_name")
     os_version = String(field_alias="os.version", query_alias="os_version")
     browser_name = String(field_alias="browser.name", query_alias="browser_name")
@@ -648,11 +648,11 @@ QUERY_ALIAS_COLUMN_MAP = {
     "user_email": _grouped_unique_scalar_value(column_name="user_email"),
     "user_name": _grouped_unique_scalar_value(column_name="user_name"),
     "user_ip": Function(
-        "groupUniqArray",
+        "IPv4NumToString",
         parameters=[
-            Function(
-                "IPv4NumToString",
-                parameters=[Column("ip_address_v4")],
+            _grouped_unique_scalar_value(
+                column_name="ip_address_v4",
+                aliased=False,
             )
         ],
         alias="user_ip",
