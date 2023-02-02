@@ -53,7 +53,7 @@ const getComponent = ({
         pathname: '/organizations/org-slug/replays/',
         query: {
           project: '1',
-          transaction: 'transaction',
+          transaction: 'Settings Page',
         },
         ...location,
       },
@@ -142,7 +142,7 @@ describe('TransactionReplays', () => {
               SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
             ]),
             per_page: 50,
-            query: 'event.type:transaction transaction:transaction !replayId:""',
+            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
           }),
         })
       );
