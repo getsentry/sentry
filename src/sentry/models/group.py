@@ -709,4 +709,4 @@ class Group(Model):
 
     @property
     def issue_category(self):
-        return self.issue_type.category
+        return GroupCategory(self.issue_type.category)
