@@ -9,7 +9,7 @@ import {
   useSourceMapDebug,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import StrictClick from 'sentry/components/strictClick';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
