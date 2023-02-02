@@ -177,6 +177,10 @@ function SummaryContent({
   }
 
   function generateActionBarItems(_org: Organization, _location: Location) {
+    if (!_org.features.includes('performance-metrics-backed-transaction-summary')) {
+      return null;
+    }
+
     return !canUseTransactionMetricsData(_org, _location)
       ? [
           {
@@ -197,7 +201,7 @@ function SummaryContent({
             }),
           },
         ]
-      : [];
+      : null;
   }
 
   const hasPerformanceChartInterpolation = organization.features.includes(

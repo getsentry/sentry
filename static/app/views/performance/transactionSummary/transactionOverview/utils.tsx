@@ -48,6 +48,10 @@ export function getTransactionMEPParamsIfApplicable(
   organization: Organization,
   location: Location
 ) {
+  if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
+    return undefined;
+  }
+
   if (!canUseTransactionMetricsData(organization, location)) {
     return undefined;
   }
