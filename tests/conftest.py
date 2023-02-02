@@ -144,7 +144,11 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
-def protect_user_deletion():
+def protect_user_deletion(request):
+    if "django_db_setup" not in request.fixturenames:
+        yield
+        return
+
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.testutils.silo import reset_test_role, restrict_role
     from tests.sentry.hybrid_cloud import iter_models
