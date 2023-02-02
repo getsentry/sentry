@@ -34,6 +34,7 @@ ATTR_CHOICES = {
     "stacktrace.abs_path": Columns.STACK_ABS_PATH,
     "stacktrace.package": Columns.STACK_PACKAGE,
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
+    "thread.main": Columns.THREAD_MAIN,
 }
 
 
@@ -195,6 +196,12 @@ class EventAttributeCondition(EventCondition):
                 return [response.get(path[1])]
 
             return []
+        # TODO: review this
+        elif path[0] == "thread":
+            if path[1] not in ("main"):
+                return []
+
+            return [getattr(e, path[1]) for e in event.interfaces["threads"].values]
 
         return []
 

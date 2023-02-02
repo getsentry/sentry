@@ -54,6 +54,13 @@ class EventAttributeConditionTest(RuleTestCase):
                     "in_foreground": True,
                 }
             },
+            "threads": {
+                "values": [
+                    {
+                        "main": True,
+                    },
+                ]
+            },
         }
         data.update(kwargs)
         event = self.store_event(data, project_id=self.project.id)
@@ -740,5 +747,17 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "app.in_foreground", "value": "False"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_thread_main(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "thread.main", "value": "True"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "thread.main", "value": "False"}
         )
         self.assertDoesNotPass(rule, event)

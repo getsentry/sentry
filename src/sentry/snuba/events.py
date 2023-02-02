@@ -564,8 +564,17 @@ class Columns(Enum):
         event_name="contexts[app.in_foreground]",
         transaction_name="contexts[app.in_foreground]",
         discover_name="contexts[app.in_foreground]",
-        issue_platform_name="contexts[app.in_foreground",
+        issue_platform_name="contexts[app.in_foreground]",
         alias="app.in_foreground",
+    )
+    # TODO: review this
+    THREAD_MAIN = Column(
+        group_name="events.threads.values.main",
+        event_name="threads.values.main",
+        transaction_name="threads.values.main",
+        discover_name="threads.values.main",
+        issue_platform_name="threads.values.main",
+        alias="thread.main",
     )
     # Transactions specific columns
     TRANSACTION_OP = Column(
