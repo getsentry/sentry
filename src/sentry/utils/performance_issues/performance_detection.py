@@ -20,8 +20,15 @@ from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
-from .base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
-from .detectors import NPlusOneAPICallsDetector
+from .base import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_span,
+    fingerprint_spans,
+    get_span_duration,
+)
+from .detectors import NPlusOneAPICallsDetector, UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
 from .types import Span
 
@@ -304,45 +311,6 @@ def run_detector_on_data(detector, data):
         detector.visit_span(span)
 
     detector.on_complete()
-
-
-def fingerprint_group(transaction_name, span_op, hash, problem_class):
-    signature = (str(transaction_name) + str(span_op) + str(hash)).encode("utf-8")
-    full_fingerprint = hashlib.sha1(signature).hexdigest()
-    return f"1-{problem_class}-{full_fingerprint}"
-
-
-# Creates a stable fingerprint given the same span details using sha1.
-def fingerprint_span(span: Span):
-    op = span.get("op", None)
-    description = span.get("description", None)
-    if not description or not op:
-        return None
-
-    signature = (str(op) + str(description)).encode("utf-8")
-    full_fingerprint = hashlib.sha1(signature).hexdigest()
-    fingerprint = full_fingerprint[
-        :20
-    ]  # 80 bits. Not a cryptographic usage, we don't need all of the sha1 for collision detection
-
-    return fingerprint
-
-
-def fingerprint_spans(spans: List[Span]):
-    span_hashes = []
-    for span in spans:
-        hash = span.get("hash", "") or ""
-        span_hashes.append(str(hash))
-    joined_hashes = "-".join(span_hashes)
-    return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
-
-
-# Simple fingerprint for broader checks, using the span op.
-def fingerprint_span_op(span: Span):
-    op = span.get("op", None)
-    if not op:
-        return None
-    return op
 
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
@@ -1270,106 +1238,6 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         if performance_problem := self.state.finish():
             self.stored_problems[performance_problem.fingerprint] = performance_problem
-
-
-class UncompressedAssetSpanDetector(PerformanceDetector):
-    """
-    Checks for large assets that are affecting load time.
-    """
-
-    __slots__ = ("stored_problems", "any_compression")
-
-    settings_key = DetectorType.UNCOMPRESSED_ASSETS
-    type: DetectorType = DetectorType.UNCOMPRESSED_ASSETS
-
-    def init(self):
-        self.stored_problems = {}
-        self.any_compression = False
-
-    def visit_span(self, span: Span) -> None:
-        op = span.get("op", None)
-        if not op:
-            return
-
-        allowed_span_ops = self.settings.get("allowed_span_ops")
-        if op not in allowed_span_ops:
-            return
-
-        data = span.get("data", None)
-        transfer_size = data and data.get("Transfer Size", None)
-        encoded_body_size = data and data.get("Encoded Body Size", None)
-        decoded_body_size = data and data.get("Decoded Body Size", None)
-        if not (encoded_body_size and decoded_body_size and transfer_size):
-            return
-
-        # Ignore assets from cache, either directly (nothing transferred) or via
-        # a 304 Not Modified response (transfer is smaller than asset size).
-        if transfer_size <= 0 or transfer_size < encoded_body_size:
-            return
-
-        # Ignore assets that are already compressed.
-        if encoded_body_size != decoded_body_size:
-            # Met criteria for a compressed span somewhere in the event.
-            self.any_compression = True
-            return
-
-        # Ignore assets that aren't big enough to worry about.
-        size_threshold_bytes = self.settings.get("size_threshold_bytes")
-        if encoded_body_size < size_threshold_bytes:
-            return
-
-        # Ignore assets under a certain duration threshold
-        if get_span_duration(span).total_seconds() * 1000 <= self.settings.get(
-            "duration_threshold"
-        ):
-            return
-
-        fingerprint = self._fingerprint(span)
-        span_id = span.get("span_id", None)
-        if fingerprint and span_id and not self.stored_problems.get(fingerprint, False):
-            self.stored_problems[fingerprint] = PerformanceProblem(
-                fingerprint=fingerprint,
-                op=span.get("op"),
-                desc=span.get("description", ""),
-                parent_span_ids=[],
-                type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
-                cause_span_ids=[],
-                offender_span_ids=[span.get("span_id", None)],
-            )
-
-    def _fingerprint(self, span) -> str:
-        hashed_spans = fingerprint_spans([span])
-        return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
-
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
-        )
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
-
-    def is_event_eligible(cls, event):
-        tags = event.get("tags", [])
-        browser_name = next(
-            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
-        )
-        if browser_name.lower() in [
-            "chrome",
-            "firefox",
-            "safari",
-            "edge",
-        ]:
-            # Only use major browsers as some mobile browser may be responsible for not sending accept-content header,
-            # which isn't fixable since you can't control what headers your users are sending.
-            # This can be extended later.
-            return True
-        return False
-
-    def on_complete(self) -> None:
-        if not self.any_compression:
-            # Must have a compressed asset in the event to emit this perf problem.
-            self.stored_problems = {}
 
 
 # Reports metrics and creates spans for detection
