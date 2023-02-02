@@ -164,6 +164,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     "environment": environments,
                 },
             )
+            # if no re-formatted conditions, use fallback method
             converted_filters.append(
                 conditions[0]
                 if conditions

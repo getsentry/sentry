@@ -559,9 +559,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
 
     def test_lookup_by_short_id_alias(self):
-        event_id = "c" * 32
         group = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={},
             project_id=self.project.id,
         ).group
         short_id = group.qualified_short_id
@@ -569,6 +568,24 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_success_response(query=f"issue:{short_id}")
         assert len(response.data) == 1
+
+    def test_lookup_by_multiple_short_id_alias(self):
+        self.login_as(self.user)
+        project = self.project
+        project2 = self.create_project(name="baz", organization=project.organization)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=2))},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=1))},
+            project_id=project2.id,
+        )
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(
+                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]"
+            )
+        assert len(response.data) == 2
 
     def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()

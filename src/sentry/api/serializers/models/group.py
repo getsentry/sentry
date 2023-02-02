@@ -912,6 +912,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                             "environment_id": environment_ids,
                         },
                     )
+                    # if no re-formatted conditions, use fallback method
                     conditions.append(
                         formatted_conditions[0]
                         if formatted_conditions
