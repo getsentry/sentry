@@ -53,7 +53,7 @@ import {
   ReprocessingStatus,
 } from './utils';
 
-type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
+type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 type Props = {
   api: Client;
