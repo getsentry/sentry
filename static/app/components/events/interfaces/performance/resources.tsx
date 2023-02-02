@@ -18,6 +18,10 @@ type Props = {
 
 // This section provides users with resources on how to resolve an issue
 export function Resources(props: Props) {
+  if (!props.description) {
+    return null;
+  }
+
   return (
     <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
       {props.description}

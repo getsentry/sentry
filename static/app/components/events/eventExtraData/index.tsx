@@ -6,7 +6,7 @@ import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {getKnownData} from '../contexts/utils';
 
@@ -20,6 +20,11 @@ type Props = {
 export const EventExtraData = memo(
   ({event}: Props) => {
     const [raw, setRaw] = useState(false);
+
+    if (objectIsEmpty(event.context)) {
+      return null;
+    }
+
     return (
       <EventDataSection
         type="extra"
