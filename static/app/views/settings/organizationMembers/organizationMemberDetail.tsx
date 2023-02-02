@@ -436,7 +436,7 @@ const InviteField = styled('div')`
 const InviteSection = styled('div')`
   flex-grow: 1;
   display: flex;
-  gap: ${space(1)}; ;
+  gap: ${space(1)};
 `;
 
 const Footer = styled('div')`

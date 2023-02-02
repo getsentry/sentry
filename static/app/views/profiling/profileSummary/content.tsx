@@ -173,7 +173,7 @@ const ALL_FIELDS = [
   'profile.duration',
 ] as const;
 
-export type ProfilingFieldType = typeof ALL_FIELDS[number];
+export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
 
 export function getProfilesTableFields(platform: Project['platform']) {
   if (mobile.includes(platform as any)) {

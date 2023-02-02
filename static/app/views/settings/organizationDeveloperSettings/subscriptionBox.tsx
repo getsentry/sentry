@@ -13,7 +13,7 @@ import {
   PERMISSIONS_MAP,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
-type Resource = typeof EVENT_CHOICES[number];
+type Resource = (typeof EVENT_CHOICES)[number];
 
 type Props = {
   checked: boolean;

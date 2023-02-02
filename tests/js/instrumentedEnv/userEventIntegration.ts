@@ -6,7 +6,7 @@ export function instrumentUserEvent(getCurrentHub: () => Hub): void {
   ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action, getCurrentHub));
 }
 
-type Action = typeof ACTIONS[number];
+type Action = (typeof ACTIONS)[number];
 
 const ACTIONS = [
   'click',

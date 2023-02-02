@@ -328,13 +328,13 @@ export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
 };
 
 export type PlatformKey =
-  | typeof popularPlatformCategories[number]
-  | typeof frontend[number]
-  | typeof mobile[number]
-  | typeof backend[number]
-  | typeof desktop[number]
-  | typeof tracing[number]
-  | typeof serverless[number]
+  | (typeof popularPlatformCategories)[number]
+  | (typeof frontend)[number]
+  | (typeof mobile)[number]
+  | (typeof backend)[number]
+  | (typeof desktop)[number]
+  | (typeof tracing)[number]
+  | (typeof serverless)[number]
   | 'other';
 
 export default categoryList;

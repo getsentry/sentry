@@ -30,7 +30,7 @@ export type Actor = {
   email?: string;
 };
 
-export type Scope = typeof API_ACCESS_SCOPES[number];
+export type Scope = (typeof API_ACCESS_SCOPES)[number];
 
 export type DateString = Date | string | null;
 

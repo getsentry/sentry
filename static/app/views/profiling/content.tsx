@@ -254,7 +254,7 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = typeof FIELDS[number];
+type FieldType = (typeof FIELDS)[number];
 
 const ActionBar = styled('div')`
   display: grid;

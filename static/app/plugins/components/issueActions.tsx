@@ -13,7 +13,7 @@ type Field = {
 } & Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
 
 type ActionType = 'link' | 'create' | 'unlink';
-type FieldStateValue = typeof FormState[keyof typeof FormState];
+type FieldStateValue = (typeof FormState)[keyof typeof FormState];
 
 type Props = {
   actionType: ActionType;

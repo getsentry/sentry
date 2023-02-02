@@ -323,7 +323,7 @@ const tableColumnKey = [
   'tids',
 ] as const;
 
-type TableColumnKey = typeof tableColumnKey[number];
+type TableColumnKey = (typeof tableColumnKey)[number];
 
 type TableDataRow = Partial<Row<TableColumnKey>>;
 
