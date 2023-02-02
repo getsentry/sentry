@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.grouptype.grouptype import get_group_type_by_slug
+from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import json
@@ -111,7 +111,7 @@ class IssueOccurrenceEndpoint(Endpoint):
                         "important": False,
                     },
                 ],
-                "type": get_group_type_by_slug("profile_blocked_thread").type_id,
+                "type": ProfileBlockedThreadGroupType.type_id,
                 "detection_time": ensure_aware(datetime.now()),
                 "event": event,
             }
