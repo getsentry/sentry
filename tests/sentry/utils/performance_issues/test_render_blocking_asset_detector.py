@@ -4,7 +4,6 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,
@@ -18,8 +17,6 @@ from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
-
-hash_config = load_span_grouping_config()
 
 
 def _valid_render_blocking_asset_event(url: str) -> Event:
@@ -51,7 +48,6 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
         },
         "transaction": "/",
     }
-    hash_config.execute_strategy(event).write_to_event(event)
     return event
 
 
