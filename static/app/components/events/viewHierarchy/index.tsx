@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   useVirtualizedTree,
@@ -36,10 +37,11 @@ export type ViewHierarchyData = {
 };
 
 type ViewHierarchyProps = {
+  project: Project;
   viewHierarchy: ViewHierarchyData;
 };
 
-function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
+function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -108,11 +110,13 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     initialSelectedNodeIndex: 0,
   });
 
+  const showWireframe = project?.platform !== 'unity';
+
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
       <Content>
-        <Left>
+        <Left hasRight={showWireframe}>
           <TreeContainer>
             <GhostRow ref={hoveredGhostRowRef} />
             <GhostRow ref={clickedGhostRowRef} />
@@ -128,9 +132,11 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
             </DetailsContainer>
           )}
         </Left>
-        <Right>
-          <Wireframe hierarchy={hierarchy} />
-        </Right>
+        {showWireframe && (
+          <Right>
+            <Wireframe hierarchy={hierarchy} />
+          </Right>
+        )}
       </Content>
     </Fragment>
   );
@@ -145,12 +151,11 @@ const Content = styled('div')`
   height: 700px;
 `;
 
-const Left = styled('div')`
-  width: 40%;
+const Left = styled('div')<{hasRight?: boolean}>`
+  width: ${p => (p.hasRight ? '40%' : '100%')};
   display: flex;
   gap: ${space(1)};
   flex-direction: column;
-  resize: both;
 `;
 
 const Right = styled('div')`
