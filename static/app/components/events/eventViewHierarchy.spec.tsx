@@ -52,11 +52,11 @@ describe('Event View Hierarchy', function () {
     mockAttachment = TestStubs.EventAttachment({type: 'event.view_hierarchy'});
     mockProject = TestStubs.Project();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/mock/events/${event.id}/attachments/`,
+      url: `/projects/${organization.slug}/${mockProject.slug}/events/${event.id}/attachments/`,
       body: [mockAttachment],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/mock/events/${mockAttachment.event_id}/attachments/${mockAttachment.id}/?download`,
+      url: `/projects/${organization.slug}/${mockProject.slug}/events/${mockAttachment.event_id}/attachments/${mockAttachment.id}/?download`,
       body: MOCK_DATA,
     });
   });
@@ -64,7 +64,7 @@ describe('Event View Hierarchy', function () {
   it('renders nothing when no view_hierarchy attachments', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/mock/events/${event.id}/attachments/`,
+      url: `/projects/org-slug/${mockProject.slug}/events/${event.id}/attachments/`,
       body: [TestStubs.EventAttachment()],
     });
 
