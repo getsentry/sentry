@@ -310,6 +310,7 @@ type SpecialFields = {
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
+  'profile.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
@@ -458,6 +459,17 @@ const SPECIAL_FIELDS: SpecialFields = {
           </Button>
         </Container>
       );
+    },
+  },
+  'profile.id': {
+    sortField: 'profile.id',
+    renderFunc: data => {
+      const id: string | unknown = data?.['profile.id'];
+      if (typeof id !== 'string') {
+        return emptyValue;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
     },
   },
   issue: {
