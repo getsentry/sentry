@@ -210,6 +210,7 @@ function Wireframe({hierarchy}: WireframeProps) {
 
     const handleMouseDown = (e: MouseEvent) => {
       start = vec2.fromValues(e.offsetX, e.offsetY);
+      canvasRef.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -231,6 +232,7 @@ function Wireframe({hierarchy}: WireframeProps) {
       // The panning has ended, store its transformations into the original matrix
       start = null;
       mat3.copy(transformationMatrix, currTransformationMatrix);
+      canvasRef.style.cursor = 'grab';
     };
 
     const options: AddEventListenerOptions & EventListenerOptions = {passive: true};
@@ -255,6 +257,7 @@ export {Wireframe};
 
 const StyledCanvas = styled('canvas')`
   background-color: ${p => p.theme.surface100};
+  cursor: grab;
   width: 100%;
   height: 100%;
 `;
