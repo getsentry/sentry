@@ -110,8 +110,8 @@ function Segment({
 
   const {inputProps} = useRadio({...props}, state, ref);
 
-  const prevOptionIsSelected = state.selectedValue === prevKey;
-  const nextOptionIsSelected = state.selectedValue === nextKey;
+  const prevOptionIsSelected = prevKey && state.selectedValue === prevKey;
+  const nextOptionIsSelected = nextKey && state.selectedValue === nextKey;
 
   const isSelected = state.selectedValue === props.value;
   const showDivider = !isSelected && !nextOptionIsSelected;
