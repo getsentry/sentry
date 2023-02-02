@@ -507,39 +507,42 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
     def test_get_crash_free_breakdown(self):
         start = timezone.now() - timedelta(days=4)
-        data = self.backend.get_crash_free_breakdown(
-            project_id=self.project.id,
-            release=self.session_release,
-            start=start,
-            environments=["prod"],
-        )
 
-        # Last returned date is generated within function, should be close to now:
-        last_date = data[-1].pop("date")
-        assert timezone.now() - last_date < timedelta(seconds=1)
+        # it should work with and without environments
+        for environments in [None, ["prod"]]:
+            data = self.backend.get_crash_free_breakdown(
+                project_id=self.project.id,
+                release=self.session_release,
+                start=start,
+                environments=environments,
+            )
 
-        assert data == [
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=1),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=2),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": 100.0,
-                "crash_free_users": 100.0,
-                "total_sessions": 2,
-                "total_users": 1,
-            },
-        ]
+            # Last returned date is generated within function, should be close to now:
+            last_date = data[-1].pop("date")
+            assert timezone.now() - last_date < timedelta(seconds=1)
+
+            assert data == [
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": start + timedelta(days=1),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": start + timedelta(days=2),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": 100.0,
+                    "crash_free_users": 100.0,
+                    "total_sessions": 2,
+                    "total_users": 1,
+                },
+            ]
 
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,

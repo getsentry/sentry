@@ -1115,21 +1115,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Callable[[datetime], CrashFreeBreakdown]:
-        def generate_defaults(end: datetime) -> CrashFreeBreakdown:
-            """Function to use if querying snuba is not necessary"""
-            return {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": end,
-                "total_sessions": 0,
-                "total_users": 0,
-            }
 
         projects = self._get_projects([project_id])
-
-        if environments is None:
-            return generate_defaults
-        environments = list(environments)
 
         where = [
             Condition(
@@ -1139,7 +1126,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
         ]
 
-        if len(environments) > 0:
+        if environments:
+            environments = list(environments)
             where.append(
                 Condition(
                     lhs=Column(name="tags[environment]"),
