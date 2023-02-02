@@ -23,6 +23,7 @@ import {
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
@@ -398,7 +399,7 @@ export function getCustomMeasurementQueryParams() {
 export function isWidgetUsingTransactionName(widget: Widget) {
   return (
     widget.widgetType === WidgetType.DISCOVER &&
-    widget.queries.some(({aggregates, columns, fields}) => {
+    widget.queries.some(({aggregates, columns, fields, conditions}) => {
       const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
         const aggregateArg = getAggregateArg(aggregate);
         if (aggregateArg) {
@@ -406,9 +407,15 @@ export function isWidgetUsingTransactionName(widget: Widget) {
         }
         return acc;
       }, []);
-      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(
+      const transactionSelected = [...aggregateArgs, ...columns, ...(fields ?? [])].some(
         field => field === 'transaction'
       );
+      const transactionUsedInFilter = parseSearch(conditions)?.some(
+        parsedCondition =>
+          parsedCondition.type === Token.Filter &&
+          parsedCondition.key?.text === 'transaction'
+      );
+      return transactionSelected || transactionUsedInFilter;
     })
   );
 }
