@@ -351,9 +351,27 @@ class OrganizationMemberTest(TestCase):
         user = self.create_user()
         with pytest.raises(
             UnableToAcceptMemberInvitationException,
-            match="You do not have permission approve a member invitation with the role admin.",
+            match="You do not have permission to approve a member invitation with the role admin.",
         ):
             member.validate_invitation(user, [roles.get("member")])
+
+    def test_validate_invitation_with_org_role_from_team(self):
+        team = self.create_team(org_role="admin")
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            email="hello@sentry.io",
+            role="member",
+            teams=[team],
+        )
+        user = self.create_user()
+        assert member.validate_invitation(user, [roles.get("admin"), roles.get("member")])
+
+        with pytest.raises(
+            UnableToAcceptMemberInvitationException,
+            match="You do not have permission to approve a member invitation with the role admin.",
+        ):
+            member.validate_invitation(user, [roles.get("manager")])
 
     def test_approve_member_invitation(self):
         member = self.create_member(
