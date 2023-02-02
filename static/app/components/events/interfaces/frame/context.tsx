@@ -283,6 +283,10 @@ const StyledContextLine = styled(ContextLine)`
   z-index: 1000;
   list-style: none;
 
+  &::marker {
+    content: none;
+  }
+
   &:before {
     content: counter(frame);
     counter-increment: frame;
