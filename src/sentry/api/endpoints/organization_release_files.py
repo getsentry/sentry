@@ -22,6 +22,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
+        :qparam string query: If set, only files with these partial names will be returned.
+        :qparam string checksum: If set, only files with these exact checksums will be returned.
         :auth: required
         """
         try:
