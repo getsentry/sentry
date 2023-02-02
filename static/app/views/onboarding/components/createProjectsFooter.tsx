@@ -140,14 +140,30 @@ export default function CreateProjectsFooter({
         ) : null}
       </SelectionWrapper>
       <ButtonWrapper>
-        <Button
-          priority="primary"
-          onClick={createProjects}
-          disabled={platforms.length === 0}
-          data-test-id="platform-select-next"
-        >
-          {tn('Create Project', 'Create Projects', platforms.length)}
-        </Button>
+        {singleSelectPlatform ? (
+          <Button
+            priority="primary"
+            onClick={createProjects}
+            disabled={platforms.length === 0}
+            data-test-id="platform-select-next"
+            title={
+              platforms.length === 0
+                ? t('Select the platform you want to monitor')
+                : undefined
+            }
+          >
+            {t('Create Project')}
+          </Button>
+        ) : (
+          <Button
+            priority="primary"
+            onClick={createProjects}
+            disabled={platforms.length === 0}
+            data-test-id="platform-select-next"
+          >
+            {tn('Create Project', 'Create Projects', platforms.length)}
+          </Button>
+        )}
       </ButtonWrapper>
     </GenericFooter>
   );
