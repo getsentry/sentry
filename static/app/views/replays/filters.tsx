@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -19,6 +20,20 @@ function ReplaysFilters() {
   const {pathname, query} = useLocation();
   const organization = useOrganization();
 
+  useEffect(() => {
+    if (query.query === undefined) {
+      // Set default query into url if there is no query set
+      browserHistory.replace({
+        pathname,
+        query: {
+          ...query,
+          cursor: undefined,
+          query: DEFAULT_QUERY,
+        },
+      });
+    }
+  });
+
   return (
     <FilterContainer>
       <PageFilterBar condensed>
@@ -29,8 +44,8 @@ function ReplaysFilters() {
       <ReplaySearchBar
         organization={organization}
         pageFilters={selection}
-        defaultQuery={decodeScalar(query?.query ?? DEFAULT_QUERY, '')}
-        query={decodeScalar(query.query ?? DEFAULT_QUERY, '')}
+        defaultQuery={DEFAULT_QUERY}
+        query={decodeScalar(query.query, DEFAULT_QUERY)}
         onSearch={searchQuery => {
           browserHistory.push({
             pathname,
