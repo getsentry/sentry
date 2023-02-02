@@ -39,7 +39,6 @@ describe('Frame - Context', function () {
   it('converts coverage data to the right colors', function () {
     expect(getCoverageColorClass(lines, lineCoverage, primaryLineNumber)).toEqual([
       ['partial', 'covered', 'active', 'uncovered'],
-      false,
       true,
     ]);
   });
