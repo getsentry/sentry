@@ -44,8 +44,7 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)<{disabled?: boolean}>`
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
+export const EventNode = styled(Tag)`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
