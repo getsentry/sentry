@@ -55,7 +55,7 @@ export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
 } {
   const nodes: ViewNode[] = [];
   const queue: [Rect | null, ViewHierarchyWindow][] = [];
-  hierarchies.reverse().forEach(root => queue.push([null, root]));
+  [...hierarchies].reverse().forEach(root => queue.push([null, root]));
 
   let maxWidth = Number.MIN_SAFE_INTEGER;
   let maxHeight = Number.MIN_SAFE_INTEGER;
@@ -72,13 +72,13 @@ export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
         child.height ?? 0
       ),
     };
-
     nodes.push(node);
+
     if (defined(child.children) && child.children.length) {
       // Push the children into the queue in reverse order because the
       // output nodes should have early children before later children
       // i.e. we need to pop() off early children before ones that come after
-      child.children.reverse().forEach(c => {
+      [...child.children].reverse().forEach(c => {
         queue.push([node.rect, c]);
       });
     }

@@ -5,28 +5,27 @@ import {
 } from 'sentry/components/events/viewHierarchy/wireframe';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 
+const LEAF_NODE = {
+  x: 2,
+  y: 2,
+  width: 5,
+  height: 5,
+};
+const INTERMEDIATE_NODE = {
+  x: 10,
+  y: 5,
+  width: 10,
+  height: 10,
+  children: [LEAF_NODE],
+};
+
 const MOCK_HIERARCHY = [
   {
     x: 0,
     y: 0,
     width: 10,
     height: 10,
-    children: [
-      {
-        x: 10,
-        y: 5,
-        width: 10,
-        height: 10,
-        children: [
-          {
-            x: 2,
-            y: 2,
-            width: 5,
-            height: 5,
-          },
-        ],
-      },
-    ],
+    children: [INTERMEDIATE_NODE],
   },
   {x: 10, y: 0, width: 20, height: 20},
 ] as ViewHierarchyWindow[];
@@ -36,13 +35,12 @@ describe('View Hierarchy Wireframe', function () {
     it('properly calculates coordinates', function () {
       const actual = getHierarchyDimensions(MOCK_HIERARCHY);
 
-      // One array for each root
       expect(actual).toEqual({
         nodes: [
-          {node: expect.anything(), rect: new Rect(0, 0, 10, 10)},
-          {node: expect.anything(), rect: new Rect(10, 5, 10, 10)},
-          {node: expect.anything(), rect: new Rect(12, 7, 5, 5)},
-          {node: expect.anything(), rect: new Rect(10, 0, 20, 20)},
+          {node: MOCK_HIERARCHY[0], rect: new Rect(0, 0, 10, 10)},
+          {node: INTERMEDIATE_NODE, rect: new Rect(10, 5, 10, 10)},
+          {node: LEAF_NODE, rect: new Rect(12, 7, 5, 5)},
+          {node: MOCK_HIERARCHY[1], rect: new Rect(10, 0, 20, 20)},
         ],
         maxWidth: 30,
         maxHeight: 20,
