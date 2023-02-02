@@ -90,7 +90,7 @@ type BaseProps = DefaultProps & {
   /**
    * This is the size of the remote image to request.
    */
-  remoteImageSize?: typeof ALLOWED_SIZES[number];
+  remoteImageSize?: (typeof ALLOWED_SIZES)[number];
   size?: number;
   title?: string;
   /**

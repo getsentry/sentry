@@ -98,6 +98,20 @@ class UpdateMonitorTest(MonitorTestCase):
             monitor = Monitor.objects.get(id=monitor.id)
             assert monitor.status == MonitorStatus.OK
 
+    def test_timezone(self):
+        monitor = self._create_monitor()
+
+        for i, path_func in enumerate(self._get_path_functions()):
+            monitor = self._create_monitor()
+            path = path_func(monitor)
+            resp = self.client.put(path, data={"config": {"timezone": "America/Los_Angeles"}})
+
+            assert resp.status_code == 200, resp.content
+            assert resp.data["id"] == str(monitor.guid)
+
+            monitor = Monitor.objects.get(id=monitor.id)
+            assert monitor.config["timezone"] == "America/Los_Angeles"
+
     def test_checkin_margin(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
