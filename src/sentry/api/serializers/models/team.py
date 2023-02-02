@@ -216,7 +216,8 @@ class TeamSerializer(Serializer):  # type: ignore
                     minimum_team_role = roles.get_minimum_team_role(top_org_role)
                     if (
                         not team_role
-                        or minimum_team_role.priority > team_roles.get(team_role).priority
+                        or minimum_team_role.priority
+                        > team_roles.get(team_role.lower().replace("team ", "")).priority
                     ):
                         team_role = minimum_team_role.id
 

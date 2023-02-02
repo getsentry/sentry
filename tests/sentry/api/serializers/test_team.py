@@ -217,7 +217,7 @@ class TeamSerializerTest(TestCase):
             user=user, organization=organization, role="member", teams=[manager_team]
         )
         team = self.create_team(organization=organization)
-        OrganizationMemberTeam(organizationmember=member, team=team, role="contributor")
+        OrganizationMemberTeam(organizationmember=member, team=team, role="admin")
 
         result = serialize(team, user)
         result.pop("dateCreated")
