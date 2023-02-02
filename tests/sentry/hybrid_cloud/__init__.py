@@ -21,7 +21,7 @@ def iter_models() -> Iterable[Type[Model]]:
             yield model
 
 
-def validate_models_have_silos(exemptions: Set[Type[Model]]):
+def validate_models_have_silos(exemptions: Set[Type[Model]]) -> None:
     for model in iter_models():
         if model in exemptions:
             continue
@@ -38,7 +38,7 @@ def validate_models_have_silos(exemptions: Set[Type[Model]]):
             )
 
 
-def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[Model]]]):
+def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[Model]]]) -> None:
     for model in iter_models():
         validate_model_no_cross_silo_foreign_keys(model, exemptions)
 
@@ -46,7 +46,7 @@ def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[
 def validate_relation_does_not_cross_silo_foreign_keys(
     model: Type[Model],
     related: Type[Model],
-):
+) -> None:
     for mode in model._meta.silo_limit.modes:
         if mode not in related._meta.silo_limit.modes:
             raise ValueError(
@@ -57,7 +57,7 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
-):
+) -> None:
     for field in model._meta.fields:
         if isinstance(field, RelatedField):
             if (model, field.related_model) in exemptions:

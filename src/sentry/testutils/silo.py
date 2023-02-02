@@ -168,7 +168,7 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
         yield
 
 
-def reset_test_role(role: str):
+def reset_test_role(role: str) -> None:
     with connections["default"].cursor() as connection:
         connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
         if connection.fetchone():
@@ -181,14 +181,14 @@ def reset_test_role(role: str):
         connection.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
 
 
-def restrict_role_by_silo(mode: SiloMode, role: str):
+def restrict_role_by_silo(mode: SiloMode, role: str) -> None:
     for model in iter_models():
         silo_limit = getattr(model._meta, "silo_limit", None)
         if silo_limit is None or mode not in silo_limit.modes:
             restrict_role(role, model, "ALL PRIVILEGES")
 
 
-def restrict_role(role: str, model: Any, revocation_type: str):
+def restrict_role(role: str, model: Any, revocation_type: str) -> None:
     using = router.db_for_write(model)
     with connections[using].cursor() as connection:
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")

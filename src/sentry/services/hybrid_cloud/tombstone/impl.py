@@ -27,7 +27,7 @@ class MonolithTombstoneService(TombstoneService):
     # We use silo limits information to infer the correct destination.
     by_table_name: MutableMapping[str, Any]
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.by_table_name = {}
 
