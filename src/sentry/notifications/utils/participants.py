@@ -188,7 +188,6 @@ def get_owners(
     metrics.incr(
         "features.owners.send_to",
         tags={
-            "organization": project.organization_id,
             "outcome": outcome
             if outcome == "match" or fallthrough_choice is None
             else fallthrough_choice.value,
