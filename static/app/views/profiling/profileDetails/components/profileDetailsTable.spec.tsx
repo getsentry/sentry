@@ -1,11 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {RequestState} from 'sentry/types';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeSentrySampledProfile} from 'sentry/utils/profiling/profile/sentrySampledProfile.spec';
 
-import * as profileGroupProviderMod from '../../profilesProvider';
+import * as profileGroupProviderMod from '../../profileGroupProvider';
 
 import {ProfileDetailsTable} from './profileDetailsTable';
 
@@ -17,12 +16,15 @@ jest.mock('../../profileGroupProvider', () => {
   };
 });
 
+jest.mock('../../profilesProvider', () => {
+  return {
+    useProfiles: jest.fn().mockReturnValue({type: 'resolved', data: null}),
+  };
+});
+
 const useProfileGroupSpy = jest.spyOn(profileGroupProviderMod, 'useProfileGroup');
 
-const mockUseProfileData: RequestState<ProfileGroup> = {
-  type: 'resolved',
-  data: importProfile(makeSentrySampledProfile(), ''),
-};
+const mockUseProfileData: ProfileGroup = importProfile(makeSentrySampledProfile(), '');
 useProfileGroupSpy.mockImplementation(() => mockUseProfileData);
 
 function assertTableHeaders(headerText: string[]) {

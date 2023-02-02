@@ -32,6 +32,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphProfiles';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -55,12 +56,11 @@ import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/uni
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
   useProfileTransaction,
   useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
-
-import {useProfileGroup} from '../../../views/profiling/profileGroupProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -104,6 +104,43 @@ function collectAllSpanEntriesFromTransaction(
   }
 
   return allSpans;
+}
+
+type FlamegraphCandidate = {
+  frame: FlamegraphFrame;
+  threadId: number;
+  isActiveThread?: boolean; // this is the thread referred to by the active profile index
+};
+
+function findLongestMatchingFrame(
+  flamegraph: FlamegraphModel,
+  focusFrame: FlamegraphProfiles['highlightFrames']
+): FlamegraphFrame | null {
+  if (focusFrame === null) {
+    return null;
+  }
+
+  let longestFrame: FlamegraphFrame | null = null;
+
+  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
+  while (frames.length > 0) {
+    const frame = frames.pop()!;
+    if (
+      focusFrame.name === frame.frame.name &&
+      // the image name on a frame is optional,
+      // treat it the same as the empty string
+      focusFrame.package === (frame.frame.image || '') &&
+      (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
+    ) {
+      longestFrame = frame;
+    }
+
+    for (let i = 0; i < frame.children.length; i++) {
+      frames.push(frame.children[i]);
+    }
+  }
+
+  return longestFrame;
 }
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
@@ -679,6 +716,76 @@ function Flamegraph(): ReactElement {
     },
     [setProfiles]
   );
+
+  useEffect(() => {
+    const threadID =
+      typeof profileGroup.activeProfileIndex === 'number'
+        ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
+        : null;
+
+    // if the state has a highlight frame specified, then we want to jump to the
+    // thread containing it, highlight the frames on the thread, and change the
+    // view so it's obvious where it is
+    if (highlightFrames) {
+      const candidate = profileGroup.profiles.reduce<FlamegraphCandidate | null>(
+        (prevCandidate, currentProfile) => {
+          // if the previous candidate is the active thread, it always takes priority
+          if (prevCandidate?.isActiveThread) {
+            return prevCandidate;
+          }
+
+          const graph = new FlamegraphModel(currentProfile, currentProfile.threadId, {
+            inverted: false,
+            leftHeavy: false,
+            configSpace: undefined,
+          });
+
+          const frame = findLongestMatchingFrame(graph, highlightFrames);
+
+          if (!defined(frame)) {
+            return prevCandidate;
+          }
+
+          const newScore = frame.node.totalWeight || 0;
+          const oldScore = prevCandidate?.frame?.node?.totalWeight || 0;
+
+          // if we find the frame on the active thread, it always takes priority
+          if (newScore > 0 && currentProfile.threadId === threadID) {
+            return {
+              frame,
+              threadId: currentProfile.threadId,
+              isActiveThread: true,
+            };
+          }
+
+          return newScore <= oldScore
+            ? prevCandidate
+            : {
+                frame,
+                threadId: currentProfile.threadId,
+              };
+        },
+        null
+      );
+
+      if (defined(candidate)) {
+        dispatch({
+          type: 'set thread id',
+          payload: candidate.threadId,
+        });
+        return;
+      }
+    }
+
+    // fall back case, when we finally load the active profile index from the profile,
+    // make sure we update the thread id so that it is show first
+    if (defined(threadID)) {
+      dispatch({
+        type: 'set thread id',
+        payload: threadID,
+      });
+    }
+  }, [profileGroup, highlightFrames, dispatch]);
 
   // A bit unfortunate for now, but the search component accepts a list
   // of model to search through. This will become useful as we  build
