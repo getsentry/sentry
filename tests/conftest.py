@@ -173,7 +173,8 @@ def protect_user_deletion(request):
     with get_connection().cursor() as conn:
         conn.execute("SET ROLE 'postgres_unprivileged'")
 
-    yield
-
-    with get_connection().cursor() as conn:
-        conn.execute("SET ROLE 'postgres'")
+    try:
+        yield
+    finally:
+        with get_connection().cursor() as conn:
+            conn.execute("SET ROLE 'postgres'")
