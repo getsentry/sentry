@@ -126,7 +126,7 @@
     "pegjs-loader": "^0.5.6",
     "platformicons": "^5.4.0",
     "po-catalog-loader": "2.0.0",
-    "prettier": "2.7.1",
+    "prettier": "^2.8.3",
     "prismjs": "^1.27.0",
     "process": "^0.11.10",
     "prop-types": "^15.8.1",
@@ -235,6 +235,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
+    "prettier": "prettier --write static/app/**/*",
     "test-wrap": "node scripts/test.js",
     "test": "yarn test-wrap --watch",
     "test-ci": "yarn test-wrap --ci --coverage --maxWorkers=100% --colors",
