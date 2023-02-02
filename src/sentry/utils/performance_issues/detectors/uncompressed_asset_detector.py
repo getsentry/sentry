@@ -4,7 +4,9 @@ from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
 
+from ..base import DetectorType, PerformanceDetector, get_span_duration, fingerprint_spans
 from ..performance_problem import PerformanceProblem
+from ..types import Span
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
@@ -84,7 +86,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
 
-    def is_event_eligible(cls, event, project: Project = None):
+    def is_event_eligible(cls, event):
         tags = event.get("tags", [])
         browser_name = next(
             (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
