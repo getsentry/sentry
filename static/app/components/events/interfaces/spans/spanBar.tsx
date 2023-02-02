@@ -125,6 +125,7 @@ export type SpanBarProps = {
   organization: Organization;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
+  resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
@@ -304,6 +305,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         childTransactions={transactions}
         relatedErrors={errors}
         scrollToHash={this.scrollIntoView}
+        resetCellMeasureCache={this.props.resetCellMeasureCache}
       />
     );
   }
