@@ -14464,10 +14464,10 @@ to-regex@^3.0.1, to-regex@^3.0.2:
     regex-not "^1.0.2"
     safe-regex "^1.1.0"
 
-tocbot@^4.19.0:
-  version "4.19.0"
-  resolved "https://registry.yarnpkg.com/tocbot/-/tocbot-4.19.0.tgz#8b7433d63be9f52f8e9823641813bc1db7329df4"
-  integrity sha512-sI/+XAh+Byn/zRSlmJnTJW37iqpRZc2RugnHCbQh4dBGOM3MYAlg2X7iXaWI9vrUhesC+SkPYerIP7nhs1X+4A==
+tocbot@^4.20.0:
+  version "4.20.0"
+  resolved "https://registry.yarnpkg.com/tocbot/-/tocbot-4.20.0.tgz#862137da17ffdf7a61b614d4bc7f3c8fb349a057"
+  integrity sha512-iSPKsVZ9W0zGI3XkEadFEJNSxQf/jjzWDQROnQitAKe7DX48lNk6CwLXKTol1qG8I5Hm6wM+tpzcDrkcyt3sXA==
 
 toidentifier@1.0.1:
   version "1.0.1"
