@@ -267,3 +267,10 @@ class ConsecutiveDbDetectorTest(TestCase):
         event["sdk"] = {"name": "sentry.php.laravel"}
 
         assert self.find_problems(event) == []
+
+    def test_ignores_graphql(self):
+        event = self.create_issue_event()
+        event["request"] = {"url": "https://url.dev/api/my-endpoint", "method": "POST"}
+        assert len(self.find_problems(event)) == 1
+        event["request"]["url"] = "https://url.dev/api/graphql"
+        assert self.find_problems(event) == []
