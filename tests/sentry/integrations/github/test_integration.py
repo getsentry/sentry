@@ -16,6 +16,7 @@ from sentry.testutils import IntegrationTestCase
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
+    "xyz": {"status_code": 200, "body": {"tree": [{"path": "src/foo.py", "type": "blob"}]}},
     "foo": {
         "status_code": 200,
         "body": {
@@ -93,6 +94,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         repositories = {
+            "xyz": {
+                "full_name": "Test-Organization/xyz",
+                "default_branch": "master",
+            },
             "foo": {
                 "id": 1296269,
                 "name": "foo",
@@ -591,54 +596,57 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_trees_for_org_handles_rate_limit_reached(self):
         """Test that we will not hit Github's API more than once when we reach the API rate limit"""
-        gh_org = "Test-Organization"
-        repo_key = lambda repo: f"github:repo:{gh_org}/{repo}:source-code"
         responses.replace(
             responses.GET,
-            f"{self.base_url}/repos/{gh_org}/bar/git/trees/main?recursive=1",
+            f"{self.base_url}/repos/Test-Organization/foo/git/trees/master?recursive=1",
             json={"message": "API rate limit exceeded for installation ID 123456."},
             status=403,
         )
 
         installation = self.get_installation_helper()
         trees = installation.get_trees_for_org()
-
-        # It hit the API rate limit
-        assert cache.get(repo_key("bar")) is None
-        # Never hit the API because it comes after bar
-        assert cache.get(repo_key("baz")) is None
+        key_prefix = "github:repo:Test-Organization"
+        # We have access to the files because the rate limit has not happened
+        assert cache.get(f"{key_prefix}/xyz:source-code") == ["src/foo.py"]
+        # These repos are None because foo hit the rate limit
+        for repo in ("foo", "bar", "baz"):
+            assert cache.get(f"{key_prefix}/{repo}:source-code") is None
         assert len(trees.keys()) == 1
-        # Only the repos before bar limit will have files
-        assert trees["Test-Organization/foo"].files == ["src/sentry/api/endpoints/auth_login.py"]
-        assert "Test-Organization/bar" not in trees
+
+        assert trees == {
+            "Test-Organization/xyz": RepoTree(
+                Repo("Test-Organization/xyz", "master"), ["src/foo.py"]
+            )
+        }
 
     @responses.activate
     def test_get_trees_for_org_works(self):
         """Fetch the tree representation of a repo"""
-        gh_org = "Test-Organization"
-        repos_cache_key = f"githubtrees:repositories:{gh_org}"
-        repo_key = lambda repo: f"github:repo:{gh_org}/{repo}:source-code"
-
         installation = self.get_installation_helper()
         expected_trees = {
-            f"{gh_org}/bar": RepoTree(Repo(f"{gh_org}/bar", "main"), []),
-            f"{gh_org}/baz": RepoTree(Repo(f"{gh_org}/baz", "master"), []),
-            f"{gh_org}/foo": RepoTree(
-                Repo(f"{gh_org}/foo", "master"), ["src/sentry/api/endpoints/auth_login.py"]
+            "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
+            "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
+            "Test-Organization/foo": RepoTree(
+                Repo("Test-Organization/foo", "master"),
+                ["src/sentry/api/endpoints/auth_login.py"],
             ),
+            "Test-Organization/xyz": RepoTree(Repo("Test-Organization/xyz", "master"), []),
         }
 
+        assert not cache.get("githubtrees:repositories:Test-Organization")
         # Check that the cache is clear
-        assert cache.get(repos_cache_key) is None
-        assert cache.get(repo_key("foo")) is None
+        repo_key = "github:repo:Test-Organization/foo:source-code"
+        assert cache.get("githubtrees:repositories:Test-Organization") is None
+        assert cache.get(repo_key) is None
         trees = installation.get_trees_for_org()
 
-        assert cache.get(f"githubtrees:repositories:{gh_org}") == [
-            {"full_name": f"{gh_org}/foo", "default_branch": "master"},
-            {"full_name": f"{gh_org}/bar", "default_branch": "main"},
-            {"full_name": f"{gh_org}/baz", "default_branch": "master"},
+        assert cache.get("githubtrees:repositories:Test-Organization") == [
+            {"full_name": "Test-Organization/xyz", "default_branch": "master"},
+            {"full_name": "Test-Organization/foo", "default_branch": "master"},
+            {"full_name": "Test-Organization/bar", "default_branch": "main"},
+            {"full_name": "Test-Organization/baz", "default_branch": "master"},
         ]
-        assert cache.get(repo_key("foo")) == ["src/sentry/api/endpoints/auth_login.py"]
+        assert cache.get(repo_key) == ["src/sentry/api/endpoints/auth_login.py"]
         assert trees == expected_trees
 
         # Calling a second time should produce the same results

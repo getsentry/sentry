@@ -181,8 +181,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 msg = json_data.get("message")
             if msg.startswith("API rate limit exceeded for installation"):
                 # Report to Sentry; we will return whatever tree we have
-                logger.exception("API rate limit exceeded. We will not hit it.")
-            logger.exception("Unknown ApiError. Execution will continue.", extra=extra)
+                logger.exception(
+                    "API rate limit exceeded. We will not hit it. Execution will not stop.",
+                    extra=extra,
+                )
+            else:
+                logger.exception("Unknown ApiError. Execution will not stop.", extra=extra)
 
         return trees
 
