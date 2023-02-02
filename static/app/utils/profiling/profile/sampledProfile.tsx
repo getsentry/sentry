@@ -95,7 +95,7 @@ export class SampledProfile extends Profile {
       return;
     }
 
-    let node = this.appendOrderTree;
+    let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
 
     for (const frame of stack) {

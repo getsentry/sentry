@@ -69,7 +69,7 @@ export class SentrySampledProfile extends Profile {
       return;
     }
 
-    let node = this.appendOrderTree;
+    let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
 
     // frames are ordered outermost -> innermost so we have to iterate backward

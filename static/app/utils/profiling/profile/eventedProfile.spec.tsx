@@ -155,7 +155,7 @@ describe('EventedProfile', () => {
       createFrameIndex('mobile', [{name: 'f0'}])
     );
 
-    expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
+    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -181,9 +181,9 @@ describe('EventedProfile', () => {
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
-    expect(
-      firstCallee(firstCallee(firstCallee(profile.appendOrderTree))).isRecursive()
-    ).toBe(true);
+    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+      true
+    );
   });
 
   it('tracks minFrameDuration', () => {

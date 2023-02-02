@@ -32,8 +32,8 @@ describe('jsSelfProfile', () => {
     expect(profile.duration).toBe(1000);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
-    expect(profile.appendOrderTree.children[0].frame.name).toBe('ReactDOM.render');
-    expect(profile.appendOrderTree.children[0].frame.resource).toBe('app.js');
+    expect(profile.callTree.children[0].frame.name).toBe('ReactDOM.render');
+    expect(profile.callTree.children[0].frame.resource).toBe('app.js');
   });
 
   it('tracks discarded samples', () => {
@@ -161,7 +161,7 @@ describe('jsSelfProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(3);
     expect(closeSpy).toHaveBeenCalledTimes(3);
 
-    const root = firstCallee(profile.appendOrderTree);
+    const root = firstCallee(profile.callTree);
 
     if (!root) {
       throw new Error('root is null');
@@ -215,7 +215,7 @@ describe('jsSelfProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
 
-    const root = firstCallee(profile.appendOrderTree);
+    const root = firstCallee(profile.callTree);
 
     expect(root.totalWeight).toEqual(1000);
     expect(firstCallee(root).totalWeight).toEqual(1000);
@@ -246,7 +246,7 @@ describe('jsSelfProfile', () => {
       createFrameIndex('web', trace.frames, trace)
     );
 
-    expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
+    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -278,9 +278,9 @@ describe('jsSelfProfile', () => {
       createFrameIndex('web', trace.frames, trace)
     );
 
-    expect(
-      firstCallee(firstCallee(firstCallee(profile.appendOrderTree))).isRecursive()
-    ).toBe(true);
+    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+      true
+    );
   });
 
   it('tracks minFrameDuration', () => {

@@ -6,7 +6,7 @@ import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
 export class EventedProfile extends Profile {
-  appendOrderStack: CallTreeNode[] = [this.appendOrderTree];
+  appendOrderStack: CallTreeNode[] = [this.callTree];
   stack: Frame[] = [];
 
   lastValue = 0;

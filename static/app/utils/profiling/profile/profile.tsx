@@ -28,7 +28,9 @@ export class Profile {
   // Name of the profile
   name = 'Unknown';
 
-  appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
+  callTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
+  callGraph: CallTreeNode = new CallTreeNode(Frame.Root, null);
+
   framesInStack: Set<Profiling.Event['frame']> = new Set();
 
   // Min duration of a single frame in our profile

@@ -115,7 +115,7 @@ describe('SampledProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
 
-    const root = firstCallee(profile.appendOrderTree);
+    const root = firstCallee(profile.callTree);
 
     expect(root.totalWeight).toEqual(2);
     expect(firstCallee(root).totalWeight).toEqual(2);
@@ -141,7 +141,7 @@ describe('SampledProfile', () => {
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
-    expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
+    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -161,9 +161,9 @@ describe('SampledProfile', () => {
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
-    expect(
-      firstCallee(firstCallee(firstCallee(profile.appendOrderTree))).isRecursive()
-    ).toBe(true);
+    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+      true
+    );
   });
 
   it('tracks minFrameDuration', () => {
@@ -214,18 +214,14 @@ describe('SampledProfile', () => {
     );
 
     // GC gets places on top of the previous stack and the weight is updated
-    expect(profile.appendOrderTree.children[0].children[0].frame.name).toBe(
-      'f1 [native code]'
-    );
+    expect(profile.callTree.children[0].children[0].frame.name).toBe('f1 [native code]');
     // The total weight of the previous top is now the weight of the GC call + the weight of the previous top
-    expect(profile.appendOrderTree.children[0].children[0].frame.totalWeight).toBe(4);
-    expect(profile.appendOrderTree.children[0].children[0].children[0].frame.name).toBe(
+    expect(profile.callTree.children[0].children[0].frame.totalWeight).toBe(4);
+    expect(profile.callTree.children[0].children[0].children[0].frame.name).toBe(
       '(garbage collector) [native code]'
     );
     // The self weight of the GC call is only the weight of the GC call
-    expect(
-      profile.appendOrderTree.children[0].children[0].children[0].frame.selfWeight
-    ).toBe(3);
+    expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(3);
   });
 
   it('does not place garbage collector calls on top of previous stack for node', () => {
@@ -253,11 +249,11 @@ describe('SampledProfile', () => {
       ])
     );
 
-    expect(profile.appendOrderTree.children[0].children[0].children.length).toBe(2);
-    expect(profile.appendOrderTree.children[0].children[0].children[0].frame.name).toBe(
+    expect(profile.callTree.children[0].children[0].children.length).toBe(2);
+    expect(profile.callTree.children[0].children[0].children[0].frame.name).toBe(
       'f2 [native code]'
     );
-    expect(profile.appendOrderTree.children[0].children[0].children[1].frame.name).toBe(
+    expect(profile.callTree.children[0].children[0].children[1].frame.name).toBe(
       '(garbage collector) [native code]'
     );
   });
@@ -289,9 +285,7 @@ describe('SampledProfile', () => {
     );
 
     // There are no other children than the GC call meaning merge happened
-    expect(profile.appendOrderTree.children[0].children[0].children[1]).toBe(undefined);
-    expect(
-      profile.appendOrderTree.children[0].children[0].children[0].frame.selfWeight
-    ).toBe(6);
+    expect(profile.callTree.children[0].children[0].children[1]).toBe(undefined);
+    expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(6);
   });
 });
