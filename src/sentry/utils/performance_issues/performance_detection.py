@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from urllib.parse import urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
@@ -209,7 +210,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
-            "min_time_saved": 50,  # ms
+            "min_time_saved": 100,  # ms
+            # ratio between time saved and total db span durations
+            "min_time_saved_ratio": 0.1,
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
@@ -504,9 +507,31 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
 
-    def _fingerprint(self, span):
-        hashed_spans = fingerprint_spans([span])
-        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{hashed_spans}"
+    def _fingerprint(self, span: Span):
+        url_hash = self._url_hash(span)
+        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{url_hash}"
+
+    # Finds dash-separated UUIDs. (Without dashes will be caught by
+    # ASSET_HASH_REGEX).
+    UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
+    # Preserves filename in e.g. main.[hash].js, but includes number when chunks
+    # are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
+    CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
+    # Finds trailing hashes before the final extension.
+    TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
+    # Looks for anything hex hash-like, but with a larger min size than the
+    # above to limit false positives.
+    ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
+
+    def _url_hash(self, span: Span) -> str:
+        url = urlparse(span.get("description") or "")
+        path = url.path
+        path = self.UUID_REGEX.sub("*", path)
+        path = self.CHUNK_HASH_REGEX.sub(".*.chunk", path)
+        path = self.TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
+        path = self.ASSET_HASH_REGEX.sub("*", path)
+        stripped_url = url._replace(path=path, query="").geturl()
+        return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
@@ -559,14 +584,22 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             for span in self.independent_db_spans
         )
 
-        exceeds_time_saved_threshold = self._calculate_time_saved(
-            self.independent_db_spans
-        ) > self.settings.get("min_time_saved")
+        time_saved = self._calculate_time_saved(self.independent_db_spans)
+        total_time = self._sum_span_duration(self.consecutive_db_spans)
+
+        exceeds_time_saved_threshold = time_saved >= self.settings.get("min_time_saved")
+
+        exceeds_time_saved_threshold_ratio = False
+        if total_time > 0:
+            exceeds_time_saved_threshold_ratio = time_saved / total_time >= self.settings.get(
+                "min_time_saved_ratio"
+            )
 
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
             and exceeds_time_saved_threshold
+            and exceeds_time_saved_threshold_ratio
         ):
             self._store_performance_problem()
 
