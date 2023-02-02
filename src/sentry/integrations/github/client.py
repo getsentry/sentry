@@ -186,7 +186,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     extra=extra,
                 )
             else:
-                logger.exception("Unknown ApiError. Execution will not stop.", extra=extra)
+                raise error
 
         return trees
 

@@ -112,21 +112,15 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
-        try:
-            gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
-            extra = {"gh_org": gh_org, "metadata": self.model.metadata}
-            organization_context = organization_service.get_organization_by_id(
-                id=self.org_integration.organization_id, user_id=None
-            )
-            if not organization_context:
-                logger.exception("No organization information was found.", extra=extra)
-            else:
-                extra.update({"org_slug": organization_context.organization.slug})
-                trees = self.get_client().get_trees_for_org(
-                    gh_org=gh_org, cache_seconds=cache_seconds
-                )
-        except Exception:
-            logger.exception("Unknown issue for get_trees_for_org.")
+        gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
+        extra = {"gh_org": gh_org, "metadata": self.model.metadata}
+        organization_context = organization_service.get_organization_by_id(
+            id=self.org_integration.organization_id, user_id=None
+        )
+        if not organization_context:
+            logger.exception("No organization information was found.", extra=extra)
+        else:
+            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
 
         return trees
 

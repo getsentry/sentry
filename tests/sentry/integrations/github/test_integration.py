@@ -630,7 +630,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 Repo("Test-Organization/foo", "master"),
                 ["src/sentry/api/endpoints/auth_login.py"],
             ),
-            "Test-Organization/xyz": RepoTree(Repo("Test-Organization/xyz", "master"), []),
+            "Test-Organization/xyz": RepoTree(
+                Repo("Test-Organization/xyz", "master"), ["src/foo.py"]
+            ),
         }
 
         assert not cache.get("githubtrees:repositories:Test-Organization")
