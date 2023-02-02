@@ -59,6 +59,7 @@ function ReplayDetails({
 
     const reasons = [
       t('The Replay is still processing and is on its way'),
+      t('The Replay has been deleted'),
       t('There is an internal systems error or active issue'),
     ];
     return (
