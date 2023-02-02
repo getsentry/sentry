@@ -15,7 +15,7 @@ import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
