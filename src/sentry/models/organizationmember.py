@@ -510,10 +510,7 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
-        all_org_roles = self.get_all_org_roles()
-        highest_role_priority = sorted(
-            [organization_roles.get(role) for role in all_org_roles], key=lambda r: r.priority
-        )[-1].priority
+        highest_role_priority = self.get_all_org_roles_sorted()[0].priority
 
         if not features.has("organizations:team-roles", self.organization):
             return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
