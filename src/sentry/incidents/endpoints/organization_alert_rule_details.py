@@ -62,7 +62,12 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def put(self, request: Request, organization, alert_rule) -> Response:
         serializer = DrfAlertRuleSerializer(
-            context={"organization": organization, "access": request.access, "user": request.user},
+            context={
+                "organization": organization,
+                "access": request.access,
+                "user": request.user,
+                "ip_address": request.META.get("REMOTE_ADDR"),
+            },
             instance=alert_rule,
             data=request.data,
         )
@@ -93,7 +98,9 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                 status=403,
             )
         try:
-            delete_alert_rule(alert_rule)
+            delete_alert_rule(
+                alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR")
+            )
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
             return Response(
