@@ -40,6 +40,7 @@ from sentry.models import (
     User,
 )
 from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -95,7 +96,7 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 def get_org_roles(
     org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
-) -> Mapping[int, list[str]]:
+) -> Mapping[int, List[str]]:
     """Get the role the user has in each org"""
     if not user.is_authenticated:
         return {}
@@ -103,7 +104,9 @@ def get_org_roles(
     if optimization:
         if optimization.access.roles is not None:
             return {
-                optimization.access.api_user_organization_context.organization.id: optimization.access.roles
+                optimization.access.api_user_organization_context.organization.id: list(
+                    optimization.access.roles
+                )
             }
         return {}
 
@@ -111,16 +114,18 @@ def get_org_roles(
     # can have multiple org roles through team membership
     # return them sorted to figure out highest team role
     return {
-        om.organization.id: [
-            role.id
-            for role in sorted(
-                [organization_roles.get(role) for role in om.get_all_org_roles()],
-                key=lambda r: r.priority,
-                reverse=True,
-            )
-        ]
+        om.organization.id: _get_all_org_roles(om)
         for om in OrganizationMember.objects.filter(user_id=user.id, organization__in=set(org_ids))
     }
+
+
+def _get_all_org_roles(member: OrganizationMember) -> List[str]:
+    sorted_roles: List[OrganizationRole] = sorted(
+        [organization_roles.get(role) for role in member.get_all_org_roles()],
+        key=lambda r: r.priority,
+        reverse=True,
+    )
+    return [role.id for role in sorted_roles]
 
 
 def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Team]:
@@ -202,7 +207,7 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            org_roles = all_org_roles.get(team.organization_id)
+            org_roles = all_org_roles.get(team.organization_id) or []
             is_member = False
             has_access = False
             team_role = None
