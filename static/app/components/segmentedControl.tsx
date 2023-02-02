@@ -132,48 +132,52 @@ function Segment<Value extends string>({
   const showDivider = !isSelected && !nextOptionIsSelected;
 
   const {isDisabled} = props;
-  return (
-    <Tooltip
-      skipWrapper
-      title={tooltip}
-      {...{delay: 500, position: 'bottom', ...tooltipOptions}}
-    >
-      <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
-        <SegmentInput {...inputProps} ref={ref} />
-        {!isDisabled && (
-          <SegmentInteractionStateLayer
-            nextOptionIsSelected={nextOptionIsSelected}
-            prevOptionIsSelected={prevOptionIsSelected}
-          />
-        )}
-        {isSelected && (
-          <SegmentSelectionIndicator
-            layoutId={layoutGroupId}
-            transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
-            priority={priority}
-            aria-hidden
-          />
-        )}
+  const content = (
+    <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
+      <SegmentInput {...inputProps} ref={ref} />
+      {!isDisabled && (
+        <SegmentInteractionStateLayer
+          nextOptionIsSelected={nextOptionIsSelected}
+          prevOptionIsSelected={prevOptionIsSelected}
+        />
+      )}
+      {isSelected && (
+        <SegmentSelectionIndicator
+          layoutId={layoutGroupId}
+          transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
+          priority={priority}
+          aria-hidden
+        />
+      )}
 
-        <Divider visible={showDivider} role="separator" aria-hidden />
+      <Divider visible={showDivider} role="separator" aria-hidden />
 
-        {/* Once an item is selected, it gets a heavier font weight and becomes slightly
-        wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
-        will always have normal weight to take up constant space; and a visible,
-        absolutely positioned container (VisibleLabel) that doesn't affect the layout. */}
-        <LabelWrap>
-          <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
-          <VisibleLabel
-            isSelected={isSelected}
-            isDisabled={isDisabled}
-            priority={priority}
-          >
-            {props.children}
-          </VisibleLabel>
-        </LabelWrap>
-      </SegmentWrap>
-    </Tooltip>
+      {/* Once an item is selected, it gets a heavier font weight and becomes slightly
+      wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that will
+      always have normal weight to take up constant space; and a visible, absolutely
+      positioned container (VisibleLabel) that doesn't affect the layout. */}
+      <LabelWrap>
+        <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
+        <VisibleLabel isSelected={isSelected} isDisabled={isDisabled} priority={priority}>
+          {props.children}
+        </VisibleLabel>
+      </LabelWrap>
+    </SegmentWrap>
   );
+
+  if (tooltip) {
+    return (
+      <Tooltip
+        skipWrapper
+        title={tooltip}
+        {...{delay: 500, position: 'bottom', ...tooltipOptions}}
+      >
+        {content}
+      </Tooltip>
+    );
+  }
+
+  return content;
 }
 
 const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
