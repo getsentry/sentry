@@ -56,10 +56,9 @@ export function getCoverageColorClass(
   lines: [number, string][],
   lineCov: LineCoverage[],
   activeLineNo: number
-): [Array<string>, boolean, boolean] {
+): [Array<string>, boolean] {
   const lineCoverage = keyBy(lineCov, 0);
-  let primaryLineCovered = true;
-  let surroundingLinesCovered = true;
+  let hasCoverage = false;
   const lineColors = lines.map(([lineNo]) => {
     const coverage = lineCoverage[lineNo]
       ? lineCoverage[lineNo][1]
@@ -79,12 +78,11 @@ export function getCoverageColorClass(
       case Coverage.NOT_APPLICABLE:
       // fallthrough
       default:
-        if (lineNo === activeLineNo) {
-          primaryLineCovered = false;
-        } else {
-          surroundingLinesCovered = false;
-        }
         break;
+    }
+
+    if (color !== '') {
+      hasCoverage = true;
     }
 
     if (activeLineNo !== lineNo) {
@@ -93,7 +91,7 @@ export function getCoverageColorClass(
     return color === '' ? 'active' : `active ${color}`;
   });
 
-  return [lineColors, primaryLineCovered, surroundingLinesCovered];
+  return [lineColors, hasCoverage];
 }
 
 const Context = ({
@@ -144,7 +142,7 @@ const Context = ({
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
-  const [lineColors = [], primaryLineCovered, surroundingLinesCovered] =
+  const [lineColors = [], hasCoverage] =
     hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo! && contextLines
       ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
       : [];
@@ -152,8 +150,7 @@ const Context = ({
   useRouteAnalyticsParams(
     hasCoverageData
       ? {
-          primary_line_covered: primaryLineCovered,
-          surrounding_lines_covered: surroundingLinesCovered,
+          has_line_coverage: hasCoverage,
         }
       : {}
   );
@@ -282,6 +279,10 @@ const StyledContextLine = styled(ContextLine)`
   background: inherit;
   z-index: 1000;
   list-style: none;
+
+  &::marker {
+    content: none;
+  }
 
   &:before {
     content: counter(frame);

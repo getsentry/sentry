@@ -334,8 +334,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-                    elif not roles.can_manage(acting_member.role, member.role):
-                        return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+                    else:
+                        can_manage = False
+                        # check org roles through teams
+                        for role in acting_member.get_all_org_roles():
+                            if roles.can_manage(role, member.role):
+                                can_manage = True
+                                break
+
+                        if not can_manage:
+                            return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         # TODO(dcramer): do we even need this check?
         elif not request.access.has_scope("member:admin"):
