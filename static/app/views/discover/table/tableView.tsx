@@ -349,6 +349,9 @@ function TableView(props: TableViewProps) {
       }
     } else if (columnKey === 'replayId') {
       if (dataRow.replayId) {
+        if (!dataRow['project.name']) {
+          return <TabularNums>{dataRow.replayId}</TabularNums>;
+        }
         const target = replayLinkGenerator(organization, dataRow, undefined);
         cell = (
           <ViewReplayLink replayId={dataRow.replayId} to={target}>
@@ -627,6 +630,10 @@ const StyledLink = styled(Link)`
   & div {
     display: inline;
   }
+`;
+
+const TabularNums = styled('span')`
+  font-variant-numeric: tabular-nums;
 `;
 
 const StyledIcon = styled(IconStack)`
