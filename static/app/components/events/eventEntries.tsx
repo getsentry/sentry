@@ -124,7 +124,7 @@ const EventEntries = ({
       {!isShare &&
         organization.features?.includes('mobile-view-hierarchies') &&
         hasEventAttachmentsFeature && (
-          <EventViewHierarchy event={event} projectSlug={projectSlug} />
+          <EventViewHierarchy event={event} project={project} />
         )}
       {!isShare && hasEventAttachmentsFeature && (
         <EventAttachments event={event} projectSlug={projectSlug} />

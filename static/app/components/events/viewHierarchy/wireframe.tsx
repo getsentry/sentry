@@ -172,6 +172,7 @@ function Wireframe({hierarchy}) {
   return (
     <Container ref={containerRef}>
       <StyledCanvas
+        data-test-id="view-hierarchy-wireframe"
         ref={canvasRef}
         onMouseDown={handlePanStart}
         onMouseUp={handlePanStop}
