@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Union
@@ -26,6 +28,7 @@ from sentry.replays.lib.query import (
     QueryConfig,
     String,
     Tag,
+    all_values_for_tag_key,
     generate_valid_conditions,
     get_valid_sort_commands,
 )
@@ -52,7 +55,7 @@ def query_replays_collection(
     """Query aggregated replay collection."""
     conditions = []
     if environment:
-        conditions.append(Condition(Column("environment"), Op.IN, environment))
+        conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     sort_ordering = get_valid_sort_commands(
         sort,
@@ -65,7 +68,8 @@ def query_replays_collection(
         project_ids=project_ids,
         start=start,
         end=end,
-        where=conditions,
+        where=[],
+        having=conditions,
         fields=fields,
         sorting=sort_ordering,
         pagination=paginators,
@@ -88,6 +92,7 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
+        having=[],
         fields=[],
         sorting=[],
         pagination=None,
@@ -101,6 +106,7 @@ def query_replays_dataset(
     start: datetime,
     end: datetime,
     where: List[Condition],
+    having: List[Condition],
     fields: List[str],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
@@ -119,19 +125,32 @@ def query_replays_dataset(
         query=Query(
             match=Entity("replays"),
             select=make_select_statement(fields, sorting, search_filters),
+            # Be careful adding conditions to this query.  You must only filter by columns that
+            # are true for every column in the set!
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
+                # We don't actually know when a replay is finished ingesting until we reach the
+                # end of the dataset.  For this reason we scan to the end and then in the having
+                # clause we ask if the replay is in range.  This is more expensive but is required
+                # to ensure correct operation and is especially pertinent in the case where an
+                # archive request was submitted.
+                #
+                # Hard deletes may be more appropriate for replays than archival records.
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, start),
                 *where,
             ],
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Make sure we're not too old.
+                Condition(Column("finished_at"), Op.LT, end),
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
+                # Other conditions.
+                *having,
             ],
             orderby=sorting,
             groupby=[Column("replay_id")],
@@ -184,7 +203,63 @@ def query_replays_count(
     )
 
 
-# Select.
+def query_replays_dataset_tagkey_values(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    environment: str | None,
+    tag_key: str,
+):
+    """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
+
+    where = []
+
+    if environment:
+        where.append(Condition(Column("environment"), Op.IN, environment))
+
+    grouped_column = TAG_QUERY_ALIAS_COLUMN_MAP.get(tag_key)
+    if grouped_column is None:
+        # see https://clickhouse.com/docs/en/sql-reference/functions/array-join/
+        # for arrayJoin behavior. we use it to return a flattened
+        # row for each value in the tags.value array
+        aggregated_column = Function(
+            "arrayJoin",
+            parameters=[all_values_for_tag_key(tag_key, Column("tags.key"), Column("tags.value"))],
+            alias="tag_value",
+        )
+        grouped_column = Column("tag_value")
+
+    else:
+        # using identity to alias the column
+        aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Function("uniq", parameters=[Column("replay_id")], alias="times_seen"),
+                Function("min", parameters=[Column("timestamp")], alias="first_seen"),
+                Function("max", parameters=[Column("timestamp")], alias="last_seen"),
+                aggregated_column,
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("is_archived"), Op.IS_NULL),
+                *where,
+            ],
+            orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
+            groupby=[grouped_column],
+            granularity=Granularity(3600),
+            limit=Limit(1000),
+        ),
+    )
+    return raw_snql_query(
+        snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
+    )
 
 
 def make_select_statement(
@@ -540,6 +615,7 @@ QUERY_ALIAS_COLUMN_MAP = {
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
     "finished_at": Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+    # Because duration considers the max timestamp, archive requests can alter the duration.
     "duration": Function(
         "dateDiff",
         parameters=["second", Column("started_at"), Column("finished_at")],
@@ -596,10 +672,37 @@ QUERY_ALIAS_COLUMN_MAP = {
 }
 
 
+TAG_QUERY_ALIAS_COLUMN_MAP = {
+    "replay_type": Column("replay_type"),
+    "platform": Column("platform"),
+    "environment": Column("environment"),
+    "release": Column("release"),
+    "dist": Column("dist"),
+    "url": Function("arrayJoin", parameters=[Column("urls")]),
+    "user.id": Column("user_id"),
+    "user.username": Column("user_name"),
+    "user.email": Column("user_email"),
+    "user.ip": Function(
+        "IPv4NumToString",
+        parameters=[Column("ip_address_v4")],
+    ),
+    "sdk.name": Column("sdk_name"),
+    "sdk.version": Column("sdk_version"),
+    "os.name": Column("os_name"),
+    "os.version": Column("os_version"),
+    "browser.name": Column("browser_name"),
+    "browser.version": Column("browser_version"),
+    "device.name": Column("device_name"),
+    "device.brand": Column("device_brand"),
+    "device.family": Column("device_family"),
+    "device.model_id": Column("device_model"),
+}
+
+
 def collect_aliases(fields: List[str]) -> List[str]:
     """Return a unique list of aliases required to satisfy the fields."""
     # is_archived is a required field.  It must always be selected.
-    result = {"is_archived"}
+    result = {"is_archived", "finished_at"}
 
     saw_tags = False
     for field in fields:

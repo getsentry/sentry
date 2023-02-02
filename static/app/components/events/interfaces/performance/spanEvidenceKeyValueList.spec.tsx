@@ -9,6 +9,7 @@ import {EntryType, IssueType} from 'sentry/types';
 
 import {
   extractQueryParameters,
+  extractSpanURLString,
   SpanEvidenceKeyValueList,
 } from './spanEvidenceKeyValueList';
 
@@ -18,22 +19,22 @@ describe('SpanEvidenceKeyValueList', () => {
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 200,
+      endTimestamp: 0.2,
       op: 'http.server',
       problemSpan: ProblemSpan.PARENT,
     });
 
     parentSpan.addChild({
-      startTimestamp: 10,
-      endTimestamp: 2100,
+      startTimestamp: 0.01,
+      endTimestamp: 2.1,
       op: 'db',
       description: 'SELECT * FROM books',
       problemSpan: ProblemSpan.OFFENDER,
     });
 
     parentSpan.addChild({
-      startTimestamp: 10,
-      endTimestamp: 2100,
+      startTimestamp: 0.01,
+      endTimestamp: 2.1,
       op: 'db',
       description: 'SELECT * FROM books WHERE id = %s',
       problemSpan: ProblemSpan.OFFENDER,
@@ -75,33 +76,33 @@ describe('SpanEvidenceKeyValueList', () => {
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 650,
+      endTimestamp: 0.65,
       op: 'http.server',
       problemSpan: ProblemSpan.PARENT,
     });
 
     parentSpan.addChild({
-      startTimestamp: 10,
-      endTimestamp: 200,
+      startTimestamp: 0.1,
+      endTimestamp: 0.2,
       op: 'db',
       description: 'SELECT * FROM USERS LIMIT 100',
       problemSpan: ProblemSpan.CAUSE,
     });
 
     parentSpan.addChild({
-      startTimestamp: 200,
-      endTimestamp: 400,
+      startTimestamp: 0.2,
+      endTimestamp: 0.4,
       op: 'db',
       description: 'SELECT COUNT(*) FROM USERS',
-      problemSpan: ProblemSpan.OFFENDER,
+      problemSpan: [ProblemSpan.CAUSE, ProblemSpan.OFFENDER],
     });
 
     parentSpan.addChild({
-      startTimestamp: 200,
-      endTimestamp: 400,
+      startTimestamp: 0.4,
+      endTimestamp: 0.6,
       op: 'db',
       description: 'SELECT COUNT(*) FROM ITEMS',
-      problemSpan: ProblemSpan.OFFENDER,
+      problemSpan: [ProblemSpan.CAUSE, ProblemSpan.OFFENDER],
     });
 
     builder.addSpan(parentSpan);
@@ -132,6 +133,10 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(parallelizableSpanKeyValue).toHaveTextContent(
         'db - SELECT COUNT(*) FROM ITEMS'
       );
+
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.duration-impact')
+      ).toHaveTextContent('46.154% (300ms/650ms)');
     });
   });
 
@@ -187,12 +192,55 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('/book/');
+      ).toHaveTextContent('/book/[Parameters]');
 
       expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parameters')
-      ).toHaveTextContent('book_id:{7,8} sort:{up,down}');
+
+      const parametersKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.parameters'
+      );
+
+      expect(parametersKeyValue).toHaveTextContent('book_id:{7,8}');
+      expect(parametersKeyValue).toHaveTextContent('sort:{up,down}');
+    });
+
+    describe('extractSpanURLString', () => {
+      it('Tries to pull a URL from the span data', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            data: {
+              url: 'http://service.io',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/');
+      });
+
+      it('Pulls out a relative URL if a base is provided', () => {
+        expect(
+          extractSpanURLString(
+            {
+              span_id: 'a',
+              data: {
+                url: '/item',
+              },
+            },
+            'http://service.io'
+          )?.toString()
+        ).toEqual('http://service.io/item');
+      });
+
+      it('Falls back to span description if URL is faulty', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            description: 'GET http://service.io/item',
+            data: {
+              url: '/item',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/item');
+      });
     });
 
     describe('extractQueryParameters', () => {
@@ -301,6 +349,54 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
       ).toHaveTextContent('resource.script - https://example.com/resource.js');
+    });
+  });
+
+  describe('Uncompressed Asset', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+      {
+        duration: 0.931, // in seconds
+      }
+    );
+
+    const offenderSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 0.487, // in seconds
+      op: 'resource.script',
+      description: 'https://example.com/resource.js',
+      problemSpan: ProblemSpan.OFFENDER,
+      data: {
+        'Encoded Body Size': 31041901,
+      },
+    });
+
+    builder.addSpan(offenderSpan);
+
+    it('Renders relevant fields', () => {
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
+      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+
+      expect(screen.getByRole('cell', {name: 'Asset Size'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.asset-size')
+      ).toHaveTextContent('29.6 MiB (31041901 B)');
+
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.duration-impact')
+      ).toHaveTextContent('52.309% (487ms/931ms)');
     });
   });
 });

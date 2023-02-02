@@ -38,6 +38,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
+    MetricOperationType,
     MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
@@ -1051,6 +1052,9 @@ def test_translate_meta_results():
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "metric_id", "type": "UInt64"},
+        {"name": "bucketed_time", "type": "UInt64"},
+        {"name": "project.id", "type": "UInt64"},
+        {"name": "time", "type": "UInt64"},
     ]
     assert translate_meta_results(
         meta,
@@ -1070,6 +1074,8 @@ def test_translate_meta_results():
                     alias="team_key_transaction",
                 )
             ),
+            "project.id": MetricGroupByField(field="project_id"),
+            "time": MetricGroupByField(field="bucketed_time"),
         },
     ) == sorted(
         [
@@ -1078,6 +1084,9 @@ def test_translate_meta_results():
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
             {"name": "metric_id", "type": "UInt64"},
+            {"name": "bucketed_time", "type": "UInt64"},
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "time", "type": "UInt64"},
         ],
         key=lambda elem: elem["name"],
     )
@@ -1705,3 +1714,53 @@ class ResolveTagsTestCase(TestCase):
                     rhs=1,
                 ),
             )
+
+
+@pytest.mark.parametrize(
+    "op, clickhouse_op",
+    [
+        ("min_timestamp", "minIf"),
+        ("max_timestamp", "maxIf"),
+    ],
+)
+def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
+    """
+    Tests code generation for timestamp operators
+    """
+    org_id = 1
+    query_definition = MetricsQuery(
+        org_id=org_id,
+        project_ids=[1],
+        select=[
+            MetricField(op=op, metric_mri=SessionMRI.SESSION.value, alias="ts"),
+        ],
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+    )
+
+    builder = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+    )
+
+    snuba_queries, fields = builder.get_snuba_queries()
+    select = snuba_queries["metrics_counters"]["totals"].select
+    assert len(select) == 1
+    field = select[0]
+
+    expected_field = Function(
+        clickhouse_op,
+        [
+            Column("timestamp"),
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value),
+                ],
+            ),
+        ],
+        alias="ts",
+    )
+
+    assert field == expected_field

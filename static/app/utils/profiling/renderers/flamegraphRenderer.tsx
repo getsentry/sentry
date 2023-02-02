@@ -25,6 +25,13 @@ const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
 const VERTICES_PER_FRAME = 6;
 const COLOR_COMPONENTS = 4;
 
+const MATCHED_SEARCH_FRAME_ATTRIBUTES: Readonly<Float32Array> = new Float32Array(
+  VERTICES_PER_FRAME
+).fill(1);
+const UNMATCHED_SEARCH_FRAME_ATTRIBUTES: Readonly<Float32Array> = new Float32Array(
+  VERTICES_PER_FRAME
+).fill(0);
+
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
   flamegraph: Flamegraph;
@@ -61,12 +68,14 @@ class FlamegraphRenderer {
   uniforms: {
     u_border_width: WebGLUniformLocation | null;
     u_draw_border: WebGLUniformLocation | null;
+    u_grayscale: WebGLUniformLocation | null;
     u_model: WebGLUniformLocation | null;
     u_projection: WebGLUniformLocation | null;
   } = {
     u_border_width: null,
     u_draw_border: null,
     u_model: null,
+    u_grayscale: null,
     u_projection: null,
   };
 
@@ -194,6 +203,7 @@ class FlamegraphRenderer {
     this.uniforms = {
       u_border_width: null,
       u_draw_border: null,
+      u_grayscale: null,
       u_model: null,
       u_projection: null,
     };
@@ -205,7 +215,6 @@ class FlamegraphRenderer {
     };
 
     const vertexShader = createShader(this.gl, this.gl.VERTEX_SHADER, vertex());
-
     const fragmentShader = createShader(
       this.gl,
       this.gl.FRAGMENT_SHADER,
@@ -270,10 +279,15 @@ class FlamegraphRenderer {
 
     // Use shader program
     this.gl.useProgram(this.program);
+
+    // Check if we should draw border - order matters here
+    // https://stackoverflow.com/questions/60673970/uniform-value-not-stored-if-i-put-the-gluniform1f-call-before-the-render-loop
+    this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
+    this.gl.uniform1i(this.uniforms.u_grayscale, 0);
   }
 
   getColorForFrame(frame: FlamegraphFrame): number[] {
-    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
+    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
   }
 
   findHoveredNode(configSpaceCursor: vec2): FlamegraphFrame | null {
@@ -321,19 +335,48 @@ class FlamegraphRenderer {
     return hoveredNode;
   }
 
-  setSearchResults(searchResults: FlamegraphSearch['results']['frames']) {
+  setHighlightedFrames(frames: FlamegraphFrame[] | null) {
     if (!this.program || !this.gl) {
       return;
     }
 
-    const matchedFrame = new Float32Array(6).fill(1);
-    const unMatchedFrame = new Float32Array(6).fill(0);
+    this.gl.uniform1i(this.uniforms.u_grayscale, frames && frames.length > 0 ? 1 : 0);
+
+    if (!frames) {
+      this.updateSearchResultsBuffer(new Map());
+      return;
+    }
+    const searchResultsMap = frames
+      ? frames?.reduce<Map<string, boolean>>((acc, frame) => {
+          acc.set(getFlamegraphFrameSearchId(frame), true);
+          return acc;
+        }, new Map())
+      : new Map();
+
+    this.updateSearchResultsBuffer(searchResultsMap);
+  }
+
+  setSearchResults(query: string, searchResults: FlamegraphSearch['results']['frames']) {
+    if (!this.program || !this.gl) {
+      return;
+    }
+
+    this.gl.uniform1i(this.uniforms.u_grayscale, query.length > 0 ? 1 : 0);
+    this.updateSearchResultsBuffer(searchResults);
+  }
+
+  private updateSearchResultsBuffer(
+    searchResults: FlamegraphSearch['results']['frames']
+  ) {
+    if (!this.program || !this.gl) {
+      return;
+    }
 
     for (let i = 0; i < this.frames.length; i++) {
       this.searchResults.set(
         searchResults.has(getFlamegraphFrameSearchId(this.frames[i]))
-          ? matchedFrame
-          : unMatchedFrame,
+          ? MATCHED_SEARCH_FRAME_ATTRIBUTES
+          : UNMATCHED_SEARCH_FRAME_ATTRIBUTES,
         i * 6
       );
     }
@@ -366,8 +409,6 @@ class FlamegraphRenderer {
       return;
     }
 
-    this.gl.useProgram(this.program);
-
     const projectionMatrix = makeProjectionMatrix(
       this.gl.canvas.width,
       this.gl.canvas.height
@@ -377,9 +418,6 @@ class FlamegraphRenderer {
     this.gl.uniformMatrix3fv(this.uniforms.u_projection, false, projectionMatrix);
     // Model to projection
     this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
-    // Check if we should draw border
-    this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
-
     // Tell webgl to convert clip space to px
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 

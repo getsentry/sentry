@@ -1,5 +1,3 @@
-import {TagFacetsStyles} from 'sentry/components/group/tagFacets';
-
 type IssueStream = {
   group_id: string;
   tab: string;
@@ -45,20 +43,17 @@ export type IssueEventParameters = {
   'issue_group_details.tags.bar.clicked': {
     is_mobile: boolean;
     tag: string;
-    type: TagFacetsStyles;
     value: string;
     platform?: string;
   };
   'issue_group_details.tags.bar.hovered': {
     is_mobile: boolean;
     tag: string;
-    type: TagFacetsStyles;
     value: string;
     platform?: string;
   };
   'issue_group_details.tags.show_all_tags.clicked': {
     is_mobile: boolean;
-    type: TagFacetsStyles;
     platform?: string;
     tag?: string;
   };
@@ -101,6 +96,8 @@ export type IssueEventParameters = {
   };
   'issues_tab.viewed': {
     num_issues: number;
+    num_new_issues: number;
+    num_old_issues: number;
     num_perf_issues: number;
     page: number;
     query: string;

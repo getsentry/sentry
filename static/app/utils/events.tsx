@@ -4,11 +4,16 @@ import {
   EntryThreads,
   EventMetadata,
   EventOrGroupType,
+  Group,
+  GroupActivityAssigned,
+  GroupActivityType,
   GroupTombstone,
   IssueCategory,
+  IssueType,
   TreeLabelPart,
 } from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
@@ -263,6 +268,22 @@ function getNumberOfThreadsWithNames(event: Event) {
   return Math.max(...threadLengths);
 }
 
+/**
+ * Return the integration type for the first assignment via integration
+ */
+function getAssignmentIntegration(group: Group) {
+  if (!group.activity) {
+    return '';
+  }
+  const assignmentAcitivies = group.activity.filter(
+    activity => activity.type === GroupActivityType.ASSIGNED
+  ) as GroupActivityAssigned[];
+  const integrationAssignments = assignmentAcitivies.find(
+    activity => !!activity.data.integration
+  );
+  return integrationAssignments?.data.integration || '';
+}
+
 export function getAnalyicsDataForEvent(event?: Event) {
   return {
     event_id: event?.eventID || '-1',
@@ -280,5 +301,28 @@ export function getAnalyicsDataForEvent(event?: Event) {
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
+    error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+    has_otel: event?.contexts?.otel !== undefined,
+  };
+}
+
+export function getAnalyicsDataForGroup(group: Group | null) {
+  const groupId = group ? parseInt(group.id, 10) : -1;
+  return {
+    group_id: groupId,
+    // overload group_id with the issue_id
+    issue_id: groupId,
+    issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    issue_type: group?.issueType ?? IssueType.ERROR,
+    issue_status: group?.status,
+    issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
+    issue_level: group?.level,
+    is_assigned: !!group?.assignedTo,
+    error_count: Number(group?.count || -1),
+    group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
+    num_comments: group ? group.numComments : -1,
+    has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
+    has_owner: group?.owners ? group?.owners.length > 0 : false,
+    integration_assignment_source: group ? getAssignmentIntegration(group) : '',
   };
 }

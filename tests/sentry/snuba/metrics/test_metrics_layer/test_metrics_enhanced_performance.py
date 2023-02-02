@@ -515,7 +515,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["meta"] == sorted(
             [
                 {"name": "count(transaction.duration)", "type": "UInt64"},
-                {"name": "project_id", "type": "string"},
+                {"name": "project_id", "type": "UInt64"},
             ],
             key=lambda elem: elem["name"],
         )
@@ -1069,7 +1069,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
                 {"name": "p50_fcp", "type": "Float64"},
                 {"name": "p50_lcp", "type": "Float64"},
-                {"name": "project", "type": "string"},
+                {"name": "project", "type": "UInt64"},
                 {"name": "project_alias", "type": "string"},
                 {"name": "transaction_group", "type": "string"},
             ],
@@ -2074,7 +2074,9 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "count",
                     "histogram",
                     "max",
+                    "max_timestamp",
                     "min",
+                    "min_timestamp",
                     "p50",
                     "p75",
                     "p90",
@@ -2126,7 +2128,9 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "count",
                     "histogram",
                     "max",
+                    "max_timestamp",
                     "min",
+                    "min_timestamp",
                     "p50",
                     "p75",
                     "p90",

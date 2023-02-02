@@ -42,13 +42,21 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 }
             },
             "spans": [
-                create_span("resource.script", duration=1000.0),
+                create_span(
+                    "resource.script",
+                    duration=1000.0,
+                    data={
+                        "Transfer Size": 1200000,
+                        "Encoded Body Size": 1200000,
+                        "Decoded Body Size": 2000000,
+                    },
+                ),
             ],
         }
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="6060649d4f8435d88735",
+                fingerprint="1-1004-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="resource.script",
                 desc="SELECT count() FROM table WHERE id = %s",
                 type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
@@ -122,4 +130,44 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
 
+        assert self.find_problems(event) == []
+
+    def test_does_not_detect_if_too_small(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span(
+                    "resource.script",
+                    duration=1000.0,
+                    data={
+                        "Transfer Size": 900000,
+                        "Encoded Body Size": 900000,
+                        "Decoded Body Size": 1700000,
+                    },
+                ),
+            ],
+        }
+        assert self.find_problems(event) == []
+
+    def test_does_not_detect_if_missing_size(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=1000.0),
+            ],
+        }
         assert self.find_problems(event) == []

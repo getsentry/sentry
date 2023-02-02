@@ -8,6 +8,7 @@ from sentry_relay.processing import validate_sampling_configuration
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
     BOOSTED_KEY_TRANSACTION_LIMIT,
+    ENVIRONMENT_GLOBS,
     HEALTH_CHECK_GLOBS,
     generate_rules,
     get_redis_client_for_ds,
@@ -122,7 +123,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                     {
                         "op": "glob",
                         "name": "trace.environment",
-                        "value": ["*dev*", "*test*"],
+                        "value": ENVIRONMENT_GLOBS,
                         "options": {"ignoreCase": True},
                     }
                 ],
@@ -413,6 +414,7 @@ def test_generate_rules_with_different_project_platforms(
                 "start": "2022-10-21 18:50:25+00:00",
                 "end": end,
             },
+            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
         },
         {
             "active": True,
@@ -465,6 +467,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
         },
         {
             "sampleRate": 0.5,
@@ -479,6 +482,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1501,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
         },
         {
             "sampleRate": 0.5,
@@ -493,6 +497,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1502,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
         },
         {
             "active": True,
@@ -549,6 +554,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
         },
         {
             "active": True,

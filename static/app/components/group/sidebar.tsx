@@ -1,10 +1,7 @@
 import {Component, Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
-import keyBy from 'lodash/keyBy';
-import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -16,11 +13,11 @@ import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import OwnedBy from 'sentry/components/group/ownedBy';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
-import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
-import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
+import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -29,9 +26,9 @@ import {
   CurrentRelease,
   Environment,
   Group,
+  IssueType,
   Organization,
   Project,
-  TagWithTopValues,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -42,14 +39,11 @@ import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import FeatureBadge from '../featureBadge';
-
-import {
+import TagFacets, {
   BACKEND_TAGS,
   DEFAULT_TAGS,
   FRONTEND_TAGS,
   MOBILE_TAGS,
-  TagFacets,
   TAGS_FORMATTER,
 } from './tagFacets';
 
@@ -66,7 +60,6 @@ type State = {
   allEnvironmentsGroupData?: Group;
   currentRelease?: CurrentRelease;
   error?: boolean;
-  tagsWithTopValues?: Record<string, TagWithTopValues>;
 };
 
 class BaseGroupSidebar extends Component<Props, State> {
@@ -75,13 +68,6 @@ class BaseGroupSidebar extends Component<Props, State> {
   componentDidMount() {
     this.fetchAllEnvironmentsGroupData();
     this.fetchCurrentRelease();
-    this.fetchTagData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.environments, this.props.environments)) {
-      this.fetchTagData();
-    }
   }
 
   trackAssign: React.ComponentProps<typeof AssignedTo>['onAssign'] = () => {
@@ -92,6 +78,7 @@ class BaseGroupSidebar extends Component<Props, State> {
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
       issue_category: group.issueCategory,
+      issue_type: group.issueType ?? IssueType.ERROR,
       action_type: 'assign',
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -128,26 +115,6 @@ class BaseGroupSidebar extends Component<Props, State> {
       this.setState({currentRelease});
     } catch {
       this.setState({error: true});
-    }
-  }
-
-  async fetchTagData() {
-    const {api, group} = this.props;
-
-    try {
-      // Fetch the top values for the current group's top tags.
-      const data = await api.requestPromise(`/issues/${group.id}/tags/`, {
-        query: pickBy({
-          key: group.tags.map(tag => tag.key),
-          environment: this.props.environments.map(env => env.name),
-        }),
-      });
-      this.setState({tagsWithTopValues: keyBy(data, 'key')});
-    } catch {
-      this.setState({
-        tagsWithTopValues: {},
-        error: true,
-      });
     }
   }
 
@@ -243,8 +210,7 @@ class BaseGroupSidebar extends Component<Props, State> {
 
   render() {
     const {event, group, organization, project, environments} = this.props;
-    const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
-    const projectId = project.slug;
+    const {allEnvironmentsGroupData, currentRelease} = this.state;
     const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
     const hasStreamlineTargetingFeature = organization.features.includes(
       'streamline-targeting-context'
@@ -289,84 +255,35 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        {organization.features.includes('issue-details-tag-improvements') ? (
-          <TagFacets
-            environments={environments}
-            groupId={group.id}
-            tagKeys={
-              isMobilePlatform(project?.platform)
-                ? MOBILE_TAGS
-                : frontend.some(val => val === project?.platform)
-                ? FRONTEND_TAGS
-                : backend.some(val => val === project?.platform)
-                ? BACKEND_TAGS
-                : DEFAULT_TAGS
-            }
-            title={
-              <div>
-                {t('Tag Summary')} <FeatureBadge type="beta" />
-              </div>
-            }
-            event={event}
-            tagFormatter={TAGS_FORMATTER}
-            style="distributions"
-            project={project}
-          />
-        ) : (
-          <SidebarSection.Wrap>
-            <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
-            <SidebarSection.Content>
-              {!tagsWithTopValues ? (
-                <TagPlaceholders>
-                  <Placeholder height="40px" />
-                  <Placeholder height="40px" />
-                  <Placeholder height="40px" />
-                  <Placeholder height="40px" />
-                </TagPlaceholders>
-              ) : (
-                group.tags.map(tag => {
-                  const tagWithTopValues = tagsWithTopValues[tag.key];
-                  const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-                  const topValuesTotal = tagWithTopValues
-                    ? tagWithTopValues.totalValues
-                    : 0;
-
-                  return (
-                    <GroupTagDistributionMeter
-                      key={tag.key}
-                      tag={tag.key}
-                      totalValues={topValuesTotal}
-                      topValues={topValues}
-                      name={tag.name}
-                      organization={organization}
-                      projectId={projectId}
-                      group={group}
-                      onTagClick={(title, value) => {
-                        trackAdvancedAnalyticsEvent(
-                          'issue_group_details.tags_distribution.bar.clicked',
-                          {
-                            tag: title,
-                            value: value.name,
-                            platform: project.platform,
-                            is_mobile: isMobilePlatform(project?.platform),
-                            organization,
-                          }
-                        );
-                      }}
-                    />
-                  );
-                })
-              )}
-              {group.tags.length === 0 && (
-                <p data-test-id="no-tags">
-                  {environments.length
-                    ? t('No tags found in the selected environments')
-                    : t('No tags found')}
-                </p>
-              )}
-            </SidebarSection.Content>
-          </SidebarSection.Wrap>
-        )}
+        <TagFacets
+          environments={environments}
+          groupId={group.id}
+          tagKeys={
+            isMobilePlatform(project?.platform)
+              ? MOBILE_TAGS
+              : frontend.some(val => val === project?.platform)
+              ? FRONTEND_TAGS
+              : backend.some(val => val === project?.platform)
+              ? BACKEND_TAGS
+              : DEFAULT_TAGS
+          }
+          title={
+            <div>
+              {t('All Tags')}
+              <TooltipWrapper>
+                <Tooltip
+                  title={t('The tags associated with all events in this issue')}
+                  disableForVisualTest
+                >
+                  <IconQuestion size="sm" color="gray200" />
+                </Tooltip>
+              </TooltipWrapper>
+            </div>
+          }
+          event={event}
+          tagFormatter={TAGS_FORMATTER}
+          project={project}
+        />
 
         {this.renderParticipantData()}
         {hasIssueActionsV2 && this.renderSeenByList()}
@@ -383,12 +300,6 @@ const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const TagPlaceholders = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-auto-flow: row;
-`;
-
 const ExternalIssues = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
@@ -402,6 +313,11 @@ const StyledAvatarList = styled(AvatarList)`
 
 const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
+`;
+
+const TooltipWrapper = styled('span')`
+  vertical-align: middle;
+  padding-left: ${space(0.5)};
 `;
 
 const GroupSidebar = withApi(withSentryRouter(BaseGroupSidebar));

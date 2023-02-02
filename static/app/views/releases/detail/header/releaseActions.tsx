@@ -7,11 +7,11 @@ import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import DropdownMenu from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -204,7 +204,7 @@ function ReleaseActions({
         onNewerClick={() => handleNavigationClick('newer')}
         onNewestClick={() => handleNavigationClick('newest')}
       />
-      <DropdownMenuControl
+      <DropdownMenu
         size="sm"
         items={menuItems}
         triggerProps={{

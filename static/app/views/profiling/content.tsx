@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -37,14 +37,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 import {ProfileCharts} from './landing/profileCharts';
+import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
   location: Location;
-  router: InjectedRouter;
 }
 
-function ProfilingContent({location, router}: ProfilingContentProps) {
+function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
@@ -117,6 +117,10 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
+  const isNewProfilingDashboardEnabled = organization.features.includes(
+    'profiling-dashboard-redesign'
+  );
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -183,16 +187,31 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 </ActionBar>
                 {shouldShowProfilingOnboardingPanel ? (
                   <ProfilingOnboardingPanel>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
-                      {t('Read Docs')}
-                    </Button>
                     <Button onClick={onSetupProfilingClick} priority="primary">
                       {t('Set Up Profiling')}
+                    </Button>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
                     </Button>
                   </ProfilingOnboardingPanel>
                 ) : (
                   <Fragment>
-                    <ProfileCharts router={router} query={query} selection={selection} />
+                    {isNewProfilingDashboardEnabled ? (
+                      <PanelsGrid>
+                        <ProfilingSlowestTransactionsPanel />
+                        <ProfileCharts
+                          query={query}
+                          selection={selection}
+                          hideCount={isNewProfilingDashboardEnabled}
+                        />
+                      </PanelsGrid>
+                    ) : (
+                      <ProfileCharts
+                        query={query}
+                        selection={selection}
+                        hideCount={isNewProfilingDashboardEnabled}
+                      />
+                    )}
                     <ProfileEventsTable
                       columns={FIELDS.slice()}
                       data={
@@ -242,6 +261,17 @@ const ActionBar = styled('div')`
   gap: ${space(2)};
   grid-template-columns: min-content auto;
   margin-bottom: ${space(2)};
+`;
+
+// TODO: another simple primitive that can easily be <Grid columns={2} />
+const PanelsGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  gap: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 100%;
+  }
 `;
 
 export default ProfilingContent;

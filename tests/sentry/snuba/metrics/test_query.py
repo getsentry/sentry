@@ -566,9 +566,9 @@ def test_validate_metric_field_mri():
 def test_validate_metric_field_mri_is_public(alias):
     with pytest.raises(
         InvalidParams,
-        match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
+        match=f"Unable to find a mri reverse mapping for '{SessionMRI.ERRORED_ALL.value}'.",
     ):
-        MetricField(op=None, metric_mri="e:sessions/error.preaggr@none", alias=alias)
+        MetricField(op=None, metric_mri=SessionMRI.ERRORED_ALL.value, alias=alias)
 
 
 @pytest.mark.parametrize(

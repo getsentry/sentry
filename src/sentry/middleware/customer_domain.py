@@ -74,9 +74,11 @@ class CustomerDomainMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: Request) -> Response:
-        if not getattr(settings, "SENTRY_USE_CUSTOMER_DOMAINS", False):
-            return self.get_response(request)
-        if not hasattr(request, "subdomain"):
+        if (
+            request.method != "GET"
+            or not getattr(settings, "SENTRY_USE_CUSTOMER_DOMAINS", False)
+            or not hasattr(request, "subdomain")
+        ):
             return self.get_response(request)
         subdomain = request.subdomain
         if subdomain is None or resolve_region(request) is not None:

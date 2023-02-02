@@ -16,7 +16,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
@@ -93,7 +92,7 @@ class ExportedData(Model):
                 extra={"data_export_id": self.id, "organization_id": self.organization_id},
             )
             return
-        url = absolute_uri(
+        url = self.organization.absolute_url(
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
         )
         msg = MessageBuilder(

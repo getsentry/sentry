@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
+from sentry.issues.ingest import save_issue_from_occurrence
 from sentry.models import (
     Activity,
     Group,
@@ -42,6 +43,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupType
 from sentry.utils.cache import cache
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class EventMatcher:
@@ -991,6 +993,85 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
 
+class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
+    github_blame_return_value = {
+        "commitId": "asdfwreqr",
+        "committedDate": "",
+        "commitMessage": "placeholder commit message",
+        "commitAuthorName": "",
+        "commitAuthorEmail": "admin@localhost",
+    }
+
+    def setUp(self):
+        self.created_event = self.create_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=10)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": False,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "fingerprint": ["put-me-in-the-control-group"],
+            },
+            project_id=self.project.id,
+        )
+        self.cache_key = write_event_to_cache(self.created_event)
+        self.repo = self.create_repo(
+            name="example",
+            integration_id=self.integration.id,
+        )
+        self.code_mapping = self.create_code_mapping(
+            repo=self.repo, project=self.project, stack_root="src/"
+        )
+        self.commit_author = self.create_commit_author(project=self.project, user=self.user)
+        self.commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.commit_author,
+            key="asdfwreqr",
+            message="placeholder commit message",
+        )
+
+    @with_feature("organizations:commit-context")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value=github_blame_return_value,
+    )
+    def test_debounce_cache_is_set(self, mock_get_commit_context):
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=self.cache_key,
+                group_id=self.created_event.group_id,
+            )
+        assert GroupOwner.objects.get(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+        assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+
 class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
@@ -1102,6 +1183,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
+    ProcessCommitsTestMixin,
     CorePostProcessGroupTestMixin,
     DeriveCodeMappingsProcessGroupTestMixin,
     InboxTestMixin,
@@ -1280,3 +1362,35 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         )
 
         assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]
+
+
+@region_silo_test
+class PostProcessGroupGenericTest(
+    TestCase,
+    SnubaTestCase,
+    OccurrenceTestMixin,
+    CorePostProcessGroupTestMixin,
+    InboxTestMixin,
+    RuleProcessorTestMixin,
+    SnoozeTestMixin,
+):
+    def create_event(self, data, project_id):
+        data["type"] = "generic"
+        event = self.store_event(data=data, project_id=project_id)
+
+        occurrence = self.build_occurrence(event_id=event.event_id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+
+        return event.for_group(group_info.group)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
+    ):
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=group_id,
+        )

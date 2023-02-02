@@ -484,12 +484,10 @@ def browser(request, live_server):
 
         driver = start_chrome(**chrome_args)
         if slow_network:
-            # https://github.com/ChromeDevTools/devtools-frontend/blob/80c102878fd97a7a696572054007d40560dcdd21/front_end/sdk/NetworkManager.js#L252-L274
             driver.set_network_conditions(
                 offline=False,
-                latency=400 * 5,
-                download_throughput=500 * 1024 / 8 * 0.8,
-                upload_throughput=500 * 1024 / 8 * 0.8,
+                latency=400 * 2,  # additional latency (ms)
+                throughput=500 * 1024,  # maximal throughput
             )
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
@@ -503,20 +501,7 @@ def browser(request, live_server):
 
     driver.set_window_size(window_width, window_height)
 
-    def fin():
-        # dump console log to stdout, will be shown when test fails
-        for entry in driver.get_log("browser"):
-            sys.stderr.write("[browser console] ")
-            sys.stderr.write(repr(entry))
-            sys.stderr.write("\n")
-        # Teardown Selenium.
-        try:
-            driver.quit()
-        except Exception:
-            pass
-
     request.node._driver = driver
-    request.addfinalizer(fin)
 
     browser = Browser(driver, live_server)
 
@@ -535,7 +520,18 @@ def browser(request, live_server):
         request.cls.browser = browser
     request.node.browser = browser
 
-    return driver
+    yield driver
+
+    # dump console log to stdout, will be shown when test fails
+    for entry in driver.get_log("browser"):
+        sys.stderr.write("[browser console] ")
+        sys.stderr.write(repr(entry))
+        sys.stderr.write("\n")
+    # Teardown Selenium.
+    try:
+        driver.quit()
+    except Exception:
+        pass
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

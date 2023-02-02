@@ -5,7 +5,7 @@ import {Role} from 'sentry/components/acl/role';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import DropdownMenu from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
@@ -94,7 +94,7 @@ function Screenshot({
             <StyledImageVisualization
               attachment={screenshotAttachment}
               orgId={orgSlug}
-              projectId={projectSlug}
+              projectSlug={projectSlug}
               eventId={eventId}
               onLoad={() => setLoadingImage(false)}
               onError={() => setLoadingImage(false)}
@@ -115,7 +115,7 @@ function Screenshot({
               >
                 {t('View screenshot')}
               </Button>
-              <DropdownMenuControl
+              <DropdownMenu
                 position="bottom"
                 offset={4}
                 triggerProps={{

@@ -10,7 +10,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
+import {
+  ProfilingBreadcrumbs,
+  ProfilingBreadcrumbsProps,
+} from 'sentry/components/profiling/profilingBreadcrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -20,11 +23,11 @@ import {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ProfileSummaryContent} from './content';
@@ -39,19 +42,18 @@ interface ProfileSummaryPageProps {
 
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
-  const {projects} = useProjects({
-    slugs: defined(props.params.projectId) ? [props.params.projectId] : [],
-  });
+  const project = useCurrentProjectFromRouteParam();
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
       organization,
+      project_platform: project?.platform,
+      project_id: project?.id,
     });
+    // ignore  currentProject so we don't block the analytics event
+    // or fire more than once unnecessarily
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization]);
-
-  // Extract the project matching the provided project slug,
-  // if it doesn't exist, set this to null and handle it accordingly.
-  const project = projects.length === 1 ? projects[0] : null;
 
   const transaction = decodeScalar(props.location.query.transaction);
 
@@ -109,6 +111,25 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     [props.location]
   );
 
+  const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
+    return [
+      {
+        type: 'landing',
+        payload: {
+          query: props.location.query,
+        },
+      },
+      {
+        type: 'profile summary',
+        payload: {
+          projectSlug: project?.slug ?? '',
+          query: props.location.query,
+          transaction: transaction ?? '',
+        },
+      },
+    ];
+  }, [props.location.query, project?.slug, transaction]);
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -125,24 +146,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               <Fragment>
                 <Layout.Header>
                   <Layout.HeaderContent>
-                    <Breadcrumb
+                    <ProfilingBreadcrumbs
                       organization={organization}
-                      trails={[
-                        {
-                          type: 'landing',
-                          payload: {
-                            query: props.location.query,
-                          },
-                        },
-                        {
-                          type: 'profile summary',
-                          payload: {
-                            projectSlug: project.slug,
-                            query: props.location.query,
-                            transaction,
-                          },
-                        },
-                      ]}
+                      trails={breadcrumbTrails}
                     />
                     <Layout.Title>
                       {project ? (
