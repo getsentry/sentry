@@ -235,7 +235,6 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "prettier": "prettier --write static/app/**/*",
     "test-wrap": "node scripts/test.js",
     "test": "yarn test-wrap --watch",
     "test-ci": "yarn test-wrap --ci --coverage --maxWorkers=100% --colors",

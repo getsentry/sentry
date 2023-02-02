@@ -282,7 +282,7 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = typeof FIELDS[number];
+type FieldType = (typeof FIELDS)[number];
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'profile.duration',
