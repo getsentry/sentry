@@ -17,7 +17,14 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  AvatarProject,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -46,7 +53,7 @@ import {
   ReprocessingStatus,
 } from './utils';
 
-type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
+type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 type Props = {
   api: Client;
@@ -525,6 +532,7 @@ class GroupDetails extends Component<Props, State> {
       organization,
       group_id: parseInt(group.id, 10),
       issue_category: group.issueCategory,
+      issue_type: group.issueType ?? IssueType.ERROR,
       project_id: parseInt(project.id, 10),
       tab,
     });

@@ -223,15 +223,20 @@ class OrganizationMixin:
                 organizations = organization_service.get_organizations(
                     user_id=request.user.id, scope=None, only_visible=True
                 )
+                requesting_org_slug = request.subdomain
                 org_exists = (
                     organization_service.check_organization_by_slug(
-                        slug=request.subdomain, only_visible=True
+                        slug=requesting_org_slug, only_visible=True
                     )
                     is not None
                 )
                 if org_exists and organizations:
-                    url = reverse("sentry-auth-organization", args=[request.subdomain])
-                    url_prefix = generate_organization_url(request.subdomain)
+                    # If the user is a superuser, redirect them to the org's landing page (e.g. issues page)
+                    if request.user.is_superuser:
+                        url = Organization.get_url(requesting_org_slug)
+                    else:
+                        url = reverse("sentry-auth-organization", args=[requesting_org_slug])
+                    url_prefix = generate_organization_url(requesting_org_slug)
                     url = absolute_uri(url, url_prefix=url_prefix)
 
         return HttpResponseRedirect(url)
@@ -451,6 +456,9 @@ class OrganizationView(BaseView):
         result = super().is_auth_required(request, *args, **kwargs)
         if result:
             return result
+
+        if organization_slug is None and request.subdomain:
+            organization_slug = request.subdomain
 
         # if the user is attempting to access an organization that *may* be
         # accessible if they simply re-authenticate, we want to allow that

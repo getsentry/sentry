@@ -66,6 +66,7 @@ describe('StacktraceLinkModal', () => {
       'href',
       'https://github.com/test-integration'
     );
+    expect(screen.getByRole('dialog')).toSnapshot();
   });
 
   it('closes modal after successful quick setup', async () => {

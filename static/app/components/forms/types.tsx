@@ -206,7 +206,7 @@ export type Field = (
   | SentryProjectSelectorType
   | SelectAsyncType
   | ChoiceMapperType
-  | {type: typeof FieldType[number]}
+  | {type: (typeof FieldType)[number]}
   | FileType
   | DateTimeType
 ) &

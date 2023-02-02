@@ -188,15 +188,16 @@ def make_error_event(request, project, platform):
     return event
 
 
-def make_performance_event(project):
+def make_performance_event(project, sample_name: str):
     with override_options(
         {
+            "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
         }
     ):
         perf_data = dict(
             load_data(
-                "transaction-n-plus-one",
+                sample_name,
                 timestamp=datetime(2017, 9, 6, 0, 0),
             )
         )
@@ -525,7 +526,7 @@ def digest(request):
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
-        perf_event = make_performance_event(project)
+        perf_event = make_performance_event(project, "transaction-n-plus-one")
         # don't clobber error issue ids
         perf_event.group.id = i + 100
         perf_group = perf_event.group

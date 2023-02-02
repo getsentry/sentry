@@ -33,6 +33,7 @@ import space from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
+  IssueType,
   Organization,
   Project,
   ResolutionStatus,
@@ -47,6 +48,7 @@ import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAct
 import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import ShareIssueModal from './shareModal';
@@ -110,6 +112,7 @@ class Actions extends Component<Props> {
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
       issue_category: group.issueCategory,
+      issue_type: group.issueType ?? IssueType.ERROR,
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -135,7 +138,12 @@ class Actions extends Component<Props> {
         complete: () => {
           clearIndicators();
 
-          browserHistory.push(`/${organization.slug}/${project.slug}/`);
+          browserHistory.push(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {project: project.id},
+            })
+          );
         },
       }
     );
@@ -212,7 +220,12 @@ class Actions extends Component<Props> {
       data: {discard: true},
       success: response => {
         GroupStore.onDiscardSuccess(id, group.id, response);
-        browserHistory.push(`/${organization.slug}/${project.slug}/`);
+        browserHistory.push(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: project.id},
+          })
+        );
       },
       error: error => {
         GroupStore.onDiscardError(id, group.id, error);
