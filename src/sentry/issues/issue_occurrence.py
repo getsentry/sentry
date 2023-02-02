@@ -8,7 +8,7 @@ from typing import Any, Mapping, Optional, Sequence, TypedDict, cast
 from django.utils.timezone import is_aware
 
 from sentry import nodestore
-from sentry.types.issues import GroupType
+from sentry.grouptype.grouptype import GroupType, get_group_type_by_type_id
 from sentry.utils.dates import parse_timestamp
 
 
@@ -96,7 +96,7 @@ class IssueOccurrence:
             "resource_id": self.resource_id,
             "evidence_data": self.evidence_data,
             "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
-            "type": self.type.value,
+            "type": self.type.type_id,
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
         }
@@ -116,7 +116,7 @@ class IssueOccurrence:
                 IssueEvidence(evidence["name"], evidence["value"], evidence["important"])
                 for evidence in data["evidence_display"]
             ],
-            GroupType(data["type"]),
+            get_group_type_by_type_id(data["type"]),
             cast(datetime, parse_timestamp(data["detection_time"])),
             data.get("level"),
         )

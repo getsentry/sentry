@@ -21,7 +21,6 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY
 from sentry.utils import metrics
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
@@ -176,7 +175,7 @@ def save_issue_from_occurrence(
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
     else:
         group = existing_grouphash.group
-        if group.issue_category != GROUP_TYPE_TO_CATEGORY[occurrence.type]:
+        if group.issue_category != occurrence.type.category:
             logger.error(
                 "save_issue_from_occurrence.category_mismatch",
                 extra={

@@ -11,8 +11,8 @@ from urllib.parse import urlparse
 
 from sentry import options
 from sentry.eventstore.models import Event
+from sentry.grouptype.grouptype import get_group_type_by_slug
 from sentry.models import Organization, Project
-from sentry.types.issues import GroupType
 
 from .types import PerformanceProblemsMap, Span
 
@@ -30,15 +30,19 @@ class DetectorType(Enum):
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
-    DetectorType.SLOW_DB_QUERY: GroupType.PERFORMANCE_SLOW_DB_QUERY,
-    DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-    DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-    DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
-    DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.UNCOMPRESSED_ASSETS: GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
+    DetectorType.SLOW_DB_QUERY: get_group_type_by_slug("performance_slow_db_query"),
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: get_group_type_by_slug(
+        "performance_render_blocking_asset_span"
+    ),
+    DetectorType.N_PLUS_ONE_DB_QUERIES: get_group_type_by_slug("performance_n_plus_one_db_queries"),
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: get_group_type_by_slug(
+        "performance_n_plus_one_db_queries"
+    ),
+    DetectorType.N_PLUS_ONE_API_CALLS: get_group_type_by_slug("performance_n_plus_one_api_calls"),
+    DetectorType.CONSECUTIVE_DB_OP: get_group_type_by_slug("performance_consecutive_db_queries"),
+    DetectorType.FILE_IO_MAIN_THREAD: get_group_type_by_slug("performance_file_io_main_thread"),
+    DetectorType.M_N_PLUS_ONE_DB: get_group_type_by_slug("performance_m_n_plus_one_db_queries"),
+    DetectorType.UNCOMPRESSED_ASSETS: get_group_type_by_slug("performance_uncompressed_assets"),
 }
 
 

@@ -13,6 +13,7 @@ from django.utils.functional import SimpleLazyObject
 from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
+from sentry.grouptype.grouptype import get_group_types_by_category
 from sentry.models import (
     Environment,
     Group,
@@ -39,7 +40,7 @@ from sentry.search.snuba.executors import (
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
 )
-from sentry.types.issues import PERFORMANCE_TYPES, GroupType
+from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -533,7 +534,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         if message_filter:
 
             def _perf_issue_message_condition(query: str) -> Q:
-                return Q(type__in=PERFORMANCE_TYPES, message__icontains=query)
+                return Q(
+                    type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value),
+                    message__icontains=query,
+                )
 
             queryset_conditions.update(
                 {

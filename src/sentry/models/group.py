@@ -31,12 +31,20 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
+from sentry.grouptype.grouptype import (
+    ErrorGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
+    get_group_type_by_type_id,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
@@ -432,17 +440,17 @@ class Group(Model):
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(
-        default=GroupType.ERROR.value,
+        default=ErrorGroupType.type_id,
         choices=(
-            (GroupType.ERROR.value, _("Error")),
-            (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
-            (GroupType.PERFORMANCE_SLOW_DB_QUERY.value, _("Slow DB Query")),
+            (ErrorGroupType.type_id, _("Error")),
+            (PerformanceNPlusOneGroupType.type_id, _("N Plus One DB Queries")),
+            (PerformanceSlowDBQueryGroupType.type_id, _("Slow DB Query")),
             (
-                GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
+                PerformanceRenderBlockingAssetSpanGroupType.type_id,
                 _("Large Render Blocking Asset"),
             ),
             (
-                GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value,
+                PerformanceNPlusOneAPICallsGroupType.type_id,
                 _("N+1 API Calls"),
             ),
             # TODO add more group types when detection starts outputting them
@@ -697,8 +705,8 @@ class Group(Model):
 
     @property
     def issue_type(self):
-        return GroupType(self.type)
+        return get_group_type_by_type_id(self.type)
 
     @property
     def issue_category(self):
-        return GROUP_TYPE_TO_CATEGORY.get(self.issue_type, None)
+        return self.issue_type.category

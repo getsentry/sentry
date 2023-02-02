@@ -11,7 +11,7 @@ class GroupType:
     slug: str
     description: str
     category: int
-    ignore_limit: int = 3  # CEO temp fix - this is the value of DEFAULT_GROUPHASH_IGNORE_LIMIT
+    ignore_limit: int = 3 
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -36,6 +36,13 @@ def get_group_type_by_slug(slug):
         if group_type.slug == slug:
             return group_type
     raise ValueError(f"No group type with the slug {slug} is registered.")
+
+
+def get_group_type_by_type_id(id):
+    for group_type in _group_type_registry.values():
+        if group_type.type_id == id:
+            return group_type
+    raise ValueError(f"No group type with the id {id} is registered.")
 
 
 @dataclass(frozen=True)

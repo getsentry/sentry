@@ -76,6 +76,12 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
+from sentry.grouptype.grouptype import (
+    GroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+    PerformanceConsecutiveDBQueriesGroupType,
+)
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -126,7 +132,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -158,10 +164,9 @@ PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 
 DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
 GROUPHASH_IGNORE_LIMIT_MAP = {
-    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
-    GroupType.PERFORMANCE_SLOW_DB_QUERY: 100,
-    GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: 15,
-    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: 100,
+    PerformanceNPlusOneGroupType: PerformanceNPlusOneGroupType.ignore_limit,
+    PerformanceSlowDBQueryGroupType: PerformanceSlowDBQueryGroupType.ignore_limit,
+    PerformanceConsecutiveDBQueriesGroupType: PerformanceConsecutiveDBQueriesGroupType.ignore_limit,
 }
 
 
@@ -2332,12 +2337,12 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         problem = performance_problems_by_hash[new_grouphash]
 
                         span.set_tag("create_group_transaction.outcome", "no_group")
-                        span.set_tag("group_type", problem.type.name)
+                        span.set_tag("group_type", problem.type.slug)
                         metric_tags["create_group_transaction.outcome"] = "no_group"
-                        metric_tags["group_type"] = problem.type.name
+                        metric_tags["group_type"] = problem.type.slug
 
                         group_kwargs = kwargs.copy()
-                        group_kwargs["type"] = problem.type.value
+                        group_kwargs["type"] = problem.type.type_id
 
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                             group_kwargs["data"]["metadata"], problem
@@ -2417,7 +2422,7 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
         "performance.performance_issue.grouphash_counted",
         tags={
             "times_seen": times_seen,
-            "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
+            "group_type": type.description,
         },
         sample_rate=1.0,
     )

@@ -13,7 +13,11 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
-from sentry.issues.ingest import save_issue_occurrence
+from sentry.grouptype.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+)
+from sentry.issues.ingest import save_issue_from_occurrence
 from sentry.models import (
     Activity,
     Group,
@@ -41,7 +45,6 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupType
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -1142,7 +1145,7 @@ class PostProcessGroupPerformanceTest(
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
-        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{fingerprint}"
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         # Store a performance event
         event = self.store_transaction(
             project_id=project_id,
@@ -1228,8 +1231,8 @@ class PostProcessGroupPerformanceTest(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[
-                f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1",
-                f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
+                f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1",
+                f"{PerformanceNPlusOneGroupType.type_id}-group2",
             ],
             environment=None,
             timestamp=min_ago,
