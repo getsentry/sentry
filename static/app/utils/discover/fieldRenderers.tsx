@@ -479,21 +479,15 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          {organization.features.includes('discover-quick-context') ? (
-            <QuickContextHoverWrapper
-              dataRow={data}
-              contextType={ContextType.ISSUE}
-              organization={organization}
-            >
-              <StyledLink to={target} aria-label={issueID}>
-                <OverflowFieldShortId shortId={`${data.issue}`} />
-              </StyledLink>
-            </QuickContextHoverWrapper>
-          ) : (
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.ISSUE}
+            organization={organization}
+          >
             <StyledLink to={target} aria-label={issueID}>
               <OverflowFieldShortId shortId={`${data.issue}`} />
             </StyledLink>
-          )}
+          </QuickContextHoverWrapper>
         </Container>
       );
     },
@@ -593,17 +587,13 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          {organization.features.includes('discover-quick-context') ? (
-            <QuickContextHoverWrapper
-              dataRow={data}
-              contextType={ContextType.RELEASE}
-              organization={organization}
-            >
-              <Version version={data.release} truncate />
-            </QuickContextHoverWrapper>
-          ) : (
-            <Version version={data.release} tooltipRawVersion truncate />
-          )}
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.RELEASE}
+            organization={organization}
+          >
+            <Version version={data.release} truncate />
+          </QuickContextHoverWrapper>
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>
