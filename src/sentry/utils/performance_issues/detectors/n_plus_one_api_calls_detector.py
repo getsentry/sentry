@@ -5,14 +5,11 @@ import os
 import random
 import re
 from datetime import timedelta
-from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
-from sentry.utils import metrics
-from sentry.utils.event_frames import get_sdk_name
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -45,8 +42,6 @@ URL_PARAMETER_REGEX = re.compile(
 """
 )  # Adapted from message.py
 
-ESOTERIC_PARAMETER_REGEX = re.compile(r"\b[a-zA-Z]{3,20}_[a-zA-z\d_-]{18,}\b")
-
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
     """
@@ -70,7 +65,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
-        self.sdk_name = get_sdk_name(self._event)
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
@@ -107,7 +101,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return self.settings["detection_rate"] > random.random()
 
     @staticmethod
-    def parameterize_url(url: str, sdk_name: Optional[str] = None) -> str:
+    def parameterize_url(url: str) -> str:
         parsed_url = urlparse(str(url))
 
         protocol_fragments = []
@@ -125,13 +119,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 path_fragments.append("*")
             else:
                 path_fragments.append(str(fragment))
-
-            if sdk_name and ESOTERIC_PARAMETER_REGEX.search(fragment):
-                metrics.incr(
-                    "performance.performance_issues.esoteric_url_parameter",
-                    sample_rate=1.0,
-                    tags={"sdk_name": sdk_name},
-                )
 
         query = parse_qs(parsed_url.query)
 
@@ -225,9 +212,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def _fingerprint(self) -> str:
-        parameterized_first_url = self.parameterize_url(
-            get_url_from_span(self.spans[0]), self.sdk_name
-        )
+        parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
         parsed_first_url = urlparse(parameterized_first_url)
         path = parsed_first_url.path
 
