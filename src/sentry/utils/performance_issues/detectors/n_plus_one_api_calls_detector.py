@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlparse
 from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
+from sentry.utils import metrics
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -212,7 +213,15 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def _fingerprint(self) -> str:
-        parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
+        first_url = get_url_from_span(self.spans[0])
+        parameterized_first_url = self.parameterize_url(first_url)
+
+        metrics.incr(
+            "performance.performance_issues.n1-api-calls.parameterize-url",
+            sample_rate=1.0,
+            tags={"is_different": parameterized_first_url != first_url},
+        )
+
         parsed_first_url = urlparse(parameterized_first_url)
         path = parsed_first_url.path
 
