@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0352_add_org_role_to_team_model"),
+        ("sentry", "0353_add_missing_uuid_unique_indexes"),
     ]
 
     database_operations = [

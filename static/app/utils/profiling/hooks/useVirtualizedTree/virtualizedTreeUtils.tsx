@@ -2,7 +2,7 @@ import {Theme} from '@emotion/react';
 
 import {
   TreeLike,
-  UseVirtualizedListProps,
+  UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
@@ -190,8 +190,8 @@ export function findRenderedItems<T extends TreeLike>({
   scrollTop,
 }: {
   items: VirtualizedTreeNode<T>[];
-  overscroll: NonNullable<UseVirtualizedListProps<T>['overscroll']>;
-  rowHeight: UseVirtualizedListProps<T>['rowHeight'];
+  overscroll: NonNullable<UseVirtualizedTreeProps<T>['overscroll']>;
+  rowHeight: UseVirtualizedTreeProps<T>['rowHeight'];
   scrollHeight: VirtualizedState<T>['scrollHeight'];
   scrollTop: number;
 }) {

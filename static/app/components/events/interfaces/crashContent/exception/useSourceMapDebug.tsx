@@ -5,6 +5,8 @@ import {defined} from 'sentry/utils';
 import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
+import {isFrameFilenamePathlike} from './utils';
+
 interface BaseSourceMapDebugError {
   message: string;
   type: SourceMapProcessingIssueType;
@@ -24,12 +26,19 @@ interface MissingSourcemapsDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.MISSING_SOURCEMAPS;
 }
 interface UrlNotValidDebugError extends BaseSourceMapDebugError {
-  data: {absValue: string};
+  data: {absPath: string};
   type: SourceMapProcessingIssueType.URL_NOT_VALID;
 }
 interface PartialMatchDebugError extends BaseSourceMapDebugError {
-  data: {insertPath: string; matchedSourcemapPath: string};
+  data: {absPath: string; partialMatchPath: string};
   type: SourceMapProcessingIssueType.PARTIAL_MATCH;
+}
+interface DistMismatchDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.DIST_MISMATCH;
+}
+interface NoURLMatchDebugError extends BaseSourceMapDebugError {
+  data: {absPath: string};
+  type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
 
 export type SourceMapDebugError =
@@ -38,7 +47,9 @@ export type SourceMapDebugError =
   | MissingUserAgentDebugError
   | MissingSourcemapsDebugError
   | UrlNotValidDebugError
-  | PartialMatchDebugError;
+  | PartialMatchDebugError
+  | DistMismatchDebugError
+  | NoURLMatchDebugError;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -50,7 +61,9 @@ export enum SourceMapProcessingIssueType {
   MISSING_USER_AGENT = 'no_user_agent_on_release',
   MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
   URL_NOT_VALID = 'url_not_valid',
+  NO_URL_MATCH = 'no_url_match',
   PARTIAL_MATCH = 'partial_match',
+  DIST_MISMATCH = 'dist_mismatch',
 }
 
 const sourceMapDebugQuery = ({
@@ -177,8 +190,10 @@ export function getUniqueFilesFromException(
     .map<[Frame, number]>((frame, idx) => [frame, idx])
     .filter(
       ([frame]) =>
+        // Only debug inApp frames
         frame.inApp &&
-        frame.filename &&
+        // Only debug frames with a filename that are not <anonymous> etc.
+        !isFrameFilenamePathlike(frame) &&
         // Line number might not work for non-javascript languages
         defined(frame.lineNo)
     )

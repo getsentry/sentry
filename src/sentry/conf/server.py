@@ -975,6 +975,8 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
+    # Enables getting commit sha from git blame for codecov.
+    "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
     # Enables automatically deriving of code mappings as a dry run for early adopters
@@ -2377,6 +2379,15 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
+    "nuget": {
+        "type": "http",
+        "id": "sentry:nuget",
+        "name": "NuGet.org",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["portablepdb"]},
+        "url": "https://symbols.nuget.org/download/symbols/",
+        "is_public": True,
+    },
     "citrix": {
         "type": "http",
         "id": "sentry:citrix",
@@ -2454,6 +2465,29 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "native"},
         "url": "https://symbols.electronjs.org/",
         "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
+        "is_public": True,
+    },
+    # === Various Linux distributions ===
+    # The `https://debuginfod.elfutils.org/` symbol server is set up to federate
+    # to a bunch of distro-specific servers, and they explicitly state that:
+    # > If your distro offers a server, you may prefer to link to that one directly
+    # In the future, we could add the following servers as well after validating:
+    # - https://debuginfod.opensuse.org/
+    # - https://debuginfod.debian.net/
+    # - https://debuginfod.fedoraproject.org/
+    # - https://debuginfod.archlinux.org/
+    # - https://debuginfod.centos.org/
+    # A couple more servers for less widespread distros are also listed, and there
+    # might be even more that are not listed on that page.
+    # NOTE: The `debuginfod` layout in symbolicator requires the `/buildid/` prefix
+    # to be part of the `url`.
+    "ubuntu": {
+        "type": "http",
+        "id": "sentry:ubuntu",
+        "name": "Ubuntu",
+        "layout": {"type": "debuginfod"},
+        "url": "https://debuginfod.ubuntu.com/buildid/",
+        "filters": {"filetypes": ["elf_code", "elf_debug"]},
         "is_public": True,
     },
 }

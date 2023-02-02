@@ -4,6 +4,8 @@ import dataclasses
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
 
+from django.db.models import Q
+
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -101,6 +103,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             status=team.status,
             organization_id=team.organization_id,
             slug=team.slug,
+            org_role=team.org_role,
         )
 
     @classmethod
@@ -291,3 +294,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_invite(cls, om: OrganizationMember) -> ApiOrganizationInvite:
         return ApiOrganizationInvite(om.id, om.token, om.email)
+
+    def get_all_org_roles(self, organization_member: ApiOrganizationMember) -> List[str]:
+        team_ids = [mt.team_id for mt in organization_member.member_teams]
+        org_roles = list(
+            Team.objects.filter(~Q(org_role=None), id__in=team_ids)
+            .values_list("org_role", flat=True)
+            .distinct()
+        )
+        org_roles.append(organization_member.role)
+        return org_roles

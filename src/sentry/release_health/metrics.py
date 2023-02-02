@@ -16,9 +16,8 @@ from typing import (
     Union,
 )
 
-from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, Direction, Op
 from snuba_sdk.expressions import Granularity, Limit
-from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Environment
 from sentry.models.project import Project
@@ -42,21 +41,11 @@ from sentry.release_health.base import (
     ReleaseSessionsTimeBounds,
     SessionsQueryConfig,
     SessionsQueryResult,
-    SnubaAppID,
     StatsPeriod,
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import (
-    MetricIndexNotFound,
-    resolve,
-    resolve_many_weak,
-    resolve_tag_key,
-    resolve_weak,
-    reverse_resolve,
-)
-from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import (
     MetricField,
     MetricGroupByField,
@@ -69,9 +58,10 @@ from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
+from sentry.utils.snuba import QueryOutsideRetentionError
 
 SMALLEST_METRICS_BUCKET = 10
+SENTRY_FIRST_COMMIT_DATE = datetime(2008, 5, 8, tzinfo=timezone.utc)
 
 # Whenever a snuba query agains the old sessions table is done without both 1)
 # an explicit rollup 2) a groupby some timestamp/bucket, Snuba will pick a
@@ -458,7 +448,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> SessionsQueryResult:
         return run_sessions_query(org_id, query, span_op)
 
-    # TODO RaduW 23.Jan.2023 Reimplement when the Metrics Layer adds support for timestamps
     def get_release_sessions_time_bounds(
         self,
         project_id: ProjectId,
@@ -466,157 +455,106 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         org_id: OrganizationId,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> ReleaseSessionsTimeBounds:
-        """
-        Note: this is copied as is from the old metrics implementation, it does NOT use the Metrics Layer
-        """
-        select: List[SelectableExpression] = [
-            Function("min", [Column("timestamp")], "min"),
-            Function("max", [Column("timestamp")], "max"),
+
+        projects, org_id = self._get_projects_and_org_id([project_id])
+
+        select = [
+            MetricField(
+                metric_mri=SessionMRI.SESSION.value, alias="min_counter_date", op="min_timestamp"
+            ),
+            MetricField(
+                metric_mri=SessionMRI.SESSION.value, alias="max_counter_date", op="max_timestamp"
+            ),
+            MetricField(
+                metric_mri=SessionMRI.RAW_DURATION.value, alias="min_dist_date", op="min_timestamp"
+            ),
+            MetricField(
+                metric_mri=SessionMRI.RAW_DURATION.value, alias="max_dist_date", op="max_timestamp"
+            ),
         ]
 
-        try:
-            where: List[Condition] = [
-                Condition(Column("org_id"), Op.EQ, org_id),
-                Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(
-                    Column(resolve_tag_key(USE_CASE_ID, org_id, "release")),
-                    Op.EQ,
-                    resolve_weak(USE_CASE_ID, org_id, release),
-                ),
-                Condition(
-                    Column("timestamp"), Op.GTE, datetime(2008, 5, 8)
-                ),  # Date of sentry's first commit
-                Condition(
-                    Column("timestamp"), Op.LT, datetime.now(timezone.utc) + timedelta(seconds=10)
-                ),
-            ]
+        where = []
 
-            if environments is not None:
-                env_filter = resolve_many_weak(USE_CASE_ID, org_id, environments)
-                if not env_filter:
-                    raise MetricIndexNotFound()
-
-                where.append(
-                    Condition(
-                        Column(resolve_tag_key(USE_CASE_ID, org_id, "environment")),
-                        Op.IN,
-                        env_filter,
-                    )
+        if release:
+            where.append(
+                Condition(
+                    lhs=Column(name="tags[release]"),
+                    op=Op.EQ,
+                    rhs=release,
                 )
-        except MetricIndexNotFound:
-            # Some filter condition can't be constructed and therefore can't be
-            # satisfied.
-            #
-            # Ignore return type because of https://github.com/python/mypy/issues/8533
-            return {"sessions_lower_bound": None, "sessions_upper_bound": None}  # type: ignore
-
-        # XXX(markus): We know that this combination of queries is not fully
-        # equivalent to the sessions-table based backend. Example:
-        #
-        # 1. Session sid=x is started with timestamp started=n
-        # 2. Same sid=x is updated with new payload with timestamp started=n - 1
-        #
-        # Old sessions backend would return [n - 1 ; n - 1] as range.
-        # New metrics backend would return [n ; n - 1] as range.
-        #
-        # We don't yet know if this case is relevant. Session's started
-        # timestamp shouldn't really change as session status is updated
-        # though.
-
-        try:
-            # Take care of initial values for session.started by querying the
-            # init counter. This should take care of most cases on its own.
-            init_sessions_query = Query(
-                match=Entity(EntityKey.MetricsCounters.value),
-                select=select,
-                where=where
-                + [
-                    Condition(
-                        Column("metric_id"),
-                        Op.EQ,
-                        resolve(USE_CASE_ID, org_id, SessionMRI.SESSION.value),
-                    ),
-                    Condition(
-                        Column(resolve_tag_key(USE_CASE_ID, org_id, "session.status")),
-                        Op.EQ,
-                        resolve_weak(USE_CASE_ID, org_id, "init"),
-                    ),
-                ],
-                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
-            request = Request(
-                dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=init_sessions_query
+
+        if environments:
+            where.append(
+                Condition(
+                    lhs=Column(name="tags[environment]"),
+                    op=Op.IN,
+                    rhs=list(environments),
+                )
             )
-            rows = raw_snql_query(
-                request,
-                referrer="release_health.metrics.get_release_sessions_time_bounds.init_sessions",
-                use_cache=False,
-            )["data"]
-        except MetricIndexNotFound:
-            rows = []
 
-        try:
-            # Take care of potential timestamp updates by looking at the metric
-            # for session duration, which is emitted once a session is closed ("terminal state")
-            #
-            # There is a testcase checked in that tests specifically for a
-            # session update that lowers session.started. We don't know if that
-            # testcase matters particularly.
-            terminal_sessions_query = Query(
-                match=Entity(EntityKey.MetricsDistributions.value),
-                select=select,
-                where=where
-                + [
-                    Condition(
-                        Column("metric_id"),
-                        Op.EQ,
-                        resolve(USE_CASE_ID, org_id, SessionMRI.RAW_DURATION.value),
-                    ),
-                ],
-                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
-            )
-            request = Request(
-                dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=terminal_sessions_query
-            )
-            rows.extend(
-                raw_snql_query(
-                    request,
-                    referrer="release_health.metrics.get_release_sessions_time_bounds.terminal_sessions",
-                    use_cache=False,
-                )["data"]
-            )
-        except MetricIndexNotFound:
-            pass
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=[project_id],
+            select=select,
+            start=SENTRY_FIRST_COMMIT_DATE,
+            end=datetime.now(timezone.utc) + timedelta(seconds=10),
+            where=where,
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            include_series=False,
+            include_totals=True,
+        )
 
-        # This check is added because if there are no sessions found, then the
-        # aggregations query return both the sessions_lower_bound and the
-        # sessions_upper_bound as `0` timestamp and we do not want that behaviour
-        # by default
-        # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
-        # is rendered as '0000-00-00 00:00:00' in clickhouse shell
-        formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
 
-        lower_bound: Optional[str] = None
-        upper_bound: Optional[str] = None
-
-        for row in rows:
-            if set(row.values()) == {formatted_unix_start_time}:
-                continue
-            if lower_bound is None or row["min"] < lower_bound:
-                lower_bound = row["min"]
-            if upper_bound is None or row["max"] > upper_bound:
-                upper_bound = row["max"]
-
-        if lower_bound is None or upper_bound is None:
-            return {"sessions_lower_bound": None, "sessions_upper_bound": None}  # type: ignore
+        groups = raw_result["groups"]
 
         def iso_format_snuba_datetime(date: str) -> str:
             return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
 
-        return {  # type: ignore
-            "sessions_lower_bound": iso_format_snuba_datetime(lower_bound),
-            "sessions_upper_bound": iso_format_snuba_datetime(upper_bound),
-        }
+        formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+        def clean_date_string(d: Optional[str]) -> Optional[str]:
+            # This check is added because if there are no sessions found, then the
+            # aggregation queries return both the sessions_lower_bound and the
+            # sessions_upper_bound as `0` timestamp, and we do not want that behaviour
+            # by default
+            # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
+            # is rendered as '0000-00-00 00:00:00' in clickhouse shell
+
+            # sets and Unix start time dates to None
+            if d == formatted_unix_start_time:
+                return None
+            return d
+
+        min_date = None
+        max_date = None
+        if groups:
+            totals = groups[0]["totals"]
+            min_date = clean_date_string(totals.get("min_counter_date"))
+            max_date = clean_date_string(totals.get("max_counter_date"))
+            min_date2 = clean_date_string(totals.get("min_dist_date"))
+            max_date2 = clean_date_string(totals.get("max_dist_date"))
+
+            if min_date is None or (min_date2 is not None and min_date > min_date2):
+                min_date = min_date2
+            if max_date is None or (max_date2 is not None and max_date < max_date2):
+                max_date = max_date2
+
+        if min_date is not None and max_date is not None:
+            return {  # type: ignore
+                "sessions_lower_bound": iso_format_snuba_datetime(min_date),
+                "sessions_upper_bound": iso_format_snuba_datetime(max_date),
+            }
+        else:
+            return {  # type: ignore
+                "sessions_lower_bound": None,
+                "sessions_upper_bound": None,
+            }
 
     def check_has_health_data(
         self,
@@ -1353,7 +1291,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ret_val.append((by.get("project_id"), by.get("release")))
         return ret_val
 
-    # TODO RaduW 23.Jan.2023 Reimplement when the Metrics Layer adds support for timestamps
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
@@ -1365,59 +1302,47 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # TODO: assumption about retention?
         start = now - timedelta(days=90)
 
-        project_ids: List[ProjectId] = [x[0] for x in project_releases]
-        org_id = self._get_org_id(project_ids)
-        release_column_name = resolve_tag_key(USE_CASE_ID, org_id, "release")
-        releases = [x[1] for x in project_releases]
-        releases_ids = resolve_many_weak(USE_CASE_ID, org_id, releases)
+        project_ids = [proj_id for proj_id, _release in project_releases]
+        projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        query_cols = [
-            Column("project_id"),
-            Column(release_column_name),
-            Function("min", [Column("bucketed_time")], "oldest"),
+        where = [filter_releases_by_project_release(project_releases)]
+
+        groupby = [
+            MetricGroupByField(field="release"),
+            MetricGroupByField(field="project_id"),
+        ]
+        select = [
+            MetricField(metric_mri=SessionMRI.SESSION.value, alias="oldest", op="min_timestamp"),
         ]
 
-        group_by = [
-            Column("project_id"),
-            Column(release_column_name),
-        ]
-
-        where_clause = [
-            Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(
-                Column("metric_id"),
-                Op.EQ,
-                resolve(USE_CASE_ID, org_id, SessionMRI.SESSION.value),
-            ),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, now),
-            Condition(Column(release_column_name), Op.IN, releases_ids),
-        ]
-
-        query = Query(
-            match=Entity(EntityKey.MetricsCounters.value),
-            select=query_cols,
-            where=where_clause,
-            groupby=group_by,
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=now,
+            groupby=groupby,
+            where=where,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            include_series=False,
+            include_totals=True,
         )
-        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
-        rows = raw_snql_query(
-            request,
-            referrer="release_health.metrics.get_oldest_health_data_for_releases",
-            use_cache=False,
-        )["data"]
 
-        result = {}
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
 
-        for row in rows:
-            result[
-                row["project_id"],
-                reverse_resolve(USE_CASE_ID, org_id, row[release_column_name]),
-            ] = row["oldest"]
-
-        return result
+        ret_val = {}
+        groups = raw_result["groups"]
+        for group in groups:
+            by = group.get("by")
+            proj_id = by.get("project_id")
+            release = by.get("release")
+            totals = group.get("totals")
+            ret_val[(proj_id, release)] = totals["oldest"]
+        return ret_val
 
     def get_project_releases_count(
         self,

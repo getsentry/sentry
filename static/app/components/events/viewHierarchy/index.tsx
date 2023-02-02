@@ -6,8 +6,8 @@ import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
-  UseVirtualizedListProps,
   useVirtualizedTree,
+  UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
 import {DetailsPanel} from './detailsPanel';
@@ -50,7 +50,7 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     return viewHierarchy.windows;
   }, [viewHierarchy.windows]);
 
-  const renderRow: UseVirtualizedListProps<ViewHierarchyWindow>['renderRow'] = (
+  const renderRow: UseVirtualizedTreeProps<ViewHierarchyWindow>['renderRow'] = (
     r,
     {
       handleExpandTreeNode,
@@ -142,7 +142,7 @@ const Content = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  max-height: 700px;
+  height: 700px;
 `;
 
 const Left = styled('div')`
