@@ -94,24 +94,20 @@ def get_access_by_project(
         project_team_map[pt.project_id].append(pt.team)
 
     team_memberships = set(_get_team_memberships([pt.team for pt in project_teams], user))
-    org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    all_org_roles = get_org_roles({i.organization_id for i in projects}, user)
     prefetch_related_objects(projects, "organization")
 
     is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
     for project in projects:
         is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
-        org_role = org_roles.get(project.organization_id)
-        if is_member:
-            has_access = True
-        elif is_superuser:
-            has_access = True
-        elif project.organization.flags.allow_joinleave:
-            has_access = True
-        elif org_role and roles.get(org_role).is_global:
-            has_access = True
-        else:
-            has_access = False
+        org_roles = all_org_roles.get(project.organization_id) or []
+        has_access = bool(
+            is_member
+            or is_superuser
+            or project.organization.flags.allow_joinleave
+            or any(roles.get(org_role).is_global for org_role in org_roles)
+        )
         result[project] = {"is_member": is_member, "has_access": has_access}
     return result
 

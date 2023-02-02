@@ -971,6 +971,8 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
+    # Enables getting commit sha from git blame for codecov.
+    "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
     # Enables automatically deriving of code mappings as a dry run for early adopters
@@ -1019,6 +1021,8 @@ SENTRY_FEATURES = {
     "organizations:profiling": False,
     # Enable performance spans in flamecharts
     "organizations:profiling-flamechart-spans": False,
+    # Enable flamegraph view for profiling
+    "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign

@@ -7,6 +7,7 @@ import {useMousePan} from 'sentry/components/events/viewHierarchy/useMousePan';
 
 const RECT_FILL_ALPHA = 0.005;
 const RECT_OUTLINE_ALPHA = 1;
+const MIN_BORDER_SIZE = 20;
 
 type Rect = Pick<ViewHierarchyWindow, 'x' | 'y' | 'width' | 'height'>;
 
@@ -43,6 +44,32 @@ export function getCoordinates(hierarchies: ViewHierarchyWindow[]) {
   });
 }
 
+export function getMaxDimensions(coordinates) {
+  let maxWidth = 0;
+  let maxHeight = 0;
+  coordinates.forEach(hierarchy => {
+    hierarchy.forEach(({x, y, width, height}) => {
+      maxWidth = Math.max(x + width, maxWidth);
+      maxHeight = Math.max(y + height, maxHeight);
+    });
+  });
+  return {
+    width: maxWidth,
+    height: maxHeight,
+  };
+}
+
+export function calculateScale(
+  bounds: {height: number; width: number},
+  maxCoordinateDimensions: {height: number; width: number},
+  border: {x: number; y: number}
+) {
+  return Math.min(
+    (bounds.width - border.x) / maxCoordinateDimensions.width,
+    (bounds.height - border.y) / maxCoordinateDimensions.height
+  );
+}
+
 function Wireframe({hierarchy}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -50,13 +77,40 @@ function Wireframe({hierarchy}) {
 
   const [dimensions, setDimensions] = useState({width: 0, height: 0});
 
-  const {handlePanMove, handlePanStart, handlePanStop, isDragging, xOffset, yOffset} =
-    useMousePan({initialXOffset: 20, initialYOffset: 20});
+  const {
+    handlePanMove,
+    handlePanStart,
+    handlePanStop,
+    isDragging,
+    xOffset: xPanOffset,
+    yOffset: yPanOffset,
+  } = useMousePan();
 
   const draw = useCallback(
     (context: CanvasRenderingContext2D) => {
       // Make areas with more overlayed elements darker
       context.globalCompositeOperation = 'overlay';
+      const maxDimensions = getMaxDimensions(coordinates);
+
+      // Set the scaling
+      const scalingFactor = calculateScale(dimensions, maxDimensions, {
+        x: MIN_BORDER_SIZE,
+        y: MIN_BORDER_SIZE,
+      });
+      context.scale(scalingFactor, scalingFactor);
+
+      // Multiply by the scaling factor because that is the "real" size of the content
+      const xCenter =
+        Math.abs(dimensions.width - maxDimensions.width * scalingFactor) / 2;
+      const yCenter =
+        Math.abs(dimensions.height - maxDimensions.height * scalingFactor) / 2;
+
+      // Translate the canvas to account for mouse panning
+      // and centering
+      context.translate(
+        (xPanOffset + xCenter) / scalingFactor,
+        (yPanOffset + yCenter) / scalingFactor
+      );
 
       coordinates.forEach(hierarchyCoords => {
         hierarchyCoords.forEach(({x, y, width, height}) => {
@@ -64,7 +118,7 @@ function Wireframe({hierarchy}) {
           context.fillStyle = 'rgb(88, 74, 192)';
           context.strokeStyle = 'black';
           context.lineWidth = 1;
-          context.rect(x + xOffset, y + yOffset, width, height);
+          context.rect(x, y, width, height);
 
           // Draw the rectangles
           context.globalAlpha = RECT_FILL_ALPHA;
@@ -76,7 +130,7 @@ function Wireframe({hierarchy}) {
         });
       });
     },
-    [coordinates, xOffset, yOffset]
+    [coordinates, dimensions, xPanOffset, yPanOffset]
   );
 
   useEffect(() => {
@@ -118,6 +172,7 @@ function Wireframe({hierarchy}) {
   return (
     <Container ref={containerRef}>
       <StyledCanvas
+        data-test-id="view-hierarchy-wireframe"
         ref={canvasRef}
         onMouseDown={handlePanStart}
         onMouseUp={handlePanStop}

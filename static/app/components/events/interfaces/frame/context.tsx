@@ -56,10 +56,9 @@ export function getCoverageColorClass(
   lines: [number, string][],
   lineCov: LineCoverage[],
   activeLineNo: number
-): [Array<string>, boolean, boolean] {
+): [Array<string>, boolean] {
   const lineCoverage = keyBy(lineCov, 0);
-  let primaryLineCovered = true;
-  let surroundingLinesCovered = true;
+  let hasCoverage = false;
   const lineColors = lines.map(([lineNo]) => {
     const coverage = lineCoverage[lineNo]
       ? lineCoverage[lineNo][1]
@@ -79,12 +78,11 @@ export function getCoverageColorClass(
       case Coverage.NOT_APPLICABLE:
       // fallthrough
       default:
-        if (lineNo === activeLineNo) {
-          primaryLineCovered = false;
-        } else {
-          surroundingLinesCovered = false;
-        }
         break;
+    }
+
+    if (color !== '') {
+      hasCoverage = true;
     }
 
     if (activeLineNo !== lineNo) {
@@ -93,7 +91,7 @@ export function getCoverageColorClass(
     return color === '' ? 'active' : `active ${color}`;
   });
 
-  return [lineColors, primaryLineCovered, surroundingLinesCovered];
+  return [lineColors, hasCoverage];
 }
 
 const Context = ({
@@ -144,7 +142,7 @@ const Context = ({
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
-  const [lineColors = [], primaryLineCovered, surroundingLinesCovered] =
+  const [lineColors = [], hasCoverage] =
     hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo! && contextLines
       ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
       : [];
@@ -152,8 +150,7 @@ const Context = ({
   useRouteAnalyticsParams(
     hasCoverageData
       ? {
-          primary_line_covered: primaryLineCovered,
-          surrounding_lines_covered: surroundingLinesCovered,
+          has_line_coverage: hasCoverage,
         }
       : {}
   );
@@ -191,7 +188,7 @@ const Context = ({
     }
   }
 
-  const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
+  const startLineNo = hasContextSource ? frame.context[0][0] : 0;
   const hasStacktraceLink =
     frame.inApp &&
     !!frame.filename &&
@@ -201,6 +198,7 @@ const Context = ({
   return (
     <Wrapper
       start={startLineNo}
+      startLineNo={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
     >
       {defined(frame.errors) && (
@@ -279,44 +277,32 @@ const StyledIconFlag = styled(IconFlag)`
 
 const StyledContextLine = styled(ContextLine)`
   background: inherit;
-  padding: 0;
-  text-indent: 20px;
   z-index: 1000;
-  position: relative;
+  list-style: none;
 
-  &:before {
-    content: '';
-    display: block;
-    height: 24px;
-    width: 50px;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    background: transparent;
-    position: absolute;
-    z-index: 1;
+  &::marker {
+    content: none;
   }
 
-  &:after {
-    content: '';
-    display: block;
-    width: 2px;
-    border-color: transparent;
-    position: absolute;
-    left: 50px;
-    top: 0;
-    bottom: 0;
-    z-index: 9999;
+  &:before {
+    content: counter(frame);
+    counter-increment: frame;
+    text-align: center;
+    padding-left: ${space(3)};
+    padding-right: ${space(1.5)};
+    margin-right: ${space(1.5)};
+    display: inline-block;
     height: 24px;
+    background: transparent;
+    z-index: 1;
+    min-width: 58px;
+    border-right-style: solid;
+    border-right-color: transparent;
   }
 
   &.covered:before {
     background: ${p => p.theme.green100};
-  }
-
-  &.covered:after {
-    border-style: solid;
-    border-color: ${p => p.theme.green300};
+    border-right-color: ${p => p.theme.green300};
   }
 
   &.uncovered:before {
@@ -325,11 +311,8 @@ const StyledContextLine = styled(ContextLine)`
 
   &.partial:before {
     background: ${p => p.theme.yellow100};
-  }
-
-  &.partial:after {
-    border-style: dashed;
-    border-color: ${p => p.theme.yellow300};
+    border-right-style: dashed;
+    border-right-color: ${p => p.theme.yellow300};
   }
 
   &.active {
@@ -353,7 +336,9 @@ const StyledContextLine = styled(ContextLine)`
   }
 `;
 
-const Wrapper = styled('ol')`
+const Wrapper = styled('ol')<{startLineNo: number}>`
+  counter-reset: frame ${p => p.startLineNo - 1};
+
   && {
     border-radius: 0;
   }

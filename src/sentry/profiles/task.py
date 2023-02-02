@@ -7,7 +7,6 @@ from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
-from django.utils import timezone
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
@@ -59,6 +58,31 @@ def process_profile_task(
     )
     sentry_sdk.set_tag("platform", profile["platform"])
 
+    _symbolicate_profile(profile, project, event_id)
+    _deobfuscate_profile(profile, project)
+
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    _normalize_profile(profile, organization, project)
+    _push_profile_to_vroom(profile, project)
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+
+
+SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
+SHOULD_DEOBFUSCATE = frozenset(["android"])
+
+
+def _should_symbolicate(profile: Profile) -> bool:
+    platform: str = profile["platform"]
+    return platform in SHOULD_SYMBOLICATE and not profile.get("symbolicated", False)
+
+
+def _should_deobfuscate(profile: Profile) -> bool:
+    platform: str = profile["platform"]
+    return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
+
+
+def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> None:
     try:
         if _should_symbolicate(profile):
             if "debug_meta" not in profile or not profile["debug_meta"]:
@@ -80,6 +104,7 @@ def process_profile_task(
             )
 
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
+            profile["symbolicated"] = True
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
@@ -91,6 +116,8 @@ def process_profile_task(
         )
         return
 
+
+def _deobfuscate_profile(profile: Profile, project: Project) -> None:
     try:
         if _should_deobfuscate(profile):
             if "profile" not in profile or not profile["profile"]:
@@ -102,6 +129,7 @@ def process_profile_task(
                 return
 
             _deobfuscate(profile=profile, project=project)
+            profile["deobfuscated"] = True
     except Exception as e:
         sentry_sdk.capture_exception(e)
         _track_outcome(
@@ -112,10 +140,12 @@ def process_profile_task(
         )
         return
 
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
 
+def _normalize_profile(profile: Profile, organization: Organization, project: Project) -> None:
     try:
-        _normalize(profile=profile, organization=organization)
+        if not profile.get("normalized", False):
+            _normalize(profile=profile, organization=organization)
+            profile["normalized"] = True
     except Exception as e:
         sentry_sdk.capture_exception(e)
         _track_outcome(
@@ -125,31 +155,6 @@ def process_profile_task(
             reason="profiling_failed_normalization",
         )
         return
-
-    if not _insert_vroom_profile(profile=profile):
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_vroom_insertion",
-        )
-        return
-
-    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
-
-
-SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
-SHOULD_DEOBFUSCATE = frozenset(["android"])
-
-
-def _should_symbolicate(profile: Profile) -> bool:
-    platform: str = profile["platform"]
-    return platform in SHOULD_SYMBOLICATE
-
-
-def _should_deobfuscate(profile: Profile) -> bool:
-    platform: str = profile["platform"]
-    return platform in SHOULD_DEOBFUSCATE
 
 
 @metrics.wraps("process_profile.normalize")
@@ -498,10 +503,6 @@ def _track_outcome(
 @metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
     try:
-        profile["received"] = (
-            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
-        )
-
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
         if response.status == 204:
@@ -525,3 +526,14 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             sample_rate=1.0,
         )
         return False
+
+
+def _push_profile_to_vroom(profile: Profile, project: Project) -> None:
+    if not _insert_vroom_profile(profile=profile):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            reason="profiling_failed_vroom_insertion",
+        )
+        return
