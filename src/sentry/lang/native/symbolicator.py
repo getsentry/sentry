@@ -566,7 +566,7 @@ class SymbolicatorSession:
 
                 metrics.incr(
                     "events.symbolicator.status_code",
-                    tags={"status_code": response.status_code, "project_id": self.project_id},
+                    tags={"status_code": response.status_code},
                 )
 
                 if (
