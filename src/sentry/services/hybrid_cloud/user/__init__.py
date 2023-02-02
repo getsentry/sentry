@@ -6,9 +6,10 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional, TypedDict
 
+from sentry.api.serializers import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.filter_query import AsSerializer, FilterQueryInterface
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -82,10 +83,24 @@ class APIUserEmail:
     is_verified: bool = False
 
 
-class UserSerializeType(IntEnum):
+class UserSerializeType(IntEnum, AsSerializer):  # annoying
     SIMPLE = 0
     DETAILED = 1
     SELF_DETAILED = 2
+
+    def as_serializer(self) -> Serializer:
+        from sentry.api.serializers import (
+            DetailedSelfUserSerializer,
+            DetailedUserSerializer,
+            UserSerializer,
+        )
+
+        serializer: Serializer = UserSerializer()
+        if self == UserSerializeType.DETAILED:
+            serializer = DetailedUserSerializer()
+        if self == UserSerializeType.SELF_DETAILED:
+            serializer = DetailedSelfUserSerializer()
+        return serializer
 
 
 class UserFilterArgs(TypedDict, total=False):
@@ -98,7 +113,9 @@ class UserFilterArgs(TypedDict, total=False):
     emails: List[str]
 
 
-class UserService(FilterQueryInterface, InterfaceWithLifecycle):
+class UserService(
+    FilterQueryInterface[UserFilterArgs, APIUser, UserSerializeType], InterfaceWithLifecycle
+):
     @abstractmethod
     def get_many_by_email(
         self, emails: List[str], is_active: bool = True, is_verified: bool = True
@@ -137,15 +154,16 @@ class UserService(FilterQueryInterface, InterfaceWithLifecycle):
         """Get all users associated with a project identifier"""
         pass
 
-    @abstractmethod
-    def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
-        """
-        This method returns User objects given an iterable of IDs
-        :param user_ids:
-        A list of user IDs to fetch
-        :return:
-        """
-        pass
+    #
+    # @abstractmethod
+    # def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
+    #     """
+    #     This method returns User objects given an iterable of IDs
+    #     :param user_ids:
+    #     A list of user IDs to fetch
+    #     :return:
+    #     """
+    #     pass
 
     @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
@@ -158,7 +176,7 @@ class UserService(FilterQueryInterface, InterfaceWithLifecycle):
         A user ID to fetch
         :return:
         """
-        users = self.get_many([user_id])
+        users = self.get_many(filter=dict(user_ids=[user_id]))
         if len(users) > 0:
             return users[0]
         else:

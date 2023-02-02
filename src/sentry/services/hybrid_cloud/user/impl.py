@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional
 
 from django.db.models import QuerySet
 
@@ -10,7 +10,6 @@ from sentry.api.serializers import (
     UserSerializer,
     serialize,
 )
-from sentry.api.serializers.models.user import UserSerializerResponse, UserSerializerResponseSelf
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.models import Project
@@ -27,9 +26,7 @@ from sentry.services.hybrid_cloud.user import (
 
 
 class DatabaseBackedUserService(
-    FilterQueryDatabaseImpl[
-        User, UserFilterArgs, APIUser, Union[UserSerializerResponse, UserSerializerResponseSelf]
-    ],
+    FilterQueryDatabaseImpl[User, UserFilterArgs, APIUser, UserSerializeType],
     UserService,
 ):
     def get_many_by_email(
@@ -160,7 +157,9 @@ class DatabaseBackedUserService(
             project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             return []
-        return self.get_many(project.member_set.values_list("user_id", flat=True))
+        return self.get_many(
+            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+        )
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         return [
