@@ -559,8 +559,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
 
     def test_lookup_by_short_id_alias(self):
+        event_id = "f" * 32
         group = self.store_event(
-            data={},
+            data={"event_id": event_id, "timestamp": iso_format(before_now(seconds=1))},
             project_id=self.project.id,
         ).group
         short_id = group.qualified_short_id
