@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -47,14 +47,15 @@ export function getCoordinates(
   hierarchies: ViewHierarchyWindow[],
   shiftChildrenByParent: boolean = true
 ): {list: ViewNode[]; maxHeight: number; maxWidth: number} {
-  const list: any[] = [];
-  const queue: any[] = [...hierarchies.map(h => [null, h])];
+  const list: ViewNode[] = [];
+  const queue: [Rect | null, ViewHierarchyWindow][] = [];
+  hierarchies.forEach(root => queue.push([null, root]));
 
   let maxWidth = Number.MIN_SAFE_INTEGER;
   let maxHeight = Number.MIN_SAFE_INTEGER;
 
   while (queue.length) {
-    const [parent, child] = queue.pop();
+    const [parent, child] = queue.pop()!;
 
     const node = {
       node: child,
@@ -75,7 +76,7 @@ export function getCoordinates(
 
     if (defined(child.children) && child.children.length) {
       child.children.forEach(c => {
-        queue.push([child, c]);
+        queue.push([node.rect, c]);
       });
     }
   }
@@ -88,9 +89,11 @@ export function calculateScale(
   maxCoordinateDimensions: {height: number; width: number},
   border: {x: number; y: number}
 ) {
-  return Math.min(
-    (bounds.width - border.x) / maxCoordinateDimensions.width,
-    (bounds.height - border.y) / maxCoordinateDimensions.height
+  return (
+    Math.min(
+      (bounds.width - border.x) / maxCoordinateDimensions.width,
+      (bounds.height - border.y) / maxCoordinateDimensions.height
+    ) * window.devicePixelRatio
   );
 }
 
@@ -100,7 +103,6 @@ type WireframeProps = {
 };
 
 function Wireframe({hierarchy, project}: WireframeProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
   const canvases = useMemo(() => {
@@ -115,26 +117,40 @@ function Wireframe({hierarchy, project}: WireframeProps) {
   );
 
   const scale = useMemo(() => {
-    return (
-      calculateScale(
-        {width: canvasSize.width ?? 0, height: canvasSize.height ?? 0},
-        {width: coordinates.maxWidth, height: coordinates.maxHeight},
-        {
-          x: MIN_BORDER_SIZE,
-          y: MIN_BORDER_SIZE,
-        }
-      ) * window.devicePixelRatio
+    return calculateScale(
+      {width: canvasSize.width ?? 0, height: canvasSize.height ?? 0},
+      {width: coordinates.maxWidth, height: coordinates.maxHeight},
+      {
+        x: MIN_BORDER_SIZE,
+        y: MIN_BORDER_SIZE,
+      }
     );
   }, [coordinates, canvasSize]);
 
   const transformationMatrix = useMemo(() => {
+    // Multiply by the scaling factor because that is the "real" size of the content
+    const xCenter =
+      Math.abs(
+        canvasSize.width * window.devicePixelRatio - coordinates.maxWidth * scale
+      ) / 2;
+    const yCenter =
+      Math.abs(
+        canvasSize.height * window.devicePixelRatio - coordinates.maxHeight * scale
+      ) / 2;
+
     // prettier-ignore
     return mat3.fromValues(
-      scale,0,0,
-      0,scale,0,
-      0,0,1
+      scale, 0, 0,
+      0, scale, 0,
+      xCenter, yCenter, 1
     );
-  }, [scale]);
+  }, [
+    canvasSize.height,
+    canvasSize.width,
+    coordinates.maxHeight,
+    coordinates.maxWidth,
+    scale,
+  ]);
 
   const draw = useCallback(
     (modelToView: mat3) => {
@@ -190,7 +206,7 @@ function Wireframe({hierarchy, project}: WireframeProps) {
     const handleMouseMove = (e: MouseEvent) => {
       if (start) {
         const end = vec2.fromValues(e.offsetX, e.offsetY);
-        const delta = vec2.sub(vec2.create(), start, end);
+        const delta = vec2.sub(vec2.create(), end, start);
         const inverse = mat3.invert(mat3.create(), transformationMatrix);
 
         vec2.transformMat3(delta, delta, inverse);
@@ -220,28 +236,15 @@ function Wireframe({hierarchy, project}: WireframeProps) {
       canvasRef.removeEventListener('mousemove', handleMouseMove, options);
       canvasRef.removeEventListener('mouseup', handleMouseUp, options);
     };
-  }, [transformationMatrix, canvasRef, draw]);
+  }, [transformationMatrix, canvasRef, draw, scale]);
 
-  return (
-    <Container ref={containerRef}>
-      <StyledCanvas ref={r => setCanvasRef(r)} isDragging={false} />
-    </Container>
-  );
+  return <StyledCanvas ref={r => setCanvasRef(r)} />;
 }
 
 export {Wireframe};
 
-// This container wraps the canvas so we can stretch it to fit
-// the space we want and then read the width and height
-// to resize the canvas
-const Container = styled('div')`
-  height: 100%;
-  width: 100%;
-`;
-
-const StyledCanvas = styled('canvas')<{isDragging: boolean}>`
+const StyledCanvas = styled('canvas')`
   background-color: ${p => p.theme.surface100};
-  cursor: ${p => (p.isDragging ? 'grabbing' : 'grab')};
   width: 100%;
   height: 100%;
 `;
