@@ -250,7 +250,9 @@ function Wireframe({hierarchy}: WireframeProps) {
     };
   }, [transformationMatrix, canvasRef, draw, scale]);
 
-  return <StyledCanvas ref={r => setCanvasRef(r)} />;
+  return (
+    <StyledCanvas data-test-id="view-hierarchy-wireframe" ref={r => setCanvasRef(r)} />
+  );
 }
 
 export {Wireframe};
