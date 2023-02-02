@@ -10,6 +10,7 @@ import {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 
 export interface SegmentedControlItemProps<Value extends string> extends ItemProps<any> {
@@ -110,8 +111,8 @@ function Segment({
 
   const {inputProps} = useRadio({...props}, state, ref);
 
-  const prevOptionIsSelected = prevKey && state.selectedValue === prevKey;
-  const nextOptionIsSelected = nextKey && state.selectedValue === nextKey;
+  const prevOptionIsSelected = defined(prevKey) && state.selectedValue === prevKey;
+  const nextOptionIsSelected = defined(nextKey) && state.selectedValue === nextKey;
 
   const isSelected = state.selectedValue === props.value;
   const showDivider = !isSelected && !nextOptionIsSelected;
