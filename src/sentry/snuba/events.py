@@ -251,6 +251,14 @@ class Columns(Enum):
         issue_platform_name="sdk_version",
         alias="sdk.version",
     )
+    UNREAL_CRASH_TYPE = Column(
+        group_name="events.contexts[unreal.crash_type]",
+        event_name="contexts[unreal.crash_type]",
+        transaction_name="contexts[unreal.crash_type]",
+        discover_name="contexts[unreal.crash_type]",
+        issue_platform_name="contexts[unreal.crash_type]",
+        alias="unreal.crash_type",
+    )
 
     HTTP_METHOD = Column(
         group_name="events.http_method",
