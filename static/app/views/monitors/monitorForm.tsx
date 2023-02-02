@@ -167,7 +167,7 @@ class MonitorForm extends Component<Props> {
           <PanelHeader>{t('Config')}</PanelHeader>
 
           <PanelBody>
-            {monitor !== undefined && (
+            {monitor !== undefined && monitor.nextCheckIn && (
               <PanelAlert type="info">
                 {tct(
                   'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
