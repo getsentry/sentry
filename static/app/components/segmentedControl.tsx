@@ -10,12 +10,22 @@ import {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 
 export interface SegmentedControlItemProps<Value extends string> extends ItemProps<any> {
   key: Value;
   disabled?: boolean;
+  /**
+   * Optional tooltip that appears when the use hovers over the segment. Avoid using
+   * tooltips if there are other, more visible ways to display the same information.
+   */
+  tooltip?: React.ReactNode;
+  /**
+   * Additional props to be passed into <Tooltip />.
+   */
+  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
 }
 
 type Priority = 'default' | 'primary';
@@ -88,7 +98,9 @@ SegmentedControl.Item = Item as <Value extends string>(
   props: SegmentedControlItemProps<Value>
 ) => JSX.Element;
 
-interface SegmentProps extends AriaRadioProps {
+interface SegmentProps<Value extends string>
+  extends Omit<SegmentedControlItemProps<Value>, keyof ItemProps<any>>,
+    AriaRadioProps {
   lastKey: string;
   layoutGroupId: string;
   priority: Priority;
@@ -98,15 +110,17 @@ interface SegmentProps extends AriaRadioProps {
   prevKey?: string;
 }
 
-function Segment({
+function Segment<Value extends string>({
   state,
   nextKey,
   prevKey,
   size,
   priority,
   layoutGroupId,
+  tooltip,
+  tooltipOptions = {},
   ...props
-}: SegmentProps) {
+}: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
 
   const {inputProps} = useRadio({...props}, state, ref);
@@ -119,36 +133,46 @@ function Segment({
 
   const {isDisabled} = props;
   return (
-    <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
-      <SegmentInput {...inputProps} ref={ref} />
-      {!isDisabled && (
-        <SegmentInteractionStateLayer
-          nextOptionIsSelected={nextOptionIsSelected}
-          prevOptionIsSelected={prevOptionIsSelected}
-        />
-      )}
-      {isSelected && (
-        <SegmentSelectionIndicator
-          layoutId={layoutGroupId}
-          transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
-          priority={priority}
-          aria-hidden
-        />
-      )}
+    <Tooltip
+      skipWrapper
+      title={tooltip}
+      {...{delay: 500, position: 'bottom', ...tooltipOptions}}
+    >
+      <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
+        <SegmentInput {...inputProps} ref={ref} />
+        {!isDisabled && (
+          <SegmentInteractionStateLayer
+            nextOptionIsSelected={nextOptionIsSelected}
+            prevOptionIsSelected={prevOptionIsSelected}
+          />
+        )}
+        {isSelected && (
+          <SegmentSelectionIndicator
+            layoutId={layoutGroupId}
+            transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
+            priority={priority}
+            aria-hidden
+          />
+        )}
 
-      <Divider visible={showDivider} role="separator" aria-hidden />
+        <Divider visible={showDivider} role="separator" aria-hidden />
 
-      {/* Once an item is selected, it gets a heavier font weight and becomes slightly
-      wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that will
-      always have normal weight to take up constant space; and a visible, absolutely
-      positioned container (VisibleLabel) that doesn't affect the layout. */}
-      <LabelWrap>
-        <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
-        <VisibleLabel isSelected={isSelected} isDisabled={isDisabled} priority={priority}>
-          {props.children}
-        </VisibleLabel>
-      </LabelWrap>
-    </SegmentWrap>
+        {/* Once an item is selected, it gets a heavier font weight and becomes slightly
+        wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
+        will always have normal weight to take up constant space; and a visible,
+        absolutely positioned container (VisibleLabel) that doesn't affect the layout. */}
+        <LabelWrap>
+          <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
+          <VisibleLabel
+            isSelected={isSelected}
+            isDisabled={isDisabled}
+            priority={priority}
+          >
+            {props.children}
+          </VisibleLabel>
+        </LabelWrap>
+      </SegmentWrap>
+    </Tooltip>
   );
 }
 
@@ -180,16 +204,19 @@ const SegmentWrap = styled('label')<{
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: 400;
 
-  &:hover {
-    background-color: inherit;
+  ${p =>
+    !p.isDisabled &&
+    `
+    &:hover {
+      background-color: inherit;
 
-    [role='separator'] {
-      opacity: 0;
+      [role='separator'] {
+        opacity: 0;
+      }
     }
-  }
+  `}
 
   ${p => p.isSelected && `z-index: 1;`}
-  ${p => p.isDisabled && `pointer-events: none;`}
 `;
 
 const SegmentInput = styled('input')`
