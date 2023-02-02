@@ -156,10 +156,7 @@ function TransactionSummaryCharts({
   };
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    display as DisplayModes
-  );
+  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, location);
 
   return (
     <Panel>

@@ -22,7 +22,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -91,11 +90,7 @@ function OverviewContentWrapper(props: ChildProps) {
   } = props;
 
   const mepSetting = useMEPSettingContext();
-  const display = decodeScalar(
-    location.query.display,
-    DisplayModes.DURATION
-  ) as DisplayModes;
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, display);
+  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, location);
 
   const queryData = useDiscoverQuery({
     eventView: getTotalsEventView(organization, eventView),

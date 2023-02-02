@@ -38,7 +38,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 
 import {
   anomaliesRouteWithQuery,
@@ -248,11 +247,7 @@ function SidebarChartsContainer({
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
   const mepSetting = useMEPSettingContext();
-  const display = decodeScalar(
-    location.query.display,
-    DisplayModes.DURATION
-  ) as DisplayModes;
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, display);
+  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, location);
 
   const axisLineConfig = {
     scale: true,
