@@ -57,61 +57,61 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
 
-    @with_feature("organizations:fix-source-map-cta")
-    def test_no_errors(self):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "release": "my-release",
-                "dist": "my-dist",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "https://example.com/application.js",
-                                        "lineno": 1,
-                                        "colno": 39,
-                                    }
-                                ]
-                            },
-                        }
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-        release = Release.objects.get(organization=self.organization, version=event.release)
-        release.update(user_agent="test_user_agent")
+    # @with_feature("organizations:fix-source-map-cta")
+    # def test_no_errors(self):
+    #     event = self.store_event(
+    #         data={
+    #             "event_id": "a" * 32,
+    #             "release": "my-release",
+    #             "dist": "my-dist",
+    #             "exception": {
+    #                 "values": [
+    #                     {
+    #                         "type": "Error",
+    #                         "stacktrace": {
+    #                             "frames": [
+    #                                 {
+    #                                     "abs_path": "https://example.com/application.js",
+    #                                     "lineno": 1,
+    #                                     "colno": 39,
+    #                                 }
+    #                             ]
+    #                         },
+    #                     }
+    #                 ]
+    #             },
+    #         },
+    #         project_id=self.project.id,
+    #     )
+    #     release = Release.objects.get(organization=self.organization, version=event.release)
+    #     release.update(user_agent="test_user_agent")
 
-        dist = Distribution.objects.get(
-            organization_id=self.organization.id, name="my-dist", release_id=release.id
-        )
+    #     dist = Distribution.objects.get(
+    #         organization_id=self.organization.id, name="my-dist", release_id=release.id
+    #     )
 
-        file = File.objects.create(name="application.js", type="release.file")
-        fileobj = ContentFile(b"a\na")
-        file.putfile(fileobj)
+    #     file = File.objects.create(name="application.js", type="release.file")
+    #     fileobj = ContentFile(b"a\na")
+    #     file.putfile(fileobj)
 
-        ReleaseFile.objects.create(
-            organization_id=self.project.organization_id,
-            release_id=release.id,
-            file=file,
-            name="~/application.js",
-            # change dist to something else
-            dist_id=dist.id,
-        )
+    #     ReleaseFile.objects.create(
+    #         organization_id=self.project.organization_id,
+    #         release_id=release.id,
+    #         file=file,
+    #         name="~/application.js",
+    #         # change dist to something else
+    #         dist_id=dist.id,
+    #     )
 
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
-            frame_idx=0,
-            exception_idx=0,
-        )
+    #     resp = self.get_success_response(
+    #         self.organization.slug,
+    #         self.project.slug,
+    #         event.event_id,
+    #         frame_idx=0,
+    #         exception_idx=0,
+    #     )
 
-        assert resp.data["errors"] == []
+    #     assert resp.data["errors"] == []
 
     @with_feature("organizations:fix-source-map-cta")
     def test_event_has_no_release(self):
@@ -457,5 +457,145 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["data"] == {
             "eventDist": event_dist.id,
             "artifactDist": dist.id,
+            "fileName": "/application.js",
+        }
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test_no_sourcemap_found(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        dist = Distribution.objects.get(
+            organization_id=self.organization.id, name="my-dist", release_id=release.id
+        )
+
+        file = File.objects.create(name="application.js", type="release.file")
+        fileobj = ContentFile(b"a\na")
+        file.putfile(fileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=file,
+            name="~/application.js",
+            dist_id=dist.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "sourcemap_not_found"
+        assert error["message"] == "The sourcemap could not be found"
+        assert error["data"] == {
+            "fileName": "/application.js",
+        }
+
+    @with_feature("organizations:fix-source-map-cta")
+    def test(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        dist = Distribution.objects.get(
+            organization_id=self.organization.id, name="my-dist", release_id=release.id
+        )
+
+        makeup_dist = Distribution.objects.create(
+            organization_id=self.organization.id, name="bad-dist", release_id=release.id
+        )
+
+        file = File.objects.create(
+            name="application.js", type="release.file", headers={"Sourcemap": "application.js.map"}
+        )
+        fileobj = ContentFile(b"a\na")
+        file.putfile(fileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=file,
+            name="~/application.js",
+            dist_id=dist.id,
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=file,
+            name="~/application.js.map",
+            dist_id=makeup_dist.id,
+        )
+
+        sourcemapfile = File.objects.create(name="application.js.map", type="release.file")
+        sourcemapfileobj = ContentFile(b"mapping code")
+        sourcemapfile.putfile(sourcemapfileobj)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "dist_mismatch"
+        assert error["message"] == "The dist values do not match"
+        assert error["data"] == {
+            "eventDist": dist.id,
+            "artifactDist": makeup_dist.id,
             "fileName": "/application.js",
         }

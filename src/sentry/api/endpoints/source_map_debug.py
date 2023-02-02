@@ -134,17 +134,19 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, data={"fileName": filename}
             )
 
-        sourcemap_url = non_standard_url_join(sourcemap_url)
+        sourcemap_url = non_standard_url_join(abs_path, sourcemap_url)
 
         sourcemap_artifact_response = self._find_matching_artifact(
-            release_artifacts, urlparse(sourcemap_url), sourcemap_url
+            release_artifacts, urlparse(sourcemap_url), sourcemap_url, filename
         )
         if type(sourcemap_artifact_response) is Response:
             return sourcemap_artifact_response
         else:
             sourcemap_artifact = sourcemap_artifact_response
 
-        sourcemap_dist_response = self._verify_dist_matches(release, event, sourcemap_artifact)
+        sourcemap_dist_response = self._verify_dist_matches(
+            release, event, sourcemap_artifact, filename
+        )
         if type(sourcemap_dist_response) is Response:
             return sourcemap_dist_response
 
