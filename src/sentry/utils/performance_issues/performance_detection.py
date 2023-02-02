@@ -24,9 +24,9 @@ from .base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     PerformanceDetector,
-    get_span_duration,
-    fingerprint_spans,
     fingerprint_span,
+    fingerprint_spans,
+    get_span_duration,
 )
 from .detectors import NPlusOneAPICallsDetector, UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
