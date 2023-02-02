@@ -580,6 +580,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
+    "sentry.tasks.deletion.scheduled",
+    "sentry.tasks.deletion.groups",
     "sentry.tasks.deletion.hybrid_cloud",
     "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",

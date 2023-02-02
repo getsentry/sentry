@@ -60,7 +60,7 @@ def chunk_watermark_batch(
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.schedule_hybrid_cloud_foreign_key_jobs",
+    name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
     queue="cleanup",
     acks_late=True,
 )
