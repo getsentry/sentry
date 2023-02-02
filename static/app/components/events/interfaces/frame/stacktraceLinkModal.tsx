@@ -144,13 +144,15 @@ function StacktraceLinkModal({
                 : error}
             </StyledAlert>
           )}
-          {tct(
-            'We can’t find the file path for [filename] in your [provider] repo. Add the correct link below to enable git blame and suspect commits for this project.',
-            {
-              provider: providerName,
-              filename: <StyledCode>{filename}</StyledCode>,
-            }
-          )}
+          <div>
+            {tct(
+              'We can’t find the file path for [filename] in your [provider] repo. Add the correct link below to enable git blame and suspect commits for this project.',
+              {
+                provider: providerName,
+                filename: <StyledCode>{filename}</StyledCode>,
+              }
+            )}
+          </div>
           <StyledList symbol="colored-numeric">
             <li>
               <ItemContainer>
