@@ -30,7 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 const fields = ['transaction', 'project.id', 'last_seen()', 'p95()', 'count()'] as const;
-type SlowestTransactionsFields = typeof fields[number];
+type SlowestTransactionsFields = (typeof fields)[number];
 
 export function ProfilingSlowestTransactionsPanel() {
   const profilingTransactionsQuery = useProfileEvents({

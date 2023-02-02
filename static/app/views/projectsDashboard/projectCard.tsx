@@ -265,7 +265,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
     }, undefined),
   ];
 
-  onProjectStatsStoreUpdate(itemsBySlug: typeof ProjectsStatsStore['itemsBySlug']) {
+  onProjectStatsStoreUpdate(itemsBySlug: (typeof ProjectsStatsStore)['itemsBySlug']) {
     const {project} = this.props;
 
     // Don't update state if we already have stats

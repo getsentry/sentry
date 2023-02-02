@@ -11,8 +11,9 @@ export const supportedProfilingPlatformSDKs = [
   'python',
   'rust',
 ] as const;
-export type SupportedProfilingPlatform = typeof supportedProfilingPlatforms[number];
-export type SupportedProfilingPlatformSDK = typeof supportedProfilingPlatformSDKs[number];
+export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
+export type SupportedProfilingPlatformSDK =
+  (typeof supportedProfilingPlatformSDKs)[number];
 
 const platformToDocsPlatformSDK: Record<
   SupportedProfilingPlatform,
@@ -52,7 +53,7 @@ export const profilingOnboardingDocKeys = [
   '4-upload',
 ] as const;
 
-type ProfilingOnboardingDocKeys = typeof profilingOnboardingDocKeys[number];
+type ProfilingOnboardingDocKeys = (typeof profilingOnboardingDocKeys)[number];
 
 export const supportedPlatformExpectedDocKeys: Record<
   SupportedProfilingPlatformSDK,
@@ -74,7 +75,7 @@ function makeDocKey(platformId: PlatformKey, key: string) {
   return `${platformId}-profiling-onboarding-${key}`;
 }
 
-type DocKeyMap = Record<typeof profilingOnboardingDocKeys[number], string>;
+type DocKeyMap = Record<(typeof profilingOnboardingDocKeys)[number], string>;
 export function makeDocKeyMap(platformId: PlatformKey | undefined) {
   if (!platformId || !platformToDocsPlatformSDK[platformId]) {
     return null;

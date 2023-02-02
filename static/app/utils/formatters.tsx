@@ -262,7 +262,7 @@ const numberFormats = [
 export function formatAbbreviatedNumber(number: number | string) {
   number = Number(number);
 
-  let lookup: typeof numberFormats[number];
+  let lookup: (typeof numberFormats)[number];
 
   // eslint-disable-next-line no-cond-assign
   for (let i = 0; (lookup = numberFormats[i]); i++) {
