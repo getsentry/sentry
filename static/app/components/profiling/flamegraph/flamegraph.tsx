@@ -9,10 +9,7 @@ import {
 } from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
-import {
-  ProfileDragDropImport,
-  ProfileDragDropImportProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
+import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {
@@ -49,7 +46,7 @@ import {
   Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {ProfileGroup, ProfileInput} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
@@ -58,7 +55,12 @@ import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/uni
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
+import {
+  useProfileTransaction,
+  useSetProfiles,
+} from 'sentry/views/profiling/profilesProvider';
+
+import {useProfileGroup} from '../../../views/profiling/profileGroupProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -109,20 +111,19 @@ const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
 
 const noopFormatDuration = () => '';
-interface FlamegraphProps {
-  onImport: ProfileDragDropImportProps['onImport'];
-  profiles: ProfileGroup;
-}
 
-function Flamegraph(props: FlamegraphProps): ReactElement {
+function Flamegraph(): ReactElement {
   const organization = useOrganization();
   const devicePixelRatio = useDevicePixelRatio();
   const profiledTransaction = useProfileTransaction();
   const dispatch = useDispatchFlamegraphState();
 
+  const setProfiles = useSetProfiles();
+  const profileGroup = useProfileGroup();
+
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
-  const {sorting, view, xAxis} = useFlamegraphPreferences();
+  const {sorting, view, type, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -148,16 +149,16 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   }, [organization.features]);
 
   const hasUIFrames = useMemo(() => {
-    const platform = props.profiles.metadata.platform;
+    const platform = profileGroup.metadata.platform;
     return (
       (platform === 'cocoa' || platform === 'android') &&
       organization.features.includes('profiling-ui-frames')
     );
-  }, [organization.features, props.profiles.metadata.platform]);
+  }, [organization.features, profileGroup.metadata.platform]);
 
   const profile = useMemo(() => {
-    return props.profiles.profiles.find(p => p.threadId === threadId);
-  }, [props.profiles, threadId]);
+    return profileGroup.profiles.find(p => p.threadId === threadId);
+  }, [profileGroup, threadId]);
 
   const spanTree: SpanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
@@ -194,10 +195,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       leftHeavy: sorting === 'left heavy',
       configSpace:
         xAxis === 'transaction'
-          ? getTransactionConfigSpace(props.profiles, profile.startedAt, profile.unit)
+          ? getTransactionConfigSpace(profileGroup, profile.startedAt, profile.unit)
           : undefined,
     });
-  }, [profile, props.profiles, sorting, threadId, view, xAxis]);
+  }, [profile, profileGroup, sorting, threadId, view, xAxis]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
@@ -205,14 +206,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     }
     return new UIFrames(
       {
-        slow: props.profiles.measurements?.slow_frame_renders,
-        frozen: props.profiles.measurements?.frozen_frame_renders,
+        slow: profileGroup.measurements?.slow_frame_renders,
+        frozen: profileGroup.measurements?.frozen_frame_renders,
       },
       {unit: flamegraph.profile.unit},
       flamegraph.configSpace.withHeight(1)
     );
   }, [
-    props.profiles.measurements,
+    profileGroup.measurements,
     flamegraph.profile.unit,
     flamegraph.configSpace,
     hasUIFrames,
@@ -665,6 +666,20 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     [dispatch]
   );
 
+  const onTypeChange: FlamegraphViewSelectMenuProps['onTypeChange'] = useCallback(
+    newView => {
+      dispatch({type: 'set type', payload: newView});
+    },
+    [dispatch]
+  );
+
+  const onImport = useCallback(
+    (p: ProfileInput) => {
+      setProfiles({type: 'resolved', data: p});
+    },
+    [setProfiles]
+  );
+
   // A bit unfortunate for now, but the search component accepts a list
   // of model to search through. This will become useful as we  build
   // differential flamecharts or start comparing different profiles/charts
@@ -675,15 +690,17 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     <Fragment>
       <FlamegraphToolbar>
         <FlamegraphThreadSelector
-          profileGroup={props.profiles}
+          profileGroup={profileGroup}
           threadId={threadId}
           onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
+          type={type}
           view={view}
           sorting={sorting}
           onSortingChange={onSortingChange}
           onViewChange={onViewChange}
+          onTypeChange={onTypeChange}
         />
         <FlamegraphSearch
           spans={spans}
@@ -733,7 +750,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           />
         }
         flamegraph={
-          <ProfileDragDropImport onImport={props.onImport}>
+          <ProfileDragDropImport onImport={onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
               canvasBounds={flamegraphCanvasBounds}
@@ -751,7 +768,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         flamegraphDrawer={
           <FlamegraphDrawer
-            profileGroup={props.profiles}
+            profileGroup={profileGroup}
             getFrameColor={getFrameColor}
             referenceNode={referenceNode}
             rootNodes={rootNodes}

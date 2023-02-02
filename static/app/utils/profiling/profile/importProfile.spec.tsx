@@ -1,8 +1,8 @@
 import {ChromeTraceProfile} from 'sentry/utils/profiling/profile/chromeTraceProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
-  importDroppedProfile,
   importProfile,
+  parseDroppedProfile,
 } from 'sentry/utils/profiling/profile/importProfile';
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
@@ -173,7 +173,7 @@ describe('importProfile', () => {
   });
 });
 
-describe('importDroppedProfile', () => {
+describe('parseDroppedProfile', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
   });
@@ -192,7 +192,7 @@ describe('importDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(importDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
   });
@@ -211,14 +211,14 @@ describe('importDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(importDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
   });
 
   it('throws if contents are not valid JSON', async () => {
     const file = new File(['{"json": true'], 'test.tsx');
-    await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(Error);
+    await expect(parseDroppedProfile(file)).rejects.toBeInstanceOf(Error);
   });
 
   it('imports dropped schema file', async () => {
@@ -244,7 +244,7 @@ describe('importDroppedProfile', () => {
       metadata: {} as Profiling.Schema['metadata'],
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
+    const imported = importProfile(await parseDroppedProfile(file), file.name);
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
   });
@@ -272,7 +272,7 @@ describe('importDroppedProfile', () => {
     ];
 
     const file = new File([JSON.stringify(typescriptProfile)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
+    const imported = importProfile(await parseDroppedProfile(file), file.name);
 
     expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
@@ -298,7 +298,7 @@ describe('importDroppedProfile', () => {
     };
 
     const file = new File([JSON.stringify(jsSelfProfile)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
+    const imported = importProfile(await parseDroppedProfile(file), file.name);
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });

@@ -38,14 +38,13 @@ export interface ProfileGroup {
   transactionID: string | null;
 }
 
-export function importProfile(
-  input:
-    | Profiling.Schema
-    | JSSelfProfiling.Trace
-    | ChromeTrace.ProfileType
-    | Profiling.SentrySampledProfile,
-  traceID: string
-): ProfileGroup {
+export type ProfileInput =
+  | Profiling.Schema
+  | JSSelfProfiling.Trace
+  | ChromeTrace.ProfileType
+  | Profiling.SentrySampledProfile;
+
+export function importProfile(input: ProfileInput, traceID: string): ProfileGroup {
   const transaction = Sentry.startTransaction({
     op: 'import',
     name: 'profiles.import',
@@ -325,10 +324,10 @@ function readFileAsString(file: File): Promise<string> {
   });
 }
 
-export async function importDroppedProfile(
+export async function parseDroppedProfile(
   file: File,
   parsers: JSONParser[] = TRACE_JSON_PARSERS
-): Promise<ProfileGroup> {
+): Promise<ProfileInput> {
   const fileContents = await readFileAsString(file);
 
   for (const parser of parsers) {
@@ -339,7 +338,7 @@ export async function importDroppedProfile(
         throw new TypeError('Input JSON is not an object');
       }
 
-      return importProfile(json, file.name);
+      return json;
     }
   }
 

@@ -5,13 +5,13 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
-  importDroppedProfile,
-  ProfileGroup,
+  parseDroppedProfile,
+  ProfileInput,
 } from 'sentry/utils/profiling/profile/importProfile';
 
 export interface ProfileDragDropImportProps {
   children: React.ReactNode;
-  onImport: (profile: ProfileGroup) => void;
+  onImport: (input: ProfileInput) => void;
 }
 
 function ProfileDragDropImport({
@@ -32,7 +32,7 @@ function ProfileDragDropImport({
 
       if (file) {
         setDropState('processing');
-        importDroppedProfile(file)
+        parseDroppedProfile(file)
           .then(profile => {
             setDropState('idle');
             setErrorMessage(null);

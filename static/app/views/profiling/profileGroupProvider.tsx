@@ -1,44 +1,23 @@
 import {createContext, useContext, useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
-import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
-import {t} from 'sentry/locale';
-import type {EventTransaction, Organization, Project} from 'sentry/types';
-import {RequestState} from 'sentry/types/core';
-import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
-import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {defined} from 'sentry/utils';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphProfiles';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {
+  importProfile,
+  ProfileGroup,
+  ProfileInput,
+} from 'sentry/utils/profiling/profile/importProfile';
 
-function fetchFlamegraphs(
-  api: Client,
-  eventId: string,
-  projectId: Project['id'],
-  organization: Organization
-): Promise<ProfileGroup> {
-  return api
-    .requestPromise(
-      `/projects/${organization.slug}/${projectId}/profiling/profiles/${eventId}/`,
-      {
-        method: 'GET',
-        includeAllArgs: true,
-      }
-    )
-    .then(([data]) => importProfile(data, eventId));
-}
+import {
+  useDispatchFlamegraphState,
+  useFlamegraphState,
+} from '../../utils/profiling/flamegraph/hooks/useFlamegraphState';
 
-interface FlamegraphViewProps {
-  children: React.ReactNode;
-}
+type ProfileGroupContextValue = ProfileGroup;
 
-type ProfileGroupContextValue = RequestState<ProfileGroup>;
-type SetProfileGroupContextValue = React.Dispatch<
-  React.SetStateAction<RequestState<ProfileGroup>>
->;
 const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
-const SetProfileGroupContext = createContext<SetProfileGroupContextValue | null>(null);
 
 export function useProfileGroup() {
   const context = useContext(ProfileGroupContext);
@@ -48,80 +27,148 @@ export function useProfileGroup() {
   return context;
 }
 
-export function useSetProfileGroup() {
-  const context = useContext(SetProfileGroupContext);
-  if (!context) {
-    throw new Error('useSetProfileGroup was called outside of SetProfileGroupProvider');
+type FlamegraphCandidate = {
+  frame: FlamegraphFrame;
+  threadId: number;
+  isActiveThread?: boolean; // this is the thread referred to by the active profile index
+};
+
+function findLongestMatchingFrame(
+  flamegraph: Flamegraph,
+  focusFrame: FlamegraphProfiles['highlightFrames']
+): FlamegraphFrame | null {
+  if (focusFrame === null) {
+    return null;
   }
-  return context;
-}
 
-const ProfileTransactionContext =
-  createContext<RequestState<EventTransaction | null> | null>(null);
+  let longestFrame: FlamegraphFrame | null = null;
 
-export function useProfileTransaction() {
-  const context = useContext(ProfileTransactionContext);
-  if (!context) {
-    throw new Error(
-      'useProfileTransaction was called outside of ProfileTransactionContext'
-    );
-  }
-  return context;
-}
-
-function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
-  const api = useApi();
-  const organization = useOrganization();
-  const params = useParams();
-
-  const [profileGroupState, setProfileGroupState] = useState<RequestState<ProfileGroup>>({
-    type: 'initial',
-  });
-
-  const profileTransaction = useSentryEvent<EventTransaction>(
-    params.orgId,
-    params.projectId,
-    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
-  );
-
-  useEffect(() => {
-    if (!params.eventId || !params.projectId) {
-      return undefined;
+  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
+  while (frames.length > 0) {
+    const frame = frames.pop()!;
+    if (
+      focusFrame.name === frame.frame.name &&
+      // the image name on a frame is optional,
+      // treat it the same as the empty string
+      focusFrame.package === (frame.frame.image || '') &&
+      (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
+    ) {
+      longestFrame = frame;
     }
 
-    setProfileGroupState({type: 'loading'});
+    for (let i = 0; i < frame.children.length; i++) {
+      frames.push(frame.children[i]);
+    }
+  }
 
-    fetchFlamegraphs(api, params.eventId, params.projectId, organization)
-      .then(importedFlamegraphs => {
-        setProfileGroupState({type: 'resolved', data: importedFlamegraphs});
-      })
-      .catch(err => {
-        const message = err.toString() || t('Error: Unable to load profiles');
-        setProfileGroupState({type: 'errored', error: message});
-        Sentry.captureException(err);
+  return longestFrame;
+}
+
+const LoadingGroup: ProfileGroup = {
+  name: 'Loading',
+  activeProfileIndex: 0,
+  transactionID: null,
+  metadata: {},
+  measurements: {},
+  traceID: '',
+  profiles: [],
+};
+
+interface ProfileGroupProviderProps {
+  children: React.ReactNode;
+  input: ProfileInput | null;
+  traceID: string;
+}
+
+export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
+  const [state] = useFlamegraphState();
+  const dispatch = useDispatchFlamegraphState();
+  const [profileGroup, setProfileGroup] = useState<ProfileGroup>(LoadingGroup);
+
+  useEffect(() => {
+    if (!props.input) {
+      return;
+    }
+
+    setProfileGroup(importProfile(props.input, props.traceID));
+  }, [props.input, props.traceID]);
+
+  useEffect(() => {
+    const threadId =
+      typeof profileGroup.activeProfileIndex === 'number'
+        ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
+        : null;
+
+    // if the state has a highlight frame specified, then we want to jump to the
+    // thread containing it, highlight the frames on the thread, and change the
+    // view so it's obvious where it is
+    if (state.profiles.highlightFrames) {
+      const candidate = profileGroup.profiles.reduce<FlamegraphCandidate | null>(
+        (prevCandidate, profile) => {
+          // if the previous candidate is the active thread, it always takes priority
+          if (prevCandidate?.isActiveThread) {
+            return prevCandidate;
+          }
+
+          const flamegraph = new Flamegraph(profile, profile.threadId, {
+            inverted: false,
+            leftHeavy: false,
+            configSpace: undefined,
+          });
+
+          const frame = findLongestMatchingFrame(
+            flamegraph,
+            state.profiles.highlightFrames
+          );
+
+          if (!defined(frame)) {
+            return prevCandidate;
+          }
+
+          const newScore = frame.node.totalWeight || 0;
+          const oldScore = prevCandidate?.frame?.node?.totalWeight || 0;
+
+          // if we find the frame on the active thread, it always takes priority
+          if (newScore > 0 && profile.threadId === threadId) {
+            return {
+              frame,
+              threadId: profile.threadId,
+              isActiveThread: true,
+            };
+          }
+
+          return newScore <= oldScore
+            ? prevCandidate
+            : {
+                frame,
+                threadId: profile.threadId,
+              };
+        },
+        null
+      );
+
+      if (defined(candidate)) {
+        dispatch({
+          type: 'set thread id',
+          payload: candidate.threadId,
+        });
+        return;
+      }
+    }
+
+    // fall back case, when we finally load the active profile index from the profile,
+    // make sure we update the thread id so that it is show first
+    if (defined(threadId)) {
+      dispatch({
+        type: 'set thread id',
+        payload: threadId,
       });
-
-    return () => {
-      api.clear();
-    };
-  }, [params.eventId, params.projectId, api, organization]);
+    }
+  }, [profileGroup, state.profiles.highlightFrames, dispatch]);
 
   return (
-    <ProfileGroupContext.Provider value={profileGroupState}>
-      <SetProfileGroupContext.Provider value={setProfileGroupState}>
-        <ProfileTransactionContext.Provider value={profileTransaction}>
-          <ProfileHeader
-            eventId={params.eventId}
-            projectId={params.projectId}
-            transaction={
-              profileTransaction.type === 'resolved' ? profileTransaction.data : null
-            }
-          />
-          {props.children}
-        </ProfileTransactionContext.Provider>
-      </SetProfileGroupContext.Provider>
+    <ProfileGroupContext.Provider value={profileGroup}>
+      {props.children}
     </ProfileGroupContext.Provider>
   );
 }
-
-export default ProfileGroupProvider;

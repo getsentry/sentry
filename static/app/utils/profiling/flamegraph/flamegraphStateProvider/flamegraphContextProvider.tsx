@@ -1,12 +1,8 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
-import {defined} from 'sentry/utils';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {FlamegraphProfiles} from './reducers/flamegraphProfiles';
 import {
@@ -17,43 +13,6 @@ import {
   FlamegraphStateValue,
   FlamegraphStateValueContext,
 } from './flamegraphContext';
-
-type FlamegraphCandidate = {
-  frame: FlamegraphFrame;
-  threadId: number;
-  isActiveThread?: boolean; // this is the thread referred to by the active profile index
-};
-
-function findLongestMatchingFrame(
-  flamegraph: Flamegraph,
-  focusFrame: FlamegraphProfiles['highlightFrames']
-): FlamegraphFrame | null {
-  if (focusFrame === null) {
-    return null;
-  }
-
-  let longestFrame: FlamegraphFrame | null = null;
-
-  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
-  while (frames.length > 0) {
-    const frame = frames.pop()!;
-    if (
-      focusFrame.name === frame.frame.name &&
-      // the image name on a frame is optional,
-      // treat it the same as the empty string
-      focusFrame.package === (frame.frame.image || '') &&
-      (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
-    ) {
-      longestFrame = frame;
-    }
-
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
-    }
-  }
-
-  return longestFrame;
-}
 
 function isValidHighlightFrame(
   frame: Partial<FlamegraphProfiles['highlightFrames']> | null | undefined
@@ -69,7 +28,6 @@ interface FlamegraphStateProviderProps {
 export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
-  const profileGroup = useProfileGroup();
   const [state, dispatch, {nextState, previousState}] = useUndoableReducer(
     flamegraphStateReducer,
     {
@@ -92,6 +50,9 @@ export function FlamegraphStateProvider(
           DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
       },
       preferences: {
+        type:
+          props.initialState?.preferences?.type ??
+          DEFAULT_FLAMEGRAPH_STATE.preferences.type,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
           ...(props.initialState?.preferences?.timelines ?? {}),
@@ -118,89 +79,6 @@ export function FlamegraphStateProvider(
       },
     }
   );
-
-  useEffect(() => {
-    if (defined(state.profiles.threadId)) {
-      return;
-    }
-    const threadId =
-      profileGroup.type === 'resolved' &&
-      typeof profileGroup.data.activeProfileIndex === 'number'
-        ? profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId
-        : null;
-
-    // if the state has a highlight frame specified, then we want to jump to the
-    // thread containing it, highlight the frames on the thread, and change the
-    // view so it's obvious where it is
-    if (state.profiles.highlightFrames && profileGroup.type === 'resolved') {
-      const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate | null>(
-        (prevCandidate, profile) => {
-          // if the previous candidate is the active thread, it always takes priority
-          if (prevCandidate?.isActiveThread) {
-            return prevCandidate;
-          }
-
-          const flamegraph = new Flamegraph(profile, profile.threadId, {
-            inverted: false,
-            leftHeavy: false,
-            configSpace: undefined,
-          });
-
-          const frame = findLongestMatchingFrame(
-            flamegraph,
-            state.profiles.highlightFrames
-          );
-
-          if (!defined(frame)) {
-            return prevCandidate;
-          }
-
-          const newScore = frame.node.totalWeight || 0;
-          const oldScore = prevCandidate?.frame?.node?.totalWeight || 0;
-
-          // if we find the frame on the active thread, it always takes priority
-          if (newScore > 0 && profile.threadId === threadId) {
-            return {
-              frame,
-              threadId: profile.threadId,
-              isActiveThread: true,
-            };
-          }
-
-          return newScore <= oldScore
-            ? prevCandidate
-            : {
-                frame,
-                threadId: profile.threadId,
-              };
-        },
-        null
-      );
-
-      if (defined(candidate)) {
-        dispatch({
-          type: 'set thread id',
-          payload: candidate.threadId,
-        });
-        return;
-      }
-    }
-
-    // fall back case, when we finally load the active profile index from the profile,
-    // make sure we update the thread id so that it is show first
-    if (defined(threadId)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadId,
-      });
-    }
-  }, [
-    props.initialState?.profiles?.threadId,
-    profileGroup,
-    state,
-    dispatch,
-    state.profiles.highlightFrames,
-  ]);
 
   const flamegraphContextValue: FlamegraphStateValue = useMemo(() => {
     return [state, {nextState, previousState}];

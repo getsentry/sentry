@@ -5,7 +5,7 @@ import {RequestState} from 'sentry/types';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeSentrySampledProfile} from 'sentry/utils/profiling/profile/sentrySampledProfile.spec';
 
-import * as profileGroupProviderMod from '../../profileGroupProvider';
+import * as profileGroupProviderMod from '../../profilesProvider';
 
 import {ProfileDetailsTable} from './profileDetailsTable';
 

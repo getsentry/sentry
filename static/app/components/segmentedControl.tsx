@@ -62,7 +62,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
       <LayoutGroup id={radioGroupProps.id}>
-        {[...collectionList].map(option => (
+        {collectionList.map(option => (
           <Segment
             {...option.props}
             key={option.key}
@@ -108,7 +108,7 @@ function Segment({
 }: SegmentProps) {
   const ref = useRef<HTMLInputElement>(null);
 
-  const {inputProps} = useRadio({...props}, state, ref);
+  const {inputProps} = useRadio(props, state, ref);
 
   const prevOptionIsSelected = state.selectedValue === prevKey;
   const nextOptionIsSelected = state.selectedValue === nextKey;
@@ -129,7 +129,7 @@ function Segment({
       {isSelected && (
         <SegmentSelectionIndicator
           layoutId={layoutGroupId}
-          transition={{type: 'tween', ease: 'circOut', duration: 0.2}}
+          transition={{type: 'tween', ease: 'easeInOut', duration: 0.12}}
           priority={priority}
           aria-hidden
         />

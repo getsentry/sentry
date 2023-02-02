@@ -13,13 +13,27 @@ import space from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {
   generateProfileDetailsRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+
+import {ProfileInput} from '../../utils/profiling/profile/importProfile';
+
+function getTransactionName(input: ProfileInput): string {
+  if (isSchema(input)) {
+    return input.metadata.transactionName;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transactions?.[0]?.name || t('Unknown Transaction');
+  }
+
+  return t('Unknown Transaction');
+}
 
 interface ProfileHeaderProps {
   eventId: string;
@@ -30,9 +44,10 @@ interface ProfileHeaderProps {
 function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const profileGroup = useProfileGroup();
+  const profiles = useProfiles();
 
-  const transactionName = profileGroup.type === 'resolved' ? profileGroup.data.name : '';
+  const transactionName =
+    profiles.type === 'resolved' ? getTransactionName(profiles.data) : '';
   const profileId = eventId ?? '';
   const projectSlug = projectId ?? '';
 
