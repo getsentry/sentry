@@ -1123,35 +1123,6 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
-    def test_project(self):
-        p1 = self.create_project(organization=self.organization)
-        p2 = self.create_project(organization=self.organization)
-
-        params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter(f"project:{p1.slug}", params)
-        assert _filter.conditions == [["project_id", "=", p1.id]]
-        assert _filter.filter_keys == {"project_id": [p1.id]}
-        assert _filter.project_ids == [p1.id]
-
-        params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter(f"!project.name:{p1.slug}", params)
-        assert _filter.conditions == [
-            [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
-        ]
-        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        assert _filter.project_ids == [p1.id, p2.id]
-
-        with pytest.raises(InvalidSearchQuery) as exc_info:
-            params = {"project_id": []}
-            get_filter(f"project.name:{p1.slug}", params)
-
-        exc = exc_info.value
-        exc_str = f"{exc}"
-        assert (
-            f"Invalid query. Project(s) {p1.slug} do not exist or are not actively selected."
-            in exc_str
-        )
-
     def test_project_name(self):
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)

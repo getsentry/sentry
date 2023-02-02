@@ -157,7 +157,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         converted_filters: list[Optional[Sequence[Any]]] = []
         for search_filter in search_filters or ():
             conditions, projects_to_filter, group_ids = format_search_filter(
-                # convert_search_filter_to_snuba_query(
                 search_filter,
                 params={
                     "organization_id": organization_id,
