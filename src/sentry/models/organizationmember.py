@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -407,7 +407,7 @@ class OrganizationMember(Model):
     def get_org_roles_from_teams(self):
         # results in an extra query when calling get_scopes()
         return list(
-            self.teams.all().filter(~Q(org_role=None)).values_list("org_role", flat=True).distinct()
+            self.teams.all().exclude(org_role=None).values_list("org_role", flat=True).distinct()
         )
 
     def get_all_org_roles(self):

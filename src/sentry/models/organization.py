@@ -7,7 +7,7 @@ from typing import FrozenSet, Optional, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -629,7 +629,7 @@ class Organization(Model, SnowflakeIdMixin):
         if role:
             return Team.objects.filter(org_role=role, organization=self)
 
-        return Team.objects.filter(~Q(org_role=None), organization=self)
+        return Team.objects.filter(organization=self).exclude(org_role=None)
 
     # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
     @classmethod
