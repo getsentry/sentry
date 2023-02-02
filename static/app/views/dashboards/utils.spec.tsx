@@ -15,6 +15,7 @@ import {
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
   isCustomMeasurementWidget,
+  isWidgetUsingTransactionName,
 } from 'sentry/views/dashboards/utils';
 
 describe('Dashboards util', () => {
@@ -393,5 +394,37 @@ describe('Dashboards util', () => {
         })
       ).toBe(false);
     });
+  });
+});
+
+describe('isWidgetUsingTransactionName', () => {
+  let baseQuery;
+  beforeEach(() => {
+    baseQuery = {
+      displayType: 'line',
+      interval: '5m',
+      queryConditions: ['title:test', 'event.type:test'],
+      queryFields: ['count()', 'failure_count()'],
+      queryNames: ['1', '2'],
+      queryOrderby: '',
+      title: 'Widget Title',
+    };
+  });
+
+  it('returns false when widget does not use transaction', () => {
+    const widget = constructWidgetFromQuery(baseQuery)!;
+    expect(isWidgetUsingTransactionName(widget)).toEqual(false);
+  });
+
+  it('returns true when widget uses transaction as a selected field', () => {
+    baseQuery.queryFields.push('transaction');
+    const widget = constructWidgetFromQuery(baseQuery)!;
+    expect(isWidgetUsingTransactionName(widget)).toEqual(true);
+  });
+
+  it('returns true when widget uses transaction as part of the query filter', () => {
+    baseQuery.queryConditions = ['transaction:test'];
+    const widget = constructWidgetFromQuery(baseQuery)!;
+    expect(isWidgetUsingTransactionName(widget)).toEqual(true);
   });
 });
