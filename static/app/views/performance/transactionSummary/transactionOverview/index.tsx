@@ -90,7 +90,11 @@ function OverviewContentWrapper(props: ChildProps) {
   } = props;
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, location);
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location
+  );
 
   const queryData = useDiscoverQuery({
     eventView: getTotalsEventView(organization, eventView),

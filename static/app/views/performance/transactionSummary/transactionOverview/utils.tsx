@@ -1,16 +1,23 @@
 import {Location} from 'history';
 
-import {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {Organization} from 'sentry/types';
+import {
+  canUseMetricsData,
+  MetricsEnhancedSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 
 const DISPLAY_MAP_DENY_LIST = [DisplayModes.TREND];
 
-export function getTransactionMEPParamsIfApplicable(
-  mepContext: MetricsEnhancedSettingContext,
-  location: Location
-) {
+export function canUseTransactionMetricsData(organization, location) {
+  const isUsingMetrics = canUseMetricsData(organization);
+
+  if (!isUsingMetrics) {
+    return false;
+  }
+
   const display = decodeScalar(
     location.query.display,
     DisplayModes.DURATION
@@ -20,16 +27,28 @@ export function getTransactionMEPParamsIfApplicable(
 
   // certain charts aren't compatible with metrics
   if (DISPLAY_MAP_DENY_LIST.includes(display)) {
-    return undefined;
+    return false;
   }
 
   // span op breakdown filters aren't compatible with metrics
   if (breakdown) {
-    return undefined;
+    return false;
   }
 
   // in the short term, using any filter will force indexed event search
   if (query) {
+    return false;
+  }
+
+  return true;
+}
+
+export function getTransactionMEPParamsIfApplicable(
+  mepContext: MetricsEnhancedSettingContext,
+  organization: Organization,
+  location: Location
+) {
+  if (!canUseTransactionMetricsData(organization, location)) {
     return undefined;
   }
 

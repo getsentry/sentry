@@ -6,6 +6,7 @@ import {WebVital} from 'sentry/utils/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import toArray from 'sentry/utils/toArray';
+import useOrganization from 'sentry/utils/useOrganization';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {VitalBar} from '../landing/vitalsCards';
@@ -49,7 +50,12 @@ function VitalInfo({
   };
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, location);
+  const organization = useOrganization();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location
+  );
 
   return (
     <VitalsCardDiscoverQuery

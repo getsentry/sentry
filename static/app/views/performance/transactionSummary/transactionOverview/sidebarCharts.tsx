@@ -247,7 +247,11 @@ function SidebarChartsContainer({
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, location);
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location
+  );
 
   const axisLineConfig = {
     scale: true,
