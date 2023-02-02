@@ -555,6 +555,7 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[]
 register("sentry-metrics.cardinality-limiter.limits.performance.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
+register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
@@ -595,6 +596,7 @@ register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
 register("performance.issues.render_blocking_assets.fcp_minimum_threshold", default=2000.0)
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
+register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases

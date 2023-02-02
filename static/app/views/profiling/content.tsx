@@ -121,8 +121,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     'profiling-dashboard-redesign'
   );
 
-  // isNewProfilingDashboardEnabled = false;
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -256,7 +254,7 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = typeof FIELDS[number];
+type FieldType = (typeof FIELDS)[number];
 
 const ActionBar = styled('div')`
   display: grid;

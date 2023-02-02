@@ -96,6 +96,8 @@ export type IssueEventParameters = {
   };
   'issues_tab.viewed': {
     num_issues: number;
+    num_new_issues: number;
+    num_old_issues: number;
     num_perf_issues: number;
     page: number;
     query: string;

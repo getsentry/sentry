@@ -410,6 +410,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             alert_rule = create_alert_rule(
                 user=self.context.get("user", None),
                 organization=self.context["organization"],
+                ip_address=self.context.get("ip_address"),
                 **validated_data,
             )
             self._handle_triggers(alert_rule, triggers)
@@ -421,7 +422,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             validated_data.pop("id")
         with transaction.atomic():
             alert_rule = update_alert_rule(
-                instance, user=self.context.get("user", None), **validated_data
+                instance,
+                user=self.context.get("user", None),
+                ip_address=self.context.get("ip_address"),
+                **validated_data,
             )
             self._handle_triggers(alert_rule, triggers)
             return alert_rule

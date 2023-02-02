@@ -1,4 +1,4 @@
-import {CSSProperties, Fragment} from 'react';
+import {CSSProperties, Fragment, SyntheticEvent} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -13,12 +13,13 @@ import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/pro
 
 interface FunctionsMiniGridProps {
   functions: SuspectFunction[] | null;
+  onLinkClick: (e: SyntheticEvent) => void;
   organization: Organization;
   project: Project;
 }
 
 export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
-  const {organization, project, functions} = props;
+  const {organization, project, functions, onLinkClick} = props;
 
   const linkToFlamechartRoute = (
     profileId: string,
@@ -36,24 +37,27 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
   return (
     <FunctionsMiniGridContainer>
       <FunctionsMiniGridHeader>{t('Slowest app functions')}</FunctionsMiniGridHeader>
-      <FunctionsMiniGridHeader align="right">{t('P99')}</FunctionsMiniGridHeader>
+      <FunctionsMiniGridHeader align="right">{t('P95')}</FunctionsMiniGridHeader>
       <FunctionsMiniGridHeader align="right">{t('Count')}</FunctionsMiniGridHeader>
 
       {functions &&
         functions.map((f, idx) => {
-          const [exampleProfileIdRaw] = f.examples;
+          const exampleProfileIdRaw = f.worst;
           const exampleProfileId = exampleProfileIdRaw.replaceAll('-', '');
           return (
             <Fragment key={idx}>
               <FunctionsMiniGridCell title={f.name}>
                 <FunctionNameTextTruncate>
-                  <Link to={linkToFlamechartRoute(exampleProfileId, f.name, f.package)}>
+                  <Link
+                    to={linkToFlamechartRoute(exampleProfileId, f.name, f.package)}
+                    onClick={onLinkClick}
+                  >
                     {f.name}
                   </Link>
                 </FunctionNameTextTruncate>
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
-                <PerformanceDuration nanoseconds={f.p99} abbreviation />
+                <PerformanceDuration nanoseconds={f.p95} abbreviation />
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
                 <NumberContainer>{f.count}</NumberContainer>

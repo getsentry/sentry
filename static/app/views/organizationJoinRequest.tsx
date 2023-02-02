@@ -68,7 +68,7 @@ class OrganizationJoinRequest extends Component<Props, State> {
     return (
       <NarrowLayout maxWidth="650px">
         <StyledIconMegaphone size="xxl" />
-        <StyledHeader>{t('Request to Join')}</StyledHeader>
+        <StyledHeader data-test-id="join-request">{t('Request to Join')}</StyledHeader>
         <StyledText>
           {tct('Ask the admins if you can join the [orgId] organization.', {
             orgId: params.orgId,

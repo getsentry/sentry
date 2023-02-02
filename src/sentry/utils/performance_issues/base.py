@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import random
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from sentry import options
 from sentry.eventstore.models import Event
@@ -135,3 +136,44 @@ def get_span_duration(span: Span) -> timedelta:
     return timedelta(seconds=span.get("timestamp", 0)) - timedelta(
         seconds=span.get("start_timestamp", 0)
     )
+
+
+def get_url_from_span(span: Span) -> str:
+    data = span.get("data") or {}
+    url = data.get("url") or ""
+    if not url:
+        # If data is missing, fall back to description
+        description = span.get("description") or ""
+        parts = description.split(" ", 1)
+        if len(parts) == 2:
+            url = parts[1]
+
+    if type(url) is dict:
+        url = url.get("pathname") or ""
+
+    return url
+
+
+def fingerprint_spans(spans: List[Span]):
+    span_hashes = []
+    for span in spans:
+        hash = span.get("hash", "") or ""
+        span_hashes.append(str(hash))
+    joined_hashes = "-".join(span_hashes)
+    return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
+
+
+# Creates a stable fingerprint given the same span details using sha1.
+def fingerprint_span(span: Span):
+    op = span.get("op", None)
+    description = span.get("description", None)
+    if not description or not op:
+        return None
+
+    signature = (str(op) + str(description)).encode("utf-8")
+    full_fingerprint = hashlib.sha1(signature).hexdigest()
+    fingerprint = full_fingerprint[
+        :20
+    ]  # 80 bits. Not a cryptographic usage, we don't need all of the sha1 for collision detection
+
+    return fingerprint
