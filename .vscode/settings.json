@@ -83,8 +83,5 @@
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
   "python.formatting.provider": "black",
-  "python.testing.pytestArgs": [
-    "tests"
-  ],
-  "restructuredtext.pythonRecommendation.disabled": true
+  "python.testing.pytestArgs": ["tests"]
 }
