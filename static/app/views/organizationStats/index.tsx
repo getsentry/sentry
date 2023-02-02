@@ -162,8 +162,8 @@ export class OrganizationStats extends Component<Props> {
 
   /**
    * Note: Since we're not checking for 'global-views', orgs without that flag will only ever get
-   * the single page view. This is a trade-off of using the global project header,
-   * but creates product consistency, since it's a paid feature to view data across projects
+   * the single project view. This is a trade-off of using the global project header, but creates
+   * product consistency, since multi-project selection should be controlled by this flag.
    */
   get hasProjectStats(): boolean {
     return this.props.organization.features.includes('project-stats');
