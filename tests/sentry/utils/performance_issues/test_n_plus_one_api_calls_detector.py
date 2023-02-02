@@ -1,5 +1,4 @@
 from typing import Callable, List, cast
-from unittest.mock import call, patch
 from uuid import uuid4
 
 import pytest
@@ -137,27 +136,6 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         detector = NPlusOneAPICallsDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
-
-    @patch("sentry.utils.metrics.incr")
-    def test_reports_unusual_parameter_metrics(self, incr_mock):
-        NPlusOneAPICallsDetector.parameterize_url(
-            "/resource/00009whsfm7cF8niHp5h7x/details", "sentry.javascript.react"
-        )
-
-        incr_mock.assert_not_called()
-
-        NPlusOneAPICallsDetector.parameterize_url(
-            "/resource/user_00009whsfm7cF8niHp5h7x/details", "sentry.javascript.react"
-        )
-        incr_mock.assert_has_calls(
-            [
-                call(
-                    "performance.performance_issues.esoteric_url_parameter",
-                    sample_rate=1.0,
-                    tags={"sdk_name": "sentry.javascript.react"},
-                )
-            ]
-        )
 
     def test_fingerprints_events(self):
         event = self.create_event(lambda i: "GET /clients/info")
