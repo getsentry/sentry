@@ -428,7 +428,6 @@ def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
-        profile["deobfuscated"] = True
         return
 
     dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
