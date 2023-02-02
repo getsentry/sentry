@@ -10,6 +10,7 @@ import {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 
 export interface SegmentedControlItemProps<Value extends string> extends ItemProps<any> {
@@ -110,8 +111,8 @@ function Segment({
 
   const {inputProps} = useRadio({...props}, state, ref);
 
-  const prevOptionIsSelected = state.selectedValue === prevKey;
-  const nextOptionIsSelected = state.selectedValue === nextKey;
+  const prevOptionIsSelected = defined(prevKey) && state.selectedValue === prevKey;
+  const nextOptionIsSelected = defined(nextKey) && state.selectedValue === nextKey;
 
   const isSelected = state.selectedValue === props.value;
   const showDivider = !isSelected && !nextOptionIsSelected;
@@ -129,7 +130,7 @@ function Segment({
       {isSelected && (
         <SegmentSelectionIndicator
           layoutId={layoutGroupId}
-          transition={{type: 'tween', ease: 'circOut', duration: 0.2}}
+          transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
           priority={priority}
           aria-hidden
         />
@@ -153,7 +154,8 @@ function Segment({
 
 const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-auto-flow: column;
   background: ${p =>
     p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
   border: solid 1px ${p => p.theme.border};
@@ -245,7 +247,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
     p.priority === 'primary'
       ? p.theme.borderRadius
       : `calc(${p.theme.borderRadius} - 1px)`};
-  box-shadow: 0 0 2px rgba(43, 34, 51, 0.16);
+  box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
 
   input.focus-visible ~ & {
     box-shadow: ${p =>
@@ -323,6 +325,7 @@ const VisibleLabel = styled('span')<{
   font-weight: ${p => (p.isSelected ? 600 : 400)};
   letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
   text-align: center;
+  line-height: ${p => p.theme.text.lineHeightBody};
   ${getTextColor}
   ${p => p.theme.overflowEllipsis}
 `;
