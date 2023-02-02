@@ -50,7 +50,6 @@ CONTAINS_PARAMETER_REGEX = re.compile(
         ]
     )
 )
-ASSET_HASH_REGEX = re.compile(r"-[A-Fa-f0-9]{32}\.")  # Rails
 
 
 class EventPerformanceProblem:
@@ -542,10 +541,26 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         url_hash = self._url_hash(span)
         return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{url_hash}"
 
+    # Finds dash-separated UUIDs. (Without dashes will be caught by
+    # ASSET_HASH_REGEX).
+    UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
+    # Preserves filename in e.g. main.[hash].js, but includes number when chunks
+    # are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
+    CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
+    # Finds trailing hashes before the final extension.
+    TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
+    # Looks for anything hex hash-like, but with a larger min size than the
+    # above to limit false positives.
+    ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
+
     def _url_hash(self, span: Span) -> str:
         url = urlparse(span.get("description") or "")
-        stripped_path = ASSET_HASH_REGEX.sub("%s", url.path)
-        stripped_url = url._replace(path=stripped_path, query="").geturl()
+        path = url.path
+        path = self.UUID_REGEX.sub("%s", path)
+        path = self.CHUNK_HASH_REGEX.sub(".%s.chunk", path)
+        path = self.TRAILING_HASH_REGEX.sub("\\1%s.\\2", path)
+        path = self.ASSET_HASH_REGEX.sub("%s", path)
+        stripped_url = url._replace(path=path, query="").geturl()
         return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
 
 

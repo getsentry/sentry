@@ -19,6 +19,47 @@ from sentry.utils.performance_issues.performance_detection import (
     run_detector_on_data,
 )
 
+hash_config = load_span_grouping_config()
+
+
+def _valid_render_blocking_asset_event(url: str) -> Event:
+    event = {
+        "event_id": "a" * 16,
+        "project": PROJECT_ID,
+        "measurements": {
+            "fcp": {
+                "value": 2500.0,
+                "unit": "millisecond",
+            }
+        },
+        "spans": [
+            create_span(
+                "resource.script",
+                desc=url,
+                duration=1000.0,
+                data={
+                    "Transfer Size": 1200000,
+                    "Encoded Body Size": 1200000,
+                    "Decoded Body Size": 2000000,
+                },
+            ),
+        ],
+        "contexts": {
+            "trace": {
+                "span_id": "c" * 16,
+            }
+        },
+        "transaction": "/",
+    }
+    hash_config.execute_strategy(event).write_to_event(event)
+    return event
+
+
+def find_problems(settings, event: Event) -> List[PerformanceProblem]:
+    detector = RenderBlockingAssetSpanDetector(settings, event)
+    run_detector_on_data(detector, event)
+    return list(detector.stored_problems.values())
+
 
 @region_silo_test
 @pytest.mark.django_db
@@ -26,47 +67,12 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
-        self.hash_config = load_span_grouping_config()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = RenderBlockingAssetSpanDetector(self.settings, event)
-        run_detector_on_data(detector, event)
-        return list(detector.stored_problems.values())
-
-    def _valid_render_blocking_asset_event(self, url: str) -> Event:
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span(
-                    "resource.script",
-                    desc=url,
-                    duration=1000.0,
-                    data={
-                        "Transfer Size": 1200000,
-                        "Encoded Body Size": 1200000,
-                        "Decoded Body Size": 2000000,
-                    },
-                ),
-            ],
-            "contexts": {
-                "trace": {
-                    "span_id": "c" * 16,
-                }
-            },
-            "transaction": "/",
-        }
-        self.hash_config.execute_strategy(event).write_to_event(event)
-        return event
+    def find_problems(self, event):
+        return find_problems(self.settings, event)
 
     def test_detects_render_blocking_asset(self):
-        event = self._valid_render_blocking_asset_event("https://example.com/a.js")
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
         assert self.find_problems(event) == [
             PerformanceProblem(
                 fingerprint="1-1004-ba43281143a88ba902029356cb543dd0bff8f41c",
@@ -145,43 +151,6 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_assets_with_different_urls_have_different_fingerprints(self):
-        first_event = self._valid_render_blocking_asset_event("https://example.com/foo.js")
-        second_event = self._valid_render_blocking_asset_event("https://example.com/bar.js")
-
-        first_problems = self.find_problems(first_event)
-        second_problems = self.find_problems(second_event)
-
-        assert len(first_problems) == 1
-        assert len(second_problems) == 1
-        assert first_problems[0].fingerprint != second_problems[0].fingerprint
-
-    def test_assets_with_different_query_strings_have_same_fingerprint(self):
-        first_event = self._valid_render_blocking_asset_event("https://example.com/a.js?foo")
-        second_event = self._valid_render_blocking_asset_event("https://example.com/a.js?bar")
-
-        first_problems = self.find_problems(first_event)
-        second_problems = self.find_problems(second_event)
-
-        assert len(first_problems) == 1
-        assert len(second_problems) == 1
-        assert first_problems[0].fingerprint == second_problems[0].fingerprint
-
-    def test_assets_with_different_rails_content_hashes_have_same_fingerprint(self):
-        first_event = self._valid_render_blocking_asset_event(
-            "https://example.com/global-908e25f4bf641868d8683022a5b62f54.css"
-        )
-        second_event = self._valid_render_blocking_asset_event(
-            "https://example.com/global-c2abefee2aa141eeb2e61a2c6bbf0d53.css"
-        )
-
-        first_problems = self.find_problems(first_event)
-        second_problems = self.find_problems(second_event)
-
-        assert len(first_problems) == 1
-        assert len(second_problems) == 1
-        assert first_problems[0].fingerprint == second_problems[0].fingerprint
-
     def test_does_not_detect_if_too_small(self):
         event = {
             "event_id": "a" * 16,
@@ -221,3 +190,90 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
         assert self.find_problems(event) == []
+
+
+@pytest.mark.parametrize(
+    "expected,first_url,second_url",
+    [
+        # same path
+        (True, "/foo.js", "/foo.js"),
+        # different path
+        (False, "/foo.js", "/bar.js"),
+        # different query strings
+        (True, "/foo.js?bar", "/foo.js?baz"),
+        # same file chunks
+        (
+            True,
+            "/foo.6a7a65d8.chunk.js",
+            "/foo.9aa723de.chunk.js",
+        ),
+        # different file chunks
+        (
+            False,
+            "/foo.6a7a65d8.chunk.js",
+            "/bar.9aa723de.chunk.js",
+        ),
+        # numbered chunks
+        (True, "/2.6a7a65d8.chunk.js", "/3.9aa723de.chunk.js"),
+        # same file, trailing hashes (dot)
+        (True, "/foo.6a7a65d8.js", "/foo.9aa723de.js"),
+        # same file, trailing hashes (dash)
+        (
+            True,
+            "/foo-6a7a65d8bf641868d8683022a5b62f54.js",
+            "/foo-9aa723de2aa141eeb2e61a2c6bbf0d53.js",
+        ),
+        # same file, trailing hashes, different extension
+        (True, "/foo.6a7a65d8.woff2", "/foo.9aa723de.woff2"),
+        # different file, trailing hashes (dot)
+        (False, "/foo.6a7a65d8.js", "/bar.9aa723de.js"),
+        # different file, trailing hashes (dash)
+        (
+            False,
+            "/foo-6a7a65d8bf641868d8683022a5b62f54.js",
+            "/bar-9aa723de2aa141eeb2e61a2c6bbf0d53.js",
+        ),
+        # filename is just a hash
+        (
+            True,
+            "/6a7a65d8bf641868d868.js",
+            "/9aa723de2aa141eeb2e6.js",
+        ),
+        # filename is a hash, but too short to avoid false positives
+        (
+            False,
+            "/6a7a65d8.js",
+            "/9aa723de.js",
+        ),
+        # path contains a hash
+        (
+            True,
+            "/6a7a65d8bf641868d868/foo.js",
+            "/9aa723de2aa141eeb2e6/foo.js",
+        ),
+        # path contains a hash, but too short to avoid false positives
+        (
+            False,
+            "/6a7a65d8/foo.js",
+            "/9aa723de/foo.js",
+        ),
+        # filename is a UUID
+        (
+            True,
+            "/6a7a65d8-bf64-1868-d868-3022a5b62f54.js",
+            "/9aa723de-2aa1-41ee-b2e6-1a2c6bbf0d53.js",
+        ),
+    ],
+)
+def test_fingerprint_similarity(expected, first_url, second_url):
+    first_event = _valid_render_blocking_asset_event(first_url)
+    second_event = _valid_render_blocking_asset_event(second_url)
+    settings = get_detection_settings()
+    first_problems = find_problems(settings, first_event)
+    second_problems = find_problems(settings, second_event)
+    assert len(first_problems) == 1
+    assert len(second_problems) == 1
+    if expected:
+        assert first_problems[0].fingerprint == second_problems[0].fingerprint
+    else:
+        assert first_problems[0].fingerprint != second_problems[0].fingerprint
