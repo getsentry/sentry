@@ -13,7 +13,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.lang.javascript.processor import discover_sourcemap, fetch_file
 from sentry.models import (
     Distribution,
     Organization,
@@ -22,6 +21,7 @@ from sentry.models import (
     ReleaseFile,
     SourceMapProcessingIssue,
 )
+from sentry.utils.urls import non_standard_url_join
 
 
 class SourceMapProcessingIssueResponse(TypedDict):
@@ -89,10 +89,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         else:
             release = release_response
 
+        filename = self._get_filename(event, exception_idx, frame_idx)
+
         user_agent = release.user_agent
 
         if not user_agent:
-            return self._create_response(issue=SourceMapProcessingIssue.MISSING_USER_AGENT)
+            return self._create_response(
+                issue=SourceMapProcessingIssue.MISSING_USER_AGENT,
+                data={"version": release.version, "fileName": filename},
+            )
 
         num_artifacts = release.count_artifacts()
 
@@ -110,7 +115,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         release_artifacts = ReleaseFile.objects.filter(release_id=release.id)
 
         find_matching_artifact_response = self._find_matching_artifact(
-            release_artifacts, urlparts, abs_path
+            release_artifacts, urlparts, abs_path, filename
         )
 
         if type(find_matching_artifact_response) is Response:
@@ -118,13 +123,18 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         else:
             artifact = find_matching_artifact_response
 
-        dist_response = self._verify_dist_matches(release, event, artifact)
+        dist_response = self._verify_dist_matches(release, event, artifact, filename)
         if type(dist_response) is Response:
             return dist_response
-        else:
-            dist = dist_response
 
-        sourcemap_url = discover_sourcemap(fetch_file(artifact.name, project, release, dist))
+        sourcemap_url = self._discover_sourcemap_url(artifact)
+
+        if not sourcemap_url:
+            return self._create_response(
+                issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, data={"fileName": filename}
+            )
+
+        sourcemap_url = non_standard_url_join(sourcemap_url)
 
         sourcemap_artifact_response = self._find_matching_artifact(
             release_artifacts, urlparse(sourcemap_url), sourcemap_url
@@ -137,6 +147,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         sourcemap_dist_response = self._verify_dist_matches(release, event, sourcemap_artifact)
         if type(sourcemap_dist_response) is Response:
             return sourcemap_dist_response
+
+        if not sourcemap_artifact.file.getfile().read():
+            return self._create_response(
+                issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, data={"fileName": filename}
+            )
 
         return self._create_response()
 
@@ -154,16 +169,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         abs_path = frame.abs_path
         return abs_path
 
-    def _find_mathches(self, release_artifacts, urlparts):
-        full_matches = [
-            artifact
-            for artifact in release_artifacts
-            if urlparse(artifact.name).path == urlparts.path
-        ]
+    def _find_matches(self, release_artifacts, unified_path):
+        full_matches = [artifact for artifact in release_artifacts if artifact.name == unified_path]
         partial_matches = [
             artifact
             for artifact in release_artifacts
-            if artifact.name.endswith(urlparts.path.split("/")[-1])
+            if artifact.name.endswith(unified_path.split("/")[-1])
         ]
         return full_matches, partial_matches
 
@@ -181,7 +192,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         return release
 
-    def _verify_dist_matches(self, release, event, artifact, sourcemap=False):
+    def _verify_dist_matches(self, release, event, artifact, filename, sourcemap=False):
 
         dist_issue = (
             SourceMapProcessingIssue.DIST_MISMATCH
@@ -193,18 +204,23 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             dist = Distribution.objects.get(release=release, name=event.dist)
         except Distribution.DoesNotExist:
             return self._create_response(
-                issue=SourceMapProcessingIssue.DIST_NOT_FOUND, data={"eventDist": event.dist}
+                issue=SourceMapProcessingIssue.DIST_MISMATCH,
+                data={"eventDist": event.dist, "fileName": filename},
             )
 
         if artifact.dist_id != dist.id:
             return self._create_response(
                 issue=dist_issue,
-                data={"eventDist": dist.id, "artifactDist": artifact.dist_id},
+                data={"eventDist": dist.id, "artifactDist": artifact.dist_id, "fileName": filename},
             )
         return dist
 
-    def _find_matching_artifact(self, release_artifacts, urlparts, abs_path, sourcemap=False):
-        full_matches, partial_matches = self._find_mathches(release_artifacts, urlparts)
+    def _find_matching_artifact(
+        self, release_artifacts, urlparts, abs_path, filename, sourcemap=False
+    ):
+        full_matches, partial_matches = self._find_matches(
+            release_artifacts, self._unify_url(urlparts)
+        )
 
         partial_issue = (
             SourceMapProcessingIssue.PARTIAL_MATCH
@@ -221,7 +237,35 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             if len(partial_matches) > 0:
                 return self._create_response(
                     issue=partial_issue,
-                    data={"absPath": abs_path, "partialMatch": partial_matches[0].name},
+                    data={
+                        "absPath": abs_path,
+                        "partialMatchPath": partial_matches[0].name,
+                        "fileName": filename,
+                    },
                 )
-            return self._create_response(issue=no_match_issue, data={"absPath": abs_path})
+            return self._create_response(
+                issue=no_match_issue, data={"absPath": abs_path, "fileName": filename}
+            )
         return full_matches[0]
+
+    def _get_filename(self, event, exception_idx, frame_idx):
+        exceptions = event.interfaces["exception"].values
+        frame_list = exceptions[int(exception_idx)].stacktrace.frames
+        frame = frame_list[int(frame_idx)]
+        filename = frame.filename
+        return filename
+
+    def _unify_url(self, urlparts):
+        return "~" + urlparts.path
+
+    def _discover_sourcemap_url(self, artifact):
+        file = artifact.file
+        sourcemap_url = file.headers.get("Sourcemap") or file.headers.get("X-SourceMap")
+        if sourcemap_url:
+            return sourcemap_url
+
+        fp = file.getfile()
+        for line in fp.read().decode("utf-8").split("\n"):
+            if line.startswith("//# sourceMappingURL=") or line.startswith("//@ sourceMappingURL="):
+                sourcemap_url = line.split("=")[1].strip()
+                return sourcemap_url.decode("utf-8")
