@@ -1,9 +1,7 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -13,7 +11,6 @@ import {
   EntryType,
   Event,
   Group,
-  IssueAttachment,
   IssueCategory,
   Organization,
   Project,
@@ -21,7 +18,6 @@ import {
 } from 'sentry/types';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
-import useApi from 'sentry/utils/useApi';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
@@ -66,59 +62,12 @@ const EventEntries = ({
   isShare = false,
   showTagSummary = true,
 }: Props) => {
-  const api = useApi();
-
-  const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
-
   const orgSlug = organization.slug;
   const projectSlug = project.slug;
   const orgFeatures = organization?.features ?? [];
 
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-
-  const fetchAttachments = useCallback(async () => {
-    if (!event || isShare || !hasEventAttachmentsFeature) {
-      return;
-    }
-
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/`
-      );
-      setAttachments(response);
-    } catch (error) {
-      Sentry.captureException(error);
-      addErrorMessage('An error occurred while fetching attachments');
-    }
-  }, [api, event, hasEventAttachmentsFeature, isShare, orgSlug, projectSlug]);
-
-  const handleDeleteAttachment = useCallback(
-    async (attachmentId: IssueAttachment['id']) => {
-      if (!event) {
-        return;
-      }
-
-      try {
-        await api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/${attachmentId}/`,
-          {
-            method: 'DELETE',
-          }
-        );
-
-        setAttachments(attachments.filter(attachment => attachment.id !== attachmentId));
-      } catch (error) {
-        Sentry.captureException(error);
-        addErrorMessage('An error occurred while deleting the attachment');
-      }
-    },
-    [api, attachments, event, orgSlug, projectSlug]
-  );
-
-  useEffect(() => {
-    fetchAttachments();
-  }, [fetchAttachments]);
 
   if (!event) {
     return (
@@ -158,8 +107,6 @@ const EventEntries = ({
           location={location}
           isShare={isShare}
           hasContext={hasContext}
-          attachments={attachments}
-          onDeleteScreenshot={handleDeleteAttachment}
         />
       )}
       <EventEvidence event={event} group={group} />
@@ -176,23 +123,11 @@ const EventEntries = ({
       {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
       {!isShare &&
         organization.features?.includes('mobile-view-hierarchies') &&
-        hasEventAttachmentsFeature &&
-        !!attachments.filter(attachment => attachment.type === 'event.view_hierarchy')
-          .length && (
-          <EventViewHierarchy
-            projectSlug={projectSlug}
-            viewHierarchies={attachments.filter(
-              attachment => attachment.type === 'event.view_hierarchy'
-            )}
-          />
+        hasEventAttachmentsFeature && (
+          <EventViewHierarchy event={event} projectSlug={projectSlug} />
         )}
       {!isShare && hasEventAttachmentsFeature && (
-        <EventAttachments
-          event={event}
-          projectSlug={projectSlug}
-          attachments={attachments}
-          onDeleteAttachment={handleDeleteAttachment}
-        />
+        <EventAttachments event={event} projectSlug={projectSlug} />
       )}
       {event.sdk && !objectIsEmpty(event.sdk) && (
         <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />

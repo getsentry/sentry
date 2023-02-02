@@ -115,6 +115,7 @@ describe('EventTagsAndScreenshot', function () {
     organization: {
       orgRole: 'member',
       attachmentsRole: 'member',
+      features: ['event-attachments'],
       orgRoleList: [
         {
           id: 'member',
@@ -151,7 +152,32 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
+      body: [],
+    });
+  });
+
   describe('renders tags only', function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+    });
+
     it('not shared event - without attachments', function () {
       const {container} = render(
         <EventTagsAndScreenshot
@@ -159,10 +185,9 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          attachments={[]}
-          onDeleteScreenshot={() => jest.fn()}
           hasContext
-        />
+        />,
+        {organization}
       );
 
       // Screenshot Container
@@ -210,11 +235,10 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          attachments={[]}
-          onDeleteScreenshot={() => jest.fn()}
           hasContext
           isShare
-        />
+        />,
+        {organization}
       );
 
       // Screenshot Container
@@ -233,8 +257,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          attachments={attachments}
-          onDeleteScreenshot={() => jest.fn()}
           hasContext
           isShare
         />
@@ -251,19 +273,11 @@ describe('EventTagsAndScreenshot', function () {
   });
 
   describe('renders screenshot only', function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/repos/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/',
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
-      body: [],
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: attachments,
+      });
     });
 
     it('no context and no tags', async function () {
@@ -275,20 +289,19 @@ describe('EventTagsAndScreenshot', function () {
             organization={organization}
             projectSlug={project.slug}
             location={router.location}
-            attachments={attachments}
-            onDeleteScreenshot={() => jest.fn()}
             hasContext={false}
           />
-        </Fragment>
+        </Fragment>,
+        {organization}
       );
 
       // Tags Container
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
 
       // Screenshot Container
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshot'
-      );
+      expect(
+        (await screen.findByTestId('screenshot-data-section'))?.textContent
+      ).toContain('Screenshot');
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
@@ -320,21 +333,27 @@ describe('EventTagsAndScreenshot', function () {
   });
 
   describe('renders screenshot and tags', function () {
-    it('has context, tags and attachments', function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: attachments,
+      });
+    });
+
+    it('has context, tags and attachments', async function () {
       const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          attachments={attachments}
-          onDeleteScreenshot={() => jest.fn()}
           hasContext
-        />
+        />,
+        {organization}
       );
 
       // Screenshot Container
-      expect(screen.getByText('View screenshot')).toBeInTheDocument();
+      expect(await screen.findByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
@@ -362,7 +381,8 @@ describe('EventTagsAndScreenshot', function () {
       expect(container).toSnapshot();
     });
 
-    it('renders multiple screenshots correctly', function () {
+    it('renders multiple screenshots correctly', async function () {
+      MockApiClient.clearMockResponses();
       const moreAttachments = [
         ...attachments,
         {
@@ -377,21 +397,24 @@ describe('EventTagsAndScreenshot', function () {
           event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
         },
       ];
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: moreAttachments,
+      });
       render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          attachments={moreAttachments}
-          onDeleteScreenshot={() => jest.fn()}
           hasContext
-        />
+        />,
+        {organization}
       );
 
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        '1 of 2'
-      );
+      expect(
+        (await screen.findByTestId('screenshot-data-section'))?.textContent
+      ).toContain('1 of 2');
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
@@ -412,23 +435,22 @@ describe('EventTagsAndScreenshot', function () {
       );
     });
 
-    it('has context and attachments only', function () {
+    it('has context and attachments only', async function () {
       const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, contexts}}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          attachments={attachments}
-          onDeleteScreenshot={() => jest.fn()}
           hasContext
-        />
+        />,
+        {organization}
       );
 
       // Screenshot Container
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshot'
-      );
+      expect(
+        (await screen.findByTestId('screenshot-data-section'))?.textContent
+      ).toContain('Screenshot');
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
@@ -447,23 +469,22 @@ describe('EventTagsAndScreenshot', function () {
       expect(container).toSnapshot();
     });
 
-    it('has tags and attachments only', function () {
+    it('has tags and attachments only', async function () {
       const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          attachments={attachments}
-          onDeleteScreenshot={() => jest.fn()}
           hasContext={false}
-        />
+        />,
+        {organization}
       );
 
       // Screenshot Container
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshot'
-      );
+      expect(
+        (await screen.findByTestId('screenshot-data-section'))?.textContent
+      ).toContain('Screenshot');
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
