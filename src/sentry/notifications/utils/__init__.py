@@ -486,6 +486,8 @@ class PerformanceProblemContext:
     ) -> PerformanceProblemContext:
         if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
             return NPlusOneAPICallProblemContext(problem, spans)
+        if problem.type == GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES:
+            return ConsecutiveDBQueriesProblemContext(problem, spans)
         else:
             return cls(problem, spans)
 
@@ -533,3 +535,48 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
         return [
             "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
         ]
+
+
+class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
+    def to_dict(self) -> Dict[str, any]:
+        return {
+            "span_evidence_key_value": [
+                {"key": "Starting Span", "value": self.starting_span},
+                {
+                    "key": "Parallelizable Spans",
+                    "value": self.parallelizable_spans,
+                    "is_multi_value": True,
+                },
+            ],
+        }
+
+    @property
+    def starting_span(self) -> str:
+        if not self.problem.cause_span_ids or len(self.problem.cause_span_ids) < 1:
+            return ""
+
+        starting_span_id = self.problem.cause_span_ids[0]
+
+        return self._find_span_desc_by_id(starting_span_id)
+
+    @property
+    def parallelizable_spans(self) -> List[str]:
+        if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
+            return ""
+
+        offender_span_ids = self.problem.offender_span_ids
+
+        return [self._find_span_desc_by_id(id) for id in offender_span_ids]
+
+    @property
+    def duration_impact(self) -> str:
+        return str(self._calculate_time_saved())
+
+    def _find_span_desc_by_id(self, id) -> str:
+        return get_span_evidence_value(self._find_span_by_id(id))
+
+    def _find_span_by_id(self, id) -> str:
+        for span in self.spans:
+            span_id = span.get("span_id", "") or ""
+            if span_id == id:
+                return span
