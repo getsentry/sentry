@@ -705,8 +705,16 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return self.settings["detection_rate"] > random.random()
 
     @classmethod
-    def is_event_eligible(cls, event) -> bool:
+    def is_event_eligible(cls, event, project: Project = None) -> bool:
+        request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
+
+        if request:
+            url = request.get("url", "") or ""
+            method = request.get("method", "") or ""
+            if url.endswith("/graphql") and method.lower() in ["post", "get"]:
+                return False
+
         return "php" not in sdk_name.lower()
 
 
