@@ -204,9 +204,9 @@ class ConsecutiveDbDetectorTest(TestCase):
                 span_duration,
                 "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
             ),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
             create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
         ]
         spans_1 = [
@@ -219,11 +219,11 @@ class ConsecutiveDbDetectorTest(TestCase):
                 span_duration,
                 "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
             ),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
-            create_span("db", 10, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
+            create_span("db", 20, "SELECT `customer`.`id` FROM `customers`..."),
             create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
         ]
         spans_2 = [
