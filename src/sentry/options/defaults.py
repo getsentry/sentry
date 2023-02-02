@@ -555,6 +555,7 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[]
 register("sentry-metrics.cardinality-limiter.limits.performance.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
+register("sentry-metrics.cardinality-limiter-release-health.orgs-rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
