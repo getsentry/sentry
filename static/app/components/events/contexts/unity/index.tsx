@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event, UnityContext} from 'sentry/types';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {getUnityKnownDataDetails, unityKnownDataValues} from './getUnityKnownDataDetails';
 
@@ -22,7 +22,7 @@ export function UnityEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<UnityContext, keyof typeof unityKnownDataValues>({
+        data={getKnownData<UnityContext, keyof typeof unityKnownDataValues>({
           data,
           meta,
           knownDataTypes: unityKnownDataValues,

@@ -210,9 +210,12 @@ describe('StacktraceLink', function () {
       body: {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
-        codecovUrl: 'https://app.codecov.io/gh/path/to/file.py',
         integrations: [integration],
-        codecovStatusCode: CodecovStatusCode.COVERAGE_EXISTS,
+        codecov: {
+          status: CodecovStatusCode.COVERAGE_EXISTS,
+          lineCoverage: [[233, 0]],
+          coverageUrl: 'https://app.codecov.io/gh/path/to/file.py',
+        },
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
@@ -220,12 +223,12 @@ describe('StacktraceLink', function () {
       organization,
     });
 
-    expect(await screen.findByText('View Coverage Tests on Codecov')).toHaveAttribute(
+    expect(await screen.findByText('Open in Codecov')).toHaveAttribute(
       'href',
-      'https://app.codecov.io/gh/path/to/file.py'
+      'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
-    userEvent.click(await screen.findByText('View Coverage Tests on Codecov'));
+    userEvent.click(await screen.findByText('Open in Codecov'));
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_codecov_link_clicked',
       expect.anything()
@@ -244,7 +247,7 @@ describe('StacktraceLink', function () {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
-        codecovStatusCode: CodecovStatusCode.NO_COVERAGE_DATA,
+        codecov: {status: CodecovStatusCode.NO_COVERAGE_DATA},
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {

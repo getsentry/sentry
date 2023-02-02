@@ -74,7 +74,10 @@ from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
     url(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
-    url(r"^debug/mail/performance-alert/$", DebugPerformanceIssueEmailView.as_view()),
+    url(
+        r"^debug/mail/performance-alert/(?P<sample_name>[^\/]+)?/$",
+        DebugPerformanceIssueEmailView.as_view(),
+    ),
     url(r"^debug/mail/generic-alert/$", DebugGenericIssueEmailView.as_view()),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),

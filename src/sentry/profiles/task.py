@@ -1,14 +1,12 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime
 from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
-from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
-from arroyo.types import Topic
 from django.conf import settings
-from django.utils import timezone
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
@@ -21,13 +19,11 @@ from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
-from sentry.utils import json, kafka_config, metrics
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, List[Any]]
-
-_profiles_kafka_producer = None
 
 
 class VroomTimeout(Exception):
@@ -72,6 +68,8 @@ def process_profile_task(
                 )
                 return
 
+            # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
+            # See comments in the function for why this happens.
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
                 project=project,
@@ -136,39 +134,7 @@ def process_profile_task(
         )
         return
 
-    _initialize_producer()
-
-    try:
-        _insert_eventstream_call_tree(profile=profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="failed-to-produce-functions",
-        )
-        return
-
-    try:
-        _insert_eventstream_profile(profile=profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="failed-to-produce-metadata",
-        )
-        return
-
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
-
-    metrics.gauge(
-        "process_profile.kafka_producer.queue.size",
-        len(_profiles_kafka_producer._KafkaProducer__producer),  # type: ignore
-        sample_rate=1.0,
-    )
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -187,7 +153,7 @@ def _should_deobfuscate(profile: Profile) -> bool:
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.get_event_retention(organization=organization)
+    profile["retention_days"] = quotas.get_event_retention(organization=organization) or 90
 
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
@@ -225,18 +191,41 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
     modules = profile["debug_meta"]["images"]
 
+    # NOTE: the usage of `adjust_instruction_addr` assumes that all
+    # the profilers on all the platforms are walking stacks right from a
+    # suspended threads cpu context
+
     # in the sample format, we have a frames key containing all the frames
     if "version" in profile:
-        stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
+        frames = profile["profile"]["frames"]
+
+        for stack in profile["profile"]["stacks"]:
+            if len(stack) > 0:
+                # Make a deep copy of the leaf frame with adjust_instruction_addr = False
+                # and append it to the list. This ensures correct behavior
+                # if the leaf frame also shows up in the middle of another stack.
+                first_frame_idx = stack[0]
+                frame = deepcopy(frames[first_frame_idx])
+                frame["adjust_instruction_addr"] = False
+                frames.append(frame)
+                stack[0] = len(frames) - 1
+
+        stacktraces = [{"registers": {}, "frames": frames}]
     # in the original format, we need to gather frames from all samples
     else:
-        stacktraces = [
-            {
-                "registers": {},
-                "frames": s["frames"],
-            }
-            for s in profile["sampled_profile"]["samples"]
-        ]
+        stacktraces = []
+        for s in profile["sampled_profile"]["samples"]:
+            frames = s["frames"]
+
+            if len(frames) > 0:
+                frames[0]["adjust_instruction_addr"] = False
+
+            stacktraces.append(
+                {
+                    "registers": {},
+                    "frames": frames,
+                }
+            )
     return (modules, stacktraces)
 
 
@@ -505,124 +494,13 @@ def _track_outcome(
     )
 
 
-@metrics.wraps("process_profile.initialize_producer")
-def _initialize_producer() -> None:
-    global _profiles_kafka_producer
-
-    if _profiles_kafka_producer is None:
-        config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-        _profiles_kafka_producer = KafkaProducer(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-        )
-
-
-@metrics.wraps("process_profile.insert_eventstream.profile")
-def _insert_eventstream_profile(profile: Profile) -> None:
-    """
-    TODO: This function directly publishes the profile to kafka.
-    We'll want to look into the existing eventstream abstraction
-    so we can take advantage of nodestore at some point for single
-    profile access.
-    """
-
-    # just a guard as this should always be initialized already
-    if _profiles_kafka_producer is None:
-        return
-
-    f = _profiles_kafka_producer.produce(
-        Topic(name="processed-profiles"),
-        KafkaPayload(key=None, value=json.dumps(profile).encode("utf-8"), headers=[]),
-    )
-    f.exception()
-
-
-@metrics.wraps("process_profile.insert_eventstream.call_tree")
-def _insert_eventstream_call_tree(profile: Profile) -> None:
-    # just a guard as this should always be initialized already
-    if _profiles_kafka_producer is None:
-        return
-
-    # call_trees is empty because of an error earlier, skip aggregation
-    if not profile.get("call_trees"):
-        return
-
-    try:
-        if "version" in profile:
-            event = _get_event_instance_for_sample(profile)
-        else:
-            event = _get_event_instance_for_legacy(profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        return
-    finally:
-        # Assumes that the call tree is inserted into the
-        # event stream before the profile is inserted into
-        # the event stream.
-        #
-        # After inserting the call tree, we no longer need
-        # it, but if we don't delete it here, it will be
-        # inserted in the profile payload making it larger
-        # and slower.
-        del profile["call_trees"]
-
-    f = _profiles_kafka_producer.produce(
-        Topic(name="profiles-call-tree"),
-        KafkaPayload(key=None, value=json.dumps(event).encode("utf-8"), headers=[]),
-    )
-    f.exception()
-
-
-@metrics.wraps("process_profile.get_event_instance")
-def _get_event_instance_for_sample(profile: Profile) -> Any:
-    return {
-        "call_trees": profile["call_trees"],
-        "environment": profile.get("environment"),
-        "os_name": profile["os"]["name"],
-        "os_version": profile["os"]["version"],
-        "platform": profile["platform"],
-        "profile_id": profile["event_id"],
-        "project_id": profile["project_id"],
-        "release": profile["release"],
-        "retention_days": profile["retention_days"],
-        "timestamp": profile["received"],
-        "transaction_name": profile["transactions"][0]["name"],
-    }
-
-
-@metrics.wraps("process_profile.get_event_instance")
-def _get_event_instance_for_legacy(profile: Profile) -> Any:
-    return {
-        "call_trees": profile["call_trees"],
-        "environment": profile.get("environment"),
-        "os_name": profile["device_os_name"],
-        "os_version": profile["device_os_version"],
-        "platform": profile["platform"],
-        "profile_id": profile["profile_id"],
-        "project_id": profile["project_id"],
-        "release": f"{profile['version_name']} ({profile['version_code']})"
-        if profile["version_code"]
-        else profile["version_name"],
-        "retention_days": profile["retention_days"],
-        "timestamp": profile["received"],
-        "transaction_name": profile["transaction_name"],
-    }
-
-
 @metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
-    original_timestamp = profile["received"]
-
     try:
-        profile["received"] = (
-            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
-        )
-
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
         if response.status == 204:
-            profile["call_trees"] = {}
-        elif response.status == 200:
-            profile["call_trees"] = json.loads(response.data, use_rapid_json=True)["call_trees"]
+            return True
         elif response.status == 429:
             raise VroomTimeout
         else:
@@ -632,10 +510,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
                 sample_rate=1.0,
             )
             return False
-        return True
-    except RecursionError as e:
-        sentry_sdk.capture_exception(e)
-        return True
     except VroomTimeout:
         raise
     except Exception as e:
@@ -646,9 +520,3 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             sample_rate=1.0,
         )
         return False
-    finally:
-        profile["received"] = original_timestamp
-
-        # remove keys we don't need anymore for snuba
-        for k in {"profile", "debug_meta"}:
-            profile.pop(k, None)

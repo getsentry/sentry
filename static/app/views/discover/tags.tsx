@@ -8,8 +8,9 @@ import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {TagFacetsList} from 'sentry/components/group/tagFacets';
+import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
 import Placeholder from 'sentry/components/placeholder';
-import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -93,7 +94,7 @@ class Tags extends Component<Props, State> {
     trackAdvancedAnalyticsEvent('discover_v2.facet_map.clicked', {organization, tag});
   };
 
-  renderTag(tag: Tag) {
+  renderTag(tag: Tag, index: number) {
     const {generateUrl, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
@@ -108,15 +109,14 @@ class Tags extends Component<Props, State> {
         ? Math.max(Number(totalValues), segments[0].count)
         : totalValues;
     return (
-      <TagDistributionMeter
-        key={tag.key}
-        title={tag.key}
-        segments={segments}
-        totalValues={Number(maxTotalValues)}
-        renderLoading={() => <StyledPlaceholder height="16px" />}
-        onTagClick={this.handleTagClick}
-        showReleasePackage
-      />
+      <li key={tag.key} aria-label={tag.key}>
+        <TagFacetsDistributionMeter
+          title={tag.key}
+          segments={segments}
+          totalValues={Number(maxTotalValues)}
+          expandByDefault={index === 0}
+        />
+      </li>
     );
   }
 
@@ -147,7 +147,11 @@ class Tags extends Component<Props, State> {
     }
 
     if (tags.length > 0) {
-      return tags.map(tag => this.renderTag(tag));
+      return (
+        <TagFacetsList>
+          {tags.map((tag, index) => this.renderTag(tag, index))}
+        </TagFacetsList>
+      );
     }
 
     return <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>;

@@ -130,7 +130,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember>
+      <NoProjectMessage organization={organization}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
