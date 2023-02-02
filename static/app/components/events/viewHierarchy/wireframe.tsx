@@ -24,7 +24,12 @@ function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]): Rect {
         entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
 
       setCanvasBounds(
-        new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+        new Rect(
+          contentRect.x,
+          contentRect.y,
+          contentRect.width * window.devicePixelRatio,
+          contentRect.height * window.devicePixelRatio
+        )
       );
     });
 
@@ -89,11 +94,9 @@ export function calculateScale(
   maxCoordinateDimensions: {height: number; width: number},
   border: {x: number; y: number}
 ) {
-  return (
-    Math.min(
-      (bounds.width - border.x) / maxCoordinateDimensions.width,
-      (bounds.height - border.y) / maxCoordinateDimensions.height
-    ) * window.devicePixelRatio
+  return Math.min(
+    (bounds.width - border.x) / maxCoordinateDimensions.width,
+    (bounds.height - border.y) / maxCoordinateDimensions.height
   );
 }
 
@@ -118,7 +121,7 @@ function Wireframe({hierarchy, project}: WireframeProps) {
 
   const scale = useMemo(() => {
     return calculateScale(
-      {width: canvasSize.width ?? 0, height: canvasSize.height ?? 0},
+      {width: canvasSize.width, height: canvasSize.height},
       {width: coordinates.maxWidth, height: coordinates.maxHeight},
       {
         x: MIN_BORDER_SIZE,
@@ -128,15 +131,8 @@ function Wireframe({hierarchy, project}: WireframeProps) {
   }, [coordinates, canvasSize]);
 
   const transformationMatrix = useMemo(() => {
-    // Multiply by the scaling factor because that is the "real" size of the content
-    const xCenter =
-      Math.abs(
-        canvasSize.width * window.devicePixelRatio - coordinates.maxWidth * scale
-      ) / 2;
-    const yCenter =
-      Math.abs(
-        canvasSize.height * window.devicePixelRatio - coordinates.maxHeight * scale
-      ) / 2;
+    const xCenter = Math.abs(canvasSize.width - coordinates.maxWidth * scale) / 2;
+    const yCenter = Math.abs(canvasSize.height - coordinates.maxHeight * scale) / 2;
 
     // prettier-ignore
     return mat3.fromValues(
@@ -159,15 +155,11 @@ function Wireframe({hierarchy, project}: WireframeProps) {
         return;
       }
 
+      // Context is stateful, so reset the transforms at the beginning of each
+      // draw to properly clear the canvas from 0, 0
       context.resetTransform();
-      context.clearRect(
-        0,
-        0,
-        (canvasSize.width ?? 0) * window.devicePixelRatio,
-        (canvasSize.height ?? 0) * window.devicePixelRatio
-      );
+      context.clearRect(0, 0, canvasSize.width ?? 0, canvasSize.height ?? 0);
 
-      // Set the scaling
       context.setTransform(
         modelToView[0],
         modelToView[3],
@@ -199,28 +191,31 @@ function Wireframe({hierarchy, project}: WireframeProps) {
     }
 
     let start: vec2 | null;
+    const currTransformationMatrix = mat3.create();
+
     const handleMouseDown = (e: MouseEvent) => {
       start = vec2.fromValues(e.offsetX, e.offsetY);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (start) {
-        const end = vec2.fromValues(e.offsetX, e.offsetY);
-        const delta = vec2.sub(vec2.create(), end, start);
-        const inverse = mat3.invert(mat3.create(), transformationMatrix);
+        const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
 
-        vec2.transformMat3(delta, delta, inverse);
-        mat3.add(
-          transformationMatrix,
-          transformationMatrix,
-          mat3.fromValues(0, 0, 0, 0, 0, 0, delta[0], delta[1], 0)
-        );
-        draw(transformationMatrix);
+        // Scale delta to account for device pixel density difference
+        // between two points
+        const delta = vec2.sub(vec2.create(), currPosition, start);
+        vec2.scale(delta, delta, window.devicePixelRatio);
+
+        // Transform from the original matrix as a starting point
+        mat3.translate(currTransformationMatrix, transformationMatrix, delta);
+        draw(currTransformationMatrix);
       }
     };
 
     const handleMouseUp = () => {
+      // The panning has ended, store its transformations into the original matrix
       start = null;
+      mat3.copy(transformationMatrix, currTransformationMatrix);
     };
 
     const options: AddEventListenerOptions & EventListenerOptions = {passive: true};
