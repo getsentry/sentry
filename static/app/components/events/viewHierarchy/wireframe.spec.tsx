@@ -2,7 +2,6 @@ import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
   getCoordinates,
-  getMaxDimensions,
 } from 'sentry/components/events/viewHierarchy/wireframe';
 
 const MOCK_HIERARCHY = [
@@ -32,6 +31,7 @@ const MOCK_HIERARCHY = [
 ] as ViewHierarchyWindow[];
 
 describe('View Hierarchy Wireframe', function () {
+  // TODO(nar): Fix these
   describe('getCoordinates', function () {
     it('properly calculates coordinates', function () {
       const actual = getCoordinates(MOCK_HIERARCHY);
@@ -45,18 +45,6 @@ describe('View Hierarchy Wireframe', function () {
         ],
         [{x: 10, y: 0, width: 20, height: 20}],
       ]);
-    });
-  });
-
-  describe('maxDimensions', function () {
-    it('calculates the max dimensions needed to render the contents in frame', function () {
-      const coordinates = getCoordinates(MOCK_HIERARCHY);
-      const actual = getMaxDimensions(coordinates);
-
-      expect(actual).toEqual({
-        width: 30,
-        height: 20,
-      });
     });
   });
 

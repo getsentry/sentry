@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
-import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
 
@@ -102,10 +101,9 @@ export function calculateScale(
 
 type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
-  project: Project;
 };
 
-function Wireframe({hierarchy, project}: WireframeProps) {
+function Wireframe({hierarchy}: WireframeProps) {
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
   const canvases = useMemo(() => {
@@ -114,10 +112,7 @@ function Wireframe({hierarchy, project}: WireframeProps) {
 
   const canvasSize = useResizeCanvasObserver(canvases);
 
-  const coordinates = useMemo(
-    () => getCoordinates(hierarchy, project.platform !== 'flutter'),
-    [hierarchy, project]
-  );
+  const coordinates = useMemo(() => getCoordinates(hierarchy), [hierarchy]);
 
   const scale = useMemo(() => {
     return calculateScale(
@@ -204,7 +199,7 @@ function Wireframe({hierarchy, project}: WireframeProps) {
         // Scale delta to account for device pixel density difference
         // between two points
         const delta = vec2.sub(vec2.create(), currPosition, start);
-        vec2.scale(delta, delta, window.devicePixelRatio);
+        vec2.scale(delta, delta, window.devicePixelRatio / scale);
 
         // Transform from the original matrix as a starting point
         mat3.translate(currTransformationMatrix, transformationMatrix, delta);
