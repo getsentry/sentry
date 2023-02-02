@@ -1,5 +1,6 @@
 from croniter import croniter
 from django.core.exceptions import ValidationError
+from django.utils.timezone import pytz
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -46,6 +47,7 @@ class CronJobValidator(serializers.Serializer):
     schedule = ObjectField()
     checkin_margin = EmptyIntegerField(required=False, allow_null=True, default=None)
     max_runtime = EmptyIntegerField(required=False, allow_null=True, default=None)
+    timezone = serializers.ChoiceField(choices=pytz.all_timezones, required=False)
 
     def validate_schedule_type(self, value):
         if value:
