@@ -422,7 +422,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
 
         if (
             project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
-            and affected
+            and affected > 0
         ):
             analytics.record(
                 "first_event_with_minified_stack_trace_for_project.sent",

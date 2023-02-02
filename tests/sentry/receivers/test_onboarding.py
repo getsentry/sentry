@@ -523,12 +523,12 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
-        data = load_data("javascript")
-        data["tags"] = [("url", url)]
-        data["exception"] = {
+        event = load_data("javascript")
+        event["tags"] = [("url", url)]
+        event["exception"] = {
             "values": [
                 {
-                    **data["exception"]["values"][0],
+                    **event["exception"]["values"][0],
                     "raw_stacktrace": {
                         "frames": [
                             {
@@ -554,7 +554,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         self.store_event(
             project_id=project.id,
-            data=data,
+            data=event,
         )
 
         record_analytics.assert_called_with(
@@ -562,7 +562,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             user_id=self.user.id,
             organization_id=project.organization_id,
             project_id=project.id,
-            platform=data["platform"],
+            platform=event["platform"],
             url=url,
         )
 
@@ -630,18 +630,20 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_old_project_sending_minified_stack_trace_event(self, record_analytics):
         """
         Test that an analytics event is NOT recorded when
-        there no event with minified stack trace is received
+        the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ).
+
+        In this test we also check  if the has_minified_stack_trace is being set to "True" in old projects
         """
         old_date = datetime(2022, 12, 10, tzinfo=pytz.UTC)
-        project = self.create_project(first_event=old_date)
+        project = self.create_project(first_event=old_date, date_added=old_date)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
-        data = load_data("javascript")
-        data["tags"] = [("url", url)]
-        data["exception"] = {
+        event = load_data("javascript")
+        event["tags"] = [("url", url)]
+        event["exception"] = {
             "values": [
                 {
-                    **data["exception"]["values"][0],
+                    **event["exception"]["values"][0],
                     "raw_stacktrace": {
                         "frames": [
                             {
@@ -671,8 +673,10 @@ class OrganizationOnboardingTaskTest(TestCase):
         # Store event
         self.store_event(
             project_id=project.id,
-            data=data,
+            data=event,
         )
+
+        project.refresh_from_db()
 
         # project.flags.has_minified_stack_trace = True
         assert project.flags.has_minified_stack_trace
