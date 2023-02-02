@@ -118,9 +118,7 @@ def get_problems(item_list: Sequence[Event | GroupEvent]):
         group_hash.group_id: group_hash
         for group_hash in GroupHash.objects.filter(
             group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
-            group__type__in=[
-                gt.value for gt in get_group_types_by_category(GroupCategory.PERFORMANCE)
-            ],
+            group__type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value),
         )
     }
     return EventPerformanceProblem.fetch_multi(
