@@ -489,7 +489,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert (
             resp.data["text"]
-            == "You do not have permission approve a member invitation with the role owner."
+            == "You do not have permission to approve a member invitation with the role owner."
         )
 
     def test_identity_not_linked(self):
