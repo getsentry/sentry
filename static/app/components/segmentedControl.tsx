@@ -171,7 +171,7 @@ const SegmentWrap = styled('label')<{
   isDisabled?: boolean;
 }>`
   position: relative;
-  display: block;
+  display: flex;
   margin: 0;
   border-radius: calc(${p => p.theme.borderRadius} - 1px);
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
