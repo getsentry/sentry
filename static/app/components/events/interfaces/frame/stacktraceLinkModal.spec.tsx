@@ -43,7 +43,7 @@ describe('StacktraceLinkModal', () => {
   });
 
   it('links to source code with one GitHub integration', () => {
-    renderGlobalModal();
+    const {container} = renderGlobalModal();
     act(() =>
       openModal(modalProps => (
         <StacktraceLinkModal
@@ -66,6 +66,7 @@ describe('StacktraceLinkModal', () => {
       'href',
       'https://github.com/test-integration'
     );
+    expect(container).toSnapshot();
   });
 
   it('closes modal after successful quick setup', async () => {
