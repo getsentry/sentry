@@ -30,10 +30,10 @@ describe('withConfig HoC', function () {
     jest.clearAllMocks();
   });
 
-  const organization = {
+  const organization = TestStubs.Organization({
     id: 1,
     experiments: {orgExperiment: 1},
-  };
+  });
 
   function MyComponent(props) {
     return <span>{props.experimentAssignment}</span>;
@@ -44,7 +44,7 @@ describe('withConfig HoC', function () {
 
   it('injects org experiment assignment', function () {
     const Container = withExperiment(MyComponent, {experiment: 'orgExperiment'});
-    render(<Container organization={organization} />);
+    render(<Container />, {organization});
 
     expect(screen.getByText('1')).toBeInTheDocument();
   });
@@ -53,14 +53,14 @@ describe('withConfig HoC', function () {
     ConfigStore.set('user', {id: 123, experiments: {userExperiment: 2}});
 
     const Container = withExperiment(MyComponent, {experiment: 'userExperiment'});
-    render(<Container />);
+    render(<Container />, {organization});
 
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('logs experiment assignment', function () {
     const Container = withExperiment(MyComponent, {experiment: 'orgExperiment'});
-    render(<Container organization={organization} />);
+    render(<Container />, {organization});
 
     expect(logExperiment).toHaveBeenCalledWith({key: 'orgExperiment', organization});
   });
@@ -70,7 +70,7 @@ describe('withConfig HoC', function () {
       experiment: 'orgExperiment',
       injectLogExperiment: true,
     });
-    render(<Container organization={organization} />);
+    render(<Container />, {organization});
     expect(logExperiment).not.toHaveBeenCalled();
 
     // Call log experiment and verify it was called
