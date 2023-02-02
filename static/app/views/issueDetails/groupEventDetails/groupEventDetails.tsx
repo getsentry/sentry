@@ -239,6 +239,8 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     const {activity: activities} = group;
     const mostRecentActivity = getGroupMostRecentActivity(activities);
 
+    const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+
     return (
       <TransactionProfileIdProvider
         projectId={event?.projectID}
@@ -274,6 +276,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                             organization={organization}
                             location={location}
                             project={project}
+                            hasReplay={hasReplay}
                           />
                         )}
                         {this.renderReprocessedBox(

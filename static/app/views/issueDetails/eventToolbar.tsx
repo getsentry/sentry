@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
@@ -11,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
+import {IconPlay, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
@@ -19,9 +20,6 @@ import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import LinkContainer from 'sentry/views/issueDetails/linkContainer';
-import ReplayLink from 'sentry/views/issueDetails/quickTrace/replayLink';
-import ReplayNode from 'sentry/views/issueDetails/quickTrace/replayNode';
 import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import EventCreatedTooltip from './eventCreatedTooltip';
@@ -33,6 +31,7 @@ type Props = {
   location: Location;
   organization: Organization;
   project: Project;
+  hasReplay?: boolean;
 };
 
 class GroupEventToolbar extends Component<Props> {
@@ -52,11 +51,9 @@ class GroupEventToolbar extends Component<Props> {
     const is24Hours = shouldUse24Hours();
     const evt = this.props.event;
 
-    const {group, organization, location, project, event} = this.props;
+    const {group, organization, location, project, hasReplay} = this.props;
     const groupId = group.id;
     const isReplayEnabled = organization.features.includes('session-replay-ui');
-    const projectHasReplay = project.hasReplays;
-    const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
@@ -105,16 +102,13 @@ class GroupEventToolbar extends Component<Props> {
               {isOverLatencyThreshold && <StyledIconWarning color="warningText" />}
             </Tooltip>
             <TraceLink event={evt} />
-            {isReplayEnabled && projectHasReplay && replayId ? (
-              <ReplayLink
-                organization={organization}
-                projectSlug={project.slug}
-                replayId={replayId}
-                event={evt}
-              />
-            ) : null}
           </div>
           <NavigationContainer>
+            {hasReplay && isReplayEnabled ? (
+              <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
+                {t('Replay')}
+              </Button>
+            ) : null}
             <NavigationButtonGroup
               hasPrevious={!!evt.previousEventID}
               hasNext={!!evt.nextEventID}
@@ -144,17 +138,12 @@ class GroupEventToolbar extends Component<Props> {
             />
           </NavigationContainer>
         </HeadingAndNavWrapper>
-        <TraceWithReplayWrapper>
-          {isReplayEnabled && projectHasReplay ? (
-            <ReplayNode hasReplay={Boolean(replayId)} />
-          ) : null}
-          <QuickTrace
-            event={evt}
-            group={group}
-            organization={organization}
-            location={location}
-          />
-        </TraceWithReplayWrapper>
+        <QuickTrace
+          event={evt}
+          group={group}
+          organization={organization}
+          location={location}
+        />
         <StyledGlobalAppStoreConnectUpdateAlert
           project={project}
           organization={organization}
@@ -203,15 +192,28 @@ const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdat
   margin: ${space(0.5)} 0;
 `;
 
+const LinkContainer = styled('span')`
+  margin-left: ${space(1)};
+  padding-left: ${space(1)};
+  position: relative;
+  font-weight: normal;
+
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 2px;
+    height: 14px;
+    border-left: 1px solid ${p => p.theme.border};
+  }
+`;
+
 const NavigationContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0 ${space(1)};
-`;
-
-const TraceWithReplayWrapper = styled('div')`
-  display: flex;
 `;
 
 export default GroupEventToolbar;
