@@ -214,7 +214,7 @@
     "tocbot": "^4.19.0",
     "tsconfig-paths": "^4.1.1",
     "typescript-styled-plugin": "^0.18.2",
-    "webpack-dev-server": "^4.9.2"
+    "webpack-dev-server": "^4.11.1"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
