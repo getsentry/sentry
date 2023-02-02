@@ -410,6 +410,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             alert_rule = create_alert_rule(
                 user=self.context.get("user", None),
                 organization=self.context["organization"],
+                ip_address=self.context.get("ip_address"),
                 **validated_data,
             )
             self._handle_triggers(alert_rule, triggers)
