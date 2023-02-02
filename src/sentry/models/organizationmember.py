@@ -415,6 +415,13 @@ class OrganizationMember(Model):
         all_org_roles.append(self.role)
         return all_org_roles
 
+    def get_all_org_roles_sorted(self):
+        return sorted(
+            [organization_roles.get(role) for role in self.get_all_org_roles()],
+            key=lambda r: r.priority,
+            reverse=True,
+        )
+
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
         Validates whether an org has the options to invite members, handle join requests,
