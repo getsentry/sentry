@@ -102,17 +102,12 @@ def get_access_by_project(
     for project in projects:
         is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
         org_roles = all_org_roles.get(project.organization_id) or []
-        has_access = False
-
-        for org_role in org_roles:
-            if is_member:
-                has_access = True
-            elif is_superuser:
-                has_access = True
-            elif project.organization.flags.allow_joinleave:
-                has_access = True
-            elif org_role and roles.get(org_role).is_global:
-                has_access = True
+        has_access = bool(
+            is_member
+            or is_superuser
+            or project.organization.flags.allow_joinleave
+            or any(roles.get(org_role).is_global for org_role in org_roles)
+        )
         result[project] = {"is_member": is_member, "has_access": has_access}
     return result
 

@@ -39,8 +39,7 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
-from sentry.roles import organization_roles
-from sentry.roles.manager import OrganizationRole
+from sentry.roles import team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -97,7 +96,10 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 def get_org_roles(
     org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
 ) -> Mapping[int, Sequence[str]]:
-    """Get the roles the user has in each org"""
+    """
+    Get the roles the user has in each org
+    Roles are ordered from highest to lower priority (descending priority)
+    """
     if not user.is_authenticated:
         return {}
 
@@ -120,12 +122,7 @@ def get_org_roles(
 
 
 def _get_all_org_roles(member: OrganizationMember) -> Sequence[str]:
-    sorted_roles: List[OrganizationRole] = sorted(
-        [organization_roles.get(role) for role in member.get_all_org_roles()],
-        key=lambda r: r.priority,
-        reverse=True,
-    )
-    return [role.id for role in sorted_roles]
+    return [role.id for role in member.get_all_org_roles_sorted()]
 
 
 def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Team]:
@@ -208,28 +205,27 @@ class TeamSerializer(Serializer):  # type: ignore
 
         for team in item_list:
             org_roles = all_org_roles.get(team.organization_id) or []
-            is_member = False
-            has_access = False
+            is_member = team.id in team_memberships
             team_role = None
 
-            for org_role in org_roles:
-                if team.id in team_memberships:
-                    is_member = True
-                    # org roles are sorted from high to low priority
-                    # team_role will be the minimum team role for the highest priority role
-                    if team_role is None:
-                        team_role = team_memberships[team.id]
-                        if team_role is None:
-                            team_role = roles.get_minimum_team_role(org_role).id
+            if is_member:
+                team_role = team_memberships[team.id]
+                top_org_role = org_roles[0] if org_roles else None
 
-                if is_member:
-                    has_access = True
-                elif is_superuser:
-                    has_access = True
-                elif team.organization.flags.allow_joinleave:
-                    has_access = True
-                elif org_role and roles.get(org_role).is_global:
-                    has_access = True
+                if top_org_role is not None:
+                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                    if (
+                        not team_role
+                        or minimum_team_role.priority > team_roles.get(team_role).priority
+                    ):
+                        team_role = minimum_team_role.id
+
+            has_access = bool(
+                is_member
+                or is_superuser
+                or team.organization.flags.allow_joinleave
+                or any(roles.get(org_role).is_global for org_role in org_roles)
+            )
 
             result[team] = {
                 "pending_request": team.id in access_requests,
