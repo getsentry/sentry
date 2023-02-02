@@ -148,7 +148,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                   <DatePageFilter alignDropdown="right" />
                 </PageFilterBar>
                 <SegmentedControl
-                  aria-label="Issue Status"
+                  aria-label={t('Issue Status')}
                   value={!Array.isArray(status) ? status || '' : ''}
                   onChange={key =>
                     router.replace({
