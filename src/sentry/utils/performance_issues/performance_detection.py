@@ -204,7 +204,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             # time saved by running all queries in parallel
             "min_time_saved": 100,  # ms
             # ratio between time saved and total db span durations
-            "min_time_saved_ratio": 0.1,  # ms
+            "min_time_saved_ratio": 0.1,
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
@@ -597,9 +597,12 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         total_time = self._sum_span_duration(self.consecutive_db_spans)
 
         exceeds_time_saved_threshold = time_saved >= self.settings.get("min_time_saved")
-        exceeds_time_saved_threshold_ratio = time_saved / total_time >= self.settings.get(
-            "min_time_saved_ratio"
-        )
+        
+        exceeds_time_saved_threshold_ratio = False
+        if total_time > 0:
+            time_saved / total_time >= self.settings.get(
+                "min_time_saved_ratio"
+            )
 
         if (
             exceeds_count_threshold
