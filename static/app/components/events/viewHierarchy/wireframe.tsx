@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -47,11 +48,11 @@ interface ViewNode {
   rect: Rect;
 }
 
-export function getCoordinates(
+export function getHierarchyDimensions(
   hierarchies: ViewHierarchyWindow[],
   shiftChildrenByParent: boolean = true
-): {list: ViewNode[]; maxHeight: number; maxWidth: number} {
-  const list: ViewNode[] = [];
+): {coordinates: ViewNode[]; maxHeight: number; maxWidth: number} {
+  const coordinates: ViewNode[] = [];
   const queue: [Rect | null, ViewHierarchyWindow][] = [];
   hierarchies.forEach(root => queue.push([null, root]));
 
@@ -73,19 +74,22 @@ export function getCoordinates(
             )
           : new Rect(child.x ?? 0, child.y ?? 0, child.width ?? 0, child.height ?? 0),
     };
-    list.push(node);
 
-    maxWidth = Math.max(maxWidth, node.rect.x + (node.rect.width ?? 0));
-    maxHeight = Math.max(maxHeight, node.rect.y + (node.rect.height ?? 0));
-
+    coordinates.push(node);
     if (defined(child.children) && child.children.length) {
-      child.children.forEach(c => {
+      // Push the children into the queue in reverse order because the
+      // output coordinates should have early children before later children
+      // i.e. we need to pop() off early children before ones that come after
+      child.children.reverse().forEach(c => {
         queue.push([node.rect, c]);
       });
     }
+
+    maxWidth = Math.max(maxWidth, node.rect.x + (node.rect.width ?? 0));
+    maxHeight = Math.max(maxHeight, node.rect.y + (node.rect.height ?? 0));
   }
 
-  return {list, maxWidth, maxHeight};
+  return {coordinates, maxWidth, maxHeight};
 }
 
 export function calculateScale(
@@ -104,6 +108,7 @@ type WireframeProps = {
 };
 
 function Wireframe({hierarchy}: WireframeProps) {
+  const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
   const canvases = useMemo(() => {
@@ -112,22 +117,27 @@ function Wireframe({hierarchy}: WireframeProps) {
 
   const canvasSize = useResizeCanvasObserver(canvases);
 
-  const coordinates = useMemo(() => getCoordinates(hierarchy), [hierarchy]);
+  const hierarchyData = useMemo(() => getHierarchyDimensions(hierarchy), [hierarchy]);
 
   const scale = useMemo(() => {
     return calculateScale(
       {width: canvasSize.width, height: canvasSize.height},
-      {width: coordinates.maxWidth, height: coordinates.maxHeight},
+      {width: hierarchyData.maxWidth, height: hierarchyData.maxHeight},
       {
         x: MIN_BORDER_SIZE,
         y: MIN_BORDER_SIZE,
       }
     );
-  }, [coordinates, canvasSize]);
+  }, [
+    canvasSize.height,
+    canvasSize.width,
+    hierarchyData.maxHeight,
+    hierarchyData.maxWidth,
+  ]);
 
   const transformationMatrix = useMemo(() => {
-    const xCenter = Math.abs(canvasSize.width - coordinates.maxWidth * scale) / 2;
-    const yCenter = Math.abs(canvasSize.height - coordinates.maxHeight * scale) / 2;
+    const xCenter = Math.abs(canvasSize.width - hierarchyData.maxWidth * scale) / 2;
+    const yCenter = Math.abs(canvasSize.height - hierarchyData.maxHeight * scale) / 2;
 
     // prettier-ignore
     return mat3.fromValues(
@@ -138,8 +148,8 @@ function Wireframe({hierarchy}: WireframeProps) {
   }, [
     canvasSize.height,
     canvasSize.width,
-    coordinates.maxHeight,
-    coordinates.maxWidth,
+    hierarchyData.maxHeight,
+    hierarchyData.maxWidth,
     scale,
   ]);
 
@@ -153,7 +163,7 @@ function Wireframe({hierarchy}: WireframeProps) {
       // Context is stateful, so reset the transforms at the beginning of each
       // draw to properly clear the canvas from 0, 0
       context.resetTransform();
-      context.clearRect(0, 0, canvasSize.width ?? 0, canvasSize.height ?? 0);
+      context.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
       context.setTransform(
         modelToView[0],
@@ -164,20 +174,32 @@ function Wireframe({hierarchy}: WireframeProps) {
         modelToView[7]
       );
 
-      context.fillStyle = 'rgb(88, 74, 192)';
-      context.strokeStyle = 'black';
-      context.lineWidth = 1;
+      context.fillStyle = theme.gray100;
+      context.strokeStyle = theme.gray300;
 
-      for (let i = 0; i < coordinates.list.length; i++) {
+      for (let i = 0; i < hierarchyData.coordinates.length; i++) {
         context.strokeRect(
-          coordinates.list[i].rect.x,
-          coordinates.list[i].rect.y,
-          coordinates.list[i].rect.width,
-          coordinates.list[i].rect.height
+          hierarchyData.coordinates[i].rect.x,
+          hierarchyData.coordinates[i].rect.y,
+          hierarchyData.coordinates[i].rect.width,
+          hierarchyData.coordinates[i].rect.height
+        );
+        context.fillRect(
+          hierarchyData.coordinates[i].rect.x,
+          hierarchyData.coordinates[i].rect.y,
+          hierarchyData.coordinates[i].rect.width,
+          hierarchyData.coordinates[i].rect.height
         );
       }
     },
-    [coordinates, canvasRef, canvasSize]
+    [
+      canvasRef,
+      canvasSize.width,
+      canvasSize.height,
+      theme.gray100,
+      theme.gray300,
+      hierarchyData.coordinates,
+    ]
   );
 
   useEffect(() => {
@@ -196,12 +218,12 @@ function Wireframe({hierarchy}: WireframeProps) {
       if (start) {
         const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
 
-        // Scale delta to account for device pixel density difference
-        // between two points
+        // Delta needs to be scaled by the devicePixelRatio and how
+        // much we've zoomed the image by to get an accurate translation
         const delta = vec2.sub(vec2.create(), currPosition, start);
         vec2.scale(delta, delta, window.devicePixelRatio / scale);
 
-        // Transform from the original matrix as a starting point
+        // Translate from the original matrix as a starting point
         mat3.translate(currTransformationMatrix, transformationMatrix, delta);
         draw(currTransformationMatrix);
       }
