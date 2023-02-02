@@ -1,6 +1,5 @@
 import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Deploy} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -20,7 +19,6 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
     <Tag
       className={className}
       type="highlight"
-      icon={shouldLinkToIssues && <IconOpen data-test-id="deploy-open-icon" />}
       textMaxWidth={80}
       tooltipText={shouldLinkToIssues ? t('Open In Issues') : undefined}
     >
