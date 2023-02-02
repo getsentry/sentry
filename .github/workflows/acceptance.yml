@@ -138,14 +138,19 @@ jobs:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [frontend]
-    name: run frontend visual snapshot
+    name: 'Acceptance: Frontend'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
+      # If any jobs we depend on fail, we will fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
-          action-name: 'Frontend Visual Snapshot'
+          action-name: 'Visual Snapshot: Frontend'
           artifact-name: 'frontend-snapshots'
           base-branch: 'master'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
@@ -244,14 +249,19 @@ jobs:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [backend]
-    name: run backend visual snapshot
+    name: 'Acceptance: Backend'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
+      # If any jobs we depend on fail, we will fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
-          action-name: 'Backend Visual Snapshot'
+          action-name: 'Visual Snapshot: Backend'
           artifact-name: 'backend-snapshots'
           base-branch: 'master'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
@@ -337,34 +347,24 @@ jobs:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [chartcuterie]
-    name: run chartcuterie visual snapshot
+    name: 'Acceptance: Chartcuterie'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
-    steps:
-      - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
-        with:
-          action-name: 'Chartcuterie Visual Snapshot'
-          artifact-name: 'chartcuterie-snapshots'
-          base-branch: 'master'
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
-  # This is a required check and is helpful to flag to users when something
-  # has gone wrong with a previous step
-  trigger-visual-snapshots:
-    needs: [chartcuterie-visual-diff, backend-visual-diff, frontend-visual-diff]
-    name: triggers visual snapshot
-    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
-    if: always()
-    runs-on: ubuntu-20.04
     steps:
       # If any jobs we depend on fail, we will fail
       - name: Check for failures
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+      - name: Diff snapshots
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
+        with:
+          action-name: 'Visual Snapshot: Chartcuterie'
+          artifact-name: 'chartcuterie-snapshots'
+          base-branch: 'master'
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
   # The following fake-*visual-snapshot steps do the following:
   #     - The sentry GitHub repo is configured to require "* Visual Snapshot"
@@ -384,6 +384,17 @@ jobs:
       - name: Sentaur attack
         run: |
           echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"
+
+  # TODO (mattgaunt): Remove this once the required check is changed for the
+  # new visual snapshots.
+  fake-trigger-visual-snapshots:
+    name: triggers visual snapshot
+    if: always()
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the triggers visual snapshot to satisfy Github required checks"
 
   fake-frontend-visual-snapshot:
     name: Frontend Visual Snapshot
