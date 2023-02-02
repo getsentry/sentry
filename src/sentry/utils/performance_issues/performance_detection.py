@@ -600,7 +600,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         
         exceeds_time_saved_threshold_ratio = False
         if total_time > 0:
-            time_saved / total_time >= self.settings.get(
+            exceeds_time_saved_threshold_ratio = time_saved / total_time >= self.settings.get(
                 "min_time_saved_ratio"
             )
 
