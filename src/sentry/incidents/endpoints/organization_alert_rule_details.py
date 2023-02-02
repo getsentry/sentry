@@ -98,7 +98,9 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                 status=403,
             )
         try:
-            delete_alert_rule(alert_rule)
+            delete_alert_rule(
+                alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR")
+            )
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
             return Response(

@@ -524,11 +524,22 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
-            self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
+            resp = self.get_success_response(
+                self.organization.slug, self.alert_rule.id, status_code=204
+            )
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("ALERT_RULE_REMOVE"), target_object=self.alert_rule.id
+        )
+        assert len(audit_log_entry) == 1
+        assert (
+            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            == list(audit_log_entry)[0].ip_address
+        )
 
     def test_no_feature(self):
         self.create_member(
