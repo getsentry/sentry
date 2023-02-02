@@ -792,7 +792,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # We can't manipulate environment to hide the archival state.
-            response = self.client.get(self.url + "?environment=prod")
+            response = self.client.get(self.url + "?field=id&environment=prod")
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
 
