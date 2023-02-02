@@ -129,7 +129,7 @@ function Segment({
       {isSelected && (
         <SegmentSelectionIndicator
           layoutId={layoutGroupId}
-          transition={{type: 'tween', ease: 'circOut', duration: 0.2}}
+          transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
           priority={priority}
           aria-hidden
         />
@@ -246,7 +246,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
     p.priority === 'primary'
       ? p.theme.borderRadius
       : `calc(${p.theme.borderRadius} - 1px)`};
-  box-shadow: 0 0 2px rgba(43, 34, 51, 0.16);
+  box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
 
   input.focus-visible ~ & {
     box-shadow: ${p =>
