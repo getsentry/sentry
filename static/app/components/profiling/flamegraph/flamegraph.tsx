@@ -819,7 +819,7 @@ function Flamegraph(): ReactElement {
 
       <FlamegraphLayout
         uiFrames={
-          hasUIFrames ? (
+          hasUIFrames && type === 'flamechart' ? (
             <FlamegraphUIFrames
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
@@ -832,7 +832,7 @@ function Flamegraph(): ReactElement {
           ) : null
         }
         spans={
-          spanChart ? (
+          spanChart && type === 'flamechart' ? (
             <FlamegraphSpans
               canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
