@@ -121,10 +121,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         )
 
         artifact_names = [artifact.name for artifact in release_artifacts]
+        unified_url = self._unify_url(urlparts)
 
-        full_matches, partial_matches = self._find_matches(
-            release_artifacts, self._unify_url(urlparts)
-        )
+        full_matches, partial_matches = self._find_matches(release_artifacts, unified_url)
 
         if len(full_matches) == 0:
             if len(partial_matches) > 0:
@@ -134,7 +133,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                         "absPath": abs_path,
                         "partialMatchPath": partial_matches[0].name,
                         "fileName": filename,
-                        "unifiedPath": self._unify_url(urlparts),
+                        "unifiedPath": unified_url,
                         "artifactNames": artifact_names,
                     },
                 )
@@ -143,7 +142,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 data={
                     "absPath": abs_path,
                     "fileName": filename,
-                    "unifiedPath": self._unify_url(urlparts),
+                    "unifiedPath": unified_url,
                     "artifactNames": artifact_names,
                 },
             )
