@@ -96,8 +96,8 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 def get_org_roles(
     org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
-) -> Mapping[int, List[str]]:
-    """Get the role the user has in each org"""
+) -> Mapping[int, Sequence[str]]:
+    """Get the roles the user has in each org"""
     if not user.is_authenticated:
         return {}
 
@@ -119,7 +119,7 @@ def get_org_roles(
     }
 
 
-def _get_all_org_roles(member: OrganizationMember) -> List[str]:
+def _get_all_org_roles(member: OrganizationMember) -> Sequence[str]:
     sorted_roles: List[OrganizationRole] = sorted(
         [organization_roles.get(role) for role in member.get_all_org_roles()],
         key=lambda r: r.priority,
