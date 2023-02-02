@@ -701,8 +701,8 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
 
 def collect_aliases(fields: List[str]) -> List[str]:
     """Return a unique list of aliases required to satisfy the fields."""
-    # is_archived is a required field.  It must always be selected.
-    result = {"is_archived", "finished_at"}
+    # Required fields.
+    result = {"is_archived", "finished_at", "agg_environment"}
 
     saw_tags = False
     for field in fields:
