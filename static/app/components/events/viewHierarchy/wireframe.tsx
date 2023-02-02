@@ -48,13 +48,14 @@ interface ViewNode {
   rect: Rect;
 }
 
-export function getHierarchyDimensions(
-  hierarchies: ViewHierarchyWindow[],
-  shiftChildrenByParent: boolean = true
-): {coordinates: ViewNode[]; maxHeight: number; maxWidth: number} {
-  const coordinates: ViewNode[] = [];
+export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
+  maxHeight: number;
+  maxWidth: number;
+  nodes: ViewNode[];
+} {
+  const nodes: ViewNode[] = [];
   const queue: [Rect | null, ViewHierarchyWindow][] = [];
-  hierarchies.forEach(root => queue.push([null, root]));
+  hierarchies.reverse().forEach(root => queue.push([null, root]));
 
   let maxWidth = Number.MIN_SAFE_INTEGER;
   let maxHeight = Number.MIN_SAFE_INTEGER;
@@ -64,21 +65,18 @@ export function getHierarchyDimensions(
 
     const node = {
       node: child,
-      rect:
-        shiftChildrenByParent && parent
-          ? new Rect(
-              (parent.x ?? 0) + (child.x ?? 0),
-              (parent.y ?? 0) + (child.y ?? 0),
-              child.width ?? 0,
-              child.height ?? 0
-            )
-          : new Rect(child.x ?? 0, child.y ?? 0, child.width ?? 0, child.height ?? 0),
+      rect: new Rect(
+        (parent?.x ?? 0) + (child.x ?? 0),
+        (parent?.y ?? 0) + (child.y ?? 0),
+        child.width ?? 0,
+        child.height ?? 0
+      ),
     };
 
-    coordinates.push(node);
+    nodes.push(node);
     if (defined(child.children) && child.children.length) {
       // Push the children into the queue in reverse order because the
-      // output coordinates should have early children before later children
+      // output nodes should have early children before later children
       // i.e. we need to pop() off early children before ones that come after
       child.children.reverse().forEach(c => {
         queue.push([node.rect, c]);
@@ -89,7 +87,7 @@ export function getHierarchyDimensions(
     maxHeight = Math.max(maxHeight, node.rect.y + (node.rect.height ?? 0));
   }
 
-  return {coordinates, maxWidth, maxHeight};
+  return {nodes, maxWidth, maxHeight};
 }
 
 export function calculateScale(
@@ -177,18 +175,18 @@ function Wireframe({hierarchy}: WireframeProps) {
       context.fillStyle = theme.gray100;
       context.strokeStyle = theme.gray300;
 
-      for (let i = 0; i < hierarchyData.coordinates.length; i++) {
+      for (let i = 0; i < hierarchyData.nodes.length; i++) {
         context.strokeRect(
-          hierarchyData.coordinates[i].rect.x,
-          hierarchyData.coordinates[i].rect.y,
-          hierarchyData.coordinates[i].rect.width,
-          hierarchyData.coordinates[i].rect.height
+          hierarchyData.nodes[i].rect.x,
+          hierarchyData.nodes[i].rect.y,
+          hierarchyData.nodes[i].rect.width,
+          hierarchyData.nodes[i].rect.height
         );
         context.fillRect(
-          hierarchyData.coordinates[i].rect.x,
-          hierarchyData.coordinates[i].rect.y,
-          hierarchyData.coordinates[i].rect.width,
-          hierarchyData.coordinates[i].rect.height
+          hierarchyData.nodes[i].rect.x,
+          hierarchyData.nodes[i].rect.y,
+          hierarchyData.nodes[i].rect.width,
+          hierarchyData.nodes[i].rect.height
         );
       }
     },
@@ -198,7 +196,7 @@ function Wireframe({hierarchy}: WireframeProps) {
       canvasSize.height,
       theme.gray100,
       theme.gray300,
-      hierarchyData.coordinates,
+      hierarchyData.nodes,
     ]
   );
 

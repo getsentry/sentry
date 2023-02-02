@@ -1,8 +1,9 @@
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
-  getCoordinates,
+  getHierarchyDimensions,
 } from 'sentry/components/events/viewHierarchy/wireframe';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 
 const MOCK_HIERARCHY = [
   {
@@ -31,20 +32,21 @@ const MOCK_HIERARCHY = [
 ] as ViewHierarchyWindow[];
 
 describe('View Hierarchy Wireframe', function () {
-  // TODO(nar): Fix these
-  describe('getCoordinates', function () {
+  describe('getHierarchyDimensions', function () {
     it('properly calculates coordinates', function () {
-      const actual = getCoordinates(MOCK_HIERARCHY);
+      const actual = getHierarchyDimensions(MOCK_HIERARCHY);
 
       // One array for each root
-      expect(actual).toEqual([
-        [
-          {x: 0, y: 0, width: 10, height: 10},
-          {x: 10, y: 5, width: 10, height: 10},
-          {x: 12, y: 7, width: 5, height: 5},
+      expect(actual).toEqual({
+        nodes: [
+          {node: expect.anything(), rect: new Rect(0, 0, 10, 10)},
+          {node: expect.anything(), rect: new Rect(10, 5, 10, 10)},
+          {node: expect.anything(), rect: new Rect(12, 7, 5, 5)},
+          {node: expect.anything(), rect: new Rect(10, 0, 20, 20)},
         ],
-        [{x: 10, y: 0, width: 20, height: 20}],
-      ]);
+        maxWidth: 30,
+        maxHeight: 20,
+      });
     });
   });
 
