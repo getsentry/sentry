@@ -81,7 +81,14 @@ class TimeseriesCardinalityLimiter:
         hash_to_offset = {}
         for key, message in messages.items():
             org_id = message["org_id"]
-            if not sample_modulo("sentry-metrics.cardinality-limiter.orgs-rollout-rate", org_id):
+            if use_case_id == UseCaseKey.PERFORMANCE and not sample_modulo(
+                "sentry-metrics.cardinality-limiter.orgs-rollout-rate", org_id
+            ):
+                continue
+
+            elif use_case_id == UseCaseKey.RELEASE_HEALTH and not sample_modulo(
+                "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", org_id
+            ):
                 continue
 
             message_hash = int(
