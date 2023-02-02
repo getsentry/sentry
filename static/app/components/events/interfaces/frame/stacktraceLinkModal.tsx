@@ -154,15 +154,17 @@ function StacktraceLinkModal({
           <StyledList symbol="colored-numeric">
             <li>
               <ItemContainer>
-                {hasOneSourceCodeIntegration
-                  ? tct('Go to [link]', {
-                      link: (
-                        <ExternalLink href={sourceUrl}>
-                          {sourceCodeProviders[0].provider.name}
-                        </ExternalLink>
-                      ),
-                    })
-                  : t('Go to your source code provider')}
+                <div>
+                  {hasOneSourceCodeIntegration
+                    ? tct('Go to [link]', {
+                        link: (
+                          <ExternalLink href={sourceUrl}>
+                            {sourceCodeProviders[0].provider.name}
+                          </ExternalLink>
+                        ),
+                      })
+                    : t('Go to your source code provider')}
+                </div>
               </ItemContainer>
             </li>
             <li>
