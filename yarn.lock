@@ -12498,10 +12498,10 @@ pyright@1.1.255:
   resolved "https://registry.yarnpkg.com/pyright/-/pyright-1.1.255.tgz#a0a5e99c9c84bfc93f3f3ac63a1265c8ed85c47d"
   integrity sha512-pAec1Mqyq0l0+C6JH7o7Va0oWyZVACEFgP2cWD9DU/C1epoqZAt/PCRbae/7fFfn7ZGew5tiTMdtO/2RZO/cRg==
 
-qrcode.react@^3.0.2:
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/qrcode.react/-/qrcode.react-3.0.2.tgz#7ceaea165aa7066253ef670a25bf238eaec4eb9e"
-  integrity sha512-8F3SGxSkNb3fMIHdlseqjFjLbsPrF3WvF/1MOboSUUHytT537W8f/FtbdA3XFIHDrc+TrRBjTI/QLmwhAIGWWw==
+qrcode.react@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/qrcode.react/-/qrcode.react-3.1.0.tgz#5c91ddc0340f768316fbdb8fff2765134c2aecd8"
+  integrity sha512-oyF+Urr3oAMUG/OiOuONL3HXM+53wvuH3mtIWQrYmsXoAq0DkvZp2RYUWFSMFtbdOpuS++9v+WAkzNVkMlNW6Q==
 
 qs@6.9.7:
   version "6.9.7"
