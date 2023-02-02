@@ -4,10 +4,11 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional, TypedDict
 
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -87,7 +88,17 @@ class UserSerializeType(IntEnum):
     SELF_DETAILED = 2
 
 
-class UserService(InterfaceWithLifecycle):
+class UserFilterArgs(TypedDict, total=False):
+    user_ids: List[int]
+    is_active: bool
+    organization_id: int
+    project_ids: List[int]
+    team_ids: List[int]
+    is_active_memberteam: bool
+    emails: List[str]
+
+
+class UserService(FilterQueryInterface, InterfaceWithLifecycle):
     @abstractmethod
     def get_many_by_email(
         self, emails: List[str], is_active: bool = True, is_verified: bool = True
@@ -153,18 +164,18 @@ class UserService(InterfaceWithLifecycle):
         else:
             return None
 
-    @abstractmethod
-    def query_users(
-        self,
-        user_ids: Optional[List[int]] = None,
-        is_active: Optional[bool] = None,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[List[int]] = None,
-        team_ids: Optional[List[int]] = None,
-        is_active_memberteam: Optional[bool] = None,
-        emails: Optional[List[str]] = None,
-    ) -> List[User]:
-        pass
+    # @abstractmethod
+    # def query_users(
+    #     self,
+    #     user_ids: Optional[List[int]] = None,
+    #     is_active: Optional[bool] = None,
+    #     organization_id: Optional[int] = None,
+    #     project_ids: Optional[List[int]] = None,
+    #     team_ids: Optional[List[int]] = None,
+    #     is_active_memberteam: Optional[bool] = None,
+    #     emails: Optional[List[str]] = None,
+    # ) -> List[User]:
+    #     pass
 
     # NOTE: In the future if this becomes RPC, we can avoid the double serialization problem by using a special type
     # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
