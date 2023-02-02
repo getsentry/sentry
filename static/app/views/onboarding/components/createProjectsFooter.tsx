@@ -105,8 +105,6 @@ export default function CreateProjectsFooter({
     return <SelectedPlatformIcon key={platform} platform={platform} size={23} />;
   };
 
-  console.log(platforms.length);
-
   return (
     <GenericFooter>
       {genSkipOnboardingLink()}
