@@ -397,7 +397,7 @@ jobs:
           echo "This check pretends to be the triggers visual snapshot to satisfy Github required checks"
 
   fake-frontend-visual-snapshot:
-    name: Frontend Visual Snapshot
+    name: 'Visual Snapshot: Frontend'
     needs: [files-changed]
     # Opposite condition to "trigger * visual snapshot" required checks
     if: needs.files-changed.outputs.acceptance_frontend != 'true'
@@ -405,10 +405,10 @@ jobs:
     steps:
       - name: Sentaur attack
         run: |
-          echo "This check pretends to be the Frontend Visual Snapshot to satisfy Github required checks"
+          echo "This check pretends to be the 'Visual Snapshot: Frontend' check to satisfy Github required checks"
 
   fake-backend-visual-snapshot:
-    name: Backend Visual Snapshot
+    name: 'Visual Snapshot: Backend'
     needs: [files-changed]
     # Opposite condition to "trigger * visual snapshot" required checks
     if: needs.files-changed.outputs.acceptance_backend != 'true'
@@ -416,10 +416,10 @@ jobs:
     steps:
       - name: Sentaur attack
         run: |
-          echo "This check pretends to be the Backend Visual Snapshot to satisfy Github required checks"
+          echo "This check pretends to be the 'Visual Snapshot: Backend' check to satisfy Github required checks"
 
   fake-chartcuterie-visual-snapshot:
-    name: Chartcuterie Visual Snapshot
+    name: 'Visual Snapshot: Chartcuterie'
     needs: [files-changed]
     # Opposite condition to "trigger * visual snapshot" required checks
     if: needs.files-changed.outputs.acceptance_backend != 'true'
@@ -427,4 +427,4 @@ jobs:
     steps:
       - name: Sentaur attack
         run: |
-          echo "This check pretends to be the Chartcuterie Visual Snapshot to satisfy Github required checks"
+          echo "This check pretends to be the 'Visual Snapshot: Chartcuterie' check to satisfy Github required checks"
