@@ -130,6 +130,10 @@ class AlertRuleCreateEndpointTest(APITestCase):
             event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
         )
         assert len(audit_log_entry) == 1
+        assert (
+            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            == list(audit_log_entry)[0].ip_address
+        )
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self):
