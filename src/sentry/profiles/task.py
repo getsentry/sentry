@@ -82,7 +82,7 @@ def _should_deobfuscate(profile: Profile) -> bool:
     return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
 
 
-def _symbolicate_profile(profile: Profile, project: Project, event_id: str):
+def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> None:
     try:
         if _should_symbolicate(profile):
             if "debug_meta" not in profile or not profile["debug_meta"]:
@@ -117,7 +117,7 @@ def _symbolicate_profile(profile: Profile, project: Project, event_id: str):
         return
 
 
-def _deobfuscate_profile(profile: Profile, project: Project):
+def _deobfuscate_profile(profile: Profile, project: Project) -> None:
     try:
         if _should_deobfuscate(profile):
             if "profile" not in profile or not profile["profile"]:
@@ -141,7 +141,7 @@ def _deobfuscate_profile(profile: Profile, project: Project):
         return
 
 
-def _normalize_profile(profile: Profile, organization: Organization, project: Project):
+def _normalize_profile(profile: Profile, organization: Organization, project: Project) -> None:
     try:
         if not profile.get("normalized", False):
             _normalize(profile=profile, organization=organization)
@@ -528,7 +528,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         return False
 
 
-def _push_profile_to_vroom(profile: Profile, project: Project):
+def _push_profile_to_vroom(profile: Profile, project: Project) -> None:
     if not _insert_vroom_profile(profile=profile):
         _track_outcome(
             profile=profile,
