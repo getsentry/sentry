@@ -771,6 +771,7 @@ def update_alert_rule(
     if user:
         create_audit_entry_from_user(
             user,
+            ip_address=kwargs.get("ip_address") if kwargs else None,
             organization_id=alert_rule.organization_id,
             target_object=alert_rule.id,
             data=alert_rule.get_audit_log_data(),

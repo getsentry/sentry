@@ -4,6 +4,7 @@ from functools import cached_property
 import responses
 from django.conf import settings
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
@@ -15,7 +16,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.models import OrganizationMemberTeam
+from sentry.models import AuditLogEntry, OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
@@ -195,6 +196,15 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data == serialize(alert_rule)
         assert resp.data["name"] == "what"
         assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=alert_rule.id
+        )
+        assert len(audit_log_entry) == 1
+        assert (
+            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            == list(audit_log_entry)[0].ip_address
+        )
 
     def test_sentry_app(self):
         self.create_member(

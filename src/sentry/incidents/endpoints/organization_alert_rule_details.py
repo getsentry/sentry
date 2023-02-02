@@ -62,7 +62,12 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def put(self, request: Request, organization, alert_rule) -> Response:
         serializer = DrfAlertRuleSerializer(
-            context={"organization": organization, "access": request.access, "user": request.user},
+            context={
+                "organization": organization,
+                "access": request.access,
+                "user": request.user,
+                "ip_address": request.META.get("REMOTE_ADDR"),
+            },
             instance=alert_rule,
             data=request.data,
         )
