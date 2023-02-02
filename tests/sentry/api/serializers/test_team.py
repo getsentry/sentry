@@ -1,6 +1,7 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.models import InviteStatus
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -185,6 +186,38 @@ class TeamSerializerTest(TestCase):
             user=user, organization=organization, role="member", teams=[manager_team, owner_team]
         )
         team = self.create_team(organization=organization)
+
+        result = serialize(team, user)
+        result.pop("dateCreated")
+
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
+        organization.flags.allow_joinleave = False
+        organization.save()
+        result = serialize(team, user)
+        # after changing to allow_joinleave=False
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
+        self.create_team_membership(user=user, team=team)
+        result = serialize(team, user)
+        # after giving them access to team
+        assert result["hasAccess"] is True
+        assert result["isMember"] is True
+        assert result["teamRole"] == "admin"
+
+    def test_member_with_team_role_on_owner_team_access(self):
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        manager_team = self.create_team(organization=organization, org_role="manager")
+        member = self.create_member(
+            user=user, organization=organization, role="member", teams=[manager_team]
+        )
+        team = self.create_team(organization=organization)
+        OrganizationMemberTeam(organizationmember=member, team=team, role="contributor")
 
         result = serialize(team, user)
         result.pop("dateCreated")
