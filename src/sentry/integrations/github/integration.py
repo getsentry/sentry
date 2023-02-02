@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
@@ -20,6 +21,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models import Integration, Organization, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -27,13 +29,14 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
-from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
+
+logger = logging.getLogger("sentry.integrations.github")
 
 DESCRIPTION = """
 Connect your Sentry organization into your GitHub organization or user account.
@@ -107,20 +110,25 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> JSONData:
-        gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
-        organization_context = organization_service.get_organization_by_id(
-            id=self.org_integration.organization_id, user_id=None
-        )
-        return (
-            self.get_client().get_trees_for_org(
-                cache_key=organization_context.organization.slug,
-                gh_org=gh_org,
-                cache_seconds=cache_seconds,
+    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
+        trees: Dict[str, RepoTree] = {}
+        try:
+            gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
+            extra = {"gh_org": gh_org, "metadata": self.model.metadata}
+            organization_context = organization_service.get_organization_by_id(
+                id=self.org_integration.organization_id, user_id=None
             )
-            if organization_context
-            else {}
-        )
+            if not organization_context:
+                logger.exception("No organization information was found.", extra=extra)
+            else:
+                extra.update({"org_slug": organization_context.organization.slug})
+                trees = self.get_client().get_trees_for_org(
+                    gh_org=gh_org, cache_seconds=cache_seconds
+                )
+        except Exception:
+            logger.exception("Unknown issue for get_trees_for_org.")
+
+        return trees
 
     def get_repositories(
         self, query: str | None = None, fetch_max_pages: bool = False
