@@ -556,10 +556,10 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     def _url_hash(self, span: Span) -> str:
         url = urlparse(span.get("description") or "")
         path = url.path
-        path = self.UUID_REGEX.sub("%s", path)
-        path = self.CHUNK_HASH_REGEX.sub(".%s.chunk", path)
-        path = self.TRAILING_HASH_REGEX.sub("\\1%s.\\2", path)
-        path = self.ASSET_HASH_REGEX.sub("%s", path)
+        path = self.UUID_REGEX.sub("*", path)
+        path = self.CHUNK_HASH_REGEX.sub(".*.chunk", path)
+        path = self.TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
+        path = self.ASSET_HASH_REGEX.sub("*", path)
         stripped_url = url._replace(path=path, query="").geturl()
         return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
 
