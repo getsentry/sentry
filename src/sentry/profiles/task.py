@@ -114,7 +114,8 @@ def process_profile_task(
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     try:
-        _normalize(profile=profile, organization=organization)
+        if not profile.get("normalized", False):
+            _normalize(profile=profile, organization=organization)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         _track_outcome(
@@ -143,12 +144,12 @@ SHOULD_DEOBFUSCATE = frozenset(["android"])
 
 def _should_symbolicate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform in SHOULD_SYMBOLICATE
+    return platform in SHOULD_SYMBOLICATE and not profile.get("symbolicated", False)
 
 
 def _should_deobfuscate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform in SHOULD_DEOBFUSCATE
+    return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
 
 
 @metrics.wraps("process_profile.normalize")
@@ -186,6 +187,8 @@ def _normalize(profile: Profile, organization: Organization) -> None:
             profile["device"]["classification"] = classification
         else:
             profile["device_classification"] = classification
+
+    profile["normalized"] = True
 
 
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
@@ -277,6 +280,7 @@ def _process_symbolicator_results(
 
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
+    profile["symbolicated"] = True
 
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
@@ -422,6 +426,7 @@ def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
+        profile["deobfuscated"] = True
         return
 
     dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
@@ -464,6 +469,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
             mapped = mapper.remap_class(method["class_name"])
             if mapped:
                 method["class_name"] = mapped
+
+    profile["deobfuscated"] = True
 
 
 @metrics.wraps("process_profile.track_outcome")
