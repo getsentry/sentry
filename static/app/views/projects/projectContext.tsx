@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {setActiveProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
@@ -146,7 +148,7 @@ class ProjectContext extends Component<Props, State> {
   );
 
   unsubscribeMembers = MemberListStore.listen(
-    (memberList: (typeof MemberListStore)['state']) => this.setState({memberList}),
+    (memberList: typeof MemberListStore['state']) => this.setState({memberList}),
     undefined
   );
 
@@ -264,11 +266,11 @@ class ProjectContext extends Component<Props, State> {
       case ErrorTypes.PROJECT_NOT_FOUND:
         // TODO(chrissy): use scale for margin values
         return (
-          <div className="container">
-            <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
+          <Layout.Page withPadding>
+            <Alert type="warning">
               {t('The project you were looking for was not found.')}
-            </div>
-          </div>
+            </Alert>
+          </Layout.Page>
         );
       case ErrorTypes.MISSING_MEMBERSHIP:
         // TODO(dcramer): add various controls to improve this flow and break it
