@@ -26,6 +26,7 @@ import {
 
 export interface ImportOptions {
   transaction: Transaction | undefined;
+  type: 'flamegraph' | 'flamechart';
 }
 
 export interface ProfileGroup {
@@ -38,13 +39,11 @@ export interface ProfileGroup {
   transactionID: string | null;
 }
 
-export type ProfileInput =
-  | Profiling.Schema
-  | JSSelfProfiling.Trace
-  | ChromeTrace.ProfileType
-  | Profiling.SentrySampledProfile;
-
-export function importProfile(input: ProfileInput, traceID: string): ProfileGroup {
+export function importProfile(
+  input: Readonly<Profiling.ProfileInput>,
+  traceID: string,
+  type: 'flamegraph' | 'flamechart'
+): ProfileGroup {
   const transaction = Sentry.startTransaction({
     op: 'import',
     name: 'profiles.import',
@@ -56,7 +55,7 @@ export function importProfile(input: ProfileInput, traceID: string): ProfileGrou
       if (transaction) {
         transaction.setTag('profile.type', 'js-self-profile');
       }
-      return importJSSelfProfile(input, traceID, {transaction});
+      return importJSSelfProfile(input, traceID, {transaction, type});
     }
 
     if (isChromeTraceFormat(input)) {
@@ -64,7 +63,7 @@ export function importProfile(input: ProfileInput, traceID: string): ProfileGrou
       if (transaction) {
         transaction.setTag('profile.type', 'chrometrace');
       }
-      return importChromeTrace(input, traceID, {transaction});
+      return importChromeTrace(input, traceID, {transaction, type});
     }
 
     if (isSentrySampledProfile(input)) {
@@ -72,7 +71,7 @@ export function importProfile(input: ProfileInput, traceID: string): ProfileGrou
       if (transaction) {
         transaction.setTag('profile.type', 'sentry-sampled');
       }
-      return importSentrySampledProfile(input, {transaction});
+      return importSentrySampledProfile(input, {transaction, type});
     }
 
     if (isSchema(input)) {
@@ -80,7 +79,7 @@ export function importProfile(input: ProfileInput, traceID: string): ProfileGrou
       if (transaction) {
         transaction.setTag('profile.type', 'schema');
       }
-      return importSchema(input, traceID, {transaction});
+      return importSchema(input, traceID, {transaction, type});
     }
 
     throw new Error('Unsupported trace format');
@@ -97,7 +96,7 @@ export function importProfile(input: ProfileInput, traceID: string): ProfileGrou
 }
 
 function importJSSelfProfile(
-  input: JSSelfProfiling.Trace,
+  input: Readonly<JSSelfProfiling.Trace>,
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
@@ -135,7 +134,7 @@ function importChromeTrace(
 }
 
 function importSentrySampledProfile(
-  input: Profiling.SentrySampledProfile,
+  input: Readonly<Profiling.SentrySampledProfile>,
   options: ImportOptions
 ): ProfileGroup {
   const frameIndex = createSentrySampleProfileFrameIndex(input.profile.frames);
@@ -173,7 +172,7 @@ function importSentrySampledProfile(
     profiles.push(
       wrapWithSpan(
         options.transaction,
-        () => SentrySampledProfile.FromProfile(profile, frameIndex),
+        () => SentrySampledProfile.FromProfile(profile, frameIndex, {type: options.type}),
         {
           op: 'profile.import',
           description: 'evented',
@@ -213,7 +212,7 @@ function importSentrySampledProfile(
 }
 
 function importSchema(
-  input: Profiling.Schema,
+  input: Readonly<Profiling.Schema>,
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
@@ -236,19 +235,23 @@ function importSchema(
 }
 
 function importSingleProfile(
-  profile: Profiling.ProfileTypes,
+  profile:
+    | Profiling.EventedProfile
+    | Profiling.SampledProfile
+    | JSSelfProfiling.Trace
+    | ChromeTrace.ProfileType,
   frameIndex: ReturnType<typeof createFrameIndex>,
-  {transaction}: ImportOptions
+  {transaction, type}: ImportOptions
 ): Profile {
   if (isEventedProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return EventedProfile.FromProfile(profile, frameIndex);
+      return EventedProfile.FromProfile(profile, frameIndex, {type});
     }
 
     return wrapWithSpan(
       transaction,
-      () => EventedProfile.FromProfile(profile, frameIndex),
+      () => EventedProfile.FromProfile(profile, frameIndex, {type}),
       {
         op: 'profile.import',
         description: 'evented',
@@ -258,12 +261,12 @@ function importSingleProfile(
   if (isSampledProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return SampledProfile.FromProfile(profile, frameIndex);
+      return SampledProfile.FromProfile(profile, frameIndex, {type});
     }
 
     return wrapWithSpan(
       transaction,
-      () => SampledProfile.FromProfile(profile, frameIndex),
+      () => SampledProfile.FromProfile(profile, frameIndex, {type}),
       {
         op: 'profile.import',
         description: 'sampled',
@@ -273,12 +276,17 @@ function importSingleProfile(
   if (isJSProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames));
+      return JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames), {
+        type,
+      });
     }
 
     return wrapWithSpan(
       transaction,
-      () => JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames)),
+      () =>
+        JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames), {
+          type,
+        }),
       {
         op: 'profile.import',
         description: 'js-self-profile',
@@ -327,7 +335,7 @@ function readFileAsString(file: File): Promise<string> {
 export async function parseDroppedProfile(
   file: File,
   parsers: JSONParser[] = TRACE_JSON_PARSERS
-): Promise<ProfileInput> {
+): Promise<Profiling.ProfileInput> {
   const fileContents = await readFileAsString(file);
 
   for (const parser of parsers) {

@@ -47,7 +47,7 @@ import {
   Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
-import {ProfileGroup, ProfileInput} from 'sentry/utils/profiling/profile/importProfile';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
@@ -160,6 +160,7 @@ function Flamegraph(): ReactElement {
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
+  const profiles = useFlamegraphProfiles();
   const {sorting, view, type, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
@@ -711,13 +712,16 @@ function Flamegraph(): ReactElement {
   );
 
   const onImport = useCallback(
-    (p: ProfileInput) => {
+    (p: Profiling.ProfileInput) => {
       setProfiles({type: 'resolved', data: p});
     },
     [setProfiles]
   );
 
   useEffect(() => {
+    if (defined(profiles.threadId)) {
+      return;
+    }
     const threadID =
       typeof profileGroup.activeProfileIndex === 'number'
         ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
@@ -785,7 +789,7 @@ function Flamegraph(): ReactElement {
         payload: threadID,
       });
     }
-  }, [profileGroup, highlightFrames, dispatch]);
+  }, [profileGroup, highlightFrames, profiles.threadId, dispatch]);
 
   // A bit unfortunate for now, but the search component accepts a list
   // of model to search through. This will become useful as we  build
@@ -819,7 +823,7 @@ function Flamegraph(): ReactElement {
 
       <FlamegraphLayout
         uiFrames={
-          hasUIFrames ? (
+          hasUIFrames && type === 'flamechart' ? (
             <FlamegraphUIFrames
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
@@ -832,7 +836,7 @@ function Flamegraph(): ReactElement {
           ) : null
         }
         spans={
-          spanChart ? (
+          spanChart && type === 'flamechart' ? (
             <FlamegraphSpans
               canvasBounds={spansCanvasBounds}
               spanChart={spanChart}

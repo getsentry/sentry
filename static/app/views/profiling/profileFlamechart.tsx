@@ -21,6 +21,7 @@ import {
   FlamegraphStateQueryParamSync,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -87,7 +88,7 @@ function ProfileFlamegraph(): React.ReactElement {
       orgSlug={organization.slug}
     >
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
-        <ProfileGroupProvider
+        <ProfileGroupTypeProvider
           input={profiles.type === 'resolved' ? profiles.data : null}
           traceID={params.eventID}
         >
@@ -107,9 +108,30 @@ function ProfileFlamegraph(): React.ReactElement {
               <Flamegraph />
             </FlamegraphContainer>
           </FlamegraphThemeProvider>
-        </ProfileGroupProvider>
+        </ProfileGroupTypeProvider>
       </FlamegraphStateProvider>
     </SentryDocumentTitle>
+  );
+}
+
+// This only exists because we need to call useFlamegraphPreferences
+// to get the type of visualization that the user is looking at and
+// we cannot do it in the component above as it is not a child of the
+// FlamegraphStateProvider.
+function ProfileGroupTypeProvider({
+  children,
+  input,
+  traceID,
+}: {
+  children: React.ReactNode;
+  input: Profiling.ProfileInput | null;
+  traceID: string;
+}) {
+  const preferences = useFlamegraphPreferences();
+  return (
+    <ProfileGroupProvider input={input} traceID={traceID} type={preferences.type}>
+      {children}
+    </ProfileGroupProvider>
   );
 }
 

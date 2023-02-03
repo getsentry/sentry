@@ -4,14 +4,11 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {
-  parseDroppedProfile,
-  ProfileInput,
-} from 'sentry/utils/profiling/profile/importProfile';
+import {parseDroppedProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 export interface ProfileDragDropImportProps {
   children: React.ReactNode;
-  onImport: (input: ProfileInput) => void;
+  onImport: (input: Profiling.ProfileInput) => void;
 }
 
 function ProfileDragDropImport({

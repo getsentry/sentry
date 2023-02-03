@@ -16,7 +16,9 @@ describe('SampledProfile', () => {
       samples: [],
     };
 
-    const profile = SampledProfile.FromProfile(trace, createFrameIndex('mobile', []));
+    const profile = SampledProfile.FromProfile(trace, createFrameIndex('mobile', []), {
+      type: 'flamechart',
+    });
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
@@ -39,7 +41,8 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}])
+      createFrameIndex('mobile', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
     expect(profile.stats.discardedSamplesCount).toBe(1);
   });
@@ -58,7 +61,8 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}])
+      createFrameIndex('mobile', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
@@ -77,7 +81,8 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}])
+      createFrameIndex('mobile', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
     expect(profile.rawWeights.length).toBe(2);
   });
@@ -101,7 +106,8 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamechart'}
     );
 
     profile.forEach(open, close);
@@ -138,7 +144,8 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamechart'}
     );
 
     expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
@@ -158,7 +165,8 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamechart'}
     );
 
     expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
@@ -183,7 +191,8 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+      {type: 'flamechart'}
     );
 
     expect(profile.minFrameDuration).toBe(0.5);
@@ -210,7 +219,8 @@ describe('SampledProfile', () => {
         {name: 'f0'},
         {name: 'f1'},
         {name: '(garbage collector)'},
-      ])
+      ]),
+      {type: 'flamechart'}
     );
 
     // GC gets places on top of the previous stack and the weight is updated
@@ -246,7 +256,8 @@ describe('SampledProfile', () => {
         {name: 'f1'},
         {name: '(garbage collector)'},
         {name: 'f2'},
-      ])
+      ]),
+      {type: 'flamechart'}
     );
 
     expect(profile.callTree.children[0].children[0].children.length).toBe(2);
@@ -281,7 +292,8 @@ describe('SampledProfile', () => {
         {name: 'f0'},
         {name: 'f1'},
         {name: '(garbage collector)'},
-      ])
+      ]),
+      {type: 'flamechart'}
     );
 
     // There are no other children than the GC call meaning merge happened

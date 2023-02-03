@@ -24,7 +24,11 @@ jest.mock('../../profilesProvider', () => {
 
 const useProfileGroupSpy = jest.spyOn(profileGroupProviderMod, 'useProfileGroup');
 
-const mockUseProfileData: ProfileGroup = importProfile(makeSentrySampledProfile(), '');
+const mockUseProfileData: ProfileGroup = importProfile(
+  makeSentrySampledProfile(),
+  '',
+  'flamechart'
+);
 useProfileGroupSpy.mockImplementation(() => mockUseProfileData);
 
 function assertTableHeaders(headerText: string[]) {

@@ -22,6 +22,7 @@ export class Profile {
   // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
   endedAt: number;
   threadId: number;
+  type: string;
 
   // Unit in which the timings are reported in
   unit = 'microseconds';
@@ -29,8 +30,6 @@ export class Profile {
   name = 'Unknown';
 
   callTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
-  callGraph: CallTreeNode = new CallTreeNode(Frame.Root, null);
-
   framesInStack: Set<Profiling.Event['frame']> = new Set();
 
   // Min duration of a single frame in our profile
@@ -52,6 +51,7 @@ export class Profile {
     name,
     unit,
     threadId,
+    type,
   }: {
     duration: number;
     endedAt: number;
@@ -59,6 +59,7 @@ export class Profile {
     startedAt: number;
     threadId: number;
     unit: string;
+    type?: string;
   }) {
     this.threadId = threadId;
     this.duration = duration;
@@ -66,6 +67,7 @@ export class Profile {
     this.endedAt = endedAt;
     this.name = name;
     this.unit = unit;
+    this.type = type ?? '';
   }
 
   static Empty = new Profile({

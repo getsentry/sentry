@@ -38,6 +38,7 @@ function ProfileDetails() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <ProfileGroupProvider
+              type="flamechart"
               input={profiles.type === 'resolved' ? profiles.data : null}
               traceID={params.eventID}
             >

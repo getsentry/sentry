@@ -15,7 +15,9 @@ describe('EventedProfile', () => {
       events: [],
     };
 
-    const profile = EventedProfile.FromProfile(trace, createFrameIndex('mobile', []));
+    const profile = EventedProfile.FromProfile(trace, createFrameIndex('mobile', []), {
+      type: 'flamechart',
+    });
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
@@ -40,7 +42,8 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}])
+      createFrameIndex('mobile', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
 
     expect(profile.stats.discardedSamplesCount).toBe(1);
@@ -62,7 +65,8 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}])
+      createFrameIndex('mobile', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
@@ -85,7 +89,8 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}])
+      createFrameIndex('mobile', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
 
     expect(profile.rawWeights.length).toBe(2);
@@ -111,7 +116,8 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamechart'}
     );
 
     profile.forEach(open, close);
@@ -152,7 +158,8 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}])
+      createFrameIndex('mobile', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
 
     expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
@@ -178,7 +185,8 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamechart'}
     );
 
     expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
@@ -204,7 +212,8 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+      {type: 'flamechart'}
     );
 
     expect(profile.minFrameDuration).toBe(0.5);
@@ -230,7 +239,8 @@ describe('EventedProfile', () => {
     expect(() =>
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+        {type: 'flamechart'}
       )
     ).toThrow('Sample delta cannot be negative, samples may be corrupt or out of order');
   });
@@ -254,7 +264,8 @@ describe('EventedProfile', () => {
     expect(() =>
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+        {type: 'flamechart'}
       )
     ).toThrow('Unbalanced append order stack');
   });
