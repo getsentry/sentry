@@ -224,7 +224,24 @@ describe('OrganizationStats', function () {
   /**
    * Project Selection
    */
-  it('renders with no projects selected', () => {
+  it('renders single project without global-views', () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+    });
+
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.queryByText('usage-stats-table')).not.toBeInTheDocument();
+  });
+
+  it('renders default projects with global-views', () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -345,11 +362,7 @@ describe('OrganizationStats', function () {
       ...defaultSelection,
       projects: selectedProject,
     };
-    for (const features of [
-      ['team-insights'],
-      ['team-insights', 'project-stats'],
-      ['team-insights', 'global-views'],
-    ]) {
+    for (const features of [['team-insights'], ['team-insights', 'project-stats']]) {
       const newOrg = initializeOrg();
       newOrg.organization.features = features;
       render(
@@ -362,7 +375,6 @@ describe('OrganizationStats', function () {
       );
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-      expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
       cleanup();
     }
   });
