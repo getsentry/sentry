@@ -31,6 +31,7 @@ from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
@@ -404,18 +405,18 @@ class OrganizationMember(Model):
             scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
 
-    def get_org_roles_from_teams(self):
+    def get_org_roles_from_teams(self) -> List[str]:
         # results in an extra query when calling get_scopes()
         return list(
             self.teams.all().exclude(org_role=None).values_list("org_role", flat=True).distinct()
         )
 
-    def get_all_org_roles(self):
+    def get_all_org_roles(self) -> List[str]:
         all_org_roles = self.get_org_roles_from_teams()
         all_org_roles.append(self.role)
         return all_org_roles
 
-    def get_all_org_roles_sorted(self):
+    def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
         return sorted(
             [organization_roles.get(role) for role in self.get_all_org_roles()],
             key=lambda r: r.priority,
