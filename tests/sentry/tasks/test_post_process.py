@@ -17,7 +17,7 @@ from sentry.grouptype.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
-from sentry.issues.ingest import save_issue_from_occurrence
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
     Activity,
     Group,

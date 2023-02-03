@@ -12,7 +12,6 @@ from sentry import features
 from sentry.grouptype.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import Organization, Project
 
-
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
