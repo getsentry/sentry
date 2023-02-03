@@ -12,6 +12,10 @@ jest.mock(
 );
 
 describe('PipelineView', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders awsLambdaProjectSelect', () => {
     render(<PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />);
 
@@ -29,8 +33,5 @@ describe('PipelineView', () => {
     expect(() => render(<PipelineView pipelineName="other" />)).toThrow(
       'Invalid pipeline name other'
     );
-
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
   });
 });

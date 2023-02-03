@@ -16,7 +16,6 @@ describe('Grouping Store', function () {
   beforeEach(function () {
     GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
-    Client.clearMockResponses();
     Client.addMockResponse({
       url: '/issues/groupId/hashes/',
       body: [
@@ -101,7 +100,9 @@ describe('Grouping Store', function () {
   });
 
   afterEach(function () {
-    trigger.mockReset();
+    Client.clearMockResponses();
+    jest.resetAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('onFetch()', function () {
