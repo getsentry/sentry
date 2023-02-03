@@ -136,6 +136,7 @@ default_manager.add("organizations:profiling-flamechart-spans", OrganizationFeat
 default_manager.add("organizations:profiling-flamegraphs", OrganizationFeature, True)
 default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, True)
 default_manager.add("organizations:profiling-dashboard-redesign", OrganizationFeature, True)
+default_manager.add("organizations:profiling-previews", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
