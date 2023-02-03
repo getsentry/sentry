@@ -18,6 +18,10 @@ type ResolvedComponent = {default: React.ComponentType<TestProps>};
 type GetComponent = () => Promise<ResolvedComponent>;
 
 describe('LazyLoad', function () {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders with a loading indicator when promise is not resolved yet', function () {
     const importTest = new Promise<ResolvedComponent>(() => {});
     const getComponent = () => importTest;
@@ -65,10 +69,6 @@ describe('LazyLoad', function () {
 
     // eslint-disable-next-line no-console
     expect(console.error).toHaveBeenCalled();
-
-    // @ts-expect-error
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
   });
 
   it('refetches only when component changes', async function () {
