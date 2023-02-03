@@ -119,7 +119,7 @@ default_manager.add("organizations:performance-issues-compressed-assets-detector
 default_manager.add("organizations:performance-issues-render-blocking-assets-detector", OrganizationFeature)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)
-default_manager.add("organizations:performance-issues-search", OrganizationFeature, True)
+default_manager.add("organizations:performance-issues-search", OrganizationFeature)
 default_manager.add("organizations:performance-file-io-main-thread-detector", OrganizationFeature)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
