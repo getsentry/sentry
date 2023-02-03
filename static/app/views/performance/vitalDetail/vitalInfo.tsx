@@ -24,6 +24,7 @@ type Props = ViewProps & {
   hideVitalThresholds?: boolean;
   isLoading?: boolean;
   p75AllTransactions?: number;
+  queryExtras?: Record<string, string>;
 };
 
 function VitalInfo({
@@ -35,6 +36,7 @@ function VitalInfo({
   hideVitalPercentNames,
   hideVitalThresholds,
   hideDurationDetail,
+  queryExtras,
 }: Props) {
   const vitals = toArray(vital);
   const contentCommonProps = {
@@ -47,7 +49,11 @@ function VitalInfo({
   };
 
   return (
-    <VitalsCardDiscoverQuery location={location} vitals={vitals}>
+    <VitalsCardDiscoverQuery
+      location={location}
+      vitals={vitals}
+      queryExtras={queryExtras}
+    >
       {({isLoading: loading, vitalsData}) => (
         <VitalBar
           {...contentCommonProps}

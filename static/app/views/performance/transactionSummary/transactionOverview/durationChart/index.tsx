@@ -28,6 +28,7 @@ type Props = ViewProps & {
   organization: OrganizationSummary;
   queryExtra: Query;
   withoutZerofill: boolean;
+  queryExtras?: Record<string, string>;
 };
 
 enum DurationFunctionField {
@@ -53,6 +54,7 @@ function DurationChart({
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
+  queryExtras,
 }: Props) {
   const router = useRouter();
   const location = useLocation();
@@ -144,6 +146,7 @@ function DurationChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.duration-chart"
+        queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

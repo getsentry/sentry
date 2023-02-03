@@ -4,7 +4,8 @@ import {Location} from 'history';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import {Organization, OrganizationSummary} from 'sentry/types';
+import {getPercentiles} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 
 import {ViewProps} from '../../../types';
 import {filterToField, SpanOperationBreakdownFilter} from '../../filter';
@@ -15,9 +16,11 @@ type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
   location: Location;
   organization: OrganizationSummary;
+  queryExtras?: Record<string, string>;
 };
 
 function DurationPercentileChart({currentFilter, ...props}: Props) {
+  const percentiles = getPercentiles(props.organization as Organization);
   const header = (
     <HeaderTitleLegend>
       {currentFilter === SpanOperationBreakdownFilter.None
@@ -36,35 +39,16 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
   );
 
   function generateFields() {
+    let field: string | undefined;
     if (currentFilter === SpanOperationBreakdownFilter.None) {
-      return [
-        'percentile(transaction.duration, 0.10)',
-        'percentile(transaction.duration, 0.25)',
-        'percentile(transaction.duration, 0.50)',
-        'percentile(transaction.duration, 0.75)',
-        'percentile(transaction.duration, 0.90)',
-        'percentile(transaction.duration, 0.95)',
-        'percentile(transaction.duration, 0.99)',
-        'percentile(transaction.duration, 0.995)',
-        'percentile(transaction.duration, 0.999)',
-        'p100()',
-      ];
+      field = 'transaction.duration';
+    } else {
+      field = filterToField(currentFilter);
     }
 
-    const field = filterToField(currentFilter);
-
-    return [
-      `percentile(${field}, 0.10)`,
-      `percentile(${field}, 0.25)`,
-      `percentile(${field}, 0.50)`,
-      `percentile(${field}, 0.75)`,
-      `percentile(${field}, 0.90)`,
-      `percentile(${field}, 0.95)`,
-      `percentile(${field}, 0.99)`,
-      `percentile(${field}, 0.995)`,
-      `percentile(${field}, 0.999)`,
-      `p100(${field})`,
-    ];
+    return percentiles.map(percentile =>
+      percentile === '1' ? `p100(${field})` : `percentile(${field}, ${percentile})`
+    );
   }
 
   const fields = generateFields();
