@@ -64,6 +64,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         is_new_group_environment=False,
         queue="post_process_errors",
         group_states=None,
+        occurrence_id=None,
     )
 
     strategy.join()
