@@ -1,157 +1,318 @@
 {
-  "event_id": "bca1a939329f4c889721a97790d673ed",
-  "project": 3,
+  "event_id": "610e699493b944468c34966c62f17e45",
+  "project": 4504599796252672,
   "release": null,
   "dist": null,
-  "platform": "other",
+  "platform": "node",
   "message": "",
-  "datetime": "2023-02-02T23:07:41.736703Z",
+  "datetime": "2023-01-31T15:31:23.967358Z",
   "tags": [
-    ["application", "countries"],
-    ["browser", "Python Requests 2.22"],
-    ["browser.name", "Python Requests"],
-    ["environment", "dev"],
+    ["browser", "Chrome 109.0.0"],
+    ["browser.name", "Chrome"],
+    ["client_os", "Mac OS X 10.15.7"],
+    ["client_os.name", "Mac OS X"],
+    ["environment", "production"],
+    ["http.status_code", "304"],
     ["level", "info"],
-    ["runtime", "CPython 3.7.3"],
-    ["runtime.name", "CPython"],
-    ["user", "username:saloni"],
-    ["transaction", "/consecutive-db/"],
-    ["url", "http://countries:8010/country_by_code/"]
+    ["os", "macOS 12.6"],
+    ["os.name", "macOS"],
+    ["runtime", "node v16.15.1"],
+    ["runtime.name", "node"],
+    ["server_name", "RX1Y5J4RHX"],
+    ["transaction", "GET /consecutive-endpoint-2"],
+    ["url", "http://localhost/consecutive-endpoint-2"]
   ],
-  "_meta": {"platform": {"": {"val": "transaction"}}},
-  "_metrics": {"bytes.stored.event": 4374},
+  "_metrics": {"bytes.ingested.event": 8274, "bytes.stored.event": 8421},
   "breadcrumbs": {
     "values": [
       {
-        "timestamp": 1562681591.0,
+        "timestamp": 1675178825.261,
         "type": "default",
-        "category": "query",
+        "category": "console",
         "level": "info",
-        "message": "SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'"
+        "message": "CORS-enabled web server listening on port 3001"
       }
     ]
   },
   "breakdowns": {
     "span_ops": {
-      "ops.browser": {"value": 633.474827},
-      "ops.db": {"value": 91.876},
-      "ops.http": {"value": 2039.16049},
-      "ops.resource": {"value": 2024.234772},
-      "total.time": {"value": 2875.570536}
+      "ops.db": {"value": 211.091995, "unit": "millisecond"},
+      "total.time": {"value": 211.699009, "unit": "millisecond"}
     }
   },
   "contexts": {
-    "browser": {"name": "Python Requests", "version": "2.22", "type": "browser"},
-    "runtime": {
-      "name": "CPython",
-      "version": "3.7.3",
-      "build": "3.7.3 (default, Jun 27 2019, 22:53:21) \n[GCC 8.3.0]",
-      "type": "runtime"
+    "app": {
+      "app_start_time": "2023-01-31T15:27:04.477Z",
+      "app_memory": 212844544,
+      "type": "app"
     },
+    "browser": {"name": "Chrome", "version": "109.0.0", "type": "browser"},
+    "client_os": {"name": "Mac OS X", "version": "10.15.7", "type": "os"},
+    "culture": {"locale": "en-US", "timezone": "America/Toronto", "type": "culture"},
+    "device": {
+      "arch": "arm64",
+      "memory_size": 34359738368,
+      "free_memory": 1041203200,
+      "boot_time": "2023-01-27T15:50:17.264Z",
+      "processor_count": 10,
+      "cpu_description": "Apple M1 Pro",
+      "processor_frequency": 24,
+      "type": "device"
+    },
+    "os": {
+      "name": "macOS",
+      "version": "12.6",
+      "build": "21G115",
+      "kernel_version": "21.6.0",
+      "type": "os"
+    },
+    "runtime": {"name": "node", "version": "v16.15.1", "type": "runtime"},
     "trace": {
-      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
-      "span_id": "3421d10721df4382",
-      "parent_span_id": "f32e597a998a4e49",
+      "trace_id": "11b98c2468354afb93804b978744782b",
+      "span_id": "a9cc760a4494714f",
       "op": "http.server",
       "status": "ok",
-      "hash": "629844b1c1f077db",
+      "exclusive_time": 356.695175,
+      "client_sample_rate": 1.0,
+      "data": {"query": {}, "url": "/consecutive-endpoint-2"},
+      "hash": "9a249bcb8c4d2787",
+      "tags": {"http.status_code": "304"},
       "type": "trace"
     }
   },
-  "culprit": "/country_by_code/",
-  "environment": "dev",
-  "hashes": ["d2a075f52f09ce129f132f65fc9f0b3e"],
-  "level": "info",
-  "location": "/consecutive-db/",
-  "logger": "",
-  "measurements": {
-    "cls": {"value": 0.0382, "unit": "none"},
-    "fcp": {"value": 2258.060000000114, "unit": "millisecond"},
-    "fid": {"value": 3.4900000027846545, "unit": "millisecond"},
-    "fp": {"value": 2258.060000000114, "unit": "millisecond"},
-    "lcp": {"value": 2807.335, "unit": "millisecond"},
-    "mark.fcp": {"value": 1675379263.695, "unit": "none"},
-    "mark.fid": {"value": 1675379261.44, "unit": "none"},
-    "mark.fp": {"value": 1675379263.695, "unit": "none"},
-    "mark.lcp": {"value": 1675379264.244, "unit": "none"}
+  "culprit": "GET /consecutive-endpoint-2",
+  "environment": "production",
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
   },
-  "metadata": {"location": "/consecutive-db/", "title": "/consecutive-db/"},
-  "modules": {"my.package": "1.0.0"},
-  "nodestore_insert": 1675379263.836825,
-  "received": 1675379263.788509,
+  "hashes": ["d99700a804acae01bb5a504cee73777b"],
+  "ingest_path": [
+    {"version": "23.1.1", "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"}
+  ],
+  "key_id": "2955315",
+  "level": "info",
+  "location": "GET /consecutive-endpoint-2",
+  "logger": "",
+  "metadata": {
+    "location": "GET /consecutive-endpoint-2",
+    "title": "GET /consecutive-endpoint-2"
+  },
+  "modules": {
+    "accepts": "1.3.8",
+    "arg": "4.1.3",
+    "array-flatten": "1.1.1",
+    "assert-options": "0.8.0",
+    "body-parser": "1.20.1",
+    "bytes": "3.1.2",
+    "call-bind": "1.0.2",
+    "content-disposition": "0.5.4",
+    "content-type": "1.0.4",
+    "cookie": "0.5.0",
+    "cookie-signature": "1.0.6",
+    "cors": "2.8.5",
+    "debug": "2.6.9",
+    "depd": "2.0.0",
+    "destroy": "1.2.0",
+    "dotenv": "16.0.3",
+    "ee-first": "1.1.1",
+    "encodeurl": "1.0.2",
+    "escape-html": "1.0.3",
+    "etag": "1.8.1",
+    "express": "4.18.2",
+    "finalhandler": "1.2.0",
+    "forwarded": "0.2.0",
+    "fresh": "0.5.2",
+    "function-bind": "1.1.1",
+    "get-intrinsic": "1.1.3",
+    "has": "1.0.3",
+    "has-symbols": "1.0.3",
+    "http-errors": "2.0.0",
+    "iconv-lite": "0.4.24",
+    "inherits": "2.0.4",
+    "ipaddr.js": "1.9.1",
+    "lru_map": "0.3.3",
+    "make-error": "1.3.6",
+    "media-typer": "0.3.0",
+    "merge-descriptors": "1.0.1",
+    "methods": "1.1.2",
+    "mime": "1.6.0",
+    "mime-db": "1.52.0",
+    "mime-types": "2.1.35",
+    "ms": "2.1.3",
+    "negotiator": "0.6.3",
+    "object-assign": "4.1.1",
+    "object-inspect": "1.12.2",
+    "on-finished": "2.4.1",
+    "parseurl": "1.3.3",
+    "path-to-regexp": "0.1.7",
+    "pg": "8.8.0",
+    "pg-connection-string": "2.5.0",
+    "pg-int8": "1.0.1",
+    "pg-minify": "1.6.2",
+    "pg-pool": "3.5.2",
+    "pg-promise": "11.0.2",
+    "pg-protocol": "1.5.0",
+    "pg-types": "2.2.0",
+    "pgpass": "1.0.5",
+    "postgres-array": "2.0.0",
+    "postgres-bytea": "1.0.0",
+    "postgres-date": "1.0.7",
+    "postgres-interval": "1.2.0",
+    "proxy-addr": "2.0.7",
+    "qs": "6.11.0",
+    "range-parser": "1.2.1",
+    "raw-body": "2.5.1",
+    "safer-buffer": "2.1.2",
+    "send": "0.18.0",
+    "serve-static": "1.15.0",
+    "setprototypeof": "1.2.0",
+    "side-channel": "1.0.4",
+    "spex": "3.2.0",
+    "split2": "4.1.0",
+    "statuses": "2.0.1",
+    "toidentifier": "1.0.1",
+    "ts-node": "10.9.1",
+    "type-is": "1.6.18",
+    "typescript": "4.9.4",
+    "unpipe": "1.0.0",
+    "utils-merge": "1.0.1",
+    "v8-compile-cache-lib": "3.0.1",
+    "vary": "1.1.2",
+    "xtend": "4.0.2",
+    "yn": "3.1.1"
+  },
+  "nodestore_insert": 1675179086.872364,
+  "received": 1675179084.276171,
   "request": {
-    "url": "http://countries:8010/country_by_code/",
+    "url": "http://localhost/consecutive-endpoint-2",
     "method": "GET",
-    "query_string": [["code", "CAN"]],
-    "headers": [
-      ["Accept", "*/*"],
-      ["Accept-Encoding", "gzip, deflate"],
-      ["Connection", "keep-alive"],
-      ["Content-Length", ""],
-      ["Content-Type", "text/plain"],
-      ["Host", "countries:8010"],
-      ["Referer", "fixtures.transaction"],
-      ["Sentry-Trace", "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"],
-      ["User-Agent", "python-requests/2.22.0"]
+    "cookies": [
+      ["AMP_MKTG_ba62b82db2", "JTdCJTdE"],
+      [
+        "AMP_MKTG_cde4bc40f2",
+        "JTdCJTIycmVmZXJyZXIlMjIlM0ElMjJodHRwJTNBJTJGJTJGbG9jYWxob3N0JTNBODAwMCUyRm9yZ2FuaXphdGlvbnMlMkZzZW50cnklMkZpc3N1ZXMlMkYlM0Zwcm9qZWN0JTNEOSUyNnJlZmVycmVyJTNEc2lkZWJhciUyMiUyQyUyMnJlZmVycmluZ19kb21haW4lMjIlM0ElMjJsb2NhbGhvc3QlM0E4MDAwJTIyJTdE"
+      ],
+      [
+        "AMP_ba62b82db2",
+        "JTdCJTIyb3B0T3V0JTIyJTNBZmFsc2UlMkMlMjJkZXZpY2VJZCUyMiUzQSUyMjQwNGRiM2Q2LWNhZDUtNDJiZS1iM2EyLWMzOGYxNjA2NWJkZSUyMiUyQyUyMmxhc3RFdmVudFRpbWUlMjIlM0ExNjc0MjUzMTk1MDQ2JTJDJTIyc2Vzc2lvbklkJTIyJTNBMTY3NDI1MzE5MzcyMSU3RA=="
+      ],
+      [
+        "AMP_cde4bc40f2",
+        "JTdCJTIyb3B0T3V0JTIyJTNBZmFsc2UlMkMlMjJkZXZpY2VJZCUyMiUzQSUyMjk5MmRkYzVjLWQyMmQtNGYyMC1hYTc3LTNhNDBhZmRkMmU5MiUyMiUyQyUyMmxhc3RFdmVudFRpbWUlMjIlM0ExNjczNjM2OTQ1NDYxJTJDJTIyc2Vzc2lvbklkJTIyJTNBMTY3MzYzNjk0NTQ1MSU3RA=="
+      ],
+      ["_gcl_au", "1.1.1607379271.1674659810"],
+      ["sc", "T6ByRjo4QixiXiGJ57ipidvhiS8wUFe73FXB9uX6ZRLethBz1kRweK6VLT4skiYa"],
+      [
+        "session",
+        ".eJxVj0FvwiAcxb8LZ23AttT25pIddJrMuM4jofDXEim4QrXO-N1HjXHxQgjvvd97XJEH54W1BwWoQGfbHkCiETpDxTtfGzacYLwS3CtrmPPcB-MViZprDWY_pH43Y1p9l32TL9OY4lmbNxD_uO2xXE3J-DKv5v2Rsk_Zb1cB3Tlo2QlatXtAUWE6rW8j1Ox4oE0wwTGNg5MZa8RQoKZfpCn7jes-ZuHdOctcQYYZ3qGC0CzOcULSPJpgmqUkoO672b1KyVfov1JxcQAzyC58sb1EnVfaRYMhem-40rNwe3uYXpI1d3WIgcwEkQIk5lWVZImUFJIppgJoLEguJySlQlI8bL43jF0nbQguMr1e-2O_kMsyiFx4dQLb7p9T0O0PCUiHNQ:1pIEHB:jxFFxgkZn5dIzvsEOy9XS2hGmpI"
+      ]
     ],
-    "env": {"SERVER_NAME": "a90286977562", "SERVER_PORT": "8010"},
-    "inferred_content_type": "text/plain"
+    "headers": [
+      [
+        "Accept",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+      ],
+      ["Accept-Encoding", "gzip, deflate, br"],
+      ["Accept-Language", "en-US,en;q=0.9"],
+      ["Cache-Control", "max-age=0"],
+      ["Connection", "keep-alive"],
+      ["Host", "localhost:3001"],
+      ["If-None-Match", "W/\"1622-rrUMOxPyWEMo1LIyn8jtC7rvXO0\""],
+      [
+        "Sec-Ch-Ua",
+        "\"Not_A Brand\";v=\"99\", \"Google Chrome\";v=\"109\", \"Chromium\";v=\"109\""
+      ],
+      ["Sec-Ch-Ua-Mobile", "?0"],
+      ["Sec-Ch-Ua-Platform", "\"macOS\""],
+      ["Sec-Fetch-Dest", "document"],
+      ["Sec-Fetch-Mode", "navigate"],
+      ["Sec-Fetch-Site", "none"],
+      ["Sec-Fetch-User", "?1"],
+      ["Upgrade-Insecure-Requests", "1"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.node",
+    "version": "7.30.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "Console",
+      "Http",
+      "OnUncaughtException",
+      "OnUnhandledRejection",
+      "ContextLines",
+      "LocalVariables",
+      "Context",
+      "Modules",
+      "RequestData",
+      "LinkedErrors",
+      "Postgres",
+      "Express"
+    ],
+    "packages": [{"name": "npm:@sentry/node", "version": "7.30.0"}]
   },
   "span_grouping_config": {"id": "default:2022-10-27"},
   "spans": [
     {
-      "timestamp": 1675379261.736703,
-      "start_timestamp": 1675379261.436703,
-      "description": "new",
-      "op": "django.view",
-      "span_id": "f32e597a998a4e49",
-      "parent_span_id": "4e3384c3c41c4f05",
-      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
-      "hash": "22af645d1859cb5c"
+      "timestamp": 1675179083.399719,
+      "start_timestamp": 1675179083.399248,
+      "exclusive_time": 0.471115,
+      "description": "jsonParser",
+      "op": "middleware.express.use",
+      "span_id": "872c682081916d2f",
+      "parent_span_id": "a9cc760a4494714f",
+      "trace_id": "11b98c2468354afb93804b978744782b",
+      "hash": "c81e963dad9ebc6c"
     },
     {
-      "timestamp": 1675379262.436703,
-      "start_timestamp": 1675379261.736703,
-      "description": "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = 'customerName'",
-      "op": "db",
-      "span_id": "77387b01ac144559",
-      "parent_span_id": "f32e597a998a4e49",
-      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
-      "hash": "f47131bf6c8aef6f"
+      "timestamp": 1675179083.400019,
+      "start_timestamp": 1675179083.399883,
+      "exclusive_time": 0.135899,
+      "description": "corsMiddleware",
+      "op": "middleware.express.use",
+      "span_id": "af1374b7401c2c50",
+      "parent_span_id": "a9cc760a4494714f",
+      "trace_id": "11b98c2468354afb93804b978744782b",
+      "hash": "e6088cf8b370ed60"
     },
     {
-      "timestamp": 1675379263.436703,
-      "start_timestamp": 1675379262.436703,
-      "description": "SELECT COUNT(*) FROM `customers`",
+      "timestamp": 1675179083.850363,
+      "start_timestamp": 1675179083.746733,
+      "exclusive_time": 103.630066,
+      "description": "SELECT COUNT(*) FROM USERS",
       "op": "db",
-      "span_id": "33f759e57af94520",
-      "parent_span_id": "f32e597a998a4e49",
-      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
-      "hash": "51dbf6dd9fe5b83f"
+      "span_id": "a29b3cfd73d630ff",
+      "parent_span_id": "a9cc760a4494714f",
+      "trace_id": "11b98c2468354afb93804b978744782b",
+      "hash": "d4078dbb41cbddf4"
     },
     {
-      "timestamp": 1675379264.436703,
-      "start_timestamp": 1675379263.436703,
-      "description": "SELECT COUNT(*) FROM `items`",
+      "timestamp": 1675179083.959358,
+      "start_timestamp": 1675179083.851896,
+      "exclusive_time": 107.461929,
+      "description": "SELECT * FROM USERS",
       "op": "db",
-      "span_id": "e179bfee853e4440",
-      "parent_span_id": "f32e597a998a4e49",
-      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
-      "hash": "3f28575fcb3a4847"
+      "span_id": "9c912db32bd3f292",
+      "parent_span_id": "a9cc760a4494714f",
+      "trace_id": "11b98c2468354afb93804b978744782b",
+      "hash": "06c445f7ade97a96"
     }
   ],
-  "start_timestamp": 1675379261.436703,
-  "timestamp": 1675379261.736703,
-  "title": "/consecutive-db/",
-  "transaction": "/consecutive-db/",
-  "transaction_info": {"source": "unknown"},
-  "type": "transaction",
-  "user": {
-    "email": "suser@example.com",
-    "ip_address": "236.50.145.105",
-    "username": "suser",
-    "name": "sentry user",
-    "geo": {"country_code": "US", "city": "San Francisco", "region": "CA"}
+  "start_timestamp": 1675179083.398964,
+  "timestamp": 1675179083.967358,
+  "title": "GET /consecutive-endpoint-2",
+  "transaction": "GET /consecutive-endpoint-2",
+  "transaction_info": {
+    "source": "route",
+    "changes": [{"source": "url", "propagations": 0, "timestamp": 1675179083.400162}],
+    "propagations": 0
   },
-  "version": "5"
+  "type": "transaction",
+  "version": "7"
 }
