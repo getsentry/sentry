@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVar
 
 from django.db.models import QuerySet
 
@@ -11,14 +11,9 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import APIUser
 
 
-class AsSerializer(Protocol):
-    def as_serializer(self) -> Serializer:
-        pass
-
-
 FILTER_ARGS = TypeVar("FILTER_ARGS")  # A typedict
 RPC_RESPONSE = TypeVar("RPC_RESPONSE")
-SERIALIZER_ENUM = TypeVar("SERIALIZER_ENUM", bound=AsSerializer)
+SERIALIZER_ENUM = TypeVar("SERIALIZER_ENUM")
 BASE_MODEL = TypeVar("BASE_MODEL")
 
 # In the future, this ought to be a pass through type that does not get double serializer, and which cannot be
@@ -31,10 +26,10 @@ OpaqueSerializedResponse = Any
 #   * Type safety at call sites: the public API can be inferred, unknown arguments are rejected,
 #     all filter arguments are optional, and nullable filters are explicitly Optional[...]
 #   * Filter argument validation: an arbitrary function can be used to ensure that proper filters are applied
-#     e.g. we don't want to just query for every row, so we can enforce that at least one filter key is provided
+#     e.g. we don't want to just query for every row if no filters are passed
 #   * A standard interface across most of our simple rpc services
 
-# This class can be inherited from to add this functionality to the public interface for a service.
+# This class should be inherited from to add this functionality to the public interface for a service.
 # E.g. class UserService(FilterQueryInterface[
 #        UserQueryArgs, APIUser, Union[UserSerializerResponse, UserSerializerResponseSelf]
 #      ], InterfaceWithLifecycle):
@@ -47,9 +42,8 @@ class FilterQueryInterface(Generic[FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], 
         filter: FILTER_ARGS,
         as_user: Optional[APIUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-        # An API Serializer instance to render results
-        serializer: Optional[Serializer] = None,
-    ) -> List[Any]:
+        serializer: Optional[SERIALIZER_ENUM] = None,
+    ) -> List[OpaqueSerializedResponse]:
         pass
 
     @abc.abstractmethod
@@ -57,19 +51,33 @@ class FilterQueryInterface(Generic[FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], 
         pass
 
 
+# This class should be inherited from to add this functionality to the database implementation for a service.
+# E.g. class DatabaseBackedUserService(
+#         FilterQueryDatabaseImpl[User, UserFilterArgs, APIUser, UserSerializeType],
+#         UserService,
+#      ):
+#       ...
 class FilterQueryDatabaseImpl(
     Generic[BASE_MODEL, FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], abc.ABC
 ):
     # Required Overrides
 
-    # This should return a QuerySet for the model in question along with any other required data
-    # that is not a filter
     @abc.abstractmethod
     def _base_query(self) -> QuerySet:
+        # This should return a QuerySet for the model in question along with any other required data
+        # that is not a filter
         pass
 
     @abc.abstractmethod
     def _filter_arg_validator(self) -> Callable[[FILTER_ARGS], Optional[str]]:
+        # A validation function for filter arguments. Often just:
+        #
+        # return self._filter_has_any_key_validator( ... )
+        pass
+
+    @abc.abstractmethod
+    def _api_serializer(self, serializer: Optional[SERIALIZER_ENUM]) -> Serializer:
+        # Returns the api serializer to use for this response.
         pass
 
     @abc.abstractmethod
@@ -112,7 +120,6 @@ class FilterQueryDatabaseImpl(
         filter: FILTER_ARGS,
         as_user: Optional[APIUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-        # An API Serializer instance to render results
         serializer: Optional[SERIALIZER_ENUM] = None,
     ) -> List[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
@@ -123,7 +130,7 @@ class FilterQueryDatabaseImpl(
         return serialize(  # type: ignore
             self._query_many(filter=filter),
             user=as_user,
-            serializer=serializer.as_serializer() if serializer else None,
+            serializer=self._api_serializer(serializer),
         )
 
     def get_many(self, *, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:

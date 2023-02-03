@@ -6,15 +6,13 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional, TypedDict
 
-from sentry.api.serializers import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.filter_query import AsSerializer, FilterQueryInterface
+from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group, User
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 @dataclass(frozen=True, eq=True)
@@ -83,24 +81,10 @@ class APIUserEmail:
     is_verified: bool = False
 
 
-class UserSerializeType(IntEnum, AsSerializer):  # annoying
+class UserSerializeType(IntEnum):  # annoying
     SIMPLE = 0
     DETAILED = 1
     SELF_DETAILED = 2
-
-    def as_serializer(self) -> Serializer:
-        from sentry.api.serializers import (
-            DetailedSelfUserSerializer,
-            DetailedUserSerializer,
-            UserSerializer,
-        )
-
-        serializer: Serializer = UserSerializer()
-        if self == UserSerializeType.DETAILED:
-            serializer = DetailedUserSerializer()
-        if self == UserSerializeType.SELF_DETAILED:
-            serializer = DetailedSelfUserSerializer()
-        return serializer
 
 
 class UserFilterArgs(TypedDict, total=False):
@@ -154,17 +138,6 @@ class UserService(
         """Get all users associated with a project identifier"""
         pass
 
-    #
-    # @abstractmethod
-    # def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
-    #     """
-    #     This method returns User objects given an iterable of IDs
-    #     :param user_ids:
-    #     A list of user IDs to fetch
-    #     :return:
-    #     """
-    #     pass
-
     @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
@@ -181,47 +154,6 @@ class UserService(
             return users[0]
         else:
             return None
-
-    # @abstractmethod
-    # def query_users(
-    #     self,
-    #     user_ids: Optional[List[int]] = None,
-    #     is_active: Optional[bool] = None,
-    #     organization_id: Optional[int] = None,
-    #     project_ids: Optional[List[int]] = None,
-    #     team_ids: Optional[List[int]] = None,
-    #     is_active_memberteam: Optional[bool] = None,
-    #     emails: Optional[List[str]] = None,
-    # ) -> List[User]:
-    #     pass
-
-    # NOTE: In the future if this becomes RPC, we can avoid the double serialization problem by using a special type
-    # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
-    # but rather validates itself as valid json and renders 'as is'.   Like "unescaped json text".
-    @abstractmethod
-    def serialize_users(
-        self,
-        *,
-        detailed: UserSerializeType = UserSerializeType.SIMPLE,
-        auth_context: AuthenticationContext
-        | None = None,  # TODO: replace this with the as_user attribute
-        as_user: User | APIUser | None = None,
-        # Query filters:
-        user_ids: Optional[List[int]] = None,
-        is_active: Optional[bool] = None,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[List[int]] = None,
-        team_ids: Optional[List[int]] = None,
-        is_active_memberteam: Optional[bool] = None,
-        emails: Optional[List[str]] = None,
-    ) -> List[Any]:
-        """
-        It is crucial that the returned order matches the user_ids passed in so that no introspection is required
-        to match the serialized user and the original user_id.
-        :param user_ids:
-        :return:
-        """
-        pass
 
     @classmethod
     def serialize_user(cls, user: User) -> APIUser:

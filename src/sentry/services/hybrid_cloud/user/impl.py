@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 
 from django.db.models import QuerySet
 
@@ -8,14 +8,13 @@ from sentry.api.serializers import (
     DetailedSelfUserSerializer,
     DetailedUserSerializer,
     UserSerializer,
-    serialize,
 )
+from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.user import (
     APIUser,
@@ -97,47 +96,6 @@ class DatabaseBackedUserService(
 
         return list(query)
 
-    # TODO: replace this with serialize_many. Only piece missing is auth_context
-    def serialize_users(
-        self,
-        *,
-        detailed: UserSerializeType = UserSerializeType.SIMPLE,
-        auth_context: AuthenticationContext
-        | None = None,  # Note that 'as_user' does not pass `is_super_user(env.request)` calls, where as this does.
-        as_user: User | APIUser | None = None,
-        # Query filters:
-        user_ids: Optional[List[int]] = None,
-        is_active: Optional[bool] = None,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[List[int]] = None,
-        team_ids: Optional[List[int]] = None,
-        is_active_memberteam: Optional[bool] = None,
-        emails: Optional[List[str]] = None,
-    ) -> List[Any]:
-        if auth_context and not as_user:
-            as_user = auth_context.user
-
-        serializer = UserSerializer()
-        if detailed == UserSerializeType.DETAILED:
-            serializer = DetailedUserSerializer()
-        if detailed == UserSerializeType.SELF_DETAILED:
-            serializer = DetailedSelfUserSerializer()
-
-        users = self.query_users(
-            user_ids=user_ids,
-            is_active=is_active,
-            organization_id=organization_id,
-            project_ids=project_ids,
-            is_active_memberteam=is_active_memberteam,
-            emails=emails,
-        )
-
-        return serialize(  # type: ignore
-            users,
-            user=as_user,
-            serializer=serializer,
-        )
-
     def get_from_group(self, group: Group) -> List[APIUser]:
         return [
             UserService.serialize_user(u)
@@ -147,10 +105,6 @@ class DatabaseBackedUserService(
                 is_active=True,
             )
         ]
-
-    # def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
-    #     query = self._base_query().filter(id__in=user_ids)
-    #     return [UserService.serialize_user(u) for u in query]
 
     def get_from_project(self, project_id: int) -> List[APIUser]:
         try:
@@ -187,6 +141,14 @@ class DatabaseBackedUserService(
         return self._filter_has_any_key_validator(
             "user_ids", "organization_id", "team_ids", "project_ids", "emails"
         )
+
+    def _api_serializer(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
+        serializer: Serializer = UserSerializer()
+        if serializer_type == UserSerializeType.DETAILED:
+            serializer = DetailedUserSerializer()
+        if serializer_type == UserSerializeType.SELF_DETAILED:
+            serializer = DetailedSelfUserSerializer()
+        return serializer
 
     def _rpc_serialize_object(self, user: User) -> APIUser:
         return self.serialize_user(user)
