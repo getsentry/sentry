@@ -9,6 +9,7 @@ import space from 'sentry/styles/space';
 type Item = {
   target: LocationDescriptor;
   value: string;
+  onClick?: () => void;
 };
 
 interface ArrayLinksProps {
@@ -41,7 +42,9 @@ function ArrayLinks({items}: ArrayLinksProps) {
 function LinkedItem({item}: {item: Item}) {
   return (
     <ArrayItem>
-      <Link to={item.target}>{item.value}</Link>
+      <Link to={item.target} onClick={item?.onClick}>
+        {item.value}
+      </Link>
     </ArrayItem>
   );
 }

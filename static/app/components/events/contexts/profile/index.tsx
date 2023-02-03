@@ -5,6 +5,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {Event, ProfileContext, ProfileContextKey} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -86,7 +87,16 @@ function getProfileKnownDataDetails({
         subject: t('Profile ID'),
         value: data.profile_id,
         actionButton: target && (
-          <Button size="xs" to={target}>
+          <Button
+            size="xs"
+            to={target}
+            onClick={() =>
+              trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                organization,
+                source: 'events.profile_event_context',
+              })
+            }
+          >
             {t('Go to Profile')}
           </Button>
         ),
