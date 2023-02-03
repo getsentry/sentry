@@ -132,8 +132,9 @@ def get_sorted_rules(
     if amount is not None and 0 <= amount < len(rules):
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("discarded", len(rules) - amount)
-            scope.set_context("amount", amount)
-            scope.set_context("number_of_rules", len(rules))
+            scope.set_context(
+                "clustering_rules_max", {"max_amount": amount, "num_existing_rules": len(rules)}
+            )
             sentry_sdk.capture_message("Transaction clusterer discarded rules", level="warn")
         rules = rules[:amount]
     rules = sorted(rules, key=lambda r: r[0].count("/"), reverse=True)
