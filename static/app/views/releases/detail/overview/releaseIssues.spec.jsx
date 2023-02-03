@@ -69,7 +69,7 @@ describe('ReleaseIssues', function () {
 
     expect(await screen.findByText('No new issues in this release.')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Resolved 0'}));
+    userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
     expect(
       await screen.findByText('No resolved issues in this release.')
     ).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('ReleaseIssues', function () {
       )
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Unhandled 0'}));
+    userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
     expect(
       await screen.findByText(
         textWithMarkupMatcher('No unhandled issues for the last 24 hours.')
@@ -95,18 +95,18 @@ describe('ReleaseIssues', function () {
   it('filters the issues', function () {
     render(<ReleaseIssues {...props} />);
 
-    expect(screen.getAllByRole('button')).toHaveLength(6);
+    expect(screen.getAllByRole('radio')).toHaveLength(5);
 
-    userEvent.click(screen.getByRole('button', {name: 'New Issues'}));
+    userEvent.click(screen.getByRole('radio', {name: 'New Issues'}));
     expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+    userEvent.click(screen.getByRole('radio', {name: 'Resolved'}));
     expect(resolvedIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Unhandled'}));
+    userEvent.click(screen.getByRole('radio', {name: 'Unhandled'}));
     expect(unhandledIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'All Issues'}));
+    userEvent.click(screen.getByRole('radio', {name: 'All Issues'}));
     expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
   });
 
@@ -120,19 +120,19 @@ describe('ReleaseIssues', function () {
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=firstRelease%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+    userEvent.click(screen.getByRole('radio', {name: 'Resolved'}));
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Unhandled'}));
+    userEvent.click(screen.getByRole('radio', {name: 'Unhandled'}));
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'All Issues'}));
+    userEvent.click(screen.getByRole('radio', {name: 'All Issues'}));
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
