@@ -10,7 +10,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     ScheduledDeletion,
 )
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.silo import region_silo_test
 
