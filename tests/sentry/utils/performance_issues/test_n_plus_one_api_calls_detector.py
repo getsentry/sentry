@@ -101,6 +101,10 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ]
         assert problems[0].title == "N+1 API Call"
 
+    def test_does_not_detect_problem_with_unparameterized_urls(self):
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-weather-app")
+        assert self.find_problems(event) == []
+
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
