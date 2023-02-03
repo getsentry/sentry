@@ -487,7 +487,7 @@ class PerformanceProblemContext:
         cls,
         problem: PerformanceProblem,
         spans: Union[List[Dict[str, Union[str, float]]], None],
-        event: Event | None,
+        event: Event | None = None,
     ) -> PerformanceProblemContext:
         if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
             return NPlusOneAPICallProblemContext(problem, spans)
