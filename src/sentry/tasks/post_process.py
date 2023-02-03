@@ -358,7 +358,6 @@ def post_process_group(
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        occurrence = None
         if occurrence_id is None:
             data = event_processing_store.get(cache_key)
             if not data:
@@ -370,6 +369,7 @@ def post_process_group(
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 event_processing_store.delete_by_key(cache_key)
 
+            occurrence = None
             event = process_event(data, group_id)
         else:
             # Note: We attempt to acquire the lock here, but we don't release it and instead just
