@@ -1440,7 +1440,7 @@ class QueryBuilder(BaseQueryBuilder):
         )
 
     @classmethod
-    def handle_invalid_float(cls, value: float) -> float:
+    def handle_invalid_float(cls, value: float) -> Optional[float]:
         if math.isnan(value):
             return 0
         elif math.isinf(value):
@@ -1498,7 +1498,7 @@ class QueryBuilder(BaseQueryBuilder):
                             value = None
                         value = self.handle_invalid_float(value)
                     if isinstance(value, list):
-                        for index, item in enumerate(value):
+                        for index, item in enumerate(value:
                             if isinstance(item, float):
                                 value[index] = self.handle_invalid_float(item)
                     if key in self.value_resolver_map:
