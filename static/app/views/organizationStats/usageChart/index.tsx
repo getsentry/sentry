@@ -12,11 +12,11 @@ import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {DATA_CATEGORY_NAMES} from 'sentry/constants';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
+import {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme from 'sentry/utils/theme';
@@ -43,36 +43,36 @@ export type CategoryOption = {
    * Scale of y-axis with no usage data.
    */
   yAxisMinInterval: number;
-} & SelectValue<DataCategory>;
+} & SelectValue<DataCategoryInfo['plural']>;
 
 export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.ERRORS],
-    value: DataCategory.ERRORS,
+    label: DATA_CATEGORY_INFO.error.titleName,
+    value: DATA_CATEGORY_INFO.error.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.TRANSACTIONS],
-    value: DataCategory.TRANSACTIONS,
+    label: DATA_CATEGORY_INFO.transaction.titleName,
+    value: DATA_CATEGORY_INFO.transaction.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.ATTACHMENTS],
-    value: DataCategory.ATTACHMENTS,
+    label: DATA_CATEGORY_INFO.attachment.titleName,
+    value: DATA_CATEGORY_INFO.attachment.plural,
     disabled: false,
     yAxisMinInterval: 0.5 * GIGABYTE,
   },
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.PROFILES],
-    value: DataCategory.PROFILES,
+    label: DATA_CATEGORY_INFO.profile.titleName,
+    value: DATA_CATEGORY_INFO.profile.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.REPLAYS],
-    value: DataCategory.REPLAYS,
+    label: DATA_CATEGORY_INFO.replay.titleName,
+    value: DATA_CATEGORY_INFO.replay.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -131,7 +131,7 @@ type DefaultProps = {
 };
 
 export type UsageChartProps = DefaultProps & {
-  dataCategory: DataCategory;
+  dataCategory: DataCategoryInfo['plural'];
 
   dataTransform: ChartDataTransform;
   theme: Theme;
@@ -242,11 +242,11 @@ export class UsageChart extends Component<UsageChartProps, State> {
     const {dataCategory, theme} = this.props;
     const COLOR_PROJECTED = theme.chartOther;
 
-    if (dataCategory === DataCategory.ERRORS) {
+    if (dataCategory === DATA_CATEGORY_INFO.error.plural) {
       return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
-    if (dataCategory === DataCategory.ATTACHMENTS) {
+    if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
       return [COLOR_ATTACHMENTS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
