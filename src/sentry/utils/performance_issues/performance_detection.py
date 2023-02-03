@@ -430,6 +430,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     type: DetectorType = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
+    MAX_SIZE_BYTES = 1_000_000_000  # 1GB
+
     def init(self):
         self.stored_problems = {}
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
@@ -500,7 +502,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
         data = span.get("data", None)
         encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
-        if encoded_body_size < minimum_size_bytes:
+        if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
             return False
 
         span_duration = get_span_duration(span)
