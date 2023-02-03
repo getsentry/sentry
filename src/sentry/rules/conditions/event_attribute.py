@@ -33,7 +33,7 @@ ATTR_CHOICES = {
     "stacktrace.filename": Columns.STACK_FILENAME,
     "stacktrace.abs_path": Columns.STACK_ABS_PATH,
     "stacktrace.package": Columns.STACK_PACKAGE,
-    "unreal.crashtype" : Columns.UNREAL_CRASH_TYPE,
+    "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
 }
 
 
