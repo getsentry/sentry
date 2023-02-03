@@ -112,10 +112,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();
