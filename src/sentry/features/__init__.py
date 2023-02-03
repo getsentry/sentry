@@ -136,7 +136,6 @@ default_manager.add("organizations:profiling-dashboard-redesign", OrganizationFe
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
-default_manager.add("organizations:release-committer-assignees", OrganizationFeature, True)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics-report", OrganizationFeature, True)

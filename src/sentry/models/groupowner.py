@@ -2,7 +2,7 @@ import itertools
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
-from typing import Any, List, Optional, TypedDict
+from typing import Any, List, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -10,10 +10,7 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
-from sentry.models.release import Release
-from sentry.models.releasecommit import ReleaseCommit
 from sentry.utils.cache import cache
 
 READ_CACHE_DURATION = 3600
@@ -41,13 +38,6 @@ class OwnersSerialized(TypedDict):
     type: GroupOwnerType
     owner: str
     date_added: models.DateTimeField
-
-
-class OwnersSerializedWithCommits(TypedDict):
-    type: GroupOwnerType
-    author: CommitAuthor
-    release: Optional[Release]
-    commits: List[ReleaseCommit]
 
 
 @region_silo_only_model
