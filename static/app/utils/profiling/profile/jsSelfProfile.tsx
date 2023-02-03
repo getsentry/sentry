@@ -10,7 +10,8 @@ import {createFrameIndex} from './utils';
 export class JSSelfProfile extends Profile {
   static FromProfile(
     profile: JSSelfProfiling.Trace,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createFrameIndex>,
+    options: {type: 'flamechart' | 'flamegraph'}
   ): JSSelfProfile {
     // In the case of JSSelfProfiling, we need to index the abstract marker frames
     // as they will otherwise not be present in the ProfilerStack.
@@ -46,6 +47,7 @@ export class JSSelfProfile extends Profile {
       name: 'JSSelfProfiling',
       unit: 'milliseconds',
       threadId: 0,
+      type: options.type,
     });
 
     // Because JS self profiling takes an initial sample when we call new Profiler(),
@@ -67,7 +69,7 @@ export class JSSelfProfile extends Profile {
       // When gc is triggered, the stack may be indicated as empty. In that case, the thread was not idle
       // and we should append gc to the top of the previous stack.
       // https://github.com/WICG/js-self-profiling/issues/59
-      if (profile.samples[i].marker === 'gc') {
+      if (profile.samples[i].marker === 'gc' && options.type === 'flamechart') {
         jsSelfProfile.appendSample(
           resolveJSSelfProfilingStack(
             profile,

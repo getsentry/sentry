@@ -12,7 +12,8 @@ import {createFrameIndex} from './utils';
 export class SampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SampledProfile,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createFrameIndex>,
+    options: {type: 'flamechart' | 'flamegraph'}
   ): Profile {
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
@@ -42,6 +43,7 @@ export class SampledProfile extends Profile {
       });
 
       if (
+        options.type === 'flamechart' &&
         i > 0 &&
         // We check for size <= 2 because we have so far only seen node profiles
         // where GC is either marked as the root node or is directly under the root node.

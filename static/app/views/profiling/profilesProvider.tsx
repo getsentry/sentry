@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction, Organization, Project} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
-import {ProfileInput} from 'sentry/utils/profiling/profile/importProfile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -19,7 +18,7 @@ function fetchFlamegraphs(
   eventId: string,
   projectId: Project['id'],
   organization: Organization
-): Promise<ProfileInput> {
+): Promise<Profiling.ProfileInput> {
   return api
     .requestPromise(
       `/projects/${organization.slug}/${projectId}/profiling/profiles/${eventId}/`,
@@ -31,7 +30,7 @@ function fetchFlamegraphs(
     .then(([data]) => data);
 }
 
-function getTransactionId(input: ProfileInput): string | null {
+function getTransactionId(input: Profiling.ProfileInput): string | null {
   if (isSchema(input)) {
     return input.metadata.transactionID;
   }
@@ -42,9 +41,9 @@ interface FlamegraphViewProps {
   children: React.ReactNode;
 }
 
-type ProfileProviderValue = RequestState<ProfileInput>;
+type ProfileProviderValue = RequestState<Profiling.ProfileInput>;
 type SetProfileProviderValue = React.Dispatch<
-  React.SetStateAction<RequestState<ProfileInput>>
+  React.SetStateAction<RequestState<Profiling.ProfileInput>>
 >;
 const ProfileContext = createContext<ProfileProviderValue | null>(null);
 const SetProfileProvider = createContext<SetProfileProviderValue | null>(null);
@@ -83,7 +82,7 @@ function ProfileProvider(props: FlamegraphViewProps): React.ReactElement {
   const organization = useOrganization();
   const params = useParams();
 
-  const [profiles, setProfiles] = useState<RequestState<ProfileInput>>({
+  const [profiles, setProfiles] = useState<RequestState<Profiling.ProfileInput>>({
     type: 'initial',
   });
 

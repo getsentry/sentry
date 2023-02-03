@@ -126,17 +126,17 @@ declare namespace Profiling {
     scriptId?: number;
   };
 
-  type ProfileTypes =
-    | EventedProfile
-    | SampledProfile
+  type ProfileInput =
+    | Profiling.Schema
     | JSSelfProfiling.Trace
-    | NodeProfile;
+    | ChromeTrace.ProfileType
+    | Profiling.SentrySampledProfile;
 
   type ImportedProfiles = {
     name: string;
     profileID: string;
     activeProfileIndex: number;
-    profiles: ProfileTypes[];
+    profiles: ReadonlyArray<ProfileTypes>;
   };
 
   type FrameRender = {
@@ -148,7 +148,7 @@ declare namespace Profiling {
   // sentry related features to the flamegraphs. This should happen after the MVP integration
   type Schema = {
     profileID: string;
-    profiles: ReadonlyArray<ProfileTypes>;
+    profiles: ReadonlyArray<Readonly<ProfileTypes>>;
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;

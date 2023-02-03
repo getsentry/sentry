@@ -12,7 +12,8 @@ import {createSentrySampleProfileFrameIndex} from './utils';
 export class SentrySampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SentrySampledProfile,
-    frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>
+    frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>,
+    options: {type: 'flamechart' | 'flamegraph'}
   ): Profile {
     const {samples, stacks, thread_metadata = {}} = sampledProfile.profile;
     const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
@@ -34,6 +35,7 @@ export class SentrySampledProfile extends Profile {
         ? `${profileTransactionName} (${threadName})`
         : threadName,
       threadId,
+      type: options.type,
     });
 
     let previousSampleWeight = 0;

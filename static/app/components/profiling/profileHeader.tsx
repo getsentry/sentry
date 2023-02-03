@@ -22,9 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
-import {ProfileInput} from '../../utils/profiling/profile/importProfile';
-
-function getTransactionName(input: ProfileInput): string {
+function getTransactionName(input: Profiling.ProfileInput): string {
   if (isSchema(input)) {
     return input.metadata.transactionName;
   }

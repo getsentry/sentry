@@ -24,10 +24,9 @@ function FlamegraphViewSelectMenu({
   onSortingChange,
 }: FlamegraphViewSelectMenuProps): React.ReactElement {
   const organization = useOrganization();
-  const hasFlamegraphs = useMemo(
-    () => organization.features.includes('profiling-flamegraphs'),
-    [organization.features]
-  );
+  const hasFlamegraphs = useMemo(() => {
+    return organization.features.includes('profiling-flamegraphs');
+  }, [organization.features]);
 
   return (
     <FlamegraphViewSelectMenuWrap>
@@ -52,11 +51,18 @@ function FlamegraphViewSelectMenu({
         size="xs"
         value={sorting}
         onChange={onSortingChange}
+        priority="primary"
       >
         <SegmentedControl.Item key="call order">{t('Call Order')}</SegmentedControl.Item>
         <SegmentedControl.Item key="left heavy">{t('Left Heavy')}</SegmentedControl.Item>
       </SegmentedControl>
-      <SegmentedControl aria-label="View" size="xs" value={view} onChange={onViewChange}>
+      <SegmentedControl
+        aria-label="View"
+        size="xs"
+        value={view}
+        onChange={onViewChange}
+        priority="primary"
+      >
         <SegmentedControl.Item key="bottom up">{t('Bottom Up')}</SegmentedControl.Item>
         <SegmentedControl.Item key="top down">{t('Top Down')}</SegmentedControl.Item>
       </SegmentedControl>
