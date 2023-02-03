@@ -1,8 +1,20 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -51,6 +63,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
+from sentry.onboarding_tasks import fetch_onboarding_tasks
 from sentry.services.hybrid_cloud.auth import ApiOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
@@ -59,6 +72,9 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+
+
+logger = logging.getLogger(__name__)
 
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
@@ -339,6 +355,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON object
 
 
+@register(OrganizationOnboardingTask)
 class OnboardingTasksSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
@@ -415,9 +432,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        onboarding_tasks = list(
-            OrganizationOnboardingTask.objects.filter(organization=obj).select_related("user")
-        )
+        try:
+            onboarding_tasks = list(fetch_onboarding_tasks(obj, user))
+        except Exception as e:
+            logger.error(e)
+            onboarding_tasks = list()
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
@@ -517,7 +536,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        context["onboardingTasks"] = serialize(onboarding_tasks, user, OnboardingTasksSerializer())
+        context["onboardingTasks"] = serialize(onboarding_tasks, user)
         return context
 
 

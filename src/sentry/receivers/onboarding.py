@@ -49,6 +49,8 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 
 
 def try_mark_onboarding_complete(organization_id):
+    # only need this for OrganizationOnboardingTask and don't need the service backend
+    # for OnboardingTaskBackend
     if OrganizationOption.objects.filter(
         organization_id=organization_id, key="onboarding:complete"
     ).exists():
