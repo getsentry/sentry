@@ -74,6 +74,7 @@ for cmd in map(
         "sentry.runner.commands.performance.detect",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
+        "sentry.runner.commands.invalidate_project_configs.invalidate_project_configs",
     ),
 ):
     cli.add_command(cmd)
