@@ -555,7 +555,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
     def to_dict(self) -> Dict[str, Any]:
         return {
             "span_evidence_key_value": [
-                {"key": "Transaction", "value": self.event.transaction},
+                {"key": "Transaction", "value": self.transaction},
                 {"key": "Starting Span", "value": self.starting_span},
                 {
                     "key": "Parallelizable Spans",
@@ -568,7 +568,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
     @property
     def transaction(self) -> str:
         if self.event and self.event.transaction:
-            return self.event.transaction
+            return str(self.event.transaction)
         return ""
 
     @property
