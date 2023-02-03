@@ -310,6 +310,7 @@ type SpecialFields = {
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
+  'profile.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
@@ -460,6 +461,17 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
+  'profile.id': {
+    sortField: 'profile.id',
+    renderFunc: data => {
+      const id: string | unknown = data?.['profile.id'];
+      if (typeof id !== 'string') {
+        return emptyValue;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
   issue: {
     sortField: null,
     renderFunc: (data, {organization}) => {
@@ -479,21 +491,15 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          {organization.features.includes('discover-quick-context') ? (
-            <QuickContextHoverWrapper
-              dataRow={data}
-              contextType={ContextType.ISSUE}
-              organization={organization}
-            >
-              <StyledLink to={target} aria-label={issueID}>
-                <OverflowFieldShortId shortId={`${data.issue}`} />
-              </StyledLink>
-            </QuickContextHoverWrapper>
-          ) : (
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.ISSUE}
+            organization={organization}
+          >
             <StyledLink to={target} aria-label={issueID}>
               <OverflowFieldShortId shortId={`${data.issue}`} />
             </StyledLink>
-          )}
+          </QuickContextHoverWrapper>
         </Container>
       );
     },
@@ -593,17 +599,13 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          {organization.features.includes('discover-quick-context') ? (
-            <QuickContextHoverWrapper
-              dataRow={data}
-              contextType={ContextType.RELEASE}
-              organization={organization}
-            >
-              <Version version={data.release} truncate />
-            </QuickContextHoverWrapper>
-          ) : (
-            <Version version={data.release} tooltipRawVersion truncate />
-          )}
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.RELEASE}
+            organization={organization}
+          >
+            <Version version={data.release} truncate />
+          </QuickContextHoverWrapper>
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>

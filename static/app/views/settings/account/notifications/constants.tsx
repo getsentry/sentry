@@ -44,7 +44,7 @@ export const SELF_NOTIFICATION_SETTINGS_TYPES = [
 ];
 
 // 'alerts' | 'workflow' ...
-export type NotificationSettingsType = typeof NOTIFICATION_SETTINGS_TYPES[number];
+export type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
 
 export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, string> = {
   alerts: 'alerts',
