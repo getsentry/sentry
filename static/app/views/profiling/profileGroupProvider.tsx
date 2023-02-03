@@ -1,10 +1,6 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 
-import {
-  importProfile,
-  ProfileGroup,
-  sortProfileSamples,
-} from 'sentry/utils/profiling/profile/importProfile';
+import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 type ProfileGroupContextValue = ProfileGroup;
 
@@ -43,14 +39,7 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
       return;
     }
 
-    if (props.type === 'flamegraph') {
-      const profiles = sortProfileSamples(props.input);
-      setProfileGroup(importProfile(profiles, props.traceID, 'flamegraph'));
-    } else if (props.type === 'flamechart') {
-      setProfileGroup(importProfile(props.input, props.traceID, 'flamechart'));
-    } else {
-      throw new TypeError(`Unknown view type: ${props.type}`);
-    }
+    setProfileGroup(importProfile(props.input, props.traceID, props.type));
   }, [props.input, props.traceID, props.type]);
 
   return (

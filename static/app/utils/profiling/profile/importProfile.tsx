@@ -95,104 +95,6 @@ export function importProfile(
   }
 }
 
-function sortSamples(
-  a: {stack: number[]; weight: number},
-  b: {stack: number[]; weight: number}
-) {
-  const max = Math.max(a.stack.length, b.stack.length);
-
-  for (let i = 0; i < max; i++) {
-    if (a.stack[i] === undefined) {
-      return -1;
-    }
-    if (b.stack[i] === undefined) {
-      return 1;
-    }
-    if (a.stack[i] === b.stack[i]) {
-      continue;
-    }
-    return a.stack[i] - b.stack[i];
-  }
-  return 0;
-}
-
-function sortJSSelfProfileSamples(samples: JSSelfProfiling.Trace['samples']) {
-  return [...samples].sort((a, b) => {
-    return a.stackId - b.stackId;
-  });
-}
-
-function sortSentrySampledProfileSamples(
-  samples: Profiling.SentrySampledProfile['profile']['samples']
-) {
-  return [...samples].sort((a, b) => {
-    return a.stack_id - b.stack_id;
-  });
-}
-
-function sortSchemaSamples(
-  profile: Readonly<Profiling.Schema['profiles'][0]>
-): {stack: number[]; weight: number}[] | null {
-  if (isSampledProfile(profile)) {
-    const weightsWithSamples = profile.samples.map((stack, index) => {
-      return {
-        stack,
-        weight: profile.weights[index],
-      };
-    });
-
-    return weightsWithSamples.sort(sortSamples);
-  }
-  if (isEventedProfile(profile)) {
-    return null;
-  }
-
-  throw new TypeError('Unknown profile type');
-}
-
-// Presort samples so that they are naturally collapsed into a graph.
-// it is important that we do not mutate the original input.
-export function sortProfileSamples<T extends Profiling.ProfileInput>(
-  input: Readonly<T>
-): T {
-  if (isSchema(input)) {
-    const output: T = {...input, profiles: []};
-
-    for (let i = 0; i < input.profiles.length; i++) {
-      // @ts-expect-error we are assigning to a copy
-      output.profiles[i] = {
-        ...input.profiles[i],
-        samples: [],
-        weights: [],
-      };
-
-      const sorted = sortSchemaSamples(input.profiles[i]);
-      if (sorted) {
-        for (let j = 0; j < sorted.length; j++) {
-          output.profiles[i].samples[j] = sorted[j].stack;
-          output.profiles[i].weights[j] = sorted[j].weight;
-        }
-      }
-    }
-
-    return output;
-  }
-  if (isJSProfile(input)) {
-    return {...input, samples: sortJSSelfProfileSamples, weights: []};
-  }
-  if (isChromeTraceFormat(input)) {
-    throw new TypeError('Flamegraphs are not supported.');
-  }
-  if (isSentrySampledProfile(input)) {
-    return {
-      ...input,
-      profile: {...input.profile, samples: sortSentrySampledProfileSamples},
-    };
-  }
-
-  throw new Error('Unsupported trace format, cannot sort.');
-}
-
 function importJSSelfProfile(
   input: Readonly<JSSelfProfiling.Trace>,
   traceID: string,
@@ -333,7 +235,11 @@ function importSchema(
 }
 
 function importSingleProfile(
-  profile: Readonly<Profiling.ProfileInput>,
+  profile:
+    | Profiling.EventedProfile
+    | Profiling.SampledProfile
+    | JSSelfProfiling.Trace
+    | ChromeTrace.ProfileType,
   frameIndex: ReturnType<typeof createFrameIndex>,
   {transaction, type}: ImportOptions
 ): Profile {
