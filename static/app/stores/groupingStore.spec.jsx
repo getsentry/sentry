@@ -102,6 +102,7 @@ describe('Grouping Store', function () {
   afterEach(function () {
     Client.clearMockResponses();
     jest.resetAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('onFetch()', function () {
