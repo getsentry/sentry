@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
-      acceptance: ${{ steps.changes.outputs.acceptance }}
+      acceptance_all: ${{ steps.changes.outputs.acceptance_all }}
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
@@ -31,13 +31,12 @@ jobs:
   visual-diff:
     needs: files-changed
     # Only execute this check when a PR is opened from a fork rather than the upstream repo
-    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry' && needs.files-changed.outputs.acceptance == 'true'
+    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry' && needs.files-changed.outputs.acceptance_all == 'true'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
 
     steps:
       - name: Diff snapshots
-        id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
