@@ -14,6 +14,9 @@ from sentry.testutils.performance_issues.event_generators import (
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.detectors import NPlusOneAPICallsDetector
+from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
+    without_query_params,
+)
 from sentry.utils.performance_issues.performance_detection import (
     DetectorType,
     PerformanceProblem,
@@ -366,6 +369,20 @@ def test_allows_eligible_spans(span):
 )
 def test_rejects_ineligible_spans(span):
     assert not NPlusOneAPICallsDetector.is_span_eligible(span)
+
+
+@pytest.mark.parametrize(
+    "url,url_without_query",
+    [
+        ("", ""),
+        ("http://service.io", "http://service.io"),
+        ("http://service.io/resource", "http://service.io/resource"),
+        ("/resource?id=1", "/resource"),
+        ("/resource?id=1&sort=down", "/resource"),
+    ],
+)
+def test_removes_query_params(url, url_without_query):
+    assert without_query_params(url) == url_without_query
 
 
 @pytest.mark.parametrize(

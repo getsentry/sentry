@@ -240,3 +240,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             span_a["hash"] == span_b["hash"]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
+
+
+def without_query_params(url: str) -> str:
+    return urlparse(url)._replace(query="").geturl()
