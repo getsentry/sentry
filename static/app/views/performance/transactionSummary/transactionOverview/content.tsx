@@ -178,7 +178,7 @@ function SummaryContent({
 
   function generateActionBarItems(_org: Organization, _location: Location) {
     if (!_org.features.includes('performance-metrics-backed-transaction-summary')) {
-      return null;
+      return undefined;
     }
 
     return !canUseTransactionMetricsData(_org, _location)
@@ -192,7 +192,7 @@ function SummaryContent({
                     'Based on your search criteria and sample rate, the events available may be limited.'
                   )}
                 >
-                  <StyledWarningIcon />
+                  <StyledIconWarning size="sm" color="warningText" />
                 </Tooltip>
               ),
               menuItem: {
@@ -201,7 +201,7 @@ function SummaryContent({
             }),
           },
         ]
-      : null;
+      : undefined;
   }
 
   const hasPerformanceChartInterpolation = organization.features.includes(
@@ -530,15 +530,8 @@ const StyledSearchBar = styled(SearchBar)`
   }
 `;
 
-const StyledWarningIcon = styled(IconWarning)`
-  color: ${p => p.theme.alert.warning.iconColor};
-  height: ${p => p.theme.iconSizes.sm};
-  width: ${p => p.theme.iconSizes.sm};
+const StyledIconWarning = styled(IconWarning)`
   display: block;
-
-  &:hover {
-    color: ${p => p.theme.alert.warning.iconHoverColor};
-  }
 `;
 
 export default withProjects(SummaryContent);
