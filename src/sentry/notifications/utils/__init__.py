@@ -568,7 +568,6 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
             "span_evidence_key_value": [
                 {"key": _("Transaction"), "value": self.transaction},
                 {"key": _("Starting Span"), "value": self.starting_span},
-                {"key": _("Array"), "value": [{"value": "value"}, {"value": "value"}]},
                 {
                     "key": _("Parallelizable Spans"),
                     "value": self.parallelizable_spans,
