@@ -228,7 +228,7 @@ describe('parseDroppedProfile', () => {
   });
 
   it('imports dropped schema file', async () => {
-    const schema: Profiling.Schema = {
+    const schema: Readonly<Profiling.Schema> = {
       activeProfileIndex: 0,
       profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       profiles: [

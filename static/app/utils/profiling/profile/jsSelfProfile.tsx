@@ -7,6 +7,11 @@ import {resolveJSSelfProfilingStack} from './../jsSelfProfiling';
 import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
+function sortJSSelfProfileSamples(samples: Readonly<JSSelfProfiling.Trace['samples']>) {
+  return [...samples].sort((a, b) => {
+    return a.stackId - b.stackId;
+  });
+}
 export class JSSelfProfile extends Profile {
   static FromProfile(
     profile: JSSelfProfiling.Trace,
@@ -50,45 +55,52 @@ export class JSSelfProfile extends Profile {
       type: options.type,
     });
 
-    // Because JS self profiling takes an initial sample when we call new Profiler(),
-    // it means that the first sample weight will always be zero. We want to append the sample with 0 weight,
-    //  because the 2nd sample may part of the first sample's stack. This way we keep the most information we can of the stack trace
-    jsSelfProfile.appendSample(
-      resolveJSSelfProfilingStack(
-        profile,
-        profile.samples[0].stackId,
-        frameIndex,
-        profile.samples[0].marker
-      ),
-      0
-    );
+    const samples =
+      options.type === 'flamegraph'
+        ? sortJSSelfProfileSamples(profile.samples)
+        : profile.samples;
+
+    if (options.type === 'flamechart') {
+      // Because JS self profiling takes an initial sample when we call new Profiler(),
+      // it means that the first sample weight will always be zero. We want to append the sample with 0 weight,
+      //  because the 2nd sample may part of the first sample's stack. This way we keep the most information we can of the stack trace
+      jsSelfProfile.appendSample(
+        resolveJSSelfProfilingStack(
+          profile,
+          profile.samples[0].stackId,
+          frameIndex,
+          profile.samples[0].marker
+        ),
+        0
+      );
+    }
 
     // We start at stack 1, because we've already appended stack 0 above. The weight of each sample is the
     // difference between the current sample and the previous one.
-    for (let i = 1; i < profile.samples.length; i++) {
+    for (let i = 1; i < samples.length; i++) {
       // When gc is triggered, the stack may be indicated as empty. In that case, the thread was not idle
       // and we should append gc to the top of the previous stack.
       // https://github.com/WICG/js-self-profiling/issues/59
-      if (profile.samples[i].marker === 'gc' && options.type === 'flamechart') {
+      if (samples[i].marker === 'gc' && options.type === 'flamechart') {
         jsSelfProfile.appendSample(
           resolveJSSelfProfilingStack(
             profile,
             // use the previous sample
-            profile.samples[i - 1].stackId,
+            samples[i - 1].stackId,
             frameIndex,
-            profile.samples[i].marker
+            samples[i].marker
           ),
-          profile.samples[i].timestamp - profile.samples[i - 1].timestamp
+          samples[i].timestamp - samples[i - 1].timestamp
         );
       } else {
         jsSelfProfile.appendSample(
           resolveJSSelfProfilingStack(
             profile,
-            profile.samples[i].stackId,
+            samples[i].stackId,
             frameIndex,
-            profile.samples[i].marker
+            samples[i].marker
           ),
-          profile.samples[i].timestamp - profile.samples[i - 1].timestamp
+          samples[i].timestamp - samples[i - 1].timestamp
         );
       }
     }
