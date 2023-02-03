@@ -28,18 +28,22 @@ describe('StacktraceLinkModal', () => {
   const closeModal = jest.fn();
 
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
-
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/`,
       method: 'POST',
     });
-
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl, integrations: [integration]},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/derive-code-mappings/`,
+      body: [],
+    });
+  });
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('links to source code with one GitHub integration', () => {
@@ -92,7 +96,7 @@ describe('StacktraceLinkModal', () => {
     );
 
     userEvent.type(
-      screen.getByRole('textbox', {name: 'Copy the URL and paste it below'}),
+      screen.getByRole('textbox', {name: 'Repository URL'}),
       'sourceUrl{enter}'
     );
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
@@ -126,7 +130,7 @@ describe('StacktraceLinkModal', () => {
     );
 
     userEvent.type(
-      screen.getByRole('textbox', {name: 'Copy the URL and paste it below'}),
+      screen.getByRole('textbox', {name: 'Repository URL'}),
       'sourceUrl{enter}'
     );
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
@@ -140,5 +144,54 @@ describe('StacktraceLinkModal', () => {
       'href',
       '/settings/org-slug/integrations/github/1/'
     );
+  });
+
+  it('displays suggestions from code mappings', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/derive-code-mappings/`,
+      body: [
+        {
+          filename: 'stack/root/file/stack/root/file/stack/root/file.py',
+          repo_name: 'getsentry/codemap',
+          repo_branch: 'master',
+          stacktrace_root: '/stack/root',
+          source_path: '/source/root/',
+        },
+        {
+          filename: 'stack/root/file.py',
+          repo_name: 'getsentry/codemap',
+          repo_branch: 'master',
+          stacktrace_root: '/stack/root',
+          source_path: '/source/root/',
+        },
+      ],
+    });
+
+    renderGlobalModal();
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename={filename}
+          closeModal={closeModal}
+          integrations={[integration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
+
+    expect(
+      await screen.findByText(
+        'Select from one of these suggestions or paste your URL below'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'https://github.com/getsentry/codemap/blob/master/stack/root/file.py'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toSnapshot();
   });
 });
