@@ -2,6 +2,7 @@
 
 import {t} from 'sentry/locale';
 import {
+  DataCategory,
   DataCategoryExact,
   DataCategoryInfo,
   OrgRole,
@@ -228,6 +229,14 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
+export const DATA_CATEGORY_NAMES = {
+  [DataCategory.ERRORS]: t('Errors'),
+  [DataCategory.TRANSACTIONS]: t('Transactions'),
+  [DataCategory.ATTACHMENTS]: t('Attachments'),
+  [DataCategory.PROFILES]: t('Profiles'),
+  [DataCategory.REPLAYS]: t('Session Replays'),
+};
+
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
   [DataCategoryExact.ERROR]: {
@@ -286,14 +295,6 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     titleName: t('Indexed Transactions'),
     uid: 9,
   },
-};
-
-export const DATA_CATEGORY_NAMES = {
-  [DATA_CATEGORY_INFO.error.plural]: t('Errors'),
-  [DATA_CATEGORY_INFO.transaction.plural]: t('Transactions'),
-  [DATA_CATEGORY_INFO.attachment.plural]: t('Attachments'),
-  [DATA_CATEGORY_INFO.profile.plural]: t('Profiles'),
-  [DATA_CATEGORY_INFO.replay.plural]: t('Session Replays'),
 };
 
 // Special Search characters
