@@ -97,38 +97,22 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree: JSONData = {}
-        try:
-            # We do not cache this call since it is a rather large object
-            contents: Dict[str, Any] = self.get(
-                f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-                # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-                params={"recursive": 1},
+        # We do not cache this call since it is a rather large object
+        contents: Dict[str, Any] = self.get(
+            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+            # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+            params={"recursive": 1},
+        )
+        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+        if contents.get("truncated"):
+            # e.g. getsentry/DataForThePeople
+            logger.warning(
+                f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
             )
-            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-            if contents.get("truncated"):
-                # e.g. getsentry/DataForThePeople
-                logger.warning(
-                    f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
-                )
-            tree = contents["tree"]
-        except ApiError as error:
-            msg = error.text
-            if error.json:
-                json_data: JSONData = error.json
-                msg = json_data.get("message")
-
-            # TODO: Add condition for  getsentry/DataForThePeople
-            # e.g. getsentry/nextjs-sentry-example
-            if msg == "Git Repository is empty.":
-                logger.warning(f"{repo_full_name} is empty.")
-            elif msg == "Not Found":
-                logger.warning(f"The Github App does not have access to {repo_full_name}.")
-            else:
-                # Raise it so we stop hammering the API
-                raise error
+        tree = contents["tree"]
 
         return tree
 
@@ -176,28 +160,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         """
         trees: Dict[str, RepoTree] = {}
         extra = {"gh_org": gh_org}
-        try:
-            repositories = self._populate_repositories(gh_org, cache_seconds)
-            trees = self._populate_trees(repositories)
+        repositories = self._populate_repositories(gh_org, cache_seconds)
+        trees = self._populate_trees(repositories)
 
-            rate_limit = self.get_rate_limit()
-            extra.update(
-                {"remaining": str(rate_limit.remaining), "repos_num": str(len(repositories))}
-            )
-            logger.info("Using cached trees for Github org.", extra=extra)
-        except ApiError as error:
-            msg = error.text
-            if error.json:
-                json_data: JSONData = error.json
-                msg = json_data.get("message")
-            if msg.startswith("API rate limit exceeded for installation"):
-                # Report to Sentry; we will return whatever tree we have
-                logger.exception(
-                    "API rate limit exceeded. We will not hit it. Continuing execution.",
-                    extra=extra,
-                )
-            else:
-                raise error
+        rate_limit = self.get_rate_limit()
+        extra.update({"remaining": str(rate_limit.remaining), "repos_num": str(len(repositories))})
+        logger.info("Using cached trees for Github org.", extra=extra)
 
         return trees
 
@@ -221,6 +189,27 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
         """
+
+        def process_error(error: ApiError, extra: Dict[str, str]) -> None:
+            msg = "Continuing exectuion."
+            txt = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                txt = json_data.get("message")
+
+            # TODO: Add condition for  getsentry/DataForThePeople
+            # e.g. getsentry/nextjs-sentry-example
+            if txt == "Git Repository is empty.":
+                logger.warning(f"The repository is empty. {msg}", extra=extra)
+            elif txt == "Not Found":
+                logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
+            else:
+                # We do not raise the exception so we can keep iterating through the repos.
+                # Nevertheless, investigate the error to determine if we should abort the processing
+                logger.exception(
+                    f"Investigate if to raise error. An error happened. {msg}", extra=extra
+                )
+
         trees: Dict[str, RepoTree] = {}
         only_use_cache = False
 
@@ -229,19 +218,28 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
 
         for index, repo_info in enumerate(repositories):
+            repo_full_name = repo_info["full_name"]
+            extra = {"repo_full_name": repo_full_name}
             # Only use the cache if we drop below the lower ceiling
             # We will fetch after the limit is reset (every hour)
             if not only_use_cache and remaining_requests <= MINIMUM_REQUESTS:
                 only_use_cache = True
                 logger.info(
-                    "Too few requests remaining. Grabbing values from the cache.",
-                    extra={"repo_info": repo_info},
+                    "Too few requests remaining. Grabbing values from the cache.", extra=extra
                 )
-            # The Github API rate limit is reset every hour
-            # Spread the expiration of the cache of each repo across the day
-            trees[repo_info["full_name"]] = self._populate_tree(
-                repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
-            )
+
+            try:
+                # The Github API rate limit is reset every hour
+                # Spread the expiration of the cache of each repo across the day
+                trees[repo_full_name] = self._populate_tree(
+                    repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
+                )
+            except ApiError as error:
+                process_error(error, extra)
+            except Exception as error:
+                # Report for investigatagiation but do not stop processing
+                logger.exception(error, extra=extra)
+
             remaining_requests -= 1
 
         return trees
