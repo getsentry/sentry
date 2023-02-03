@@ -291,3 +291,13 @@ def test_transaction_clusterer_generates_rules(default_project):
                 "redaction": {"method": "replace", "substitution": "*"},
             },
         ]
+    with Feature({feature: True}):
+        with mock.patch("sentry.relay.config.TRANSACTION_NAMES_MAX_RULES", 1):
+            assert _get_projconfig_tx_rules(default_project) == [
+                {
+                    "pattern": "/rule/*/1/**",
+                    "expiry": "1970-04-01T00:00:01+00:00",
+                    "scope": {"source": "url"},
+                    "redaction": {"method": "replace", "substitution": "*"},
+                }
+            ]
