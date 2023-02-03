@@ -427,7 +427,12 @@ class GroupDetails extends Component<Props, State> {
       const project = this.props.projects.find(p => p.id === data.project.id);
 
       if (!project) {
-        Sentry.withScope(() => {
+        Sentry.withScope(scope => {
+          const projectIds = this.props.projects.map(item => item.id);
+          scope.setContext('missingProject', {
+            projectId: data.project.id,
+            availableProjects: projectIds,
+          });
           Sentry.captureException(new Error('Project not found'));
         });
       } else {
