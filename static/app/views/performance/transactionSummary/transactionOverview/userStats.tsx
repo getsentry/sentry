@@ -48,7 +48,7 @@ function UserStats({
       ? totals.project_threshold_config[1]
       : undefined;
     const miserableUsers: number | undefined = totals['count_miserable_user()'];
-    const userMiseryScore: number = totals['user_misery()'] | 0;
+    const userMiseryScore: number = totals['user_misery()'] || 0;
     const totalUsers = totals['count_unique_user()'];
     userMisery = (
       <UserMisery
