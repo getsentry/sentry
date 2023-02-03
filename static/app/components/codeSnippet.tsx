@@ -5,6 +5,7 @@ import 'prismjs/components/prism-bash.min';
 
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import copy from 'copy-text-to-clipboard';
 
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
@@ -39,12 +40,12 @@ export function CodeSnippet({
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(children);
-      onCopy?.(children);
+  const handleCopy = () => {
+    const copied = copy(children);
+    onCopy?.(children);
+    if (copied) {
       setTooltipState('copied');
-    } catch (err) {
+    } else {
       setTooltipState('error');
     }
   };

@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import copy from 'copy-text-to-clipboard';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -162,7 +163,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
     return newToken.token;
   };
 
-  const handleCopy = async () => {
+  const handleCopy = () => {
     if (!token || !selectedItem) {
       addErrorMessage(t('Select an integration for your auth token!'));
       return;
@@ -180,7 +181,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
       sentry-cli releases set-commits "$VERSION" --auto
       sentry-cli releases finalize "$VERSION"
       `;
-    await navigator.clipboard.writeText(current_text);
+    copy(current_text);
     addSuccessMessage(t('Copied to clipboard!'));
     trackQuickstartCopy();
   };
