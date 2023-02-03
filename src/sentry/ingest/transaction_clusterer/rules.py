@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, Optional, Protocol, Sequence, Tuple
 
+import sentry_sdk
+
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
 
@@ -129,7 +131,12 @@ def get_sorted_rules(
     # Even if there are fewer rules than the given amount, sort them. Keeping
     # always the same order allows the rules to disappear for not being used.
     rules = sorted(rules, key=lambda r: r[1], reverse=True)
-    if amount is not None and amount >= 0:
+    if amount is not None and 0 <= amount < len(rules):
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag("discarded", len(rules) - amount)
+            scope.set_context("amount", amount)
+            scope.set_context("number_of_rules", len(rules))
+            sentry_sdk.capture_message("Transaction clusterer discarded rules", level="warn")
         rules = rules[:amount]
     rules = sorted(rules, key=lambda r: r[0].count("/"), reverse=True)
     return rules
