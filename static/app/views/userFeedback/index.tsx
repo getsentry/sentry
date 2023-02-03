@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
@@ -18,6 +16,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, UserReport} from 'sentry/types';
@@ -115,7 +114,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, router} = this.props;
     const {location} = this.props;
     const {pathname, search, query} = location;
     const {status} = getQuery(search);
@@ -148,14 +147,21 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                   <EnvironmentPageFilter />
                   <DatePageFilter alignDropdown="right" />
                 </PageFilterBar>
-                <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
-                  <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
+                <SegmentedControl
+                  aria-label={t('Issue Status')}
+                  value={!Array.isArray(status) ? status || '' : ''}
+                  onChange={key =>
+                    router.replace({
+                      pathname,
+                      query: key === 'unresolved' ? unresolvedQuery : allIssuesQuery,
+                    })
+                  }
+                >
+                  <SegmentedControl.Item key="unresolved">
                     {t('Unresolved')}
-                  </Button>
-                  <Button barId="" to={{pathname, query: allIssuesQuery}}>
-                    {t('All Issues')}
-                  </Button>
-                </ButtonBar>
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="">{t('All Issues')}</SegmentedControl.Item>
+                </SegmentedControl>
               </Filters>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
