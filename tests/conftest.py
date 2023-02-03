@@ -150,8 +150,7 @@ def protect_user_deletion(request):
         return
 
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.testutils.silo import reset_test_role, restrict_role
-    from tests.sentry.hybrid_cloud import iter_models
+    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
 
     with get_connection().cursor() as conn:
         conn.execute("SET ROLE 'postgres'")
