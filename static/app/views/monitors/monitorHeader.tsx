@@ -76,6 +76,7 @@ const MonitorId = styled('div')`
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
   cursor: pointer;
+  width: max-content;
 `;
 
 const MonitorStats = styled('div')`
