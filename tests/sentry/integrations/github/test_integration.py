@@ -606,7 +606,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.get_installation_helper()
         trees = installation.get_trees_for_org()
         key_prefix = "github:repo:Test-Organization"
-        # We have access to the files because the rate limit has not happened
+        # We have access to the files because the rate limit has not been hit
         assert cache.get(f"{key_prefix}/xyz:source-code") == ["src/foo.py"]
         # These repos are None because foo hit the rate limit
         for repo in ("foo", "bar", "baz"):

@@ -182,7 +182,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             if msg.startswith("API rate limit exceeded for installation"):
                 # Report to Sentry; we will return whatever tree we have
                 logger.exception(
-                    "API rate limit exceeded. We will not hit it. Execution will not stop.",
+                    "API rate limit exceeded. We will not hit it. Continuing execution.",
                     extra=extra,
                 )
             else:
@@ -195,7 +195,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repositories: List[Dict[str, str]] = cache.get(cache_key, [])
 
         if not repositories:
-            # Iterating in order to remove unnecessary fields from the response
+            # Remove unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repositories(fetch_max_pages=True)
