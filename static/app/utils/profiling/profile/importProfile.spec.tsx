@@ -33,7 +33,8 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
-      ''
+      '',
+      'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(EventedProfile);
@@ -61,7 +62,8 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
-      ''
+      '',
+      'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
@@ -89,7 +91,7 @@ describe('importProfile', () => {
       },
     ];
 
-    const imported = importProfile(typescriptProfile, '');
+    const imported = importProfile(typescriptProfile, '', 'flamechart');
     expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
   it('imports JS self profile from schema', () => {
@@ -99,6 +101,7 @@ describe('importProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: 1000,
@@ -123,7 +126,8 @@ describe('importProfile', () => {
           frames: [],
         },
       },
-      ''
+      '',
+      'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
@@ -136,6 +140,7 @@ describe('importProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: 1000,
@@ -149,7 +154,7 @@ describe('importProfile', () => {
       ],
     };
 
-    const imported = importProfile(jsSelfProfile, 'profile');
+    const imported = importProfile(jsSelfProfile, 'profile', 'flamechart');
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });
@@ -157,7 +162,7 @@ describe('importProfile', () => {
   it('imports sentry sampled profile', () => {
     const sentrySampledProfile = makeSentrySampledProfile();
 
-    const imported = importProfile(sentrySampledProfile, 'profile');
+    const imported = importProfile(sentrySampledProfile, 'profile', 'flamegraph');
 
     expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
   });
@@ -167,7 +172,8 @@ describe('importProfile', () => {
       importProfile(
         // @ts-ignore
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
-        ''
+        '',
+        'flamechart'
       )
     ).toThrow();
   });
@@ -244,7 +250,11 @@ describe('parseDroppedProfile', () => {
       metadata: {} as Profiling.Schema['metadata'],
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
-    const imported = importProfile(await parseDroppedProfile(file), file.name);
+    const imported = importProfile(
+      await parseDroppedProfile(file),
+      file.name,
+      'flamechart'
+    );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
   });
@@ -272,7 +282,11 @@ describe('parseDroppedProfile', () => {
     ];
 
     const file = new File([JSON.stringify(typescriptProfile)], 'test.tsx');
-    const imported = importProfile(await parseDroppedProfile(file), file.name);
+    const imported = importProfile(
+      await parseDroppedProfile(file),
+      file.name,
+      'flamechart'
+    );
 
     expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
@@ -284,6 +298,7 @@ describe('parseDroppedProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: 1000,
@@ -298,7 +313,11 @@ describe('parseDroppedProfile', () => {
     };
 
     const file = new File([JSON.stringify(jsSelfProfile)], 'test.tsx');
-    const imported = importProfile(await parseDroppedProfile(file), file.name);
+    const imported = importProfile(
+      await parseDroppedProfile(file),
+      file.name,
+      'flamechart'
+    );
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });

@@ -11,6 +11,7 @@ describe('jsSelfProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: 1000,
@@ -26,7 +27,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
     );
 
     expect(profile.duration).toBe(1000);
@@ -43,6 +45,7 @@ describe('jsSelfProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
       ],
       stacks: [
@@ -54,7 +57,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', [{name: 'f0'}])
+      createFrameIndex('web', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
     expect(profile.stats.discardedSamplesCount).toBe(1);
   });
@@ -66,9 +70,11 @@ describe('jsSelfProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: -1,
+          stackId: 0,
         },
       ],
       stacks: [
@@ -80,7 +86,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', [{name: 'f0'}])
+      createFrameIndex('web', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
@@ -92,12 +99,15 @@ describe('jsSelfProfile', () => {
       samples: [
         {
           timestamp: 5,
+          stackId: 0,
         },
         {
           timestamp: 10,
+          stackId: 0,
         },
         {
           timestamp: 15,
+          stackId: 0,
         },
       ],
       stacks: [
@@ -109,7 +119,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', [{name: 'f0'}])
+      createFrameIndex('web', [{name: 'f0'}]),
+      {type: 'flamechart'}
     );
     // For JsSelfProfile, first sample is appended with 0 weight because it
     // contains the stack sample of when startProfile was called
@@ -145,7 +156,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
     );
 
     profile.forEach(open, close);
@@ -201,7 +213,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
     );
 
     profile.forEach(open, close);
@@ -243,7 +256,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
     );
 
     expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
@@ -275,7 +289,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
     );
 
     expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
@@ -315,7 +330,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
     );
 
     expect(profile.minFrameDuration).toBe(10);
@@ -336,6 +352,7 @@ describe('jsSelfProfile', () => {
         {
           timestamp: 10,
           marker: 'gc',
+          stackId: 0,
         },
       ],
       stacks: [
@@ -346,7 +363,8 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
     );
 
     const {open, close, openSpy, closeSpy, timings} = makeTestingBoilerplate();
