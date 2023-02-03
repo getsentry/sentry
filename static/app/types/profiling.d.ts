@@ -136,7 +136,7 @@ declare namespace Profiling {
     name: string;
     profileID: string;
     activeProfileIndex: number;
-    profiles: ReadonlyArray<ProfileTypes>;
+    profiles: ReadonlyArray<ProfileInput>;
   };
 
   type FrameRender = {
@@ -148,7 +148,9 @@ declare namespace Profiling {
   // sentry related features to the flamegraphs. This should happen after the MVP integration
   type Schema = {
     profileID: string;
-    profiles: ReadonlyArray<Readonly<ProfileTypes>>;
+    profiles: ReadonlyArray<
+      Readonly<EventedProfile | SampledProfile | JSSelfProfiling.Trace>
+    >;
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
