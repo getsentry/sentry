@@ -50,10 +50,7 @@ def process_commit_context(
     )
     try:
         with lock.acquire():
-            metrics.incr(
-                "sentry.tasks.process_commit_context.start",
-                tags={"event": event_id, "group": group_id, "project": project_id},
-            )
+            metrics.incr("sentry.tasks.process_commit_context.start")
 
             cache_key = DEBOUNCE_CACHE_KEY(group_id)
 
@@ -98,7 +95,6 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "maxed_owners_none_old",
                     },
                 )
@@ -128,7 +124,6 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "could_not_find_in_app_stacktrace_frame",
                     },
                 )
@@ -157,7 +152,6 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "could_not_fetch_commit_context",
                     },
                 )
@@ -202,7 +196,6 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "commit_sha_does_not_exist_in_sentry",
                     },
                 )
@@ -253,8 +246,6 @@ def process_commit_context(
             metrics.incr(
                 "sentry.tasks.process_commit_context.success",
                 tags={
-                    **basic_logging_details,
-                    "group_owner_id": group_owner.id,
                     "detail": f'successfully {"created" if created else "updated"}',
                 },
             )
