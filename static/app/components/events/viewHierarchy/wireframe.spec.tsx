@@ -1,9 +1,23 @@
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
-  getCoordinates,
-  getMaxDimensions,
+  getHierarchyDimensions,
 } from 'sentry/components/events/viewHierarchy/wireframe';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
+
+const LEAF_NODE = {
+  x: 2,
+  y: 2,
+  width: 5,
+  height: 5,
+};
+const INTERMEDIATE_NODE = {
+  x: 10,
+  y: 5,
+  width: 10,
+  height: 10,
+  children: [LEAF_NODE],
+};
 
 const MOCK_HIERARCHY = [
   {
@@ -11,51 +25,25 @@ const MOCK_HIERARCHY = [
     y: 0,
     width: 10,
     height: 10,
-    children: [
-      {
-        x: 10,
-        y: 5,
-        width: 10,
-        height: 10,
-        children: [
-          {
-            x: 2,
-            y: 2,
-            width: 5,
-            height: 5,
-          },
-        ],
-      },
-    ],
+    children: [INTERMEDIATE_NODE],
   },
   {x: 10, y: 0, width: 20, height: 20},
 ] as ViewHierarchyWindow[];
 
 describe('View Hierarchy Wireframe', function () {
-  describe('getCoordinates', function () {
+  describe('getHierarchyDimensions', function () {
     it('properly calculates coordinates', function () {
-      const actual = getCoordinates(MOCK_HIERARCHY);
-
-      // One array for each root
-      expect(actual).toEqual([
-        [
-          {x: 0, y: 0, width: 10, height: 10},
-          {x: 10, y: 5, width: 10, height: 10},
-          {x: 12, y: 7, width: 5, height: 5},
-        ],
-        [{x: 10, y: 0, width: 20, height: 20}],
-      ]);
-    });
-  });
-
-  describe('maxDimensions', function () {
-    it('calculates the max dimensions needed to render the contents in frame', function () {
-      const coordinates = getCoordinates(MOCK_HIERARCHY);
-      const actual = getMaxDimensions(coordinates);
+      const actual = getHierarchyDimensions(MOCK_HIERARCHY);
 
       expect(actual).toEqual({
-        width: 30,
-        height: 20,
+        nodes: [
+          {node: MOCK_HIERARCHY[0], rect: new Rect(0, 0, 10, 10)},
+          {node: INTERMEDIATE_NODE, rect: new Rect(10, 5, 10, 10)},
+          {node: LEAF_NODE, rect: new Rect(12, 7, 5, 5)},
+          {node: MOCK_HIERARCHY[1], rect: new Rect(10, 0, 20, 20)},
+        ],
+        maxWidth: 30,
+        maxHeight: 20,
       });
     });
   });
