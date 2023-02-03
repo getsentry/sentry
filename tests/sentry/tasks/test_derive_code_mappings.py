@@ -69,6 +69,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
             side_effect=UnableToAcquireLock,
         ):
+            # We should raise an exception since the request will be retried
             with pytest.raises(UnableToAcquireLock):
                 derive_code_mappings(self.project.id, self.event_data)
 
