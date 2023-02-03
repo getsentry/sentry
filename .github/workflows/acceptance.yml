@@ -137,6 +137,7 @@ jobs:
   frontend-visual-diff:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
+    if: always()
     needs: [frontend]
     name: 'Acceptance: Frontend'
     runs-on: ubuntu-20.04
@@ -248,6 +249,7 @@ jobs:
   backend-visual-diff:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
+    if: always()
     needs: [backend]
     name: 'Acceptance: Backend'
     runs-on: ubuntu-20.04
@@ -346,6 +348,7 @@ jobs:
   chartcuterie-visual-diff:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
+    if: always()
     needs: [chartcuterie]
     name: 'Acceptance: Chartcuterie'
     runs-on: ubuntu-20.04
@@ -374,28 +377,6 @@ jobs:
   #       steps in this workflow.
   #     - If the acceptance tests aren't run, then the fake-*-visual-snapshot
   #       step will run, creating a check that statisfies the repo requirement.
-  # TODO (mattgaunt): Remove this once the required check is changed for the
-  # new visual snapshots.
-  fake-visual-snapshot:
-    name: Visual Snapshot
-    if: always()
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Sentaur attack
-        run: |
-          echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"
-
-  # TODO (mattgaunt): Remove this once the required check is changed for the
-  # new visual snapshots.
-  fake-trigger-visual-snapshots:
-    name: triggers visual snapshot
-    if: always()
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Sentaur attack
-        run: |
-          echo "This check pretends to be the triggers visual snapshot to satisfy Github required checks"
-
   fake-frontend-visual-snapshot:
     name: 'Visual Snapshot: Frontend'
     needs: [files-changed]
