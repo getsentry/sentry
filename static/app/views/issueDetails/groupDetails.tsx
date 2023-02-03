@@ -22,8 +22,8 @@ import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
-  getAnalyicsDataForEvent,
-  getAnalyicsDataForGroup,
+  getAnalyticsDataForEvent,
+  getAnalyticsDataForGroup,
   getMessage,
   getTitle,
 } from 'sentry/utils/events';
@@ -46,7 +46,7 @@ import {
   ReprocessingStatus,
 } from './utils';
 
-type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
+type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 type Props = {
   api: Client;
@@ -153,8 +153,8 @@ class GroupDetails extends Component<Props, State> {
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
     this.props.setRouteAnalyticsParams({
-      ...getAnalyicsDataForGroup(group),
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForGroup(group),
+      ...getAnalyticsDataForEvent(event),
       ...getAnalyicsDataForProject(project),
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -427,7 +427,12 @@ class GroupDetails extends Component<Props, State> {
       const project = this.props.projects.find(p => p.id === data.project.id);
 
       if (!project) {
-        Sentry.withScope(() => {
+        Sentry.withScope(scope => {
+          const projectIds = this.props.projects.map(item => item.id);
+          scope.setContext('missingProject', {
+            projectId: data.project.id,
+            availableProjects: projectIds,
+          });
           Sentry.captureException(new Error('Project not found'));
         });
       } else {
@@ -523,10 +528,9 @@ class GroupDetails extends Component<Props, State> {
 
     trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
       organization,
-      group_id: parseInt(group.id, 10),
-      issue_category: group.issueCategory,
       project_id: parseInt(project.id, 10),
       tab,
+      ...getAnalyticsDataForGroup(group),
     });
 
     if (group.issueCategory !== IssueCategory.ERROR) {

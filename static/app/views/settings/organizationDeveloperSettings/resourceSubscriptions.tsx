@@ -9,7 +9,7 @@ import {
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
-type Resource = typeof EVENT_CHOICES[number];
+type Resource = (typeof EVENT_CHOICES)[number];
 
 type DefaultProps = {
   webhookDisabled: boolean;

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import copy from 'copy-text-to-clipboard';
 
 import Textarea from 'sentry/components/forms/controls/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -47,11 +48,7 @@ const Form = ({
     }
   };
 
-  // code below copied from app/views/organizationIntegrations/SplitInstallationIdModal.tsx
-  // TODO: fix the common method selectText
-  const onCopy = (value: string) => async () =>
-    // This hack is needed because the normal copying methods with TextCopyInput do not work correctly
-    await navigator.clipboard.writeText(value);
+  const onCopy = (value: string) => () => copy(value);
 
   return (
     <form onSubmit={handleSubmit} id="relay-form">

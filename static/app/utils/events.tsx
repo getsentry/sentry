@@ -9,6 +9,7 @@ import {
   GroupActivityType,
   GroupTombstone,
   IssueCategory,
+  IssueType,
   TreeLabelPart,
 } from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
@@ -283,7 +284,7 @@ function getAssignmentIntegration(group: Group) {
   return integrationAssignments?.data.integration || '';
 }
 
-export function getAnalyicsDataForEvent(event?: Event) {
+export function getAnalyticsDataForEvent(event?: Event) {
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
@@ -305,13 +306,31 @@ export function getAnalyicsDataForEvent(event?: Event) {
   };
 }
 
-export function getAnalyicsDataForGroup(group: Group | null) {
+export type CommonGroupAnalyticsData = {
+  error_count: number;
+  group_has_replay: boolean;
+  group_id: number;
+  has_external_issue: boolean;
+  has_owner: boolean;
+  integration_assignment_source: string;
+  issue_age: number;
+  issue_category: IssueCategory;
+  issue_id: number;
+  issue_type: IssueType;
+  num_comments: number;
+  is_assigned?: boolean;
+  issue_level?: string;
+  issue_status?: string;
+};
+
+export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
   const groupId = group ? parseInt(group.id, 10) : -1;
   return {
     group_id: groupId,
     // overload group_id with the issue_id
     issue_id: groupId,
     issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    issue_type: group?.issueType ?? IssueType.ERROR,
     issue_status: group?.status,
     issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
     issue_level: group?.level,

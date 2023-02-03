@@ -50,10 +50,7 @@ def process_commit_context(
     )
     try:
         with lock.acquire():
-            metrics.incr(
-                "sentry.tasks.process_commit_context.start",
-                tags={"event": event_id, "group": group_id, "project": project_id},
-            )
+            metrics.incr("sentry.tasks.process_commit_context.start")
 
             cache_key = DEBOUNCE_CACHE_KEY(group_id)
 
@@ -98,7 +95,6 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "maxed_owners_none_old",
                     },
                 )
@@ -128,7 +124,6 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "could_not_find_in_app_stacktrace_frame",
                     },
                 )
@@ -141,16 +136,15 @@ def process_commit_context(
                 )
                 return
 
-            commit_context, selected_code_mapping = find_commit_context_for_event(
+            found_contexts = find_commit_context_for_event(
                 code_mappings=code_mappings,
                 frame=frame,
-                logger=logger,
                 extra={
                     **basic_logging_details,
                 },
             )
 
-            if not commit_context and not selected_code_mapping:
+            if not len(found_contexts):
                 # Couldn't find the blame with any of the code mappings, so we will debounce the task for PREFERRED_GROUP_OWNER_AGE.
                 # We will clear the debounce cache when the org adds new code mappings for the project of this group.
                 cache.set(cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds())
@@ -158,7 +152,6 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "could_not_fetch_commit_context",
                     },
                 )
@@ -171,13 +164,31 @@ def process_commit_context(
                 )
                 return
 
-            try:
-                # Find commit
-                commit = Commit.objects.get(
-                    repository_id=selected_code_mapping.repository_id,
-                    key=commit_context.get("commitId"),
-                )
-            except Commit.DoesNotExist:
+            commit = None
+            for commit_context, selected_code_mapping in found_contexts:
+                try:
+                    # Find commit and break
+                    commit = Commit.objects.get(
+                        repository_id=selected_code_mapping.repository_id,
+                        key=commit_context.get("commitId"),
+                    )
+                    break
+                except Commit.DoesNotExist:
+
+                    logger.info(
+                        "process_commit_context.no_commit_in_sentry",
+                        extra={
+                            **basic_logging_details,
+                            "sha": commit_context.get("commitId"),
+                            "repository_id": selected_code_mapping.repository_id,
+                            "code_mapping_id": selected_code_mapping.id,
+                            "reason": "commit_sha_does_not_exist_in_sentry",
+                        },
+                    )
+
+            if not commit:
+                # None of the commits found from the integrations' contexts exist in sentry_commit.
+
                 # We couldn't find the commit in Sentry, so we will debounce the task for 1 day.
                 # TODO(nisanthan): We will not get the commit history for new customers, only the commits going forward from when they installed the source-code integration. We need a long-term fix.
                 cache.set(cache_key, True, timedelta(days=1).total_seconds())
@@ -185,18 +196,14 @@ def process_commit_context(
                 metrics.incr(
                     "sentry.tasks.process_commit_context.aborted",
                     tags={
-                        **basic_logging_details,
                         "detail": "commit_sha_does_not_exist_in_sentry",
                     },
                 )
                 logger.info(
-                    "process_commit_context.no_commit_in_sentry",
+                    "process_commit_context.aborted.no_commit_in_sentry",
                     extra={
                         **basic_logging_details,
-                        "sha": commit_context.get("commitId"),
-                        "repository_id": selected_code_mapping.repository_id,
-                        "code_mapping_id": selected_code_mapping.id,
-                        "reason": "commit_sha_does_not_exist_in_sentry",
+                        "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
                     },
                 )
                 return
@@ -239,8 +246,6 @@ def process_commit_context(
             metrics.incr(
                 "sentry.tasks.process_commit_context.success",
                 tags={
-                    **basic_logging_details,
-                    "group_owner_id": group_owner.id,
                     "detail": f'successfully {"created" if created else "updated"}',
                 },
             )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import timedelta
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
@@ -8,8 +9,9 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features
+from sentry import analytics, features
 from sentry.exceptions import PluginError
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
@@ -167,9 +169,33 @@ def handle_owner_assignment(job):
                         # see ProjectOwnership.get_issue_owners
                         issue_owners = []
                     else:
-                        issue_owners = ProjectOwnership.get_issue_owners(
-                            group.project_id, event.data
+
+                        issue_owners, baseline_duration = ProjectOwnership.get_issue_owners(
+                            project.id, event.data
                         )
+
+                        should_sample = random.randint(1, 10) % 10 == 0
+                        if (
+                            features.has(
+                                "organizations:scaleable-codeowners-search",
+                                project.organization,
+                                actor=None,
+                            )
+                            and should_sample
+                        ):
+
+                            _, experiment_duration = ProjectOwnership.get_issue_owners(
+                                project.id, event.data, experiment=True
+                            )
+
+                            analytics.record(
+                                "issue_owners.time_durations",
+                                group_id=group.id,
+                                project_id=project.id,
+                                event_id=event.event_id,
+                                baseline_duration=baseline_duration,
+                                experiment_duration=experiment_duration,
+                            )
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.handle_group_owners"
@@ -314,6 +340,8 @@ def post_process_group(
     cache_key,
     group_id=None,
     group_states: Optional[GroupStates] = None,
+    occurrence_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -322,6 +350,7 @@ def post_process_group(
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
+        from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,  # We use the data being present/missing in the processing store; to ensure that we don't duplicate work should the forwarding consumers; need to rewind history.
@@ -329,18 +358,47 @@ def post_process_group(
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        data = event_processing_store.get(cache_key)
-        if not data:
-            logger.info(
-                "post_process.skipped",
-                extra={"cache_key": cache_key, "reason": "missing_cache"},
+        if occurrence_id is None:
+            data = event_processing_store.get(cache_key)
+            if not data:
+                logger.info(
+                    "post_process.skipped",
+                    extra={"cache_key": cache_key, "reason": "missing_cache"},
+                )
+                return
+            with metrics.timer("tasks.post_process.delete_event_cache"):
+                event_processing_store.delete_by_key(cache_key)
+
+            occurrence = None
+            event = process_event(data, group_id)
+        else:
+            # Note: We attempt to acquire the lock here, but we don't release it and instead just
+            # rely on the ttl. The goal here is to make sure we only ever run post process group
+            # at most once per occurrence. Even though we don't use retries on the task, this is
+            # still necessary since the consumer that sends these might reprocess a batch.
+            # TODO: It might be better to instead set a value that we delete here, similar to what
+            # we do with `event_processing_store`. If we could do this *before* the occurrence ends
+            # up in Kafka (IE via the api that will sit in front of it), then we could guarantee at
+            # most once running of post process group.
+            lock = locks.get(
+                f"ppg:{occurrence_id}-once",
+                duration=600,
+                name="post_process_w_o",
             )
-            return
 
-        with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
+            try:
+                lock.acquire()
+            except Exception:
+                # If we fail to acquire the lock, we've already run post process group for this
+                # occurrence
+                return
 
-        event = process_event(data, group_id)
+            occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
+            # Issue platform events don't use `event_processing_store`. Fetch from eventstore
+            # instead.
+            event = eventstore.get_event_by_id(project_id, occurrence.event_id, group_id=group_id)
+
+        set_current_event_project(event.project_id)
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
@@ -388,6 +446,9 @@ def post_process_group(
         group_events: Mapping[int, GroupEvent] = {
             ge.group_id: ge for ge in list(event.build_group_events())
         }
+        if occurrence is not None:
+            for ge in group_events.values():
+                ge.occurrence = occurrence
 
         multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
             (group_events.get(gs.get("id")), gs)
@@ -412,17 +473,23 @@ def post_process_group(
 
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
-    if group_event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
+    issue_category = group_event.group.issue_category
+    if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE
     else:
         # specific pipelines for issue types
-        pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[group_event.group.issue_category]
+        pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[issue_category]
 
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
         except Exception:
+            issue_category_metric = issue_category.name.lower() if issue_category else None
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.exception",
+                tags={"issue_category": issue_category_metric},
+            )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": group_event, "group": group_event.group},
@@ -436,8 +503,6 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
     event = Event(
         project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
     )
-
-    set_current_event_project(event.project_id)
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.

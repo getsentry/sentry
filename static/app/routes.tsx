@@ -247,7 +247,7 @@ function buildRoutes() {
           <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
-            component={make(() => import('sentry/views/onboarding/onboarding'))}
+            component={make(() => import('sentry/views/onboarding'))}
           />
         </Route>
       ) : null}
@@ -257,10 +257,7 @@ function buildRoutes() {
         key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
-        <Route
-          path=":step/"
-          component={make(() => import('sentry/views/onboarding/onboarding'))}
-        />
+        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
     </Fragment>
   );
@@ -949,16 +946,7 @@ function buildRoutes() {
         <Route
           path=":orgId/"
           name={t('Organization')}
-          component={withDomainRedirect(NoOp, {
-            redirect: [
-              {
-                // If /settings/:orgId/ is encountered, then redirect to /settings/organization/ rather than redirecting
-                // to /settings/.
-                from: '/settings/:orgId/',
-                to: '/settings/organization/',
-              },
-            ],
-          })}
+          component={withDomainRedirect(NoOp)}
           key="org-settings"
         >
           {orgSettingsRoutes}
@@ -1931,16 +1919,7 @@ function buildRoutes() {
       <Route
         path="/:orgId/:projectId/getting-started/"
         component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted')),
-          {
-            redirect: [
-              {
-                // If /:orgId/:projectId/getting-started/* is encountered, then redirect to /getting-started/:projectId/*
-                from: '/:orgId/:projectId/getting-started/',
-                to: '/getting-started/:projectId/',
-              },
-            ],
-          }
+          make(() => import('sentry/views/projectInstall/gettingStarted'))
         )}
         key="org-getting-started"
       >
@@ -2253,7 +2232,7 @@ function buildRoutes() {
   return appRoutes;
 }
 
-// We load routes both when initlaizing the SDK (for routing integrations) and
+// We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
 

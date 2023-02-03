@@ -134,11 +134,8 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
-
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();

@@ -346,7 +346,6 @@ INSTALLED_APPS = (
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
-    "sentry.lang.native.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
@@ -436,13 +435,20 @@ AUTHENTICATION_BACKENDS = (
 )
 
 AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "sentry.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 6},
+        "OPTIONS": {"min_length": 8},
     },
     {
         "NAME": "sentry.auth.password_validation.MaximumLengthValidator",
         "OPTIONS": {"max_length": 256},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -661,6 +667,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
+    Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
@@ -964,6 +971,8 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
+    # Enables getting commit sha from git blame for codecov.
+    "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
     # Enables automatically deriving of code mappings as a dry run for early adopters
@@ -1002,8 +1011,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable quick context in discover
-    "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1012,6 +1019,8 @@ SENTRY_FEATURES = {
     "organizations:profiling": False,
     # Enable performance spans in flamecharts
     "organizations:profiling-flamechart-spans": False,
+    # Enable flamegraph view for profiling
+    "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
@@ -1114,6 +1123,8 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
+    # Enable fast CODEOWNERS path matching
+    "organizations:scaleable-codeowners-search": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
@@ -1149,6 +1160,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
     "organizations:performance-new-widget-designs": False,
+    # Enable metrics-backed transaction summary view
+    "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable slow DB performance issue type
@@ -1175,6 +1188,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
+    # Enable data scrubbing of replay recording payloads in Relay.
+    "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable Session Stats down to a minute resolution
@@ -1187,6 +1202,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
+    # Temporary flag to test search performance that's running slow in S4S
+    "organizations:performance-issues-search": True,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1208,6 +1225,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-view-hierarchies": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
+    # Disables multiselect platform in the onboarding flow
+    "organizations:onboarding-remove-multiselect-platform": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
@@ -2360,6 +2379,15 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
+    "nuget": {
+        "type": "http",
+        "id": "sentry:nuget",
+        "name": "NuGet.org",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["portablepdb"]},
+        "url": "https://symbols.nuget.org/download/symbols/",
+        "is_public": True,
+    },
     "citrix": {
         "type": "http",
         "id": "sentry:citrix",
@@ -2437,6 +2465,29 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "native"},
         "url": "https://symbols.electronjs.org/",
         "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
+        "is_public": True,
+    },
+    # === Various Linux distributions ===
+    # The `https://debuginfod.elfutils.org/` symbol server is set up to federate
+    # to a bunch of distro-specific servers, and they explicitly state that:
+    # > If your distro offers a server, you may prefer to link to that one directly
+    # In the future, we could add the following servers as well after validating:
+    # - https://debuginfod.opensuse.org/
+    # - https://debuginfod.debian.net/
+    # - https://debuginfod.fedoraproject.org/
+    # - https://debuginfod.archlinux.org/
+    # - https://debuginfod.centos.org/
+    # A couple more servers for less widespread distros are also listed, and there
+    # might be even more that are not listed on that page.
+    # NOTE: The `debuginfod` layout in symbolicator requires the `/buildid/` prefix
+    # to be part of the `url`.
+    "ubuntu": {
+        "type": "http",
+        "id": "sentry:ubuntu",
+        "name": "Ubuntu",
+        "layout": {"type": "debuginfod"},
+        "url": "https://debuginfod.ubuntu.com/buildid/",
+        "filters": {"filetypes": ["elf_code", "elf_debug"]},
         "is_public": True,
     },
 }

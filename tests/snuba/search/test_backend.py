@@ -30,6 +30,7 @@ from sentry.search.snuba.backend import (
 )
 from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.issues import GroupType
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
@@ -2044,7 +2045,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 **transaction_event_data,
                 "event_id": "a" * 32,
                 "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "tags": {"my_tag": 1},
                 "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
             },
@@ -2057,7 +2058,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 **transaction_event_data,
                 "event_id": "a" * 32,
                 "timestamp": iso_format(before_now(minutes=2)),
-                "start_timestamp": iso_format(before_now(minutes=2)),
+                "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
                 "tags": {"my_tag": 1},
                 "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group2"],
             },
@@ -2107,6 +2108,14 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
         )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
+
+    def test_performance_issue_search_feature_off(self):
+        with Feature({"organizations:performance-issues-search": False}):
+            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+            assert list(results) == []
+        with Feature({"organizations:performance-issues-search": True}):
+            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+            assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self):
         results = self.make_query(search_filter_query="my_tag:1")
