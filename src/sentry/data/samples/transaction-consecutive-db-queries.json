@@ -147,10 +147,10 @@
   "transaction_info": {"source": "unknown"},
   "type": "transaction",
   "user": {
-    "email": "saloni@example.com",
+    "email": "suser@example.com",
     "ip_address": "236.50.145.105",
-    "username": "saloni",
-    "name": "Saloni Dudziak",
+    "username": "suser",
+    "name": "sentry user",
     "geo": {"country_code": "US", "city": "San Francisco", "region": "CA"}
   },
   "version": "5"

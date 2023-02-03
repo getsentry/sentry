@@ -22,6 +22,7 @@ from urllib.parse import parse_qs, urlparse
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
@@ -482,6 +483,16 @@ class PerformanceProblemContext:
             else "",
         }
 
+    def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
+        if not self.spans:
+            return None
+
+        for span in self.spans:
+            span_id = span.get("span_id", "") or ""
+            if span_id == id:
+                return span
+        return None
+
     @classmethod
     def from_problem_and_spans(
         cls,
@@ -555,10 +566,11 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
     def to_dict(self) -> Dict[str, Any]:
         return {
             "span_evidence_key_value": [
-                {"key": "Transaction", "value": self.transaction},
-                {"key": "Starting Span", "value": self.starting_span},
+                {"key": _("Transaction"), "value": self.transaction},
+                {"key": _("Starting Span"), "value": self.starting_span},
+                {"key": _("Array"), "value": [{"value": "value"}, {"value": "value"}]},
                 {
-                    "key": "Parallelizable Spans",
+                    "key": _("Parallelizable Spans"),
                     "value": self.parallelizable_spans,
                     "is_multi_value": True,
                 },
@@ -591,13 +603,3 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     def _find_span_desc_by_id(self, id: str) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
-
-    def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
-        if not self.spans:
-            return None
-
-        for span in self.spans:
-            span_id = span.get("span_id", "") or ""
-            if span_id == id:
-                return span
-        return None
