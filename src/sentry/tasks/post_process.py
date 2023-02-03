@@ -825,7 +825,6 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
     from sentry.tasks.sentry_apps import process_resource_change_bound
 
     event, is_new = job["event"], job["group_state"]["is_new"]
-
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
         process_resource_change_bound.delay(
             action="created", sender="Error", instance_id=event.event_id, instance=event
