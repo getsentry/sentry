@@ -16,7 +16,10 @@ from sentry.models import ScheduledDeletion, Team, TeamStatus
 
 class TeamSerializer(CamelSnakeModelSerializer):
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
-    org_role = serializers.ChoiceField(choices=roles.get_choices(), default=None)
+    org_role = serializers.ChoiceField(
+        choices=tuple(list(roles.get_choices()) + [("", None)]),
+        default="",
+    )
 
     class Meta:
         model = Team
@@ -80,7 +83,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
                                owners can set this value.
         :auth: required
         """
-        if request.data.get("orgRole"):
+        if team.org_role != request.data.get("orgRole"):
             if team.idp_provisioned:
                 return Response(
                     {
