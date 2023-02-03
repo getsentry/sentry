@@ -352,6 +352,12 @@ def test_allows_eligible_spans(span):
             "hash": "b",
             "description": "GET /_next/data/LjdprRSkUtLP0bMUoWLur/items.json?collection=hello",
         },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "hash": "b",
+            "description": "GET /__nextjs_original-stack-frame?isServerSide=false&file=webpack-internal%3A%2F%2F%2F.%2Fnode_modules%2Freact-dom%2Fcjs%2Freact-dom.development.js&methodName=Object.invokeGuardedCallbackDev&arguments=&lineNumber=73&column=3`",
+        },
     ],
 )
 def test_rejects_ineligible_spans(span):

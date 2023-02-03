@@ -171,6 +171,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return False
 
         url = get_url_from_span(span)
+
+        # Next.js error pages cause an N+1 API Call that isn't useful to anyone
+        if "__nextjs_original-stack-frame" in url:
+            return False
+
         if not url:
             return False
 
