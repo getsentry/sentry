@@ -50,6 +50,7 @@ function FlamegraphViewSelectMenu({
         aria-label="Sorting"
         size="xs"
         value={sorting}
+        priority="primary"
         onChange={onSortingChange}
         priority="primary"
       >
