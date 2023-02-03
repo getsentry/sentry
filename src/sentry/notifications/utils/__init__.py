@@ -538,7 +538,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
 
 class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, any]:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "span_evidence_key_value": [
                 {"key": "Starting Span", "value": self.starting_span},
@@ -567,10 +567,6 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         offender_span_ids = self.problem.offender_span_ids
 
         return [self._find_span_desc_by_id(id) for id in offender_span_ids]
-
-    @property
-    def duration_impact(self) -> str:
-        return str(self._calculate_time_saved())
 
     def _find_span_desc_by_id(self, id) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
