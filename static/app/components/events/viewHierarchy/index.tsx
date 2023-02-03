@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Node} from 'sentry/components/events/viewHierarchy/node';
@@ -10,6 +10,7 @@ import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import usePrevious from 'sentry/utils/usePrevious';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -48,6 +49,8 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
     viewHierarchy.windows[0]
   );
+  const becauseOfFocus = useRef(false);
+  const previousSelection = usePrevious(selectedNode);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;
   }, [viewHierarchy.windows]);
@@ -78,6 +81,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onKeyDown={handleRowKeyDown}
         onFocus={() => {
           setSelectedNode(r.item.node);
+          becauseOfFocus.current = true;
         }}
         onClick={handleRowClick}
       >
@@ -100,6 +104,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     scrollContainerStyles,
     hoveredGhostRowRef,
     clickedGhostRowRef,
+    handleScrollTo,
   } = useVirtualizedTree({
     renderRow,
     rowHeight: 20,
@@ -109,6 +114,14 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     overscroll: 10,
     initialSelectedNodeIndex: 0,
   });
+
+  // Scroll to the selected node when it changes
+  useEffect(() => {
+    if (previousSelection !== selectedNode && !becauseOfFocus.current) {
+      handleScrollTo(item => item === selectedNode);
+    }
+    becauseOfFocus.current = false;
+  }, [selectedNode, handleScrollTo, previousSelection]);
 
   const showWireframe = project?.platform !== 'unity';
 
