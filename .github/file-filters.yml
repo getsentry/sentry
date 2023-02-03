@@ -73,21 +73,13 @@ backend_all: &backend_all
   - '**/*.py'
   - '**/*.pyi'
 
-acceptance_frontend: &acceptance_frontend
+# This is the ultimate controller for acceptance.yml
+acceptance: &acceptance
+  - *backend_all
   - *frontend_all
   # This is verbose because backend_build_changes includes it, however,
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
-
-acceptance_backend: &acceptance_backend
-  - *backend_all
-  # This is verbose because backend_build_changes includes it, however,
-  - '.github/actions/setup-sentry/action.yml'
-  - '.github/workflows/acceptance.yml'
-
-acceptance_all: &acceptance_all
-  - *acceptance_frontend
-  - *acceptance_backend
 
 plugins: &plugins
   - *backend_all
