@@ -42,8 +42,8 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   it('calls attachments api with screenshot filter', function () {
     renderGroupEventAttachments();
-    expect(screen.getByText('Screenshots')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Screenshots'));
+    expect(screen.getByRole('radio', {name: 'Screenshots'})).toBeInTheDocument();
+    userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/issues/group-id/attachments/',
       expect.objectContaining({

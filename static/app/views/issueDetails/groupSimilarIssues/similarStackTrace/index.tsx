@@ -5,12 +5,11 @@ import {Location} from 'history';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
@@ -116,10 +115,6 @@ function SimilarStackTrace({params, location, project}: Props) {
     };
   }, [onGroupingChange]);
 
-  const toggleSimilarityVersion = useCallback(() => {
-    setIsUsingSimilarityViewV2(prev => !prev);
-  }, []);
-
   const handleMerge = useCallback(() => {
     if (!params) {
       return;
@@ -159,14 +154,19 @@ function SimilarStackTrace({params, location, project}: Props) {
         <HeaderWrapper>
           <Title>{t('Issues with a similar stack trace')}</Title>
           {hasSimilarityViewV2 && (
-            <ButtonBar merged active={isUsingSimilarityViewV2 ? 'new' : 'old'}>
-              <Button barId="old" size="sm" onClick={toggleSimilarityVersion}>
+            <SegmentedControl
+              aria-label={t('Algorithm')}
+              size="sm"
+              value={isUsingSimilarityViewV2 ? 'new' : 'old'}
+              onChange={key => setIsUsingSimilarityViewV2(key === 'new')}
+            >
+              <SegmentedControl.Item key="old">
                 {t('Old Algorithm')}
-              </Button>
-              <Button barId="new" size="sm" onClick={toggleSimilarityVersion}>
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="new">
                 {t('New Algorithm')}
-              </Button>
-            </ButtonBar>
+              </SegmentedControl.Item>
+            </SegmentedControl>
           )}
         </HeaderWrapper>
         {status === 'loading' && <LoadingIndicator />}
