@@ -16,10 +16,7 @@ from uuid import uuid4
 from django.apps import apps
 from django.db.models import Manager, Max
 
-from sentry.db.models.fields.hybrid_cloud_foreign_key import (
-    HybridCloudForeignKey,
-    HybridCloudForeignKeyCascadeBehavior,
-)
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -169,7 +166,7 @@ def _process_tombstone_reconcilition(
             )
         ]
 
-        if field.on_delete == HybridCloudForeignKeyCascadeBehavior.CASCADE:
+        if field.on_delete == "CASCADE":
             task = deletions.get(
                 model=model,
                 query={"id__in": to_delete_ids},
@@ -181,7 +178,7 @@ def _process_tombstone_reconcilition(
             else:
                 set_watermark(prefix, field, up, tid)
 
-        elif field.on_delete == HybridCloudForeignKeyCascadeBehavior.SET_NULL:
+        elif field.on_delete == "SET_NULL":
             model.objects.filter(id__in=to_delete_ids).update({field.name: None})
             set_watermark(prefix, field, up, tid)
 

@@ -60,7 +60,7 @@ class HybridCloudForeignKeyCascadeBehavior(IntEnum):
 
 
 class HybridCloudForeignKey(models.BigIntegerField):  # type: ignore
-    on_delete: HybridCloudForeignKeyCascadeBehavior
+    on_delete: str
     foreign_model_name: str
 
     @property
@@ -79,7 +79,7 @@ class HybridCloudForeignKey(models.BigIntegerField):  # type: ignore
             on_delete
             if isinstance(on_delete, HybridCloudForeignKeyCascadeBehavior)
             else HybridCloudForeignKeyCascadeBehavior[on_delete.upper()]
-        )
+        ).name.upper()
 
         parts = foreign_model.split(".")
         assert (

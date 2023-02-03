@@ -42,9 +42,7 @@ class Migration(CheckedMigration):
                 "sentry.User",
                 db_index=True,
                 null=True,
-                on_delete=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKeyCascadeBehavior(
-                    1
-                ),
+                on_delete="CASCADE",
             ),
         ),
         migrations.RenameField(model_name="savedsearch", old_name="owner", new_name="owner_id"),
