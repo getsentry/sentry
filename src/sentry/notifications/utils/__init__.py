@@ -562,7 +562,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
     @property
     def parallelizable_spans(self) -> List[str]:
         if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
-            return ""
+            return [""]
 
         offender_span_ids = self.problem.offender_span_ids
 
@@ -571,8 +571,9 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
     def _find_span_desc_by_id(self, id) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
 
-    def _find_span_by_id(self, id) -> str:
+    def _find_span_by_id(self, id) -> Dict[str, Any] | None:
         for span in self.spans:
             span_id = span.get("span_id", "") or ""
             if span_id == id:
                 return span
+        return None
