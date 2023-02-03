@@ -114,8 +114,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not self._can_admin_team(request, team):
             return False
 
-        org_role = request.access.get_organization_role()
-        if org_role and org_role.can_manage_team_role(new_role):
+        org_roles = request.access.get_organization_roles()
+        if any(org_role.can_manage_team_role(new_role) for org_role in org_roles):
             return True
 
         team_role = request.access.get_team_role(team)
