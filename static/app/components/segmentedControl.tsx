@@ -306,6 +306,7 @@ const LabelWrap = styled('span')`
   position: relative;
   display: flex;
   line-height: 1;
+  min-width: 0;
 `;
 
 const HiddenLabel = styled('span')`
