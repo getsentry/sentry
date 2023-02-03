@@ -3,11 +3,8 @@ import {Location} from 'history';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import toArray from 'sentry/utils/toArray';
-import useOrganization from 'sentry/utils/useOrganization';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {VitalBar} from '../landing/vitalsCards';
 
@@ -27,6 +24,7 @@ type Props = ViewProps & {
   hideVitalThresholds?: boolean;
   isLoading?: boolean;
   p75AllTransactions?: number;
+  queryExtras?: Record<string, string>;
 };
 
 function VitalInfo({
@@ -38,6 +36,7 @@ function VitalInfo({
   hideVitalPercentNames,
   hideVitalThresholds,
   hideDurationDetail,
+  queryExtras,
 }: Props) {
   const vitals = toArray(vital);
   const contentCommonProps = {
@@ -48,14 +47,6 @@ function VitalInfo({
     showVitalThresholds: !hideVitalThresholds,
     showDurationDetail: !hideDurationDetail,
   };
-
-  const mepSetting = useMEPSettingContext();
-  const organization = useOrganization();
-  const queryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    organization,
-    location
-  );
 
   return (
     <VitalsCardDiscoverQuery

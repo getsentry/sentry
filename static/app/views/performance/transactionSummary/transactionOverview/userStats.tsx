@@ -14,8 +14,10 @@ import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
@@ -71,6 +73,13 @@ function UserStats({
     query: location.query,
   });
 
+  const mepSetting = useMEPSettingContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location
+  );
+
   return (
     <Fragment>
       {hasWebVitals && (
@@ -101,6 +110,7 @@ function UserStats({
             project={eventView.project}
             hideVitalThresholds
             hideDurationDetail
+            queryExtras={queryExtras}
           />
           <SidebarSpacer />
         </Fragment>
