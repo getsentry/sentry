@@ -60,6 +60,7 @@ class MonitorCheckIn(Model):
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
     objects = BaseManager(cache_fields=("guid",))
+    attachment = FlexibleForeignKey("sentry.File", null=True)
 
     class Meta:
         app_label = "sentry"

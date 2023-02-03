@@ -14,6 +14,7 @@ class MonitorCheckInSerializer(Serializer):
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
+            "attachmentId": obj.attachment.id,
         }
 
 
@@ -22,3 +23,4 @@ class MonitorCheckInSerializerResponse(TypedDict):
     status: str
     duration: int
     dateCreated: datetime
+    attachmentId: str

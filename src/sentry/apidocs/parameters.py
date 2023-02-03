@@ -158,6 +158,7 @@ class MONITOR_PARAMS:
         type=OpenApiTypes.UUID,
         description="The id of the check-in",
     )
+    # TODO(davidenwang): Add the file attachment parameters here
 
 
 class EVENT_PARAMS:
