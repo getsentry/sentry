@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, List, Optional
+from dataclasses import fields
+from typing import Any, Callable, FrozenSet, Iterable, List, Optional
 
 from django.db.models import QuerySet
 
@@ -17,7 +18,9 @@ from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.user import (
+    APIAvatar,
     APIUser,
+    APIUserEmail,
     UserFilterArgs,
     UserSerializeType,
     UserService,
@@ -37,8 +40,7 @@ class DatabaseBackedUserService(
         if is_active:
             query = query.filter(is_active=is_active)
         return [
-            UserService.serialize_user(user)
-            for user in query.filter(in_iexact("emails__email", emails))
+            self._serialize_rpc(user) for user in query.filter(in_iexact("emails__email", emails))
         ]
 
     def get_by_username(
@@ -98,7 +100,7 @@ class DatabaseBackedUserService(
 
     def get_from_group(self, group: Group) -> List[APIUser]:
         return [
-            UserService.serialize_user(u)
+            self._serialize_rpc(u)
             for u in self._base_query().filter(
                 sentry_orgmember_set__organization=group.organization,
                 sentry_orgmember_set__teams__in=group.project.teams.all(),
@@ -116,9 +118,7 @@ class DatabaseBackedUserService(
         )
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
-        return [
-            UserService.serialize_user(u) for u in self._base_query().filter(actor_id__in=actor_ids)
-        ]
+        return [self._serialize_rpc(u) for u in self._base_query().filter(actor_id__in=actor_ids)]
 
     def close(self) -> None:
         pass
@@ -142,7 +142,7 @@ class DatabaseBackedUserService(
             "user_ids", "organization_id", "team_ids", "project_ids", "emails"
         )
 
-    def _api_serializer(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
+    def _serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
         serializer: Serializer = UserSerializer()
         if serializer_type == UserSerializeType.DETAILED:
             serializer = DetailedUserSerializer()
@@ -150,5 +150,59 @@ class DatabaseBackedUserService(
             serializer = DetailedSelfUserSerializer()
         return serializer
 
-    def _rpc_serialize_object(self, user: User) -> APIUser:
-        return self.serialize_user(user)
+    def _serialize_rpc(self, user: User) -> APIUser:
+        args = {
+            field.name: getattr(user, field.name)
+            for field in fields(APIUser)
+            if hasattr(user, field.name)
+        }
+        args["pk"] = user.pk
+        args["display_name"] = user.get_display_name()
+        args["label"] = user.get_label()
+        args["is_superuser"] = user.is_superuser
+        args["is_sentry_app"] = user.is_sentry_app
+        args["password_usable"] = user.has_usable_password()
+        args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
+
+        # And process the _base_user_query special data additions
+        permissions: FrozenSet[str] = frozenset({})
+        if hasattr(user, "permissions") and user.permissions is not None:
+            permissions = frozenset(user.permissions)
+        args["permissions"] = permissions
+
+        roles: FrozenSet[str] = frozenset({})
+        if hasattr(user, "roles") and user.roles is not None:
+            roles = frozenset(flatten(user.roles))
+        args["roles"] = roles
+
+        useremails: FrozenSet[APIUserEmail] = frozenset({})
+        if hasattr(user, "useremails") and user.useremails is not None:
+            useremails = frozenset(
+                {
+                    APIUserEmail(
+                        id=e["id"],
+                        email=e["email"],
+                        is_verified=e["is_verified"],
+                    )
+                    for e in user.useremails
+                }
+            )
+        args["useremails"] = useremails
+        avatar = user.avatar.first()
+        if avatar is not None:
+            avatar = APIAvatar(
+                id=avatar.id,
+                file_id=avatar.file_id,
+                ident=avatar.ident,
+                avatar_type=avatar.avatar_type,
+            )
+        args["avatar"] = avatar
+        return APIUser(**args)
+
+
+def flatten(iter: Iterable[Any]) -> List[Any]:
+    return (
+        ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
+        if type(iter) is list or isinstance(iter, BaseQuerySet)
+        else [iter]
+    )

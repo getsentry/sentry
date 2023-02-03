@@ -76,7 +76,7 @@ class FilterQueryDatabaseImpl(
         pass
 
     @abc.abstractmethod
-    def _api_serializer(self, serializer: Optional[SERIALIZER_ENUM]) -> Serializer:
+    def _serialize_api(self, serializer: Optional[SERIALIZER_ENUM]) -> Serializer:
         # Returns the api serializer to use for this response.
         pass
 
@@ -85,7 +85,7 @@ class FilterQueryDatabaseImpl(
         pass
 
     @abc.abstractmethod
-    def _rpc_serialize_object(self, object: BASE_MODEL) -> RPC_RESPONSE:
+    def _serialize_rpc(self, object: BASE_MODEL) -> RPC_RESPONSE:
         pass
 
     # Utility Methods
@@ -130,8 +130,8 @@ class FilterQueryDatabaseImpl(
         return serialize(  # type: ignore
             self._query_many(filter=filter),
             user=as_user,
-            serializer=self._api_serializer(serializer),
+            serializer=self._serialize_api(serializer),
         )
 
     def get_many(self, *, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:
-        return [self._rpc_serialize_object(o) for o in self._query_many(filter=filter)]
+        return [self._serialize_rpc(o) for o in self._query_many(filter=filter)]
