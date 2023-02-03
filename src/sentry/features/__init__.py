@@ -60,8 +60,6 @@ default_manager.add("auth:register")
 default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
-default_manager.add("organizations:active-release-monitor-alpha", OrganizationFeature, True)
-default_manager.add("organizations:active-release-notifications-enable", OrganizationFeature)
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)

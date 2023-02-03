@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry import features
 from sentry.models import (
     ActorTuple,
-    Commit,
     Group,
     GroupSubscription,
     NotificationSetting,
@@ -16,7 +15,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
-    Release,
     Team,
     User,
 )
@@ -284,9 +282,6 @@ def determine_eligible_recipients(
         if team:
             return {team}
 
-    elif target_type == ActionTargetType.RELEASE_MEMBERS:
-        return get_release_committers(project, event)
-
     elif target_type == ActionTargetType.ISSUE_OWNERS:
         owners = get_owners(project, event, fallthrough_choice)
         if owners:
@@ -295,44 +290,6 @@ def determine_eligible_recipients(
         return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
-
-
-def get_release_committers(project: Project, event: Event) -> Sequence[APIUser]:
-    # get_participants_for_release seems to be the method called when deployments happen
-    # supposedly, this logic should be fairly, close ...
-    # why is get_participants_for_release so much more complex???
-    if not project or not event:
-        return []
-
-    if not event.group:
-        return []
-
-    last_release_version: str | None = event.group.get_last_release()
-    if not last_release_version:
-        return []
-
-    last_release: Release = Release.get(project, last_release_version)
-    if not last_release:
-        return []
-
-    return _get_release_committers(last_release)
-
-
-def _get_release_committers(release: Release) -> Sequence[APIUser]:
-    from sentry.api.serializers import Author, get_users_for_commits
-    from sentry.utils.committers import _get_commits
-
-    commits: Sequence[Commit] = _get_commits([release])
-    if not commits:
-        return []
-
-    # commit_author_id : Author
-    author_users: Mapping[str, Author] = get_users_for_commits(commits)
-
-    if features.has("organizations:active-release-notifications-enable", release.organization):
-        user_ids: set[int] = {au["id"] for au in author_users.values() if au.get("id")}
-        return user_service.get_many(user_ids)
-    return []
 
 
 def get_send_to(
