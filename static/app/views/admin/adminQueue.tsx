@@ -5,11 +5,13 @@ import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
 const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 
-type TimeWindow = (typeof TIME_WINDOWS)[number];
+type TimeWindow = typeof TIME_WINDOWS[number];
 
 type State = AsyncView['state'] & {
   activeTask: string;
@@ -64,13 +66,16 @@ export default class AdminQueue extends AsyncView<{}, State> {
         <Header>
           <h3>Queue Overview</h3>
 
-          <ButtonBar merged active={this.state.timeWindow}>
+          <SegmentedControl
+            aria-label={t('Time Window')}
+            size="sm"
+            value={this.state.timeWindow}
+            onChange={r => this.changeWindow(r)}
+          >
             {TIME_WINDOWS.map(r => (
-              <Button size="sm" barId={r} onClick={() => this.changeWindow(r)} key={r}>
-                {r}
-              </Button>
+              <SegmentedControl.Item key={r}>{r}</SegmentedControl.Item>
             ))}
-          </ButtonBar>
+          </SegmentedControl>
         </Header>
 
         <Panel>
