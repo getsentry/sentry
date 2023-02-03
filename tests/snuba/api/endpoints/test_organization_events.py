@@ -3494,6 +3494,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
                 "var(transaction.duration)",
                 "cov(transaction.duration, transaction.duration)",
                 "corr(transaction.duration, transaction.duration)",
+                "linear_regression(transaction.duration, transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -3512,6 +3513,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert data[0]["var(transaction.duration)"] == 0.0
         assert data[0]["cov(transaction.duration, transaction.duration)"] == 0.0
         assert data[0]["corr(transaction.duration, transaction.duration)"] == 0.0
+        assert data[0]["linear_regression(transaction.duration, transaction.duration)"] == [0, 0]
         assert data[0]["sum(transaction.duration)"] == 10000
 
     @requires_not_arm64
