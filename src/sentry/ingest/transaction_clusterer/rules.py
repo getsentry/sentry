@@ -125,8 +125,6 @@ def get_sorted_rules(
     The rules are ordered by depth (deeper in the URL tree go first) and usage
     (more recently used go first), in that order.
     """
-    if amount is not None and amount < 1:
-        return []
     rules = ProjectOptionRuleStore().read_sorted(project)
     # Even if there are fewer rules than the given amount, sort them. Keeping
     # always the same order allows the rules to disappear for not being used.
