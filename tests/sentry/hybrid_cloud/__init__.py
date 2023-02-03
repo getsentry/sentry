@@ -1,4 +1,4 @@
-from typing import Set, Tuple, Type
+from typing import Iterable, Set, Tuple, Type
 
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
@@ -7,7 +7,7 @@ from sentry.db.models.base import ModelSiloLimit
 from sentry.silo import SiloMode
 
 
-def _iter_models():
+def iter_models() -> Iterable[Type[Model]]:
     from django.apps import apps
 
     for app, app_models in apps.all_models.items():
@@ -21,8 +21,8 @@ def _iter_models():
             yield model
 
 
-def validate_models_have_silos(exemptions: Set[Type[Model]]):
-    for model in _iter_models():
+def validate_models_have_silos(exemptions: Set[Type[Model]]) -> None:
+    for model in iter_models():
         if model in exemptions:
             continue
         if not isinstance(getattr(model._meta, "silo_limit", None), ModelSiloLimit):
@@ -38,15 +38,15 @@ def validate_models_have_silos(exemptions: Set[Type[Model]]):
             )
 
 
-def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[Model]]]):
-    for model in _iter_models():
+def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[Model]]]) -> None:
+    for model in iter_models():
         validate_model_no_cross_silo_foreign_keys(model, exemptions)
 
 
 def validate_relation_does_not_cross_silo_foreign_keys(
     model: Type[Model],
     related: Type[Model],
-):
+) -> None:
     for mode in model._meta.silo_limit.modes:
         if mode not in related._meta.silo_limit.modes:
             raise ValueError(
@@ -57,7 +57,7 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
-):
+) -> None:
     for field in model._meta.fields:
         if isinstance(field, RelatedField):
             if (model, field.related_model) in exemptions:

@@ -191,14 +191,6 @@ class OutboxBase(Model):
                 f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
             )
 
-    @classmethod
-    def for_shard(cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int) -> _T:
-        """
-        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
-        semantic of creating and instance to invoke `drain_shard` on.
-        """
-        return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
-
 
 MONOLITH_REGION_NAME = "--monolith--"
 
@@ -234,6 +226,14 @@ class RegionOutbox(OutboxBase):
             ("shard_scope", "shard_identifier", "id"),
         )
 
+    @classmethod
+    def for_shard(cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int) -> _T:
+        """
+        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
+        semantic of creating and instance to invoke `drain_shard` on.
+        """
+        return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
+
     __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
 
 
@@ -253,7 +253,7 @@ class ControlOutbox(OutboxBase):
 
     def send_signal(self):
         process_control_outbox.send(
-            sender=self.category,
+            sender=OutboxCategory(self.category),
             payload=self.payload,
             region_name=self.region_name,
             object_identifier=self.object_identifier,
@@ -300,6 +300,18 @@ class ControlOutbox(OutboxBase):
             result.region_name = region_name
             result.payload = payload
             yield result
+
+    @classmethod
+    def for_shard(
+        cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int, region_name: str
+    ) -> _T:
+        """
+        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
+        semantic of creating and instance to invoke `drain_shard` on.
+        """
+        return cls(
+            shard_scope=shard_scope, shard_identifier=shard_identifier, region_name=region_name
+        )
 
 
 def _find_orgs_for_user(user_id: int) -> Set[int]:

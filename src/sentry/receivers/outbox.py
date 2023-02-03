@@ -13,6 +13,7 @@ from sentry.models import (
     OutboxBase,
     OutboxCategory,
     User,
+    process_control_outbox,
     process_region_outbox,
 )
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
@@ -46,7 +47,7 @@ def _maybe_process_tombstone(model: Type[T], object_identifier: int) -> T | None
     return None
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.USER_UPDATE)
+@receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
 def process_user_updates(object_identifier: int, **kwds: Any):
     if (user := _maybe_process_tombstone(User, object_identifier)) is None:
         return

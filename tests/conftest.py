@@ -1,6 +1,8 @@
 import os
+from typing import MutableSet
 
 import pytest
+from django.db.transaction import get_connection
 
 from sentry.silo import SiloMode
 
@@ -139,3 +141,40 @@ def validate_silo_mode():
         raise Exception(
             "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
         )
+
+
+@pytest.fixture(autouse=True)
+def protect_user_deletion(request):
+    if "django_db_setup" not in request.fixturenames:
+        yield
+        return
+
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.testutils.silo import reset_test_role, restrict_role
+    from tests.sentry.hybrid_cloud import iter_models
+
+    with get_connection().cursor() as conn:
+        conn.execute("SET ROLE 'postgres'")
+
+    reset_test_role(role="postgres_unprivileged")
+
+    # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
+    seen_models: MutableSet[type] = set()
+    for model in iter_models():
+        for field in model._meta.fields:
+            if not isinstance(field, HybridCloudForeignKey):
+                continue
+            fk_model = field.foreign_model
+            if fk_model is None or fk_model in seen_models:
+                continue
+            seen_models.add(fk_model)
+            restrict_role(role="postgres_unprivileged", model=fk_model, revocation_type="DELETE")
+
+    with get_connection().cursor() as conn:
+        conn.execute("SET ROLE 'postgres_unprivileged'")
+
+    try:
+        yield
+    finally:
+        with get_connection().cursor() as conn:
+            conn.execute("SET ROLE 'postgres'")

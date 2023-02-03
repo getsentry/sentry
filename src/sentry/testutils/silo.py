@@ -7,11 +7,13 @@ from typing import Any, Callable, Generator, Iterable, Tuple, cast
 from unittest import TestCase
 
 import pytest
+from django.db import connections, router
 from django.test import override_settings
 
 from sentry.silo import SiloMode
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
+from tests.sentry.hybrid_cloud import iter_models
 
 TestMethod = Callable[..., None]
 
@@ -164,3 +166,29 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
     """
     with override_settings(SILO_MODE=SiloMode.MONOLITH):
         yield
+
+
+def reset_test_role(role: str) -> None:
+    with connections["default"].cursor() as connection:
+        connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
+        if connection.fetchone():
+            connection.execute(f"REASSIGN OWNED BY {role} TO postgres")
+            connection.execute(f"DROP OWNED BY {role} CASCADE")
+            connection.execute(f"DROP ROLE {role}")
+        connection.execute(f"CREATE ROLE {role}")
+        connection.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
+        connection.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")
+        connection.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
+
+
+def restrict_role_by_silo(mode: SiloMode, role: str) -> None:
+    for model in iter_models():
+        silo_limit = getattr(model._meta, "silo_limit", None)
+        if silo_limit is None or mode not in silo_limit.modes:
+            restrict_role(role, model, "ALL PRIVILEGES")
+
+
+def restrict_role(role: str, model: Any, revocation_type: str) -> None:
+    using = router.db_for_write(model)
+    with connections[using].cursor() as connection:
+        connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
