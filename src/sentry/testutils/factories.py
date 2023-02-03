@@ -1359,6 +1359,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_silo_limits()
     def create_sentry_function(name, code, **kwargs):
         return SentryFunction.objects.create(
             name=name,
@@ -1369,5 +1370,9 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_silo_limits()
     def create_saved_search(name: str, **kwargs):
+        if "owner" in kwargs:
+            owner = kwargs.pop("owner")
+            kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
         return SavedSearch.objects.create(name=name, **kwargs)
