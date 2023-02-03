@@ -40,8 +40,10 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
-import {DisplayModes} from 'sentry/views/performance/transactionSummary/transactionOverview/charts';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 import {
   platformToPerformanceType,

@@ -30,13 +30,13 @@ import VitalsDetailsTableQuery, {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
-
-import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {
+  DisplayModes,
   normalizeSearchConditionsWithTransactionName,
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
-} from '../transactionSummary/utils';
+} from 'sentry/views/performance/transactionSummary/utils';
+
 import {getSelectedProjectPlatforms} from '../utils';
 
 import {

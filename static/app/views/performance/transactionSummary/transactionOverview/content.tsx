@@ -13,7 +13,9 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Tooltip from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -34,6 +36,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -173,6 +176,34 @@ function SummaryContent({
     return sortedEventView;
   }
 
+  function generateActionBarItems(_org: Organization, _location: Location) {
+    if (!_org.features.includes('performance-metrics-backed-transaction-summary')) {
+      return undefined;
+    }
+
+    return !canUseTransactionMetricsData(_org, _location)
+      ? [
+          {
+            key: 'alert',
+            makeAction: () => ({
+              Button: () => (
+                <Tooltip
+                  title={t(
+                    'Based on your search criteria and sample rate, the events available may be limited.'
+                  )}
+                >
+                  <StyledIconWarning size="sm" color="warningText" />
+                </Tooltip>
+              ),
+              menuItem: {
+                key: 'filter-alert',
+              },
+            }),
+          },
+        ]
+      : undefined;
+  }
+
   const hasPerformanceChartInterpolation = organization.features.includes(
     'performance-chart-interpolation'
   );
@@ -293,6 +324,7 @@ function SummaryContent({
             fields={eventView.fields}
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
+            actionBarItems={generateActionBarItems(organization, location)}
           />
         </FilterActions>
         <TransactionSummaryCharts
@@ -496,6 +528,10 @@ const StyledSearchBar = styled(SearchBar)`
     order: initial;
     grid-column: auto;
   }
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  display: block;
 `;
 
 export default withProjects(SummaryContent);

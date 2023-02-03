@@ -26,6 +26,7 @@ type Props = AsyncComponent['props'] &
     fields: string[];
     location: Location;
     organization: OrganizationSummary;
+    queryExtras?: Record<string, string>;
   };
 
 type State = AsyncComponent['state'] & {
@@ -52,6 +53,7 @@ class Content extends AsyncComponent<Props, State> {
       project,
       fields,
       location,
+      queryExtras,
     } = this.props;
 
     const eventView = EventView.fromSavedQuery({
@@ -67,8 +69,12 @@ class Content extends AsyncComponent<Props, State> {
       start,
       end,
     });
-    const apiPayload = eventView.getEventsAPIPayload(location);
-    apiPayload.referrer = 'api.performance.durationpercentilechart';
+    let apiPayload = eventView.getEventsAPIPayload(location);
+    apiPayload = {
+      ...apiPayload,
+      ...queryExtras,
+      referrer: 'api.performance.durationpercentilechart',
+    };
     const endpoint = `/organizations/${organization.slug}/events/`;
 
     return [['chartData', endpoint, {query: apiPayload}]];
