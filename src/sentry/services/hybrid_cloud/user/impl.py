@@ -151,53 +151,57 @@ class DatabaseBackedUserService(
         return serializer
 
     def _serialize_rpc(self, user: User) -> APIUser:
-        args = {
-            field.name: getattr(user, field.name)
-            for field in fields(APIUser)
-            if hasattr(user, field.name)
-        }
-        args["pk"] = user.pk
-        args["display_name"] = user.get_display_name()
-        args["label"] = user.get_label()
-        args["is_superuser"] = user.is_superuser
-        args["is_sentry_app"] = user.is_sentry_app
-        args["password_usable"] = user.has_usable_password()
-        args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
+        return serialize_rpc_user(user)
 
-        # And process the _base_user_query special data additions
-        permissions: FrozenSet[str] = frozenset({})
-        if hasattr(user, "permissions") and user.permissions is not None:
-            permissions = frozenset(user.permissions)
-        args["permissions"] = permissions
 
-        roles: FrozenSet[str] = frozenset({})
-        if hasattr(user, "roles") and user.roles is not None:
-            roles = frozenset(flatten(user.roles))
-        args["roles"] = roles
+def serialize_rpc_user(user: User) -> APIUser:
+    args = {
+        field.name: getattr(user, field.name)
+        for field in fields(APIUser)
+        if hasattr(user, field.name)
+    }
+    args["pk"] = user.pk
+    args["display_name"] = user.get_display_name()
+    args["label"] = user.get_label()
+    args["is_superuser"] = user.is_superuser
+    args["is_sentry_app"] = user.is_sentry_app
+    args["password_usable"] = user.has_usable_password()
+    args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
 
-        useremails: FrozenSet[APIUserEmail] = frozenset({})
-        if hasattr(user, "useremails") and user.useremails is not None:
-            useremails = frozenset(
-                {
-                    APIUserEmail(
-                        id=e["id"],
-                        email=e["email"],
-                        is_verified=e["is_verified"],
-                    )
-                    for e in user.useremails
-                }
-            )
-        args["useremails"] = useremails
-        avatar = user.avatar.first()
-        if avatar is not None:
-            avatar = APIAvatar(
-                id=avatar.id,
-                file_id=avatar.file_id,
-                ident=avatar.ident,
-                avatar_type=avatar.avatar_type,
-            )
-        args["avatar"] = avatar
-        return APIUser(**args)
+    # And process the _base_user_query special data additions
+    permissions: FrozenSet[str] = frozenset({})
+    if hasattr(user, "permissions") and user.permissions is not None:
+        permissions = frozenset(user.permissions)
+    args["permissions"] = permissions
+
+    roles: FrozenSet[str] = frozenset({})
+    if hasattr(user, "roles") and user.roles is not None:
+        roles = frozenset(flatten(user.roles))
+    args["roles"] = roles
+
+    useremails: FrozenSet[APIUserEmail] = frozenset({})
+    if hasattr(user, "useremails") and user.useremails is not None:
+        useremails = frozenset(
+            {
+                APIUserEmail(
+                    id=e["id"],
+                    email=e["email"],
+                    is_verified=e["is_verified"],
+                )
+                for e in user.useremails
+            }
+        )
+    args["useremails"] = useremails
+    avatar = user.avatar.first()
+    if avatar is not None:
+        avatar = APIAvatar(
+            id=avatar.id,
+            file_id=avatar.file_id,
+            ident=avatar.ident,
+            avatar_type=avatar.avatar_type,
+        )
+    args["avatar"] = avatar
+    return APIUser(**args)
 
 
 def flatten(iter: Iterable[Any]) -> List[Any]:
