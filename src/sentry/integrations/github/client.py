@@ -181,7 +181,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             trees = self._populate_trees(repositories)
 
             rate_limit = self.get_rate_limit()
-            extra.update({"rate_limit": rate_limit, "repos_num": len(repositories)})
+            extra.update(
+                {"remaining": str(rate_limit.remaining), "repos_num": str(len(repositories))}
+            )
             logger.info("Using cached trees for Github org.", extra=extra)
         except ApiError as error:
             msg = error.text
@@ -244,7 +246,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return trees
 
-    def _populate_tree(self, repo_info: Dict[str, str], only_use_cache: bool, cache_seconds: int):
+    def _populate_tree(
+        self, repo_info: Dict[str, str], only_use_cache: bool, cache_seconds: int
+    ) -> RepoTree:
         full_name = repo_info["full_name"]
         branch = repo_info["default_branch"]
         repo_files = self.get_cached_repo_files(

@@ -611,14 +611,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.get_installation_helper()
         self.set_rate_limit(MINIMUM_REQUESTS + 50)
         expected_trees = {
+            "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
+            "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
+            "Test-Organization/foo": RepoTree(
+                Repo("Test-Organization/foo", "master"),
+                ["src/sentry/api/endpoints/auth_login.py"],
+            ),
             "Test-Organization/xyz": RepoTree(
                 Repo("Test-Organization/xyz", "master"), ["src/foo.py"]
             ),
-            "Test-Organization/foo": RepoTree(
-                Repo("Test-Organization/foo", "master"), ["src/sentry/api/endpoints/auth_login.py"]
-            ),
-            "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
-            "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
         }
 
         repos_key = "githubtrees:repositories:Test-Organization"
