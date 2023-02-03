@@ -1,4 +1,5 @@
-import type {IssueCategory, IssueType, ResolutionStatus} from 'sentry/types';
+import type {ResolutionStatus} from 'sentry/types';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
@@ -6,10 +7,7 @@ type RuleViewed = {
   project_id: string;
 };
 
-type IssueDetailsWithAlert = {
-  group_id: number;
-  issue_category: IssueCategory;
-  issue_type: IssueType;
+interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   project_id: number;
   /** The time that the alert was initially fired. */
   alert_date?: string;
@@ -17,10 +15,11 @@ type IssueDetailsWithAlert = {
   alert_rule_id?: string;
   /**  The type of alert notification - email/slack */
   alert_type?: string;
-};
+}
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
+  group_id: number;
   has_commit: boolean;
   has_release: boolean;
   has_source_maps: boolean;
