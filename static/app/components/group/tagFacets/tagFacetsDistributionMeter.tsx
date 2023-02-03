@@ -233,12 +233,12 @@ function TagFacetsDistributionMeter({
   return (
     <TagSummary>
       <details open={expanded} onClick={e => e.preventDefault()}>
-        <summary>
+        <StyledSummary>
           <TagHeader clickable onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
             {renderSegments()}
           </TagHeader>
-        </summary>
+        </StyledSummary>
         {renderLegend()}
       </details>
     </TagSummary>
@@ -373,4 +373,10 @@ const ExpandToggleButton = styled(Button)`
 
 const NotApplicableLabel = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const StyledSummary = styled('summary')`
+  &::-webkit-details-marker {
+    display: none;
+  }
 `;
