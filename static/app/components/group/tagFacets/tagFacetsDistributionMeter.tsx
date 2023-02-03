@@ -7,6 +7,7 @@ import debounce from 'lodash/debounce';
 import {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -20,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const MAX_SEGMENTS = 4;
+const TOOLTIP_DELAY = 800;
 
 type Props = {
   segments: TagSegment[];
@@ -85,7 +87,11 @@ function TagFacetsDistributionMeter({
     return (
       <Title>
         <TitleType>{title}</TitleType>
-        <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+        <TitleDescription>
+          <StyledTooltip delay={TOOLTIP_DELAY} title={topSegments[0].name || t('n/a')}>
+            {topSegments[0].name || t('n/a')}
+          </StyledTooltip>
+        </TitleDescription>
         <ExpandToggleButton
           borderless
           size="zero"
@@ -195,7 +201,11 @@ function TagFacetsDistributionMeter({
                 >
                   <LegendDot color={colors[index]} focus={focus} />
                   <LegendText unfocus={unfocus}>
-                    {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
+                    {(
+                      <StyledTooltip delay={TOOLTIP_DELAY} title={segment.name}>
+                        {segment.name}
+                      </StyledTooltip>
+                    ) ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
                   </LegendText>
                   {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
                 </LegendRow>
@@ -233,12 +243,12 @@ function TagFacetsDistributionMeter({
   return (
     <TagSummary>
       <details open={expanded} onClick={e => e.preventDefault()}>
-        <summary>
+        <StyledSummary>
           <TagHeader clickable onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
             {renderSegments()}
           </TagHeader>
-        </summary>
+        </StyledSummary>
         {renderLegend()}
       </details>
     </TagSummary>
@@ -373,4 +383,16 @@ const ExpandToggleButton = styled(Button)`
 
 const NotApplicableLabel = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const StyledSummary = styled('summary')`
+  &::-webkit-details-marker {
+    display: none;
+  }
 `;

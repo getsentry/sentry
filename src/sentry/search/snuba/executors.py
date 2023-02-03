@@ -334,6 +334,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if gc != GroupCategory.PROFILE
                 or features.has("organizations:issue-platform", organization)
             }
+
+        if not features.has("organizations:performance-issues-search", organization):
+            group_categories.discard(GroupCategory.PERFORMANCE)
+
         query_params_for_categories = [
             self._prepare_params_for_category(
                 gc,
