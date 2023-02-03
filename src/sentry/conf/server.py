@@ -1190,6 +1190,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
+    # Enable data scrubbing of replay recording payloads in Relay.
+    "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable Session Stats down to a minute resolution
