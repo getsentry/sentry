@@ -56,6 +56,10 @@ export class EventedProfile extends Profile {
 
     const built = profile.build();
 
+    // The way the samples are constructed assumes that the trees are always appended to the
+    // calltree. This is not the case for flamegraphs where nodes are mutated in place.
+    // Because that assumption is invalidated with flamegraphs, we need to filter
+    // out duplicate samples and their weights.
     if (options.type === 'flamegraph') {
       const visited = new Set();
       const samples: CallTreeNode[] = [];

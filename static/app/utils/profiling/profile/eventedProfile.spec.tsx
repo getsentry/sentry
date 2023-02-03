@@ -271,7 +271,7 @@ describe('EventedProfile', () => {
   });
 });
 
-describe.only('EventedProfile - flamegraph', () => {
+describe('EventedProfile - flamegraph', () => {
   it('merges consecutive stacks', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
@@ -299,7 +299,7 @@ describe.only('EventedProfile - flamegraph', () => {
     expect(profile.callTree.totalWeight).toBe(2);
   });
 
-  it.only('creates a graph', () => {
+  it('creates a graph', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
       startValue: 0,
