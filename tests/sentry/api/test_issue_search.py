@@ -280,19 +280,19 @@ class ConvertFirstReleaseValueTest(TestCase):
 @region_silo_test(stable=True)
 class ConvertCategoryValueTest(TestCase):
     def test(self):
-        assert set(convert_category_value(["error"], [self.project], self.user, None)) == {
-            gt.value for gt in get_group_types_by_category(GroupCategory.ERROR)
-        }
-        assert set(convert_category_value(["performance"], [self.project], self.user, None)) == {
-            gt.value for gt in get_group_types_by_category(GroupCategory.PERFORMANCE)
-        }
-        assert set(
+        error_group_types = get_group_types_by_category(GroupCategory.ERROR.value)
+        perf_group_types = get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+        assert (
+            convert_category_value(["error"], [self.project], self.user, None) == error_group_types
+        )
+        assert (
+            convert_category_value(["performance"], [self.project], self.user, None)
+            == perf_group_types
+        )
+        assert (
             convert_category_value(["error", "performance"], [self.project], self.user, None)
-        ) == {
-            gt.value
-            for gt in get_group_types_by_category(GroupCategory.ERROR)
-            + get_group_types_by_category(GroupCategory.PERFORMANCE)
-        }
+            == error_group_types + perf_group_types
+        )
         with pytest.raises(InvalidSearchQuery):
             convert_category_value(["hellboy"], [self.project], self.user, None)
 

@@ -149,7 +149,7 @@ def convert_category_value(
         group_category = getattr(GroupCategory, category.upper(), None)
         if not group_category:
             raise InvalidSearchQuery(f"Invalid category value of '{category}'")
-        results.extend([type.value for type in get_group_types_by_category(group_category)])
+        results.extend(get_group_types_by_category(group_category.value))
     return results
 
 
