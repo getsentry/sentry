@@ -86,7 +86,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         release_version = event.get_tag("sentry:release")
 
-        filename = self._get_filename(event, exception_idx, frame_idx)
+        exception = event.interfaces["exception"].values[int(exception_idx)]
+
+        filename, abs_path = self._get_filename_and_path(exception, frame_idx)
 
         if not release_version:
             return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
@@ -110,7 +112,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if num_artifacts == 0:
             return self._create_response(issue=SourceMapProcessingIssue.MISSING_SOURCEMAPS)
 
-        abs_path = self._get_abs_path(event, exception_idx, frame_idx)
+        raw_stacktrace = exception.raw_stacktrace
+        if raw_stacktrace:
+            # Exception is already source mapped
+            return self._create_response()
+
         urlparts = urlparse(abs_path)
 
         if not (urlparts.scheme and urlparts.path):
@@ -172,19 +178,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             errors_list.append(response)
         return Response({"errors": errors_list})
 
-    def _get_abs_path(self, event, exception_idx, frame_idx):
-        exceptions = event.interfaces["exception"].values
-        frame_list = exceptions[int(exception_idx)].stacktrace.frames
-        frame = frame_list[int(frame_idx)]
-        abs_path = frame.abs_path
-        return abs_path
-
-    def _get_filename(self, event, exception_idx, frame_idx):
-        exceptions = event.interfaces["exception"].values
-        frame_list = exceptions[int(exception_idx)].stacktrace.frames
+    def _get_filename_and_path(self, exception, frame_idx):
+        frame_list = exception.stacktrace.frames
         frame = frame_list[int(frame_idx)]
         filename = frame.filename
-        return filename
+        abs_path = frame.abs_path
+        return filename, abs_path
 
     def _find_matches(self, release_artifacts, unified_path):
         full_matches = [artifact for artifact in release_artifacts if artifact.name == unified_path]
