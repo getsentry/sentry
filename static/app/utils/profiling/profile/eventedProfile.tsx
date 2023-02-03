@@ -6,7 +6,7 @@ import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
 export class EventedProfile extends Profile {
-  appendOrderStack: CallTreeNode[] = [this.callTree];
+  calltree: CallTreeNode[] = [this.callTree];
   stack: Frame[] = [];
 
   lastValue = 0;
@@ -54,7 +54,31 @@ export class EventedProfile extends Profile {
       }
     }
 
-    return profile.build();
+    const built = profile.build();
+
+    if (options.type === 'flamegraph') {
+      const visited = new Set();
+      const samples: CallTreeNode[] = [];
+      const weights: number[] = [];
+
+      for (let i = 0; i < built.samples.length; i++) {
+        const sample = built.samples[i];
+
+        if (visited.has(sample)) {
+          continue;
+        }
+
+        visited.add(sample);
+
+        samples.push(sample);
+        weights.push(sample.totalWeight);
+      }
+
+      built.samples = samples;
+      built.weights = weights;
+    }
+
+    return built;
   }
 
   addWeightToFrames(weight: number): void {
@@ -73,10 +97,10 @@ export class EventedProfile extends Profile {
   addWeightsToNodes(value: number) {
     const delta = value - this.lastValue;
 
-    for (const node of this.appendOrderStack) {
+    for (const node of this.calltree) {
       node.addToTotalWeight(delta);
     }
-    const stackTop = lastOfArray(this.appendOrderStack);
+    const stackTop = lastOfArray(this.calltree);
 
     if (stackTop) {
       stackTop.addToSelfWeight(delta);
@@ -87,7 +111,7 @@ export class EventedProfile extends Profile {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
 
-    const lastTop = lastOfArray(this.appendOrderStack);
+    const lastTop = lastOfArray(this.calltree);
 
     if (lastTop) {
       const sampleDelta = at - this.lastValue;
@@ -105,31 +129,49 @@ export class EventedProfile extends Profile {
         this.weights.push(sampleDelta);
       }
 
-      const last = lastOfArray(lastTop.children);
+      // If we are in flamegraph mode, we will look for any children of the current stack top
+      // that may contain the frame we are entering. If we find one, we will use that as the
+      // new stack top (this essentially makes it a graph). This does not apply flamecharts,
+      // where chronological order matters, in that case we can only look at the last child of the
+      // current stack top and use that as the new stack top if the frames match, else we create a new child
+      const last =
+        this.type === 'flamechart'
+          ? lastOfArray(lastTop.children)
+          : lastTop.children.find(c => c.frame === frame);
+
       let node: CallTreeNode;
 
-      if (last && !last.isLocked() && last.frame === frame) {
-        node = last;
+      if (this.type === 'flamegraph') {
+        if (last) {
+          node = last;
+        } else {
+          node = new CallTreeNode(frame, lastTop);
+          lastTop.children.push(node);
+        }
       } else {
-        node = new CallTreeNode(frame, lastTop);
-        lastTop.children.push(node);
+        if (last && !last.isLocked() && last.frame === frame) {
+          node = last;
+        } else {
+          node = new CallTreeNode(frame, lastTop);
+          lastTop.children.push(node);
+        }
       }
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack with their respective indexes
       // We check the stack in a top-down order to find the first recursive frame.
-      let start = this.appendOrderStack.length - 1;
+      let start = this.calltree.length - 1;
       while (start >= 0) {
-        if (this.appendOrderStack[start].frame === node.frame) {
+        if (this.calltree[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.appendOrderStack[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(this.appendOrderStack[start]);
+          this.calltree[start].setRecursiveThroughNode(node);
+          node.setRecursiveThroughNode(this.calltree[start]);
           break;
         }
         start--;
       }
 
-      this.appendOrderStack.push(node);
+      this.calltree.push(node);
     }
 
     this.stack.push(frame);
@@ -141,7 +183,7 @@ export class EventedProfile extends Profile {
     this.addWeightsToNodes(at);
     this.trackSampleStats(at);
 
-    const leavingStackTop = this.appendOrderStack.pop();
+    const leavingStackTop = this.calltree.pop();
 
     if (leavingStackTop === undefined) {
       throw new Error('Unbalanced stack');
@@ -165,7 +207,7 @@ export class EventedProfile extends Profile {
   }
 
   build(): EventedProfile {
-    if (this.appendOrderStack.length > 1) {
+    if (this.calltree.length > 1) {
       throw new Error('Unbalanced append order stack');
     }
 
