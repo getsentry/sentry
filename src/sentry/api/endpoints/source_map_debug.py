@@ -116,10 +116,14 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 issue=SourceMapProcessingIssue.URL_NOT_VALID, data={"absPath": abs_path}
             )
 
-        release_artifacts = ReleaseFile.objects.filter(release_id=release.id)
-        full_matches, partial_matches = self._find_matches(
-            release_artifacts, self._unify_url(urlparts)
+        release_artifacts = ReleaseFile.objects.filter(release_id=release.id).exclude(
+            artifact_count=0
         )
+
+        artifact_names = [artifact.name for artifact in release_artifacts]
+        unified_url = self._unify_url(urlparts)
+
+        full_matches, partial_matches = self._find_matches(release_artifacts, unified_url)
 
         if len(full_matches) == 0:
             if len(partial_matches) > 0:
@@ -129,11 +133,18 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                         "absPath": abs_path,
                         "partialMatchPath": partial_matches[0].name,
                         "fileName": filename,
+                        "unifiedPath": unified_url,
+                        "artifactNames": artifact_names,
                     },
                 )
             return self._create_response(
                 issue=SourceMapProcessingIssue.NO_URL_MATCH,
-                data={"absPath": abs_path, "fileName": filename},
+                data={
+                    "absPath": abs_path,
+                    "fileName": filename,
+                    "unifiedPath": unified_url,
+                    "artifactNames": artifact_names,
+                },
             )
 
         artifact = full_matches[0]
