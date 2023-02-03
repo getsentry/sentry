@@ -240,7 +240,7 @@ export const DATA_CATEGORY_NAMES = {
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
   [DataCategoryExact.ERROR]: {
-    name: 'error',
+    name: DataCategoryExact.ERROR,
     apiName: 'error',
     plural: 'errors',
     displayName: 'error',
@@ -248,7 +248,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 1,
   },
   [DataCategoryExact.TRANSACTION]: {
-    name: 'transaction',
+    name: DataCategoryExact.TRANSACTION,
     apiName: 'transaction',
     plural: 'transactions',
     displayName: 'transaction',
@@ -256,7 +256,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 2,
   },
   [DataCategoryExact.ATTACHMENT]: {
-    name: 'attachment',
+    name: DataCategoryExact.ATTACHMENT,
     apiName: 'attachment',
     plural: 'attachments',
     displayName: 'attachment',
@@ -264,7 +264,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 4,
   },
   [DataCategoryExact.PROFILE]: {
-    name: 'profile',
+    name: DataCategoryExact.PROFILE,
     apiName: 'profile',
     plural: 'profiles',
     displayName: 'profile',
@@ -272,7 +272,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 6,
   },
   [DataCategoryExact.REPLAY]: {
-    name: 'replay',
+    name: DataCategoryExact.REPLAY,
     apiName: 'replay',
     plural: 'replays',
     displayName: 'replay',
@@ -280,7 +280,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 7,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
-    name: 'transaction_processed',
+    name: DataCategoryExact.TRANSACTION_PROCESSED,
     apiName: 'transactions',
     plural: 'transactions',
     displayName: 'transaction',
@@ -288,7 +288,7 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     uid: 8,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
-    name: 'transaction_indexed',
+    name: DataCategoryExact.TRANSACTION_INDEXED,
     apiName: 'transactionIndexed',
     plural: 'indexed transactions',
     displayName: 'indexed transaction',

@@ -1,5 +1,6 @@
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
-import {DataCategory} from 'sentry/types';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {DataCategoryInfo} from 'sentry/types';
 import {formatBytesBase10} from 'sentry/utils';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
@@ -27,10 +28,10 @@ type FormatOptions = {
  */
 export function formatUsageWithUnits(
   usageQuantity: number = 0,
-  dataCategory: DataCategory,
+  dataCategory: DataCategoryInfo['plural'],
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (dataCategory !== DataCategory.ATTACHMENTS) {
+  if (dataCategory !== DATA_CATEGORY_INFO.attachment.plural) {
     return options.isAbbreviated
       ? abbreviateUsageNumber(usageQuantity)
       : usageQuantity.toLocaleString();
@@ -49,10 +50,12 @@ export function formatUsageWithUnits(
 /**
  * Good default for "formatUsageWithUnits"
  */
-export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions {
+export function getFormatUsageOptions(
+  dataCategory: DataCategoryInfo['plural']
+): FormatOptions {
   return {
-    isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-    useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+    isAbbreviated: dataCategory !== DATA_CATEGORY_INFO.attachment.plural,
+    useUnitScaling: dataCategory === DATA_CATEGORY_INFO.attachment.plural,
   };
 }
 
