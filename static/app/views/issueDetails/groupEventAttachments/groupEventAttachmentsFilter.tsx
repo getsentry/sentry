@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
 const SCREENSHOT_TYPE = 'event.screenshot';
@@ -20,6 +20,7 @@ type Props = {
 const GroupEventAttachmentsFilter = (props: Props) => {
   const {project} = props;
   const {query, pathname} = useLocation();
+  const router = useRouter();
   const {types} = query;
   const allAttachmentsQuery = omit(query, 'types');
   const onlyCrashReportsQuery = {
@@ -32,7 +33,7 @@ const GroupEventAttachmentsFilter = (props: Props) => {
     types: SCREENSHOT_TYPE,
   };
 
-  let activeButton = '';
+  let activeButton: 'all' | 'screenshot' | 'onlyCrash' = 'all';
 
   if (types === undefined) {
     activeButton = 'all';
@@ -44,23 +45,38 @@ const GroupEventAttachmentsFilter = (props: Props) => {
 
   return (
     <FilterWrapper>
-      <ButtonBar merged active={activeButton}>
-        <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
-          {t('All Attachments')}
-        </Button>
-        {isMobilePlatform(project.platform) && (
-          <Button
-            barId="screenshot"
-            size="sm"
-            to={{pathname, query: onlyScreenshotQuery}}
-          >
-            {t('Screenshots')}
-          </Button>
-        )}
-        <Button barId="onlyCrash" size="sm" to={{pathname, query: onlyCrashReportsQuery}}>
-          {t('Only Crash Reports')}
-        </Button>
-      </ButtonBar>
+      <SegmentedControl
+        aria-label={t('Algorithm')}
+        size="sm"
+        value={activeButton}
+        onChange={key => {
+          switch (key) {
+            case 'screenshot':
+              router.replace({pathname, query: onlyScreenshotQuery});
+              break;
+            case 'onlyCrash':
+              router.replace({pathname, query: onlyCrashReportsQuery});
+              break;
+            case 'all':
+            default:
+              router.replace({pathname, query: allAttachmentsQuery});
+          }
+        }}
+      >
+        {[
+          <SegmentedControl.Item key="all">{t('All Attachments')}</SegmentedControl.Item>,
+          ...(isMobilePlatform(project.platform)
+            ? [
+                <SegmentedControl.Item key="screenshot">
+                  {t('Screenshots')}
+                </SegmentedControl.Item>,
+              ]
+            : []),
+          <SegmentedControl.Item key="onlyCrash">
+            {t('Only Crash Reports')}
+          </SegmentedControl.Item>,
+        ]}
+      </SegmentedControl>
     </FilterWrapper>
   );
 };
