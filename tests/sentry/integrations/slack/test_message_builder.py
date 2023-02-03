@@ -173,7 +173,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         occurrence.save(project_id=self.project.id)
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType
+        event.group.type = ProfileBlockedThreadGroupType.type_id
 
         attachments = SlackIssuesMessageBuilder(group=event.group, event=event).build()
 

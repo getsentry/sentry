@@ -785,7 +785,7 @@ class EventSubjectTemplateData:
                 else self.event.title
             )
         elif name == "issueType":
-            return cast(str, self.event.group.issue_type.description, "Issue")
+            return cast(str, self.event.group.issue_type.description)
         raise KeyError
 
 

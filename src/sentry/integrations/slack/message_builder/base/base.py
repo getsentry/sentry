@@ -40,7 +40,6 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         """Fallback text is used in the message preview popup."""
         title = obj.title
         group = getattr(obj, "group", obj)
-
         if group.issue_category == GroupCategory.PERFORMANCE:
             title = group.issue_type.description
 

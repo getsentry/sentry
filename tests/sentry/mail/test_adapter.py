@@ -208,7 +208,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save(self.project.id)
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType
+        event.group.type = ProfileBlockedThreadGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -255,7 +255,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save(self.project.id)
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType
+        event.group.type = ProfileBlockedThreadGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)

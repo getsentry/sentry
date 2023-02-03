@@ -80,7 +80,6 @@ def serialize(
                 user=user,
                 **kwargs,
             )
-
         with sentry_sdk.start_span(op="serialize.iterate", description=type(serializer).__name__):
             return [serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs) for o in objects]
 

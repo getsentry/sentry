@@ -281,7 +281,6 @@ def test_userreport(django_cache, default_project, monkeypatch):
     start_time = time.time() - 3600
 
     mgr = EventManager(data={"event_id": event_id, "user": {"email": "markus+dontatme@sentry.io"}})
-
     mgr.normalize()
     mgr.save(default_project.id)
 
