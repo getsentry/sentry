@@ -52,7 +52,6 @@ function FlamegraphViewSelectMenu({
         value={sorting}
         priority="primary"
         onChange={onSortingChange}
-        priority="primary"
       >
         <SegmentedControl.Item key="call order">{t('Call Order')}</SegmentedControl.Item>
         <SegmentedControl.Item key="left heavy">{t('Left Heavy')}</SegmentedControl.Item>
