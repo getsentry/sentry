@@ -1,3 +1,14 @@
+"""
+Executes the eventually consistent cascades dictated by HybridCloudForeignKey fields on application models.
+
+One job schedules on a regular interval the execute of smaller, per HCFK column jobs that each do a small chunk of work,
+and then possibly reschedule to keep processing as necessary to stay caught up.
+
+Notably, this job is only responsible for cascading to models that are related to deletions that have occurred in the
+opposing silo and are stored in Tombstone rows.  Deletions that are not successfully synchronized via Outbox to a
+Tombstone row will not, therefore, cascade to any related cross silo rows.
+"""
+
 from hashlib import sha1
 from typing import Any, List, Tuple, Type
 from uuid import uuid4

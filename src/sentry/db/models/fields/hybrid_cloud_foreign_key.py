@@ -2,12 +2,19 @@
 A 'foreign key' which is not enforced in the local database, but triggers eventually consistent delete work in the
 presence of RegionTombstone ControlTombstone model objects through the tasks/deletion/hybrid_cloud.py logic.
 
-Functionally, this field is just a dumb BigIntegerField.  It does nothing, at the database level, that a foreign key
-normally does.  It does not provide cascade behavior or any constraints.
+It's main purpose to support columns in, say, region silos that refer to User or Integration objects (conversely
+also columns in the control silo that point to, say, organization) that do not actually exist in the local database,
+or even the local network.
 
-It's only functional purpose is to power the tasks/deletion/hybrid_cloud.py logic.  Before you use one of these fields,
-you should become familiar with the hybrid cloud eventual consistent cascade process, which is entirely application
-level.
+Functionally, this field is just a dumb BigIntegerField.  It does nothing, at the database level, that a foreign key
+normally does.  It does not provide any constraints: this means, for instance, you should absolutely expect identifiers
+in this column that do not necessarily exist.  Eventually, if the related object is deleted and processed correctly,
+this column may be set null or cleaned up, but at any given time an integer in this column makes no guarantees about
+the existence of a related object.
+
+Cascade behavior is provided to this application via tasks/deletion/hybrid_cloud.py jobs.  Again, to emphasize, this
+process is eventually consistent, and the timing of the completion of those process is a black box of systems
+behavior, networking, and tuning.
 
 To add this field to a model, you need to do a few preparatory steps:
 1.  Ensure that the 'model' pointed to by this field is in an opposing silo mode.  Tests *should* fail for any usage
