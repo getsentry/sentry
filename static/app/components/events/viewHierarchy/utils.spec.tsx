@@ -2,7 +2,7 @@ import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
   getHierarchyDimensions,
-} from 'sentry/components/events/viewHierarchy/wireframe';
+} from 'sentry/components/events/viewHierarchy/utils';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 
 const LEAF_NODE = {

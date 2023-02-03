@@ -1,119 +1,37 @@
-import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
-import {defined} from 'sentry/utils';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
-
-function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]): Rect {
-  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-
-  useLayoutEffect(() => {
-    if (!canvases.length) {
-      return undefined;
-    }
-
-    if (canvases.some(c => c === null)) {
-      return undefined;
-    }
-
-    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
-      const contentRect =
-        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
-
-      setCanvasBounds(
-        new Rect(
-          contentRect.x,
-          contentRect.y,
-          contentRect.width * window.devicePixelRatio,
-          contentRect.height * window.devicePixelRatio
-        )
-      );
-    });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [canvases]);
-
-  return bounds;
-}
+import {
+  calculateScale,
+  getDeepestNodeAtPoint,
+  getHierarchyDimensions,
+  useResizeCanvasObserver,
+} from 'sentry/components/events/viewHierarchy/utils';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 
 const MIN_BORDER_SIZE = 20;
 
-interface ViewNode {
+export interface ViewNode {
   node: ViewHierarchyWindow;
   rect: Rect;
 }
 
-export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
-  maxHeight: number;
-  maxWidth: number;
-  nodes: ViewNode[];
-} {
-  const nodes: ViewNode[] = [];
-  const queue: [Rect | null, ViewHierarchyWindow][] = [];
-  for (let i = hierarchies.length - 1; i >= 0; i--) {
-    queue.push([null, hierarchies[i]]);
-  }
-
-  let maxWidth = Number.MIN_SAFE_INTEGER;
-  let maxHeight = Number.MIN_SAFE_INTEGER;
-
-  while (queue.length) {
-    const [parent, child] = queue.pop()!;
-
-    const node = {
-      node: child,
-      rect: new Rect(
-        (parent?.x ?? 0) + (child.x ?? 0),
-        (parent?.y ?? 0) + (child.y ?? 0),
-        child.width ?? 0,
-        child.height ?? 0
-      ),
-    };
-    nodes.push(node);
-
-    if (defined(child.children) && child.children.length) {
-      // Push the children into the queue in reverse order because the
-      // output nodes should have early children before later children
-      // i.e. we need to pop() off early children before ones that come after
-      for (let i = child.children.length - 1; i >= 0; i--) {
-        queue.push([node.rect, child.children[i]]);
-      }
-    }
-
-    maxWidth = Math.max(maxWidth, node.rect.x + (node.rect.width ?? 0));
-    maxHeight = Math.max(maxHeight, node.rect.y + (node.rect.height ?? 0));
-  }
-
-  return {nodes, maxWidth, maxHeight};
-}
-
-export function calculateScale(
-  bounds: {height: number; width: number},
-  maxCoordinateDimensions: {height: number; width: number},
-  border: {x: number; y: number}
-) {
-  return Math.min(
-    (bounds.width - border.x) / maxCoordinateDimensions.width,
-    (bounds.height - border.y) / maxCoordinateDimensions.height
-  );
-}
-
 type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
+  onNodeSelect: (node: ViewHierarchyWindow) => void;
 };
 
-function Wireframe({hierarchy}: WireframeProps) {
+function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
+  const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
 
   const canvases = useMemo(() => {
-    return canvasRef ? [canvasRef] : [];
-  }, [canvasRef]);
+    return canvasRef && overlayRef ? [canvasRef, overlayRef] : [];
+  }, [canvasRef, overlayRef]);
 
   const canvasSize = useResizeCanvasObserver(canvases);
 
@@ -154,7 +72,39 @@ function Wireframe({hierarchy}: WireframeProps) {
   ]);
 
   const draw = useCallback(
-    (modelToView: mat3) => {
+    (modelToView: mat3, node?: any, hoverNode?: any) => {
+      const overlay = overlayRef?.getContext('2d');
+      if (!overlay) {
+        return;
+      }
+      overlay.resetTransform();
+      overlay.clearRect(0, 0, canvasSize.width, canvasSize.height);
+
+      overlay.setTransform(
+        modelToView[0],
+        modelToView[3],
+        modelToView[1],
+        modelToView[4],
+        modelToView[6],
+        modelToView[7]
+      );
+
+      overlay.fillStyle = theme.pink200;
+
+      if (node) {
+        overlay.fillRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
+      }
+
+      if (hoverNode) {
+        overlay.fillStyle = theme.pink100;
+        overlay.fillRect(
+          hoverNode.rect.x,
+          hoverNode.rect.y,
+          hoverNode.rect.width,
+          hoverNode.rect.height
+        );
+      }
+      // /// /////
       const context = canvasRef?.getContext('2d');
       if (!context) {
         return;
@@ -193,30 +143,38 @@ function Wireframe({hierarchy}: WireframeProps) {
       }
     },
     [
-      canvasRef,
+      overlayRef,
       canvasSize.width,
       canvasSize.height,
+      theme.pink200,
       theme.gray100,
       theme.gray300,
+      theme.pink100,
+      canvasRef,
       hierarchyData.nodes,
     ]
   );
 
   useEffect(() => {
-    if (!canvasRef) {
+    if (!canvasRef || !overlayRef) {
       return undefined;
     }
 
     let start: vec2 | null;
-    const currTransformationMatrix = mat3.create();
+    let isDragging = false;
+    let selectedNode: ViewNode | null = null;
+    let hoveredNode: ViewNode | null = null;
+    const currTransformationMatrix = mat3.clone(transformationMatrix);
 
     const handleMouseDown = (e: MouseEvent) => {
       start = vec2.fromValues(e.offsetX, e.offsetY);
-      canvasRef.style.cursor = 'grabbing';
+      overlayRef.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (start) {
+        isDragging = true;
+        hoveredNode = null;
         const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
 
         // Delta needs to be scaled by the devicePixelRatio and how
@@ -226,40 +184,101 @@ function Wireframe({hierarchy}: WireframeProps) {
 
         // Translate from the original matrix as a starting point
         mat3.translate(currTransformationMatrix, transformationMatrix, delta);
-        draw(currTransformationMatrix);
+        draw(currTransformationMatrix, selectedNode);
+      } else {
+        hoveredNode = getDeepestNodeAtPoint(
+          hierarchyData.nodes,
+          vec2.fromValues(e.offsetX, e.offsetY),
+          currTransformationMatrix,
+          window.devicePixelRatio
+        );
+        draw(transformationMatrix, selectedNode, hoveredNode);
       }
     };
 
     const handleMouseUp = () => {
-      // The panning has ended, store its transformations into the original matrix
+      if (isDragging) {
+        // The panning has ended, store its transformations into the original matrix
+        mat3.copy(transformationMatrix, currTransformationMatrix);
+      }
       start = null;
-      mat3.copy(transformationMatrix, currTransformationMatrix);
-      canvasRef.style.cursor = 'grab';
+      overlayRef.style.cursor = 'grab';
+    };
+
+    const handleMouseClick = (e: MouseEvent) => {
+      if (!isDragging) {
+        selectedNode = getDeepestNodeAtPoint(
+          hierarchyData.nodes,
+          vec2.fromValues(e.offsetX, e.offsetY),
+          transformationMatrix,
+          window.devicePixelRatio
+        );
+        draw(transformationMatrix, selectedNode);
+
+        if (!selectedNode) {
+          return;
+        }
+        onNodeSelect(selectedNode.node);
+      }
+      isDragging = false;
     };
 
     const options: AddEventListenerOptions & EventListenerOptions = {passive: true};
 
-    canvasRef.addEventListener('mousedown', handleMouseDown, options);
-    canvasRef.addEventListener('mousemove', handleMouseMove, options);
-    canvasRef.addEventListener('mouseup', handleMouseUp, options);
+    overlayRef.addEventListener('mousedown', handleMouseDown, options);
+    overlayRef.addEventListener('mousemove', handleMouseMove, options);
+    overlayRef.addEventListener('mouseup', handleMouseUp, options);
+    overlayRef.addEventListener('click', handleMouseClick, options);
 
     draw(transformationMatrix);
 
     return () => {
-      canvasRef.removeEventListener('mousedown', handleMouseDown, options);
-      canvasRef.removeEventListener('mousemove', handleMouseMove, options);
-      canvasRef.removeEventListener('mouseup', handleMouseUp, options);
+      overlayRef.removeEventListener('mousedown', handleMouseDown, options);
+      overlayRef.removeEventListener('mousemove', handleMouseMove, options);
+      overlayRef.removeEventListener('mouseup', handleMouseUp, options);
+      overlayRef.removeEventListener('click', handleMouseClick, options);
     };
-  }, [transformationMatrix, canvasRef, draw, scale]);
+  }, [
+    transformationMatrix,
+    canvasRef,
+    draw,
+    scale,
+    overlayRef,
+    hierarchyData.nodes,
+    onNodeSelect,
+  ]);
 
   return (
-    <StyledCanvas data-test-id="view-hierarchy-wireframe" ref={r => setCanvasRef(r)} />
+    <Stack>
+      <InteractionOverlayCanvas
+        data-test-id="view-hierarchy-wireframe-overlay"
+        ref={r => setOverlayRef(r)}
+      />
+      <WireframeCanvas
+        data-test-id="view-hierarchy-wireframe"
+        ref={r => setCanvasRef(r)}
+      />
+    </Stack>
   );
 }
 
 export {Wireframe};
 
-const StyledCanvas = styled('canvas')`
+const Stack = styled('div')`
+  position: relative;
+  height: 100%;
+  width: 100%;
+`;
+
+const InteractionOverlayCanvas = styled('canvas')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+`;
+
+const WireframeCanvas = styled('canvas')`
   background-color: ${p => p.theme.surface100};
   cursor: grab;
   width: 100%;
