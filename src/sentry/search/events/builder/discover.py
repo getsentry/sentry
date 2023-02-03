@@ -1439,6 +1439,14 @@ class QueryBuilder(BaseQueryBuilder):
             flags=Flags(turbo=self.turbo),
         )
 
+    @classmethod
+    def handle_invalid_float(cls, value: float) -> float:
+        if math.isnan(value):
+            return 0
+        elif math.isinf(value):
+            return None
+        return value
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
@@ -1488,6 +1496,11 @@ class QueryBuilder(BaseQueryBuilder):
                             value = 0
                         elif math.isinf(value):
                             value = None
+                        value = self.handle_invalid_float(value)
+                    if isinstance(value, list):
+                        for index, item in enumerate(value):
+                            if isinstance(item, float):
+                                value[index] = self.handle_invalid_float(item)
                     if key in self.value_resolver_map:
                         new_value = self.value_resolver_map[key](value)
                     else:
