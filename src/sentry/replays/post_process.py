@@ -35,24 +35,17 @@ def generate_normalized_output(
                 item.pop("tv", None) or [],
             )
         )
-
-        if user_ip := item.pop("user_ip", []):
-            user_ip = user_ip[0]
-        else:
-            user_ip = None
-
         item["user"] = {
             "id": item.pop("user_id", None),
             "name": item.pop("user_name", None),
             "email": item.pop("user_email", None),
-            "ip": user_ip,
+            "ip": item.pop("user_ip", None),
         }
         item["user"]["display_name"] = (
             item["user"]["name"]
             or item["user"]["email"]
             or item["user"]["ip"]
             or item["user"]["id"]
-            or "Scrubbed User ({})".format(item["id"].replace("-", ""))
         )
         item["sdk"] = {
             "name": item.pop("sdk_name", None),
