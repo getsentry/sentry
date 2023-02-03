@@ -247,7 +247,7 @@ function buildRoutes() {
           <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
-            component={make(() => import('sentry/views/onboarding/onboarding'))}
+            component={make(() => import('sentry/views/onboarding'))}
           />
         </Route>
       ) : null}
@@ -257,10 +257,7 @@ function buildRoutes() {
         key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
-        <Route
-          path=":step/"
-          component={make(() => import('sentry/views/onboarding/onboarding'))}
-        />
+        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
     </Fragment>
   );
@@ -2235,7 +2232,7 @@ function buildRoutes() {
   return appRoutes;
 }
 
-// We load routes both when initlaizing the SDK (for routing integrations) and
+// We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
 

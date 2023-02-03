@@ -685,4 +685,29 @@ export const icons: IconData[] = [
     groups: ['product', 'action'],
     keywords: ['cron', 'monitors', 'clock', 'cycle'],
   },
+  {
+    id: 'frozen',
+    groups: ['status'],
+    keywords: ['frame', 'mobile'],
+  },
+  {
+    id: 'slow',
+    groups: ['status'],
+    keywords: ['frame', 'mobile'],
+  },
+  {
+    id: 'repeat',
+    groups: ['status', 'action'],
+    keywords: ['frame', 'mobile', 'cycle'],
+  },
+  {
+    id: 'teamwork',
+    groups: ['logo'],
+    keywords: [],
+  },
+  {
+    id: 'fileBroken',
+    groups: ['device'],
+    keywords: ['file', 'missing', 'error'],
+  },
 ];

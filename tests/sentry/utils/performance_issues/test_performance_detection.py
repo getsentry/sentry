@@ -10,9 +10,8 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
-from sentry.utils.performance_issues.base import DetectorType
+from sentry.utils.performance_issues.base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType
 from sentry.utils.performance_issues.performance_detection import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
     EventPerformanceProblem,
     NPlusOneDBSpanDetector,
     PerformanceProblem,

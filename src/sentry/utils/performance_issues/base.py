@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 import random
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from sentry import options
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project
+from sentry.types.issues import GroupType
 
 from .types import PerformanceProblemsMap, Span
 
@@ -23,6 +25,19 @@ class DetectorType(Enum):
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
+
+
+DETECTOR_TYPE_TO_GROUP_TYPE = {
+    DetectorType.SLOW_DB_QUERY: GroupType.PERFORMANCE_SLOW_DB_QUERY,
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+    DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+    DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+    DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.UNCOMPRESSED_ASSETS: GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
+}
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -121,3 +136,44 @@ def get_span_duration(span: Span) -> timedelta:
     return timedelta(seconds=span.get("timestamp", 0)) - timedelta(
         seconds=span.get("start_timestamp", 0)
     )
+
+
+def get_url_from_span(span: Span) -> str:
+    data = span.get("data") or {}
+    url = data.get("url") or ""
+    if not url:
+        # If data is missing, fall back to description
+        description = span.get("description") or ""
+        parts = description.split(" ", 1)
+        if len(parts) == 2:
+            url = parts[1]
+
+    if type(url) is dict:
+        url = url.get("pathname") or ""
+
+    return url
+
+
+def fingerprint_spans(spans: List[Span]):
+    span_hashes = []
+    for span in spans:
+        hash = span.get("hash", "") or ""
+        span_hashes.append(str(hash))
+    joined_hashes = "-".join(span_hashes)
+    return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
+
+
+# Creates a stable fingerprint given the same span details using sha1.
+def fingerprint_span(span: Span):
+    op = span.get("op", None)
+    description = span.get("description", None)
+    if not description or not op:
+        return None
+
+    signature = (str(op) + str(description)).encode("utf-8")
+    full_fingerprint = hashlib.sha1(signature).hexdigest()
+    fingerprint = full_fingerprint[
+        :20
+    ]  # 80 bits. Not a cryptographic usage, we don't need all of the sha1 for collision detection
+
+    return fingerprint

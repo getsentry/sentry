@@ -34,7 +34,6 @@ import space from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
-  IssueType,
   Organization,
   Project,
   ResolutionStatus,
@@ -46,9 +45,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import ShareIssue from 'sentry/views/issueDetails/actions/shareIssue';
 import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
@@ -112,15 +113,13 @@ class Actions extends Component<Props> {
     trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
-      group_id: parseInt(group.id, 10),
-      issue_category: group.issueCategory,
-      issue_type: group.issueType ?? IssueType.ERROR,
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      ...getAnalyticsDataForGroup(group),
     });
   }
 
@@ -140,7 +139,12 @@ class Actions extends Component<Props> {
         complete: () => {
           clearIndicators();
 
-          browserHistory.push(`/${organization.slug}/${project.slug}/`);
+          browserHistory.push(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {project: project.id},
+            })
+          );
         },
       }
     );
@@ -217,7 +221,12 @@ class Actions extends Component<Props> {
       data: {discard: true},
       success: response => {
         GroupStore.onDiscardSuccess(id, group.id, response);
-        browserHistory.push(`/${organization.slug}/${project.slug}/`);
+        browserHistory.push(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: project.id},
+          })
+        );
       },
       error: error => {
         GroupStore.onDiscardError(id, group.id, error);

@@ -15,8 +15,11 @@ import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
 import {TrendColumnField, TrendFunctionField} from '../../trends/types';
@@ -31,15 +34,6 @@ import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
 import UserMiseryChart from './userMiseryChart';
 import VitalsChart from './vitalsChart';
-
-export enum DisplayModes {
-  DURATION_PERCENTILE = 'durationpercentile',
-  DURATION = 'duration',
-  LATENCY = 'latency',
-  TREND = 'trend',
-  VITALS = 'vitals',
-  USER_MISERY = 'usermisery',
-}
 
 function generateDisplayOptions(
   currentFilter: SpanOperationBreakdownFilter
@@ -161,6 +155,13 @@ function TransactionSummaryCharts({
         : undefined,
   };
 
+  const mepSetting = useMEPSettingContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location
+  );
+
   return (
     <Panel>
       <ChartContainer data-test-id="transaction-summary-charts">
@@ -175,6 +176,7 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
+            queryExtras={queryExtras}
           />
         )}
         {display === DisplayModes.DURATION && (
@@ -189,6 +191,7 @@ function TransactionSummaryCharts({
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
             withoutZerofill={withoutZerofill}
+            queryExtras={queryExtras}
           />
         )}
         {display === DisplayModes.DURATION_PERCENTILE && (
@@ -202,6 +205,7 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
+            queryExtras={queryExtras}
           />
         )}
         {display === DisplayModes.TREND && (
@@ -230,6 +234,7 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             withoutZerofill={withoutZerofill}
+            queryExtras={queryExtras}
           />
         )}
         {display === DisplayModes.USER_MISERY && (

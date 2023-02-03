@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import copy from 'copy-text-to-clipboard';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -86,7 +87,7 @@ function ShareIssueModal({
   }, []);
 
   function getShareUrl() {
-    const path = `/organizations/${organization.slug}/share/issue/${group!.shareId}/`;
+    const path = `/share/issue/${group!.shareId}/`;
     const {host, protocol} = window.location;
     return `${protocol}//${host}${path}`;
   }
@@ -130,7 +131,7 @@ function ShareIssueModal({
                 borderless
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(shareUrl);
+                  copy(shareUrl);
                   urlRef.current?.selectText();
                 }}
                 icon={<IconCopy />}
@@ -154,7 +155,7 @@ function ShareIssueModal({
           <Button
             priority="primary"
             onClick={() => {
-              navigator.clipboard.writeText(shareUrl);
+              copy(shareUrl);
               closeModal();
             }}
           >

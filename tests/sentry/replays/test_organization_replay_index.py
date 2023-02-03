@@ -779,3 +779,37 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
+
+    def test_archived_records_not_returned_with_environment_filtered(self):
+        self.create_environment(name="prod", project=self.project)
+
+        replay1_id = uuid.uuid4().hex
+        timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=30)
+        timestamp2 = datetime.datetime.now() - datetime.timedelta(seconds=20)
+
+        self.store_replays(mock_replay(timestamp1, self.project.id, replay1_id, environment="prod"))
+        self.store_replays(mock_replay(timestamp2, self.project.id, replay1_id, is_archived=True))
+
+        with self.feature(REPLAYS_FEATURES):
+            # We can't manipulate environment to hide the archival state.
+            response = self.client.get(self.url + "?field=id&environment=prod")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0
+
+    def test_archived_records_not_returned_with_selective_date_range(self):
+        """If the archive entry falls outside the date range ensure it can still be returned."""
+        replay1_id = uuid.uuid4().hex
+        timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=30)
+        timestamp2 = datetime.datetime.now() - datetime.timedelta(seconds=20)
+        timestamp3 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+
+        self.store_replays(mock_replay(timestamp1, self.project.id, replay1_id))
+        self.store_replays(mock_replay(timestamp3, self.project.id, replay1_id, is_archived=True))
+
+        with self.feature(REPLAYS_FEATURES):
+            # We can't manipulate dates to hide the archival state.
+            response = self.client.get(
+                self.url + f"?start={timestamp1.isoformat()}&end={timestamp2.isoformat()}"
+            )
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0

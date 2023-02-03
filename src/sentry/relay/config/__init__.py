@@ -47,6 +47,7 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:session-replay-recording-scrubbing",
 ]
 
 EXTRACT_METRICS_VERSION = 1

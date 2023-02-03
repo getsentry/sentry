@@ -19,6 +19,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -42,6 +43,7 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
@@ -201,14 +203,6 @@ function TableView(props: TableViewProps) {
         </StyledLink>
       );
 
-      if (!organization.features.includes('discover-quick-context')) {
-        return [
-          <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-            {eventIdLink}
-          </Tooltip>,
-        ];
-      }
-
       return [
         <QuickContextHoverWrapper
           key={`quickContextEventHover${rowIndex}`}
@@ -316,7 +310,7 @@ function TableView(props: TableViewProps) {
         </StyledLink>
       );
 
-      cell = organization.features.includes('discover-quick-context') ? (
+      cell = (
         <QuickContextHoverWrapper
           organization={organization}
           dataRow={dataRow}
@@ -326,8 +320,6 @@ function TableView(props: TableViewProps) {
         >
           {idLink}
         </QuickContextHoverWrapper>
-      ) : (
-        <StyledTooltip title={t('View Event')}>{idLink}</StyledTooltip>
       );
     } else if (columnKey === 'trace') {
       const dateSelection = eventView.normalizeDateSelection(location);
@@ -354,6 +346,34 @@ function TableView(props: TableViewProps) {
           <ViewReplayLink replayId={dataRow.replayId} to={target}>
             {cell}
           </ViewReplayLink>
+        );
+      }
+    } else if (columnKey === 'profile.id') {
+      const projectSlug = dataRow.project || dataRow['project.name'];
+      const profileId = dataRow['profile.id'];
+
+      if (projectSlug && profileId) {
+        const target = generateProfileFlamechartRoute({
+          orgSlug: organization.slug,
+          projectSlug: String(projectSlug),
+          profileId: String(profileId),
+        });
+
+        cell = (
+          <StyledTooltip title={t('View Profile')}>
+            <StyledLink
+              data-test-id="view-profile"
+              to={target}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                  organization,
+                  source: 'discover.table',
+                })
+              }
+            >
+              {cell}
+            </StyledLink>
+          </StyledTooltip>
         );
       }
     }
