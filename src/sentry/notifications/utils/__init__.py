@@ -568,10 +568,13 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
         return [self._find_span_desc_by_id(id) for id in offender_span_ids]
 
-    def _find_span_desc_by_id(self, id) -> str:
+    def _find_span_desc_by_id(self, id: str) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
 
-    def _find_span_by_id(self, id) -> Dict[str, Any] | None:
+    def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
+        if not self.spans:
+            return None
+
         for span in self.spans:
             span_id = span.get("span_id", "") or ""
             if span_id == id:
