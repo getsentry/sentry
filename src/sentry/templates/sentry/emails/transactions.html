@@ -50,7 +50,7 @@
         {% for item in span_evidence_key_value %}
             {% if item.is_multi_value %}
             <tr>
-                <th>{% item.key %}</th>
+                <th>{{ item.key }}</th>
                 <td>
                     <code>{{ item.value.0|truncatechars:100 }}</code>
                 </td>
@@ -66,7 +66,7 @@
 
             {% else %}
             <tr>
-                <th>{% item.key %}</th>
+                <th>{{ item.key }}</th>
                 <td>
                     <code>{{ item.value|truncatechars:100 }}</code>
                 </td>
