@@ -11,6 +11,7 @@ import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -62,6 +63,11 @@ function FunctionsTable(props: FunctionsTableProps) {
           const profileId = example.replaceAll('-', '');
           return {
             value: getShortEventId(profileId),
+            onClick: () =>
+              trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                organization,
+                source: 'profiling_transaction.suspect_functions_table',
+              }),
             target: generateProfileFlamechartRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: props.project.slug,
@@ -77,7 +83,7 @@ function FunctionsTable(props: FunctionsTableProps) {
         }),
       };
     });
-  }, [organization.slug, props.project.slug, props.functions]);
+  }, [organization, props.project.slug, props.functions]);
 
   const generateSortLink = useCallback(
     (column: TableColumnKey) => {
