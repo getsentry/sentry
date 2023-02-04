@@ -25,13 +25,13 @@ import {
   CurrentRelease,
   Environment,
   Group,
-  IssueType,
   Organization,
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
@@ -75,14 +75,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
-      group_id: parseInt(group.id, 10),
-      issue_category: group.issueCategory,
-      issue_type: group.issueType ?? IssueType.ERROR,
       action_type: 'assign',
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      ...getAnalyticsDataForGroup(group),
     });
   };
 
