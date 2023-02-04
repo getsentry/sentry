@@ -37,8 +37,8 @@ def get_option_from_list(
 
 class UserOptionFilterArgs(TypedDict, total=False):
     user_ids: Iterable[int]
-    keys: List[str] | None
-    key: str | None
+    keys: List[str]
+    key: str
     project_id: Optional[int]
     organization_id: Optional[int]
 

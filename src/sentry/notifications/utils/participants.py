@@ -35,7 +35,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.user import APIUser, user_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -70,9 +70,13 @@ def get_providers_from_which_to_remove_user(
     }
 
     if (
-        user_option_service.get_many(
-            filter={"user_ids": [user.id], "keys": ["self_notifications"]}
-        ).get_one(key="self_notifications", default="0")
+        get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [user.id], "keys": ["self_notifications"]}
+            ),
+            key="self_notifications",
+            default="0",
+        )
         == "0"
     ):
         return providers

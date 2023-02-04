@@ -39,7 +39,7 @@ class DatabaseBackedUserOptionService(
         )
 
     def _base_query(self) -> QuerySet:
-        return UserOption.objects
+        return UserOption.objects  # type: ignore
 
     def _filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
         return self._filter_has_any_key_validator("user_ids")
@@ -65,9 +65,9 @@ class DatabaseBackedUserOptionService(
 
         if "keys" in filters or "key" in filters:
             keys: List[str] = []
-            if filters.get("keys", None):
+            if "keys" in filters:
                 keys = filters["keys"]
-            if filters.get("key", None):
+            if "key" in filters:
                 keys.append(filters["key"])
             query = query.filter(
                 key__in=keys,
