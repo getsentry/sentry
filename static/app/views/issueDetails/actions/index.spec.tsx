@@ -230,7 +230,7 @@ describe('GroupActions', function () {
     );
 
     userEvent.click(screen.getByLabelText('More Actions'));
-    userEvent.click(await screen.findByTestId('delete-issue'));
+    userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
     const modal = screen.getByRole('dialog');
     expect(
@@ -279,9 +279,7 @@ describe('GroupActions', function () {
       />
     );
 
-    const resolvedButton = screen.getByRole('button', {name: 'Resolved'});
-    expect(resolvedButton).toBeInTheDocument();
-    userEvent.click(resolvedButton);
+    userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
