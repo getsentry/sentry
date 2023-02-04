@@ -51,10 +51,28 @@ marked.setOptions({
   renderer: new SafeRenderer(),
   sanitize: true,
 
-  highlight: (code, lang) => {
-    if (Prism.languages[lang]) {
+  highlight: (code, lang, callback) => {
+    if (!lang) {
+      return code;
+    }
+
+    if (lang in Prism.languages) {
       return Prism.highlight(code, Prism.languages[lang], lang);
     }
+
+    import(`prismjs/components/prism-${lang}.min`)
+      .then(() => {
+        callback?.(null, Prism.highlight(code, Prism.languages[lang], lang));
+      })
+      .catch(error => {
+        callback?.(error, code);
+        // eslint-disable-next-line no-console
+        console.warn(
+          'Prism language not found. Error encountered while trying to highlight markdown code block with marked.',
+          error.message
+        );
+      });
+
     return code;
   },
 
