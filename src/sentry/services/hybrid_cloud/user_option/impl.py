@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from django.db.models import QuerySet
 
@@ -9,7 +9,6 @@ from sentry.models.options.user_option import UserOption
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.user_option import (
     ApiUserOption,
-    ApiUserOptionSet,
     UserOptionFilterArgs,
     UserOptionService,
 )
@@ -43,9 +42,6 @@ class DatabaseBackedUserOptionService(
         return UserOption.objects
 
     def _filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
-        # A validation function for filter arguments. Often just:
-        #
-        # return self._filter_has_any_key_validator( ... )
         return self._filter_has_any_key_validator("user_ids")
 
     def _serialize_api(self, serializer: Optional[None]) -> Serializer:
@@ -53,7 +49,7 @@ class DatabaseBackedUserOptionService(
         raise NotImplementedError
 
     def _apply_filters(self, query: QuerySet, filters: UserOptionFilterArgs) -> QuerySet:
-        # To maintain expected behaviors, we default this to None and always query for them
+        # To maintain expected behaviors, we default these to None and always query for them
         project_id = None
         if "project_id" in filters:
             project_id = filters["project_id"]
@@ -68,7 +64,7 @@ class DatabaseBackedUserOptionService(
         )
 
         if "keys" in filters or "key" in filters:
-            keys = []
+            keys: List[str] = []
             if filters.get("keys", None):
                 keys = filters["keys"]
             if filters.get("key", None):
@@ -87,30 +83,6 @@ class DatabaseBackedUserOptionService(
             project_id=op.project_id,
             organization_id=op.organization_id,
         )
-
-    def query_options(
-        self,
-        *,
-        user_ids: Iterable[int],
-        keys: List[str] | None = None,
-        key: str | None = None,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-    ) -> ApiUserOptionSet:
-        queryset = UserOption.objects.filter(  # type: ignore
-            user_id__in=user_ids,
-            project_id=project_id,
-            organization_id=organization_id,
-        )
-        if keys is not None or key is not None:
-            if keys is None:
-                keys = []
-            if key is not None:
-                keys = [*keys, key]
-            queryset = queryset.filter(
-                key__in=keys,
-            )
-        return ApiUserOptionSet([self._serialize_rpc(op) for op in queryset])
 
     def close(self) -> None:
         pass
