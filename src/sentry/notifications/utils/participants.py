@@ -70,9 +70,9 @@ def get_providers_from_which_to_remove_user(
     }
 
     if (
-        user_option_service.query_options(user_ids=[user.id], keys=["self_notifications"]).get_one(
-            default="0"
-        )
+        user_option_service.get_many(
+            filter={"user_ids": [user.id], "keys": ["self_notifications"]}
+        ).get_one(key="self_notifications", default="0")
         == "0"
     ):
         return providers

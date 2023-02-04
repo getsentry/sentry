@@ -40,8 +40,8 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if not request.user.is_authenticated:
             return
 
-        options = user_option_service.query_options(
-            user_ids=[request.user.id], keys=["language", "timezone"]
+        options = user_option_service.get_many(
+            filter={"user_ids": [request.user.id], "keys": ["language", "timezone"]}
         )
 
         if language := options.get_one(key="language"):

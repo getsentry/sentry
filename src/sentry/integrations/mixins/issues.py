@@ -195,8 +195,10 @@ class IssueBasicMixin:
         if user_persisted_fields:
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(key="issue:defaults", project_id=project.id)
-            options = user_option_service.query_options(user_ids=[user.id], **user_option_key)
-            new_user_defaults = options.get_one(default={})
+            options = user_option_service.get_many(
+                filter={"user_ids": [user.id], **user_option_key}
+            )
+            new_user_defaults = options.get_one(default={}, key="issue:defaults")
             new_user_defaults.setdefault(self.model.provider, {}).update(user_defaults)
             if user_defaults != new_user_defaults:
                 user_option_service.set_option(

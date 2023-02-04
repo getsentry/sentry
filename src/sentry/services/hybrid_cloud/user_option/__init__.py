@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 
@@ -39,7 +40,33 @@ class ApiUserOptionSet:
         return default
 
 
-class UserOptionService(InterfaceWithLifecycle):
+def get_option_from_list(
+    options: List[ApiUserOption],
+    *,
+    key: str | None = None,
+    user_id: int | None = None,
+    default: Any = None,
+) -> Any:
+    for option in options:
+        if key is not None and option.key != key:
+            continue
+        if user_id is not None and option.user_id != user_id:
+            continue
+        return option.value
+    return default
+
+
+class UserOptionFilterArgs(TypedDict, total=False):
+    user_ids: Iterable[int]
+    keys: List[str] | None
+    key: str | None
+    project_id: Optional[int]
+    organization_id: Optional[int]
+
+
+class UserOptionService(
+    FilterQueryInterface[UserOptionFilterArgs, ApiUserOptionSet, None], InterfaceWithLifecycle
+):
     @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
         pass
@@ -56,17 +83,17 @@ class UserOptionService(InterfaceWithLifecycle):
     ) -> None:
         pass
 
-    @abstractmethod
-    def query_options(
-        self,
-        *,
-        user_ids: Iterable[int],
-        keys: List[str] | None = None,
-        key: str | None = None,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-    ) -> ApiUserOptionSet:
-        pass
+    # @abstractmethod
+    # def query_options(
+    #     self,
+    #     *,
+    #     user_ids: Iterable[int],
+    #     keys: List[str] | None = None,
+    #     key: str | None = None,
+    #     project_id: Optional[int] = None,
+    #     organization_id: Optional[int] = None,
+    # ) -> ApiUserOptionSet:
+    #     pass
 
 
 def impl_with_db() -> UserOptionService:
