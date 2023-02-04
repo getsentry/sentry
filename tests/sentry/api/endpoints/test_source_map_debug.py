@@ -138,21 +138,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             },
             project_id=self.project.id,
         )
-        release = Release.objects.get(organization=self.organization, version=event.release)
-        release.update(user_agent="test_user_agent")
-
-        dist = Distribution.objects.get(
-            organization_id=self.organization.id, name="my-dist", release_id=release.id
-        )
-
-        ReleaseFile.objects.create(
-            organization_id=self.project.organization_id,
-            release_id=release.id,
-            file=File.objects.create(name="application.js", type="release.file"),
-            name="~/application.js",
-            # change dist to something else
-            dist_id=dist.id,
-        )
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -161,8 +146,9 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             frame_idx=0,
             exception_idx=0,
         )
-
-        assert resp.data["errors"] == []
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_release_on_event"
+        assert error["message"] == "The event is missing a release"
 
     @with_feature("organizations:fix-source-map-cta")
     def test_release_has_no_user_agent(self):
@@ -363,7 +349,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "absPath": "https://app.example.com/static/static/js/application.js",
             "partialMatchPath": "http://example.com/application.js",
             "fileName": "/static/static/js/application.js",
-            "artifactNames": ["http://example.com/application.js"],
             "unifiedPath": "~/static/static/js/application.js",
         }
 
@@ -417,7 +402,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["data"] == {
             "absPath": "https://app.example.com/static/static/js/main.fa8fe19f.js",
             "fileName": "/static/static/js/main.fa8fe19f.js",
-            "artifactNames": ["http://example.com/application.js"],
             "unifiedPath": "~/static/static/js/main.fa8fe19f.js",
         }
 

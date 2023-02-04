@@ -130,31 +130,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             return find_matching_artifact_response
         else:
             artifact = find_matching_artifact_response
-        artifact_names = [artifact.name for artifact in release_artifacts]
-        unified_url = self._unify_url(urlparts)
-
-        full_matches, partial_matches = self._find_matches(release_artifacts, unified_url)
-
-        if len(full_matches) == 0:
-            if len(partial_matches) > 0:
-                return self._create_response(
-                    issue=SourceMapProcessingIssue.PARTIAL_MATCH,
-                    data={
-                        "absPath": abs_path,
-                        "partialMatchPath": partial_matches[0].name,
-                        "fileName": filename,
-                        "unifiedPath": unified_url,
-                        "artifactNames": artifact_names,
-                    },
-                )
-        find_matching_artifact_response = self._find_matching_artifact(
-            release_artifacts, urlparts, abs_path, filename
-        )
-
-        if type(find_matching_artifact_response) is Response:
-            return find_matching_artifact_response
-        else:
-            artifact = find_matching_artifact_response
 
         dist_response = self._verify_dist_matches(release, event, artifact, filename)
         if type(dist_response) is Response:
@@ -167,8 +142,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND,
                 data={
                     "fileName": filename,
-                    "unifiedPath": unified_url,
-                    "artifactNames": artifact_names,
                 },
             )
 
@@ -272,9 +245,8 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     def _find_matching_artifact(
         self, release_artifacts, urlparts, abs_path, filename, sourcemap=False
     ):
-        full_matches, partial_matches = self._find_matches(
-            release_artifacts, self._unify_url(urlparts)
-        )
+        unified_path = self._unify_url(urlparts)
+        full_matches, partial_matches = self._find_matches(release_artifacts, unified_path)
 
         partial_issue = (
             SourceMapProcessingIssue.PARTIAL_MATCH
@@ -295,10 +267,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                         "absPath": abs_path,
                         "partialMatchPath": partial_matches[0].name,
                         "fileName": filename,
+                        "unifiedPath": unified_path,
                     },
                 )
             return self._create_response(
-                issue=no_match_issue, data={"absPath": abs_path, "fileName": filename}
+                issue=no_match_issue,
+                data={"absPath": abs_path, "fileName": filename, "unifiedPath": unified_path},
             )
         return full_matches[0]
 
