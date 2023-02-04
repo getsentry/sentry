@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
@@ -29,7 +29,7 @@ export function CodeSnippet({
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
-  useEffect(() => {
+  const highlight = useCallback(async () => {
     const element = ref.current;
     if (!element) {
       return;
@@ -40,16 +40,19 @@ export function CodeSnippet({
       return;
     }
 
-    import(`prismjs/components/prism-${language}.min`)
-      .then(() => Prism.highlightElement(element))
-      .catch(error => {
-        // eslint-disable-next-line no-console
-        console.warn(
-          'Prism language not found. Check the `language` prop passed to `<CodeSnippet />`.',
-          error.message
-        );
-      });
-  }, [children, language]);
+    try {
+      await import(`prismjs/components/prism-${language}.min`);
+      Prism.highlightElement(element);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Prism language not found. Check the `language` prop passed to `<CodeSnippet />`.',
+        error.message
+      );
+    }
+  }, [language]);
+
+  useEffect(() => void highlight(), [children, highlight]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
