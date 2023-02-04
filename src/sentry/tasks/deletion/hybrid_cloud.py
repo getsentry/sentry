@@ -8,11 +8,11 @@ Notably, this job is only responsible for cascading to models that are related t
 opposing silo and are stored in Tombstone rows.  Deletions that are not successfully synchronized via Outbox to a
 Tombstone row will not, therefore, cascade to any related cross silo rows.
 """
-
 from hashlib import sha1
 from typing import Any, List, Tuple, Type
 from uuid import uuid4
 
+import sentry_sdk
 from django.apps import apps
 from django.db.models import Manager, Max
 
@@ -20,7 +20,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, redis
+from sentry.utils import json, metrics, redis
 
 
 def deletion_silo_modes() -> List[SiloMode]:
@@ -56,6 +56,15 @@ def set_watermark(
             get_watermark_key(prefix, field),
             json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
         )
+    metrics.gauge(
+        "deletion.hybrid_cloud.low_bound",
+        value,
+        tags=dict(
+            table_name=field.model._meta.db_table,
+            field_name=field.name,
+            watermark=prefix,
+        ),
+    )
 
 
 def chunk_watermark_batch(
@@ -103,27 +112,42 @@ def schedule_hybrid_cloud_foreign_key_jobs():
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, silo_mode: str
 ) -> None:
-    model = apps.get_model(app_label=app_name, model_name=model_name)
-    field: HybridCloudForeignKey
-    for field in model._meta.fields:
-        if not isinstance(field, HybridCloudForeignKey):
-            continue
-        if field.name == field_name:
-            break
-    else:
-        raise LookupError(f"Could not find field {field_name} on model {app_name}.{model_name}")
+    try:
+        model = apps.get_model(app_label=app_name, model_name=model_name)
+        field: HybridCloudForeignKey
+        for field in model._meta.fields:
+            if not isinstance(field, HybridCloudForeignKey):
+                continue
+            if field.name == field_name:
+                break
+        else:
+            raise LookupError(f"Could not find field {field_name} on model {app_name}.{model_name}")
 
-    tombstone_cls: Any = TombstoneBase.class_for_silo_mode(SiloMode[silo_mode])
+        tombstone_cls: Any = TombstoneBase.class_for_silo_mode(SiloMode[silo_mode])
 
-    if _process_tombstone_reconcilition(
-        field, model, tombstone_cls, True
-    ) or _process_tombstone_reconcilition(field, model, tombstone_cls, False):
-        process_hybrid_cloud_foreign_key_cascade_batch.apply_async(
-            kwargs=dict(
-                app_name=app_name, model_name=model_name, field_name=field_name, silo_mode=silo_mode
+        if _process_tombstone_reconcilition(
+            field, model, tombstone_cls, True
+        ) or _process_tombstone_reconcilition(field, model, tombstone_cls, False):
+            process_hybrid_cloud_foreign_key_cascade_batch.apply_async(
+                kwargs=dict(
+                    app_name=app_name,
+                    model_name=model_name,
+                    field_name=field_name,
+                    silo_mode=silo_mode,
+                ),
+                countdown=15,
+            )
+    except Exception as err:
+        sentry_sdk.set_context(
+            "deletion.hybrid_cloud",
+            dict(
+                app_name=app_name,
+                model_name=model_name,
+                field_name=field_name,
+                silo_mode=silo_mode,
             ),
-            countdown=15,
         )
+        sentry_sdk.capture_exception(err)
 
 
 # Convenience wrapper for mocking in tests

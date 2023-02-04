@@ -22,6 +22,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.silo import SiloMode
+from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -163,12 +164,24 @@ class OutboxBase(Model):
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
         if coalesced is not None:
-            self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            tags = {"category": OutboxCategory(self.category).name}
+            metrics.incr("outbox.processed", deleted, tags=tags)
+            metrics.timing(
+                "outbox.processing_lag",
+                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
 
     def process(self) -> bool:
         with self.process_coalesced() as coalesced:
             if coalesced is not None:
-                coalesced.send_signal()
+                with metrics.timer(
+                    "outbox.send_signal.duration",
+                    tags={"category": OutboxCategory(coalesced.category).name},
+                ):
+                    coalesced.send_signal()
                 return True
         return False
 
