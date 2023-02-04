@@ -1,8 +1,11 @@
+from collections import defaultdict
 from dataclasses import dataclass
 
 from sentry.types.issues import GroupCategory
 
 _group_type_registry = {}
+_slug_lookup = {}
+_category_lookup = defaultdict(set)
 
 
 @dataclass(frozen=True)
@@ -20,6 +23,8 @@ class GroupType:
                 f"A group type with the type_id {cls.type_id} has already been registered."
             )
         _group_type_registry[cls.type_id] = cls
+        _slug_lookup[cls.slug] = cls
+        _category_lookup[cls.category].add(cls.type_id)
 
     def __post_init__(self):
         valid_categories = [category.value for category in GroupCategory]
@@ -27,22 +32,24 @@ class GroupType:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
 
+def get_all_group_type_ids():
+    return {type.type_id for type in _group_type_registry.values()}
+
+
 def get_group_types_by_category(category):
-    return [child.type_id for child in GroupType.__subclasses__() if child.category == category]
+    return _category_lookup[category]
 
 
 def get_group_type_by_slug(slug):
-    for group_type in _group_type_registry.values():
-        if group_type.slug == slug:
-            return group_type
-    raise ValueError(f"No group type with the slug {slug} is registered.")
+    if slug not in _slug_lookup.keys():
+        raise ValueError(f"No group type with the slug {slug} is registered.")
+    return _slug_lookup[slug]
 
 
 def get_group_type_by_type_id(id):
-    for group_type in _group_type_registry.values():
-        if group_type.type_id == id:
-            return group_type
-    raise ValueError(f"No group type with the id {id} is registered.")
+    if id not in _group_type_registry.keys():
+        raise ValueError(f"No group type with the id {id} is registered.")
+    return _group_type_registry[id]
 
 
 @dataclass(frozen=True)

@@ -6,14 +6,12 @@ from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, Ty
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.grouptype.grouptype import GroupType, get_group_type_by_type_id
+from sentry.grouptype.grouptype import get_all_group_type_ids, get_group_type_by_type_id
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.types.issues import GroupCategory
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
-
-ALL_ISSUE_TYPES = {type.type_id for type in GroupType.__subclasses__()}
 
 
 class IntermediateSearchQueryPartial(Protocol):
@@ -79,7 +77,7 @@ def group_categories_from(
                     get_group_type_by_type_id(value).category
                     for value in list(
                         filter(
-                            lambda x: x not in ALL_ISSUE_TYPES,
+                            lambda x: x not in get_all_group_type_ids(),
                             search_filter.value.raw_value,
                         )
                     )
