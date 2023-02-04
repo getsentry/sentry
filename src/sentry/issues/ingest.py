@@ -89,7 +89,7 @@ def _create_issue_kwargs(
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
-        "type": cast(int, occurrence.type.type_id),
+        "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
     }
