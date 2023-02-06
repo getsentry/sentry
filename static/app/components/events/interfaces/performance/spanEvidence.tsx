@@ -28,8 +28,17 @@ export function SpanEvidenceSection({event, organization}: Props) {
   const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
 
   const affectedSpanIds = [...offendingSpanIDs];
-  if (event?.perfProblem?.issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
+  const focusedSpanIds: string[] = [];
+  const issueType = event?.perfProblem?.issueType;
+  if (issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
     affectedSpanIds.push(...parentSpanIDs);
+  }
+  if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
+    const consecutiveSpanIds = event?.perfProblem?.causeSpanIds ?? [];
+
+    if (consecutiveSpanIds.length < 11) {
+      focusedSpanIds.push(...consecutiveSpanIds);
+    }
   }
 
   return (
@@ -45,7 +54,9 @@ export function SpanEvidenceSection({event, organization}: Props) {
       <TraceViewWrapper>
         <TraceView
           organization={organization}
-          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
+          waterfallModel={
+            new WaterfallModel(event as EventTransaction, affectedSpanIds, focusedSpanIds)
+          }
           isEmbedded
         />
       </TraceViewWrapper>
