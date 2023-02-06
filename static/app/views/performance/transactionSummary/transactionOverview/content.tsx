@@ -196,7 +196,7 @@ function SummaryContent({
                 </Tooltip>
               ),
               menuItem: {
-                key: 'filter-alert',
+                key: 'alert',
               },
             }),
           },
