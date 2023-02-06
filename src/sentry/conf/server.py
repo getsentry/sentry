@@ -827,7 +827,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
-        "schedule": timedelta(hours=1),
+        "schedule": crontab(minute=17),
         "options": {"expires": 3600},
     },
     "hybrid-cloud-repair-mappings": {
