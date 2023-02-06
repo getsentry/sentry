@@ -12,8 +12,8 @@ class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization, user_id) -> Response:
-        users = user_service.serialize_users(
-            user_ids=[user_id], organization_id=organization.id, as_user=request.user
+        users = user_service.serialize_many(
+            filter={"user_ids": [user_id], "organization_id": organization.id}, as_user=request.user
         )
         if len(users) == 0:
             return Response(status=404)

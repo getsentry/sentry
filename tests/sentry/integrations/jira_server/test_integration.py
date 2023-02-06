@@ -18,7 +18,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -631,7 +631,7 @@ class JiraServerIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self):
-        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         assign_issue_url = "https://jira.example.org/rest/api/2/issue/%s/assignee" % issue_id
         external_issue = ExternalIssue.objects.create(
@@ -657,7 +657,7 @@ class JiraServerIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self):
-        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,

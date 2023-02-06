@@ -100,10 +100,12 @@ class DashboardListSerializer(Serializer):
 
         serialized_users = {
             user["id"]: user
-            for user in user_service.serialize_users(
-                user_ids=[
-                    dashboard.created_by_id for dashboard in item_list if dashboard.created_by
-                ],
+            for user in user_service.serialize_many(
+                filter={
+                    "user_ids": [
+                        dashboard.created_by_id for dashboard in item_list if dashboard.created_by
+                    ]
+                },
                 as_user=user,
             )
         }
@@ -153,7 +155,7 @@ class DashboardDetailsSerializer(Serializer):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": user_service.serialize_users(user_ids=[obj.created_by_id])[0],
+            "createdBy": user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0],
             "widgets": attrs["widgets"],
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},
