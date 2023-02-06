@@ -140,6 +140,7 @@ from sentry.utils.performance_issues.performance_detection import (
     detect_performance_problems,
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.sdk_crashes.sdk_crash_detection import detect_sdk_crash
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -2209,6 +2210,11 @@ def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping)
         )
 
 
+def _detect_sdk_crashes(jobs: Sequence[Job]):
+    for job in jobs:
+        detect_sdk_crash(job["data"])
+
+
 class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
     event: Event
@@ -2473,6 +2479,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    _detect_sdk_crashes(jobs)
     return jobs
 
 
