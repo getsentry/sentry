@@ -207,14 +207,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         return release
 
-    def _verify_dist_matches(self, release, event, artifact, filename, sourcemap=False):
-
-        dist_issue = (
-            SourceMapProcessingIssue.DIST_MISMATCH
-            if not sourcemap
-            else SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND
-        )
-
+    def _verify_dist_matches(self, release, event, artifact, filename):
         try:
             dist = Distribution.objects.get(release=release, name=event.dist)
         except Distribution.DoesNotExist:
@@ -225,32 +218,19 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         if artifact.dist_id != dist.id:
             return self._create_response(
-                issue=dist_issue,
+                issue=SourceMapProcessingIssue.DIST_MISMATCH,
                 data={"eventDist": dist.id, "artifactDist": artifact.dist_id, "fileName": filename},
             )
         return dist
 
-    def _find_matching_artifact(
-        self, release_artifacts, urlparts, abs_path, filename, sourcemap=False
-    ):
+    def _find_matching_artifact(self, release_artifacts, urlparts, abs_path, filename):
         unified_path = self._unify_url(urlparts)
         full_matches, partial_matches = self._find_matches(release_artifacts, unified_path)
-
-        partial_issue = (
-            SourceMapProcessingIssue.PARTIAL_MATCH
-            if not sourcemap
-            else SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND
-        )
-        no_match_issue = (
-            SourceMapProcessingIssue.NO_URL_MATCH
-            if not sourcemap
-            else SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND
-        )
 
         if len(full_matches) == 0:
             if len(partial_matches) > 0:
                 return self._create_response(
-                    issue=partial_issue,
+                    issue=SourceMapProcessingIssue.PARTIAL_MATCH,
                     data={
                         "absPath": abs_path,
                         "partialMatchPath": partial_matches[0].name,
@@ -259,7 +239,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                     },
                 )
             return self._create_response(
-                issue=no_match_issue,
+                issue=SourceMapProcessingIssue.NO_URL_MATCH,
                 data={"absPath": abs_path, "fileName": filename, "unifiedPath": unified_path},
             )
         return full_matches[0]
