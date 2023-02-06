@@ -586,6 +586,15 @@ class DiscoverDatasetConfig(DatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
+                    "linear_regression",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "simpleLinearRegression", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
                     "sum",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),

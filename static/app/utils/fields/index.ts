@@ -69,6 +69,7 @@ export enum FieldKey {
   OS_KERNEL_VERSION = 'os.kernel_version',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
+  PROFILE_ID = 'profile.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -717,6 +718,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.PROFILE_ID]: {
+    desc: t('The ID of an associated profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.PROJECT]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -1073,6 +1079,8 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE,
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
+
+  FieldKey.PROFILE_ID,
 
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,

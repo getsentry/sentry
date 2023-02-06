@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -16,6 +17,7 @@ from typing import (
     Union,
     cast,
 )
+from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
 from django.utils.http import urlencode
@@ -46,8 +48,9 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     PerformanceProblem,
@@ -349,17 +352,9 @@ def perf_to_email_html(
     if not problem:
         return ""
 
-    parent_span, repeating_spans = get_parent_and_repeating_spans(spans, problem)
+    context = PerformanceProblemContext.from_problem_and_spans(problem, spans)
 
-    context = {
-        "transaction_name": get_span_evidence_value_problem(problem),
-        "parent_span": get_span_evidence_value(parent_span),
-        "repeating_spans": get_span_evidence_value(repeating_spans),
-        "num_repeating_spans": str(len(problem.offender_span_ids))
-        if problem.offender_span_ids
-        else "",
-    }
-    return render_to_string("sentry/emails/transactions.html", context)
+    return render_to_string("sentry/emails/transactions.html", context.to_dict())
 
 
 def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
@@ -462,3 +457,79 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     for provider, participants_with_reasons in participants_by_provider.items():
         participants_, extra_context = split_participants_and_context(participants_with_reasons)
         notify(provider, notification, participants_, shared_context, extra_context)
+
+
+@dataclass
+class PerformanceProblemContext:
+    problem: PerformanceProblem
+    spans: Union[List[Dict[str, Union[str, float]]], None]
+
+    def __post_init__(self) -> None:
+        parent_span, repeating_spans = get_parent_and_repeating_spans(self.spans, self.problem)
+
+        self.parent_span = parent_span
+        self.repeating_spans = repeating_spans
+
+    def to_dict(self) -> Dict[str, str | List[str]]:
+        return {
+            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "parent_span": get_span_evidence_value(self.parent_span),
+            "repeating_spans": get_span_evidence_value(self.repeating_spans),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+            if self.problem.offender_span_ids
+            else "",
+        }
+
+    @classmethod
+    def from_problem_and_spans(
+        cls, problem: PerformanceProblem, spans: Union[List[Dict[str, Union[str, float]]], None]
+    ) -> PerformanceProblemContext:
+        if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
+            return NPlusOneAPICallProblemContext(problem, spans)
+        else:
+            return cls(problem, spans)
+
+
+class NPlusOneAPICallProblemContext(PerformanceProblemContext):
+    def to_dict(self) -> Dict[str, str | List[str]]:
+        return {
+            "transaction_name": self.problem.desc,
+            "repeating_spans": self.path_prefix,
+            "parameters": self.parameters,
+            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+            if self.problem.offender_span_ids
+            else "",
+        }
+
+    @property
+    def path_prefix(self) -> str:
+        if not self.repeating_spans or len(self.repeating_spans) == 0:
+            return ""
+
+        url = get_url_from_span(self.repeating_spans)
+        parsed_url = urlparse(url)
+        return parsed_url.path or ""
+
+    @property
+    def parameters(self) -> List[str]:
+        if not self.spans or len(self.spans) == 0:
+            return []
+
+        urls = [
+            get_url_from_span(span)
+            for span in self.spans
+            if span.get("span_id") in self.problem.offender_span_ids
+        ]
+
+        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+
+        for url in urls:
+            parsed_url = urlparse(url)
+            parameters = parse_qs(parsed_url.query)
+
+            for key, value in parameters.items():
+                all_parameters[key] += value
+
+        return [
+            "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
+        ]

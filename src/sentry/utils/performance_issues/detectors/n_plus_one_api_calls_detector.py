@@ -5,13 +5,20 @@ import os
 import random
 import re
 from datetime import timedelta
+from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
 
-from ..base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, get_span_duration
+from ..base import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    PerformanceDetector,
+    get_span_duration,
+    get_url_from_span,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import PerformanceProblemsMap, Span
 
@@ -165,6 +172,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return False
 
         url = get_url_from_span(span)
+
+        # Next.js error pages cause an N+1 API Call that isn't useful to anyone
+        if "__nextjs_original-stack-frame" in url:
+            return False
+
         if not url:
             return False
 
@@ -195,6 +207,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         last_span = self.spans[-1]
 
         fingerprint = self._fingerprint()
+        if not fingerprint:
+            return
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -205,8 +220,17 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             offender_span_ids=[span["span_id"] for span in self.spans],
         )
 
-    def _fingerprint(self) -> str:
-        parameterized_first_url = self.parameterize_url(get_url_from_span(self.spans[0]))
+    def _fingerprint(self) -> Optional[str]:
+        first_url = get_url_from_span(self.spans[0])
+        parameterized_first_url = self.parameterize_url(first_url)
+
+        # Check if we parameterized the URL at all. If not, do not attempt
+        # fingerprinting. Unparameterized URLs run too high a risk of
+        # fingerprinting explosions. Query parameters are parameterized by
+        # definition, so exclude them from comparison
+        if without_query_params(parameterized_first_url) == without_query_params(first_url):
+            return None
+
         parsed_first_url = urlparse(parameterized_first_url)
         path = parsed_first_url.path
 
@@ -229,17 +253,5 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
 
-def get_url_from_span(span: Span) -> str:
-    data = span.get("data") or {}
-    url = data.get("url") or ""
-    if not url:
-        # If data is missing, fall back to description
-        description = span.get("description") or ""
-        parts = description.split(" ", 1)
-        if len(parts) == 2:
-            url = parts[1]
-
-    if type(url) is dict:
-        url = url.get("pathname") or ""
-
-    return url
+def without_query_params(url: str) -> str:
+    return urlparse(url)._replace(query="").geturl()

@@ -1,6 +1,7 @@
-import {useContext} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
@@ -90,10 +91,14 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
-        {!shouldDebugFrames && <SetupSourceMapsAlert event={event} />}
-        {hasSourcemapDebug && (
-          <SourceMapDebug debugFrames={debugFrames} platform={platform} />
-        )}
+        <ErrorBoundary mini>
+          <Fragment>
+            {!shouldDebugFrames && <SetupSourceMapsAlert event={event} />}
+            {hasSourcemapDebug && (
+              <SourceMapDebug debugFrames={debugFrames} platform={platform} />
+            )}
+          </Fragment>
+        </ErrorBoundary>
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL

@@ -34,12 +34,12 @@ describe('Frame - Context', function () {
     [234, Coverage.NOT_COVERED],
   ];
 
+  const primaryLineNumber = 233;
+
   it('converts coverage data to the right colors', function () {
-    expect(getCoverageColorClass(lines, lineCoverage, 233)).toEqual([
-      'partial',
-      'covered',
-      'active',
-      'uncovered',
+    expect(getCoverageColorClass(lines, lineCoverage, primaryLineNumber)).toEqual([
+      ['partial', 'covered', 'active', 'uncovered'],
+      true,
     ]);
   });
 
