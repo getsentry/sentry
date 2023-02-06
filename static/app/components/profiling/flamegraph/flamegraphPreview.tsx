@@ -2,6 +2,8 @@ import {CSSProperties, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -9,7 +11,10 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {
+  DarkFlamegraphTheme,
+  LightFlamegraphTheme,
+} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
@@ -29,7 +34,8 @@ export function FlamegraphPreview({
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const flamegraphTheme = LightFlamegraphTheme;
+  const {theme} = useLegacyStore(ConfigStore);
+  const flamegraphTheme = theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
   const profileGroup = useProfileGroup();
 
   const threadId = useMemo(
@@ -169,7 +175,7 @@ export function FlamegraphPreview({
   );
 }
 
-function computePreviewConfigView(
+export function computePreviewConfigView(
   flamegraph: FlamegraphModel,
   configView: Rect,
   relativeStartNs: number,
