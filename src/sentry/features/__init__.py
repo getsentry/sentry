@@ -155,6 +155,8 @@ default_manager.add("organizations:scim-orgmember-roles", OrganizationFeature, T
 default_manager.add("organizations:scim-team-roles", OrganizationFeature, True)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:session-replay", OrganizationFeature)
+default_manager.add("organizations:session-replay-beta-grace", OrganizationFeature, True)
+default_manager.add("organizations:session-replay-ga", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-ui", OrganizationFeature, True)
