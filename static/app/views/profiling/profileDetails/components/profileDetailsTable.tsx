@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -8,6 +7,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
