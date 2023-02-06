@@ -44,6 +44,7 @@
 /tests/sentry/ingest/                                    @getsentry/owners-ingest
 /tests/sentry/relay/                                     @getsentry/owners-ingest
 /tests/relay_integration/                                @getsentry/owners-ingest
+/bin/invalidate-project-configs                          @getsentry/owners-ingest
 
 ## Security
 /src/sentry/net/                                         @getsentry/security
