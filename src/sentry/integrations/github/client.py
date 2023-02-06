@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, Sequence
 
 import sentry_sdk
@@ -17,6 +17,11 @@ from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.github")
+
+# Some functions that require a large number of API requests can use this value
+# as the lower ceiling before hitting Github anymore, thus, leaving at least these
+# many requests left for other features that need to reach Github
+MINIMUM_REQUESTS = 200
 
 
 class GithubRateLimitInfo:
@@ -132,6 +137,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repo_full_name: str,
         tree_sha: str,
         only_source_code_files: bool = True,
+        only_use_cache: bool = False,
         cache_seconds: int = 3600 * 24,
     ) -> List[str]:
         """It return all files for a repo or just source code files.
@@ -139,12 +145,16 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repo_full_name: e.g. getsentry/sentry
         tree_sha: A branch or a commit sha
         only_source_code_files: Include all files or just the source code files
+        only_use_cache: Do not hit the network but use the value from the cache
+            if any. This is useful if the remaining API requests are low
+        cache_seconds: How long to cache a value for
         """
         key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
         repo_files: List[str] = cache.get(key, [])
-        if not repo_files:
+        if not repo_files and not only_use_cache:
             tree = self.get_tree(repo_full_name, tree_sha)
-            if tree is not None:
+            if tree:
+                # Keep files; discard directories
                 repo_files = [x["path"] for x in tree if x["type"] == "blob"]
                 if only_source_code_files:
                     repo_files = filter_source_code_files(files=repo_files)
@@ -159,36 +169,21 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return repo_files
 
-    def get_trees_for_org(
-        self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
-    ) -> Dict[str, RepoTree]:
+    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org and saves its
         contents into the cache.
         """
         trees: Dict[str, RepoTree] = {}
-        cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
-        repositories = cache.get(cache_key)
         extra = {"gh_org": gh_org}
-        if not repositories:
-            # Simply removing unnecessary fields from the response
-            repositories = [
-                {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repositories(fetch_max_pages=True)
-            ]
-            cache.set(cache_key, repositories, cache_seconds)
-            next_time = datetime.now() + timedelta(seconds=cache_seconds)
-            extra["next_time"] = str(next_time)
-            logger.info("Caching trees for Github org.", extra=extra)
-
-        # XXX: In order to speed up this function we will need to parallelize this
-        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
         try:
-            for repo_info in repositories:
-                full_name = repo_info["full_name"]
-                branch = repo_info["default_branch"]
-                repo_files = self.get_cached_repo_files(full_name, branch)
-                trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
+            repositories = self._populate_repositories(gh_org, cache_seconds)
+            trees = self._populate_trees(repositories)
+
+            rate_limit = self.get_rate_limit()
+            extra.update(
+                {"remaining": str(rate_limit.remaining), "repos_num": str(len(repositories))}
+            )
             logger.info("Using cached trees for Github org.", extra=extra)
         except ApiError as error:
             msg = error.text
@@ -196,14 +191,70 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 json_data: JSONData = error.json
                 msg = json_data.get("message")
             if msg.startswith("API rate limit exceeded for installation"):
-                # Report to Sentry; we will not continue
-                logger.exception("API rate limit exceeded. We will not hit it.")
-        except Exception:
-            # Reset the control cache in order to repopulate
-            cache.delete(cache_key)
-            logger.exception(f"We reset the cache for {cache_key}.")
+                # Report to Sentry; we will return whatever tree we have
+                logger.exception(
+                    "API rate limit exceeded. We will not hit it. Continuing execution.",
+                    extra=extra,
+                )
+            else:
+                raise error
 
         return trees
+
+    def _populate_repositories(self, gh_org: str, cache_seconds: int) -> List[Dict[str, str]]:
+        cache_key = f"githubtrees:repositories:{gh_org}"
+        repositories: List[Dict[str, str]] = cache.get(cache_key, [])
+
+        if not repositories:
+            # Remove unnecessary fields from the response
+            repositories = [
+                {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
+                for repo in self.get_repositories(fetch_max_pages=True)
+            ]
+            cache.set(cache_key, repositories, cache_seconds)
+            logger.info("Cached repositories.")
+
+        return repositories
+
+    def _populate_trees(self, repositories: List[Dict[str, str]]) -> Dict[str, RepoTree]:
+        """
+        For every repository, fetch the tree associated and cache it.
+        This function takes API rate limits into consideration to prevent exhaustion.
+        """
+        trees: Dict[str, RepoTree] = {}
+        only_use_cache = False
+
+        rate_limit = self.get_rate_limit()
+        remaining_requests = rate_limit.remaining
+        logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
+
+        for index, repo_info in enumerate(repositories):
+            # Only use the cache if we drop below the lower ceiling
+            # We will fetch after the limit is reset (every hour)
+            if not only_use_cache and remaining_requests <= MINIMUM_REQUESTS:
+                only_use_cache = True
+                logger.info(
+                    "Too few requests remaining. Grabbing values from the cache.",
+                    extra={"repo_info": repo_info},
+                )
+            # The Github API rate limit is reset every hour
+            # Spread the expiration of the cache of each repo across the day
+            trees[repo_info["full_name"]] = self._populate_tree(
+                repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
+            )
+            remaining_requests -= 1
+
+        return trees
+
+    def _populate_tree(
+        self, repo_info: Dict[str, str], only_use_cache: bool, cache_seconds: int
+    ) -> RepoTree:
+        full_name = repo_info["full_name"]
+        branch = repo_info["default_branch"]
+        repo_files = self.get_cached_repo_files(
+            full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
+        )
+        return RepoTree(Repo(full_name, branch), repo_files)
 
     def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
         """
@@ -212,7 +263,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
+        It uses page_size from the base class to specify how many items per page.
+        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
+        # XXX: In order to speed up this function we will need to parallelize this
+        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
         # Explicitly typing to satisfy mypy.
         repos: JSONData = self.get_with_pagination(
             "/installation/repositories",

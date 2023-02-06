@@ -338,6 +338,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "absPath": "https://app.example.com/static/static/js/application.js",
             "partialMatchPath": "http://example.com/application.js",
             "fileName": "/static/static/js/application.js",
+            "artifactNames": ["http://example.com/application.js"],
+            "unifiedPath": "~/static/static/js/application.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")
@@ -389,6 +391,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["data"] == {
             "absPath": "https://app.example.com/static/static/js/main.fa8fe19f.js",
             "fileName": "/static/static/js/main.fa8fe19f.js",
+            "artifactNames": ["http://example.com/application.js"],
+            "unifiedPath": "~/static/static/js/main.fa8fe19f.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")

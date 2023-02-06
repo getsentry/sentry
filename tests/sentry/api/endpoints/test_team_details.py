@@ -157,6 +157,26 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
+    def test_put_team_org_role__remove_success(self):
+        team = self.create_team(org_role="owner")
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        self.get_success_response(team.organization.slug, team.slug, orgRole="")
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+
+    def test_put_team_org_role__remove_error(self):
+        team = self.create_team(org_role="owner")
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="admin")
+        self.login_as(user)
+        self.get_error_response(team.organization.slug, team.slug, orgRole="", status_code=403)
+
+        team = Team.objects.get(id=team.id)
+        assert team.org_role == "owner"
+
 
 @region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):

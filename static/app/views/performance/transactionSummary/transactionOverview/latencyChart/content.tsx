@@ -30,6 +30,7 @@ type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
   location: Location;
   organization: OrganizationSummary;
+  queryExtras?: Record<string, string>;
 };
 
 /**
@@ -50,6 +51,7 @@ function Content({
   project,
   location,
   currentFilter,
+  queryExtras,
 }: Props) {
   const [zoomError, setZoomError] = useState(false);
 
@@ -152,7 +154,6 @@ function Content({
     },
     location
   );
-
   const {min, max} = decodeHistogramZoom(location);
 
   const field = filterToField(currentFilter) ?? 'transaction.duration';
@@ -169,6 +170,7 @@ function Content({
           min={min}
           max={max}
           dataFilter={activeFilter.value}
+          queryExtras={queryExtras}
         >
           {({histograms, isLoading, error}) => {
             if (isLoading) {
