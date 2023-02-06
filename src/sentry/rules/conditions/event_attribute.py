@@ -33,6 +33,7 @@ ATTR_CHOICES = {
     "stacktrace.filename": Columns.STACK_FILENAME,
     "stacktrace.abs_path": Columns.STACK_ABS_PATH,
     "stacktrace.package": Columns.STACK_PACKAGE,
+    "app.in_foreground": Columns.APP_IN_FOREGROUND,
 }
 
 
@@ -184,6 +185,17 @@ class EventAttributeCondition(EventCondition):
                 if device is None:
                     device = []
                 return [device.get(path[1])]
+
+        elif path[0] == "app":
+            if path[1] in ("in_foreground"):
+                contexts = event.data["contexts"]
+                response = contexts.get("app")
+                if response is None:
+                    response = {}
+                return [response.get(path[1])]
+
+            return []
+
         return []
 
     def render_label(self) -> str:

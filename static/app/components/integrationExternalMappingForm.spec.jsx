@@ -51,8 +51,9 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   // No mapping provided (e.g. Create a new mapping)
-  it('renders with no mapping provided as a form', function () {
+  it('renders with no mapping provided as a form', async function () {
     render(<IntegrationExternalMappingForm type="user" {...baseProps} />);
+    await act(tick);
     expect(screen.getByPlaceholderText('@username')).toBeInTheDocument();
     expect(screen.getByText('Select Sentry User')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
@@ -97,7 +98,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   // Suggested mapping provided (e.g. Create new mapping from suggested external name)
-  it('renders with a suggested mapping provided as a form', function () {
+  it('renders with a suggested mapping provided as a form', async function () {
     render(
       <IntegrationExternalMappingForm
         type="team"
@@ -105,11 +106,12 @@ describe('IntegrationExternalMappingForm', function () {
         {...baseProps}
       />
     );
+    await act(tick);
     expect(screen.getByDisplayValue(MOCK_TEAM_MAPPING.externalName)).toBeInTheDocument();
     expect(screen.getByText('Select Sentry Team')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
-  it('renders with a suggested mapping provided as an inline field', function () {
+  it('renders with a suggested mapping provided as an inline field', async function () {
     render(
       <IntegrationExternalMappingForm
         isInline
@@ -118,6 +120,7 @@ describe('IntegrationExternalMappingForm', function () {
         {...baseProps}
       />
     );
+    await act(tick);
     expect(
       screen.queryByDisplayValue(MOCK_TEAM_MAPPING.externalName)
     ).not.toBeInTheDocument();
@@ -139,6 +142,7 @@ describe('IntegrationExternalMappingForm', function () {
     await act(tick);
     userEvent.click(screen.getAllByText('option2')[1]);
     userEvent.click(screen.getByTestId('form-submit'));
+    await act(tick);
     expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
       externalName: MOCK_USER_MAPPING.externalName,
       integrationId: baseProps.integration.id,
