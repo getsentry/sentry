@@ -33,16 +33,10 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-<<<<<<< HEAD
 from sentry.models import PagerDutyService, Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import app_service
-=======
-from sentry.models import PagerDutyService, Project, SentryApp
-from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.fields import resolve_field
->>>>>>> 25018b3876 (Safe translations that will help with alert rules)
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset

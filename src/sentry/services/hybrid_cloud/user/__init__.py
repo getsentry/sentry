@@ -94,6 +94,7 @@ class UserFilterArgs(TypedDict, total=False):
     team_ids: List[int]
     is_active_memberteam: bool
     emails: List[str]
+    actor_ids: List[int]
 
 
 class UserService(
@@ -137,7 +138,6 @@ class UserService(
         """Get all users associated with a project identifier"""
         pass
 
-    @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
 

@@ -95,6 +95,8 @@ class DatabaseBackedUserService(
             )
         if "emails" in filters:
             query = query.filter(in_iexact("emails__email", filters["emails"]))
+        if "actor_ids" in filters:
+            query = query.filter(actor_id__in=filters["actor_ids"])
 
         if "actor_ids" in filters:
             query = query.filter(actor_id__in=filters["actor_ids"])
