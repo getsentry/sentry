@@ -227,20 +227,32 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         unified_path = self._unify_url(urlparts)
         full_matches, partial_matches = self._find_matches(release_artifacts, unified_path)
 
+        artifact_names = [artifact.name for artifact in release_artifacts]
+
         if len(full_matches) == 0:
             if len(partial_matches) > 0:
+                partial_match = partial_matches[0]
+                url_prefix = partial_match.name[: partial_match.name.find(urlparts.path)]
+
                 return self._create_response(
                     issue=SourceMapProcessingIssue.PARTIAL_MATCH,
                     data={
                         "absPath": abs_path,
-                        "partialMatchPath": partial_matches[0].name,
+                        "partialMatchPath": partial_match.name,
                         "fileName": filename,
                         "unifiedPath": unified_path,
+                        "urlPrefix": url_prefix,
+                        "artifactNames": artifact_names,
                     },
                 )
             return self._create_response(
                 issue=SourceMapProcessingIssue.NO_URL_MATCH,
-                data={"absPath": abs_path, "fileName": filename, "unifiedPath": unified_path},
+                data={
+                    "absPath": abs_path,
+                    "fileName": filename,
+                    "unifiedPath": unified_path,
+                    "artifactNames": artifact_names,
+                },
             )
         return full_matches[0]
 
@@ -261,7 +273,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         for line in fp.read().decode("utf-8").split("\n"):
             if line.startswith("//# sourceMappingURL=") or line.startswith("//@ sourceMappingURL="):
                 sourcemap_url = line.split("=")[1].strip()
-                return sourcemap_url.decode("utf-8")
+                return sourcemap_url
 
     def _unify_url(self, urlparts):
         return "~" + urlparts.path
