@@ -19,6 +19,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -360,7 +361,16 @@ function TableView(props: TableViewProps) {
 
         cell = (
           <StyledTooltip title={t('View Profile')}>
-            <StyledLink data-test-id="view-profile" to={target}>
+            <StyledLink
+              data-test-id="view-profile"
+              to={target}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                  organization,
+                  source: 'discover.table',
+                })
+              }
+            >
               {cell}
             </StyledLink>
           </StyledTooltip>

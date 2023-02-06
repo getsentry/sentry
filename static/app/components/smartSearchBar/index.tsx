@@ -366,9 +366,12 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {query, customPerformanceMetrics} = this.props;
-    const {query: lastQuery, customPerformanceMetrics: lastCustomPerformanceMetrics} =
-      prevProps;
+    const {query, customPerformanceMetrics, actionBarItems} = this.props;
+    const {
+      query: lastQuery,
+      customPerformanceMetrics: lastCustomPerformanceMetrics,
+      actionBarItems: lastAcionBarItems,
+    } = prevProps;
 
     if (
       (query !== lastQuery && (defined(query) || defined(lastQuery))) ||
@@ -376,6 +379,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     ) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
+    }
+
+    if (lastAcionBarItems?.length !== actionBarItems?.length) {
+      this.setState({numActionsVisible: actionBarItems?.length ?? 0});
     }
   }
 
