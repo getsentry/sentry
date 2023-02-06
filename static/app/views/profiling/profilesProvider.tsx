@@ -17,7 +17,7 @@ function fetchFlamegraphs(
   api: Client,
   eventId: string,
   projectSlug: Project['slug'],
-  orgSlug: Organization['slug'],
+  orgSlug: Organization['slug']
 ): Promise<Profiling.ProfileInput> {
   return api
     .requestPromise(
