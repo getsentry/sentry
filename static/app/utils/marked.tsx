@@ -3,6 +3,7 @@ import marked from 'marked'; // eslint-disable-line no-restricted-imports
 import Prism from 'prismjs';
 
 import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
+import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
 // Only https and mailto, (e.g. no javascript, vbscript, data protocols)
 const safeLinkPattern = /^(https?:|mailto:)/i;
@@ -60,18 +61,11 @@ marked.setOptions({
       return Prism.highlight(code, Prism.languages[lang], lang);
     }
 
-    import(`prismjs/components/prism-${lang}.min`)
-      .then(() => {
-        callback?.(null, Prism.highlight(code, Prism.languages[lang], lang));
-      })
-      .catch(error => {
-        callback?.(error, code);
-        // eslint-disable-next-line no-console
-        console.warn(
-          'Prism language not found. Error encountered while trying to highlight markdown code block with marked.',
-          error.message
-        );
-      });
+    loadPrismLanguage(
+      lang,
+      () => callback?.(null, Prism.highlight(code, Prism.languages[lang], lang)),
+      error => callback?.(error, code)
+    );
 
     return code;
   },

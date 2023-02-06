@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
 interface CodeSnippetProps {
   children: string;
@@ -29,7 +30,7 @@ export function CodeSnippet({
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
-  const highlight = useCallback(async () => {
+  useEffect(() => {
     const element = ref.current;
     if (!element) {
       return;
@@ -40,19 +41,8 @@ export function CodeSnippet({
       return;
     }
 
-    try {
-      await import(`prismjs/components/prism-${language}.min`);
-      Prism.highlightElement(element);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'Prism language not found. Check the `language` prop passed to `<CodeSnippet />`.',
-        error.message
-      );
-    }
-  }, [language]);
-
-  useEffect(() => void highlight(), [children, highlight]);
+    loadPrismLanguage(language, () => Prism.highlightElement(element));
+  }, [children, language]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
