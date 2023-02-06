@@ -241,7 +241,7 @@ def configure_structlog() -> None:
     from sentry.logging import LoggingFormat
 
     kwargs: dict[str, Any] = {
-        "context_class": structlog.contextvars,
+        "context_class": structlog.contextvars.get_contextvars(),
         "wrapper_class": structlog.stdlib.BoundLogger,
         "cache_logger_on_first_use": True,
         "processors": [
