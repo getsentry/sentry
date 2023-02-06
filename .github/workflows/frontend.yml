@@ -246,7 +246,7 @@ jobs:
         with:
           action-name: 'Visual Snapshot: Frontend'
           artifact-name: 'frontend-snapshots'
-          base-branch: 'master'
+          base-branch: 'mgs-frontend-acceptance-mv'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
