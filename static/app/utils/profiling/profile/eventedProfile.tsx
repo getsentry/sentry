@@ -138,14 +138,10 @@ export class EventedProfile extends Profile {
       // new stack top (this essentially makes it a graph). This does not apply flamecharts,
       // where chronological order matters, in that case we can only look at the last child of the
       // current stack top and use that as the new stack top if the frames match, else we create a new child
-      const last =
-        this.type === 'flamechart'
-          ? lastOfArray(lastTop.children)
-          : lastTop.children.find(c => c.frame === frame);
-
       let node: CallTreeNode;
 
       if (this.type === 'flamegraph') {
+        const last = lastTop.children.find(c => c.frame === frame);
         if (last) {
           node = last;
         } else {
@@ -153,6 +149,7 @@ export class EventedProfile extends Profile {
           lastTop.children.push(node);
         }
       } else {
+        const last = lastOfArray(lastTop.children);
         if (last && !last.isLocked() && last.frame === frame) {
           node = last;
         } else {
