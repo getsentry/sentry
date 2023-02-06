@@ -145,18 +145,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 },
             )
 
-        dist_response = self._verify_dist_matches(release, event, artifact, filename)
-        if type(dist_response) is Response:
-            return dist_response
-
-        sourcemap_url = self._discover_sourcemap_url(artifact)
-
-        if not sourcemap_url:
-            return self._create_response(
-                issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND,
-                data={"fileName": filename},
-            )
-
         sourcemap_url = non_standard_url_join(abs_path, sourcemap_url)
 
         sourcemap_artifact_response = self._find_matching_artifact(
