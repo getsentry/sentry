@@ -109,7 +109,6 @@ export enum FieldKey {
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
   APP_IN_FOREGROUND = 'app.in_foreground',
-  THREAD_MAIN = 'thread.main',
 }
 
 export enum FieldValueType {
@@ -994,7 +993,6 @@ export const ISSUE_FIELDS = [
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
   FieldKey.APP_IN_FOREGROUND,
-  FieldKey.THREAD_MAIN,
 ];
 
 /**
