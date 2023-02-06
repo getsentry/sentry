@@ -133,7 +133,12 @@ function Segment<Value extends string>({
 
   const {isDisabled} = props;
   const content = (
-    <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
+    <SegmentWrap
+      size={size}
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      data-test-id={props.value}
+    >
       <SegmentInput {...inputProps} ref={ref} />
       {!isDisabled && (
         <SegmentInteractionStateLayer
