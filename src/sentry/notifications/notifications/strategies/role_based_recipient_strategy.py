@@ -41,7 +41,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        return user_service.get_many(member.user_id for member in members)
+        return user_service.get_many(filter={"user_ids": [member.user_id for member in members]})
 
     @abstractmethod
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:

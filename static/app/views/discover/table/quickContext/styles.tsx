@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {IconAdd} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 export const ContextContainer = styled('div')`
@@ -45,10 +44,6 @@ export const NoContextWrapper = styled('div')`
   justify-content: center;
   white-space: nowrap;
   min-width: 320px;
-`;
-
-export const StyledIconAdd = styled(IconAdd)`
-  margin-left: ${space(0.5)};
 `;
 
 export const ContextRow = styled('div')`

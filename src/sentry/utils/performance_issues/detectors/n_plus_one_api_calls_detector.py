@@ -11,8 +11,6 @@ from urllib.parse import parse_qs, urlparse
 from sentry import features
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
-from sentry.utils import metrics
-from sentry.utils.event_frames import get_sdk_name
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -45,8 +43,6 @@ URL_PARAMETER_REGEX = re.compile(
 """
 )  # Adapted from message.py
 
-ESOTERIC_PARAMETER_REGEX = re.compile(r"\b[a-zA-Z]{3,20}_[a-zA-z\d_-]{18,}\b")
-
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
     """
@@ -70,7 +66,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
-        self.sdk_name = get_sdk_name(self._event)
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
@@ -107,7 +102,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return self.settings["detection_rate"] > random.random()
 
     @staticmethod
-    def parameterize_url(url: str, sdk_name: Optional[str] = None) -> str:
+    def parameterize_url(url: str) -> str:
         parsed_url = urlparse(str(url))
 
         protocol_fragments = []
@@ -125,13 +120,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 path_fragments.append("*")
             else:
                 path_fragments.append(str(fragment))
-
-            if sdk_name and ESOTERIC_PARAMETER_REGEX.search(fragment):
-                metrics.incr(
-                    "performance.performance_issues.esoteric_url_parameter",
-                    sample_rate=1.0,
-                    tags={"sdk_name": sdk_name},
-                )
 
         query = parse_qs(parsed_url.query)
 
@@ -184,6 +172,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return False
 
         url = get_url_from_span(span)
+
+        # Next.js error pages cause an N+1 API Call that isn't useful to anyone
+        if "__nextjs_original-stack-frame" in url:
+            return False
+
         if not url:
             return False
 
@@ -214,6 +207,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         last_span = self.spans[-1]
 
         fingerprint = self._fingerprint()
+        if not fingerprint:
+            return
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -224,10 +220,17 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             offender_span_ids=[span["span_id"] for span in self.spans],
         )
 
-    def _fingerprint(self) -> str:
-        parameterized_first_url = self.parameterize_url(
-            get_url_from_span(self.spans[0]), self.sdk_name
-        )
+    def _fingerprint(self) -> Optional[str]:
+        first_url = get_url_from_span(self.spans[0])
+        parameterized_first_url = self.parameterize_url(first_url)
+
+        # Check if we parameterized the URL at all. If not, do not attempt
+        # fingerprinting. Unparameterized URLs run too high a risk of
+        # fingerprinting explosions. Query parameters are parameterized by
+        # definition, so exclude them from comparison
+        if without_query_params(parameterized_first_url) == without_query_params(first_url):
+            return None
+
         parsed_first_url = urlparse(parameterized_first_url)
         path = parsed_first_url.path
 
@@ -248,3 +251,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             span_a["hash"] == span_b["hash"]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
+
+
+def without_query_params(url: str) -> str:
+    return urlparse(url)._replace(query="").geturl()

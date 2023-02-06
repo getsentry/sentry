@@ -130,7 +130,6 @@ def CreateStubFromBase(
 
     This implementation will not work outside of test contexts.
     """
-    Super = base.__bases__[0]
 
     def __init__(self: Any, backing_service: ServiceInterface) -> None:
         self.backing_service = backing_service
@@ -158,16 +157,18 @@ def CreateStubFromBase(
 
         return method
 
-    methods = {
-        name: make_method(name)
-        for name in dir(Super)
-        if getattr(getattr(Super, name), "__isabstractmethod__", False)
-    }
+    methods = {}
+    for Super in base.__bases__:
+        for name in dir(Super):
+            if getattr(getattr(Super, name), "__isabstractmethod__", False):
+                methods[name] = make_method(name)
 
     methods["close"] = close
     methods["__init__"] = __init__
 
-    return cast(Type[ServiceInterface], type(f"Stub{Super.__name__}", (Super,), methods))
+    return cast(
+        Type[ServiceInterface], type(f"Stub{base.__bases__[0].__name__}", base.__bases__, methods)
+    )
 
 
 def stubbed(f: Callable[[], ServiceInterface], mode: SiloMode) -> Callable[[], ServiceInterface]:

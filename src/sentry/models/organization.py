@@ -287,7 +287,7 @@ class Organization(Model, SnowflakeIdMixin):
         owner_memberships = OrganizationMember.objects.filter(
             role=roles.get_top_dog().id, organization=self
         ).values_list("user_id", flat=True)
-        return user_service.get_many(owner_memberships)
+        return user_service.get_many(filter={"user_ids": owner_memberships})
 
     def get_default_owner(self) -> APIUser:
         if not hasattr(self, "_default_owner"):
@@ -622,6 +622,14 @@ class Organization(Model, SnowflakeIdMixin):
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
+
+    def get_teams_with_org_role(self, role):
+        from sentry.models.team import Team
+
+        if role:
+            return Team.objects.filter(org_role=role, organization=self)
+
+        return Team.objects.filter(organization=self).exclude(org_role=None)
 
     # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
     @classmethod
