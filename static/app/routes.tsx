@@ -154,10 +154,6 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
       <Route
-        path="/accept/:orgId/:memberId/:token/"
-        component={make(() => import('sentry/views/acceptOrganizationInvite'))}
-      />
-      <Route
         path="/accept/:memberId/:token/"
         component={make(() => import('sentry/views/acceptOrganizationInvite'))}
       />

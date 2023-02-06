@@ -26,7 +26,7 @@ type InviteDetails = {
   ssoProvider?: string;
 };
 
-type Props = RouteComponentProps<{memberId: string; token: string; orgId?: string}, {}>;
+type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
 
 type State = AsyncView['state'] & {
   acceptError: boolean | undefined;
@@ -37,23 +37,8 @@ type State = AsyncView['state'] & {
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
   disableErrorReport = false;
 
-  get orgSlug(): string | null {
-    const {params} = this.props;
-    if (params.orgId) {
-      return params.orgId;
-    }
-    const {customerDomain} = window.__initialData;
-    if (customerDomain?.subdomain) {
-      return customerDomain.subdomain;
-    }
-    return null;
-  }
-
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {memberId, token} = this.props.params;
-    if (this.orgSlug) {
-      return [['inviteDetails', `/accept-invite/${this.orgSlug}/${memberId}/${token}/`]];
-    }
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
   }
 
@@ -76,18 +61,9 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
 
     this.setState({accepting: true});
     try {
-      if (this.orgSlug) {
-        await this.api.requestPromise(
-          `/accept-invite/${this.orgSlug}/${memberId}/${token}/`,
-          {
-            method: 'POST',
-          }
-        );
-      } else {
-        await this.api.requestPromise(`/accept-invite/${memberId}/${token}/`, {
-          method: 'POST',
-        });
-      }
+      await this.api.requestPromise(`/accept-invite/${memberId}/${token}/`, {
+        method: 'POST',
+      });
       browserHistory.replace(`/${this.state.inviteDetails.orgSlug}/`);
     } catch {
       this.setState({acceptError: true});

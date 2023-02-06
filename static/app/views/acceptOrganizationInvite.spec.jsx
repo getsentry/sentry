@@ -9,7 +9,7 @@ jest.mock('sentry/actionCreators/account');
 
 const addMock = body =>
   MockApiClient.addMockResponse({
-    url: '/accept-invite/org-slug/1/abc/',
+    url: '/accept-invite/1/abc/',
     method: 'GET',
     body,
   });
@@ -35,14 +35,10 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     const acceptMock = MockApiClient.addMockResponse({
-      url: '/accept-invite/org-slug/1/abc/',
+      url: '/accept-invite/1/abc/',
       method: 'POST',
     });
 
@@ -81,7 +77,7 @@ describe('AcceptOrganizationInvite', function () {
     render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     const acceptMock = MockApiClient.addMockResponse({
-      url: '/accept-invite/org-slug/1/abc/',
+      url: '/accept-invite/1/abc/',
       method: 'POST',
     });
 
@@ -106,11 +102,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(getJoinButton()).not.toBeInTheDocument();
 
@@ -136,11 +128,7 @@ describe('AcceptOrganizationInvite', function () {
       ssoProvider: 'SSO',
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(getJoinButton()).not.toBeInTheDocument();
 
@@ -167,11 +155,7 @@ describe('AcceptOrganizationInvite', function () {
       ssoProvider: 'SSO',
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(getJoinButton()).not.toBeInTheDocument();
 
@@ -198,11 +182,7 @@ describe('AcceptOrganizationInvite', function () {
       ssoProvider: 'SSO',
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(getJoinButton()).not.toBeInTheDocument();
 
@@ -229,11 +209,7 @@ describe('AcceptOrganizationInvite', function () {
       ssoProvider: 'SSO',
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
 
@@ -254,11 +230,7 @@ describe('AcceptOrganizationInvite', function () {
       ssoProvider: 'SSO',
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
@@ -275,11 +247,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: true,
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
     userEvent.click(screen.getByTestId('existing-member-link'));
@@ -298,11 +266,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    render(
-      <AcceptOrganizationInvite
-        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     expect(
       screen.getByRole('button', {name: 'Configure Two-Factor Auth'})
