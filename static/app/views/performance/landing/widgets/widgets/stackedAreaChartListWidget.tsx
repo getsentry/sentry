@@ -47,7 +47,7 @@ type DataType = {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
-export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
+export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);

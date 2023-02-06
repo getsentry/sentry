@@ -318,6 +318,6 @@ export const WIDGET_DEFINITIONS: ({
     title: t('Span Operations Breakdown'),
     titleTooltip: '',
     fields: SPAN_OP_BREAKDOWN_FIELDS.map(spanOp => `p75(${spanOp})`),
-    dataType: GenericPerformanceWidgetDataType.stacked_bars,
+    dataType: GenericPerformanceWidgetDataType.stacked_area,
   },
 });
