@@ -32,10 +32,8 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
-    def create_sample_event(self, start_timestamp):
-        event = json.loads(
-            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
-        )
+    def create_sample_event(self, fixture, start_timestamp):
+        event = json.loads(self.load_fixture(f"events/performance_problems/{fixture}.json"))
 
         for key in ["datetime", "location", "title"]:
             del event[key]
@@ -61,7 +59,9 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_with_one_performance_issue(self, mock_now):
         mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
-        event_data = self.create_sample_event(mock_now.return_value.timestamp())
+        event_data = self.create_sample_event(
+            "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
+        )
 
         with self.feature(FEATURES):
             event = self.store_event(data=event_data, project_id=self.project.id)
@@ -72,7 +72,9 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
         mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
-        event_data = self.create_sample_event(mock_now.return_value.timestamp())
+        event_data = self.create_sample_event(
+            "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
+        )
 
         with self.feature(FEATURES):
             [self.store_event(data=event_data, project_id=self.project.id) for _ in range(3)]
@@ -85,7 +87,9 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
         # Create identical events with different parent spans
         for _ in range(3):
-            event_data = self.create_sample_event(mock_now.return_value.timestamp())
+            event_data = self.create_sample_event(
+                "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
+            )
             event_data["spans"] = [
                 self.randomize_span_description(span) if span["op"] == "django.view" else span
                 for span in event_data["spans"]
