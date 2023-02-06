@@ -206,6 +206,7 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
     analytics.record(
         "issue.resolved",
         user_id=user_id,
+        project_id=project.id,
         default_user_id=default_user_id,
         organization_id=organization_id,
         group_id=group.id,
