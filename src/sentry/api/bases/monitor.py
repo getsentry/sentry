@@ -73,6 +73,8 @@ class MonitorEndpoint(Endpoint):
 
 
 class MonitorCheckInEndpoint(MonitorEndpoint):
+    # TODO(dcramer): this code needs shared with other endpoints as its security focused
+    # TODO(dcramer): this doesnt handle is_global roles
     def convert_args(
         self,
         request: Request,
