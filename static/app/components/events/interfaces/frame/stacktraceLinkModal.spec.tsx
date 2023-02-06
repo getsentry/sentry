@@ -8,6 +8,9 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
+import * as analytics from 'sentry/utils/integrationUtil';
+
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('StacktraceLinkModal', () => {
   const org = TestStubs.Organization();
@@ -26,6 +29,7 @@ describe('StacktraceLinkModal', () => {
   };
   const onSubmit = jest.fn();
   const closeModal = jest.fn();
+  const analyticsSpy = jest.spyOn(analytics, 'trackIntegrationAnalytics');
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -95,10 +99,7 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    userEvent.type(
-      screen.getByRole('textbox', {name: 'Repository URL'}),
-      'sourceUrl{enter}'
-    );
+    userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), 'sourceUrl');
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
@@ -166,6 +167,11 @@ describe('StacktraceLinkModal', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/repo-path-parsing/`,
+      method: 'POST',
+      body: {...configData},
+    });
 
     renderGlobalModal();
     act(() =>
@@ -187,11 +193,23 @@ describe('StacktraceLinkModal', () => {
         'Select from one of these suggestions or paste your URL below'
       )
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'https://github.com/getsentry/codemap/blob/master/stack/root/file.py'
-      )
-    ).toBeInTheDocument();
+    const suggestion =
+      'https://github.com/getsentry/codemap/blob/master/stack/root/file.py';
+    expect(screen.getByText(suggestion)).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toSnapshot();
+
+    // Paste and save suggestion
+    userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), suggestion);
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await waitFor(() => {
+      expect(closeModal).toHaveBeenCalled();
+    });
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'integrations.stacktrace_complete_setup',
+      expect.objectContaining({
+        is_suggestion: true,
+      })
+    );
   });
 });

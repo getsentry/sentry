@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
+import uniq from 'lodash/uniq';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -51,7 +52,7 @@ function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data} = useQuery<DerivedCodeMapping[]>(
+  const {data: sugestedCodeMappings} = useQuery<DerivedCodeMapping[]>(
     [
       `/organizations/${organization.slug}/derive-code-mappings/`,
       {
@@ -68,6 +69,12 @@ function StacktraceLinkModal({
       notifyOnChangeProps: ['data'],
     }
   );
+
+  const suggestions = uniq(
+    (sugestedCodeMappings ?? []).map(suggestion => {
+      return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+    })
+  ).slice(0, 2);
 
   const onHandleChange = (input: string) => {
     setSourceCodeInput(input);
@@ -129,6 +136,7 @@ function StacktraceLinkModal({
         provider: configData.config?.provider.key,
         view: 'stacktrace_issue_details',
         organization,
+        is_suggestion: suggestions.includes(sourceCodeInput),
       });
       closeModal();
       onSubmit();
@@ -207,18 +215,17 @@ function StacktraceLinkModal({
             <li>
               <ItemContainer>
                 <div>
-                  {data?.length
+                  {suggestions.length
                     ? t('Select from one of these suggestions or paste your URL below')
                     : t('Copy the URL and paste it below')}
                 </div>
-                {data?.length ? (
+                {suggestions.length ? (
                   <StyledSuggestions>
-                    {data.slice(0, 2).map((suggestion, i) => {
-                      const url = `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+                    {suggestions.map((suggestion, i) => {
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
-                          <SuggestionOverflow>{url}</SuggestionOverflow>
-                          <Button borderless size="xs" onClick={() => copy(url)}>
+                          <SuggestionOverflow>{suggestion}</SuggestionOverflow>
+                          <Button borderless size="xs" onClick={() => copy(suggestion)}>
                             <IconCopy size="xs" />
                           </Button>
                         </div>
