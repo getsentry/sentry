@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import Tag, {Background} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';

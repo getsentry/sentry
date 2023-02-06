@@ -1,8 +1,8 @@
 import {useState} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
