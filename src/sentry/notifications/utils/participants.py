@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import features
 from sentry.models import (
