@@ -13,6 +13,7 @@ from sentry.utils import json
 
 FEATURES = {
     "projects:performance-suspect-spans-ingestion": True,
+    "organizations:performance-n-plus-one-api-calls-detector": True,
 }
 
 
@@ -28,6 +29,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
         options.set("performance.issues.all.problem-detection", 1.0)
         options.set("performance.issues.n_plus_one_db.problem-creation", 1.0)
+        options.set("performance.issues.n_plus_one_api_calls.problem-creation", 1.0)
 
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
@@ -80,6 +82,22 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             [self.store_event(data=event_data, project_id=self.project.id) for _ in range(3)]
 
             assert Group.objects.count() == 1
+
+    @patch("django.utils.timezone.now")
+    def test_n_one_api_call_performance_issue(self, mock_now):
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
+        event_data = self.create_sample_event(
+            "n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream",
+            mock_now.return_value.timestamp(),
+        )
+
+        event_data["contexts"]["trace"]["op"] = "navigation"
+
+        with self.feature(FEATURES):
+            event = self.store_event(data=event_data, project_id=self.project.id)
+
+            self.page.visit_issue(self.org.slug, event.groups[0].id)
+            self.browser.snapshot("N+1 API Call issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
