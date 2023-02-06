@@ -25,7 +25,6 @@ from typing import (
     cast,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -142,12 +141,6 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
-# Used to determine if we should or not record an analytic data
-# for a first event of a project with a minified stack trace
-START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
-    2022, 12, 14, tzinfo=pytz.UTC
-)
-
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
 
@@ -167,6 +160,8 @@ DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
 GROUPHASH_IGNORE_LIMIT_MAP = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
     GroupType.PERFORMANCE_SLOW_DB_QUERY: 100,
+    GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: 15,
+    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: 10,
 }
 
 
@@ -620,10 +615,6 @@ class EventManager:
             if (
                 has_event_minified_stack_trace(job["event"])
                 and not project.flags.has_minified_stack_trace
-                # We only want to record events from projects created after 2022-12-14,
-                # otherwise amplitude would receive a large amount of data in a short period of time
-                and project.date_added
-                > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
             ):
                 first_event_with_minified_stack_trace_received.send_robust(
                     project=project, event=job["event"], sender=Project

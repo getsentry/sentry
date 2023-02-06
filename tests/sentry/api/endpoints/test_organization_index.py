@@ -1,4 +1,5 @@
 import re
+from unittest.mock import patch
 
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
@@ -103,11 +104,13 @@ class OrganizationsCreateTest(OrganizationIndexTest):
 
         self.get_error_response(status_code=400, **data)
 
-    def test_valid_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "SaNtRy"]
-        for slug in valid_slugs:
+    def test_slugs(self):
+        valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
+        for input_slug in valid_slugs:
             self.organization.refresh_from_db()
-            self.get_success_response(name=slug, slug=slug)
+            response = self.get_success_response(name=input_slug, slug=input_slug)
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.slug == input_slug.lower()
 
     def test_invalid_slugs(self):
         with self.options({"api.rate-limit.org-create": 9001}):
@@ -127,7 +130,11 @@ class OrganizationsCreateTest(OrganizationIndexTest):
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
 
-    def test_name_slugify(self):
+    @patch(
+        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
+        return_value=False,
+    )
+    def test_name_slugify(self, is_limited):
         response = self.get_success_response(name="---foo")
         org = Organization.objects.get(id=response.data["id"])
         assert org.slug == "foo"
@@ -153,6 +160,11 @@ class OrganizationsCreateTest(OrganizationIndexTest):
         response = self.get_success_response(name="----")
         org = Organization.objects.get(id=response.data["id"])
         assert len(org.slug) > 0
+        assert org_slug_pattern.match(org.slug)
+
+        response = self.get_success_response(name="CaNaDa")
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.slug == "canada"
         assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):

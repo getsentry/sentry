@@ -2,11 +2,13 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Node} from 'sentry/components/events/viewHierarchy/node';
+import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
-  UseVirtualizedListProps,
   useVirtualizedTree,
+  UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
 import {DetailsPanel} from './detailsPanel';
@@ -19,7 +21,6 @@ function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
 export type ViewHierarchyWindow = {
   alpha: number;
   height: number;
-  id: string;
   type: string;
   visible: boolean;
   width: number;
@@ -36,22 +37,22 @@ export type ViewHierarchyData = {
 };
 
 type ViewHierarchyProps = {
+  project: Project;
   viewHierarchy: ViewHierarchyData;
 };
 
-function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
+function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedWindow] = useState(0);
   const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
     viewHierarchy.windows[0]
   );
   const hierarchy = useMemo(() => {
-    return [viewHierarchy.windows[selectedWindow]];
-  }, [selectedWindow, viewHierarchy.windows]);
+    return viewHierarchy.windows;
+  }, [viewHierarchy.windows]);
 
-  const renderRow: UseVirtualizedListProps<ViewHierarchyWindow>['renderRow'] = (
+  const renderRow: UseVirtualizedTreeProps<ViewHierarchyWindow>['renderRow'] = (
     r,
     {
       handleExpandTreeNode,
@@ -109,35 +110,75 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     initialSelectedNodeIndex: 0,
   });
 
+  const showWireframe = project?.platform !== 'unity';
+
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
-      <TreeContainer>
-        <GhostRow ref={hoveredGhostRowRef} />
-        <GhostRow ref={clickedGhostRowRef} />
-        <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
-          <RenderedItemsContainer style={containerStyles}>
-            {renderedItems}
-          </RenderedItemsContainer>
-        </ScrollContainer>
-      </TreeContainer>
-      {defined(selectedNode) && (
-        <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
-      )}
+      <Content>
+        <Left hasRight={showWireframe}>
+          <TreeContainer>
+            <GhostRow ref={hoveredGhostRowRef} />
+            <GhostRow ref={clickedGhostRowRef} />
+            <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
+              <RenderedItemsContainer style={containerStyles}>
+                {renderedItems}
+              </RenderedItemsContainer>
+            </ScrollContainer>
+          </TreeContainer>
+          {defined(selectedNode) && (
+            <DetailsContainer>
+              <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+            </DetailsContainer>
+          )}
+        </Left>
+        {showWireframe && (
+          <Right>
+            <Wireframe hierarchy={hierarchy} />
+          </Right>
+        )}
+      </Content>
     </Fragment>
   );
 }
 
 export {ViewHierarchy};
 
+const Content = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  height: 700px;
+`;
+
+const Left = styled('div')<{hasRight?: boolean}>`
+  width: ${p => (p.hasRight ? '40%' : '100%')};
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: column;
+`;
+
+const Right = styled('div')`
+  width: 60%;
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+`;
+
 const TreeContainer = styled('div')`
   position: relative;
-  height: 400px;
+  height: 70%;
   overflow: hidden;
-  overflow-y: auto;
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
+`;
+
+const DetailsContainer = styled('div')`
+  max-height: 30%;
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: auto;
 `;
 
 const ScrollContainer = styled('div')`

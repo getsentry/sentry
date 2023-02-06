@@ -315,9 +315,9 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.trends,
   },
   [PerformanceWidgetSetting.SPAN_OPERATIONS]: {
-    title: t('Span Operations'),
+    title: t('Span Operations Breakdown'),
     titleTooltip: '',
     fields: SPAN_OP_BREAKDOWN_FIELDS.map(spanOp => `p75(${spanOp})`),
-    dataType: GenericPerformanceWidgetDataType.stacked_bars,
+    dataType: GenericPerformanceWidgetDataType.stacked_area,
   },
 });

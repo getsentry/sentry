@@ -153,7 +153,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
 const ReplayControls = ({
   toggleFullscreen,
-  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
+  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
 }: Props) => {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();

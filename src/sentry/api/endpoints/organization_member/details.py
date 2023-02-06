@@ -218,6 +218,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
         assigned_role = result.get("role")
+        if assigned_role and getattr(member.flags, "idp:role-restricted"):
+            return Response(
+                {
+                    "role": "This user's org-role is managed through your organization's identity provider."
+                },
+                status=403,
+            )
+
         if assigned_role and (assigned_role != member.role):
             allowed_roles = get_allowed_org_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
@@ -326,8 +334,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-                    elif not roles.can_manage(acting_member.role, member.role):
-                        return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+                    else:
+                        can_manage = False
+                        # check org roles through teams
+                        for role in acting_member.get_all_org_roles():
+                            if roles.can_manage(role, member.role):
+                                can_manage = True
+                                break
+
+                        if not can_manage:
+                            return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         # TODO(dcramer): do we even need this check?
         elif not request.access.has_scope("member:admin"):
@@ -335,6 +351,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         if member.is_only_owner():
             return Response({"detail": ERR_ONLY_OWNER}, status=403)
+
+        if getattr(member.flags, "idp:provisioned"):
+            return Response(
+                {"detail": "This user is managed through your organization's identity provider."},
+                status=403,
+            )
 
         audit_data = member.get_audit_log_data()
 

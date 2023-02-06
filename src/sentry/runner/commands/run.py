@@ -394,7 +394,7 @@ def post_process_forwarder(**options):
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
             strict_offset_reset=options["strict_offset_reset"],
-            use_streaming_consumer=bool(options["use_streaming_consumer"]),
+            use_streaming_consumer=True,
         )
     except ForwarderNotRequired:
         sys.stdout.write(
@@ -587,33 +587,6 @@ def occurrences_ingest_consumer(**options):
 
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         consumer = get_occurrences_ingest_consumer(consumer_type, **options)
-        run_processor_with_signals(consumer)
-
-
-@run.command("region-to-control-consumer")
-@log_options()
-@click.option(
-    "region_name",
-    "--region-name",
-    required=True,
-    help="Regional name to run the consumer for",
-)
-@batching_kafka_options("region-to-control-consumer", max_batch_size=100)
-@strict_offset_reset_option()
-@configuration
-def region_to_control_consumer(region_name, **kafka_options):
-    """
-    Runs a "region -> consumer" task.
-
-    Processes specific even datums like UserIP that are produced in region silos but updated in control silos.
-    see region_to_control module
-    """
-    from sentry.region_to_control.consumer import get_region_to_control_consumer
-    from sentry.utils import metrics
-
-    consumer = get_region_to_control_consumer(**kafka_options)
-
-    with metrics.global_tags(region_name=region_name):
         run_processor_with_signals(consumer)
 
 

@@ -14,25 +14,22 @@ window.Element.prototype.scrollTo = jest.fn();
 window.Element.prototype.scrollIntoView = jest.fn();
 
 const DEFAULT_VALUES = {alpha: 1, height: 1, width: 1, x: 1, y: 1, visible: true};
-const MOCK_DATA = {
+const DEFAULT_MOCK_DATA = {
   rendering_system: 'test-rendering-system',
   windows: [
     {
       ...DEFAULT_VALUES,
-      id: 'parent',
       type: 'Container',
       identifier: 'test_identifier',
       x: 200,
       children: [
         {
           ...DEFAULT_VALUES,
-          id: 'intermediate',
           type: 'Nested Container',
           identifier: 'nested',
           children: [
             {
               ...DEFAULT_VALUES,
-              id: 'leaf',
               type: 'Text',
               children: [],
             },
@@ -44,8 +41,15 @@ const MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
+  let MOCK_DATA;
+  let project;
+  beforeEach(() => {
+    MOCK_DATA = DEFAULT_MOCK_DATA;
+    project = TestStubs.Project();
+  });
+
   it('can continue make selections for inspecting data', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Container - test_identifier')).toHaveLength(2);
@@ -66,7 +70,7 @@ describe('View Hierarchy', function () {
   });
 
   it('can expand and collapse by clicking the icon', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     expect(screen.queryByText('Text')).toBeInTheDocument();
 
@@ -84,7 +88,7 @@ describe('View Hierarchy', function () {
   });
 
   it('can navigate with keyboard shortcuts after a selection', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
 
@@ -95,7 +99,7 @@ describe('View Hierarchy', function () {
   });
 
   it('can expand/collapse with the keyboard', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
 
@@ -106,5 +110,33 @@ describe('View Hierarchy', function () {
     userEvent.keyboard('{Enter}');
 
     expect(screen.getByText('Text')).toBeInTheDocument();
+  });
+
+  it('can render multiple windows together', function () {
+    MOCK_DATA.windows = [
+      ...MOCK_DATA.windows,
+      {
+        ...DEFAULT_VALUES,
+        type: 'Second Window',
+        children: [
+          {
+            ...DEFAULT_VALUES,
+            type: 'Second Window Child',
+            children: [],
+          },
+        ],
+      },
+    ];
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+
+    expect(screen.getByText('Second Window')).toBeInTheDocument();
+    expect(screen.getByText('Second Window Child')).toBeInTheDocument();
+  });
+
+  it('does not render the wireframe for the Unity platform', function () {
+    const mockUnityProject = TestStubs.Project({platform: 'unity'});
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockUnityProject} />);
+
+    expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
   });
 });

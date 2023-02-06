@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -195,34 +196,19 @@ export function TraceEventDataSection({
                 title={t('Only full version available')}
                 disabled={hasAppOnlyFrames}
               >
-                <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
-                  <Button
-                    size="xs"
-                    barId="relevant"
-                    onClick={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: false,
-                      })
-                    }
-                    disabled={!hasAppOnlyFrames}
-                  >
+                <SegmentedControl
+                  size="xs"
+                  aria-label={t('Filter frames')}
+                  value={state.fullStackTrace ? 'full' : 'relevant'}
+                  onChange={val => setState({...state, fullStackTrace: val === 'full'})}
+                >
+                  <SegmentedControl.Item key="relevant" disabled={!hasAppOnlyFrames}>
                     {t('Most Relevant')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    barId="full"
-                    priority={!hasAppOnlyFrames ? 'primary' : undefined}
-                    onClick={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: true,
-                      })
-                    }
-                  >
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="full">
                     {t('Full Stack Trace')}
-                  </Button>
-                </ButtonBar>
+                  </SegmentedControl.Item>
+                </SegmentedControl>
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (

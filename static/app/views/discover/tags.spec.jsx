@@ -22,15 +22,24 @@ describe('Tags', function () {
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: '123abcd', name: '123abcd'}],
+          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [
+            {count: 20, value: 'abcd123', name: 'abcd123'},
+            {count: 10, value: 'anotherOne', name: 'anotherOne'},
+          ],
         },
         {
           key: 'color',
-          topValues: [{count: 2, value: 'red', name: 'red'}],
+          topValues: [
+            {count: 10, value: 'red', name: 'red'},
+            {count: 5, value: 'blue', name: 'blue'},
+            {count: 5, value: 'green', name: 'green'},
+            {count: 5, value: 'yellow', name: 'yellow'},
+            {count: 5, value: 'orange', name: 'orange'},
+          ],
         },
       ],
     });
@@ -53,7 +62,7 @@ describe('Tags', function () {
       <Tags
         eventView={view}
         api={api}
-        totalValues={2}
+        totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
@@ -92,7 +101,7 @@ describe('Tags', function () {
         eventView={view}
         api={api}
         organization={org}
-        totalValues={2}
+        totalValues={30}
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
         generateUrl={generateUrl}
@@ -105,15 +114,18 @@ describe('Tags', function () {
     await waitForElementToBeRemoved(
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
+    userEvent.click(screen.getByText('environment'));
 
     userEvent.click(
-      screen.getByLabelText('Add the environment abcd123 segment tag to the search query')
+      screen.getByRole('link', {
+        name: 'environment, abcd123, 66% of all events. View events with this tag value.',
+      })
     );
 
     expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
   });
 
-  it('renders tag keys, top values, and percentages', async function () {
+  it('renders tag keys', async function () {
     const api = new Client();
 
     const view = new EventView({
@@ -126,7 +138,7 @@ describe('Tags', function () {
       <Tags
         eventView={view}
         api={api}
-        totalValues={2}
+        totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
@@ -139,12 +151,52 @@ describe('Tags', function () {
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
 
-    expect(screen.getByText('release')).toBeInTheDocument();
-    expect(screen.getAllByText('123abcd').length).toEqual(2);
-    expect(screen.getByText('environment')).toBeInTheDocument();
-    expect(screen.getByText('abcd123')).toBeInTheDocument();
-    expect(screen.getByText('color')).toBeInTheDocument();
-    expect(screen.getByText('red')).toBeInTheDocument();
-    expect(screen.getAllByText('100%').length).toEqual(4);
+    expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'color'})).toBeInTheDocument();
+  });
+
+  it('excludes top tag values on current page query', async function () {
+    const api = new Client();
+
+    const initialData = initializeOrg({
+      organization: org,
+      router: {
+        location: {pathname: '/organizations/org-slug/discover/homepage/', query: {}},
+      },
+    });
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      query: '',
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        api={api}
+        totalValues={30}
+        organization={org}
+        selection={{projects: [], environments: [], datetime: {}}}
+        location={initialData.router.location}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />,
+      {context: initialData.routerContext}
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
+    userEvent.click(screen.getByRole('button', {name: 'Expand color tag distribution'}));
+    expect(
+      screen.getByRole('link', {
+        name: 'Other color tag values, 16% of all events. View other tags.',
+      })
+    ).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/homepage/?query=%21color%3A%5Bred%2C%20blue%2C%20green%2C%20yellow%5D'
+    );
   });
 });

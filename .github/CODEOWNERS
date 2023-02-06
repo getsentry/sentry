@@ -44,6 +44,7 @@
 /tests/sentry/ingest/                                    @getsentry/owners-ingest
 /tests/sentry/relay/                                     @getsentry/owners-ingest
 /tests/relay_integration/                                @getsentry/owners-ingest
+/bin/invalidate-project-configs                          @getsentry/owners-ingest
 
 ## Security
 /src/sentry/net/                                         @getsentry/security
@@ -89,9 +90,28 @@ yarn.lock                                                @getsentry/owners-js-de
 /docs-ui/components/                                     @getsentry/design @getsentry/core-ui
 
 ## Core UI
-/static/app/components                                   @getsentry/core-ui
-/static/app/views/issueList                              @getsentry/core-ui
-/static/app/views/organizationGroupDetails               @getsentry/core-ui
+/static/app/components                                       @getsentry/core-ui
+
+/static/app/views/issueList                                  @getsentry/core-ui
+/static/app/views/organizationGroupDetails                   @getsentry/core-ui
+
+/static/app/views/monitors                                   @getsentry/core-ui
+/src/sentry/models/monitor.py               			     @getsentry/core-ui
+/src/sentry/models/monitorcheckin.py               		     @getsentry/core-ui
+/src/sentry/models/monitorlocation.py                 	     @getsentry/core-ui
+/src/sentry/api/validators/monitor.py               	     @getsentry/core-ui
+/src/sentry/api/bases/monitor.py               	 		     @getsentry/core-ui
+/src/sentry/api/endpoints/monitor_stats.py                   @getsentry/core-ui
+/src/sentry/api/endpoints/organization_monitors.py           @getsentry/core-ui
+/src/sentry/api/endpoints/monitor_checkins.py                @getsentry/core-ui
+/src/sentry/api/endpoints/monitor_checkin_details.py         @getsentry/core-ui
+/src/sentry/tasks/check_monitors.py 						 @getsentry/core-ui
+/tests/sentry/api/endpoints/test_organization_monitors.py    @getsentry/core-ui
+/tests/sentry/api/endpoints/test_monitor_checkins.py         @getsentry/core-ui
+/tests/sentry/api/endpoints/test_monitor_checkin_details.py  @getsentry/core-ui
+/tests/sentry/models/test_monitor.py 						 @getsentry/core-ui
+/tests/sentry/utils/test_monitors.py 						 @getsentry/core-ui
+/tests/sentry/tasks/test_check_monitors.py 					 @getsentry/core-ui
 
 
 # Owners by product feature

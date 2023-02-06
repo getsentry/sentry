@@ -162,8 +162,11 @@ function FlamegraphZoomView({
     if (!flamegraphRenderer) {
       return;
     }
-    flamegraphRenderer.setSearchResults(flamegraphSearch.results.frames);
-  }, [flamegraphRenderer, flamegraphSearch.results]);
+    flamegraphRenderer.setSearchResults(
+      flamegraphSearch.query,
+      flamegraphSearch.results.frames
+    );
+  }, [flamegraphRenderer, flamegraphSearch.query, flamegraphSearch.results]);
 
   useEffect(() => {
     if (
@@ -258,7 +261,11 @@ function FlamegraphZoomView({
     } else {
       selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphState.profiles.highlightFrames]);
+
+    if (flamegraphRenderer) {
+      flamegraphRenderer?.setHighlightedFrames(selectedFramesRef.current);
+    }
+  }, [flamegraph, flamegraphRenderer, flamegraphState.profiles.highlightFrames]);
 
   useInteractionViewCheckPoint({
     view: flamegraphView,
@@ -618,7 +625,7 @@ function FlamegraphZoomView({
       <Canvas ref={setFlamegraphOverlayCanvasRef} pointerEvents="none" />
       <FlamegraphContextMenu
         contextMenu={contextMenu}
-        profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
+        profileGroup={profileGroup}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}
@@ -636,11 +643,7 @@ function FlamegraphZoomView({
           flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
           canvasBounds={canvasBounds}
-          platform={
-            profileGroup.type === 'resolved'
-              ? profileGroup.data.metadata.platform
-              : undefined
-          }
+          platform={profileGroup.metadata.platform}
         />
       ) : null}
     </CanvasContainer>

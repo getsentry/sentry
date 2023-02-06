@@ -14,7 +14,6 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     selectedRoot: null,
     threadId: null,
     highlightFrames: null,
-    zoomIntoFrame: null,
   },
   position: {
     view: Rect.Empty(),
@@ -27,6 +26,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     },
     colorCoding: 'by symbol name',
     sorting: 'call order',
+    type: 'flamechart',
     view: 'top down',
     xAxis: 'profile',
     layout: 'table bottom',

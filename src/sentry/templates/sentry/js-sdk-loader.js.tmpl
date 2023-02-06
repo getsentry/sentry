@@ -29,8 +29,8 @@
     // content.p = promise rejection
     // content.f = function call the Sentry
     if (
-      (content.e ||
-        content.p ||
+      ('e' in content ||
+        'p' in content ||
         (content.f && content.f.indexOf('capture') > -1) ||
         (content.f && content.f.indexOf('showReportDialog') > -1)) &&
       lazy
@@ -56,7 +56,7 @@
     // come out in the wrong order. Because of that we don't need async=1 as GA does.
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-    var _currentScriptTag = _document.getElementsByTagName(_script)[0];
+    var _currentScriptTag = _document.scripts[0];
     var _newScriptTag = _document.createElement(_script);
     _newScriptTag.src = _sdkBundleUrl;
     _newScriptTag.crossOrigin = 'anonymous';
@@ -67,6 +67,9 @@
         // Restore onerror/onunhandledrejection handlers
         _window[_onerror] = _oldOnerror;
         _window[_onunhandledrejection] = _oldOnunhandledrejection;
+
+        // Add loader as SDK source
+        _window.SENTRY_SDK_SOURCE = 'loader';
 
         var SDK = _window[_namespace];
 
@@ -137,9 +140,9 @@
 
       // And now capture all previously caught exceptions
       for (var i = 0; i < data.length; i++) {
-        if (data[i].e && tracekitErrorHandler) {
+        if ('e' in data[i] && tracekitErrorHandler) {
           tracekitErrorHandler.apply(_window, data[i].e);
-        } else if (data[i].p && tracekitUnhandledRejectionHandler) {
+        } else if ('p' in data[i] && tracekitUnhandledRejectionHandler) {
           tracekitUnhandledRejectionHandler.apply(_window, [data[i].p]);
         }
       }
@@ -198,9 +201,9 @@
 
   // Do the same store/queue/call operations for `onunhandledrejection` event
   var _oldOnunhandledrejection = _window[_onunhandledrejection];
-  _window[_onunhandledrejection] = function(exception) {
+  _window[_onunhandledrejection] = function(e) {
     queue({
-      p: exception.reason
+      p: 'reason' in e ? e.reason : 'detail' in e && 'reason' in e.detail ? e.detail.reason : e
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };

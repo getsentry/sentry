@@ -31,6 +31,7 @@ from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
@@ -395,8 +396,32 @@ class OrganizationMember(Model):
         )
 
     def get_scopes(self) -> FrozenSet[str]:
-        role_obj = organization_roles.get(self.role)
-        return self.organization.get_scopes(role_obj)
+        # include org roles from team membership
+        all_org_roles = self.get_all_org_roles()
+        scopes = set()
+
+        for role in all_org_roles:
+            role_obj = organization_roles.get(role)
+            scopes.update(self.organization.get_scopes(role_obj))
+        return frozenset(scopes)
+
+    def get_org_roles_from_teams(self) -> List[str]:
+        # results in an extra query when calling get_scopes()
+        return list(
+            self.teams.all().exclude(org_role=None).values_list("org_role", flat=True).distinct()
+        )
+
+    def get_all_org_roles(self) -> List[str]:
+        all_org_roles = self.get_org_roles_from_teams()
+        all_org_roles.append(self.role)
+        return all_org_roles
+
+    def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
+        return sorted(
+            [organization_roles.get(role) for role in self.get_all_org_roles()],
+            key=lambda r: r.priority,
+            reverse=True,
+        )
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -414,9 +439,13 @@ class OrganizationMember(Model):
             raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
 
         # members cannot invite roles higher than their own
-        if self.role not in {r.id for r in allowed_roles}:
+        all_org_roles = self.get_all_org_roles()
+        if not len(set(all_org_roles) & {r.id for r in allowed_roles}):
+            highest_role = sorted(
+                [organization_roles.get(role) for role in all_org_roles], key=lambda r: r.priority
+            )[-1].id
             raise UnableToAcceptMemberInvitationException(
-                f"You do not have permission approve a member invitation with the role {self.role}."
+                f"You do not have permission to approve a member invitation with the role {highest_role}."
             )
         return True
 
@@ -482,24 +511,25 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
+        highest_role_priority = self.get_all_org_roles_sorted()[0].priority
+
         if not features.has("organizations:team-roles", self.organization):
-            return [
-                r
-                for r in organization_roles.get_all()
-                if r.priority <= organization_roles.get(self.role).priority
-            ]
+            return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
 
         return [
             r
             for r in organization_roles.get_all()
-            if r.priority <= organization_roles.get(self.role).priority and not r.is_retired
+            if r.priority <= highest_role_priority and not r.is_retired
         ]
 
     def is_only_owner(self) -> bool:
-        if self.role != organization_roles.get_top_dog().id:
+        if organization_roles.get_top_dog().id not in self.get_all_org_roles():
             return False
 
-        return (
+        from sentry.models import OrganizationMemberTeam
+
+        # check if any other member has the owner role, including through a team
+        is_only_owner = (
             not OrganizationMember.objects.filter(
                 organization=self.organization_id,
                 role=organization_roles.get_top_dog().id,
@@ -508,4 +538,9 @@ class OrganizationMember(Model):
             )
             .exclude(id=self.id)
             .exists()
-        )
+        ) and not OrganizationMemberTeam.objects.filter(
+            team__in=self.organization.get_teams_with_org_role(organization_roles.get_top_dog().id)
+        ).exclude(
+            organizationmember_id=self.id
+        ).exists()
+        return is_only_owner

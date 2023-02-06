@@ -32,7 +32,7 @@ import {
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
-import {StackedBarsChartListWidget} from '../widgets/stackedBarsChartListWidget';
+import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 
@@ -196,8 +196,8 @@ const _WidgetContainer = (props: Props) => {
       return (
         <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.stacked_bars:
-      return <StackedBarsChartListWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.stacked_area:
+      return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
