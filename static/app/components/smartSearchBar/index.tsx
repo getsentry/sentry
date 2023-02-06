@@ -370,7 +370,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const {
       query: lastQuery,
       customPerformanceMetrics: lastCustomPerformanceMetrics,
-      actionBarItems: _actionBarItems,
+      actionBarItems: lastAcionBarItems,
     } = prevProps;
 
     if (
@@ -381,7 +381,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
     }
 
-    if (_actionBarItems?.length !== actionBarItems?.length) {
+    if (lastAcionBarItems?.length !== actionBarItems?.length) {
       this.setState({numActionsVisible: actionBarItems?.length ?? 0});
     }
   }
