@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:28.707671Z'
+created: '2023-02-01T08:22:05.394174Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -57,7 +57,7 @@ app:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "00719910980352c06ba93641057012e0"
+  hash: "bbcdb2e1d8df09ffe0fffd30fb361d4b"
   component:
     system*
       exception*
@@ -68,7 +68,7 @@ system:
           frame*
             function*
               "std::rt::lang_start"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
           frame*
@@ -77,7 +77,7 @@ system:
           frame*
             function*
               "std::panicking::try::do_call"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
           frame*

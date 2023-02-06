@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence
 
 from sentry import features
 from sentry.models import (
@@ -186,7 +186,6 @@ def get_owners(
     metrics.incr(
         "features.owners.send_to",
         tags={
-            "organization": project.organization_id,
             "outcome": outcome
             if outcome == "match" or fallthrough_choice is None
             else fallthrough_choice.value,
@@ -291,7 +290,6 @@ def determine_eligible_recipients(
 
     return set()
 
-
 def get_send_to(
     project: Project,
     target_type: ActionTargetType,
@@ -329,7 +327,11 @@ def get_fallthrough_recipients(
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         if project.organization.flags.early_adopter.is_set:
             return user_service.get_many(
-                project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
+                filter={
+                    "user_ids": project.member_set.order_by("-user__last_active").values_list(
+                        "user_id", flat=True
+                    )
+                }
             )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
 
         # Return all members for non-EA orgs. This line will be removed once EA is over.
@@ -399,7 +401,7 @@ def get_users_from_team_fall_back(
         # Fall back to notifying each subscribed user if there aren't team notification settings
         member_list = team.member_set.values_list("user_id", flat=True)
         user_ids |= set(member_list)
-    return user_service.get_many(user_ids)
+    return user_service.get_many(filter={"user_ids": list(user_ids)})
 
 
 def combine_recipients_by_provider(

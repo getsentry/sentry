@@ -19,7 +19,7 @@ const COLORS = [
   '#847a8c', // gray
 ] as const;
 
-type Color = typeof COLORS[number];
+type Color = (typeof COLORS)[number];
 
 function hashIdentifier(identifier: string) {
   identifier += '';

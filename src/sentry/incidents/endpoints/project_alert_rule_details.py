@@ -63,7 +63,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
     def delete(self, request: Request, project, alert_rule) -> Response:
         try:
-            delete_alert_rule(alert_rule, request.user)
+            delete_alert_rule(alert_rule, request.user, ip_address=request.META.get("REMOTE_ADDR"))
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
             return Response(

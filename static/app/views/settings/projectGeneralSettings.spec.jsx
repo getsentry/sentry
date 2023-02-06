@@ -73,10 +73,9 @@ describe('projectGeneralSettings', function () {
   });
 
   afterEach(function () {
-    window.location.assign.mockRestore();
     MockApiClient.clearMockResponses();
-    addSuccessMessage.mockReset();
-    addErrorMessage.mockReset();
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('renders form fields', function () {
