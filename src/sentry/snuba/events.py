@@ -559,6 +559,14 @@ class Columns(Enum):
         issue_platform_name="contexts.value",
         alias="contexts.value",
     )
+    APP_IN_FOREGROUND = Column(
+        group_name="events.contexts[app.in_foreground]",
+        event_name="contexts[app.in_foreground]",
+        transaction_name="contexts[app.in_foreground]",
+        discover_name="contexts[app.in_foreground]",
+        issue_platform_name="contexts[app.in_foreground]",
+        alias="app.in_foreground",
+    )
     # Transactions specific columns
     TRANSACTION_OP = Column(
         group_name=None,
