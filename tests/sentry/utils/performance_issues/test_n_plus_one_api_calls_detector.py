@@ -1,5 +1,4 @@
 from typing import Callable, List, cast
-from unittest.mock import call, patch
 from uuid import uuid4
 
 import pytest
@@ -15,6 +14,9 @@ from sentry.testutils.performance_issues.event_generators import (
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.detectors import NPlusOneAPICallsDetector
+from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
+    without_query_params,
+)
 from sentry.utils.performance_issues.performance_detection import (
     DetectorType,
     PerformanceProblem,
@@ -102,6 +104,10 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ]
         assert problems[0].title == "N+1 API Call"
 
+    def test_does_not_detect_problem_with_unparameterized_urls(self):
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-weather-app")
+        assert self.find_problems(event) == []
+
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
@@ -138,47 +144,26 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    @patch("sentry.utils.metrics.incr")
-    def test_reports_unusual_parameter_metrics(self, incr_mock):
-        NPlusOneAPICallsDetector.parameterize_url(
-            "/resource/00009whsfm7cF8niHp5h7x/details", "sentry.javascript.react"
-        )
-
-        incr_mock.assert_not_called()
-
-        NPlusOneAPICallsDetector.parameterize_url(
-            "/resource/user_00009whsfm7cF8niHp5h7x/details", "sentry.javascript.react"
-        )
-        incr_mock.assert_has_calls(
-            [
-                call(
-                    "performance.performance_issues.esoteric_url_parameter",
-                    sample_rate=1.0,
-                    tags={"sdk_name": "sentry.javascript.react"},
-                )
-            ]
-        )
-
     def test_fingerprints_events(self):
-        event = self.create_event(lambda i: "GET /clients/info")
+        event = self.create_event(lambda i: "GET /clients/11/info")
         [problem] = self.find_problems(event)
 
-        assert problem.fingerprint == "1-1010-3378cb14bc594ab8c1c32beca224f9c4d0b830aa"
+        assert problem.fingerprint == "1-1010-e9daac10ea509a0bf84a8b8da45d36394868ad67"
 
     def test_fingerprints_identical_relative_urls_together(self):
-        event1 = self.create_event(lambda i: "GET /clients/info")
+        event1 = self.create_event(lambda i: "GET /clients/11/info")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: "GET /clients/info")
+        event2 = self.create_event(lambda i: "GET /clients/11/info")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
 
     def test_fingerprints_same_relative_urls_together(self):
-        event1 = self.create_event(lambda i: f"GET /clients/info?id={i}")
+        event1 = self.create_event(lambda i: f"GET /clients/42/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /clients/info?id={i*2}")
+        event2 = self.create_event(lambda i: f"GET /clients/42/info?id={i*2}")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
@@ -193,19 +178,19 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         assert problem1.fingerprint == problem2.fingerprint
 
     def test_fingerprints_different_relative_url_separately(self):
-        event1 = self.create_event(lambda i: f"GET /clients/info?id={i}")
+        event1 = self.create_event(lambda i: f"GET /clients/11/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /projects/details?pid={i}")
+        event2 = self.create_event(lambda i: f"GET /projects/11/details?pid={i}")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint != problem2.fingerprint
 
     def test_ignores_hostname_for_fingerprinting(self):
-        event1 = self.create_event(lambda i: f"GET http://service.io/clients/info?id={i}")
+        event1 = self.create_event(lambda i: f"GET http://service.io/clients/42/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /clients/info?id={i}")
+        event2 = self.create_event(lambda i: f"GET /clients/42/info?id={i}")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
@@ -374,10 +359,30 @@ def test_allows_eligible_spans(span):
             "hash": "b",
             "description": "GET /_next/data/LjdprRSkUtLP0bMUoWLur/items.json?collection=hello",
         },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "hash": "b",
+            "description": "GET /__nextjs_original-stack-frame?isServerSide=false&file=webpack-internal%3A%2F%2F%2F.%2Fnode_modules%2Freact-dom%2Fcjs%2Freact-dom.development.js&methodName=Object.invokeGuardedCallbackDev&arguments=&lineNumber=73&column=3`",
+        },
     ],
 )
 def test_rejects_ineligible_spans(span):
     assert not NPlusOneAPICallsDetector.is_span_eligible(span)
+
+
+@pytest.mark.parametrize(
+    "url,url_without_query",
+    [
+        ("", ""),
+        ("http://service.io", "http://service.io"),
+        ("http://service.io/resource", "http://service.io/resource"),
+        ("/resource?id=1", "/resource"),
+        ("/resource?id=1&sort=down", "/resource"),
+    ],
+)
+def test_removes_query_params(url, url_without_query):
+    assert without_query_params(url) == url_without_query
 
 
 @pytest.mark.parametrize(

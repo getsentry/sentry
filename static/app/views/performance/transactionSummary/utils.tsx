@@ -11,7 +11,14 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {DisplayModes} from './transactionOverview/charts';
+export enum DisplayModes {
+  DURATION_PERCENTILE = 'durationpercentile',
+  DURATION = 'duration',
+  LATENCY = 'latency',
+  TREND = 'trend',
+  VITALS = 'vitals',
+  USER_MISERY = 'usermisery',
+}
 
 export enum TransactionFilterOptions {
   FASTEST = 'fastest',

@@ -32,9 +32,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-
-import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 
 import Chart from './chart';
 import {
