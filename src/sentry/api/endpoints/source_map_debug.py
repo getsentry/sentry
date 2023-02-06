@@ -232,7 +232,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if len(full_matches) == 0:
             if len(partial_matches) > 0:
                 partial_match = partial_matches[0]
-                url_prefix = partial_match.name[: partial_match.name.find(urlparts.path)]
+                url_prefix = self._find_url_prefix(urlparts.path, partial_match.name)
 
                 return self._create_response(
                     issue=SourceMapProcessingIssue.PARTIAL_MATCH,
@@ -301,3 +301,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 data_sources.extend([source[i] for i in range(len(source))])
 
         return data_sources
+
+    def _find_url_prefix(self, file, artifact):
+        idx = artifact.find(file)
+        # If file name is suffix of artifact name, return the missing prefix
+        if idx != -1:
+            return artifact[:idx]
+
+        # If not suffix, find the missing parts and return them
+        file = set(file.split("/"))
+        artifact = set(artifact.split("/"))
+
+        return "/".join(list(file.symmetric_difference(artifact)) + [""])
