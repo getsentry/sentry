@@ -39,6 +39,7 @@ export function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]):
 
   return bounds;
 }
+
 export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
   maxHeight: number;
   maxWidth: number;
@@ -94,12 +95,11 @@ export function calculateScale(
   );
 }
 
-// a function to get which node was clicked based off of x, y coordinates
 export function getDeepestNodeAtPoint(
   nodes: ViewNode[],
   point: vec2,
   transformationMatrix: mat3,
-  scale
+  scale: number
 ): ViewNode | null {
   let clickedNode: ViewNode | null = null;
   const inverseMatrix = mat3.invert(mat3.create(), transformationMatrix);
