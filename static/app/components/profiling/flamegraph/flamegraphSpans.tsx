@@ -29,7 +29,7 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';

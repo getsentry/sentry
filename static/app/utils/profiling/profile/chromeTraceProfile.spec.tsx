@@ -146,7 +146,7 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
     expect(trace.profiles[0].startedAt).toBe(1000);
     expect(trace.profiles[0].endedAt).toBe(2000);
     expect(trace.profiles[0].duration).toBe(1000);
-    expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(1000);
+    expect(trace.profiles[0].callTree.children[0].totalWeight).toBe(1000);
   });
 
   it('closes unclosed events', () => {
@@ -184,11 +184,9 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
     );
 
     expect(trace.profiles[0].duration).toBe(2000);
-    expect(trace.profiles[0].appendOrderTree.children[0].selfWeight).toBe(1000);
-    expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(2000);
-    expect(trace.profiles[0].appendOrderTree.children[0].children[0].selfWeight).toBe(
-      1000
-    );
+    expect(trace.profiles[0].callTree.children[0].selfWeight).toBe(1000);
+    expect(trace.profiles[0].callTree.children[0].totalWeight).toBe(2000);
+    expect(trace.profiles[0].callTree.children[0].children[0].selfWeight).toBe(1000);
   });
 
   it('handles out of order E events', () => {
@@ -235,16 +233,16 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
     );
 
     expect(trace.profiles[0].duration).toBe(2);
-    expect(trace.profiles[0].appendOrderTree.children[0].selfWeight).toBe(1);
-    expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(2);
-    expect(trace.profiles[0].appendOrderTree.children[0].frame.name).toBe(
+    expect(trace.profiles[0].callTree.children[0].selfWeight).toBe(1);
+    expect(trace.profiles[0].callTree.children[0].totalWeight).toBe(2);
+    expect(trace.profiles[0].callTree.children[0].frame.name).toBe(
       'Unknown {"frame":"0"}'
     );
-    expect(trace.profiles[0].appendOrderTree.children[0].children[0].frame.name).toBe(
+    expect(trace.profiles[0].callTree.children[0].children[0].frame.name).toBe(
       'Unknown {"frame":"1"}'
     );
-    expect(trace.profiles[0].appendOrderTree.children[0].children[0].selfWeight).toBe(1);
-    expect(trace.profiles[0].appendOrderTree.children[0].children[0].totalWeight).toBe(1);
+    expect(trace.profiles[0].callTree.children[0].children[0].selfWeight).toBe(1);
+    expect(trace.profiles[0].callTree.children[0].children[0].totalWeight).toBe(1);
   });
 
   it('handles out of order B events', () => {
@@ -291,16 +289,16 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
     );
 
     expect(trace.profiles[0].duration).toBe(2);
-    expect(trace.profiles[0].appendOrderTree.children[0].selfWeight).toBe(1);
-    expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(2);
-    expect(trace.profiles[0].appendOrderTree.children[0].frame.name).toBe(
+    expect(trace.profiles[0].callTree.children[0].selfWeight).toBe(1);
+    expect(trace.profiles[0].callTree.children[0].totalWeight).toBe(2);
+    expect(trace.profiles[0].callTree.children[0].frame.name).toBe(
       'Unknown {"frame":"0"}'
     );
-    expect(trace.profiles[0].appendOrderTree.children[0].children[0].frame.name).toBe(
+    expect(trace.profiles[0].callTree.children[0].children[0].frame.name).toBe(
       'Unknown {"frame":"1"}'
     );
-    expect(trace.profiles[0].appendOrderTree.children[0].children[0].selfWeight).toBe(1);
-    expect(trace.profiles[0].appendOrderTree.children[0].children[0].totalWeight).toBe(1);
+    expect(trace.profiles[0].callTree.children[0].children[0].selfWeight).toBe(1);
+    expect(trace.profiles[0].callTree.children[0].children[0].totalWeight).toBe(1);
   });
 
   it('handles X trace with tdur', () => {

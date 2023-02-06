@@ -70,7 +70,8 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
     );
 
     const {open, close, timings} = makeTestingBoilerplate();
@@ -122,7 +123,8 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
     );
 
     expect(profile.stats.discardedSamplesCount).toBe(1);
@@ -163,7 +165,8 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
     );
 
     expect(profile.stats.negativeSamplesCount).toBe(1);
@@ -209,7 +212,8 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
     );
 
     expect(profile.rawWeights.length).toBe(3);
@@ -245,7 +249,8 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
     );
 
     expect(profile.name).toBe('foo (thread: bar)');
@@ -267,7 +272,8 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
     );
 
     expect(profile.name).toBe('thread: 0');
@@ -293,7 +299,8 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
     );
 
     expect(profile.name).toBe('thread: foo');
@@ -320,7 +327,8 @@ describe('SentrySampledProfile', () => {
     expect(() =>
       SentrySampledProfile.FromProfile(
         sampledProfile,
-        createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+        createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+        {type: 'flamechart'}
       )
     ).toThrow(new TypeError('startedAt or endedAt is NaN'));
   });

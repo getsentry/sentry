@@ -23,7 +23,8 @@ const makeBaseFlamegraph = (): Flamegraph => {
         {type: 'C', at: 3, frame: 0},
       ],
     },
-    createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+    createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+    {type: 'flamechart'}
   );
 
   return new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
@@ -100,7 +101,8 @@ describe('TextRenderer', () => {
           {type: 'C', at: 400, frame: 2},
         ],
       },
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+      {type: 'flamechart'}
     );
 
     const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
@@ -140,7 +142,8 @@ describe('TextRenderer', () => {
           {type: 'C', at: longFrameName.length, frame: 0},
         ],
       },
-      createFrameIndex('mobile', [{name: longFrameName}])
+      createFrameIndex('mobile', [{name: longFrameName}]),
+      {type: 'flamechart'}
     );
 
     const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
@@ -194,7 +197,8 @@ describe('TextRenderer', () => {
           {type: 'C', at: longFrameName.length, frame: 0},
         ],
       },
-      createFrameIndex('mobile', [{name: longFrameName}])
+      createFrameIndex('mobile', [{name: longFrameName}]),
+      {type: 'flamechart'}
     );
 
     const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
