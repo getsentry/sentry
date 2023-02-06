@@ -106,7 +106,13 @@ class OrganizationService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_all_org_roles(self, organization_member: ApiOrganizationMember) -> List[str]:
+    def get_all_org_roles(
+        self, organization_member: ApiOrganizationMember | None, member_id: int | None
+    ) -> List[str]:
+        pass
+
+    @abstractmethod
+    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         pass
 
 

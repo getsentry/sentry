@@ -4,6 +4,7 @@ import dataclasses
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
 
+from sentry import roles
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -293,7 +294,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def _serialize_invite(cls, om: OrganizationMember) -> ApiOrganizationInvite:
         return ApiOrganizationInvite(om.id, om.token, om.email)
 
-    def get_all_org_roles(self, organization_member: ApiOrganizationMember) -> List[str]:
+    def get_all_org_roles(
+        self, organization_member: ApiOrganizationMember = None, member_id: int = None
+    ) -> List[str]:
+        if member_id:
+            member = OrganizationMember.objects.get(id=member_id)
+            organization_member = self.serialize_member(member)
+
         team_ids = [mt.team_id for mt in organization_member.member_teams]
         org_roles = list(
             Team.objects.filter(id__in=team_ids)
@@ -303,3 +310,15 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
         org_roles.append(organization_member.role)
         return org_roles
+
+    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+        owner_teams = list(
+            Team.objects.filter(
+                organization_id=organization_id, org_role=roles.get_top_dog().id
+            ).values_list("id", flat=True)
+        )
+        return list(
+            OrganizationMemberTeam.objects.filter(team_id__in=owner_teams).values_list(
+                "organizationmember_id", flat=True
+            )
+        )

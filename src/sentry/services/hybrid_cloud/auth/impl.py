@@ -5,7 +5,7 @@ import dataclasses
 from typing import List, Mapping, Tuple
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 from rest_framework.request import Request
 
 from sentry import features, roles
@@ -96,13 +96,18 @@ def query_sso_state(
             # If an owner is trying to gain access,
             # allow bypassing SSO if there are no other
             # owners with SSO enabled.
-            if member.role == roles.get_top_dog().id:
+            if roles.get_top_dog().id in organization_service.get_all_org_roles(
+                member_id=member.id
+            ):
 
                 def get_user_ids(org_id: int, mem_id: int) -> Any:
+                    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
+                        organization_id=organization_id
+                    )
                     return (
                         org_member_class.objects.filter(
+                            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
                             organization_id=org_id,
-                            role=roles.get_top_dog().id,
                             user__is_active=True,
                         )
                         .exclude(id=mem_id)
