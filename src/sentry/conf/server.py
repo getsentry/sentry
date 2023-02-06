@@ -1131,8 +1131,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable new issue actions on issue details
-    "organizations:issue-actions-v2": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable removing issue from issue list if action taken.
