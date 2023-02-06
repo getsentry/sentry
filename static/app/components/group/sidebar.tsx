@@ -6,7 +6,6 @@ import isObject from 'lodash/isObject';
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
@@ -209,19 +208,12 @@ class BaseGroupSidebar extends Component<Props, State> {
   render() {
     const {event, group, organization, project, environments} = this.props;
     const {allEnvironmentsGroupData, currentRelease} = this.state;
-    const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
     const hasStreamlineTargetingFeature = organization.features.includes(
       'streamline-targeting-context'
     );
 
     return (
       <Container>
-        {!hasIssueActionsV2 && (
-          <PageFiltersContainer>
-            <EnvironmentPageFilter alignDropdown="right" />
-          </PageFiltersContainer>
-        )}
-
         {!hasStreamlineTargetingFeature && (
           <OwnedBy group={group} project={project} organization={organization} />
         )}
@@ -284,15 +276,11 @@ class BaseGroupSidebar extends Component<Props, State> {
         />
 
         {this.renderParticipantData()}
-        {hasIssueActionsV2 && this.renderSeenByList()}
+        {this.renderSeenByList()}
       </Container>
     );
   }
 }
-
-const PageFiltersContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
