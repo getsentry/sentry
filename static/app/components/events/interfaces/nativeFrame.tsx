@@ -1,5 +1,4 @@
 import {Fragment, MouseEvent, useContext, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -17,11 +16,12 @@ import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/u
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import StrictClick from 'sentry/components/strictClick';
+import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconInfo} from 'sentry/icons/iconInfo';
-import {IconQuestion} from 'sentry/icons/iconQuestion';
+import {IconFileBroken} from 'sentry/icons/iconFileBroken';
+import {IconRepeat} from 'sentry/icons/iconRepeat';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
@@ -219,7 +219,6 @@ function NativeFrame({
 
   return (
     <GridRow
-      inApp={frame.inApp}
       expandable={expandable}
       expanded={expanded}
       className="frame"
@@ -232,22 +231,21 @@ function NativeFrame({
               (packageClickable ? (
                 <PackageStatusButton
                   onClick={handleGoToImagesLoaded}
-                  title={t('Go to images loaded')}
                   aria-label={t('Go to images loaded')}
                   icon={
                     status === 'error' ? (
-                      <IconQuestion size="sm" color="errorText" />
+                      <IconFileBroken size="sm" color="errorText" />
                     ) : (
-                      <IconWarning size="sm" color="errorText" />
+                      <IconWarning size="sm" color="warningText" />
                     )
                   }
                   size="zero"
                   borderless
                 />
               ) : status === 'error' ? (
-                <IconQuestion size="sm" color="errorText" />
+                <IconFileBroken size="sm" color="errorText" />
               ) : (
-                <IconWarning size="sm" color="errorText" />
+                <IconWarning size="sm" color="warningText" />
               ))}
           </StatusCell>
           <PackageCell>
@@ -264,16 +262,7 @@ function NativeFrame({
                 disabled={frame.package ? false : !packageClickable}
                 containerDisplayMode="inline-flex"
               >
-                <Package
-                  color={
-                    status === undefined || status === 'error'
-                      ? 'errorText'
-                      : packageClickable
-                      ? 'linkColor'
-                      : undefined
-                  }
-                  onClick={packageClickable ? handleGoToImagesLoaded : undefined}
-                >
+                <Package onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
                   {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
                 </Package>
               </Tooltip>
@@ -288,24 +277,14 @@ function NativeFrame({
               {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
             </Tooltip>
           </AddressCell>
-          <GroupingCell>
-            {isUsedForGrouping && (
-              <Tooltip
-                title={t('This frame appears in all other events related to this issue')}
-                containerDisplayMode="inline-flex"
-              >
-                <IconInfo size="sm" color="subText" />
-              </Tooltip>
-            )}
-          </GroupingCell>
           <FunctionNameCell>
-            <FunctionName>
+            <div>
               {functionName ? (
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               ) : (
                 `<${t('unknown')}>`
               )}
-            </FunctionName>
+            </div>
             {frame.filename && (
               <Tooltip
                 title={frame.absPath}
@@ -322,6 +301,19 @@ function NativeFrame({
               </Tooltip>
             )}
           </FunctionNameCell>
+          <GroupingCell>
+            {isUsedForGrouping && (
+              <Tooltip
+                title={t('Repeated in every event of this issue')}
+                containerDisplayMode="inline-flex"
+              >
+                <IconRepeat size="sm" color="linkColor" />
+              </Tooltip>
+            )}
+          </GroupingCell>
+          <TypeCell>
+            {frame.inApp ? <Tag>{t('In App')}</Tag> : <Tag>{t('System')}</Tag>}
+          </TypeCell>
           <ExpandCell>
             {expandable && (
               <ToggleButton
@@ -364,7 +356,6 @@ function NativeFrame({
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
 const Cell = styled('div')`
-  padding: ${space(0.5)};
   display: flex;
   flex-wrap: wrap;
   word-break: break-all;
@@ -379,7 +370,6 @@ const StatusCell = styled(Cell)`
 `;
 
 const PackageCell = styled(Cell)`
-  color: ${p => p.theme.subText};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/2;
     grid-row: 1/1;
@@ -390,7 +380,7 @@ const PackageCell = styled(Cell)`
 `;
 
 const AddressCell = styled(Cell)`
-  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 3/3;
     grid-row: 1/1;
@@ -405,12 +395,14 @@ const GroupingCell = styled(Cell)`
 `;
 
 const FunctionNameCell = styled(Cell)`
-  color: ${p => p.theme.textColor};
+  font-family: ${p => p.theme.text.familyMono};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/-1;
     grid-row: 2/2;
   }
 `;
+
+const TypeCell = styled(Cell)``;
 
 const ExpandCell = styled(Cell)``;
 
@@ -438,11 +430,6 @@ const Package = styled('span')<{color?: ColorOrAlias}>`
   ${p => p.onClick && `cursor: pointer;`}
 `;
 
-const FunctionName = styled('div')`
-  color: ${p => p.theme.headingColor};
-  margin-right: ${space(1)};
-`;
-
 const FileName = styled('span')`
   color: ${p => p.theme.subText};
   border-bottom: 1px dashed ${p => p.theme.border};
@@ -453,39 +440,11 @@ const PackageStatusButton = styled(Button)`
   border: none;
 `;
 
-const GridRow = styled('li')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
+const GridRow = styled('li')<{expandable: boolean; expanded: boolean}>`
   ${p => p.expandable && `cursor: pointer;`};
-  ${p => p.inApp && `background: ${p.theme.bodyBackground};`};
-  ${p =>
-    !p.inApp &&
-    css`
-      color: ${p.theme.subText};
-      ${FunctionName} {
-        color: ${p.theme.subText};
-      }
-      ${FunctionNameCell} {
-        color: ${p.theme.subText};
-      }
-    `};
-
   display: grid;
-  align-items: flex-start;
-  padding: ${space(0.5)};
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-
-  && {
-    border-top: 0;
-  }
-
-  grid-template-columns: 24px 132px 138px 24px 1fr 24px;
-  grid-template-rows: 1fr;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
-    grid-template-rows: repeat(2, auto);
-  }
+  background-color: ${p => p.theme.bodyBackground};
+  grid-template-columns: repeat(7, 1fr);
 `;
 
 const StrictClickContent = styled('div')`
