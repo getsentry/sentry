@@ -108,7 +108,11 @@ class CompositeRuleStore:
                 scope.set_tag("discarded", len(rules) - self.MERGE_MAX_RULES)
                 scope.set_context(
                     "clustering_rules_max",
-                    {"num_existing_rules": len(rules), "max_amount": self.MERGE_MAX_RULES},
+                    {
+                        "num_existing_rules": len(rules),
+                        "max_amount": self.MERGE_MAX_RULES,
+                        "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
+                    },
                 )
                 sentry_sdk.capture_message("Transaction clusterer discarded rules", level="warn")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
