@@ -260,14 +260,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS && (
-          <FeatureBadge
-            type="beta"
-            title={t(
-              'N+1 API Calls Performance Issues are in active development and may change'
-            )}
-          />
-        )}
         {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
           <FeatureBadge
             type="alpha"
