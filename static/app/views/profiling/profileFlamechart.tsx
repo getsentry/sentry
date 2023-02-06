@@ -63,11 +63,25 @@ function ProfileFlamegraph(): React.ReactElement {
       qs.parse(window.location.search)
     );
 
+    let type =
+      storedPreferences.preferences?.type ??
+      queryStringState.preferences?.type ??
+      DEFAULT_FLAMEGRAPH_STATE.preferences.type;
+
+    // Ensure that the type is overriden to the default if the feature is not enabled
+    if (
+      type === 'flamegraph' &&
+      !organization.features.includes('profiling-flamegraphs')
+    ) {
+      type = 'flamechart';
+    }
+
     return {
       ...queryStringState,
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
+        type,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
           ...(storedPreferences?.preferences?.timelines ?? {}),
