@@ -187,7 +187,6 @@ class EventAttributeCondition(EventCondition):
                     device = []
                 return [device.get(path[1])]
 
-<<<<<<< HEAD
         elif path[0] == "unreal":
             if path[1] == "crash_type":
                 contexts = event.data["contexts"]
@@ -195,7 +194,7 @@ class EventAttributeCondition(EventCondition):
                 if unreal is None:
                     unreal = []
                 return [unreal.get(path[1])]
-=======
+
         elif path[0] == "app":
             if path[1] in ("in_foreground"):
                 contexts = event.data["contexts"]
@@ -206,7 +205,6 @@ class EventAttributeCondition(EventCondition):
 
             return []
 
->>>>>>> master
         return []
 
     def render_label(self) -> str:
