@@ -55,11 +55,7 @@ export function FlamegraphPreview({
       return FlamegraphModel.Empty();
     }
 
-    return new FlamegraphModel(profile, threadId, {
-      inverted: false,
-      leftHeavy: false,
-      configSpace: undefined,
-    });
+    return new FlamegraphModel(profile, threadId, {});
   }, [profile, threadId]);
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -206,7 +202,7 @@ export function computePreviewConfigView(
   }
 
   // By default, we show the inner most frames.
-  let depth = Math.max(0, Math.ceil(maxDepthInWindow - configView.height));
+  let depth = Math.max(0, Math.ceil(maxDepthInWindow - configView.height + 1));
 
   // If we were able to find a frame that is likely the parent of the span,
   // we should bias towards that frame.
