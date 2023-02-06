@@ -1025,6 +1025,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
+    # Enable the profiling previews
+    "organizations:profiling-previews": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
