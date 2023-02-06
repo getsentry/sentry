@@ -242,7 +242,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@mgs-test-off-master
+        uses: getsentry/action-visual-snapshot@6b5d534095d55a522400e12f64e0d47de23d9308
         with:
           action-name: 'Visual Snapshot: Frontend'
           artifact-name: 'frontend-snapshots'
