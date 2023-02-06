@@ -1,5 +1,4 @@
 import beautify from 'js-beautify';
-import Prism from 'prismjs';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 
@@ -31,14 +30,6 @@ JS.args = {
   language: 'javascript',
   hideCopyButton: false,
 };
-JS.argTypes = {
-  language: {
-    options: Object.keys(Prism.languages),
-    control: {type: 'inline-radio'},
-    description:
-      'This is not a reactive prop. Changes to this prop after the intitial render will not re-trigger the Prism highlighting function.',
-  },
-};
 
 export const HTML = ({...args}) => (
   <CodeSnippet {...args}>
@@ -52,12 +43,4 @@ HTML.args = {
   filename: 'sample.html',
   language: 'html',
   hideCopyButton: false,
-};
-HTML.argTypes = {
-  language: {
-    options: Object.keys(Prism.languages),
-    control: {type: 'inline-radio'},
-    description:
-      'This is not a reactive prop. Changes to this prop after the intitial render will not re-trigger the Prism highlighting function.',
-  },
 };
