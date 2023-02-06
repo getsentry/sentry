@@ -7,8 +7,10 @@ from typing import List
 @dataclass
 class Project:
     id: int
-    total: int
-    # sample_rate: float
+    count_per_root: int
+    blended_sample_rate: float
+    new_count_per_root: int = 0
+    new_sample_rate: float = 0.0
 
 
 @dataclass
@@ -16,27 +18,38 @@ class AdjustedModel:
     projects: List[Project]
     fidelity_rate: float
 
+    @property
     def adjust_sample_rates(self):
         if len(self.projects) < 2:
             return self.projects
 
-        # Step 1: sort
-        sorted_ = list(map(attrgetter("total"), self.projects))
+        # Step 1: sort projects by count per root project
+        sorted_projects = list(sorted(self.projects, key=attrgetter("count_per_root")))
 
         # Step 2: find avg
-        avg = statistics.mean(sorted_)
+        average = statistics.mean([p.count_per_root for p in sorted_projects])
 
         # Step 3:
-        # Find upper bound
-        # One maximum adjustment 1 up to 4
-        min_element = min(sorted_)
+        # IF len % 2 == 0
+        left_split = sorted_projects[: len(sorted_projects) // 2]
+        right_split = reversed(sorted_projects[len(sorted_projects) // 2 :])
 
-        max_ = min_element / self.fidelity_rate
-        adjustments_ceiling_p4 = min((avg - min_element), max_)
+        new_left = []
+        new_right = []
+        coefficient = 1
+        for left, right in zip(left_split, right_split):
+            # We can't increase sample rate more than 1.0, so we calculate upper bound count
+            # based on project fidelity_rate
+            # Find an absolute difference
+            diff = coefficient * min(
+                (average - left.count_per_root),
+                ((left.count_per_root / self.fidelity_rate) - left.count_per_root),
+            )
+            left.new_count_per_root = left.count_per_root + diff
+            right.new_count_per_root = right.count_per_root - diff
+            new_left.append(left)
+            new_right.append(right)
+            # This opinionated `coefficient` reduces adjustment on every step
+            coefficient = diff / left.new_count_per_root
 
-        d2 = adjustments_ceiling_p4 - sorted_[1]
-        total_adjusment = d2
-        d1 = abs(avg - sorted_[1])
-        d11 = d1 / d1 * total_adjusment
-
-        return [d11, d2]
+        return [new_left, new_right]
