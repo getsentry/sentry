@@ -112,6 +112,7 @@ class PerformanceUncompressedAssetsGroupType(GroupType):
     slug = "performance_uncompressed_assets"
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 10
 
 
 @dataclass(frozen=True)
