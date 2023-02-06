@@ -16,12 +16,12 @@ import {isSchema} from '../../utils/profiling/guards/profile';
 function fetchFlamegraphs(
   api: Client,
   eventId: string,
-  projectId: Project['id'],
-  organization: Organization
+  projectSlug: Project['slug'],
+  orgSlug: Organization['slug'],
 ): Promise<Profiling.ProfileInput> {
   return api
     .requestPromise(
-      `/projects/${organization.slug}/${projectId}/profiling/profiles/${eventId}/`,
+      `/projects/${orgSlug}/${projectSlug}/profiling/profiles/${eventId}/`,
       {
         method: 'GET',
         includeAllArgs: true,
@@ -45,7 +45,7 @@ type ProfileProviderValue = RequestState<Profiling.ProfileInput>;
 type SetProfileProviderValue = React.Dispatch<
   React.SetStateAction<RequestState<Profiling.ProfileInput>>
 >;
-const ProfileContext = createContext<ProfileProviderValue | null>(null);
+export const ProfileContext = createContext<ProfileProviderValue | null>(null);
 const SetProfileProvider = createContext<SetProfileProviderValue | null>(null);
 
 export function useProfiles() {
@@ -77,8 +77,7 @@ export function useProfileTransaction() {
   return context;
 }
 
-function ProfileProvider(props: FlamegraphViewProps): React.ReactElement {
-  const api = useApi();
+function ProfileProviderWrapper(props: FlamegraphViewProps): React.ReactElement {
   const organization = useOrganization();
   const params = useParams();
 
@@ -92,30 +91,13 @@ function ProfileProvider(props: FlamegraphViewProps): React.ReactElement {
     profiles.type === 'resolved' ? getTransactionId(profiles.data) : null
   );
 
-  useEffect(() => {
-    if (!params.eventId || !params.projectId) {
-      return undefined;
-    }
-
-    setProfiles({type: 'loading'});
-
-    fetchFlamegraphs(api, params.eventId, params.projectId, organization)
-      .then(p => {
-        setProfiles({type: 'resolved', data: p});
-      })
-      .catch(err => {
-        const message = err.toString() || t('Error: Unable to load profiles');
-        setProfiles({type: 'errored', error: message});
-        Sentry.captureException(err);
-      });
-
-    return () => {
-      api.clear();
-    };
-  }, [params.eventId, params.projectId, api, organization]);
-
   return (
-    <ProfileContext.Provider value={profiles}>
+    <ProfilesProvider
+      onUpdateProfiles={setProfiles}
+      orgSlug={organization.slug}
+      profileId={params.eventId}
+      projectSlug={params.projectId}
+    >
       <SetProfileProvider.Provider value={setProfiles}>
         <ProfileTransactionContext.Provider value={profileTransaction}>
           <ProfileHeader
@@ -128,8 +110,56 @@ function ProfileProvider(props: FlamegraphViewProps): React.ReactElement {
           {props.children}
         </ProfileTransactionContext.Provider>
       </SetProfileProvider.Provider>
-    </ProfileContext.Provider>
+    </ProfilesProvider>
   );
 }
 
-export default ProfileProvider;
+interface ProfilesProviderProps {
+  children: React.ReactNode;
+  orgSlug: Organization['slug'];
+  profileId: string;
+  projectSlug: Project['slug'];
+  onUpdateProfiles?: (any) => void;
+}
+
+export function ProfilesProvider({
+  children,
+  onUpdateProfiles,
+  orgSlug,
+  projectSlug,
+  profileId,
+}: ProfilesProviderProps) {
+  const api = useApi();
+
+  const [profiles, setProfiles] = useState<RequestState<Profiling.ProfileInput>>({
+    type: 'initial',
+  });
+
+  useEffect(() => {
+    if (!profileId || !projectSlug || !orgSlug) {
+      return undefined;
+    }
+
+    setProfiles({type: 'loading'});
+
+    fetchFlamegraphs(api, profileId, projectSlug, orgSlug)
+      .then(p => {
+        setProfiles({type: 'resolved', data: p});
+        onUpdateProfiles?.({type: 'resolved', data: p});
+      })
+      .catch(err => {
+        const message = err.toString() || t('Error: Unable to load profiles');
+        setProfiles({type: 'errored', error: message});
+        onUpdateProfiles?.({type: 'errored', error: message});
+        Sentry.captureException(err);
+      });
+
+    return () => {
+      api.clear();
+    };
+  }, [api, onUpdateProfiles, orgSlug, projectSlug, profileId]);
+
+  return <ProfileContext.Provider value={profiles}>{children}</ProfileContext.Provider>;
+}
+
+export default ProfileProviderWrapper;
