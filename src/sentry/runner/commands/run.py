@@ -394,7 +394,7 @@ def post_process_forwarder(**options):
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
             strict_offset_reset=options["strict_offset_reset"],
-            use_streaming_consumer=bool(options["use_streaming_consumer"]),
+            use_streaming_consumer=True,
         )
     except ForwarderNotRequired:
         sys.stdout.write(
