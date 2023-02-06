@@ -71,47 +71,8 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
     scale,
   ]);
 
-  const draw = useCallback(
-    (modelToView: mat3, node?: any, hoverNode?: any) => {
-      const overlay = overlayRef?.getContext('2d');
-      if (!overlay) {
-        return;
-      }
-      overlay.resetTransform();
-      overlay.clearRect(0, 0, canvasSize.width, canvasSize.height);
-
-      overlay.setTransform(
-        modelToView[0],
-        modelToView[3],
-        modelToView[1],
-        modelToView[4],
-        modelToView[6],
-        modelToView[7]
-      );
-
-      overlay.fillStyle = theme.pink200;
-
-      if (node) {
-        overlay.fillRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
-      }
-
-      if (hoverNode) {
-        overlay.fillStyle = theme.pink100;
-        overlay.fillRect(
-          hoverNode.rect.x,
-          hoverNode.rect.y,
-          hoverNode.rect.width,
-          hoverNode.rect.height
-        );
-      }
-      // /// /////
-      const context = canvasRef?.getContext('2d');
-      if (!context) {
-        return;
-      }
-
-      // Context is stateful, so reset the transforms at the beginning of each
-      // draw to properly clear the canvas from 0, 0
+  const setupCanvasContext = useCallback(
+    (context: CanvasRenderingContext2D, modelToView: mat3) => {
       context.resetTransform();
       context.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
@@ -123,36 +84,65 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
         modelToView[6],
         modelToView[7]
       );
+    },
+    [canvasSize.height, canvasSize.width]
+  );
 
-      context.fillStyle = theme.gray100;
-      context.strokeStyle = theme.gray300;
+  const drawOverlay = useCallback(
+    (modelToView: mat3, selectedNode: ViewNode | null, hoverNode: ViewNode | null) => {
+      const overlay = overlayRef?.getContext('2d');
+      if (overlay) {
+        setupCanvasContext(overlay, modelToView);
+        overlay.fillStyle = theme.pink200;
 
-      for (let i = 0; i < hierarchyData.nodes.length; i++) {
-        context.strokeRect(
-          hierarchyData.nodes[i].rect.x,
-          hierarchyData.nodes[i].rect.y,
-          hierarchyData.nodes[i].rect.width,
-          hierarchyData.nodes[i].rect.height
-        );
-        context.fillRect(
-          hierarchyData.nodes[i].rect.x,
-          hierarchyData.nodes[i].rect.y,
-          hierarchyData.nodes[i].rect.width,
-          hierarchyData.nodes[i].rect.height
-        );
+        if (selectedNode) {
+          overlay.fillRect(
+            selectedNode.rect.x,
+            selectedNode.rect.y,
+            selectedNode.rect.width,
+            selectedNode.rect.height
+          );
+        }
+
+        if (hoverNode) {
+          overlay.fillStyle = theme.pink100;
+          overlay.fillRect(
+            hoverNode.rect.x,
+            hoverNode.rect.y,
+            hoverNode.rect.width,
+            hoverNode.rect.height
+          );
+        }
       }
     },
-    [
-      overlayRef,
-      canvasSize.width,
-      canvasSize.height,
-      theme.pink200,
-      theme.gray100,
-      theme.gray300,
-      theme.pink100,
-      canvasRef,
-      hierarchyData.nodes,
-    ]
+    [overlayRef, setupCanvasContext, theme.pink100, theme.pink200]
+  );
+
+  const drawViewHierarchy = useCallback(
+    (modelToView: mat3) => {
+      const canvas = canvasRef?.getContext('2d');
+      if (canvas) {
+        setupCanvasContext(canvas, modelToView);
+        canvas.fillStyle = theme.gray100;
+        canvas.strokeStyle = theme.gray300;
+
+        for (let i = 0; i < hierarchyData.nodes.length; i++) {
+          canvas.strokeRect(
+            hierarchyData.nodes[i].rect.x,
+            hierarchyData.nodes[i].rect.y,
+            hierarchyData.nodes[i].rect.width,
+            hierarchyData.nodes[i].rect.height
+          );
+          canvas.fillRect(
+            hierarchyData.nodes[i].rect.x,
+            hierarchyData.nodes[i].rect.y,
+            hierarchyData.nodes[i].rect.width,
+            hierarchyData.nodes[i].rect.height
+          );
+        }
+      }
+    },
+    [canvasRef, setupCanvasContext, theme.gray100, theme.gray300, hierarchyData.nodes]
   );
 
   useEffect(() => {
@@ -184,7 +174,8 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
 
         // Translate from the original matrix as a starting point
         mat3.translate(currTransformationMatrix, transformationMatrix, delta);
-        draw(currTransformationMatrix, selectedNode);
+        drawViewHierarchy(currTransformationMatrix);
+        drawOverlay(currTransformationMatrix, selectedNode, hoveredNode);
       } else {
         hoveredNode = getDeepestNodeAtPoint(
           hierarchyData.nodes,
@@ -192,7 +183,7 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
           currTransformationMatrix,
           window.devicePixelRatio
         );
-        draw(transformationMatrix, selectedNode, hoveredNode);
+        drawOverlay(transformationMatrix, selectedNode, hoveredNode);
       }
     };
 
@@ -213,7 +204,7 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
           transformationMatrix,
           window.devicePixelRatio
         );
-        draw(transformationMatrix, selectedNode);
+        drawOverlay(transformationMatrix, selectedNode, null);
 
         if (!selectedNode) {
           return;
@@ -230,7 +221,8 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
     overlayRef.addEventListener('mouseup', handleMouseUp, options);
     overlayRef.addEventListener('click', handleMouseClick, options);
 
-    draw(transformationMatrix);
+    drawViewHierarchy(transformationMatrix);
+    drawOverlay(transformationMatrix, selectedNode, hoveredNode);
 
     return () => {
       overlayRef.removeEventListener('mousedown', handleMouseDown, options);
@@ -241,11 +233,12 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
   }, [
     transformationMatrix,
     canvasRef,
-    draw,
     scale,
     overlayRef,
     hierarchyData.nodes,
     onNodeSelect,
+    drawViewHierarchy,
+    drawOverlay,
   ]);
 
   return (

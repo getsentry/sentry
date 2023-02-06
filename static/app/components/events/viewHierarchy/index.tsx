@@ -10,7 +10,6 @@ import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import usePrevious from 'sentry/utils/usePrevious';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -50,7 +49,6 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     viewHierarchy.windows[0]
   );
   const becauseOfFocus = useRef(false);
-  const previousSelection = usePrevious(selectedNode);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;
   }, [viewHierarchy.windows]);
@@ -117,11 +115,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
 
   // Scroll to the selected node when it changes
   useEffect(() => {
-    if (previousSelection !== selectedNode && !becauseOfFocus.current) {
+    if (!becauseOfFocus.current) {
       handleScrollTo(item => item === selectedNode);
     }
     becauseOfFocus.current = false;
-  }, [selectedNode, handleScrollTo, previousSelection]);
+  }, [selectedNode, handleScrollTo]);
 
   const showWireframe = project?.platform !== 'unity';
 
