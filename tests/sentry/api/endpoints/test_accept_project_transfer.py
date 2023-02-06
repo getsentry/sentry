@@ -149,6 +149,31 @@ class AcceptTransferProjectTest(APITestCase):
         assert p.organization_id == self.from_organization.id
         assert p.organization_id != rando_org.id
 
+    def test_non_owner_on_owner_team_can_transfer_project(self):
+        rando_user = self.create_user(email="blipp@bloop.com", is_superuser=False)
+        rando_org = self.create_organization(name="supreme beans")
+        owner_team = self.create_team(organization=rando_org, org_role="owner")
+        self.create_member(
+            organization=rando_org, user=rando_user, teams=[owner_team], role="member"
+        )
+
+        self.login_as(rando_user)
+        url_data = sign(
+            actor_id=self.member.user_id,
+            from_organization_id=rando_org.id,
+            project_id=self.project.id,
+            user_id=rando_user.id,
+            transaction_id=self.transaction_id,
+        )
+
+        resp = self.client.post(
+            self.path, data={"organization": self.to_organization.slug, "data": url_data}
+        )
+        assert resp.status_code == 400
+        p = Project.objects.get(id=self.project.id)
+        assert p.organization_id == self.from_organization.id
+        assert p.organization_id != rando_org.id
+
     def test_transfers_project_to_correct_organization(self):
         self.login_as(self.owner)
         url_data = sign(
