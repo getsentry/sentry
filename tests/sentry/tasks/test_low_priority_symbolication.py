@@ -68,6 +68,7 @@ class TestScanForSuspectProjects:
     ) -> None:
         store.add_project_to_lpq(17)
         assert store.get_lpq_projects() == {17}
+        assert store.is_lpq_project(17)
 
         with TaskRunner():
             _scan_for_suspect_projects()
@@ -107,6 +108,7 @@ class TestUpdateLpqEligibility:
 
         _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == {17}
+        assert store.is_lpq_project(17)
 
     @freeze_time(datetime.fromtimestamp(0))
     def test_is_eligible_in_lpq(self, store: RealtimeMetricsStore) -> None:
@@ -116,6 +118,7 @@ class TestUpdateLpqEligibility:
 
         _update_lpq_eligibility(project_id=17)
         assert store.get_lpq_projects() == {17}
+        assert store.is_lpq_project(17)
 
     def test_not_eligible_in_lpq(self, store: RealtimeMetricsStore) -> None:
         store.add_project_to_lpq(17)
@@ -144,3 +147,5 @@ class TestUpdateLpqEligibility:
 
         _update_lpq_eligibility(17)
         assert store.get_lpq_projects() == {17}
+        assert not store.is_lpq_project(16)
+        assert store.is_lpq_project(17)
