@@ -2,14 +2,19 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
-import {BarChart} from 'sentry/components/charts/barChart';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   canUseMetricsData,
   useMEPSettingContext,
@@ -165,19 +170,32 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
   };
 
   const assembleAccordionItems = provided =>
-    getHeaders(provided).map(header => ({header, content: getChart(provided)}));
+    getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const getChart = provided => () =>
-    (
-      <BarChart
+  const getAreaChart = provided => () => {
+    const durationUnit = getDurationUnit(provided.widgetData.chart.data);
+    return (
+      <StackedAreaChart
         {...provided.widgetData.chart}
         {...provided}
         colors={colors}
         series={provided.widgetData.chart.data}
-        stacked
         animation
         isGroupedByDate
         showTimeInTooltip
+        yAxis={{
+          minInterval: durationUnit,
+          axisLabel: {
+            formatter(value: number) {
+              return axisLabelFormatter(
+                value,
+                aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
+                undefined,
+                durationUnit
+              );
+            },
+          },
+        }}
         xAxis={{
           show: false,
           axisLabel: {show: true, margin: 8},
@@ -186,18 +204,9 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
         tooltip={{
           valueFormatter: value => tooltipFormatter(value, 'duration'),
         }}
-        start={
-          provided.widgetData.chart.start
-            ? new Date(provided.widgetData.chart.start)
-            : undefined
-        }
-        end={
-          provided.widgetData.chart.end
-            ? new Date(provided.widgetData.chart.end)
-            : undefined
-        }
       />
     );
+  };
 
   const getHeaders = provided =>
     provided.widgetData.list.data.map(listItem => () => {
