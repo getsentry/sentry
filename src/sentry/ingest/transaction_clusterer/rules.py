@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, Optional, Protocol, Sequence, Tuple
+from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
 
 import sentry_sdk
 
@@ -135,33 +135,16 @@ def _get_rules(project: Project) -> RuleSet:
     return ProjectOptionRuleStore().read(project)
 
 
-def get_sorted_rules(
-    project: Project, amount: Optional[int] = None
-) -> List[Tuple[ReplacementRule, int]]:
+def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
     The rules are fetched from project options rather than redis, because
     project options is the more persistent store.
 
-    `amount` is the threshold for the number of rules that the function returns.
-    Returned rules are always the most recently discovered ones, and they are
-    sorted by depth (deeper in the URL tree go first) and usage (more recently
-    discovered go first).
+    The rules are ordered by specifity, meaning that rules that go deeper
+    into the URL tree occur first.
     """
-    rules = ProjectOptionRuleStore().read_sorted(project)
-    # Even if there are fewer rules than the given amount, sort them. Keeping
-    # always the same order allows the rules to disappear for not being used.
-    rules = sorted(rules, key=lambda r: r[1], reverse=True)
-    if amount is not None and 0 <= amount < len(rules):
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_tag("discarded", len(rules) - amount)
-            scope.set_context(
-                "clustering_rules_max", {"max_amount": amount, "num_existing_rules": len(rules)}
-            )
-            sentry_sdk.capture_message("Transaction clusterer discarded rules", level="warn")
-        rules = rules[:amount]
-    rules = sorted(rules, key=lambda r: r[0].count("/"), reverse=True)
-    return rules
+    return ProjectOptionRuleStore().read_sorted(project)
 
 
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
