@@ -429,42 +429,6 @@ def alert(request):
 
 
 @login_required
-def release_alert(request):
-    platform = request.GET.get("platform", "python")
-    org = Organization(id=1, slug="example", name="Example")
-    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
-
-    event = make_error_event(request, project, platform)
-    group = event.group
-
-    rule = Rule(id=1, label="An example rule")
-    # In non-debug context users_seen we get users_seen from group.count_users_seen()
-    users_seen = get_random(request).randint(0, 100 * 1000)
-
-    contexts = event.data["contexts"].items() if "contexts" in event.data else None
-    event_user = event.data["event_user"] if "event_user" in event.data else None
-
-    return MailPreview(
-        html_template="sentry/emails/release_alert.html",
-        text_template="sentry/emails/release_alert.txt",
-        context={
-            **get_shared_context(rule, org, project, group, event),
-            "interfaces": get_interface_list(event),
-            "event_user": event_user,
-            "contexts": contexts,
-            "users_seen": users_seen,
-            "project": project,
-            "last_release": {
-                "version": "13.9.2",
-            },
-            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
-            "environment": "production",
-            "regression": False,
-        },
-    ).render(request)
-
-
-@login_required
 def digest(request):
     random = get_random(request)
 

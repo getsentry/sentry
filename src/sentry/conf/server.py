@@ -963,10 +963,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
-    # Workflow 2.0 Alpha Functionality for sentry users only
-    "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Active Release Notifications
-    "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
@@ -1176,8 +1172,6 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
-    # Enable populating suggested assignees with release committers
-    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,

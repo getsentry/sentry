@@ -134,9 +134,6 @@ class NotificationHelpersTest(TestCase):
         assert (
             get_scope_type(NotificationSettingTypes.ISSUE_ALERTS) == NotificationScopeType.PROJECT
         )
-        assert (
-            get_scope_type(NotificationSettingTypes.ACTIVE_RELEASE) == NotificationScopeType.PROJECT
-        )
         assert not get_scope_type(NotificationSettingTypes.DEPLOY) == NotificationScopeType.PROJECT
         assert (
             not get_scope_type(NotificationSettingTypes.WORKFLOW)
