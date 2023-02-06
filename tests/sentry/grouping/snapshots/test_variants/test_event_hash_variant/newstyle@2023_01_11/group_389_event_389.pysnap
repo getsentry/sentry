@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:26.892068Z'
+created: '2023-02-01T08:21:59.678104Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -45,21 +45,21 @@ app:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "ba5ff7b8a3adc9b87681ff0f8275a72e"
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "thread_start"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_body"
           frame*
@@ -77,7 +77,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_pthread_testcancel"
         type (ignored because exception is synthetic)

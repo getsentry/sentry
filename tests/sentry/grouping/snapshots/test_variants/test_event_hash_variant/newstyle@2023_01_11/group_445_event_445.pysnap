@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:26.522570Z'
+created: '2023-02-01T08:21:59.198550Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -136,7 +136,7 @@ app:
           frame (non app frame)
             function*
               "abort"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
           frame (non app frame)
@@ -150,26 +150,26 @@ app:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "2fa6bd4588d2ae97b62ef1f8db5b12bf"
+  hash: "15526a7b64e9b5dc6d89e7ebec864260"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
               "invoke_main"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "winmain.cpp"
             function*
@@ -179,7 +179,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*
@@ -189,7 +189,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*
@@ -212,7 +212,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "functional"
             function*
@@ -223,7 +223,7 @@ system:
           frame*
             function*
               "DispatchMessageWorker"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "UserCallWinProcCheckWow"
           frame*
@@ -244,7 +244,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -252,7 +252,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -260,7 +260,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -274,18 +274,18 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "purevirt.cpp"
             function*
               "_purecall"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "abort"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             filename*
               "crashpad_client_win.cc"
             function*

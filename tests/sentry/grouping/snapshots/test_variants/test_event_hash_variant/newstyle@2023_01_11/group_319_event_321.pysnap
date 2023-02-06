@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:27.141066Z'
+created: '2023-02-01T08:22:00.175091Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -81,7 +81,7 @@ app:
           frame (non app frame)
             function*
               "-[NSOpenGLContext flushBuffer]"
-          frame (non app frame)
+          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLFlushDrawable"
           frame (non app frame)
@@ -99,7 +99,7 @@ app:
           frame (non app frame)
             function*
               "IntelCommandBuffer::getNew"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gpusSubmitDataBuffers"
           frame (non app frame)
@@ -111,7 +111,7 @@ app:
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
           frame (non app frame)
@@ -153,7 +153,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLTexImageIOSurface2D"
           frame (non app frame)
@@ -171,7 +171,7 @@ app:
           frame (non app frame)
             function*
               "IntelCommandBuffer::getNew"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gpusSubmitDataBuffers"
           frame (non app frame)
@@ -183,7 +183,7 @@ app:
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -195,12 +195,12 @@ app:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "e4714f9479fea40111888ca143e02d8f"
+  hash: "7e64037e487c78ce0439f750a2ef503f"
   component:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
           frame*
@@ -224,37 +224,37 @@ system:
           frame*
             function*
               "-[NSApplication run]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_DPSNextEvent"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_BlockUntilNextEventMatchingListInModeWithFilter"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "ReceiveNextEventCommon"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "RunCurrentEventLoopInMode"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CFRunLoopRunSpecific"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSources0"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSource0"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__NSThreadPerformPerform"
           frame*
@@ -263,55 +263,55 @@ system:
           frame*
             function*
               "-[NSView displayIfNeeded]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "-[NSOpenGLContext flushBuffer]"
-          frame*
+          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLFlushDrawable"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "glSwap_Exec"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gldPresentFramebufferData"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "SwapFlush"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "intelSubmitCommands"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "IntelCommandBuffer::getNew"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gpusSubmitDataBuffers"
-          frame*
+          frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusKillClientExt"
-          frame*
+          frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "_sigtramp"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "stripped_application_code"
           frame (ignored due to recursion)
@@ -320,64 +320,64 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "NSRunAlertPanel"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "_NSTryRunModal"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "CA::Transaction::commit"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "CA::Context::commit_transaction"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "CA::Layer::display_if_needed"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "stripped_application_code"
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "CGLTexImageIOSurface2D"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "CGLDescribeRenderer"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "gliSetInteger"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "gldFlushObject"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "intelSubmitCommands"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "IntelCommandBuffer::getNew"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "gpusSubmitDataBuffers"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "gpusKillClientExt"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "gpusGenerateCrashLog"
-          frame*
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

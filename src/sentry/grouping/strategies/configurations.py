@@ -192,6 +192,7 @@ register_strategy_config(
         * Initial version
     """,
     initial_context={},
+    enhancements_base="newstyle:2023-01-11",
 )
 
 

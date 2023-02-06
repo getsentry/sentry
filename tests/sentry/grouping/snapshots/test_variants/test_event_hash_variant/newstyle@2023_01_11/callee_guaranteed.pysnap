@@ -1,10 +1,10 @@
 ---
-created: '2023-01-11T11:41:30.137493Z'
+created: '2023-02-01T08:22:07.751949Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "e2ea2eb86d26407f06b59beb3a444c91"
+  hash: "4ef1fb44d656c3be2a146971f2a222dc"
   component:
     app*
       exception*
@@ -12,13 +12,13 @@ app:
           frame (non app frame)
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
           frame (non app frame)
@@ -42,7 +42,7 @@ app:
           frame (non app frame)
             function*
               "_dispatch_call_block_and_release"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -56,7 +56,7 @@ app:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -69,7 +69,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -80,7 +80,7 @@ app:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -127,45 +127,45 @@ app:
           2
 --------------------------------------------------------------------------
 system:
-  hash: "d23d0dfeac5f1349ceb624b330670b25"
+  hash: "0211daaed35e19ba74b4d6f08cd00fef"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "-[UIApplication _run]"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "GSEventRunModal"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "CFRunLoopRunSpecific"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRunLoopRun"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_main_queue_callback_4CF"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_call_block_and_release"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -179,7 +179,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -192,7 +192,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -203,7 +203,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*

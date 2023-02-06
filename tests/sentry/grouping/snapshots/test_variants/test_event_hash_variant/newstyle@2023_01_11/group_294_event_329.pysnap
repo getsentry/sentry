@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:29.428740Z'
+created: '2023-02-01T08:22:06.540670Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -88,7 +88,7 @@ app:
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked as prefix frame by stack trace rule (category:malloc +prefix))
             filename*
               "memory"
             function*
@@ -132,7 +132,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::terminate"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
@@ -144,7 +144,7 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "abort_message"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -159,27 +159,27 @@ app:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "76e54b047bb34b5d0ec6d210fcd8d995"
+  hash: "49b6f72b6635cb43190c57ee56b026b0"
   component:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queues_init_once"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_worker_thread2"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queue_drain"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
           frame*
@@ -188,7 +188,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -202,7 +202,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -213,17 +213,17 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "mac"
             function*
               "std::__1::map<T>::~map"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "map"
             function*
               "std::__1::map<T>::~map"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "__tree"
             function*
@@ -233,7 +233,7 @@ system:
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "__tree"
             function*
@@ -243,22 +243,22 @@ system:
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::__destroy<T>"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "mac"
             function*
               "std::__1::pair<T>::~pair"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "utility"
             function*
@@ -287,25 +287,25 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::terminate"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::__terminate"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "demangling_terminate_handler"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort_message"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

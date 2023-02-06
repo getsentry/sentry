@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:29.229136Z'
+created: '2023-02-01T08:22:06.277778Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,13 +20,13 @@ app:
           frame (non app frame)
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "main"
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
           frame (non app frame)
@@ -93,67 +93,67 @@ system:
     system (exception of app takes precedence)
       threads (exception of app takes precedence)
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "main"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "GSEventRunModal"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "CFRunLoopRunSpecific"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSources0"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSource0"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__eventFetcherSourceCallback"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__processEventQueue"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIApplicationAccessibility sendEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIApplication sendEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIWindow sendEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIWindow _sendTouchesForEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl touchesEnded:withEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl _sendActionsForEvents:withEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
           frame*
