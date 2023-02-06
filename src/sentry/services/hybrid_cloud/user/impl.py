@@ -98,9 +98,6 @@ class DatabaseBackedUserService(
         if "actor_ids" in filters:
             query = query.filter(actor_id__in=filters["actor_ids"])
 
-        if "actor_ids" in filters:
-            query = query.filter(actor_id__in=filters["actor_ids"])
-
         return list(query)
 
     def get_from_group(self, group: Group) -> List[APIUser]:
