@@ -23,7 +23,8 @@ import {
   useSourceMapDebugQueries,
 } from './useSourceMapDebug';
 
-const sdkDocsMap: Record<string, string> = {
+// TODO: move somewhere else
+export const sdkDocsMap: Record<string, string> = {
   'sentry.javascript.browser': 'javascript',
   'sentry.javascript.node': 'node',
   'sentry.javascript.react': 'react',
