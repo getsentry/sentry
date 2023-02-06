@@ -208,6 +208,7 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
+from .endpoints.monitor_checkin_attachment import MonitorCheckInAttachmentEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
@@ -685,6 +686,11 @@ urlpatterns = [
                     name="sentry-api-0-monitor-check-in-details",
                 ),
                 url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+                    MonitorCheckInAttachmentEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-attachment",
+                ),
+                url(
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
@@ -711,6 +717,11 @@ urlpatterns = [
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-details-with-org",
+                ),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+                    MonitorCheckInAttachmentEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-attachment-with-org",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/stats/$",

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from io import BytesIO
-
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -9,9 +7,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.bases.monitor import MonitorEndpoint, ProjectMonitorPermission
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.monitor import MonitorCheckInEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
 from sentry.api.validators import MonitorCheckInValidator
@@ -24,82 +21,14 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import (
-    CheckInStatus,
-    File,
-    Monitor,
-    MonitorCheckIn,
-    MonitorStatus,
-    Project,
-    ProjectKey,
-    ProjectStatus,
-)
-from sentry.utils import json
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.models import CheckInStatus, Monitor, MonitorStatus, ProjectKey
 
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class MonitorCheckInDetailsEndpoint(Endpoint):
-    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
-    permission_classes = (ProjectMonitorPermission,)
+class MonitorCheckInDetailsEndpoint(MonitorCheckInEndpoint):
+    authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
     public = {"GET", "PUT"}
-
-    # TODO(dcramer): this code needs shared with other endpoints as its security focused
-    # TODO(dcramer): this doesnt handle is_global roles
-    def convert_args(
-        self,
-        request: Request,
-        monitor_id,
-        checkin_id,
-        organization_slug: str | None = None,
-        *args,
-        **kwargs,
-    ):
-        try:
-            monitor = Monitor.objects.get(guid=monitor_id)
-        except Monitor.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        project = Project.objects.get_from_cache(id=monitor.project_id)
-        if project.status != ProjectStatus.VISIBLE:
-            raise ResourceDoesNotExist
-
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
-        if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
-            return self.respond(status=400)
-
-        self.check_object_permissions(request, project)
-
-        with configure_scope() as scope:
-            scope.set_tag("project", project.id)
-
-        bind_organization_context(project.organization)
-
-        # we support the magic keyword of "latest" to grab the most recent check-in
-        # which is unfinished (thus still mutable)
-        if checkin_id == "latest":
-            checkin = (
-                MonitorCheckIn.objects.filter(monitor=monitor)
-                .exclude(status__in=CheckInStatus.FINISHED_VALUES)
-                .order_by("-date_added")
-                .first()
-            )
-            if not checkin:
-                raise ResourceDoesNotExist
-        else:
-            try:
-                checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
-            except MonitorCheckIn.DoesNotExist:
-                raise ResourceDoesNotExist
-
-        request._request.organization = project.organization
-
-        kwargs.update({"checkin": checkin, "monitor": monitor, "project": project})
-        return (args, kwargs)
 
     @extend_schema(
         operation_id="Retrieve a check-in",
@@ -183,17 +112,6 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         elif params.get("status", checkin.status) in CheckInStatus.FINISHED_VALUES:
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             params["duration"] = duration
-
-        if "attachment" in result:
-            content_type = result.get("attachment_type", "application/octet-stream")
-            attachment_name = result.get("attachment_name", checkin.guid)
-            file = File.objects.create(
-                name=attachment_name,
-                type="checkin.attachment",
-                headers={"Content-Type": content_type},
-            )
-            file.putfile(BytesIO(json.dumps(result["attachment"]).encode()))
-            params["attachment"] = file
 
         with transaction.atomic():
             checkin.update(**params)

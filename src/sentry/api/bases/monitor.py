@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,7 +8,7 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Monitor, Project, ProjectStatus
+from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, Project, ProjectStatus
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -68,3 +70,37 @@ class MonitorEndpoint(Endpoint):
         if isinstance(exc, InvalidAuthProject):
             return self.respond(status=400)
         return super().handle_exception(request, exc)
+
+
+class MonitorCheckInEndpoint(MonitorEndpoint):
+    def convert_args(
+        self,
+        request: Request,
+        monitor_id,
+        checkin_id,
+        organization_slug: str | None = None,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, monitor_id, *args, **kwargs)
+
+        monitor = kwargs["monitor"]
+        # we support the magic keyword of "latest" to grab the most recent check-in
+        # which is unfinished (thus still mutable)
+        if checkin_id == "latest":
+            checkin = (
+                MonitorCheckIn.objects.filter(monitor=monitor)
+                .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                .order_by("-date_added")
+                .first()
+            )
+            if not checkin:
+                raise ResourceDoesNotExist
+        else:
+            try:
+                checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
+            except MonitorCheckIn.DoesNotExist:
+                raise ResourceDoesNotExist
+
+        kwargs.update({"checkin": checkin})
+        return args, kwargs
