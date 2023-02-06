@@ -16,7 +16,6 @@ export interface AreaChartProps extends Omit<ChartProps, 'series'> {
 }
 
 export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
-  console.log('area chart props', props);
   return (
     <BaseChart
       {...props}
