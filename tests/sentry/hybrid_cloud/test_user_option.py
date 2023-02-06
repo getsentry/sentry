@@ -142,7 +142,7 @@ def test_user_option_service():
     )
 
     user_option_service.delete_options(
-        option_ids=[o.id for o in user_option_service.query_options(user_ids=[u1.id]).options]
+        option_ids=[o.id for o in user_option_service.get_many(filter={"user_ids": [u1.id]})]
     )
 
     assert (
