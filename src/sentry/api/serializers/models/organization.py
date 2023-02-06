@@ -343,8 +343,8 @@ class OnboardingTasksSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
-        serialized_users = user_service.serialize_users(
-            user_ids=list({item.user_id for item in item_list if item.user_id})
+        serialized_users = user_service.serialize_many(
+            filter={"user_ids": list({item.user_id for item in item_list if item.user_id})}
         )
         user_map = {user["id"]: user for user in serialized_users}
 

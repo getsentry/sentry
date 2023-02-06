@@ -312,7 +312,7 @@ def get_serialized_event_file_committers(
             return []
         commit = Commit.objects.get(id=owner.context.get("commitId"))
         author = (
-            user_service.serialize_users(user_ids=[owner.user_id])[0]
+            user_service.serialize_many(filter={"user_ids": [owner.user_id]})[0]
             if owner.user
             else {"email": commit.author.email, "name": commit.author.name}
         )

@@ -43,7 +43,8 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
@@ -179,7 +180,7 @@ class DatabaseBackedAuthService(AuthService):
 
         return AuthenticationContext(
             auth=AuthenticatedToken.from_token(token) if token else None,
-            user=user_service.serialize_user(user) if user else None,
+            user=serialize_rpc_user(user) if user else None,
         )
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
@@ -204,13 +205,13 @@ class DatabaseBackedAuthService(AuthService):
         )
 
         if expired_user is not None:
-            result.user = user_service.serialize_user(expired_user)
+            result.user = serialize_rpc_user(expired_user)
             result.expired = True
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
             from django.db import connections, transaction
 
             with transaction.atomic():
-                result.user = user_service.serialize_user(fake_request.user)
+                result.user = serialize_rpc_user(fake_request.user)
                 transaction.set_rollback(True)
             if SiloMode.single_process_silo_mode():
                 connections.close_all()
@@ -267,7 +268,7 @@ class DatabaseBackedAuthService(AuthService):
         # TODO: Might be able to keep hold of the APIUser object whose ID was
         #  originally passed to construct the ApiAuthIdentity object
         user = User.objects.get(id=auth_identity.user_id)
-        serial_user = user_service.serialize_user(user)
+        serial_user = serialize_rpc_user(user)
 
         # This raises an AvailabilityError
         # TODO: Extract ApiInviteHelper methods into new service methods

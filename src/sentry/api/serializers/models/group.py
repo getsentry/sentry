@@ -236,8 +236,9 @@ class GroupSerializerBase(Serializer, ABC):
         actor_ids = {r[-1] for r in release_resolutions.values()}
         actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
-            serialized_users = user_service.serialize_users(
-                user_ids=actor_ids, as_user=user, is_active=True
+            serialized_users = user_service.serialize_many(
+                filter={"user_ids": actor_ids, "is_active": True},
+                as_user=user,
             )
             actors = {id: u for id, u in zip(actor_ids, serialized_users)}
         else:

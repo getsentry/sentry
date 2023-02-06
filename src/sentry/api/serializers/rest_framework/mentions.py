@@ -19,8 +19,11 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     actors: Sequence[APIUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
-    team_users = user_service.query_users(
-        organization_id=organization_id, team_ids=[t.id for t in actor_mentions["teams"]]
+    team_users = user_service.get_many(
+        filter={
+            "organization_id": organization_id,
+            "team_ids": [t.id for t in actor_mentions["teams"]],
+        }
     )
     mentioned_team_users = {u.id for u in team_users} - set({u.id for u in actor_mentions["users"]})
 
@@ -56,10 +59,12 @@ class MentionsMixin:
 
             projects = self.context["projects"]
             organization_id = self.context["organization_id"]
-            users = user_service.query_users(
-                user_ids=mentioned_user_ids,
-                organization_id=organization_id,
-                project_ids=[p.id for p in projects],
+            users = user_service.get_many(
+                filter={
+                    "user_ids": mentioned_user_ids,
+                    "organization_id": organization_id,
+                    "project_ids": [p.id for p in projects],
+                },
             )
             user_ids = [u.id for u in users]
 
