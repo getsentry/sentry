@@ -38,12 +38,12 @@ import {
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToStackedBars} from '../transforms/transformEventsToStackedBars';
+import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
 
 type DataType = {
-  chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedBars>;
+  chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
@@ -157,7 +157,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             />
           );
         },
-        transform: transformEventsRequestToStackedBars,
+        transform: transformEventsRequestToStackedArea,
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
