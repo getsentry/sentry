@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import copy from 'copy-text-to-clipboard';
+import uniq from 'lodash/uniq';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -11,11 +13,21 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+
+type DerivedCodeMapping = {
+  filename: string;
+  repo_branch: string;
+  repo_name: string;
+  source_path: string;
+  stacktrace_root: string;
+};
 
 interface StacktraceLinkModalProps extends ModalRenderProps {
   filename: string;
@@ -39,6 +51,30 @@ function StacktraceLinkModal({
   const api = useApi();
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
+
+  const {data: sugestedCodeMappings} = useQuery<DerivedCodeMapping[]>(
+    [
+      `/organizations/${organization.slug}/derive-code-mappings/`,
+      {
+        query: {
+          projectId: project.id,
+          stacktraceFilename: filename,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+      retry: false,
+      notifyOnChangeProps: ['data'],
+    }
+  );
+
+  const suggestions = uniq(
+    (sugestedCodeMappings ?? []).map(suggestion => {
+      return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+    })
+  ).slice(0, 2);
 
   const onHandleChange = (input: string) => {
     setSourceCodeInput(input);
@@ -100,6 +136,7 @@ function StacktraceLinkModal({
         provider: configData.config?.provider.key,
         view: 'stacktrace_issue_details',
         organization,
+        is_suggestion: suggestions.includes(sourceCodeInput),
       });
       closeModal();
       onSubmit();
@@ -177,9 +214,30 @@ function StacktraceLinkModal({
             </li>
             <li>
               <ItemContainer>
+                <div>
+                  {suggestions.length
+                    ? t('Select from one of these suggestions or paste your URL below')
+                    : t('Copy the URL and paste it below')}
+                </div>
+                {suggestions.length ? (
+                  <StyledSuggestions>
+                    {suggestions.map((suggestion, i) => {
+                      return (
+                        <div key={i} style={{display: 'flex', alignItems: 'center'}}>
+                          <SuggestionOverflow>{suggestion}</SuggestionOverflow>
+                          <Button borderless size="xs" onClick={() => copy(suggestion)}>
+                            <IconCopy size="xs" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </StyledSuggestions>
+                ) : null}
+
                 <StyledTextField
                   inline={false}
-                  label={t('Copy the URL and paste it below')}
+                  aria-label={t('Repository URL')}
+                  hideLabel
                   name="source-code-input"
                   value={sourceCodeInput}
                   onChange={onHandleChange}
@@ -215,7 +273,19 @@ const StyledList = styled(List)`
 
   & > li:before {
     position: relative;
+    min-width: 25px;
   }
+`;
+
+const StyledSuggestions = styled('div')`
+  background-color: ${p => p.theme.surface100};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)} ${space(2)};
+`;
+
+const SuggestionOverflow = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  direction: rtl;
 `;
 
 const ItemContainer = styled('div')`
@@ -224,6 +294,7 @@ const ItemContainer = styled('div')`
   flex-direction: column;
   margin-top: ${space(0.25)};
   flex: 1;
+  max-width: 100%;
 `;
 
 const ModalContainer = styled('div')`
