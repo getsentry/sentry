@@ -7,9 +7,9 @@ from typing import List
 @dataclass
 class Project:
     id: int
-    count_per_root: int
+    count_per_root: float
     blended_sample_rate: float
-    new_count_per_root: int = 0
+    new_count_per_root: float = 0.0
     new_sample_rate: float = 0.0
 
 
@@ -32,7 +32,7 @@ class AdjustedModel:
         # Step 3:
         # IF len % 2 == 0
         left_split = sorted_projects[: len(sorted_projects) // 2]
-        right_split = reversed(sorted_projects[len(sorted_projects) // 2 :])
+        right_split = reversed(sorted_projects[len(sorted_projects) // 2 : len(sorted_projects)])
 
         new_left = []
         new_right = []
@@ -52,4 +52,4 @@ class AdjustedModel:
             # This opinionated `coefficient` reduces adjustment on every step
             coefficient = diff / left.new_count_per_root
 
-        return [new_left, new_right]
+        return [*new_right, *reversed(new_left)]
