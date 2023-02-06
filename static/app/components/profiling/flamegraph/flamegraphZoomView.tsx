@@ -625,7 +625,7 @@ function FlamegraphZoomView({
       <Canvas ref={setFlamegraphOverlayCanvasRef} pointerEvents="none" />
       <FlamegraphContextMenu
         contextMenu={contextMenu}
-        profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
+        profileGroup={profileGroup}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}
@@ -643,11 +643,7 @@ function FlamegraphZoomView({
           flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
           canvasBounds={canvasBounds}
-          platform={
-            profileGroup.type === 'resolved'
-              ? profileGroup.data.metadata.platform
-              : undefined
-          }
+          platform={profileGroup.metadata.platform}
         />
       ) : null}
     </CanvasContainer>

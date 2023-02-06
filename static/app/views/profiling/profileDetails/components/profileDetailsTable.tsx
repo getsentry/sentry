@@ -18,8 +18,9 @@ import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
-import {useProfileGroup} from '../../profileGroupProvider';
 import {useColumnFilters} from '../hooks/useColumnFilters';
 import {useFuseSearch} from '../hooks/useFuseSearch';
 import {usePageLinks} from '../hooks/usePageLinks';
@@ -31,6 +32,7 @@ const RESULTS_PER_PAGE = 50;
 
 export function ProfileDetailsTable() {
   const location = useLocation();
+  const profiles = useProfiles();
   const profileGroup = useProfileGroup();
   const [groupByViewKey, setGroupByView] = useQuerystringState({
     key: 'detailView',
@@ -52,10 +54,7 @@ export function ProfileDetailsTable() {
   const cursor = paginationCursor ? parseInt(paginationCursor, 10) : 0;
 
   const allData = useMemo(() => {
-    const data =
-      profileGroup.type === 'resolved'
-        ? profileGroup.data.profiles.flatMap(collectProfileFrames)
-        : [];
+    const data = profileGroup.profiles.flatMap(collectProfileFrames);
 
     return groupByView.transform(data);
   }, [profileGroup, groupByView]);
@@ -190,8 +189,8 @@ export function ProfileDetailsTable() {
       </ActionBar>
 
       <GridEditable
-        isLoading={profileGroup.type === 'loading'}
-        error={profileGroup.type === 'errored'}
+        isLoading={profiles.type === 'loading'}
+        error={profiles.type === 'errored'}
         data={data}
         columnOrder={groupByView.columns.map(key => COLUMNS[key])}
         columnSortBy={[currentSort]}

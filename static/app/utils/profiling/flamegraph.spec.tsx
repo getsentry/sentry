@@ -14,7 +14,8 @@ const makeEmptyEventedTrace = (): EventedProfile => {
       threadID: 0,
       events: [],
     },
-    createFrameIndex('mobile', [])
+    createFrameIndex('mobile', []),
+    {type: 'flamechart'}
   );
 };
 
@@ -49,7 +50,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
@@ -80,7 +82,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
@@ -115,7 +118,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
@@ -150,7 +154,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
@@ -183,7 +188,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
@@ -215,7 +221,8 @@ describe('flamegraph', () => {
         new Flamegraph(
           EventedProfile.FromProfile(
             trace,
-            createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+            createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+            {type: 'flamechart'}
           ),
           10,
           {
@@ -245,7 +252,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
@@ -286,7 +294,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
@@ -319,7 +328,8 @@ describe('flamegraph', () => {
     const flamegraph = new Flamegraph(
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+        {type: 'flamechart'}
       ),
       10,
       {
