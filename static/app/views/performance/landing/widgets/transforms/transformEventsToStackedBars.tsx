@@ -4,7 +4,7 @@ import {defined} from 'sentry/utils';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 
-export function transformEventsRequestToStackedBars<T extends WidgetDataConstraint>(
+export function transformEventsRequestToStackedArea<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: RenderProps,
   _: QueryDefinitionWithKey<T>
@@ -13,7 +13,12 @@ export function transformEventsRequestToStackedBars<T extends WidgetDataConstrai
     widgetProps.location.query
   );
 
-  const data = results.results ?? [];
+  let data;
+  if (Array.isArray(results.yAxis) && results.yAxis.length > 1) {
+    data = results.results ?? [];
+  } else {
+    data = results.timeseriesData;
+  }
 
   const childData = {
     ...results,
