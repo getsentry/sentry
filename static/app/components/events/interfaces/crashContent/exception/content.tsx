@@ -55,7 +55,7 @@ export function Content({
   }
 
   const shouldDebugFrames = debugFramesEnabled({
-    platform,
+    sdkName: event.sdk?.name,
     organization,
     eventId: event.id,
     projectSlug,

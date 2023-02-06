@@ -22,21 +22,7 @@ import {
   StacktraceFilenameQuery,
   useSourceMapDebugQueries,
 } from './useSourceMapDebug';
-
-// TODO: move somewhere else
-export const sdkDocsMap: Record<string, string> = {
-  'sentry.javascript.browser': 'javascript',
-  'sentry.javascript.node': 'node',
-  'sentry.javascript.react': 'react',
-  'sentry.javascript.angular': 'angular',
-  'sentry.javascript.ember': 'ember',
-  'sentry.javascript.gatsby': 'gatsby',
-  'sentry.javascript.vue': 'vue',
-  'sentry.javascript.nextjs': 'nextjs',
-  'sentry.javascript.remix': 'remix',
-  'sentry.javascript.svelte': 'svelte',
-  'sentry.javascript.react-native': 'react-native',
-};
+import {sourceMapSdkDocsMap} from './utils';
 
 const shortPathPlatforms = ['javascript', 'node', 'react-native'];
 const sentryInit = <code>Sentry.init</code>;
@@ -52,7 +38,7 @@ function getErrorMessage(
   desc?: string;
   docsLink?: string;
 }> {
-  const docPlatform = (sdkName && sdkDocsMap[sdkName]) ?? 'javascript';
+  const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
   const useShortPath = shortPathPlatforms.includes(docPlatform);
 
   const baseSourceMapDocsLink = useShortPath
@@ -122,8 +108,11 @@ function getErrorMessage(
         {
           title: t('Invalid Absolute Path URL'),
           desc: tct(
-            'The given abs_path of the stack frame is [absPath] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
-            {absPath: <code>{error.data.absPath}</code>}
+            'The given [literalAbsPath] of the stack frame is [absPath] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            {
+              absPath: <code>{error.data.absPath}</code>,
+              literalAbsPath: <code>abs_path</code>,
+            }
           ),
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
@@ -135,8 +124,11 @@ function getErrorMessage(
         {
           title: t('Absolute Path Mismatch'),
           desc: tct(
-            'The given abs_path of the stack frame is [absPath] which match any release artifact. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
-            {absPath: <code>{error.data.absPath}</code>}
+            "The given [literalAbsPath] of the stack frame is [absPath] which doesn't match any release artifact. Please refer to the instructions in our docs guide for help with troubleshooting the issue.",
+            {
+              absPath: <code>{error.data.absPath}</code>,
+              literalAbsPath: <code>abs_path</code>,
+            }
           ),
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
@@ -148,8 +140,12 @@ function getErrorMessage(
         {
           title: t('Absolute Path Mismatch'),
           desc: tct(
-            "The distribution identifier you are providing doesn't match. The [dist] value configured in your [init] must be the same as the one used during source map upload. Please refer to the instructions in our docs guide for help with troubleshooting the issue.",
-            {init: sentryInit, dist: <code>dist</code>}
+            "The distribution identifier you are providing doesn't match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Please refer to the instructions in our docs guide for help with troubleshooting the issue.",
+            {
+              init: sentryInit,
+              dist: <code>dist</code>,
+              literalDist: <code>dist</code>,
+            }
           ),
           docsLink: getTroubleshootingLink(
             'verify-artifact-distribution-value-matches-value-configured-in-your-sdk'

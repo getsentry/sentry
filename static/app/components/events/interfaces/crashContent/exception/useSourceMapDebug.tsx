@@ -1,12 +1,11 @@
 import uniqBy from 'lodash/uniqBy';
 
-import {sdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/sourceMapDebug';
 import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-import {isFrameFilenamePathlike} from './utils';
+import {isFrameFilenamePathlike, sourceMapSdkDocsMap} from './utils';
 
 interface BaseSourceMapDebugError {
   message: string;
@@ -131,7 +130,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
   });
 }
 
-const ALLOWED_SDKS = Object.keys(sdkDocsMap);
+const ALLOWED_SDKS = Object.keys(sourceMapSdkDocsMap);
 const MAX_FRAMES = 3;
 
 /**
