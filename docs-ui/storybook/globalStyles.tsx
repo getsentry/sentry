@@ -101,6 +101,7 @@ const docsStyles = (theme: Theme) => css`
   /** Code */
   .sbdocs.sbdocs-pre {
     overflow: visible;
+    font-family: ${theme.text.familyMono};
   }
   .sbdocs.sbdocs-wrapper *:not(pre) > code {
     font-family: ${theme.text.familyMono};
