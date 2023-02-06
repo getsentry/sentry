@@ -14,7 +14,7 @@ import {
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
@@ -343,4 +343,23 @@ export function getSelectedProjectPlatformsArray(
 export function getSelectedProjectPlatforms(location: Location, projects: Project[]) {
   const selectedProjectPlatforms = getSelectedProjectPlatformsArray(location, projects);
   return selectedProjectPlatforms.join(', ');
+}
+
+export function getProjectID(
+  eventData: EventData,
+  projects: Project[]
+): string | undefined {
+  const projectSlug = (eventData?.project as string) || undefined;
+
+  if (typeof projectSlug === undefined) {
+    return undefined;
+  }
+
+  const project = projects.find(currentProject => currentProject.slug === projectSlug);
+
+  if (!project) {
+    return undefined;
+  }
+
+  return project.id;
 }
