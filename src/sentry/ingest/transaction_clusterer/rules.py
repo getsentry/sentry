@@ -72,6 +72,8 @@ class ProjectOptionRuleStore:
 
 
 class CompositeRuleStore:
+    MERGE_MAX_RULES = 2
+
     def __init__(self, stores: List[RuleStore]):
         self._stores = stores
 
@@ -92,7 +94,14 @@ class CompositeRuleStore:
     def merge(self, project: Project) -> None:
         """Read rules from all stores, merge and write them back so they all are up-to-date."""
         merged_rules = self.read(project)
-        self.write(project, merged_rules)
+
+        sorted_rules = sorted(merged_rules.items(), key=lambda p: p[1], reverse=True)
+        # print(f"{sorted_rules=}")
+        trimmed_rules = sorted_rules[: self.MERGE_MAX_RULES]  # TODO: log sentry error
+        trimmed_rules = {rule: last_seen for rule, last_seen in trimmed_rules}
+        # print(f"{trimmed_rules=}")
+
+        self.write(project, trimmed_rules)
 
 
 class LocalRuleStore:
