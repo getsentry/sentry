@@ -131,7 +131,7 @@ describe('EventedProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
 
-    const root = firstCallee(profile.appendOrderStack[0]);
+    const root = firstCallee(profile.callTree);
 
     expect(root.totalWeight).toEqual(4);
     expect(firstCallee(root).totalWeight).toEqual(1);
@@ -332,7 +332,7 @@ describe('EventedProfile - flamegraph', () => {
     expect(profile.callTree.children[1].frame.name).toBe('f1');
 
     // frame 0 is opened twice, so the weight gets merged
-    expect(profile.samples.length).toBe(1);
+    expect(profile.samples.length).toBe(2);
     expect(profile.weights[0]).toBe(2);
     expect(profile.weights[1]).toBe(1);
     expect(profile.weights.length).toBe(2);
