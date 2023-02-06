@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useState} from 'react';
 
 import SelectAsyncControl, {
   Result,
@@ -21,94 +21,76 @@ export interface SelectAsyncFieldProps
   onChangeOption?: (option: GeneralSelectValue, event: any) => void;
 }
 
-type SelectAsyncFieldState = {
-  results: Result[];
-  latestSelection?: GeneralSelectValue;
-};
-class SelectAsyncField extends Component<SelectAsyncFieldProps, SelectAsyncFieldState> {
-  state: SelectAsyncFieldState = {
-    results: [],
-    latestSelection: undefined,
-  };
+function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
+  const [results, setResults] = useState<Result[]>([]);
+  const [latestSelection, setLatestSelection] = useState<
+    GeneralSelectValue | undefined
+  >();
 
-  componentDidMount() {}
+  return (
+    <FormField {...props}>
+      {({
+        required: _required,
+        children: _children,
+        onBlur,
+        onChange,
+        onResults,
+        value,
+        ...fieldProps
+      }) => {
+        const {defaultOptions} = props;
+        // We don't use defaultOptions if it is undefined or a boolean
+        const options = typeof defaultOptions === 'object' ? defaultOptions : [];
+        /**
+         * The propsValue is the `id` of the object (user, team, etc), and
+         * react-select expects a full value object: {value: "id", label: "name"}
+         **/
+        const resolvedValue =
+          // When rendering the selected value, first look at the API results...
+          results.find(({value: v}) => v === value) ??
+          // Then at the defaultOptions passed in props...
+          options?.find(({value: v}) => v === value) ??
+          // Then at the latest value selected in the form
+          (latestSelection as GeneralSelectValue);
 
-  // need to map the option object to the value
-  // this is essentially the same code from ./selectField handleChange()
-  handleChange = (
-    onBlur: SelectAsyncFieldProps['onBlur'],
-    onChange: SelectAsyncFieldProps['onChange'],
-    onChangeOption: SelectAsyncFieldProps['onChangeOption'],
-    optionObj: GeneralSelectValue,
-    event: React.MouseEvent
-  ) => {
-    let {value} = optionObj;
-    if (!optionObj) {
-      value = optionObj;
-    } else if (this.props.multiple && Array.isArray(optionObj)) {
-      // List of optionObjs
-      value = optionObj.map(({value: val}) => val);
-    } else if (!Array.isArray(optionObj)) {
-      value = optionObj.value;
-    }
-    this.setState({latestSelection: optionObj});
-    onChange?.(value, event);
-    onChangeOption?.(optionObj, event);
-    onBlur?.(value, event);
-  };
-
-  findValue(propsValue: string): GeneralSelectValue {
-    const {defaultOptions} = this.props;
-    const {results, latestSelection} = this.state;
-    // We don't use defaultOptions if it is undefined or a boolean
-    const options = typeof defaultOptions === 'object' ? defaultOptions : [];
-    /**
-     * The propsValue is the `id` of the object (user, team, etc), and
-     * react-select expects a full value object: {value: "id", label: "name"}
-     **/
-    return (
-      // When rendering the selected value, first look at the API results...
-      results.find(({value}) => value === propsValue) ??
-      // Then at the defaultOptions passed in props...
-      options?.find(({value}) => value === propsValue) ??
-      // Then at the latest value selected in the form
-      (latestSelection as GeneralSelectValue)
-    );
-  }
-
-  render() {
-    const {onChangeOption, ...otherProps} = this.props;
-    return (
-      <FormField {...otherProps}>
-        {({
-          required: _required,
-          children: _children,
-          onBlur,
-          onChange,
-          onResults,
-          value,
-          ...props
-        }) => (
+        return (
           <SelectAsyncControl
-            {...props}
-            onChange={this.handleChange.bind(this, onBlur, onChange, onChangeOption)}
+            {...fieldProps}
+            onChange={(option, e) => {
+              const resultValue = !option
+                ? option
+                : props.multiple && Array.isArray(option)
+                ? // List of optionObjs
+                  option.map(({value: val}) => val)
+                : !Array.isArray(option)
+                ? option.value
+                : option;
+
+              setLatestSelection(option);
+              onChange?.(resultValue, e);
+              onChangeOption?.(option, e);
+              onBlur?.(resultValue, e);
+            }}
             onResults={data => {
-              const results = onResults(data);
-              const resultSelection = results.find(result => result.value === value);
-              this.setState(
-                resultSelection ? {results, latestSelection: resultSelection} : {results}
-              );
-              return results;
+              const newResults = onResults(data);
+              const resultSelection = newResults.find(result => result.value === value);
+
+              setResults(newResults);
+              if (resultSelection) {
+                setLatestSelection(resultSelection);
+              }
+
+              return newResults;
             }}
             onSelectResetsInput
             onCloseResetsInput={false}
             onBlurResetsInput={false}
-            value={this.findValue(value)}
+            value={resolvedValue}
           />
-        )}
-      </FormField>
-    );
-  }
+        );
+      }}
+    </FormField>
+  );
 }
 
 export default SelectAsyncField;
