@@ -245,7 +245,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
     <GenericPerformanceWidget<DataType>
       {...props}
       location={location}
-      Subtitle={() => <Subtitle>{t('Top transactions in count')}</Subtitle>}
+      Subtitle={() => <Subtitle>{t('P75 in Top Transactions')}</Subtitle>}
       HeaderActions={provided =>
         ContainerActions && (
           <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
