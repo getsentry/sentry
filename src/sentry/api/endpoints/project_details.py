@@ -27,7 +27,7 @@ from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, ge
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import (
+from sentry.lang.native.sources import (
     InvalidSourcesError,
     parse_backfill_sources,
     parse_sources,
