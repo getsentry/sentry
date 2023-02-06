@@ -290,6 +290,7 @@ def determine_eligible_recipients(
 
     return set()
 
+
 def get_send_to(
     project: Project,
     target_type: ActionTargetType,
