@@ -12,8 +12,9 @@ backend.expose(locals())
 
 if TYPE_CHECKING:
     __onboarding_task_backend = OnboardingTaskBackend()
-    TASK_LOOKUP_BY_KEY = __onboarding_task_backend.TASK_LOOKUP_BY_KEY
-    STATUS_LOOKUP_BY_KEY = __onboarding_task_backend.STATUS_LOOKUP_BY_KEY
-    SKIPPABLE_TASKS = __onboarding_task_backend.SKIPPABLE_TASKS
+    get_task_lookup_by_key = __onboarding_task_backend.get_task_lookup_by_key
+    get_status_lookup_by_key = __onboarding_task_backend.get_status_lookup_by_key
+    get_skippable_tasks = __onboarding_task_backend.get_skippable_tasks
     fetch_onboarding_tasks = __onboarding_task_backend.fetch_onboarding_tasks
     create_or_update_onboarding_task = __onboarding_task_backend.create_or_update_onboarding_task
+    try_mark_onboarding_complete = __onboarding_task_backend.try_mark_onboarding_complete

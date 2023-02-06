@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import (
     TYPE_CHECKING,
@@ -72,9 +71,6 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
-
-
-logger = logging.getLogger(__name__)
 
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
@@ -432,11 +428,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        try:
-            onboarding_tasks = list(fetch_onboarding_tasks(obj, user))
-        except Exception as e:
-            logger.error(e)
-            onboarding_tasks = list()
+        onboarding_tasks = list(fetch_onboarding_tasks(obj, user))
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 

@@ -102,8 +102,8 @@ class AbstractOnboardingTask(Model):
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     # fields for typing
-    TASK_LOOKUP_BY_KEY: dict[str, int] = {}
-    SKIPPABLE_TASKS: frozenset[int] = frozenset()
+    TASK_LOOKUP_BY_KEY: dict[str, int]
+    SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True

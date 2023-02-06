@@ -6,12 +6,16 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import OnboardingTaskStatus
 from sentry.onboarding_tasks import (
-    SKIPPABLE_TASKS,
-    STATUS_LOOKUP_BY_KEY,
-    TASK_LOOKUP_BY_KEY,
     create_or_update_onboarding_task,
+    get_skippable_tasks,
+    get_status_lookup_by_key,
+    get_task_lookup_by_key,
+    try_mark_onboarding_complete,
 )
-from sentry.receivers import try_mark_onboarding_complete
+
+TASK_LOOKUP_BY_KEY = get_task_lookup_by_key()
+SKIPPABLE_TASKS = get_skippable_tasks()
+STATUS_LOOKUP_BY_KEY = get_status_lookup_by_key()
 
 
 class OnboardingTaskPermission(OrganizationPermission):
@@ -23,6 +27,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     permission_classes = (OnboardingTaskPermission,)
 
     def post(self, request: Request, organization) -> Response:
+
         try:
             task_id = TASK_LOOKUP_BY_KEY[request.data["task"]]
         except KeyError:

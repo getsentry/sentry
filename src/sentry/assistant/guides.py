@@ -29,6 +29,7 @@ GUIDES = {
 
 # demo mode has different guides
 if settings.DEMO_MODE:
+    # TODO: remove old guides
     GUIDES = {
         "sidebar": 20,
         "issue_stream_v2": 21,
