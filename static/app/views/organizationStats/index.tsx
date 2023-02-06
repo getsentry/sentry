@@ -278,7 +278,7 @@ export class OrganizationStats extends Component<Props> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt => this.setStateOnUrl({dataCategory: opt.value})}
+            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
           />
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
@@ -331,7 +331,7 @@ export class OrganizationStats extends Component<Props> {
           triggerProps={{prefix: t('Category')}}
           value={this.dataCategory}
           options={options}
-          onChange={opt => this.setStateOnUrl({dataCategory: opt.value})}
+          onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
         />
 
         <StyledPageTimeRangeSelector
