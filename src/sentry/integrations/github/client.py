@@ -236,9 +236,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 )
             except ApiError as error:
                 process_error(error, extra)
-            except Exception as error:
+            except Exception:
                 # Report for investigatagiation but do not stop processing
-                logger.exception(error, extra=extra)
+                logger.exception(
+                    "Failed to populate_tree. Investigate. Contining execution.", extra=extra
+                )
 
             remaining_requests -= 1
 
