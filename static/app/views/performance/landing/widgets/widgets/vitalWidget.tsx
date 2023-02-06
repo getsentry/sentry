@@ -21,7 +21,6 @@ import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuer
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
 import withApi from 'sentry/utils/withApi';
 import {
   DisplayModes,
@@ -29,7 +28,6 @@ import {
 } from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
-  getProjectID,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
@@ -108,7 +106,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const pageError = usePageError();
-  const {projects} = useProjects();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
     field,
