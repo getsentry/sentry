@@ -122,10 +122,10 @@ def get_sorted_rules(
     The rules are fetched from project options rather than redis, because
     project options is the more persistent store.
 
-    `amount` is the threshold for the number of rules that the function
-    returns. Returned rules are always the most recently used ones, and they are
+    `amount` is the threshold for the number of rules that the function returns.
+    Returned rules are always the most recently discovered ones, and they are
     sorted by depth (deeper in the URL tree go first) and usage (more recently
-    used go first).
+    discovered go first).
     """
     rules = ProjectOptionRuleStore().read_sorted(project)
     # Even if there are fewer rules than the given amount, sort them. Keeping
