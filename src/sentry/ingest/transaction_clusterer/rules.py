@@ -72,7 +72,7 @@ class ProjectOptionRuleStore:
 
 
 class CompositeRuleStore:
-    #: Maximum number of rules to write to stores, -1 to not limit it.
+    #: Maximum number (non-negative integer) of rules to write to stores.
     MERGE_MAX_RULES: int = 25
 
     def __init__(self, stores: List[RuleStore]):
@@ -99,9 +99,6 @@ class CompositeRuleStore:
         self.write(project, trimmed_rules)
 
     def _trim_rules(self, rules: RuleSet) -> RuleSet:
-        if self.MERGE_MAX_RULES < 0:
-            return rules
-
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
         if self.MERGE_MAX_RULES < len(rules):
             with sentry_sdk.configure_scope() as scope:

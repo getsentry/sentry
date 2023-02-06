@@ -157,18 +157,6 @@ def test_max_rule_threshold_merge_composite_store(default_project):
     assert get_sorted_rules(default_project) == [("baz/baz", 1012615200), ("qux/qux", 1012615200)]
 
 
-@mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", -1)
-@pytest.mark.django_db
-def test_unlimited_rules_composite_store(default_project):
-    assert len(get_sorted_rules(default_project)) == 0
-
-    with freeze_time("2000-01-01 01:00:00"):
-        update_rules(default_project, [ReplacementRule("foo/foo")])
-        update_rules(default_project, [ReplacementRule("bar/bar")])
-
-    assert get_sorted_rules(default_project) == [("foo/foo", 946688400), ("bar/bar", 946688400)]
-
-
 @pytest.mark.django_db
 def test_save_rules(default_project):
     project = default_project
