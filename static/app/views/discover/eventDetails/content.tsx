@@ -24,7 +24,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {Event, EventTag, EventTransaction} from 'sentry/types/event';
+import {Event, EventTag} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -37,7 +37,10 @@ import TraceMetaQuery, {
   TraceMetaQueryChildrenProps,
 } from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
-import {getTraceTimeRangeFromEvent, isTransaction} from 'sentry/utils/performance/quickTrace/utils';
+import {
+  getTraceTimeRangeFromEvent,
+  isTransaction,
+} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
