@@ -155,7 +155,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const hasProfilingPreviewsFeature =
       hasProfilingFeature && organization.features.includes('profiling-previews');
 
-    const profileId = isTransaction(event) ? event.contexts.profile?.profile_id : null;
+    const profileId = isTransaction(event) ? event.contexts?.profile?.profile_id : null;
 
     const renderContent = (
       results?: QuickTraceQueryChildrenProps,

@@ -149,7 +149,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const hasProfilingPreviewsFeature =
       hasProfilingFeature && organization.features.includes('profiling-previews');
 
-    const profileId = (event as EventTransaction).contexts.profile?.profile_id;
+    const profileId = (event as EventTransaction).contexts?.profile?.profile_id ?? null;
 
     return (
       <TraceMetaQuery
