@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
 )
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, Project
+from sentry.models import Organization, OrganizationMember, Project
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 
@@ -58,11 +58,8 @@ class AcceptProjectTransferEndpoint(Endpoint):
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        organizations = Organization.objects.filter(
-            status=OrganizationStatus.ACTIVE,
-            id__in=OrganizationMember.objects.filter(
-                user=request.user, role=roles.get_top_dog().id
-            ).values_list("organization_id", flat=True),
+        organizations = Organization.objects.get_member_top_dog_organizations(
+            user_id=request.user.id
         )
 
         return Response(

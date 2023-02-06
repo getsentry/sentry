@@ -32,7 +32,9 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.roles import organization_roles
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import is_using_customer_domain
@@ -119,6 +121,53 @@ class OrganizationManager(BaseManager):
         if scope is not None:
             return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
+
+    def get_member_top_dog_organizations(self, user_id: int, queryset: QuerySet = None) -> QuerySet:
+        from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+
+        # get orgs and orgmemberIDs for the user
+        if queryset:  # queryset is a QuerySet of valid orgs
+            query = list(
+                OrganizationMember.objects.filter(
+                    organization__in=queryset, user_id=user_id
+                ).values_list("organization_id", "id")
+            )
+        else:
+            query = list(
+                OrganizationMember.objects.filter(user_id=user_id).values_list(
+                    "organization_id", "id"
+                )
+            )
+
+        organizations, org_members = zip(*query)
+        organizations = list(organizations)
+        org_members = list(org_members)
+
+        # get owner teams
+        owner_teams = list(
+            Team.objects.filter(
+                organization_id__in=organizations, org_role=roles.get_top_dog().id
+            ).values_list("id", flat=True)
+        )
+        # get owners from owner teams
+        owners = list(
+            OrganizationMemberTeam.objects.filter(
+                team_id__in=owner_teams,
+                organizationmember_id__in=org_members,
+            ).values_list("organizationmember_id", flat=True)
+        )
+        # get corresponding orgs from org list
+        orgs = {organizations[org_members.index(m)] for m in owners if m in org_members}
+
+        # get owners from orgs
+        owner_role_orgs = list(
+            OrganizationMember.objects.filter(
+                role=roles.get_top_dog().id, user_id=user_id
+            ).values_list("organization_id", flat=True)
+        )
+        orgs.update(owner_role_orgs)
+
+        return self.filter(id__in=orgs, status=OrganizationStatus.ACTIVE)
 
 
 @region_silo_only_model
@@ -310,10 +359,22 @@ class Organization(Model, SnowflakeIdMixin):
     def has_single_owner(self):
         from sentry.models import OrganizationMember
 
-        count = OrganizationMember.objects.filter(
-            organization=self, role=roles.get_top_dog().id, user__isnull=False, user__is_active=True
-        )[:2].count()
-        return count == 1
+        owners = list(
+            OrganizationMember.objects.filter(
+                organization=self,
+                role=roles.get_top_dog().id,
+                user__isnull=False,
+                user__is_active=True,
+            ).values_list("id", flat=True)
+        )
+        owners += list(
+            OrganizationMemberTeam.objects.filter(
+                team__in=self.get_teams_with_org_role(organization_roles.get_top_dog().id)
+            )
+            .exclude(organizationmember_id__in=owners)
+            .values_list("id", flat=True)
+        )
+        return len(owners[:2]) == 1
 
     def merge_to(from_org, to_org):
         from sentry.models import (
