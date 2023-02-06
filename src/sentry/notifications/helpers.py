@@ -255,7 +255,6 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     if type in [
         NotificationSettingTypes.WORKFLOW,
         NotificationSettingTypes.ISSUE_ALERTS,
-        NotificationSettingTypes.ACTIVE_RELEASE,
         NotificationSettingTypes.SPIKE_PROTECTION,
     ]:
         return NotificationScopeType.PROJECT

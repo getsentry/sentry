@@ -60,8 +60,6 @@ default_manager.add("auth:register")
 default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
-default_manager.add("organizations:active-release-monitor-alpha", OrganizationFeature, True)
-default_manager.add("organizations:active-release-notifications-enable", OrganizationFeature)
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
@@ -140,7 +138,6 @@ default_manager.add("organizations:profiling-previews", OrganizationFeature, Tru
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
-default_manager.add("organizations:release-committer-assignees", OrganizationFeature, True)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics-report", OrganizationFeature, True)

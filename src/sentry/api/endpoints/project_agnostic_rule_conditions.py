@@ -26,7 +26,5 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
                 info_extractor(rule_cls)
                 for rule_type, rule_cls in rules
                 if rule_type.startswith("condition/")
-                and rule_cls.id
-                != "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
             ]
         )
