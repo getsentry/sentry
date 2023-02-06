@@ -12,6 +12,7 @@ class RealtimeMetricsStore(Service):
         "projects",
         "get_used_budget_for_project",
         "get_lpq_projects",
+        "is_lpq_project",
         "add_project_to_lpq",
         "remove_projects_from_lpq",
     )

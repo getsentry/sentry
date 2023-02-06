@@ -15,6 +15,7 @@ type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
   location: Location;
   organization: OrganizationSummary;
+  queryExtras?: Record<string, string>;
 };
 
 function LatencyChart({currentFilter, ...props}: Props) {

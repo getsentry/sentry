@@ -34,6 +34,7 @@ ATTR_CHOICES = {
     "stacktrace.abs_path": Columns.STACK_ABS_PATH,
     "stacktrace.package": Columns.STACK_PACKAGE,
     "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
+    "app.in_foreground": Columns.APP_IN_FOREGROUND,
 }
 
 
@@ -186,6 +187,7 @@ class EventAttributeCondition(EventCondition):
                     device = []
                 return [device.get(path[1])]
 
+<<<<<<< HEAD
         elif path[0] == "unreal":
             if path[1] == "crash_type":
                 contexts = event.data["contexts"]
@@ -193,6 +195,18 @@ class EventAttributeCondition(EventCondition):
                 if unreal is None:
                     unreal = []
                 return [unreal.get(path[1])]
+=======
+        elif path[0] == "app":
+            if path[1] in ("in_foreground"):
+                contexts = event.data["contexts"]
+                response = contexts.get("app")
+                if response is None:
+                    response = {}
+                return [response.get(path[1])]
+
+            return []
+
+>>>>>>> master
         return []
 
     def render_label(self) -> str:
