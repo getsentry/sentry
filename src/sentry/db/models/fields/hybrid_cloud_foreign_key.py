@@ -6,13 +6,12 @@ It's main purpose to support columns in, say, region silos that refer to User or
 also columns in the control silo that point to, say, organization) that do not actually exist in the local database,
 or even the local network.
 
-Functionally, this field is just a dumb BigIntegerField.  It does nothing, at the database level, that a foreign key
-normally does.  It does not provide any constraints: this means, for instance, you should absolutely expect identifiers
-in this column that do not necessarily exist.  Eventually, if the related object is deleted and processed correctly,
-this column may be set null or cleaned up, but at any given time an integer in this column makes no guarantees about
-the existence of a related object.
+Functionally, this field is just a dumb BigIntegerField. While it does support indexes, it does not support constraints.
+This means, for instance, you should absolutely expect identifiers in this column that do not necessarily exist.
+Eventually, if the related object is deleted and processed correctly, this column may be set null or cleaned up,
+but at any given time an integer in this column makes no guarantees about the existence of a related object.
 
-Cascade behavior is provided to this application via tasks/deletion/hybrid_cloud.py jobs.  Again, to emphasize, this
+Cascade behavior is provided to the application via tasks/deletion/hybrid_cloud.py jobs.  Again, to emphasize, this
 process is eventually consistent, and the timing of the completion of those process is a black box of systems
 behavior, networking, and tuning.
 

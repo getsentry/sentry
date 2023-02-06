@@ -155,6 +155,11 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + (self.last_delay() * 2)
 
+    def save(self, **kwds: Any):
+        tags = {"category": OutboxCategory(self.category).name}
+        metrics.incr("outbox.saved", 1, tags=tags)
+        super().save(**kwds)
+
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         # Do not, use a select for update here -- it is tempting, but a major performance issue.

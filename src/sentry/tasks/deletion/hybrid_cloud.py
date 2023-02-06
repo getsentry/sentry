@@ -8,13 +8,16 @@ Notably, this job is only responsible for cascading to models that are related t
 opposing silo and are stored in Tombstone rows.  Deletions that are not successfully synchronized via Outbox to a
 Tombstone row will not, therefore, cascade to any related cross silo rows.
 """
+import datetime
 from hashlib import sha1
 from typing import Any, List, Tuple, Type
 from uuid import uuid4
 
 import sentry_sdk
 from django.apps import apps
+from django.db import connections, router
 from django.db.models import Manager, Max
+from django.utils import timezone
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models import TombstoneBase
@@ -60,8 +63,7 @@ def set_watermark(
         "deletion.hybrid_cloud.low_bound",
         value,
         tags=dict(
-            table_name=field.model._meta.db_table,
-            field_name=field.name,
+            field_name=f"{field.model._meta.db_table}.{field.name}",
             watermark=prefix,
         ),
     )
@@ -148,6 +150,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
             ),
         )
         sentry_sdk.capture_exception(err)
+        raise err
 
 
 # Convenience wrapper for mocking in tests
@@ -174,21 +177,26 @@ def _process_tombstone_reconcilition(
     )
     to_delete_ids: List[int]
     if low < up:
-        to_delete_ids = [
-            r.id
-            for r in model.objects.raw(
+        to_delete_ids: List[int] = []
+        oldest_seen: datetime.datetime = timezone.now()
+
+        with connections[router.db_for_read(model)].cursor() as conn:
+            conn.execute(
                 f"""
-        SELECT r.id FROM {model._meta.db_table} r JOIN {tombstone_cls._meta.db_table} t
-            ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
-            WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
-        """,
+                SELECT r.id, t.created_at FROM {model._meta.db_table} r JOIN {tombstone_cls._meta.db_table} t
+                    ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
+                    WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
+            """,
                 {
                     "table_name": field.foreign_table_name,
                     "low": low,
                     "up": up,
                 },
             )
-        ]
+
+            for (row_id, tomb_created) in conn.fetchall():
+                to_delete_ids.append(row_id)
+                oldest_seen = min(oldest_seen, tomb_created)
 
         if field.on_delete == "CASCADE":
             task = deletions.get(
@@ -210,5 +218,14 @@ def _process_tombstone_reconcilition(
             raise ValueError(
                 f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"
             )
+
+        metrics.timing(
+            "deletion.hybrid_cloud.processing_lag",
+            datetime.datetime.now().timestamp() - oldest_seen.timestamp(),
+            tags=dict(
+                field_name=f"{model._meta.db_table}.{field.name}",
+                watermark=prefix,
+            ),
+        )
 
     return has_more
