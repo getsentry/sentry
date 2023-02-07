@@ -37,7 +37,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert response.data["n_plus_one_db_detection_rate"] == 1.0
         assert response.data["n_plus_one_api_calls_detection_rate"] == 1.0
         assert response.data["consecutive_db_queries_detection_rate"] == 1.0
-        assert response.data["uncompressed_assets_detection_enabled"] == True
+        assert response.data["uncompressed_assets_detection_enabled"]
 
     def test_get_returns_error_without_feature_enabled(self):
         with self.feature({}):
