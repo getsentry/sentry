@@ -93,6 +93,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
+from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
@@ -294,6 +295,11 @@ class Factories:
         return OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, is_active=True, role=role
         )
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_api_key(organization, scope_list, **kwargs):
+        return ApiKey.objects.create(organization=organization, scope_list=scope_list)
 
     @staticmethod
     @exempt_from_silo_limits()
