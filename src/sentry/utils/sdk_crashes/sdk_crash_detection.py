@@ -17,11 +17,29 @@ def is_sdk_crash(frames: Sequence[Mapping[str, Any]]) -> bool:
     if not frames:
         return False
 
-    last_frame = frames[-1]
-    if last_frame is None:
-        return False
+    for frame in reversed(frames):
 
-    if glob_match(last_frame["function"], "?[[]Sentry*", ignorecase=True):
-        return True
+        function = frame.get("function")
+
+        if function is not None:
+            # [SentrySDK crash] is a testing function causing a crash.
+            # Therefore, we don't want to mark it a as a SDK crash.
+            if "SentrySDK crash" in function:
+                return False
+
+            functionsMatchers = ["*sentrycrash*", "**[[]Sentry*"]
+            for matcher in functionsMatchers:
+                if glob_match(frame.get("function"), matcher, ignorecase=True):
+                    return True
+
+        filename = frame.get("filename")
+        if filename is not None:
+            filenameMatchers = ["Sentry**"]
+            for matcher in filenameMatchers:
+                if glob_match(filename, matcher, ignorecase=True):
+                    return True
+
+        if frame.get("in_app") is True:
+            return False
 
     return False
