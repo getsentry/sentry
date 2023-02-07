@@ -1,7 +1,7 @@
 /* global global */
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
+import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 describe('AddIntegrationButton', function () {
   const provider = TestStubs.GitHubIntegrationProvider();

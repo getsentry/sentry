@@ -1,6 +1,6 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
+import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
   const provider = TestStubs.GitHubIntegrationProvider();

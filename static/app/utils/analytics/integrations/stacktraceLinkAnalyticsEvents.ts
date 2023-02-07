@@ -22,6 +22,7 @@ type StacktraceLinkEventsLiterals = `${StacktraceLinkEvents}`;
 export type StacktraceLinkEventParameters = {
   [key in StacktraceLinkEventsLiterals]: {
     error_reason?: StacktraceErrorMessage;
+    is_suggestion?: boolean;
     platform?: PlatformType;
     project_id?: string;
     provider?: string;

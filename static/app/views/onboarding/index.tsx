@@ -154,6 +154,13 @@ function Onboarding(props: Props) {
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
+
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_back_button_clicked', {
+      organization,
+      from: onboardingSteps[stepIndex].id,
+      to: previousStep.id,
+    });
+
     browserHistory.replace(
       normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
     );
