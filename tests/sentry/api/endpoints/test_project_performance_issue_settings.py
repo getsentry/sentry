@@ -34,8 +34,10 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["n_plus_one_db_count"] == 5
-        assert response.data["n_plus_one_db_duration_threshold"] == 500
+        assert response.data["n_plus_one_db_detection_rate"] == 1.0
+        assert response.data["n_plus_one_api_calls_detection_rate"] == 1.0
+        assert response.data["consecutive_db_queries_detection_rate"] == 1.0
+        assert response.data["uncompressed_assets_detection_enabled"]
 
     def test_get_returns_error_without_feature_enabled(self):
         with self.feature({}):
@@ -47,32 +49,31 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             response = self.client.put(
                 self.url,
                 data={
-                    "n_plus_one_db_count": 17,
+                    "n_plus_one_db_detection_rate": 0.33,
                 },
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["n_plus_one_db_count"] == 17
+        assert response.data["n_plus_one_db_detection_rate"] == 0.33
 
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             get_response = self.client.get(self.url, format="json")
 
         assert get_response.status_code == 200, response.content
-        assert get_response.data["n_plus_one_db_count"] == 17
-        assert get_response.data["n_plus_one_db_duration_threshold"] == 500
+        assert get_response.data["n_plus_one_db_detection_rate"] == 0.33
 
     def test_update_project_setting_check_validation(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.put(
                 self.url,
                 data={
-                    "n_plus_one_db_count": -1,
+                    "n_plus_one_db_detection_rate": -1,
                 },
             )
 
         assert response.status_code == 400, response.content
         assert response.data == {
-            "n_plus_one_db_count": [
+            "n_plus_one_db_detection_rate": [
                 ErrorDetail(
                     string="Ensure this value is greater than or equal to 0.", code="min_value"
                 )
@@ -80,8 +81,13 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         }
 
     def test_delete_all_project_settings(self):
-        self.project.update_option(SETTINGS_PROJECT_OPTION_KEY, {"n_plus_one_db_count": 42})
-        assert self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["n_plus_one_db_count"] == 42
+        self.project.update_option(
+            SETTINGS_PROJECT_OPTION_KEY, {"n_plus_one_db_detection_rate": 0.20}
+        )
+        assert (
+            self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["n_plus_one_db_detection_rate"]
+            == 0.20
+        )
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.delete(
                 self.url,
