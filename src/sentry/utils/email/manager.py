@@ -24,9 +24,9 @@ def get_email_addresses(
 
     if project:
         to_delete: List[ApiUserOption] = []
-        options = user_option_service.query_options(
-            user_ids=pending, project_id=project.id, keys=["mail:email"]
-        ).options
+        options = user_option_service.get_many(
+            filter={"user_ids": pending, "project_id": project.id, "keys": ["mail:email"]}
+        )
         for option in (o for o in options if o.value and not is_fake_email(o.value)):
             if UserEmail.objects.filter(user_id=option.user_id, email=option.value).exists():
                 results[option.user_id] = option.value
