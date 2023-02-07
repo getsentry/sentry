@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';

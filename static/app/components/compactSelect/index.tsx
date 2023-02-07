@@ -12,7 +12,7 @@ import type {
   SelectSection,
 } from './types';
 
-export {SelectOption, SelectOptionOrSection, SelectSection};
+export type {SelectOption, SelectOptionOrSection, SelectSection};
 
 interface BaseSelectProps<Value extends React.Key> extends ControlProps {
   options: SelectOptionOrSection<Value>[];
@@ -125,4 +125,4 @@ function CompactSelect<Value extends React.Key>({
   );
 }
 
-export default CompactSelect;
+export {CompactSelect};

@@ -128,7 +128,7 @@ CompositeSelect.Region = function <Value extends React.Key>(
   return null;
 };
 
-export default CompositeSelect;
+export {CompositeSelect};
 
 type RegionProps<Value extends React.Key> = CompositeSelectRegion<Value> & {
   compositeIndex: SingleListBoxProps<Value>['compositeIndex'];
