@@ -314,7 +314,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # needed to set require2FA
         interface = TotpInterface()
         interface.enroll(self.user)
-        assert Authenticator.objects.user_has_2fa(self.user)
+        assert self.user.has_2fa()
 
         self.get_success_response(self.organization.slug, **data)
 
@@ -836,14 +836,14 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.has_2fa = self.create_user()
         TotpInterface().enroll(self.has_2fa)
         self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
-        assert Authenticator.objects.user_has_2fa(self.has_2fa)
+        assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
-        assert not Authenticator.objects.user_has_2fa(self.owner)
+        assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):

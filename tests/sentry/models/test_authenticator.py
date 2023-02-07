@@ -8,17 +8,17 @@ from sentry.testutils.silo import control_silo_test
 class AuthenticatorTest(TestCase):
     def test_user_has_2fa(self):
         user = self.create_user("foo@example.com")
-        assert Authenticator.objects.user_has_2fa(user) is False
+        assert user.has_2fa() is False
         assert Authenticator.objects.filter(user=user).count() == 0
 
         RecoveryCodeInterface().enroll(user)
 
-        assert Authenticator.objects.user_has_2fa(user) is False
+        assert user.has_2fa() is False
         assert Authenticator.objects.filter(user=user).count() == 1
 
         TotpInterface().enroll(user)
 
-        assert Authenticator.objects.user_has_2fa(user) is True
+        assert user.has_2fa() is True
         assert Authenticator.objects.filter(user=user).count() == 2
 
     def test_bulk_users_have_2fa(self):

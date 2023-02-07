@@ -21,7 +21,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
+from sentry.models import Organization, Project, ProjectStatus, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
@@ -160,7 +160,7 @@ class OrganizationMixin:
     def is_not_2fa_compliant(self, request: Request, organization: ApiOrganization) -> bool:
         return (
             organization.flags.require_2fa
-            and not Authenticator.objects.user_has_2fa(request.user)
+            and not request.user.has_2fa()
             and not is_active_superuser(request)
         )
 

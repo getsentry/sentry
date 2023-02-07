@@ -157,7 +157,7 @@ class AuthIndexEndpoint(Endpoint):
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
-        if Authenticator.objects.user_has_2fa(request.user):
+        if request.user.has_2fa():
             return Response(
                 {
                     "2fa_required": True,

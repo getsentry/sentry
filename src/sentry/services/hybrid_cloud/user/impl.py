@@ -18,6 +18,7 @@ from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.user import (
+    APIAuthenticator,
     APIAvatar,
     APIUser,
     APIUserEmail,
@@ -134,6 +135,7 @@ class DatabaseBackedUserService(
                       ON sentry_userrole_users.role_id=sentry_userrole.id
                    WHERE user_id=auth_user.id""",
                 "useremails": "select array_agg(row_to_json(sentry_useremail)) from sentry_useremail where user_id=auth_user.id",
+                "authenticators": "select array_agg(row_to_json(auth_authenticator)) from auth_authenticator where user_id=auth_user.id",
             }
         )
 
@@ -168,7 +170,7 @@ def serialize_rpc_user(user: User) -> APIUser:
     args["password_usable"] = user.has_usable_password()
     args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
 
-    # And process the _base_user_query special data additions
+    # And process the _base_query special data additions
     permissions: FrozenSet[str] = frozenset({})
     if hasattr(user, "permissions") and user.permissions is not None:
         permissions = frozenset(user.permissions)
@@ -201,6 +203,19 @@ def serialize_rpc_user(user: User) -> APIUser:
             avatar_type=avatar.avatar_type,
         )
     args["avatar"] = avatar
+    if hasattr(user, "authenticators") and user.authenticators is not None:
+        args["authenticators"] = {
+            APIAuthenticator(
+                id=a["id"],
+                user_id=a["user_id"],
+                created_at=a["created_at"],
+                last_used_at=a["last_used_at"],
+                type=a["type"],
+                config=a["config"],
+            )
+            for a in user.authenticators
+        }
+
     return APIUser(**args)
 
 
