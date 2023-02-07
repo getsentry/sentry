@@ -83,7 +83,6 @@ def clear_transaction_names(project: Project) -> None:
 
 
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
-
     transaction_name = event_data.get("transaction")
 
     if transaction_name and features.has(
@@ -91,8 +90,8 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
     ):
         if not _must_store_event(event_data):
             return
-
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
+
         # TODO: For every transaction that had a rule applied to it, we should
         # bump the rule's lifetime here such that it stays alive while it is
         # being used.
@@ -103,7 +102,6 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
 def _must_store_event(event_data: Mapping[str, Any]) -> bool:
     """Returns whether the given event must be stored as input for the
     transaction clusterer."""
-
     tags = event_data.get("tags")
     transaction_info = event_data.get("transaction_info") or {}
     source = transaction_info.get("source")
