@@ -4,9 +4,7 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, FrozenSet, List, Optional, TypedDict
-
-from pyparsing import Any
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
@@ -67,7 +65,7 @@ class APIUser:
     def class_name(self) -> str:
         return "User"
 
-    def has_2fa(self):
+    def has_2fa(self) -> bool:
         return self.authenticators is not None and len(self.authenticators) > 0
 
 
@@ -90,8 +88,8 @@ class APIUserEmail:
 class APIAuthenticator:
     id: int = 0
     user_id: int = -1
-    created_at: datetime = datetime.datetime(2000, 1, 1)
-    last_used_at: datetime = datetime.datetime(2000, 1, 1)
+    created_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    last_used_at: datetime.datetime = datetime.datetime(2000, 1, 1)
     type: int = -1
     config: Any = None
 
