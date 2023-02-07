@@ -16,6 +16,7 @@ import {DefaultContext} from './default';
 import {DeviceEventContext} from './device';
 import {GPUEventContext} from './gpu';
 import {MemoryInfoEventContext} from './memoryInfo';
+import {MonitorContext} from './monitor';
 import {OperatingSystemEventContext} from './operatingSystem';
 import {ProfileEventContext} from './profile';
 import {ReduxContext} from './redux';
@@ -41,6 +42,7 @@ const CONTEXT_TYPES = {
   threadpool_info: ThreadPoolInfoEventContext,
   state: StateEventContext,
   profile: ProfileEventContext,
+  monitor: MonitorContext,
 
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': ReduxContext,
