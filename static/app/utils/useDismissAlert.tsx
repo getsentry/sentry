@@ -29,7 +29,7 @@ function isValid(timestamp: number, expirationDays: number) {
 
 /**
  * Nominally for tracking dismissal/acknowledgement of in-app alerts and
- * notifications, specfically those that don't need to be persisted server side.
+ * notifications, specifically those that don't need to be persisted server side.
  *
  * Dismissal can be 'permanent' or have an expiration after some number of days.
  *
