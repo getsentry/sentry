@@ -84,7 +84,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_enabled"]
 
     def is_event_eligible(cls, event):
         tags = event.get("tags", [])
