@@ -40,9 +40,9 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
-import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
