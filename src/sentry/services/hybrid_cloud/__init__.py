@@ -34,6 +34,8 @@ from sentry.utils.pagination_factory import (
 
 logger = logging.getLogger(__name__)
 
+import pydantic
+
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -46,6 +48,10 @@ class InterfaceWithLifecycle(ABC):
     @abstractmethod
     def close(self) -> None:
         pass
+
+
+class SiloDataInterface(pydantic.BaseModel):
+    pass
 
 
 ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
@@ -267,7 +273,7 @@ class ApiPaginationResult:
 # Need a non-null default value so that we can
 # detect attributes being set to null. We're using
 # a class for this to get a reasonable repr in debugging.
-class UnsetType:
+class UnsetType(SiloDataInterface):
     def __repr__(self) -> str:
         return "Unset"
 

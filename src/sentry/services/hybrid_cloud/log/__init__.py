@@ -1,14 +1,16 @@
 import abc
 import datetime
-from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+)
 from sentry.silo import SiloMode
 
 
-@dataclass
-class UserIpEvent:
+class UserIpEvent(SiloDataInterface):
     user_id: int = -1
     ip_address: str = "127.0.0.1"
     last_seen: datetime.datetime = datetime.datetime(2000, 1, 1)
@@ -16,8 +18,7 @@ class UserIpEvent:
     region_code: Optional[str] = None
 
 
-@dataclass
-class AuditLogEvent:
+class AuditLogEvent(SiloDataInterface):
     organization_id: int = -1
     # 'datetime' is apparently reserved attribute name for dataclasses.
     time_of_creation: datetime.datetime = datetime.datetime(2000, 1, 1)

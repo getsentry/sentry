@@ -1,10 +1,15 @@
 import datetime
 from abc import abstractmethod
-from dataclasses import dataclass, fields
+from dataclasses import fields
 from typing import cast
 
 from sentry.models import LostPasswordHash
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.silo import SiloMode
 
 
@@ -32,8 +37,7 @@ class LostPasswordHashService(InterfaceWithLifecycle):
         return APILostPasswordHash(**args)
 
 
-@dataclass(frozen=True)
-class APILostPasswordHash:
+class APILostPasswordHash(SiloDataInterface):
     id: int = -1
     user_id: int = -1
     hash: str = ""

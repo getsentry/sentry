@@ -5,15 +5,21 @@ import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type
 
 from django.contrib.auth.models import AnonymousUser
+from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
@@ -151,16 +157,14 @@ def impl_with_db() -> AuthService:
     return DatabaseBackedAuthService()
 
 
-@dataclass
-class ApiAuthState:
-    sso_state: ApiMemberSsoState
-    permissions: List[str]
-
-
-@dataclass(eq=True)
-class ApiMemberSsoState:
+class ApiMemberSsoState(SiloDataInterface):
     is_required: bool = False
     is_valid: bool = False
+
+
+class ApiAuthState(SiloDataInterface):
+    sso_state: ApiMemberSsoState
+    permissions: List[str]
 
 
 @dataclass
@@ -305,32 +309,28 @@ class MiddlewareAuthenticationResponse(AuthenticationContext):
     user_from_signed_request: bool = False
 
 
-@dataclass(eq=True, frozen=True)
-class ApiAuthProviderFlags:
+class ApiAuthProviderFlags(SiloDataInterface):
     allow_unlinked: bool = False
     scim_enabled: bool = False
 
 
-@dataclass(eq=True, frozen=True)
-class ApiAuthProvider:
+class ApiAuthProvider(SiloDataInterface):
     id: int = -1
     organization_id: int = -1
     provider: str = ""
-    flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
+    flags: ApiAuthProviderFlags = Field(default_factory=lambda: ApiAuthProviderFlags())
 
 
-@dataclass
-class ApiAuthIdentity:
+class ApiAuthIdentity(SiloDataInterface):
     id: int = -1
     user_id: int = -1
     provider_id: int = -1
     ident: str = ""
 
 
-@dataclass(eq=True)
-class ApiOrganizationAuthConfig:
+class ApiOrganizationAuthConfig(SiloDataInterface):
     organization_id: int = -1
-    auth_provider: ApiAuthProvider | None = None
+    auth_provider: Optional[ApiAuthProvider] = None
     has_api_key: bool = False
 
 

@@ -1,22 +1,25 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass
 from typing import Any, Iterable, List, Optional, TypedDict
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 
-@dataclass
-class ApiUserOption:
+class ApiUserOption(SiloDataInterface):
     id: int = -1
     user_id: int = -1
     value: Any = None
     key: str = ""
-    project_id: int | None = None
-    organization_id: int | None = None
+    project_id: Optional[int] = None
+    organization_id: Optional[int] = None
 
 
 def get_option_from_list(

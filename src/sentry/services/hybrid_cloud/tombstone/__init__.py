@@ -1,12 +1,14 @@
 from abc import abstractmethod
-from dataclasses import dataclass
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+)
 from sentry.silo import SiloMode
 
 
-@dataclass
-class ApiTombstone:
+class ApiTombstone(SiloDataInterface):
     table_name: str = ""
     identifier: int = -1
 

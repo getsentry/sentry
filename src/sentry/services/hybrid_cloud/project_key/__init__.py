@@ -1,9 +1,13 @@
 from abc import abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.silo import SiloMode
 
 
@@ -22,8 +26,7 @@ class ProjectKeyRole(Enum):
             raise ValueError("Unexpected project key role enum")
 
 
-@dataclass
-class ApiProjectKey:
+class ApiProjectKey(SiloDataInterface):
     dsn_public: str = ""
 
 

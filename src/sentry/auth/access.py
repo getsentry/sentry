@@ -802,12 +802,9 @@ class SystemAccess(OrganizationlessAccess):
 
 class NoAccess(OrganizationlessAccess):
     def __init__(self) -> None:
-        super().__init__(
-            auth_state=ApiAuthState(
-                sso_state=ApiMemberSsoState(is_required=False, is_valid=True),
-                permissions=[],
-            ),
-        )
+        sso_state = ApiMemberSsoState(is_required=False, is_valid=True)
+        auth_state = ApiAuthState(sso_state=sso_state, permissions=[])
+        super().__init__(auth_state=auth_state)
 
 
 def from_request_org_and_scopes(

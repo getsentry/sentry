@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud import (
     ApiPaginationArgs,
     ApiPaginationResult,
     InterfaceWithLifecycle,
+    SiloDataInterface,
     silo_mode_delegation,
     stubbed,
 )
@@ -24,8 +24,7 @@ if TYPE_CHECKING:
     from sentry.models.integrations import Integration, OrganizationIntegration
 
 
-@dataclass(frozen=True, eq=True)
-class APIIntegration:
+class APIIntegration(SiloDataInterface):
     id: int
     provider: str
     external_id: str
@@ -48,15 +47,14 @@ class APIIntegration:
         return "disabled"
 
 
-@dataclass(frozen=True, eq=True)
-class APIOrganizationIntegration:
+class APIOrganizationIntegration(SiloDataInterface):
     id: int
     default_auth_id: int
     organization_id: int
     integration_id: int
     config: Dict[str, Any]
     status: int  # As ObjectStatus
-    grace_period_end: datetime | None
+    grace_period_end: Optional[datetime]
 
     def __hash__(self) -> int:
         return hash(self.id)

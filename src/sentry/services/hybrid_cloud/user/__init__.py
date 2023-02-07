@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import datetime
 from abc import abstractmethod
-from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING, FrozenSet, List, Optional, TypedDict
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
@@ -14,8 +18,20 @@ if TYPE_CHECKING:
     from sentry.models import Group
 
 
-@dataclass(frozen=True, eq=True)
-class APIUser:
+class APIAvatar(SiloDataInterface):
+    id: int = 0
+    file_id: int = 0
+    ident: str = ""
+    avatar_type: str = "letter_avatar"
+
+
+class APIUserEmail(SiloDataInterface):
+    id: int = 0
+    email: str = ""
+    is_verified: bool = False
+
+
+class APIUser(SiloDataInterface):
     id: int = -1
     pk: int = -1
     name: str = ""
@@ -30,7 +46,7 @@ class APIUser:
     is_anonymous: bool = False
     is_active: bool = False
     is_staff: bool = False
-    last_active: datetime.datetime | None = None
+    last_active: Optional[datetime.datetime] = None
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
@@ -63,21 +79,6 @@ class APIUser:
 
     def class_name(self) -> str:
         return "User"
-
-
-@dataclass(frozen=True, eq=True)
-class APIAvatar:
-    id: int = 0
-    file_id: int = 0
-    ident: str = ""
-    avatar_type: str = "letter_avatar"
-
-
-@dataclass(frozen=True, eq=True)
-class APIUserEmail:
-    id: int = 0
-    email: str = ""
-    is_verified: bool = False
 
 
 class UserSerializeType(IntEnum):  # annoying
