@@ -37,7 +37,11 @@ class WaterfallModel {
   traceBounds: Array<TraceBound>;
   focusedSpanIds: Set<string> | undefined = undefined;
 
-  constructor(event: Readonly<EventTransaction>, affectedSpanIds?: string[]) {
+  constructor(
+    event: Readonly<EventTransaction>,
+    affectedSpanIds?: string[],
+    focusedSpanIds?: string[]
+  ) {
     this.event = event;
 
     this.parsedTrace = parseTrace(event);
@@ -60,8 +64,15 @@ class WaterfallModel {
     this.hiddenSpanSubTrees = new Set();
 
     // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
+
     this.affectedSpanIds = affectedSpanIds;
-    this.focusedSpanIds = affectedSpanIds ? new Set(affectedSpanIds) : undefined;
+
+    if (affectedSpanIds || focusedSpanIds) {
+      affectedSpanIds ??= [];
+      focusedSpanIds ??= [];
+      this.focusedSpanIds = new Set([...affectedSpanIds, ...focusedSpanIds]);
+    }
+
     // If the set of span IDs is provided, this waterfall is for an embedded span tree
     this.isEmbeddedSpanTree = !!this.focusedSpanIds;
 

@@ -137,14 +137,23 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         """
         if not query:
             return [
-                {"name": i["name"], "identifier": i["full_name"]}
+                {
+                    "name": i["name"],
+                    "identifier": i["full_name"],
+                    "default_branch": i.get("default_branch"),
+                }
                 for i in self.get_client().get_repositories(fetch_max_pages)
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
         return [
-            {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
+            {
+                "name": i["name"],
+                "identifier": i["full_name"],
+                "default_branch": i.get("default_branch"),
+            }
+            for i in response.get("items", [])
         ]
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:

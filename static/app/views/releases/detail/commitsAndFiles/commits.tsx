@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
-import {Body, Main} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -146,9 +146,9 @@ class Commits extends AsyncView<Props, State> {
 
   renderComponent() {
     return (
-      <Body>
-        <Main fullWidth>{super.renderComponent()}</Main>
-      </Body>
+      <Layout.Body>
+        <Layout.Main fullWidth>{super.renderComponent()}</Layout.Main>
+      </Layout.Body>
     );
   }
 }

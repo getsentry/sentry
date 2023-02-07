@@ -638,6 +638,9 @@ const SortAndFilterWrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(3, 1fr);
+    & > div {
+      width: auto;
+    }
   }
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);

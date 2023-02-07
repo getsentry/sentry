@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
-from urllib.parse import urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
@@ -16,6 +15,7 @@ from symbolic import ProguardMapper  # type: ignore
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
+from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -25,6 +25,7 @@ from .base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     PerformanceDetector,
+    fingerprint_resource_span,
     fingerprint_span,
     fingerprint_spans,
     get_span_duration,
@@ -53,6 +54,7 @@ CONTAINS_PARAMETER_REGEX = re.compile(
         [
             r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
             r"\b(?:true|false)\b",  # booleans
+            r"-?\b(?:[0-9]+\.)?[0-9]+(?:[eE][+-]?[0-9]+)?\b",  # numbers
             r"\?|\$1|%s",  # existing parameters
         ]
     )
@@ -138,6 +140,25 @@ def detect_performance_problems(data: Event, project: Project) -> List[Performan
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
+    system_settings = {
+        "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
+        "n_plus_one_db_duration_threshold": options.get(
+            "performance.issues.n_plus_one_db.duration_threshold"
+        ),
+        "render_blocking_fcp_min": options.get(
+            "performance.issues.render_blocking_assets.fcp_minimum_threshold"
+        ),
+        "render_blocking_fcp_max": options.get(
+            "performance.issues.render_blocking_assets.fcp_maximum_threshold"
+        ),
+        "render_blocking_fcp_ratio": options.get(
+            "performance.issues.render_blocking_assets.fcp_ratio_threshold"
+        ),
+        "render_blocking_bytes_min": options.get(
+            "performance.issues.render_blocking_assets.size_threshold"
+        ),
+    }
+
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -147,45 +168,20 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         else {}
     )
 
-    project_settings = (
+    project_option_settings = (
         ProjectOption.objects.get_value(
             project_id, "sentry:performance_issue_settings", default_project_settings
         )
         if project_id
-        else {}
+        else DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
     )
 
-    use_project_option_settings = default_project_settings != project_settings
-    merged_project_settings = {
+    project_settings = {
         **default_project_settings,
-        **project_settings,
+        **project_option_settings,
     }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
-    # Use project settings if they've been adjusted at all, to allow customization, otherwise fetch settings from system-wide options.
-    settings = (
-        merged_project_settings
-        if use_project_option_settings
-        else {
-            "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
-            "n_plus_one_db_duration_threshold": options.get(
-                "performance.issues.n_plus_one_db.duration_threshold"
-            ),
-            "render_blocking_fcp_min": options.get(
-                "performance.issues.render_blocking_assets.fcp_minimum_threshold"
-            ),
-            "render_blocking_fcp_max": options.get(
-                "performance.issues.render_blocking_assets.fcp_maximum_threshold"
-            ),
-            "render_blocking_fcp_ratio": options.get(
-                "performance.issues.render_blocking_assets.fcp_ratio_threshold"
-            ),
-            "render_blocking_bytes_min": options.get(
-                "performance.issues.render_blocking_assets.size_threshold"
-            ),
-            "n_plus_one_api_calls_detection_rate": 1.0,
-            "consecutive_db_queries_detection_rate": 1.0,
-        }
-    )
+    settings = {**system_settings, **project_settings}
 
     return {
         DetectorType.SLOW_DB_QUERY: [
@@ -240,6 +236,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "size_threshold_bytes": 500 * 1024,
             "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
+            "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
     }
 
@@ -510,30 +507,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         return span_duration / self.fcp > fcp_ratio_threshold
 
     def _fingerprint(self, span: Span):
-        url_hash = self._url_hash(span)
-        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{url_hash}"
-
-    # Finds dash-separated UUIDs. (Without dashes will be caught by
-    # ASSET_HASH_REGEX).
-    UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
-    # Preserves filename in e.g. main.[hash].js, but includes number when chunks
-    # are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
-    CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
-    # Finds trailing hashes before the final extension.
-    TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
-    # Looks for anything hex hash-like, but with a larger min size than the
-    # above to limit false positives.
-    ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
-
-    def _url_hash(self, span: Span) -> str:
-        url = urlparse(span.get("description") or "")
-        path = url.path
-        path = self.UUID_REGEX.sub("*", path)
-        path = self.CHUNK_HASH_REGEX.sub(".*.chunk", path)
-        path = self.TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
-        path = self.ASSET_HASH_REGEX.sub("*", path)
-        stripped_url = url._replace(path=path, query="").geturl()
-        return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
+        resource_url_hash = fingerprint_resource_span(span)
+        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{resource_url_hash}"
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
