@@ -33,19 +33,14 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         )
 
         try:
-            current_role = (
-                OrganizationMember.objects.filter(
-                    organization=organization, user_id=request.user.id
-                )
-                .values_list("role", flat=True)
-                .get()
-            )
+            om = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
         except OrganizationMember.DoesNotExist:
             return False
 
         required_role = roles.get(required_role)
-        current_role = roles.get(current_role)
-        return current_role.priority >= required_role.priority
+        return any(
+            role.priority >= required_role.priority for role in om.get_all_org_roles_sorted()
+        )
 
 
 @region_silo_endpoint

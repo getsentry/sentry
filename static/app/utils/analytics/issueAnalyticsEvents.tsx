@@ -1,7 +1,14 @@
+import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+
 type IssueStream = {
   group_id: string;
   tab: string;
   was_shown_suggestion: boolean;
+};
+
+type SourceMapDebugParam = {
+  type: SourceMapProcessingIssueType;
+  sdkName?: string;
 };
 
 export type IssueEventParameters = {
@@ -122,6 +129,8 @@ export type IssueEventParameters = {
     node_key: string;
   };
   resolve_issue: {release: string};
+  'source_map_debug.docs_link_clicked': SourceMapDebugParam;
+  'source_map_debug.expand_clicked': SourceMapDebugParam;
   'span_view.embedded_child.hide': {};
   'span_view.embedded_child.show': {};
   'tag.clicked': {
@@ -176,4 +185,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Autogrouped Siblings Toggled',
   'issue_details.performance.hidden_spans_expanded':
     'Performance Issue Details: Hidden Spans Expanded',
+  'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
+  'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
 };
