@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import FileChange from 'sentry/components/fileChange';
-import {Body, Main} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -153,9 +153,9 @@ class FilesChanged extends AsyncView<Props, State> {
 
   renderComponent() {
     return (
-      <Body>
-        <Main fullWidth>{super.renderComponent()}</Main>
-      </Body>
+      <Layout.Body>
+        <Layout.Main fullWidth>{super.renderComponent()}</Layout.Main>
+      </Layout.Body>
     );
   }
 }

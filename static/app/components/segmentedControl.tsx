@@ -73,7 +73,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
       <LayoutGroup id={radioGroupProps.id}>
-        {[...collectionList].map(option => (
+        {collectionList.map(option => (
           <Segment
             {...option.props}
             key={option.key}
@@ -123,7 +123,7 @@ function Segment<Value extends string>({
 }: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
 
-  const {inputProps} = useRadio({...props}, state, ref);
+  const {inputProps} = useRadio(props, state, ref);
 
   const prevOptionIsSelected = defined(prevKey) && state.selectedValue === prevKey;
   const nextOptionIsSelected = defined(nextKey) && state.selectedValue === nextKey;
