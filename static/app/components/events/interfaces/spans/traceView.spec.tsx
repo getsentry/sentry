@@ -510,4 +510,23 @@ describe('TraceView', () => {
     const lcpLabelContainer = screen.getByText(/lcp/i).parentElement?.parentElement;
     expect(lcpLabelContainer).toBeInTheDocument();
   });
+
+  it('should have all focused spans visible', async () => {
+    data = initializeData({});
+
+    const event = generateSampleEvent();
+    for (let i = 0; i < 10; i++) {
+      generateSampleSpan(`desc${i}`, 'db', `id${i}`, 'c000000000000000', event);
+    }
+
+    const waterfallModel = new WaterfallModel(event, ['id3'], ['id3', 'id4']);
+
+    render(
+      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    );
+
+    expect(await screen.findByTestId('span-row-1')).toHaveTextContent('desc3');
+    expect(await screen.findByTestId('span-row-2')).toHaveTextContent('desc4');
+    expect(screen.queryByTestId('span-row-3')).not.toBeInTheDocument();
+  });
 });
