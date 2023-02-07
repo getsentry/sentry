@@ -330,7 +330,7 @@ class Organization(Model, SnowflakeIdMixin):
 
     def get_owners(self) -> Sequence[APIUser]:
         # get owner teams
-        owner_teams = self.get_teams_with_org_role(role=roles.get_top_dog().id)
+        owner_teams = self.get_teams_with_org_role(roles=[roles.get_top_dog().id])
 
         # get owners from owner teams
         owner_team_members = list(
@@ -694,11 +694,11 @@ class Organization(Model, SnowflakeIdMixin):
             scopes.discard("alerts:write")
         return frozenset(scopes)
 
-    def get_teams_with_org_role(self, role):
+    def get_teams_with_org_role(self, roles):
         from sentry.models.team import Team
 
-        if role:
-            return Team.objects.filter(org_role=role, organization=self)
+        if roles:
+            return Team.objects.filter(org_role__in=roles, organization=self)
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
 
