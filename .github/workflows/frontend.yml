@@ -152,7 +152,7 @@ jobs:
   frontend-browser-tests:
     if: needs.files-changed.outputs.frontend == 'true'
     needs: files-changed
-    name: frontend browser tests
+    name: Browser tests
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-20.04
@@ -236,8 +236,8 @@ jobs:
           type: frontend
 
   frontend-visual-diff:
-    needs: [frontend-visual-tests]
-    name: Frontend Visual Diff
+    needs: [frontend-browser-tests]
+    name: Visual diff
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
