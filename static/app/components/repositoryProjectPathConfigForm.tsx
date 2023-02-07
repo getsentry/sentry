@@ -14,6 +14,7 @@ import {
   RepositoryProjectPathConfig,
 } from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
   integration: Integration;
@@ -25,6 +26,15 @@ type Props = {
   existingConfig?: RepositoryProjectPathConfig;
 };
 
+interface IntegrationRepo {
+  defaultBranch: string;
+  /**
+   * ex - getsentry/sentry
+   */
+  identifier: string;
+  name: string;
+}
+
 function RepositoryProjectPathConfigForm({
   existingConfig,
   integration,
@@ -34,12 +44,34 @@ function RepositoryProjectPathConfigForm({
   projects,
   repos,
 }: Props) {
+  const api = useApi();
   const formRef = useRef(new FormModel());
-  const repoChoices = repos.map(({name, id, defaultBranch}) => ({
-    value: id,
-    label: name,
-    defaultBranch,
-  }));
+  const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
+
+  /**
+   * Automatically switch to the default branch for the repo
+   */
+  function handleRepoChange(id: string) {
+    const repo = repos.find(r => r.id === id);
+    if (!repo || integration.provider.key !== 'github') {
+      return;
+    }
+
+    // Use the integration repo search to get the default branch
+    api
+      .requestPromise(
+        `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+        {query: {search: repo.name}}
+      )
+      .then((data: {repos: IntegrationRepo[]}) => {
+        const {defaultBranch} = data.repos.find(r => r.identifier === repo.name) ?? {};
+        const isCurrentRepo = formRef.current.getValue('repositoryId') === repo.id;
+        if (defaultBranch && isCurrentRepo) {
+          formRef.current.setValue('defaultBranch', defaultBranch);
+        }
+      });
+  }
+
   const formFields: Field[] = [
     {
       name: 'projectId',
@@ -56,13 +88,7 @@ function RepositoryProjectPathConfigForm({
       placeholder: t('Choose repo'),
       url: `/organizations/${organization.slug}/repos/`,
       defaultOptions: repoChoices,
-      onChange: (id: string) => {
-        const repo = repos.find(r => r.id === id);
-        if (repo?.defaultBranch) {
-          // Automatically switch to the default branch for the repo
-          formRef.current.setValue('defaultBranch', repo.defaultBranch);
-        }
-      },
+      onChange: handleRepoChange,
     },
     {
       id: 'defaultBranch',
