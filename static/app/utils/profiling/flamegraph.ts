@@ -64,8 +64,8 @@ export class Flamegraph {
 
     // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
-      ? this.buildLeftHeavyGraph(profile)
-      : this.buildCallOrderGraph(profile);
+      ? this.buildLeftHeavyChart(profile)
+      : this.buildCallOrderChart(profile);
 
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
@@ -104,7 +104,7 @@ export class Flamegraph {
     this.root.frame.addToTotalWeight(weight);
   }
 
-  buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {
+  buildCallOrderChart(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
     let idx = 0;
@@ -156,7 +156,7 @@ export class Flamegraph {
     return frames;
   }
 
-  buildLeftHeavyGraph(profile: Profile): FlamegraphFrame[] {
+  buildLeftHeavyChart(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
@@ -165,7 +165,7 @@ export class Flamegraph {
       node.children.forEach(sortTree);
     };
 
-    sortTree(profile.appendOrderTree);
+    sortTree(profile.callTree);
 
     const virtualRoot: FlamegraphFrame = {
       key: -1,
@@ -238,7 +238,7 @@ export class Flamegraph {
         closeFrame(node, start + node.totalWeight);
       }
     }
-    visit(profile.appendOrderTree, 0);
+    visit(profile.callTree, 0);
     return frames;
   }
 

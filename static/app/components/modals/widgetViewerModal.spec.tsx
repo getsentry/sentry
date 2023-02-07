@@ -16,17 +16,11 @@ import {
   Widget,
   WidgetQuery,
   WidgetType,
-} from 'sentry/views/dashboardsV2/types';
+} from 'sentry/views/dashboards/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
-  });
-});
-
-jest.mock('sentry/components/tooltip', () => {
-  return jest.fn(props => {
-    return <div>{props.children}</div>;
   });
 });
 

@@ -489,6 +489,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
         with override_options(
             {
+                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
@@ -867,6 +868,20 @@ class AcceptanceTestCase(TransactionTestCase):
             return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
         ):
             yield
+
+    def wait_for_loading(self):
+        # NOTE: [data-test-id="loading-placeholder"] is not used here as
+        # some dashboards have placeholders that never complete.
+        self.browser.wait_until_not('[data-test-id="events-request-loading"]')
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+        self.browser.wait_until_not(".loading")
+
+    def tearDown(self):
+        # Avoid tests finishing before their API calls have finished.
+        # NOTE: This is not fool-proof, it requires loading indicators to be
+        # used when API requests are made.
+        self.wait_for_loading()
+        super().tearDown()
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)

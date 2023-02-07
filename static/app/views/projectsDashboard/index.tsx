@@ -40,7 +40,7 @@ type Props = {
   loadingTeams: boolean;
   organization: Organization;
   teams: TeamWithProjects[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 function ProjectCardList({projects}: {projects: Project[]}) {
   const organization = useOrganization();
@@ -108,9 +108,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
   );
-  const favorites = projects.filter(project => project.isBookmarked);
 
-  const showEmptyMessage = projects.length === 0 && favorites.length === 0;
   const showResources = projects.length === 1 && !projects[0].firstEvent;
 
   function handleSearch(searchQuery: string) {
@@ -129,94 +127,86 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     });
   }
 
-  if (showEmptyMessage) {
-    return (
-      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
-    );
-  }
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      {projects.length > 0 && (
-        <Fragment>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Projects')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/projects/"
-                  title={t(
-                    "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
-                  )}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <Button
-                  size="sm"
-                  icon={<IconUser size="xs" />}
-                  title={
-                    canJoinTeam
-                      ? undefined
-                      : t('You do not have permission to join a team.')
-                  }
-                  disabled={!canJoinTeam}
-                  to={`/settings/${organization.slug}/teams/`}
-                  data-test-id="join-team"
-                >
-                  {t('Join a Team')}
-                </Button>
-                <Button
-                  size="sm"
-                  priority="primary"
-                  disabled={!canCreateProjects}
-                  title={
-                    !canCreateProjects
-                      ? t('You do not have permission to create projects')
-                      : undefined
-                  }
-                  to={`/organizations/${organization.slug}/projects/new/`}
-                  icon={<IconAdd size="xs" isCircled />}
-                  data-test-id="create-project"
-                >
-                  {t('Create Project')}
-                </Button>
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <SearchAndSelectorWrapper>
-                <TeamFilter
-                  selectedTeams={selectedTeams}
-                  handleChangeFilter={handleChangeFilter}
-                  showIsMemberTeams
-                  showSuggestedOptions={false}
-                  showMyTeamsDescription
-                />
-                <StyledSearchBar
-                  defaultQuery=""
-                  placeholder={t('Search for projects by name')}
-                  onChange={debouncedSearchQuery}
-                  query={projectQuery}
-                />
-              </SearchAndSelectorWrapper>
-              <ProjectCardList projects={filteredProjects} />
-            </Layout.Main>
-          </Layout.Body>
-          {showResources && <Resources organization={organization} />}
-        </Fragment>
-      )}
+      <NoProjectMessage organization={organization}>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Layout.Title>
+              {t('Projects')}
+              <PageHeadingQuestionTooltip
+                docsUrl="https://docs.sentry.io/product/projects/"
+                title={t(
+                  "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
+                )}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <Button
+                size="sm"
+                icon={<IconUser size="xs" />}
+                title={
+                  canJoinTeam
+                    ? undefined
+                    : t('You do not have permission to join a team.')
+                }
+                disabled={!canJoinTeam}
+                to={`/settings/${organization.slug}/teams/`}
+                data-test-id="join-team"
+              >
+                {t('Join a Team')}
+              </Button>
+              <Button
+                size="sm"
+                priority="primary"
+                disabled={!canCreateProjects}
+                title={
+                  !canCreateProjects
+                    ? t('You do not have permission to create projects')
+                    : undefined
+                }
+                to={`/organizations/${organization.slug}/projects/new/`}
+                icon={<IconAdd size="xs" isCircled />}
+                data-test-id="create-project"
+              >
+                {t('Create Project')}
+              </Button>
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <SearchAndSelectorWrapper>
+              <TeamFilter
+                selectedTeams={selectedTeams}
+                handleChangeFilter={handleChangeFilter}
+                showIsMemberTeams
+                showSuggestedOptions={false}
+                showMyTeamsDescription
+              />
+              <StyledSearchBar
+                defaultQuery=""
+                placeholder={t('Search for projects by name')}
+                onChange={debouncedSearchQuery}
+                query={projectQuery}
+              />
+            </SearchAndSelectorWrapper>
+            <ProjectCardList projects={filteredProjects} />
+          </Layout.Main>
+        </Layout.Body>
+        {showResources && <Resources organization={organization} />}
+      </NoProjectMessage>
     </Fragment>
   );
 }
 
 const OrganizationDashboard = (props: Props) => (
-  <OrganizationDashboardWrapper>
+  <Layout.Page>
     <Dashboard {...props} />
-  </OrganizationDashboardWrapper>
+  </Layout.Page>
 );
 
 const SearchAndSelectorWrapper = styled('div')`
@@ -245,22 +235,8 @@ const StyledSearchBar = styled(SearchBar)`
 
 const ProjectCards = styled('div')`
   display: grid;
-  grid-template-columns: minmax(100px, 1fr);
   gap: ${space(3)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-`;
-
-const OrganizationDashboardWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
 `;
 
 export {Dashboard};

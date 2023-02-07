@@ -140,7 +140,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
           defaultValue: isSkippingInactive ? [SKIP_OPTION_VALUE] : [],
           label: '',
           value: 'fast_forward',
-          onChange: (value: typeof SKIP_OPTION_VALUE[]) => {
+          onChange: (value: (typeof SKIP_OPTION_VALUE)[]) => {
             toggleSkipInactive(value.length > 0);
           },
           options: [
@@ -157,7 +157,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
 const ReplayControls = ({
   toggleFullscreen,
-  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
+  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
 }: Props) => {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();

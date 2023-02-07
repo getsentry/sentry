@@ -102,7 +102,9 @@ register(
         "render_blocking_fcp_min": 2000.0,
         "render_blocking_fcp_max": 10000.0,
         "render_blocking_fcp_ratio": 0.33,
+        "render_blocking_bytes_min": 1000000,
         "n_plus_one_api_calls_detection_rate": 1.0,
+        "consecutive_db_queries_detection_rate": 1.0,
     },
 )
 

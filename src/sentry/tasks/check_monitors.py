@@ -12,11 +12,24 @@ from sentry.models import (
     MonitorType,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry")
 
 # default maximum runtime for a monitor, in minutes
 TIMEOUT = 12 * 60
+
+# This is the MAXIMUM number of MONITOR this job will check.
+#
+# NOTE: We should keep an eye on this as we have more and more usage of
+# monitors the larger the number of checkins to check will exist.
+MONITOR_LIMIT = 10_000
+
+# This is the MAXIMUM number of pending MONITOR CHECKINS this job will check.
+#
+# NOTE: We should keep an eye on this as we have more and more usage of
+# monitors the larger the number of checkins to check will exist.
+CHECKINS_LIMIT = 10_000
 
 
 @instrumented_task(name="sentry.tasks.check_monitors", time_limit=15, soft_time_limit=10)
@@ -33,8 +46,9 @@ def check_monitors(current_datetime=None):
             MonitorStatus.DELETION_IN_PROGRESS,
         ]
     )[
-        :10000
+        :MONITOR_LIMIT
     ]
+    metrics.gauge("sentry.tasks.check_monitors.missing_count", qs.count())
     for monitor in qs:
         logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
         # add missed checkin
@@ -46,8 +60,9 @@ def check_monitors(current_datetime=None):
         monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
-        :10000
+        :CHECKINS_LIMIT
     ]
+    metrics.gauge("sentry.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)

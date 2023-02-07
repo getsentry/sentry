@@ -6,7 +6,7 @@ import {assert} from 'sentry/types/utils';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import {
   AGGREGATION_FIELDS,
@@ -629,6 +629,9 @@ export const TRACING_FIELDS = [
   ...SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
+
+// This list contains fields/functions that are available with profiling feature.
+export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;

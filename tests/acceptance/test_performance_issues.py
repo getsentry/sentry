@@ -26,6 +26,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
 
+        options.set("performance.issues.all.problem-detection", 1.0)
         options.set("performance.issues.n_plus_one_db.problem-creation", 1.0)
 
         self.page = IssueDetailsPage(self.browser, self.client)
@@ -66,8 +67,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             event = self.store_event(data=event_data, project_id=self.project.id)
 
             self.page.visit_issue(self.org.slug, event.groups[0].id)
-            self.browser.click('[aria-label="Show Details"]')
-
             self.browser.snapshot("performance issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")

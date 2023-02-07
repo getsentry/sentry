@@ -342,7 +342,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         operation_id="Provision a New Organization Member",
         parameters=[GLOBAL_PARAMS.ORG_SLUG],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"userName": serializers.EmailField()}
+            name="SCIMMemberProvision",
+            fields={
+                "userName": serializers.EmailField(),
+                "sentryOrgRole": serializers.CharField(required=False),
+            },
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,
@@ -371,12 +375,15 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         Create a new Organization Member via a SCIM Users POST Request.
         - `userName` should be set to the SAML field used for email, and active should be set to `true`.
+        - `sentryOrgRole` can only be `admin`, `manager`, `billing`, or `member`.
         - Sentry's SCIM API doesn't currently support setting users to inactive,
         and the member will be deleted if active is set to `false`.
         - The API also does not support setting secondary emails.
         """
 
-        with sentry_sdk.start_transaction(name="Provision Scim Member", sampled=True) as txn:
+        with sentry_sdk.start_transaction(
+            name="scim.provision_member", op="scim", sampled=True
+        ) as txn:
             if (
                 features.has("organizations:scim-orgmember-roles", organization, actor=None)
                 and "sentryOrgRole" in request.data

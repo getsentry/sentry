@@ -11,7 +11,6 @@ import {
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import {
   findMatchedRules,
@@ -19,7 +18,7 @@ import {
 } from 'sentry/components/group/suggestedOwners/findMatchedRules';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconAdd, IconChevron, IconSettings, IconUser} from 'sentry/icons';
+import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -128,17 +127,17 @@ function getOwnerList(
   }));
 }
 
-export function getAssignedToDisplayName(group: Group, assignedTo?: Actor) {
-  if (assignedTo?.type === 'team') {
+export function getAssignedToDisplayName(group: Group) {
+  if (group.assignedTo?.type === 'team') {
     const team = TeamStore.getById(group.assignedTo.id);
     return `#${team?.slug ?? group.assignedTo.name}`;
   }
-  if (assignedTo?.type === 'user') {
-    const user = MemberListStore.getById(assignedTo.id);
+  if (group.assignedTo?.type === 'user') {
+    const user = MemberListStore.getById(group.assignedTo.id);
     return user?.name ?? group.assignedTo.name;
   }
 
-  return group.assignedTo?.name ?? t('No-one');
+  return group.assignedTo?.name ?? t('No one');
 }
 
 function AssignedTo({group, project, event, disableDropdown = false}: AssignedToProps) {
@@ -197,26 +196,17 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
       <StyledSidebarTitle>
         {t('Assigned To')}
         {hasStreamlineTargetingFeature && (
-          <ButtonBar>
-            <Access access={['project:write']}>
-              <Button
-                onClick={() => {
-                  openCreateOwnershipRule({project, organization, issueId: group.id});
-                }}
-                aria-label={t('Create Ownership Rule')}
-                icon={<IconAdd />}
-                borderless
-                size="xs"
-              />
-            </Access>
+          <Access access={['project:write']}>
             <Button
-              to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-              aria-label={t('Issue Owners Settings')}
+              onClick={() => {
+                openCreateOwnershipRule({project, organization, issueId: group.id});
+              }}
+              aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
               borderless
               size="xs"
             />
-          </ButtonBar>
+          </Access>
         )}
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
@@ -225,16 +215,17 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
           owners={owners}
           disabled={disableDropdown}
           id={group.id}
+          assignedTo={group.assignedTo}
         >
-          {({loading, assignedTo, isOpen, getActorProps}) => (
+          {({loading, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
               <ActorWrapper>
                 {loading ? (
                   <StyledLoadingIndicator mini size={24} />
-                ) : assignedTo ? (
+                ) : group.assignedTo ? (
                   <ActorAvatar
                     data-test-id="assigned-avatar"
-                    actor={assignedTo}
+                    actor={group.assignedTo}
                     hasTooltip={false}
                     size={24}
                   />
@@ -243,7 +234,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
                     <IconUser size="md" />
                   </IconWrapper>
                 )}
-                <ActorName>{getAssignedToDisplayName(group, assignedTo)}</ActorName>
+                <ActorName>{getAssignedToDisplayName(group)}</ActorName>
               </ActorWrapper>
               {!disableDropdown && (
                 <IconChevron

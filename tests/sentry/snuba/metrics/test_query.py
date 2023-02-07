@@ -566,9 +566,9 @@ def test_validate_metric_field_mri():
 def test_validate_metric_field_mri_is_public(alias):
     with pytest.raises(
         InvalidParams,
-        match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
+        match=f"Unable to find a mri reverse mapping for '{SessionMRI.ERRORED_ALL.value}'.",
     ):
-        MetricField(op=None, metric_mri="e:sessions/error.preaggr@none", alias=alias)
+        MetricField(op=None, metric_mri=SessionMRI.ERRORED_ALL.value, alias=alias)
 
 
 @pytest.mark.parametrize(
@@ -677,18 +677,3 @@ def test_start_end_interval_greater_than_interval_is_successful(
     metrics_query_dict = metrics_query.to_metrics_query_dict()
     mq = MetricsQuery(**metrics_query_dict)
     assert mq.granularity.granularity == expected_granularity
-
-
-@freeze_time("2022-11-03 10:00:00")
-def test_start_end_interval_less_than_interval_raises_an_exception():
-    metrics_query = (
-        MetricsQueryBuilder()
-        .with_select([MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)])
-        .with_include_series(True)
-        .with_granularity(Granularity(86400))
-        .with_interval(7200)
-    )
-
-    with pytest.raises(InvalidParams):
-        metrics_query_dict = metrics_query.to_metrics_query_dict()
-        MetricsQuery(**metrics_query_dict)

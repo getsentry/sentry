@@ -1,15 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
-import {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {EntryType} from 'sentry/types';
-import {EntrySpans, EventTransaction} from 'sentry/types/event';
 import {DeepPartial} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -24,69 +21,19 @@ import {
   FlamegraphStateQueryParamSync,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
-import {
-  useProfileGroup,
-  useProfileTransaction,
-  useSetProfileGroup,
-} from './profileGroupProvider';
-
-function collectAllSpanEntriesFromTransaction(
-  transaction: EventTransaction
-): EntrySpans['data'] {
-  if (!transaction.entries.length) {
-    return [];
-  }
-
-  const spans = transaction.entries.filter(
-    (e): e is EntrySpans => e.type === EntryType.SPANS
-  );
-
-  let allSpans: EntrySpans['data'] = [];
-
-  for (const span of spans) {
-    allSpans = allSpans.concat(span.data);
-  }
-
-  return allSpans;
-}
-
-const LoadingGroup: ProfileGroup = {
-  name: 'Loading',
-  activeProfileIndex: 0,
-  transactionID: null,
-  metadata: {},
-  traceID: '',
-  profiles: [Profile.Empty],
-};
-
-const LoadingSpanTree = SpanTree.Empty;
+import {useProfiles} from './profilesProvider';
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
-  const profileGroup = useProfileGroup();
-  const setProfileGroup = useSetProfileGroup();
-  const profiledTransaction = useProfileTransaction();
-
-  const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('profiling-flamechart-spans');
-  }, [organization.features]);
-
-  const spanTree: SpanTree = useMemo(() => {
-    if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
-      return new SpanTree(
-        profiledTransaction.data,
-        collectAllSpanEntriesFromTransaction(profiledTransaction.data)
-      );
-    }
-
-    return LoadingSpanTree;
-  }, [profiledTransaction]);
+  const profiles = useProfiles();
+  const params = useParams();
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
@@ -98,29 +45,43 @@ function ProfileFlamegraph(): React.ReactElement {
     }
   );
 
+  const currentProject = useCurrentProjectFromRouteParam();
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
       organization,
+      project_platform: currentProject?.platform,
+      project_id: currentProject?.id,
     });
+    // ignore  currentProject so we don't block the analytics event
+    // or fire more than once unnecessarily
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization]);
-
-  const onImport: ProfileDragDropImportProps['onImport'] = useCallback(
-    profiles => {
-      setProfileGroup({type: 'resolved', data: profiles});
-    },
-    [setProfileGroup]
-  );
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
     const queryStringState = decodeFlamegraphStateFromQueryParams(
       qs.parse(window.location.search)
     );
 
+    let type =
+      storedPreferences.preferences?.type ??
+      queryStringState.preferences?.type ??
+      DEFAULT_FLAMEGRAPH_STATE.preferences.type;
+
+    // Ensure that the type is overriden to the default if the feature is not enabled
+    if (
+      type === 'flamegraph' &&
+      !organization.features.includes('profiling-flamegraphs')
+    ) {
+      type = 'flamechart';
+    }
+
     return {
       ...queryStringState,
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
+        type,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
           ...(storedPreferences?.preferences?.timelines ?? {}),
@@ -141,36 +102,50 @@ function ProfileFlamegraph(): React.ReactElement {
       orgSlug={organization.slug}
     >
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
-        <FlamegraphThemeProvider>
-          <FlamegraphStateQueryParamSync />
-          <FlamegraphStateLocalStorageSync />
-          <FlamegraphContainer>
-            {profileGroup.type === 'errored' ? (
-              <Alert type="error" showIcon>
-                {profileGroup.error}
-              </Alert>
-            ) : profileGroup.type === 'loading' ? (
-              <Fragment>
-                <Flamegraph
-                  onImport={onImport}
-                  profiles={LoadingGroup}
-                  spanTree={hasFlameChartSpans ? LoadingSpanTree : null}
-                />
+        <ProfileGroupTypeProvider
+          input={profiles.type === 'resolved' ? profiles.data : null}
+          traceID={params.eventID}
+        >
+          <FlamegraphThemeProvider>
+            <FlamegraphStateQueryParamSync />
+            <FlamegraphStateLocalStorageSync />
+            <FlamegraphContainer>
+              {profiles.type === 'errored' ? (
+                <Alert type="error" showIcon>
+                  {profiles.error}
+                </Alert>
+              ) : profiles.type === 'loading' ? (
                 <LoadingIndicatorContainer>
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>
-              </Fragment>
-            ) : profileGroup.type === 'resolved' ? (
-              <Flamegraph
-                onImport={onImport}
-                profiles={profileGroup.data}
-                spanTree={hasFlameChartSpans ? spanTree : null}
-              />
-            ) : null}
-          </FlamegraphContainer>
-        </FlamegraphThemeProvider>
+              ) : null}
+              <Flamegraph />
+            </FlamegraphContainer>
+          </FlamegraphThemeProvider>
+        </ProfileGroupTypeProvider>
       </FlamegraphStateProvider>
     </SentryDocumentTitle>
+  );
+}
+
+// This only exists because we need to call useFlamegraphPreferences
+// to get the type of visualization that the user is looking at and
+// we cannot do it in the component above as it is not a child of the
+// FlamegraphStateProvider.
+function ProfileGroupTypeProvider({
+  children,
+  input,
+  traceID,
+}: {
+  children: React.ReactNode;
+  input: Profiling.ProfileInput | null;
+  traceID: string;
+}) {
+  const preferences = useFlamegraphPreferences();
+  return (
+    <ProfileGroupProvider input={input} traceID={traceID} type={preferences.type}>
+      {children}
+    </ProfileGroupProvider>
   );
 }
 

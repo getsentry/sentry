@@ -200,7 +200,7 @@ describe('ThreadsV2', function () {
         event,
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
-        projectId: project.id,
+        projectSlug: project.slug,
       };
 
       it('renders', function () {
@@ -212,12 +212,8 @@ describe('ThreadsV2', function () {
         expect(screen.getByRole('heading', {name: 'Stack Trace'})).toBeInTheDocument();
 
         // Actions
-        expect(
-          screen.getByRole('button', {name: 'Full Stack Trace'})
-        ).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
@@ -237,15 +233,11 @@ describe('ThreadsV2', function () {
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('button', {name: 'Full Stack Trace'}));
+        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
@@ -861,7 +853,7 @@ describe('ThreadsV2', function () {
         event,
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
-        projectId: project.id,
+        projectSlug: project.slug,
       };
 
       it('renders', function () {
@@ -870,12 +862,8 @@ describe('ThreadsV2', function () {
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
         // Actions
-        expect(
-          screen.getByRole('button', {name: 'Full Stack Trace'})
-        ).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
@@ -897,15 +885,11 @@ describe('ThreadsV2', function () {
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('button', {name: 'Full Stack Trace'}));
+        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
@@ -1012,7 +996,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         MockApiClient.addMockResponse({
-          url: `/projects/${organization.slug}/2/events/${event.id}/apple-crash-report?minified=false`,
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false`,
           body: '',
         });
 
@@ -1024,7 +1008,7 @@ describe('ThreadsV2', function () {
 
         // Full stack trace toggler is not displayed
         expect(
-          screen.queryByRole('button', {name: 'Full Stack Trace'})
+          screen.queryByRole('radio', {name: 'Full Stack Trace'})
         ).not.toBeInTheDocument();
 
         // Raw content is displayed

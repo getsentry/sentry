@@ -114,8 +114,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not self._can_admin_team(request, team):
             return False
 
-        org_role = request.access.get_organization_role()
-        if org_role and org_role.can_manage_team_role(new_role):
+        org_roles = request.access.get_organization_roles()
+        if any(org_role.can_manage_team_role(new_role) for org_role in org_roles):
             return True
 
         team_role = request.access.get_team_role(team)
@@ -145,6 +145,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(
                 team__slug=team_slug, organizationmember=member
@@ -171,6 +172,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         If the user is already a member of the team, this will simply return
         a 204.
+
+        If the team is provisioned through an identity provider, then the user
+        cannot join or request to join the team through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -182,6 +186,12 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)
+
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
 
         if not self._can_create_team_member(request, team):
             self._create_access_request(request, team, member)
@@ -212,6 +222,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
@@ -279,10 +290,18 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not self._can_delete(request, member, team):
             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
             pass
+
         else:
             self.create_audit_entry(
                 request=request,

@@ -19,12 +19,14 @@ interface UseFunctionsOptions {
   project: Project;
   query: string;
   sort: string;
-  transaction: string;
+  transaction: string | null;
   cursor?: string;
+  enabled?: boolean;
   functionType?: 'application' | 'system' | 'all';
   selection?: PageFilters;
 }
 
+// TODO: this needs to move to `useQuery` to take advantage of client-side caching and avoid refetch on mount
 function useFunctions({
   functionType,
   project,
@@ -33,6 +35,7 @@ function useFunctions({
   sort,
   cursor,
   selection,
+  enabled = true,
 }: UseFunctionsOptions): RequestState<FunctionsResult> {
   const api = useApi();
   const organization = useOrganization();
@@ -42,7 +45,7 @@ function useFunctions({
   });
 
   useEffect(() => {
-    if (selection === undefined) {
+    if (selection === undefined || transaction === null || !enabled) {
       return undefined;
     }
 
@@ -82,6 +85,7 @@ function useFunctions({
     selection,
     sort,
     transaction,
+    enabled,
   ]);
 
   return requestState;

@@ -16,7 +16,7 @@ interface FlamegraphOptionsMenuProps {
 function FlamegraphOptionsMenu({
   canvasPoolManager,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
-  const {colorCoding, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, xAxis, type} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
   const options = useMemo(() => {
@@ -28,6 +28,7 @@ function FlamegraphOptionsMenu({
         options: Object.entries(X_AXIS).map(([value, label]) => ({
           label,
           value,
+          disabled: type === 'flamegraph' && value === 'transaction',
         })),
         onChange: value =>
           dispatch({
@@ -81,7 +82,8 @@ const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
 const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by symbol name': t('By Symbol Name'),
   'by library': t('By Package'),
-  'by system / application': t('By System / Application'),
+  'by system frame': t('By System Frame'),
+  'by application frame': t('By Application Frame'),
   'by recursion': t('By Recursion'),
   'by frequency': t('By Frequency'),
 };

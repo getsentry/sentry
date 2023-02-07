@@ -14,7 +14,10 @@ import {DEFAULT_FLAMEGRAPH_STATE, FlamegraphState} from './flamegraphContext';
 // Intersect the types so we can properly guard
 type PossibleQuery =
   | Query
-  | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view' | 'xAxis'> &
+  | (Pick<
+      FlamegraphState['preferences'],
+      'colorCoding' | 'sorting' | 'type' | 'view' | 'xAxis'
+    > &
       Pick<FlamegraphState['search'], 'query'>);
 
 function isColorCoding(
@@ -26,7 +29,8 @@ function isColorCoding(
 
   return (
     value === 'by symbol name' ||
-    value === 'by system / application' ||
+    value === 'by system frame' ||
+    value === 'by application frame' ||
     value === 'by library' ||
     value === 'by recursion' ||
     value === 'by frequency'
@@ -49,6 +53,15 @@ function isSorting(
     return false;
   }
   return value === 'left heavy' || value === 'call order';
+}
+
+function isType(
+  value: PossibleQuery['type'] | FlamegraphState['preferences']['type']
+): value is FlamegraphState['preferences']['type'] {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value === 'flamegraph' || value === 'flamechart';
 }
 
 function isView(
@@ -76,6 +89,7 @@ export function decodeFlamegraphStateFromQueryParams(
 
   if (typeof query.frameName === 'string' && typeof query.framePackage === 'string') {
     decoded.profiles = {
+      ...(decoded.profiles ?? {}),
       highlightFrames: {
         name: query.frameName,
         package: query.framePackage,
@@ -85,6 +99,7 @@ export function decodeFlamegraphStateFromQueryParams(
 
   if (typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))) {
     decoded.profiles = {
+      ...(decoded.profiles ?? {}),
       threadId: parseInt(query.tid, 10),
     };
   }
@@ -107,6 +122,9 @@ export function decodeFlamegraphStateFromQueryParams(
     decoded.preferences.sorting = query.sorting;
   }
 
+  if (isType(query.type)) {
+    decoded.preferences.type = query.type;
+  }
   if (isView(query.view)) {
     decoded.preferences.view = query.view;
   }
@@ -134,6 +152,7 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     view: state.preferences.view,
     xAxis: state.preferences.xAxis,
     query: state.search.query,
+    type: state.preferences.type,
     ...highlightFrame,
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
@@ -178,6 +197,7 @@ export function FlamegraphStateLocalStorageSync() {
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
     {
       preferences: {
+        type: DEFAULT_FLAMEGRAPH_STATE.preferences.type,
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
@@ -188,6 +208,7 @@ export function FlamegraphStateLocalStorageSync() {
   useEffect(() => {
     setState({
       preferences: {
+        type: state.preferences.type,
         layout: state.preferences.layout,
         timelines: state.preferences.timelines,
         view: state.preferences.view,

@@ -41,7 +41,7 @@ type State = {
   loading: boolean;
   organization: Organization | null;
   prevProps: {
-    location: RouteComponentProps<{orgId: string}, {}>['location'];
+    location: Props['location'];
     orgId: string;
     organizationsLoading: boolean;
   };
@@ -344,7 +344,7 @@ export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
 
-export {OrganizationContextContainer as OrganizationLegacyContext, OrganizationContext};
+export {OrganizationContextContainer as OrganizationLegacyContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};

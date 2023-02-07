@@ -25,7 +25,6 @@ from typing import (
     cast,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -142,12 +141,6 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
-# Used to determine if we should or not record an analytic data
-# for a first event of a project with a minified stack trace
-START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
-    2022, 12, 14, tzinfo=pytz.UTC
-)
-
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
 
@@ -166,7 +159,9 @@ PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
 GROUPHASH_IGNORE_LIMIT_MAP = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
-    GroupType.PERFORMANCE_SLOW_SPAN: 100,
+    GroupType.PERFORMANCE_SLOW_DB_QUERY: 100,
+    GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: 15,
+    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: 10,
 }
 
 
@@ -620,10 +615,6 @@ class EventManager:
             if (
                 has_event_minified_stack_trace(job["event"])
                 and not project.flags.has_minified_stack_trace
-                # We only want to record events from projects created after 2022-12-14,
-                # otherwise amplitude would receive a large amount of data in a short period of time
-                and project.date_added
-                > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
             ):
                 first_event_with_minified_stack_trace_received.send_robust(
                     project=project, event=job["event"], sender=Project
@@ -2312,7 +2303,6 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
 
-                delete_slow_span_group_hashes(new_grouphashes, performance_problems)
                 new_grouphashes_count = len(new_grouphashes)
 
                 with metrics.timer("performance.performance_issue.check_write_limits"):
@@ -2422,45 +2412,28 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
 def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
-    with sentry_sdk.start_span(op="event_manager.should_create_group") as span:
-        times_seen = client.incr(f"grouphash:{grouphash}")
+    times_seen = client.incr(f"grouphash:{grouphash}")
+    metrics.incr(
+        "performance.performance_issue.grouphash_counted",
+        tags={
+            "times_seen": times_seen,
+            "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
+        },
+        sample_rate=1.0,
+    )
+
+    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
+        client.delete(grouphash)
         metrics.incr(
-            "performance.performance_issue.grouphash_counted",
-            tags={
-                "times_seen": times_seen,
-                "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
-            },
+            "performance.performance_issue.issue_will_be_created",
+            tags={"group_type": type.name},
             sample_rate=1.0,
         )
 
-        if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
-            client.delete(grouphash)
-            metrics.incr(
-                "performance.performance_issue.issue_will_be_created",
-                tags={"group_type": type.name},
-                sample_rate=1.0,
-            )
-
-            # TODO: Experimental tag to indicate when a Slow DB Issue would have been created.
-            # This is in place to confirm whether the above rate limit is effective in preventing spikes
-            # and inaccuracies.
-            if type == GroupType.PERFORMANCE_SLOW_SPAN:
-                if span.containing_transaction:
-                    span.containing_transaction.set_tag("_will_create_slow_db_issue", "true")
-                return False
-
-            return True
-        else:
-            client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
-            return False
-
-
-def delete_slow_span_group_hashes(
-    group_hashes: set[str], performance_problems: Sequence[PerformanceProblem]
-) -> None:
-    for problem in performance_problems:
-        if problem.type == GroupType.PERFORMANCE_SLOW_SPAN and problem.fingerprint in group_hashes:
-            group_hashes.remove(problem.fingerprint)
+        return True
+    else:
+        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+        return False
 
 
 @metrics.wraps("event_manager.save_transaction_events")
@@ -2505,7 +2478,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
 @metrics.wraps("event_manager.save_generic_events")
 def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
-    with metrics.timer("event_manager.save_generic.ganization_ids"):
+    with metrics.timer("event_manager.save_generic.organization_ids"):
         organization_ids = {project.organization_id for project in projects.values()}
 
     with metrics.timer("event_manager.save_generic.fetch_organizations"):

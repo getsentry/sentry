@@ -10,8 +10,10 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import TimeSince from 'sentry/components/timeSince';
+import timezones from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
@@ -97,6 +99,7 @@ class MonitorForm extends Component<Props> {
           case 'crontab':
           default:
             rv['config.schedule'] = config.schedule;
+            rv['config.timezone'] = config.timezone;
         }
         break;
       default:
@@ -166,6 +169,20 @@ class MonitorForm extends Component<Props> {
           <PanelHeader>{t('Config')}</PanelHeader>
 
           <PanelBody>
+            {monitor !== undefined && monitor.nextCheckIn && (
+              <PanelAlert type="info">
+                {tct(
+                  'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
+                  {
+                    nextCheckin: (
+                      <strong>
+                        <TimeSince date={monitor.nextCheckIn} />
+                      </strong>
+                    ),
+                  }
+                )}
+              </PanelAlert>
+            )}
             <NumberField
               name="config.max_runtime"
               label={t('Max Runtime')}
@@ -200,6 +217,16 @@ class MonitorForm extends Component<Props> {
                             }
                           )}
                           css={{input: {fontFamily: commonTheme.text.familyMono}}}
+                        />
+                        <SelectField
+                          name="config.timezone"
+                          label={t('Timezone')}
+                          defaultValue="UTC"
+                          options={timezones.map(([value, label]) => ({value, label}))}
+                          help={tct(
+                            "The timezone of your execution environment. Be sure to set this correctly, otherwise the schedule may be mismatched and check-ins will be marked as missed! Use [code:timedatectl] or similar to determine your machine's timezone.",
+                            {code: <code />}
+                          )}
                         />
                         <NumberField
                           name="config.checkin_margin"

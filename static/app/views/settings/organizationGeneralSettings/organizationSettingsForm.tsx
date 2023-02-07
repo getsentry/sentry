@@ -19,7 +19,7 @@ type Props = {
   location: Location;
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncComponent['state'] & {
   authProvider: object;
@@ -51,7 +51,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         {
           name: 'codecovAccess',
           type: 'boolean',
-          label: t('Enable Codecov Access'),
+          label: t('Enable Code Coverage Insights - powered by Codecov'),
           help: t('Opt-in to connect your codecov account'),
         },
       ];

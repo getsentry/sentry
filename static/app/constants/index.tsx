@@ -1,7 +1,14 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import {DataCategory, OrgRole, PermissionResource, Scope} from 'sentry/types';
+import {
+  DataCategory,
+  DataCategoryExact,
+  DataCategoryInfo,
+  OrgRole,
+  PermissionResource,
+  Scope,
+} from 'sentry/types';
 
 /**
  * Common constants here
@@ -228,6 +235,66 @@ export const DATA_CATEGORY_NAMES = {
   [DataCategory.ATTACHMENTS]: t('Attachments'),
   [DataCategory.PROFILES]: t('Profiles'),
   [DataCategory.REPLAYS]: t('Session Replays'),
+};
+
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
+  [DataCategoryExact.ERROR]: {
+    name: DataCategoryExact.ERROR,
+    apiName: 'error',
+    plural: 'errors',
+    displayName: 'error',
+    titleName: t('Errors'),
+    uid: 1,
+  },
+  [DataCategoryExact.TRANSACTION]: {
+    name: DataCategoryExact.TRANSACTION,
+    apiName: 'transaction',
+    plural: 'transactions',
+    displayName: 'transaction',
+    titleName: t('Transactions'),
+    uid: 2,
+  },
+  [DataCategoryExact.ATTACHMENT]: {
+    name: DataCategoryExact.ATTACHMENT,
+    apiName: 'attachment',
+    plural: 'attachments',
+    displayName: 'attachment',
+    titleName: t('Attachments'),
+    uid: 4,
+  },
+  [DataCategoryExact.PROFILE]: {
+    name: DataCategoryExact.PROFILE,
+    apiName: 'profile',
+    plural: 'profiles',
+    displayName: 'profile',
+    titleName: t('Profiles'),
+    uid: 6,
+  },
+  [DataCategoryExact.REPLAY]: {
+    name: DataCategoryExact.REPLAY,
+    apiName: 'replay',
+    plural: 'replays',
+    displayName: 'replay',
+    titleName: t('Session Replays'),
+    uid: 7,
+  },
+  [DataCategoryExact.TRANSACTION_PROCESSED]: {
+    name: DataCategoryExact.TRANSACTION_PROCESSED,
+    apiName: 'transactions',
+    plural: 'transactions',
+    displayName: 'transaction',
+    titleName: t('Transactions'),
+    uid: 8,
+  },
+  [DataCategoryExact.TRANSACTION_INDEXED]: {
+    name: DataCategoryExact.TRANSACTION_INDEXED,
+    apiName: 'transactionIndexed',
+    plural: 'indexed transactions',
+    displayName: 'indexed transaction',
+    titleName: t('Indexed Transactions'),
+    uid: 9,
+  },
 };
 
 // Special Search characters

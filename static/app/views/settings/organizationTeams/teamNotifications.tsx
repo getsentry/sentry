@@ -9,7 +9,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -18,7 +18,7 @@ import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
+type Props = RouteComponentProps<{teamId: string}, {}> & {
   organization: Organization;
   team: Team;
 };

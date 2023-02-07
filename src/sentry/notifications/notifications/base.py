@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
-from urllib.parse import urljoin
 
 import sentry_sdk
 
@@ -13,7 +12,6 @@ from sentry.notifications.types import NotificationSettingTypes, get_notificatio
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
@@ -197,9 +195,8 @@ class BaseNotification(abc.ABC):
                     url_str += f"{fine_tuning_key}/"
 
         return str(
-            urljoin(
-                absolute_uri(url_str),
-                self.get_sentry_query_params(provider, recipient),
+            self.organization.absolute_url(
+                url_str, query=self.get_sentry_query_params(provider, recipient)
             )
         )
 
@@ -259,8 +256,11 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
     def get_project_link(self) -> str:
         # Explicitly typing to satisfy mypy.
-        project_link: str = absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")
-        return project_link
+        return str(
+            self.organization.absolute_url(
+                f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
+            )
+        )
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}

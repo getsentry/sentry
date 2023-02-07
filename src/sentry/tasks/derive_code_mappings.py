@@ -21,7 +21,7 @@ from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby"]
 
 logger = logging.getLogger(__name__)
 
@@ -90,12 +90,16 @@ def derive_code_mappings(
             logger.warning("The org has uninstalled the Sentry App.", extra=extra)
             return
 
-        raise error  # Let's be report the issue
+        raise error  # Let's report the issue
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
         # This will cause the auto-retry logic to try again
         raise error
+
+    if not trees:
+        logger.error("The tree is empty. Investigate.")
+        return
 
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
@@ -146,7 +150,6 @@ def get_installation(
     )
 
     if not integration or not organization_integration:
-        logger.exception(f"Github integration not found for {organization.id}")
         return None, None
 
     installation = integration_service.get_installation(

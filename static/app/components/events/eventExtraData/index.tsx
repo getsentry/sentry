@@ -2,11 +2,12 @@ import {memo, useState} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {geKnownData} from '../contexts/utils';
+import {getKnownData} from '../contexts/utils';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
 import {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
@@ -22,12 +23,23 @@ export const EventExtraData = memo(
       <EventDataSection
         type="extra"
         title={t('Additional Data')}
-        toggleRaw={() => setRaw(!raw)}
-        raw={raw}
+        actions={
+          <SegmentedControl
+            aria-label={t('View')}
+            size="xs"
+            value={raw ? 'raw' : 'formatted'}
+            onChange={key => setRaw(key === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">
+              {t('Formatted')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        }
       >
         {!defined(event.context) ? null : (
           <ContextBlock
-            data={geKnownData<TEventExtraData, EventExtraDataType>({
+            data={getKnownData<TEventExtraData, EventExtraDataType>({
               data: event.context,
               knownDataTypes: Object.keys(event.context),
               meta: event._meta?.context,

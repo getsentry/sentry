@@ -9,9 +9,11 @@ import {
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
+  lowerBound,
   makeProjectionMatrix,
   Rect,
   trimTextCenter,
+  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 
 describe('makeProjectionMatrix', () => {
@@ -43,6 +45,58 @@ describe('getContext', () => {
       // @ts-ignore partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => ctx)}, 'webgl')
     ).toBe(ctx);
+  });
+});
+
+describe('upperBound', () => {
+  it.each([
+    [[], 5, 0],
+    [[1, 2, 3], 2, 1],
+    [[-3, -2, -1], -2, 1],
+    [[1, 2, 3], 10, 3],
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 4],
+  ])(`inserts`, (args, target, insert) => {
+    expect(
+      upperBound(
+        target,
+        args.map(x => ({start: x, end: x + 1}))
+      )
+    ).toBe(insert);
+  });
+
+  it('finds the upper bound frame outside of view', () => {
+    const frames = new Array(10).fill(1).map((_, i) => ({start: i, end: i + 1}));
+    const view = new Rect(4, 0, 2, 0);
+
+    expect(upperBound(view.right, frames)).toBe(6);
+    expect(frames[6].start).toBeGreaterThanOrEqual(view.right);
+    expect(frames[6].end).toBeGreaterThanOrEqual(view.right);
+  });
+});
+
+describe('lowerBound', () => {
+  it.each([
+    [[], 5, 0],
+    [[1, 2, 3], 1, 0],
+    [[-3, -2, -1], -1, 1],
+    [[1, 2, 3], 10, 3],
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 3],
+  ])(`inserts`, (args, target, insert) => {
+    expect(
+      lowerBound(
+        target,
+        args.map(x => ({start: x, end: x + 1}))
+      )
+    ).toBe(insert);
+  });
+
+  it('finds the lower bound frame outside of view', () => {
+    const frames = new Array(10).fill(1).map((_, i) => ({start: i, end: i + 1}));
+    const view = new Rect(4, 0, 2, 0);
+
+    expect(lowerBound(view.left, frames)).toBe(3);
+    expect(frames[3].start).toBeLessThanOrEqual(view.left);
+    expect(frames[3].end).toBeLessThanOrEqual(view.left);
   });
 });
 
@@ -155,7 +209,7 @@ describe('createShader', () => {
 
     // @ts-ignore this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).toThrow(
-      'Failed to compile shader'
+      'Failed to compile 0 shader'
     );
   });
 });

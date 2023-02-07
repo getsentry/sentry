@@ -188,15 +188,16 @@ def make_error_event(request, project, platform):
     return event
 
 
-def make_performance_event(project):
+def make_performance_event(project, sample_name: str):
     with override_options(
         {
+            "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
         }
     ):
         perf_data = dict(
             load_data(
-                "transaction-n-plus-one",
+                sample_name,
                 timestamp=datetime(2017, 9, 6, 0, 0),
             )
         )
@@ -428,42 +429,6 @@ def alert(request):
 
 
 @login_required
-def release_alert(request):
-    platform = request.GET.get("platform", "python")
-    org = Organization(id=1, slug="example", name="Example")
-    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
-
-    event = make_error_event(request, project, platform)
-    group = event.group
-
-    rule = Rule(id=1, label="An example rule")
-    # In non-debug context users_seen we get users_seen from group.count_users_seen()
-    users_seen = get_random(request).randint(0, 100 * 1000)
-
-    contexts = event.data["contexts"].items() if "contexts" in event.data else None
-    event_user = event.data["event_user"] if "event_user" in event.data else None
-
-    return MailPreview(
-        html_template="sentry/emails/release_alert.html",
-        text_template="sentry/emails/release_alert.txt",
-        context={
-            **get_shared_context(rule, org, project, group, event),
-            "interfaces": get_interface_list(event),
-            "event_user": event_user,
-            "contexts": contexts,
-            "users_seen": users_seen,
-            "project": project,
-            "last_release": {
-                "version": "13.9.2",
-            },
-            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
-            "environment": "production",
-            "regression": False,
-        },
-    ).render(request)
-
-
-@login_required
 def digest(request):
     random = get_random(request)
 
@@ -525,7 +490,7 @@ def digest(request):
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
-        perf_event = make_performance_event(project)
+        perf_event = make_performance_event(project, "transaction-n-plus-one")
         # don't clobber error issue ids
         perf_event.group.id = i + 100
         perf_group = perf_event.group
@@ -597,7 +562,7 @@ def request_access(request):
             "name": "George Bush",
             "organization": org,
             "team": team,
-            "url": absolute_uri(
+            "url": org.absolute_url(
                 reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
         },
@@ -617,7 +582,7 @@ def request_access_for_another_member(request):
             "name": "Username",
             "organization": org,
             "team": team,
-            "url": absolute_uri(
+            "url": org.absolute_url(
                 reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
             ),
             "requester": request.user.get_display_name(),
@@ -720,7 +685,7 @@ def org_delete_confirm(request):
             "organization": org,
             "audit_log_entry": entry,
             "eta": timezone.now() + timedelta(days=1),
-            "url": absolute_uri(reverse("sentry-restore-organization", args=[org.slug])),
+            "url": org.absolute_url(reverse("sentry-restore-organization", args=[org.slug])),
         },
     ).render(request)
 

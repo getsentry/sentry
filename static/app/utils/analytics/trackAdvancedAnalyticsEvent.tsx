@@ -6,6 +6,7 @@ import {
   DynamicSamplingEventParameters,
 } from './dynamicSamplingAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
+import {heartbeatEventMap, HeartbeatEventParameters} from './heartbeatAnalyticsEvents';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
 import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
@@ -33,7 +34,8 @@ type EventParameters = GrowthEventParameters &
   SearchEventParameters &
   SettingsEventParameters &
   TeamInsightsEventParameters &
-  DynamicSamplingEventParameters;
+  DynamicSamplingEventParameters &
+  HeartbeatEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -50,6 +52,7 @@ const allEventMap: Record<string, string | null> = {
   ...settingsEventMap,
   ...workflowEventMap,
   ...dynamicSamplingEventMap,
+  ...heartbeatEventMap,
 };
 
 /**

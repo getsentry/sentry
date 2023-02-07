@@ -200,7 +200,7 @@ type Props = {
 };
 
 type State = {
-  hooksDisabled: ReturnType<typeof HookStore['get']>;
+  hooksDisabled: ReturnType<(typeof HookStore)['get']>;
 } & AsyncComponent['state'];
 
 class ProjectFiltersSettings extends AsyncComponent<Props, State> {

@@ -104,8 +104,7 @@ describe('getIssueFieldRenderer', function () {
       );
       expect(screen.getByText('TU')).toBeInTheDocument();
       userEvent.hover(screen.getByText('TU'));
-      expect(await screen.findByText('Assigned to')).toBeInTheDocument();
-      expect(screen.getByText('Test User')).toBeInTheDocument();
+      expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
       expect(screen.getByText('Based on')).toBeInTheDocument();
       expect(screen.getByText('commit data')).toBeInTheDocument();
     });

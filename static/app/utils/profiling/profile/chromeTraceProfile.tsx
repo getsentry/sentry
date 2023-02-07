@@ -289,6 +289,7 @@ export function parseTypescriptChromeTraceArrayFormat(
     activeProfileIndex: 0,
     profiles,
     metadata: {} as Profiling.Schema['metadata'],
+    measurements: {},
   };
 }
 
@@ -512,6 +513,7 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
       elapsed = Math.max(elapsed + profile.timeDeltas[i + 1], elapsed);
     }
   }
+
   return {samples, sampleTimes};
 }
 
@@ -536,5 +538,6 @@ export function parseChromeTraceFormat(
     traceID: profileID,
     transactionID: null,
     metadata: {} as Profiling.Schema['metadata'],
+    measurements: {},
   };
 }

@@ -12,7 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -26,7 +26,7 @@ import ProjectListItem from 'sentry/views/settings/components/settingsProjectIte
 type Props = {
   api: Client;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; teamId: string}, {}>;
+} & RouteComponentProps<{teamId: string}, {}>;
 
 type State = {
   error: boolean;
@@ -54,7 +54,7 @@ class TeamProjects extends Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     if (
-      prevProps.params.orgId !== this.props.params.orgId ||
+      prevProps.organization.slug !== this.props.organization.slug ||
       prevProps.params.teamId !== this.props.params.teamId
     ) {
       this.fetchAll();
@@ -73,13 +73,14 @@ class TeamProjects extends Component<Props, State> {
   fetchTeamProjects() {
     const {
       location,
-      params: {orgId, teamId},
+      organization,
+      params: {teamId},
     } = this.props;
 
     this.setState({loading: true});
 
     this.props.api
-      .requestPromise(`/organizations/${orgId}/projects/`, {
+      .requestPromise(`/organizations/${organization.slug}/projects/`, {
         query: {
           query: `team:${teamId}`,
           cursor: location.query.cursor || '',
@@ -101,11 +102,12 @@ class TeamProjects extends Component<Props, State> {
 
   fetchUnlinkedProjects(query = '') {
     const {
-      params: {orgId, teamId},
+      organization,
+      params: {teamId},
     } = this.props;
 
     this.props.api
-      .requestPromise(`/organizations/${orgId}/projects/`, {
+      .requestPromise(`/organizations/${organization.slug}/projects/`, {
         query: {
           query: query ? `!team:${teamId} ${query}` : `!team:${teamId}`,
         },
@@ -116,22 +118,26 @@ class TeamProjects extends Component<Props, State> {
   }
 
   handleLinkProject = (project: Project, action: string) => {
-    const {orgId, teamId} = this.props.params;
-    this.props.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
-      method: action === 'add' ? 'POST' : 'DELETE',
-      success: resp => {
-        this.fetchAll();
-        ProjectsStore.onUpdateSuccess(resp);
-        addSuccessMessage(
-          action === 'add'
-            ? t('Successfully added project to team.')
-            : t('Successfully removed project from team')
-        );
-      },
-      error: () => {
-        addErrorMessage(t("Wasn't able to change project association."));
-      },
-    });
+    const {organization} = this.props;
+    const {teamId} = this.props.params;
+    this.props.api.request(
+      `/projects/${organization.slug}/${project.slug}/teams/${teamId}/`,
+      {
+        method: action === 'add' ? 'POST' : 'DELETE',
+        success: resp => {
+          this.fetchAll();
+          ProjectsStore.onUpdateSuccess(resp);
+          addSuccessMessage(
+            action === 'add'
+              ? t('Successfully added project to team.')
+              : t('Successfully removed project from team')
+          );
+        },
+        error: () => {
+          addErrorMessage(t("Wasn't able to change project association."));
+        },
+      }
+    );
   };
 
   handleProjectSelected = (selection: Item) => {

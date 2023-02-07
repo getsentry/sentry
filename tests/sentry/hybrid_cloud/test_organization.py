@@ -85,6 +85,7 @@ def assert_team_equals(orm_team: Team, team: ApiTeam):
     assert team.slug == orm_team.slug
     assert team.status == orm_team.status
     assert team.organization_id == orm_team.organization_id
+    assert team.org_role == orm_team.org_role
 
 
 def assert_project_equals(orm_project: Project, project: ApiProject):

@@ -18,6 +18,7 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
 
@@ -101,6 +102,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
 
   return (
     <Layout.Main fullWidth>
+      <ProfileCharts query={props.query} hideCount />
       <TableHeader>
         <CompactSelect
           triggerProps={{prefix: t('Filter'), size: 'xs'}}
@@ -171,7 +173,7 @@ const ALL_FIELDS = [
   'profile.duration',
 ] as const;
 
-export type ProfilingFieldType = typeof ALL_FIELDS[number];
+export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
 
 export function getProfilesTableFields(platform: Project['platform']) {
   if (mobile.includes(platform as any)) {

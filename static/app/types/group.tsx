@@ -56,10 +56,13 @@ export enum IssueCategory {
 
 export enum IssueType {
   ERROR = 'error',
-  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
-  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
-  PERFORMANCE_SLOW_SPAN = 'performance_slow_span',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+  PERFORMANCE_SLOW_DB_QUERY = 'performance_slow_db_query',
+  PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
 }
 
 type CapabilityInfo = {
@@ -644,16 +647,19 @@ export type UserReport = {
   user: User;
 };
 
-export type KeyValueListData = {
+export type KeyValueListDataItem = {
   key: string;
   subject: string;
   actionButton?: React.ReactNode;
   isContextData?: boolean;
+  isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
   value?: React.ReactNode;
-}[];
+};
+
+export type KeyValueListData = KeyValueListDataItem[];
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/
