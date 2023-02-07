@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import random
+import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List
+from urllib.parse import urlparse
 
 from sentry import options
 from sentry.eventstore.models import Event
@@ -177,3 +179,28 @@ def fingerprint_span(span: Span):
     ]  # 80 bits. Not a cryptographic usage, we don't need all of the sha1 for collision detection
 
     return fingerprint
+
+
+# Finds dash-separated UUIDs. (Without dashes will be caught by
+# ASSET_HASH_REGEX).
+UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
+# Preserves filename in e.g. main.[hash].js, but includes number when chunks
+# are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
+CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
+# Finds trailing hashes before the final extension.
+TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
+# Looks for anything hex hash-like, but with a larger min size than the
+# above to limit false positives.
+ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
+
+
+# Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
+def fingerprint_resource_span(span: Span):
+    url = urlparse(span.get("description") or "")
+    path = url.path
+    path = UUID_REGEX.sub("*", path)
+    path = CHUNK_HASH_REGEX.sub(".*.chunk", path)
+    path = TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
+    path = ASSET_HASH_REGEX.sub("*", path)
+    stripped_url = url._replace(path=path, query="").geturl()
+    return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
