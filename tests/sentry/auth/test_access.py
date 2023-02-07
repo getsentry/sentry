@@ -312,6 +312,20 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.sso_is_valid
             assert result.requires_sso
 
+    def test_unlinked_sso_with_owner_from_team(self):
+        organization = self.create_organization()
+        ap = self.create_auth_provider(organization=organization, provider="dummy")
+        user = self.create_user()
+        owner_team = self.create_team(organization=organization)
+        self.create_member(organization=organization, user=user, teams=[owner_team])
+        self.create_auth_identity(auth_provider=ap, user=user)
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+
+        for result in results:
+            assert not result.sso_is_valid
+            assert result.requires_sso
+
     def test_unlinked_sso_with_no_owners(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)
