@@ -53,6 +53,9 @@ class EventAttributeConditionTest(RuleTestCase):
                 "app": {
                     "in_foreground": True,
                 },
+                "unreal": {
+                    "crash_type": "crash",
+                },
             },
         }
         data.update(kwargs)
@@ -740,5 +743,21 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "app.in_foreground", "value": "False"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_unreal_crash_type(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "unreal.crash_type", "value": "Crash"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "unreal.crash_type",
+                "value": "NoCrash",
+            }
         )
         self.assertDoesNotPass(rule, event)
