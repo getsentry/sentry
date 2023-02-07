@@ -58,7 +58,7 @@ describe('SourceMapDebug', () => {
     },
   ];
   const url = `/projects/${organization.slug}/${project.slug}/events/${eventId}/source-map-debug/`;
-  const platform = 'javascript';
+  const sdkName = 'sentry.javascript.browser';
   const debugFrames = getUniqueFilesFromException(exceptionValues, {
     orgSlug: organization.slug,
     projectSlug: project.slug,
@@ -87,12 +87,12 @@ describe('SourceMapDebug', () => {
       match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} platform={platform} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
       organization,
     });
     expect(
       await screen.findByText(
-        'We’ve encountered 1 problem de-minifying your applications source code!'
+        "We've encountered 1 problem de-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
@@ -100,7 +100,7 @@ describe('SourceMapDebug', () => {
     expect(screen.getByText('Event missing Release tag')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/configuration/options/#release'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
     );
   });
 
@@ -116,12 +116,12 @@ describe('SourceMapDebug', () => {
       match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} platform={platform} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
       organization,
     });
     expect(
       await screen.findByText(
-        'We’ve encountered 1 problem de-minifying your applications source code!'
+        "We've encountered 1 problem de-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
@@ -148,17 +148,17 @@ describe('SourceMapDebug', () => {
       body: {errors: [error]},
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} platform={platform} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
       organization,
     });
     expect(
       await screen.findByText(
-        'We’ve encountered 1 problem de-minifying your applications source code!'
+        "We've encountered 1 problem de-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
     const expandedMessage =
-      'The abs_path of the stack frame has absValue which is not a valid URL.';
+      'The given abs_path of the stack frame is absValue which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.';
     expect(
       screen.queryByText(textWithMarkupMatcher(expandedMessage))
     ).not.toBeInTheDocument();
