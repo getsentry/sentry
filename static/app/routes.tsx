@@ -192,7 +192,7 @@ function buildRoutes() {
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/data-export/:dataExportId"
           component={withDomainRequired(
@@ -200,7 +200,7 @@ function buildRoutes() {
           )}
           key="orgless-data-export-route"
         />
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/data-export/:dataExportId"
         component={withDomainRedirect(
@@ -208,7 +208,7 @@ function buildRoutes() {
         )}
         key="org-data-export"
       />
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/disabled-member/"
           component={withDomainRequired(
@@ -216,13 +216,13 @@ function buildRoutes() {
           )}
           key="orgless-disabled-member-route"
         />
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/disabled-member/"
         component={withDomainRedirect(make(() => import('sentry/views/disabledMember')))}
         key="org-disabled-member"
       />
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/join-request/"
           component={withDomainRequired(
@@ -230,7 +230,7 @@ function buildRoutes() {
           )}
           key="orgless-join-request"
         />
-      ) : null}
+      )}
       <Route
         path="/join-request/:orgId/"
         component={withDomainRedirect(
@@ -238,7 +238,7 @@ function buildRoutes() {
         )}
         key="org-join-request"
       />
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/onboarding/"
           component={errorHandler(withDomainRequired(OrganizationContextContainer))}
@@ -250,7 +250,7 @@ function buildRoutes() {
             component={make(() => import('sentry/views/onboarding'))}
           />
         </Route>
-      ) : null}
+      )}
       <Route
         path="/onboarding/:orgId/"
         component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
@@ -637,7 +637,7 @@ function buildRoutes() {
       )}
     >
       {hook('routes:organization')}
-      {usingCustomerDomain ? null : (
+      {usingCustomerDomain && (
         <IndexRoute
           name={t('General')}
           component={make(
@@ -645,7 +645,7 @@ function buildRoutes() {
           )}
         />
       )}
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/settings/organization/"
           name={t('General')}
@@ -653,7 +653,7 @@ function buildRoutes() {
             () => import('sentry/views/settings/organizationGeneralSettings')
           )}
         />
-      ) : null}
+      )}
       <Route
         path="projects/"
         name={t('Projects')}
@@ -945,7 +945,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
       {accountSettingsRoutes}
       <Fragment>
-        {usingCustomerDomain ? (
+        {usingCustomerDomain && (
           <Route
             name={t('Organization')}
             component={withDomainRequired(NoOp)}
@@ -954,7 +954,7 @@ function buildRoutes() {
             {orgSettingsRoutes}
             {projectSettingsRoutes}
           </Route>
-        ) : null}
+        )}
         <Route
           path=":orgId/"
           name={t('Organization')}
@@ -1003,7 +1003,7 @@ function buildRoutes() {
 
   const projectsRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/projects/"
           component={withDomainRequired(NoOp)}
@@ -1011,7 +1011,7 @@ function buildRoutes() {
         >
           {projectsChildRoutes}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/projects/"
         component={withDomainRedirect(NoOp)}
@@ -1042,7 +1042,7 @@ function buildRoutes() {
   const dashboardRoutes = (
     <Fragment>
       <Fragment>
-        {usingCustomerDomain ? (
+        {usingCustomerDomain && (
           <Route
             path="/dashboards/"
             component={withDomainRequired(make(() => import('sentry/views/dashboards')))}
@@ -1052,7 +1052,7 @@ function buildRoutes() {
               component={make(() => import('sentry/views/dashboards/manage'))}
             />
           </Route>
-        ) : null}
+        )}
         <Route
           path="/organizations/:orgId/dashboards/"
           component={withDomainRedirect(make(() => import('sentry/views/dashboards')))}
@@ -1062,7 +1062,7 @@ function buildRoutes() {
         </Route>
       </Fragment>
       <Fragment>
-        {usingCustomerDomain ? (
+        {usingCustomerDomain && (
           <Route
             path="/dashboards/new/"
             component={withDomainRequired(
@@ -1079,7 +1079,7 @@ function buildRoutes() {
               component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
             />
           </Route>
-        ) : null}
+        )}
         <Route
           path="/organizations/:orgId/dashboards/new/"
           component={withDomainRedirect(
@@ -1098,7 +1098,7 @@ function buildRoutes() {
         </Route>
       </Fragment>
       <Fragment>
-        {usingCustomerDomain ? (
+        {usingCustomerDomain && (
           <Route
             path="/dashboards/new/:templateId"
             component={withDomainRequired(
@@ -1111,7 +1111,7 @@ function buildRoutes() {
               component={make(() => import('sentry/views/dashboards/create'))}
             />
           </Route>
-        ) : null}
+        )}
         <Route
           path="/organizations/:orgId/dashboards/new/:templateId"
           component={withDomainRedirect(
@@ -1129,11 +1129,11 @@ function buildRoutes() {
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
       />
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Redirect from="/dashboards/:dashboardId/" to="/dashboard/:dashboardId/" />
-      ) : null}
+      )}
       <Fragment>
-        {usingCustomerDomain ? (
+        {usingCustomerDomain && (
           <Route
             path="/dashboard/:dashboardId/"
             component={withDomainRequired(
@@ -1143,7 +1143,7 @@ function buildRoutes() {
           >
             {dashboardWidgetRoutes}
           </Route>
-        ) : null}
+        )}
         <Route
           path="/organizations/:orgId/dashboard/:dashboardId/"
           component={withDomainRedirect(
@@ -1264,7 +1264,7 @@ function buildRoutes() {
 
   const alertRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/alerts/"
           component={withDomainRequired(make(() => import('sentry/views/alerts')))}
@@ -1272,7 +1272,7 @@ function buildRoutes() {
         >
           {alertChildRoutes({forCustomerDomain: true})}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/alerts/"
         component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
@@ -1320,7 +1320,7 @@ function buildRoutes() {
 
   const cronsRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/crons/"
           component={withDomainRequired(make(() => import('sentry/views/monitors')))}
@@ -1328,7 +1328,7 @@ function buildRoutes() {
         >
           {cronsChildRoutes({forCustomerDomain: true})}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/crons/"
         component={withDomainRedirect(make(() => import('sentry/views/monitors')))}
@@ -1351,7 +1351,7 @@ function buildRoutes() {
 
   const replayRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/replays/"
           component={withDomainRequired(make(() => import('sentry/views/replays')))}
@@ -1359,7 +1359,7 @@ function buildRoutes() {
         >
           {replayChildRoutes}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/replays/"
         component={withDomainRedirect(make(() => import('sentry/views/replays')))}
@@ -1412,7 +1412,7 @@ function buildRoutes() {
 
   const releasesRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/releases/"
           component={withDomainRequired(NoOp)}
@@ -1420,7 +1420,7 @@ function buildRoutes() {
         >
           {releasesChildRoutes({forCustomerDomain: true})}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/releases/"
         component={withDomainRedirect(NoOp)}
@@ -1433,7 +1433,7 @@ function buildRoutes() {
 
   const activityRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/activity/"
           component={withDomainRequired(
@@ -1441,7 +1441,7 @@ function buildRoutes() {
           )}
           key="orgless-activity-route"
         />
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/activity/"
         component={withDomainRedirect(
@@ -1485,7 +1485,7 @@ function buildRoutes() {
 
   const statsRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/stats/"
           component={withDomainRequired(NoOp)}
@@ -1493,7 +1493,7 @@ function buildRoutes() {
         >
           {statsChildRoutes({forCustomerDomain: true})}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/stats/"
         component={withDomainRedirect(NoOp)}
@@ -1531,7 +1531,7 @@ function buildRoutes() {
   );
   const discoverRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/discover/"
           component={withDomainRequired(make(() => import('sentry/views/discover')))}
@@ -1539,7 +1539,7 @@ function buildRoutes() {
         >
           {discoverChildRoutes}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/discover/"
         component={withDomainRedirect(make(() => import('sentry/views/discover')))}
@@ -1636,7 +1636,7 @@ function buildRoutes() {
 
   const performanceRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/performance/"
           component={withDomainRequired(make(() => import('sentry/views/performance')))}
@@ -1644,7 +1644,7 @@ function buildRoutes() {
         >
           {performanceChildRoutes}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/performance/"
         component={withDomainRedirect(make(() => import('sentry/views/performance')))}
@@ -1657,13 +1657,13 @@ function buildRoutes() {
 
   const userFeedbackRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/user-feedback/"
           component={withDomainRequired(make(() => import('sentry/views/userFeedback')))}
           key="orgless-user-feedback-route"
         />
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/user-feedback/"
         component={withDomainRedirect(make(() => import('sentry/views/userFeedback')))}
@@ -1674,7 +1674,7 @@ function buildRoutes() {
 
   const issueListRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/issues/(searches/:searchId/)"
           component={withDomainRequired(errorHandler(IssueListContainer))}
@@ -1682,7 +1682,7 @@ function buildRoutes() {
         >
           <IndexRoute component={errorHandler(IssueListOverview)} />
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/issues/(searches/:searchId/)"
         component={withDomainRedirect(errorHandler(IssueListContainer))}
@@ -1772,7 +1772,7 @@ function buildRoutes() {
       >
         {issueDetailsChildRoutes({forCustomerDomain: false})}
       </Route>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/issues/:groupId/"
           component={withDomainRequired(make(() => import('sentry/views/issueDetails')))}
@@ -1780,7 +1780,7 @@ function buildRoutes() {
         >
           {issueDetailsChildRoutes({forCustomerDomain: true})}
         </Route>
-      ) : null}
+      )}
     </Fragment>
   );
 
@@ -1917,7 +1917,7 @@ function buildRoutes() {
 
   const gettingStartedRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/getting-started/:projectId/"
           component={withDomainRequired(
@@ -1927,7 +1927,7 @@ function buildRoutes() {
         >
           {gettingStartedChildRoutes}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/:orgId/:projectId/getting-started/"
         component={withDomainRedirect(
@@ -2053,7 +2053,7 @@ function buildRoutes() {
 
   const profilingRoutes = (
     <Fragment>
-      {usingCustomerDomain ? (
+      {usingCustomerDomain && (
         <Route
           path="/profiling/"
           component={withDomainRequired(make(() => import('sentry/views/profiling')))}
@@ -2061,7 +2061,7 @@ function buildRoutes() {
         >
           {profilingChildRoutes}
         </Route>
-      ) : null}
+      )}
       <Route
         path="/organizations/:orgId/profiling/"
         component={withDomainRedirect(make(() => import('sentry/views/profiling')))}
