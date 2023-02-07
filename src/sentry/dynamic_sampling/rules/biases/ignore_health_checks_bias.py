@@ -55,7 +55,7 @@ class IgnoreHealthChecksRulesGenerator(BiasRulesGenerator):
                 },
                 "active": True,
                 "id": bias_data["id"],
-            }
+            }  # type:ignore
         ]
 
 
@@ -78,7 +78,7 @@ class IgnoreHealthChecksRulesGeneratorV2(BiasRulesGenerator):
                 },
                 "active": True,
                 "id": bias_data["id"],
-            }
+            }  # type:ignore
         ]
 
 

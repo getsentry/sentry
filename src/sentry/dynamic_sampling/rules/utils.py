@@ -162,4 +162,4 @@ def eval_dynamic_factor(base_sample_rate: float, x: float) -> float:
             "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
         )
 
-    return x / x**base_sample_rate
+    return float(x / (x**base_sample_rate))

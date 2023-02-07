@@ -49,7 +49,7 @@ class BoostKeyTransactionsRulesGenerator(BiasRulesGenerator):
                 },
                 "active": True,
                 "id": bias_data["id"],
-            }
+            }  # type:ignore
         ]
 
 
@@ -78,7 +78,7 @@ class BoostKeyTransactionsRulesGeneratorV2(BiasRulesGenerator):
                 },
                 "active": True,
                 "id": bias_data["id"],
-            }
+            }  # type:ignore
         ]
 
 

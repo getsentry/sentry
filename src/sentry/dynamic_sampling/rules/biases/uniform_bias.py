@@ -30,7 +30,7 @@ class UniformRulesGenerator(BiasRulesGenerator):
                     "inner": [],
                 },
                 "id": bias_data["id"],
-            }
+            }  # type:ignore
         ]
 
 
@@ -49,7 +49,7 @@ class UniformRulesGeneratorV2(BiasRulesGenerator):
                     "inner": [],
                 },
                 "id": bias_data["id"],
-            }
+            }  # type:ignore
         ]
 
 
