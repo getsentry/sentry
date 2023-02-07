@@ -1243,6 +1243,8 @@ SENTRY_FEATURES = {
     "organizations:scim-team-roles": False,
     # Enable the in-app source map debugging feature
     "organizations:fix-source-map-cta": False,
+    # Enable new JS SDK Dynamic Loader
+    "organizations:js-sdk-dynamic-loader": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
