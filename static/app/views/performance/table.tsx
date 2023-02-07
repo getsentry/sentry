@@ -23,11 +23,7 @@ import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  EventData,
-  isFieldSortable,
-  MetaType,
-} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -46,28 +42,10 @@ import {
 import {COLUMN_TITLES} from './data';
 import {
   createUnnamedTransactionsDiscoverTarget,
+  getProjectID,
   getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
-
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
-
-  const project = projects.find(currentProject => currentProject.slug === projectSlug);
-
-  if (!project) {
-    return undefined;
-  }
-
-  return project.id;
-}
 
 type Props = {
   eventView: EventView;
