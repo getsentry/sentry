@@ -229,8 +229,8 @@ def test_project_config_exposed_features_raise_exc(default_project):
             True,
             {
                 "rules": [
-                    DEFAULT_ENVIRONMENT_RULE,
                     DEFAULT_IGNORE_HEALTHCHECKS_RULE,
+                    DEFAULT_ENVIRONMENT_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -238,7 +238,50 @@ def test_project_config_exposed_features_raise_exc(default_project):
                         "condition": {"op": "and", "inner": []},
                         "id": 1000,
                     },
-                ]
+                ],
+                "rulesV2": [
+                    {
+                        "samplingValue": {"type": "sampleRate", "value": 0.02},
+                        "type": "transaction",
+                        "condition": {
+                            "op": "or",
+                            "inner": [
+                                {
+                                    "op": "glob",
+                                    "name": "event.transaction",
+                                    "value": HEALTH_CHECK_GLOBS,
+                                    "options": {"ignoreCase": True},
+                                }
+                            ],
+                        },
+                        "active": True,
+                        "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
+                    },
+                    {
+                        "samplingValue": {"type": "sampleRate", "value": 1.0},
+                        "type": "trace",
+                        "condition": {
+                            "op": "or",
+                            "inner": [
+                                {
+                                    "op": "glob",
+                                    "name": "trace.environment",
+                                    "value": ENVIRONMENT_GLOBS,
+                                    "options": {"ignoreCase": True},
+                                }
+                            ],
+                        },
+                        "active": True,
+                        "id": 1001,
+                    },
+                    {
+                        "samplingValue": {"type": "sampleRate", "value": 0.1},
+                        "type": "trace",
+                        "active": True,
+                        "condition": {"op": "and", "inner": []},
+                        "id": 1000,
+                    },
+                ],
             },
         ),
         (
@@ -271,13 +314,17 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 
 @pytest.mark.django_db
 @region_silo_test(stable=True)
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.eval_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
+    eval_dynamic_factor,
     default_project,
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
+    eval_dynamic_factor.return_value = 1.5
+
     redis_client = get_redis_client_for_ds()
     ts = time.time()
 
@@ -317,23 +364,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     assert dynamic_sampling == {
         "rules": [
             {
-                "sampleRate": 1,
-                "type": "trace",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1001,
-            },
-            {
                 "sampleRate": 0.02,
                 "type": "transaction",
                 "condition": {
@@ -349,6 +379,23 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 },
                 "active": True,
                 "id": 1002,
+            },
+            {
+                "sampleRate": 1,
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ENVIRONMENT_GLOBS,
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1001,
             },
             {
                 "sampleRate": 0.5,
@@ -489,7 +536,182 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "condition": {"op": "and", "inner": []},
                 "id": 1000,
             },
-        ]
+        ],
+        "rulesV2": [
+            {
+                "samplingValue": {"type": "sampleRate", "value": 0.02},
+                "type": "transaction",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "event.transaction",
+                            "value": HEALTH_CHECK_GLOBS,
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1002,
+            },
+            {
+                "samplingValue": {"type": "sampleRate", "value": 1.0},
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ENVIRONMENT_GLOBS,
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1001,
+            },
+            {
+                "samplingValue": {"type": "factor", "value": 1.5},
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["2.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1500,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            },
+            {
+                "samplingValue": {"type": "factor", "value": 1.5},
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1501,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            },
+            {
+                "samplingValue": {"type": "factor", "value": 1.5},
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1502,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            },
+            {
+                "samplingValue": {"type": "factor", "value": 1.5},
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1503,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            },
+            {
+                "samplingValue": {"type": "factor", "value": 1.5},
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1504,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            },
+            {
+                "samplingValue": {"type": "factor", "value": 1.5},
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
+                        {
+                            "op": "eq",
+                            "name": "trace.environment",
+                            "value": "prod",
+                        },
+                    ],
+                },
+                "id": 1505,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            },
+            {
+                "samplingValue": {"type": "sampleRate", "value": 0.1},
+                "type": "trace",
+                "active": True,
+                "condition": {"op": "and", "inner": []},
+                "id": 1000,
+            },
+        ],
     }
 
 
