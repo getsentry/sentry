@@ -53,4 +53,19 @@ describe('getUniqueFilesFromException', () => {
 
     expect(result).toHaveLength(0);
   });
+
+  it('uses frames that are relative to home directory', function () {
+    const event = modifyEventFrames(
+      TestStubs.EventStacktraceException({
+        platform: 'javascript',
+      }),
+      {absPath: '~/myfile.js', filename: '~/myfile.js'}
+    );
+    const result = getUniqueFilesFromException(
+      (event.entries as EntryException[])[0].data.values!,
+      props
+    );
+
+    expect(result).toHaveLength(1);
+  });
 });

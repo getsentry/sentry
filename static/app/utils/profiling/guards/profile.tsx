@@ -59,7 +59,9 @@ export function isTypescriptChromeTraceArrayFormat(
   );
 }
 
-export function isChromeTraceFormat(profile: any): profile is ChromeTrace.ArrayFormat {
+export function isChromeTraceFormat(
+  profile: Readonly<any>
+): profile is ChromeTrace.ArrayFormat {
   return (
     isTypescriptChromeTraceArrayFormat(profile) ||
     isChromeTraceObjectFormat(profile) ||

@@ -2025,7 +2025,7 @@ function buildRoutes() {
       />
       <Route
         path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profileGroupProvider'))}
+        component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
         <Route
           path="details/"

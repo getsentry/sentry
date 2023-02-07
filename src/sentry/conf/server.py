@@ -827,7 +827,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
-        "schedule": timedelta(hours=1),
+        "schedule": crontab(minute=17),
         "options": {"expires": 3600},
     },
     "hybrid-cloud-repair-mappings": {
@@ -963,10 +963,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
-    # Workflow 2.0 Alpha Functionality for sentry users only
-    "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Active Release Notifications
-    "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
@@ -1025,6 +1021,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
+    # Enable the profiling previews
+    "organizations:profiling-previews": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
@@ -1174,8 +1172,6 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
-    # Enable populating suggested assignees with release committers
-    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1183,6 +1179,10 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enabled for those orgs who participated in the Replay Beta program
+    "organizations:session-replay-beta-grace": False,
+    # Enable replay GA messaging (update paths from AM1 to AM2)
+    "organizations:session-replay-ga": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,

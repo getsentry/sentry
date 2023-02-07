@@ -20,7 +20,6 @@ import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import {Item, TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -260,14 +259,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS && (
-          <FeatureBadge
-            type="beta"
-            title={t(
-              'N+1 API Calls Performance Issues are in active development and may change'
-            )}
-          />
-        )}
         {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
           <FeatureBadge
             type="alpha"
@@ -304,8 +295,6 @@ function GroupHeader({
     </GuideAnchor>
   );
 
-  const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
-
   return (
     <Layout.Header>
       <div className={className}>
@@ -319,15 +308,13 @@ function GroupHeader({
               {label: shortIdBreadCrumb},
             ]}
           />
-          {hasIssueActionsV2 && (
-            <GroupActions
-              group={group}
-              project={project}
-              disabled={disableActions}
-              event={event}
-              query={location.query}
-            />
-          )}
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            event={event}
+            query={location.query}
+          />
         </BreadcrumbActionWrapper>
         <HeaderRow>
           <TitleWrapper>
@@ -365,26 +352,10 @@ function GroupHeader({
             </div>
           </StatsWrapper>
         </HeaderRow>
-        {hasIssueActionsV2 ? (
-          // Environment picker for mobile
-          <HeaderRow className="hidden-sm hidden-md hidden-lg">
-            <EnvironmentPageFilter alignDropdown="right" />
-          </HeaderRow>
-        ) : (
-          <HeaderRow>
-            <GroupActions
-              group={group}
-              project={project}
-              disabled={disableActions}
-              event={event}
-              query={location.query}
-            />
-            <StyledSeenByList
-              seenBy={group.seenBy}
-              iconTooltip={t('People who have viewed this issue')}
-            />
-          </HeaderRow>
-        )}
+        {/* Environment picker for mobile */}
+        <HeaderRow className="hidden-sm hidden-md hidden-lg">
+          <EnvironmentPageFilter alignDropdown="right" />
+        </HeaderRow>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>
     </Layout.Header>
@@ -434,12 +405,6 @@ const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
   gap: ${space(1)};
-`;
-
-const StyledSeenByList = styled(SeenByList)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
