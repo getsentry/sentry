@@ -102,7 +102,7 @@ def query_sso_state(
 
                 def get_user_ids(org_id: int, mem_id: int) -> Any:
                     all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
-                        organization_id=organization_id
+                        organization_id=org_id
                     )
                     return (
                         org_member_class.objects.filter(

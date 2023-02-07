@@ -107,7 +107,9 @@ class OrganizationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_all_org_roles(
-        self, organization_member: ApiOrganizationMember | None, member_id: int | None
+        self,
+        organization_member: Optional[ApiOrganizationMember] = None,
+        member_id: Optional[int] = None,
     ) -> List[str]:
         pass
 

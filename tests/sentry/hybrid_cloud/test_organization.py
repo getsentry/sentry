@@ -60,9 +60,11 @@ def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
 def org_with_owner_team() -> Tuple[Organization, Sequence[User]]:
     org, users = basic_filled_out_org()
     other_user = Factories.create_user()
+    users.append(other_user)
     Factories.create_team(org, members=[users[1], other_user], org_role="owner")
     Factories.create_team(org, members=[users[1]], org_role="manager")
-    return org, users + [other_user]
+
+    return org, users
 
 
 def parameterize_with_orgs(f: Callable):
@@ -208,7 +210,7 @@ def test_get_organization_id(org_factory: Callable[[], Organization]):
 @use_real_service(organization_service, None)
 def test_get_all_org_roles(org_factory: Callable[[], Organization]):
     _, orm_users = org_factory()
-    member = orm_users[1]
+    member = OrganizationMember.objects.get(user_id=orm_users[1].id)
 
     all_org_roles = ["owner", "member", "manager"]
     service_org_roles = organization_service.get_all_org_roles(
@@ -223,7 +225,8 @@ def test_get_all_org_roles(org_factory: Callable[[], Organization]):
 @use_real_service(organization_service, None)
 def test_get_top_dog_team_member_ids(org_factory: Callable[[], Organization]):
     orm_org, orm_users = org_factory()
+    members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
 
-    all_top_dogs = [orm_users[1].id, orm_users[2].id]
+    all_top_dogs = [members[1].id, members[2].id]
     service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org)
     assert set(all_top_dogs) == set(service_top_dogs)

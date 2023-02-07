@@ -295,20 +295,24 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return ApiOrganizationInvite(om.id, om.token, om.email)
 
     def get_all_org_roles(
-        self, organization_member: ApiOrganizationMember = None, member_id: int = None
+        self,
+        organization_member: Optional[ApiOrganizationMember] = None,
+        member_id: Optional[int] = None,
     ) -> List[str]:
         if member_id:
             member = OrganizationMember.objects.get(id=member_id)
             organization_member = self.serialize_member(member)
 
-        team_ids = [mt.team_id for mt in organization_member.member_teams]
-        org_roles = list(
-            Team.objects.filter(id__in=team_ids)
-            .exclude(org_role=None)
-            .values_list("org_role", flat=True)
-            .distinct()
-        )
-        org_roles.append(organization_member.role)
+        org_roles = []
+        if organization_member:
+            team_ids = [mt.team_id for mt in organization_member.member_teams]
+            org_roles = list(
+                Team.objects.filter(id__in=team_ids)
+                .exclude(org_role=None)
+                .values_list("org_role", flat=True)
+                .distinct()
+            )
+            org_roles.append(organization_member.role)
         return org_roles
 
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
