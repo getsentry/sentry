@@ -82,9 +82,10 @@ def clear_transaction_names(project: Project) -> None:
 
 
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
-    transaction_info = event_data.get("transaction_info") or {}
 
     transaction_name = event_data.get("transaction")
+
+    transaction_info = event_data.get("transaction_info") or {}
     source = transaction_info.get("source")
     if transaction_name and features.has(
         "organizations:transaction-name-clusterer", project.organization
