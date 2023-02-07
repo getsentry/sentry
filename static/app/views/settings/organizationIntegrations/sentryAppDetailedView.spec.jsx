@@ -7,7 +7,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import SentryAppDetailedView from 'sentry/views/organizationIntegrations/sentryAppDetailedView';
+import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
 describe('SentryAppDetailedView', function () {
   const org = TestStubs.Organization();

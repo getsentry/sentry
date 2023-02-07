@@ -7,7 +7,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Organization} from 'sentry/types';
-import PluginDetailedView from 'sentry/views/organizationIntegrations/pluginDetailedView';
+import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
 
 function renderMockRequests(orgSlug: Organization['slug']) {
   const configs = MockApiClient.addMockResponse({
