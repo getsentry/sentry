@@ -18,6 +18,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -66,10 +67,13 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
       ? projects.find(proj => proj.slug === projectSlug)
       : undefined;
 
-  const {loading, firstErrorReceived, serverConnected} = useHeartbeat(
-    project?.slug,
-    project?.id
-  );
+  const {
+    loading,
+    firstErrorReceived,
+    firstTransactionReceived,
+    sessionReceived,
+    serverConnected,
+  } = useHeartbeat(project?.slug, project?.id);
 
   useEffect(() => {
     const onUnload = (nextLocation?: Location) => {
@@ -141,12 +145,38 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
   }, [serverConnected, loading]);
 
   useEffect(() => {
+    if (loading || !sessionReceived) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_session_received', {
+      organization,
+      new_organization: !!newOrg,
+    });
+  }, [sessionReceived, loading, newOrg, organization]);
+
+  useEffect(() => {
+    if (loading || !firstTransactionReceived) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_first_transaction_received', {
+      organization,
+      new_organization: !!newOrg,
+    });
+  }, [firstTransactionReceived, loading, newOrg, organization]);
+  useEffect(() => {
     if (loading || !firstErrorReceived) {
       return;
     }
 
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_first_error_received', {
+      organization,
+      new_organization: !!newOrg,
+    });
+
     addSuccessMessage(t('First error received'));
-  }, [firstErrorReceived, loading]);
+  }, [firstErrorReceived, loading, newOrg, organization]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
@@ -221,6 +251,15 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
                       ? `${firstErrorReceived.id}/`
                       : ''
                   }?referrer=onboarding-first-event-footer`}
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'heartbeat.onboarding_go_to_my_error_button_clicked',
+                      {
+                        organization,
+                        new_organization: !!newOrg,
+                      }
+                    );
+                  }}
                 >
                   {t('Go to my error')}
                 </Button>
@@ -229,6 +268,12 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
                   priority="primary"
                   busy={projectsLoading}
                   to={`/organizations/${organization.slug}/issues/`} // TODO(Priscila): See what Jesse meant with 'explore sentry'. What should be the expected action?
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'heartbeat.onboarding_explore_sentry_button_clicked',
+                      {organization}
+                    );
+                  }}
                 >
                   {t('Explore Sentry')}
                 </Button>
@@ -241,6 +286,12 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
                 to={{
                   pathname: `/organizations/${organization.slug}/performance/`,
                   query: {project: project?.id},
+                }}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'heartbeat.onboarding_go_to_performance_button_clicked',
+                    {organization}
+                  );
                 }}
               >
                 {t('Go to Performance')}
@@ -256,6 +307,15 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
                       ? `${firstErrorReceived.id}/`
                       : ''
                   }`}
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'heartbeat.onboarding_go_to_my_error_button_clicked',
+                      {
+                        organization,
+                        new_organization: !!newOrg,
+                      }
+                    );
+                  }}
                 >
                   {t('Go to my error')}
                 </Button>
@@ -267,6 +327,12 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
                     pathname: `/organizations/${organization.slug}/issues/`,
                     query: {project: project?.id},
                     hash: '#welcome',
+                  }}
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'heartbeat.onboarding_go_to_issues_button_clicked',
+                      {organization}
+                    );
                   }}
                 >
                   {t('Go to Issues')}
