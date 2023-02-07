@@ -169,7 +169,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
             organization={organization}
             integration={integration}
             projects={projects}
-            repos={this.repos.map(x => ({...x, defaultBranch: 'main'}))}
+            repos={this.repos}
             onSubmitSuccess={config => {
               this.handleSubmitSuccess(config);
               closeModal();
