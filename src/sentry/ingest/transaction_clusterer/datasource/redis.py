@@ -85,26 +85,13 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
 
     transaction_name = event_data.get("transaction")
 
-    transaction_info = event_data.get("transaction_info") or {}
-    source = transaction_info.get("source")
     if transaction_name and features.has(
         "organizations:transaction-name-clusterer", project.organization
     ):
         if not _must_store_event(event_data):
             return
 
-        # For now, we also feed back transactions into the clustering algorithm
-        # that have already been sanitized, so we have a chance to discover
-        # more high cardinality segments after partial sanitation.
-        # For example, we may have sanitized `/orgs/*/projects/foo`,
-        # But the clusterer has yet to discover `/orgs/*/projects/*`.
-        #
-        # Disadvantage: the load on redis does not decrease over time.
-        #
-        if source in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED):
-            safe_execute(
-                _store_transaction_name, project, transaction_name, _with_transaction=False
-            )
+        safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
         # TODO: For every transaction that had a rule applied to it, we should
         # bump the rule's lifetime here such that it stays alive while it is
         # being used.
@@ -117,8 +104,22 @@ def _must_store_event(event_data: Mapping[str, Any]) -> bool:
     transaction clusterer."""
 
     tags = event_data.get("tags")
+    transaction_info = event_data.get("transaction_info") or {}
+    source = transaction_info.get("source")
+
     if tags and ["http.status_code", "404"] in tags:
         print(f"discarding transaction for tags: {tags=}")
+        return False
+
+    # For now, we also feed back transactions into the clustering algorithm
+    # that have already been sanitized, so we have a chance to discover
+    # more high cardinality segments after partial sanitation.
+    # For example, we may have sanitized `/orgs/*/projects/foo`,
+    # But the clusterer has yet to discover `/orgs/*/projects/*`.
+    #
+    # Disadvantage: the load on redis does not decrease over time.
+    #
+    if source not in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED):
         return False
 
     return True
