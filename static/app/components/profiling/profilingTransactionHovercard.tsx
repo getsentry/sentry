@@ -179,8 +179,9 @@ export function ProfilingTransactionHovercardBody({
       </Flex>
 
       <Flex column h={125}>
-        <FunctionsMiniGrid
-          functions={functions}
+        <ProfilingTransactionHovercardFunctions
+          isLoading={functionsQuery.isLoading}
+          functions={functions ?? []}
           organization={organization}
           project={project}
           onLinkClick={() =>
@@ -190,14 +191,26 @@ export function ProfilingTransactionHovercardBody({
             })
           }
         />
-        {functionsQuery.type === 'loading' && <FunctionsMiniGridLoading />}
-
-        {functionsQuery.type === 'resolved' && functions?.length === 0 && (
-          <FunctionsMiniGridEmptyState />
-        )}
       </Flex>
     </Flex>
   );
+}
+
+type ProfilingTransactionHovercardFunctionsProps = React.ComponentProps<
+  typeof FunctionsMiniGrid
+> & {isLoading: boolean};
+
+function ProfilingTransactionHovercardFunctions(
+  props: ProfilingTransactionHovercardFunctionsProps
+) {
+  if (props.isLoading) {
+    return <FunctionsMiniGridLoading />;
+  }
+
+  if (!props.functions || props.functions?.length === 0) {
+    return <FunctionsMiniGridEmptyState />;
+  }
+  return <FunctionsMiniGrid {...props} />;
 }
 
 interface ContextDetailProps {
