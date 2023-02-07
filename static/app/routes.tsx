@@ -794,7 +794,8 @@ function buildRoutes() {
           path=":integrationSlug/"
           name={t('Integration Details')}
           component={make(
-            () => import('sentry/views/organizationIntegrations/pluginDetailedView')
+            () =>
+              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
           )}
         />
       </Route>
@@ -804,7 +805,10 @@ function buildRoutes() {
           path=":integrationSlug"
           name={t('Details')}
           component={make(
-            () => import('sentry/views/organizationIntegrations/sentryAppDetailedView')
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/sentryAppDetailedView'
+              )
           )}
         />
       </Route>
@@ -815,21 +819,29 @@ function buildRoutes() {
           name={t('Details')}
           component={make(
             () =>
-              import('sentry/views/organizationIntegrations/docIntegrationDetailedView')
+              import(
+                'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView'
+              )
           )}
         />
       </Route>
       <Route path="integrations/" name={t('Integrations')}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/organizationIntegrations/integrationListDirectory')
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/integrationListDirectory'
+              )
           )}
         />
         <Route
           path=":integrationSlug"
           name={t('Integration Details')}
           component={make(
-            () => import('sentry/views/organizationIntegrations/integrationDetailedView')
+            () =>
+              import(
+                'sentry/views/settings/organizationIntegrations/integrationDetailedView'
+              )
           )}
         />
         <Route
