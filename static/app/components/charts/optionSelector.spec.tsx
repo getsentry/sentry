@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {t} from 'sentry/locale';
