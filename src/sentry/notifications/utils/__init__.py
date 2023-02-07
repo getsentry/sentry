@@ -27,7 +27,10 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouptype.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.grouptype.grouptype import (
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
@@ -503,7 +506,7 @@ class PerformanceProblemContext:
     ) -> PerformanceProblemContext:
         if problem.type == PerformanceNPlusOneAPICallsGroupType:
             return NPlusOneAPICallProblemContext(problem, spans)
-        if problem.type == GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES:
+        if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)
         else:
             return cls(problem, spans)

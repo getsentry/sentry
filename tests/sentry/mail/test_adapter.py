@@ -51,8 +51,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.releaseactivity import ReleaseActivityType
+from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
