@@ -283,15 +283,16 @@ class ConvertCategoryValueTest(TestCase):
         error_group_types = get_group_types_by_category(GroupCategory.ERROR.value)
         perf_group_types = get_group_types_by_category(GroupCategory.PERFORMANCE.value)
         assert (
-            convert_category_value(["error"], [self.project], self.user, None) == error_group_types
+            set(convert_category_value(["error"], [self.project], self.user, None))
+            == error_group_types
         )
         assert (
-            convert_category_value(["performance"], [self.project], self.user, None)
+            set(convert_category_value(["performance"], [self.project], self.user, None))
             == perf_group_types
         )
         assert (
-            convert_category_value(["error", "performance"], [self.project], self.user, None)
-            == error_group_types + perf_group_types
+            set(convert_category_value(["error", "performance"], [self.project], self.user, None))
+            == error_group_types | perf_group_types
         )
         with pytest.raises(InvalidSearchQuery):
             convert_category_value(["hellboy"], [self.project], self.user, None)
