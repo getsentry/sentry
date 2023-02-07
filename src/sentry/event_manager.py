@@ -76,7 +76,13 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
-from sentry.grouptype.grouptype import GroupType
+from sentry.grouptype.grouptype import (
+    GroupType,
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+    PerformanceUncompressedAssetsGroupType,
+)
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
