@@ -2,15 +2,15 @@ import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   children: React.ReactChildren;
-  organization: Organization;
 };
 
-function ProfilingContainer({organization, children}: Props) {
+function ProfilingContainer({children}: Props) {
+  const organization = useOrganization();
+
   return (
     <Feature
       hookName="feature-disabled:profiling-page"
@@ -27,4 +27,4 @@ function ProfilingContainer({organization, children}: Props) {
   );
 }
 
-export default withOrganization(ProfilingContainer);
+export default ProfilingContainer;
