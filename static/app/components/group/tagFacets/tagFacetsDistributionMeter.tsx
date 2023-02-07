@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 import {LocationDescriptor} from 'history';
 import debounce from 'lodash/debounce';
 
@@ -173,7 +174,9 @@ function TagFacetsDistributionMeter({
 
   function renderLegend() {
     return (
-      <LegendContainer aria-label={title}>
+      <LegendContainer
+        animate={expanded ? {height: '100%', opacity: 1} : {height: '0', opacity: 0}}
+      >
         {topSegments.map((segment, index) => {
           const pctLabel = Math.floor(percent(segment.count, totalValues));
           const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
@@ -242,7 +245,7 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      <details open={expanded} onClick={e => e.preventDefault()}>
+      <details open onClick={e => e.preventDefault()}>
         <StyledSummary>
           <TagHeader clickable onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
@@ -321,10 +324,13 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   padding: 1px ${space(0.5)} 0 0;
 `;
 
-const LegendContainer = styled('ol')`
+const LegendContainer = styled(motion.ol)`
+  overflow: hidden;
   list-style: none;
   padding: 0;
   margin: ${space(1)} 0;
+  height: 0;
+  opacity: 0;
 `;
 
 const LegendRow = styled('div')`
