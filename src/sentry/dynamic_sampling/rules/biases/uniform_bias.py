@@ -34,6 +34,30 @@ class UniformRulesGenerator(BiasRulesGenerator):
         ]
 
 
+class UniformRulesGeneratorV2(BiasRulesGenerator):
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+        return [
+            {
+                "samplingValue": {
+                    "type": "sampleRate",
+                    "value": bias_data["sampleRate"],
+                },
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+                "id": bias_data["id"],
+            }
+        ]
+
+
 class UniformBias(Bias):
     def __init__(self) -> None:
         super().__init__(UniformDataProvider, UniformRulesGenerator)
+
+
+class UniformBiasV2(Bias):
+    def __init__(self) -> None:
+        super().__init__(UniformDataProvider, UniformRulesGeneratorV2)

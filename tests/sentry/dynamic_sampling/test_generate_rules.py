@@ -115,23 +115,6 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
     # no need to create real project in DB
     assert generate_rules(default_project) == [
         {
-            "sampleRate": 1,
-            "type": "trace",
-            "condition": {
-                "op": "or",
-                "inner": [
-                    {
-                        "op": "glob",
-                        "name": "trace.environment",
-                        "value": ENVIRONMENT_GLOBS,
-                        "options": {"ignoreCase": True},
-                    }
-                ],
-            },
-            "active": True,
-            "id": 1001,
-        },
-        {
             "sampleRate": 0.02,
             "type": "transaction",
             "condition": {
@@ -147,6 +130,23 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             },
             "active": True,
             "id": 1002,
+        },
+        {
+            "sampleRate": 1,
+            "type": "trace",
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "trace.environment",
+                        "value": ENVIRONMENT_GLOBS,
+                        "options": {"ignoreCase": True},
+                    }
+                ],
+            },
+            "active": True,
+            "id": 1001,
         },
         {
             "active": True,

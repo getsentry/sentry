@@ -4,7 +4,10 @@ import sentry_sdk
 
 from sentry import quotas
 from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
-from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
+from sentry.dynamic_sampling.rules.combine import (
+    get_relay_biases_combinator,
+    get_relay_biases_combinator_v2,
+)
 from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
@@ -44,8 +47,12 @@ def _get_rules_of_enabled_biases(
     return rules
 
 
-def generate_rules(project: Project) -> List[BaseRule]:
+def generate_rules(project: Project, version_2: bool = False) -> List[BaseRule]:
     try:
+        biases_combinator = (
+            get_relay_biases_combinator_v2() if version_2 else get_relay_biases_combinator()
+        )
+
         return _get_rules_of_enabled_biases(
             project,
             get_guarded_blended_sample_rate(project),
@@ -55,7 +62,7 @@ def generate_rules(project: Project) -> List[BaseRule]:
             # * Rules generator
             # * Bias
             # check in the dynamic_sampling/rules/biases module how existing biases are implemented.
-            get_relay_biases_combinator().get_combined_biases(),
+            biases_combinator.get_combined_biases(),
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
