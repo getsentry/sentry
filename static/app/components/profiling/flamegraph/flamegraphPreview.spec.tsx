@@ -5,6 +5,39 @@ import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 describe('computePreviewConfigView', function () {
+  it('uses early exit with 0', function () {
+    const rawProfile: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1],
+      samples: [
+        [0, 1],
+        [0, 1],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      rawProfile,
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamechart'}
+    );
+
+    const flamegraph = new Flamegraph(profile, 1, {});
+
+    // the view should be taller than the flamegraph
+    const configView = new Rect(0, 0, 2, 3);
+
+    // go from timestamps 0 to 2
+    const previewConfigView = computePreviewConfigView(flamegraph, configView, 0, 2);
+
+    // y is 0 here because the config view is taller than the flamegraph
+    expect(previewConfigView).toEqual(new Rect(0, 0, 2, 3));
+  });
+
   it('uses max depth', function () {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',

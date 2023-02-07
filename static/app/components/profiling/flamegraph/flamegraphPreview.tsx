@@ -20,6 +20,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface FlamegraphPreviewProps {
@@ -84,8 +85,8 @@ export function FlamegraphPreview({
       computePreviewConfigView(
         flamegraph,
         canvasView.configView,
-        relativeStartTimestamp * 1e9,
-        relativeStopTimestamp * 1e9
+        formatTo(relativeStartTimestamp, 'second', 'nanosecond'),
+        formatTo(relativeStopTimestamp, 'second', 'nanosecond')
       )
     );
 
@@ -171,12 +172,38 @@ export function FlamegraphPreview({
   );
 }
 
+/**
+ * When generating a preview, a relative start/stop timestamp is used to specify
+ * the x position of the flamechart to render. This function tries to pick the
+ * best y position based on the x in order to show the most useful part of the
+ * flamechart.
+ *
+ * It works as follows:
+ * - If there are frames that wrap the time window (a parent frame), we will pick
+ *   the inner most parent frame's depth and start rendering from there.
+ * - Otherwise, we will pick based on the maximum depth of the flamechart within
+ *   the specified window and show as many rows as that will fit. We do not rely
+ *   on using the maximum depth of the whole flamechart and adjusting the config
+ *   view because the window selected may be shallower and would result in the
+ *   preview to show a lot of whitespace.
+ */
 export function computePreviewConfigView(
   flamegraph: FlamegraphModel,
   configView: Rect,
   relativeStartNs: number,
   relativeStopNs: number
 ): Rect {
+  if (flamegraph.depth < configView.height) {
+    // if the flamegraph height is less than the config view height,
+    // the whole flamechart will fit on the view so we can just use y = 0
+    return new Rect(
+      relativeStartNs,
+      0,
+      relativeStopNs - relativeStartNs,
+      configView.height
+    );
+  }
+
   const frames: FlamegraphFrame[] = flamegraph.root.children.slice();
   let maxDepthInWindow = 0;
   let innerMostParentFrame: FlamegraphFrame | null = null;
