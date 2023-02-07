@@ -298,7 +298,7 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_api_key(organization, scope_list, **kwargs):
+    def create_api_key(organization, scope_list=None, **kwargs):
         return ApiKey.objects.create(organization=organization, scope_list=scope_list)
 
     @staticmethod
