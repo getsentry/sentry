@@ -23,7 +23,8 @@ export type HeartbeatEventParameters = {
 export const heartbeatEventMap: Record<keyof HeartbeatEventParameters, string> = {
   'heartbeat.onboarding_explore_sentry_button_clicked':
     'Heartbeat: Onboarding Explore Sentry Button Clicked',
-  'heartbeat.onboarding_first_error_received': 'Heartbeat:  First Error Received',
+  'heartbeat.onboarding_first_error_received':
+    'Heartbeat: Onboarding First Error Received',
   'heartbeat.onboarding_first_transaction_received':
     'Heartbeat: Onboarding First Transaction Received',
   'heartbeat.onboarding_go_to_issues_button_clicked':
