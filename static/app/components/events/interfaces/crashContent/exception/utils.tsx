@@ -19,3 +19,18 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
     (!!frame.absPath && !getFileExtension(filename))
   );
 }
+
+// Maps the SDK name to the url token for docs
+export const sourceMapSdkDocsMap: Record<string, string> = {
+  'sentry.javascript.browser': 'javascript',
+  'sentry.javascript.node': 'node',
+  'sentry.javascript.react': 'react',
+  'sentry.javascript.angular': 'angular',
+  'sentry.javascript.ember': 'ember',
+  'sentry.javascript.gatsby': 'gatsby',
+  'sentry.javascript.vue': 'vue',
+  'sentry.javascript.nextjs': 'nextjs',
+  'sentry.javascript.remix': 'remix',
+  'sentry.javascript.svelte': 'svelte',
+  'sentry.javascript.react-native': 'react-native',
+};
