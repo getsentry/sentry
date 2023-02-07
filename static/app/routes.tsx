@@ -637,7 +637,7 @@ function buildRoutes() {
       )}
     >
       {hook('routes:organization')}
-      {usingCustomerDomain && (
+      {!usingCustomerDomain && (
         <IndexRoute
           name={t('General')}
           component={make(
