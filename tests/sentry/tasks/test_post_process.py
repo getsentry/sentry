@@ -24,6 +24,7 @@ from sentry.models import (
     GroupOwnerType,
     GroupSnooze,
     GroupStatus,
+    Integration,
     ProjectOwnership,
     ProjectTeam,
 )
@@ -999,6 +1000,24 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
         assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+    @with_feature("organizations:commit-context")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value=github_blame_return_value,
+    )
+    def test_logic_fallback_no_scm(self, mock_get_commit_context):
+        Integration.objects.all().delete()
+        integration = Integration.objects.create(provider="bitbucket")
+        integration.add_organization(self.organization)
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
