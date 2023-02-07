@@ -23,7 +23,7 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
             Query(
-                match=Entity(EntityKey.OrgMetricsCounters.value),
+                match=Entity(EntityKey.GenericMetricsCounters.value),
                 select=[
                     Column("org_id"),
                     Column("project_id"),
@@ -47,10 +47,12 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
             .set_limit(CHUNK_SIZE + 1)
             .set_offset(offset)
         )
-        request = Request(dataset=Dataset.Metrics.value, app_id="dynamic_sampling", query=query)
+        request = Request(
+            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+        )
         data = raw_snql_query(
             request,
-            referrer="dynamic_sampling.fetch_projects_with_total_volumes",
+            referrer="dynamic_sampling.fetch_projects_with_count_per_root_total_volumes",
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
