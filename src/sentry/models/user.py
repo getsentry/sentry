@@ -218,7 +218,7 @@ class User(BaseModel, AbstractBaseUser):
         return self.is_superuser
 
     def has_2fa(self):
-        Authenticator.objects.filter(
+        return Authenticator.objects.filter(
             user_id=self.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()
 
