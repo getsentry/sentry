@@ -23,7 +23,6 @@ import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
 import {EventErrors} from './eventErrors';
-import {EventEvidence} from './eventEvidence';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
@@ -102,7 +101,6 @@ const EventEntries = ({
           isShare={isShare}
         />
       )}
-      <EventEvidence event={event} group={group} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}

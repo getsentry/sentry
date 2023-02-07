@@ -52,10 +52,14 @@ export enum SavedSearchType {
 export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
+  PROFILE = 'profile',
 }
 
 export enum IssueType {
+  // Error
   ERROR = 'error',
+
+  // Performance
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
   PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
@@ -63,6 +67,9 @@ export enum IssueType {
   PERFORMANCE_SLOW_DB_QUERY = 'performance_slow_db_query',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
+
+  // Profile
+  PROFILE_BLOCKED_THREAD = 'profile_blocked_thread',
 }
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
