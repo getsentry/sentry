@@ -86,7 +86,7 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
     @pytest.mark.django_db
-    def test_process_profiling_event(self):
+    def test_process_profiling_event(self) -> None:
         event_data = load_data("generic-event-profiling")
         result = _process_message(event_data)
         assert result is not None
