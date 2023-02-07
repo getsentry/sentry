@@ -41,10 +41,10 @@ function FlamegraphOptionsMenu({
             ...opt,
             disabled: opt.value === 'transaction' && type === 'flamegraph',
           }))}
-          onChange={value =>
+          onChange={opt =>
             dispatch({
               type: 'set xAxis',
-              payload: value,
+              payload: opt.value,
             })
           }
         />
@@ -52,10 +52,10 @@ function FlamegraphOptionsMenu({
           label={t('Color Coding')}
           value={colorCoding}
           options={colorCodingOptions}
-          onChange={value =>
+          onChange={opt =>
             dispatch({
               type: 'set color coding',
-              payload: value,
+              payload: opt.value,
             })
           }
         />
