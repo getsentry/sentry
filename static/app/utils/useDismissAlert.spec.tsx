@@ -73,7 +73,7 @@ describe('useDismissAlert', () => {
     );
   });
 
-  it('should be dismissed if the timestamp in localstorage is older than the expiration', () => {
+  it('should be dismissed if the timestamp in localStorage is older than the expiration', () => {
     const today = new Date('2020-01-01');
     jest.setSystemTime(today);
 
