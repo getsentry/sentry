@@ -89,7 +89,6 @@ class Field:
         value: Union[List[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
-
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
 
 
@@ -113,6 +112,19 @@ class String(Field):
 class Number(Field):
     _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE, Op.IN, Op.NOT_IN]
     _python_type = int
+
+
+class Duration(Number):
+    def as_condition(
+        self,
+        field_alias: str,
+        operator: Op,
+        value: Union[List[str], str],
+        is_wildcard: bool = False,
+    ) -> Condition:
+        # Duration columns map to milliseconds by default but replays have a resolution
+        # of 1 second.
+        return Condition(Column(self.query_alias or self.attribute_name), operator, value // 1000)
 
 
 class ListField(Field):

@@ -829,6 +829,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert len(response.json()["data"]) == 1
 
+            # Row meets string condition on numeric duration column.
+            response = self.client.get(self.url + "?query=duration:20000")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 1
+
             # Row fails string condition on numeric duration column.
             response = self.client.get(self.url + "?query=duration:>1h")
             assert response.status_code == 200

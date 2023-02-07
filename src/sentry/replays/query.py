@@ -23,6 +23,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.replays.lib.query import (
+    Duration,
     ListField,
     Number,
     QueryConfig,
@@ -371,7 +372,7 @@ replay_url_parser_config = SearchConfig(
 
 class ReplayQueryConfig(QueryConfig):
     # Numeric filters.
-    duration = Number()
+    duration = Duration()
     count_errors = Number(query_alias="count_errors")
     count_segments = Number(query_alias="count_segments")
     count_urls = Number(query_alias="count_urls")
