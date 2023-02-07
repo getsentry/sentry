@@ -813,3 +813,23 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
+
+    def test_duration_filter_with_suffix(self):
+        """If the archive entry falls outside the date range ensure it can still be returned."""
+        replay1_id = uuid.uuid4().hex
+        timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=30)
+        timestamp2 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+
+        self.store_replays(mock_replay(timestamp1, self.project.id, replay1_id))
+        self.store_replays(mock_replay(timestamp2, self.project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            # Row meets string condition on numeric duration column.
+            response = self.client.get(self.url + "?query=duration:<1h")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 1
+
+            # Row fails string condition on numeric duration column.
+            response = self.client.get(self.url + "?query=duration:>1h")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0
