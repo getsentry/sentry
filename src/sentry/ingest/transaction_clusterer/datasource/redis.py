@@ -90,6 +90,9 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
     if transaction_name and features.has(
         "organizations:transaction-name-clusterer", project.organization
     ):
+        if not _must_store_event(event_data):
+            return
+
         # For now, we also feed back transactions into the clustering algorithm
         # that have already been sanitized, so we have a chance to discover
         # more high cardinality segments after partial sanitation.
@@ -107,3 +110,15 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
         # being used.
         # For that purpose, we need to add the applied rule to the transaction
         # payload so we can check it here.
+
+
+def _must_store_event(event_data: Mapping[str, Any]) -> bool:
+    """Returns whether the given event must be stored as input for the
+    transaction clusterer."""
+
+    tags = event_data.get("tags")
+    if tags and ["http.status_code", "404"] in tags:
+        print(f"discarding transaction for tags: {tags=}")
+        return False
+
+    return True
