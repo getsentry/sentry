@@ -191,7 +191,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         """
 
         def process_error(error: ApiError, extra: Dict[str, str]) -> None:
-            msg = "Continuing exectuion."
+            msg = "Continuing execution."
             txt = error.text
             if error.json:
                 json_data: JSONData = error.json
@@ -237,7 +237,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             except ApiError as error:
                 process_error(error, extra)
             except Exception:
-                # Report for investigatagiation but do not stop processing
+                # Report for investigation but do not stop processing
                 logger.exception(
                     "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
