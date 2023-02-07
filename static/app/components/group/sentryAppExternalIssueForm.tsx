@@ -9,7 +9,7 @@ import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import SentryAppExternalForm, {
   FieldFromSchema,
   SchemaFormConfig,
-} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   action: 'create' | 'link';
