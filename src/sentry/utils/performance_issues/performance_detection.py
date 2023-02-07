@@ -167,7 +167,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         else {}
     )
 
-    project_settings = (
+    project_option_settings = (
         ProjectOption.objects.get_value(
             project_id, "sentry:performance_issue_settings", default_project_settings
         )
@@ -175,16 +175,10 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         else DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
     )
 
-    use_project_option_settings = default_project_settings != project_settings
-    project_option_settings = {
+    project_settings = {
         **default_project_settings,
-        **project_settings,
+        **project_option_settings,
     }  # Merge saved project settings into default so updating the default to add new settings works in the future.
-
-    # Use project settings if they've been adjusted at all, to allow customization, otherwise fetch settings from system-wide options.
-    project_settings = (
-        project_option_settings if use_project_option_settings else default_project_settings
-    )
 
     settings = {**system_settings, **project_settings}
 
