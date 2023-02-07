@@ -79,6 +79,7 @@ export type Repository = {
   provider: {id: string; name: string};
   status: RepositoryStatus;
   url: string;
+  defaultBranch?: string;
 };
 
 export type Commit = {

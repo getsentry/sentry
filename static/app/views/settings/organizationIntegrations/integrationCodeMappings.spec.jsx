@@ -26,12 +26,14 @@ describe('IntegrationCodeMappings', function () {
   const repos = [
     TestStubs.Repository({
       integrationId: integration.id,
+      defaultBranch: 'master',
     }),
 
     TestStubs.Repository({
       integrationId: integration.id,
       id: '5',
       name: 'example/hello-there',
+      defaultBranch: 'main',
     }),
   ];
 
@@ -169,5 +171,17 @@ describe('IntegrationCodeMappings', function () {
         }),
       })
     );
+  });
+
+  it('switches default branch to the repo defaultBranch', async () => {
+    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+    renderGlobalModal();
+
+    userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
+    expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('master');
+
+    // repos[1] has a defaultBranch of 'main'
+    await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
+    expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
   });
 });

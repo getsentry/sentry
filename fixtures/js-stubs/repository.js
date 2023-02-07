@@ -6,6 +6,7 @@ export function Repository(params = {}) {
     url: 'https://github.com/example/repo-name',
     status: 'active',
     externalSlug: 'example/repo-name',
+    defaultBranch: 'main',
     ...params,
   };
 }
