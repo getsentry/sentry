@@ -7,7 +7,7 @@ from typing import FrozenSet, Optional, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -329,11 +329,22 @@ class Organization(Model, SnowflakeIdMixin):
         }
 
     def get_owners(self) -> Sequence[APIUser]:
+        # get owner teams
+        owner_teams = self.get_teams_with_org_role(role=roles.get_top_dog().id)
 
-        owner_memberships = OrganizationMember.objects.filter(
-            role=roles.get_top_dog().id, organization=self
+        # get owners from owner teams
+        owner_team_members = list(
+            OrganizationMemberTeam.objects.filter(
+                team_id__in=owner_teams,
+            ).values_list("organizationmember_id", flat=True)
+        )
+
+        # get owners from org role
+        owners = self.member_set.filter(
+            Q(role=roles.get_top_dog().id) | Q(id__in=owner_team_members)
         ).values_list("user_id", flat=True)
-        return user_service.get_many(filter={"user_ids": owner_memberships})
+
+        return user_service.get_many(filter={"user_ids": owners})
 
     def get_default_owner(self) -> APIUser:
         if not hasattr(self, "_default_owner"):
