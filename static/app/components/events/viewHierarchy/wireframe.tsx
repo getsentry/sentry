@@ -22,9 +22,10 @@ export interface ViewNode {
 type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node: ViewHierarchyWindow) => void;
+  selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
+function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -89,18 +90,22 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
   );
 
   const drawOverlay = useCallback(
-    (modelToView: mat3, selectedNode: ViewNode | null, hoverNode: ViewNode | null) => {
+    (
+      modelToView: mat3,
+      selectedViewNode: ViewNode | null | undefined,
+      hoverNode: ViewNode | null
+    ) => {
       const overlay = overlayRef?.getContext('2d');
       if (overlay) {
         setupCanvasContext(overlay, modelToView);
         overlay.fillStyle = theme.pink200;
 
-        if (selectedNode) {
+        if (selectedViewNode) {
           overlay.fillRect(
-            selectedNode.rect.x,
-            selectedNode.rect.y,
-            selectedNode.rect.width,
-            selectedNode.rect.height
+            selectedViewNode.rect.x,
+            selectedViewNode.rect.y,
+            selectedViewNode.rect.width,
+            selectedViewNode.rect.height
           );
         }
 
@@ -152,7 +157,9 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
 
     let start: vec2 | null;
     let isDragging = false;
-    let selectedNode: ViewNode | null = null;
+    const selectedNodeToDraw = hierarchyData.nodes.find(
+      ({node}) => node === selectedNode
+    );
     let hoveredNode: ViewNode | null = null;
     const currTransformationMatrix = mat3.clone(transformationMatrix);
 
@@ -175,7 +182,7 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
         // Translate from the original matrix as a starting point
         mat3.translate(currTransformationMatrix, transformationMatrix, delta);
         drawViewHierarchy(currTransformationMatrix);
-        drawOverlay(currTransformationMatrix, selectedNode, hoveredNode);
+        drawOverlay(currTransformationMatrix, selectedNodeToDraw, hoveredNode);
       } else {
         hoveredNode = getDeepestNodeAtPoint(
           hierarchyData.nodes,
@@ -183,7 +190,7 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
           currTransformationMatrix,
           window.devicePixelRatio
         );
-        drawOverlay(transformationMatrix, selectedNode, hoveredNode);
+        drawOverlay(transformationMatrix, selectedNodeToDraw, hoveredNode);
       }
     };
 
@@ -198,18 +205,18 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
 
     const handleMouseClick = (e: MouseEvent) => {
       if (!isDragging) {
-        selectedNode = getDeepestNodeAtPoint(
+        const clickedNode = getDeepestNodeAtPoint(
           hierarchyData.nodes,
           vec2.fromValues(e.offsetX, e.offsetY),
           transformationMatrix,
           window.devicePixelRatio
         );
-        drawOverlay(transformationMatrix, selectedNode, null);
+        drawOverlay(transformationMatrix, clickedNode, null);
 
-        if (!selectedNode) {
+        if (!clickedNode) {
           return;
         }
-        onNodeSelect(selectedNode.node);
+        onNodeSelect(clickedNode.node);
       }
       isDragging = false;
     };
@@ -222,7 +229,7 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
     overlayRef.addEventListener('click', handleMouseClick, options);
 
     drawViewHierarchy(transformationMatrix);
-    drawOverlay(transformationMatrix, selectedNode, hoveredNode);
+    drawOverlay(transformationMatrix, selectedNodeToDraw, hoveredNode);
 
     return () => {
       overlayRef.removeEventListener('mousedown', handleMouseDown, options);
@@ -239,6 +246,7 @@ function Wireframe({hierarchy, onNodeSelect}: WireframeProps) {
     onNodeSelect,
     drawViewHierarchy,
     drawOverlay,
+    selectedNode,
   ]);
 
   return (

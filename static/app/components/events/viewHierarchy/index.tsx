@@ -147,7 +147,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         </Left>
         {showWireframe && (
           <Right>
-            <Wireframe hierarchy={hierarchy} onNodeSelect={onWireframeNodeSelect} />
+            <Wireframe
+              hierarchy={hierarchy}
+              selectedNode={selectedNode}
+              onNodeSelect={onWireframeNodeSelect}
+            />
           </Right>
         )}
       </Content>
