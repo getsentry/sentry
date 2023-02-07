@@ -1,7 +1,6 @@
 import uuid
 
 import confluent_kafka as kafka
-import pytest
 
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.tasks.relay import compute_projectkey_config
@@ -12,9 +11,6 @@ from sentry.utils import json
 
 
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
-    @pytest.mark.skip(
-        "TET-627: We need to release new metric first in relay and than adjust the test"
-    )
     def test_all_transaction_metrics_emitted(self):
         with Feature(
             {
