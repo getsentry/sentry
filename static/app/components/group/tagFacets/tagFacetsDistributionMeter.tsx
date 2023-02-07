@@ -330,7 +330,7 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
 const LegendAnimateContainer = styled(motion.div)<{expanded: boolean}>`
   height: 0;
   opacity: 0;
-  ${p => (!p.expanded ? 'overflow: hidden;' : null)}
+  ${p => (!p.expanded ? 'overflow: hidden;' : '')}
 `;
 
 const LegendContainer = styled('ol')`
