@@ -154,13 +154,16 @@ describe('View Hierarchy', function () {
       'view-hierarchy-wireframe-overlay'
     ) as HTMLCanvasElement;
 
-    userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
-
-    // This is the nested container, the x, y positions are shifted by the parent
     const context = canvas.getContext('2d');
     if (!context) {
       throw new Error('Canvas context is not defined');
     }
+
+    expect(context.fillRect).not.toHaveBeenCalledWith(210, 11, 3, 4);
+
+    userEvent.click(screen.getByText('Nested Container - nested'));
+
+    // This is the nested container, the x, y positions are shifted by the parent
     expect(context.fillRect).toHaveBeenCalledWith(210, 11, 3, 4);
   });
 });
