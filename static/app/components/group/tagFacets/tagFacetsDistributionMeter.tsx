@@ -175,6 +175,7 @@ function TagFacetsDistributionMeter({
   function renderLegend() {
     return (
       <LegendAnimateContainer
+        expanded={expanded}
         animate={expanded ? {height: '100%', opacity: 1} : {height: '0', opacity: 0}}
       >
         <LegendContainer>
@@ -326,10 +327,10 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   padding: 1px ${space(0.5)} 0 0;
 `;
 
-const LegendAnimateContainer = styled(motion.div)`
-  overflow: hidden;
+const LegendAnimateContainer = styled(motion.div)<{expanded: boolean}>`
   height: 0;
   opacity: 0;
+  ${p => (!p.expanded ? 'overflow: hidden;' : '')}
 `;
 
 const LegendContainer = styled('ol')`
