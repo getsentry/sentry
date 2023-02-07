@@ -390,8 +390,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
             f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
-                    {"name": "example", "full_name": "test/example"},
-                    {"name": "exhaust", "full_name": "test/exhaust"},
+                    {"name": "example", "full_name": "test/example", "default_branch": "master"},
+                    {"name": "exhaust", "full_name": "test/exhaust", "default_branch": "master"},
                 ]
             },
         )
@@ -400,8 +400,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
-            {"identifier": "test/example", "name": "example"},
-            {"identifier": "test/exhaust", "name": "exhaust"},
+            {"identifier": "test/example", "name": "example", "default_branch": "master"},
+            {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "master"},
         ]
 
     @responses.activate
@@ -416,9 +416,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
-                {"name": "foo", "identifier": "Test-Organization/foo"},
-                {"name": "bar", "identifier": "Test-Organization/bar"},
-                {"name": "baz", "identifier": "Test-Organization/baz"},
+                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
+                {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},
+                {"name": "baz", "identifier": "Test-Organization/baz", "default_branch": "master"},
             ]
 
     @responses.activate
@@ -433,7 +433,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
-                {"name": "foo", "identifier": "Test-Organization/foo"},
+                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
             ]
 
     @responses.activate
