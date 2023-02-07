@@ -192,7 +192,7 @@ class EventAttributeCondition(EventCondition):
                 contexts = event.data["contexts"]
                 unreal = contexts.get("unreal")
                 if unreal is None:
-                    unreal = []
+                    unreal = {}
                 return [unreal.get(path[1])]
 
         elif path[0] == "app":
