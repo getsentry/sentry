@@ -37,7 +37,7 @@ def get_test_message(
             {"name": "Line", "value": "40", "important": True},
             {"name": "Memory", "value": "breached", "important": False},
         ],
-        "type": ProfileBlockedThreadGroupType,
+        "type": ProfileBlockedThreadGroupType.type_id,
         "detection_time": now.isoformat(),
     }
 

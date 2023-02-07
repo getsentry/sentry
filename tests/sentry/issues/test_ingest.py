@@ -121,7 +121,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=PerformanceNPlusOneGroupType
+            fingerprint=occurrence.fingerprint, type=PerformanceNPlusOneGroupType.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
@@ -161,7 +161,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,
-            "type": occurrence.type.value,
+            "type": occurrence.type.type_id,
             "first_release": None,
             "data": materialize_metadata(occurrence, event),
         }
