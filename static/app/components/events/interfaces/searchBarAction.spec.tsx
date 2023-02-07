@@ -145,7 +145,7 @@ describe('SearchBarAction', () => {
     const httpRequestItem = screen.getByText('HTTP request');
     userEvent.click(httpRequestItem);
 
-    const httpRequestOption = (typeOptions.options ?? []).find(
+    const httpRequestOption = ('options' in typeOptions ? typeOptions.options : []).find(
       opt => opt.label === 'HTTP request'
     );
     expect(handleFilter).toHaveBeenCalledWith([httpRequestOption]);
@@ -178,7 +178,9 @@ describe('SearchBarAction', () => {
     const infoItem = screen.getByText('info');
     userEvent.click(infoItem);
 
-    const infoOption = (levelOptions.options ?? []).find(opt => opt.label === 'info');
+    const infoOption = ('options' in levelOptions ? levelOptions.options : []).find(
+      opt => opt.label === 'info'
+    );
     expect(handleFilter).toHaveBeenCalledWith([infoOption]);
   });
 });
