@@ -277,7 +277,7 @@ function DropdownMenu({
   );
 }
 
-export default DropdownMenu;
+export {DropdownMenu};
 
 const DropdownMenuWrap = styled('div')`
   list-style-type: none;

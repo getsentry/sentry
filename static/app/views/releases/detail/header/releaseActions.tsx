@@ -7,7 +7,7 @@ import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
 import TextOverflow from 'sentry/components/textOverflow';
