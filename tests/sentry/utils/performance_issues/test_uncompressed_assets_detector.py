@@ -70,7 +70,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-1012-da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                fingerprint="1-1012-6893fb5a8a875d692da96590f40dc6bddd6fcabc",
                 op="resource.script",
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
                 type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
@@ -102,7 +102,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-1012-da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                fingerprint="1-1012-7f5aaccd4a1347f512fc3d04068b9621baff2783",
                 op="resource.script",
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                 type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
@@ -205,7 +205,7 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-1012-cd13ad1ab06d25a36fb216047291643e48228608",
+                fingerprint="1-1012-385f4476d848360e4cb90cbe31457f6bba5bd6a9",
                 op="resource.script",
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
                 type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
