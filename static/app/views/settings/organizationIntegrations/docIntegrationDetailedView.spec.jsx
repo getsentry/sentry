@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DocIntegrationDetailedView from 'sentry/views/organizationIntegrations/docIntegrationDetailedView';
+import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView';
 
 describe('DocIntegrationDetailedView', function () {
   const organization = TestStubs.Organization();

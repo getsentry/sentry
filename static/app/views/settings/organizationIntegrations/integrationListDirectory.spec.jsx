@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import IntegrationListDirectory from 'sentry/views/organizationIntegrations/integrationListDirectory';
+import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) => Client.addMockResponse({url, body}));

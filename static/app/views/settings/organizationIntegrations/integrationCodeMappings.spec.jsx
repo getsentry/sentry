@@ -9,7 +9,7 @@ import {
 
 import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import IntegrationCodeMappings from 'sentry/views/organizationIntegrations/integrationCodeMappings';
+import IntegrationCodeMappings from 'sentry/views/settings/organizationIntegrations/integrationCodeMappings';
 
 describe('IntegrationCodeMappings', function () {
   const projects = [
