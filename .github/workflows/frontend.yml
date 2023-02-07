@@ -243,7 +243,7 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
     steps:
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@mgs-console-error
+        uses: getsentry/action-visual-snapshot@test-me-prefix-run
         with:
           action-name: 'Visual Snapshot: Frontend'
           artifact-name: 'frontend-snapshots'
