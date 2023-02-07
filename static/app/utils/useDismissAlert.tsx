@@ -4,7 +4,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 type Opts = {
   /**
-   * Key in localstorage.
+   * Key in localStorage.
    * Use a format like: `${organization.id}:my-feature`
    */
   key: string;
