@@ -36,7 +36,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == [
             PerformanceProblem(
-                fingerprint=f"1-{PerformanceMNPlusOneDBQueriesGroupType.type_id}-de75036b0dce394e0b23aaabf553ad9f8156f22b",
+                fingerprint="1-1011-de75036b0dce394e0b23aaabf553ad9f8156f22b",
                 op="db",
                 type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
                 desc="SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
