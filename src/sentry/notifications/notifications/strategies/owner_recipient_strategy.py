@@ -15,7 +15,7 @@ class OwnerRecipientStrategy(RoleBasedRecipientStrategy):
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         # Explicitly typing to satisfy mypy.
         # get owner teams
-        owner_teams = self.get_teams_with_org_role(role=roles.get_top_dog().id)
+        owner_teams = self.organization.get_teams_with_org_role(role=roles.get_top_dog().id)
 
         # get owners from owner teams
         owner_team_members = list(
