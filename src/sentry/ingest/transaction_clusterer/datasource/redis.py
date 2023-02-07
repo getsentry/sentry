@@ -109,7 +109,6 @@ def _must_store_event(event_data: Mapping[str, Any]) -> bool:
     source = transaction_info.get("source")
 
     if tags and HTTP_404_TAG in tags:
-        print(f"discarding transaction for tags: {tags=}")
         return False
 
     # For now, we also feed back transactions into the clustering algorithm
