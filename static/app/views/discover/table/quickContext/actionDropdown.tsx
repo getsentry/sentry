@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

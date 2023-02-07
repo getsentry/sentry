@@ -5,7 +5,7 @@ import {Location} from 'history';
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
 import {IconEllipsis, IconExpand} from 'sentry/icons';

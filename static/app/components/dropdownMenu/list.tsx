@@ -14,7 +14,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import useOverlay from 'sentry/utils/useOverlay';
 
-import DropdownMenu from './index';
+import {DropdownMenu} from './index';
 import DropdownMenuItem, {MenuItemProps} from './item';
 import DropdownMenuSection from './section';
 

@@ -48,7 +48,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import DropdownMenu, {MenuItemProps} from '../dropdownMenu';
+import {DropdownMenu, MenuItemProps} from '../dropdownMenu';
 
 import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
