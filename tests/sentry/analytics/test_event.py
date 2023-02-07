@@ -23,7 +23,7 @@ class DummyType:
     key = "value"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventTest(TestCase):
     @patch("sentry.analytics.event.uuid1")
     def test_simple(self, mock_uuid1):
