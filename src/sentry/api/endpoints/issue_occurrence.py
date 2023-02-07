@@ -125,6 +125,10 @@ class IssueOccurrenceEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # XXX: hack
+        if event and event.get("data") is None:
+            event["data"] = {}
+
         event_serializer = BasicEventSerializer(data=event)
         if not event_serializer.is_valid():
             return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -137,6 +141,9 @@ class IssueOccurrenceEndpoint(Endpoint):
             event.update(unserialized_data)
 
         occurrence["event_id"] = str(event["event_id"])
+        # XXX: hack
+        if occurrence and occurrence.get("evidence_data") is None:
+            occurrence["evidence_data"] = {}
         occurrence_serializer = IssueOccurrenceSerializer(data=occurrence)
         if not occurrence_serializer.is_valid():
             return Response(occurrence_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
