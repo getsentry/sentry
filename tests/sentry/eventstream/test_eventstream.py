@@ -10,7 +10,7 @@ from sentry.event_manager import EventManager
 from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
-from sentry.issues.ingest import save_issue_from_occurrence
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -363,19 +363,21 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         event_data = load_data("generic-event")
         geo_interface = {"city": "San Francisco", "country_code": "US", "region": "California"}
         event_data["user"] = {"geo": geo_interface}
-        event = self.store_event(data=event_data, project_id=self.project.id)
-        occurrence = self.build_occurrence(event_id=event.event_id)
 
-        group_info = save_issue_from_occurrence(occurrence, event, None)
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        event_data["project_id"] = self.project.id
+        occurrence, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(), event_data
+        )
+
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
 
         # intentionally mutate the event.data after storing the raw contexts
-        contexts_before_insert = dict(group_event.data["contexts"])
+        contexts_before_insert = dict(event_data.data["contexts"])
 
-        with patch.object(es, "_send") as send, patch.object(
-            event, "for_group", return_value=group_event
-        ):
+        with patch.object(es, "_send") as send:
             es.insert(
                 group_event,
                 True,

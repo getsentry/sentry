@@ -164,23 +164,20 @@ class SnubaProtocolEventStream(EventStream):
         # instead of normalizing and doing custom 'contexts' processing in snuba, we elect to do it here instead to
         # avoid having to clutter up snuba code with business logic
         if event_type == EventStreamEventType.Generic:
-            updated = False
             if event_data.get("contexts"):
-                contexts = event_data.get("contexts", {})
+                event_data = dict(event_data)
+                contexts = event_data.setdefault("contexts", {})
 
                 # add user.geo to contexts if it exists
                 user_dict = event_data.get("user", event_data.get("sentry.interfaces.User", {}))
                 geo = user_dict.get("geo", {})
                 if "geo" not in contexts and isinstance(geo, dict):
                     contexts["geo"] = geo
-                    updated = True
 
                 # transactions processing has a configurable 'skipped contexts' to skip writing specific contexts maps
                 # to the row. for now, we're ignoring that until we have a need for it
 
-                if updated:
-                    event_data = dict(event_data)
-                    event_data["contexts"] = contexts
+                event_data["contexts"] = contexts
 
         self._send(
             project.id,
