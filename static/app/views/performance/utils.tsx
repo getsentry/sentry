@@ -355,11 +355,5 @@ export function getProjectID(
     return undefined;
   }
 
-  const project = projects.find(currentProject => currentProject.slug === projectSlug);
-
-  if (!project) {
-    return undefined;
-  }
-
-  return project.id;
+  return projects.find(currentProject => currentProject.slug === projectSlug)?.id;
 }
