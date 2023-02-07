@@ -149,10 +149,10 @@ jobs:
           windows_verbatim_arguments: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  frontend-visual-tests:
+  frontend-browser-tests:
     if: needs.files-changed.outputs.frontend == 'true'
     needs: files-changed
-    name: frontend visual tests
+    name: frontend browser tests
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-20.04
@@ -240,6 +240,7 @@ jobs:
     name: Frontend Visual Diff
     runs-on: ubuntu-20.04
     timeout-minutes: 20
+    if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
     steps:
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
@@ -255,7 +256,7 @@ jobs:
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
   frontend-required-check:
-    needs: [typescript-and-lint, webpack]
+    needs: [typescript-and-lint, webpack, frontend-browser-tests]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
