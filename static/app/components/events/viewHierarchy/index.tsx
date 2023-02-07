@@ -116,7 +116,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
 
   // Scroll to the selected node when it changes
   const onWireframeNodeSelect = useCallback(
-    (node: ViewHierarchyWindow) => {
+    (node?: ViewHierarchyWindow) => {
       setSelectedNode(node);
       handleScrollTo(item => item === node);
     },
