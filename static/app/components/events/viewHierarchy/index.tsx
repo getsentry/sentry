@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Node} from 'sentry/components/events/viewHierarchy/node';
@@ -48,7 +48,6 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
     viewHierarchy.windows[0]
   );
-  const becauseOfFocus = useRef(false);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;
   }, [viewHierarchy.windows]);
@@ -79,9 +78,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onKeyDown={handleRowKeyDown}
         onFocus={() => {
           setSelectedNode(r.item.node);
-          becauseOfFocus.current = true;
         }}
-        onClick={handleRowClick}
+        onClick={e => {
+          handleRowClick(e);
+          setSelectedNode(r.item.node);
+        }}
       >
         {depthMarkers}
         <Node
@@ -114,12 +115,13 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   });
 
   // Scroll to the selected node when it changes
-  useEffect(() => {
-    if (!becauseOfFocus.current) {
-      handleScrollTo(item => item === selectedNode);
-    }
-    becauseOfFocus.current = false;
-  }, [selectedNode, handleScrollTo]);
+  const onWireframeNodeSelect = useCallback(
+    (node: ViewHierarchyWindow) => {
+      setSelectedNode(node);
+      handleScrollTo(item => item === node);
+    },
+    [handleScrollTo]
+  );
 
   const showWireframe = project?.platform !== 'unity';
 
@@ -145,7 +147,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         </Left>
         {showWireframe && (
           <Right>
-            <Wireframe hierarchy={hierarchy} onNodeSelect={setSelectedNode} />
+            <Wireframe hierarchy={hierarchy} onNodeSelect={onWireframeNodeSelect} />
           </Right>
         )}
       </Content>
