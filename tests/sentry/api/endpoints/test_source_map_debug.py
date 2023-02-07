@@ -69,8 +69,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -107,8 +107,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -135,7 +135,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["message"] == "The release is missing a user agent"
         assert error["data"] == {
             "version": "my-release",
-            "fileName": "/static/static/js/main.fa8fe19f.js",
+            "filename": "/static/js/main.fa8fe19f.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")
@@ -151,8 +151,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -191,8 +191,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -204,8 +204,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "app.example.com/static/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
                                         "lineno": 5,
                                         "colno": 45,
                                     }
@@ -237,7 +237,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "url_not_valid"
         assert error["message"] == "The absolute path url is not valid"
-        assert error["data"] == {"absPath": "app.example.com/static/static/js/main.fa8fe19f.js"}
+        assert error["data"] == {"absPath": "app.example.com/static/js/main.fa8fe19f.js"}
 
     @with_feature("organizations:fix-source-map-cta")
     def test_partial_url_match(self):
@@ -252,8 +252,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://app.example.com/static/static/js/application.js",
-                                        "filename": "/static/static/js/application.js",
+                                        "abs_path": "https://app.example.com/static/js/application.js",
+                                        "filename": "/static/js/application.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -272,7 +272,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             organization_id=self.project.organization_id,
             release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
-            name="~/dist/static/static/js/application.js",
+            name="~/dist/static/js/application.js",
         )
 
         resp = self.get_success_response(
@@ -287,12 +287,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["type"] == "partial_match"
         assert error["message"] == "The absolute path url is a partial match"
         assert error["data"] == {
-            "absPath": "https://app.example.com/static/static/js/application.js",
-            "partialMatchPath": "~/dist/static/static/js/application.js",
-            "fileName": "/static/static/js/application.js",
-            "unifiedPath": "~/static/static/js/application.js",
+            "absPath": "https://app.example.com/static/js/application.js",
+            "partialMatchPath": "~/dist/static/js/application.js",
+            "filename": "/static/js/application.js",
+            "unifiedPath": "~/static/js/application.js",
             "urlPrefix": "~/dist",
-            "artifactNames": ["~/dist/static/static/js/application.js"],
+            "artifactNames": ["~/dist/static/js/application.js"],
         }
 
     @with_feature("organizations:fix-source-map-cta")
@@ -308,8 +308,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                             "stacktrace": {
                                 "frames": [
                                     {
-                                        "abs_path": "https://app.example.com/static/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/static/js/main.fa8fe19f.js",
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
                                         "lineno": 1,
                                         "colno": 39,
                                     }
@@ -342,9 +342,9 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["type"] == "no_url_match"
         assert error["message"] == "The absolute path url does not match any source maps"
         assert error["data"] == {
-            "absPath": "https://app.example.com/static/static/js/main.fa8fe19f.js",
-            "fileName": "/static/static/js/main.fa8fe19f.js",
-            "unifiedPath": "~/static/static/js/main.fa8fe19f.js",
+            "absPath": "https://app.example.com/static/js/main.fa8fe19f.js",
+            "filename": "/static/js/main.fa8fe19f.js",
+            "unifiedPath": "~/static/js/main.fa8fe19f.js",
             "artifactNames": ["http://example.com/application.js"],
         }
 
@@ -406,7 +406,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["data"] == {
             "eventDist": event_dist.id,
             "artifactDist": dist.id,
-            "fileName": "/application.js",
+            "filename": "/application.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")
@@ -467,7 +467,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert error["type"] == "sourcemap_not_found"
         assert error["message"] == "The sourcemap could not be found"
         assert error["data"] == {
-            "fileName": "/application.js",
+            "filename": "/application.js",
         }
 
     @with_feature("organizations:fix-source-map-cta")
