@@ -1198,7 +1198,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             return None
 
         parent_span = self._find_common_parent_span(offender_spans)
-        if not parent_span or not parent_span.get("parent_span_id"):
+        if not parent_span:
             return None
 
         db_span = self._first_db_span()
@@ -1222,7 +1222,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         parent_span_id = spans[0].get("parent_span_id")
         if not parent_span_id:
             return None
-        for id in [span.get("parent_span_id") for span in spans]:
+        for id in [span.get("parent_span_id") for span in spans[1:]]:
             if not id or id != parent_span_id:
                 return None
 

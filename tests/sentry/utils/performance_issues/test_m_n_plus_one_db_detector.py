@@ -79,6 +79,10 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("n-plus-one-in-django-index-view")
         assert self.find_problems(event) == []
 
+    def test_does_not_detect_when_parent_is_transaction(self):
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-transaction-parent")
+        assert self.find_problems(event) == []
+
     def test_m_n_plus_one_detector_enabled(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
