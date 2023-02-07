@@ -3,6 +3,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
@@ -213,3 +214,24 @@ class UncompressedAssetsDetectorTest(TestCase):
                 offender_span_ids=["b66a5642da1edb52"],
             ),
         ]
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("uncompressed-assets/uncompressed-script-asset")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = UncompressedAssetSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"uncompressed_assets_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = UncompressedAssetSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
