@@ -993,6 +993,7 @@ export const ISSUE_FIELDS = [
   FieldKey.TITLE,
   FieldKey.TRACE,
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
@@ -1024,6 +1025,7 @@ export const DISCOVER_FIELDS = [
   // tags.key and tags.value are omitted on purpose as well.
 
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER,
   FieldKey.USER_ID,
   FieldKey.USER_EMAIL,
