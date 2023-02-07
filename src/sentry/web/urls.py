@@ -23,6 +23,7 @@ from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
+from sentry.web.frontend.js_sdk_dynamic_loader import JavaScriptSdkDynamicLoader
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.newest_performance_issue import NewestPerformanceIssueView
@@ -114,6 +115,12 @@ urlpatterns += [
     url(
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
         JavaScriptSdkLoader.as_view(),
+        name="sentry-js-sdk-loader",
+    ),
+    # Javascript SDK Loader
+    url(
+        r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
+        JavaScriptSdkDynamicLoader.as_view(),
         name="sentry-js-sdk-loader",
     ),
     # Versioned API
