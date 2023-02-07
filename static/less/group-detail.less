@@ -476,11 +476,6 @@ div.traceback > ul {
       display: none;
       background: #fff;
       margin: 0;
-      padding: 8px 0;
-
-      > li {
-        background: inherit;
-      }
 
       table.key-value {
         border-top: 1px solid @trim;
@@ -662,8 +657,6 @@ div.traceback > ul {
 
     > li {
       font-family: @font-family-code;
-      color: #222;
-      background-color: #f6f7f8;
       line-height: 24px;
       font-size: 12px;
       white-space: pre;
@@ -673,7 +666,6 @@ div.traceback > ul {
     }
 
     > li.active {
-      background-color: #f6f7f8;
       list-style-type: none;
       border-radius: 2px;
 
@@ -706,8 +698,8 @@ div.traceback > ul {
       }
 
       > li.active {
-        background-color: @purple;
-        color: #fff;
+        position: relative;
+        z-index: 0;
         list-style-type: inherit;
         border-radius: 0;
       }

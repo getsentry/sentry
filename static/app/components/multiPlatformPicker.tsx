@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
@@ -25,8 +25,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
 // Category needs the all option while CategoryObj does not
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
-type CategoryObj = typeof categoryList[number];
+type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+type CategoryObj = (typeof categoryList)[number];
 type Platform = CategoryObj['platforms'][number];
 
 // create a lookup table for each platform
@@ -52,7 +52,7 @@ const getIndexOfPlatformInCategory = (
 
 const isPopular = (platform: PlatformIntegration) =>
   popularPlatformCategories.includes(
-    platform.id as typeof popularPlatformCategories[number]
+    platform.id as (typeof popularPlatformCategories)[number]
   );
 
 const popularIndex = (platform: PlatformIntegration) =>

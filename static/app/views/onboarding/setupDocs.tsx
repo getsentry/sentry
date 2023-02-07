@@ -1,5 +1,3 @@
-import 'prism-sentry/index.css';
-
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css, Theme} from '@emotion/react';
@@ -8,7 +6,7 @@ import {motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import Alert, {alertStyles} from 'sentry/components/alert';
+import {Alert, alertStyles} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
@@ -22,6 +20,7 @@ import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
+import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
@@ -44,7 +43,7 @@ type Props = {
   loadingProjects?: boolean;
 } & StepProps;
 
-function ProjecDocs(props: {
+function ProjectDocs(props: {
   hasError: boolean;
   onRetry: () => void;
   platform: PlatformKey | null;
@@ -114,7 +113,18 @@ function SetupDocs({
   projects: rawProjects,
   search,
   loadingProjects,
+  route,
+  router,
+  location,
 }: Props) {
+  const heartbeatFooter = !!organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+
+  const singleSelectPlatform = !!organization?.features.includes(
+    'onboarding-remove-multiselect-platform'
+  );
+
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedPlatforms = clientState?.selectedPlatforms || [];
@@ -250,19 +260,21 @@ function SetupDocs({
   return (
     <Fragment>
       <Wrapper>
-        <SidebarWrapper>
-          <ProjectSidebarSection
-            projects={projects}
-            selectedPlatformToProjectIdMap={Object.fromEntries(
-              selectedPlatforms.map(platform => [
-                platform,
-                platformToProjectIdMap[platform],
-              ])
-            )}
-            activeProject={project}
-            {...{checkProjectHasFirstEvent, selectProject}}
-          />
-        </SidebarWrapper>
+        {!singleSelectPlatform && (
+          <SidebarWrapper>
+            <ProjectSidebarSection
+              projects={projects}
+              selectedPlatformToProjectIdMap={Object.fromEntries(
+                selectedPlatforms.map(platform => [
+                  platform,
+                  platformToProjectIdMap[platform],
+                ])
+              )}
+              activeProject={project}
+              {...{checkProjectHasFirstEvent, selectProject}}
+            />
+          </SidebarWrapper>
+        )}
         <MainContent>
           {integrationSlug && !integrationUseManualSetup ? (
             <IntegrationSetup
@@ -273,7 +285,7 @@ function SetupDocs({
               }}
             />
           ) : (
-            <ProjecDocs
+            <ProjectDocs
               platform={loadedPlatform}
               project={project}
               hasError={hasError}
@@ -284,43 +296,52 @@ function SetupDocs({
         </MainContent>
       </Wrapper>
 
-      {project && (
-        <FirstEventFooter
-          project={project}
-          organization={organization}
-          isLast={!nextProject}
-          hasFirstEvent={checkProjectHasFirstEvent(project)}
-          onClickSetupLater={() => {
-            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-            trackAdvancedAnalyticsEvent(
-              'growth.onboarding_clicked_setup_platform_later',
-              {
-                organization,
-                platform: currentPlatform,
-                project_index: projectIndex,
+      {project &&
+        (heartbeatFooter ? (
+          <HeartbeatFooter
+            projectSlug={project.slug}
+            route={route}
+            router={router}
+            location={location}
+            newOrg
+          />
+        ) : (
+          <FirstEventFooter
+            project={project}
+            organization={organization}
+            isLast={!nextProject}
+            hasFirstEvent={checkProjectHasFirstEvent(project)}
+            onClickSetupLater={() => {
+              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+              trackAdvancedAnalyticsEvent(
+                'growth.onboarding_clicked_setup_platform_later',
+                {
+                  organization,
+                  platform: currentPlatform,
+                  project_index: projectIndex,
+                }
+              );
+              if (!project.platform || !clientState) {
+                browserHistory.push(orgIssuesURL);
+                return;
               }
-            );
-            if (!project.platform || !clientState) {
-              browserHistory.push(normalizeUrl(orgIssuesURL));
-              return;
-            }
-            // if we have a next project, switch to that
-            if (nextProject) {
-              setNewProject(nextProject.id);
-            } else {
-              setClientState({
-                ...clientState,
-                state: 'finished',
-              });
-              browserHistory.push(orgIssuesURL);
-            }
-          }}
-          handleFirstIssueReceived={() => {
-            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
-            setHasFirstEventMap(newHasFirstEventMap);
-          }}
-        />
-      )}
+              // if we have a next project, switch to that
+              if (nextProject) {
+                setNewProject(nextProject.id);
+              } else {
+                setClientState({
+                  ...clientState,
+                  state: 'finished',
+                });
+                browserHistory.push(orgIssuesURL);
+              }
+            }}
+            handleFirstIssueReceived={() => {
+              const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+              setHasFirstEventMap(newHasFirstEventMap);
+            }}
+          />
+        ))}
     </Fragment>
   );
 }
@@ -371,14 +392,7 @@ const Content = styled(motion.div)`
   }
 
   code {
-    font-size: 87.5%;
     color: ${p => p.theme.pink400};
-  }
-
-  pre code {
-    color: inherit;
-    font-size: inherit;
-    white-space: pre;
   }
 
   h2 {

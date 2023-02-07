@@ -3,6 +3,7 @@ import type {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
+import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -10,12 +11,11 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
-import Layout from 'sentry/views/replays/detail/layout';
+import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 import {getInitialTimeOffset} from 'sentry/views/replays/utils';
@@ -44,15 +44,15 @@ function ReplayDetails({
     orgSlug,
   });
 
-  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
+  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
   if (!fetching && !replay && fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
         <Page orgSlug={orgSlug} replayRecord={replayRecord}>
-          <PageContent>
+          <Layout.Page withPadding>
             <NotFound />
-          </PageContent>
+          </Layout.Page>
         </Page>
       );
     }
@@ -63,7 +63,7 @@ function ReplayDetails({
     ];
     return (
       <Page orgSlug={orgSlug} replayRecord={replayRecord}>
-        <PageContent>
+        <Layout.Page>
           <DetailedError
             onRetry={onRetry}
             hideSupportLinks
@@ -79,7 +79,7 @@ function ReplayDetails({
               </Fragment>
             }
           />
-        </PageContent>
+        </Layout.Page>
       </Page>
     );
   }
@@ -131,7 +131,7 @@ function LoadedDetails({
 
   return (
     <Page orgSlug={orgSlug} crumbs={replay?.getRawCrumbs()} replayRecord={replayRecord}>
-      <Layout layout={getLayout()} />
+      <ReplaysLayout layout={getLayout()} />
     </Page>
   );
 }

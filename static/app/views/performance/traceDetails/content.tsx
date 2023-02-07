@@ -2,7 +2,7 @@ import {Component, createRef, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -10,7 +10,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageHeading from 'sentry/components/pageHeading';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -331,9 +330,9 @@ class TraceDetailsContent extends Component<Props, State> {
               location={location}
               traceSlug={traceSlug}
             />
-            <StyledHeading data-test-id="trace-header">
+            <Layout.Title data-test-id="trace-header">
               {t('Trace ID: %s', traceSlug)}
-            </StyledHeading>
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -361,10 +360,6 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const Margin = styled('div')`
   margin-top: ${space(2)};

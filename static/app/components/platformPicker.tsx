@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
@@ -27,7 +27,7 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
 
 interface PlatformPickerProps {
   setPlatform: (key: PlatformKey | null) => void;

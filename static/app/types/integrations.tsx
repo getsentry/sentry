@@ -1,4 +1,4 @@
-import type Alert from 'sentry/components/alert';
+import type {Alert} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {
@@ -6,7 +6,7 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
-} from 'sentry/views/organizationIntegrations/constants';
+} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {BaseRelease} from './release';
@@ -144,9 +144,31 @@ export type SentryAppSchemaStacktraceLink = {
   params?: Array<string>;
 };
 
+export enum Coverage {
+  NOT_APPLICABLE = -1,
+  COVERED = 0,
+  NOT_COVERED = 1,
+  PARTIAL = 2,
+}
+export type LineCoverage = [lineNo: number, coverage: Coverage];
+
+export enum CodecovStatusCode {
+  COVERAGE_EXISTS = 200,
+  NO_INTEGRATION = 404,
+  NO_COVERAGE_DATA = 400,
+}
+
+export interface CodecovResponse {
+  status: CodecovStatusCode;
+  attemptedUrl?: string;
+  coverageUrl?: string;
+  lineCoverage?: LineCoverage[];
+}
+
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
+  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   sourceUrl?: string;

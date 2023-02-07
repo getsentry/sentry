@@ -32,12 +32,13 @@ __all__ = (
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
     "get_intervals",
+    "get_num_intervals",
+    "to_intervals",
     "OP_REGEX",
     "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
     "NON_RESOLVABLE_TAG_VALUES",
 )
-
 
 import re
 from abc import ABC
@@ -45,6 +46,7 @@ from datetime import datetime, timedelta, timezone
 from typing import (
     Collection,
     Dict,
+    Generator,
     List,
     Literal,
     Mapping,
@@ -86,6 +88,8 @@ MetricOperationType = Literal[
     "team_key_transaction",
     "sum_if_column",
     "uniq_if_column",
+    "min_timestamp",
+    "max_timestamp",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -124,7 +128,11 @@ MetricEntity = Literal[
 ]
 
 OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {"sum": "sumIf"},
+    "metrics_counters": {
+        "sum": "sumIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
+    },
     "metrics_distributions": {
         "avg": "avgIf",
         "count": "countIf",
@@ -137,8 +145,14 @@ OP_TO_SNUBA_FUNCTION = {
         "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
         "sum": "sumIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
     },
-    "metrics_sets": {"count_unique": "uniqIf"},
+    "metrics_sets": {
+        "count_unique": "uniqIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
+    },
 }
 GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
@@ -206,6 +220,7 @@ FILTERABLE_TAGS = {
     "tags[transaction.status]",
     "tags[browser.name]",
     "tags[os.name]",
+    "tags[release]",
 }
 
 
@@ -247,6 +262,8 @@ DERIVED_OPERATIONS = (
     "transform_null_to_unparameterized",
     "sum_if_column",
     "uniq_if_column",
+    "min_timestamp",
+    "max_timestamp",
 )
 OPERATIONS = (
     (
@@ -328,15 +345,81 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
     ...
 
 
-def get_intervals(start: datetime, end: datetime, granularity: int, interval: Optional[int] = None):
+def to_intervals(
+    start: Optional[datetime], end: Optional[datetime], interval_seconds: int
+) -> Tuple[Optional[datetime], Optional[datetime], int]:
+    """
+    Given a `start` date, `end` date and an alignment interval in seconds returns the aligned start, end and
+    the number of total intervals in [start:end]
+
+    """
+    assert interval_seconds > 0
+
+    # horrible hack for backward compatibility
+    # TODO Try to fix this upstream
+    if start is None or end is None:
+        return None, None, 0
+
+    if start.tzinfo is None:
+        start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end.replace(tzinfo=timezone.utc)
+
+    interval_start = int(start.timestamp() / interval_seconds) * interval_seconds
+    interval_end = end.timestamp()
+
+    seconds_to_cover = interval_end - interval_start
+
+    last_incomplete_interval = 0
+    if seconds_to_cover % interval_seconds != 0:
+        # we don't finish neatly at the end of interval, add another
+        # interval to cover the last incomplete period
+        last_incomplete_interval = 1
+
+    num_intervals = int(seconds_to_cover / interval_seconds) + last_incomplete_interval
+    # finally convert back to dates
+    adjusted_start = datetime.fromtimestamp(interval_start, timezone.utc)
+    adjusted_end = adjusted_start + timedelta(seconds=interval_seconds * num_intervals)
+    return adjusted_start, adjusted_end, num_intervals
+
+
+def get_num_intervals(
+    start: Optional[datetime],
+    end: datetime,
+    granularity: int,
+    interval: Optional[int] = None,
+) -> int:
+    """
+    Calculates the number of intervals from start to end.
+    If start==None then it calculates from the beginning of unix time (for backward compatibility with
+    MetricsQuery.calculate_intervals_len)
+    """
+
+    # legacy usage (if no start time assume beginning of Unix time)
+    if start is None:
+        start = datetime.fromtimestamp(0).replace(tzinfo=timezone.utc)
+
     if interval is None:
-        assert granularity > 0
-        delta = timedelta(seconds=granularity)
-    else:
-        start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
-        end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
-        assert interval > 0
-        delta = timedelta(seconds=interval)
-    while start and end and start < end:
+        interval = granularity
+
+    assert interval > 0
+
+    _start, _end, num_intervals = to_intervals(start, end, interval)
+    return num_intervals
+
+
+def get_intervals(
+    start: datetime, end: datetime, granularity: int, interval: Optional[int] = None
+) -> Generator[datetime, None, None]:
+    if interval is None:
+        interval = granularity
+
+    start, _end, num_intervals = to_intervals(start, end, interval)
+
+    interval_span = timedelta(seconds=interval)
+    idx = 0
+
+    while idx < num_intervals:
         yield start
-        start += delta
+        idx += 1
+        start += interval_span

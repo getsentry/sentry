@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Buttonbar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
@@ -20,7 +20,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachments';
+import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachments';
 
 import ImageVisualization from './imageVisualization';
 import ScreenshotPagination from './screenshotPagination';
@@ -164,7 +164,7 @@ function Modal({
         <StyledImageVisualization
           attachment={currentEventAttachment}
           orgId={orgSlug}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           eventId={currentEventAttachment.event_id}
         />
 

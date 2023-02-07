@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -27,17 +27,18 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
-import IntegrationAlertRules from 'sentry/views/organizationIntegrations/integrationAlertRules';
-import IntegrationCodeMappings from 'sentry/views/organizationIntegrations/integrationCodeMappings';
-import IntegrationExternalTeamMappings from 'sentry/views/organizationIntegrations/integrationExternalTeamMappings';
-import IntegrationExternalUserMappings from 'sentry/views/organizationIntegrations/integrationExternalUserMappings';
-import IntegrationItem from 'sentry/views/organizationIntegrations/integrationItem';
-import IntegrationMainSettings from 'sentry/views/organizationIntegrations/integrationMainSettings';
-import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
-import IntegrationServerlessFunctions from 'sentry/views/organizationIntegrations/integrationServerlessFunctions';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+
+import AddIntegration from './addIntegration';
+import IntegrationAlertRules from './integrationAlertRules';
+import IntegrationCodeMappings from './integrationCodeMappings';
+import IntegrationExternalTeamMappings from './integrationExternalTeamMappings';
+import IntegrationExternalUserMappings from './integrationExternalUserMappings';
+import IntegrationItem from './integrationItem';
+import IntegrationMainSettings from './integrationMainSettings';
+import IntegrationRepos from './integrationRepos';
+import IntegrationServerlessFunctions from './integrationServerlessFunctions';
 
 type RouteParams = {
   integrationId: string;

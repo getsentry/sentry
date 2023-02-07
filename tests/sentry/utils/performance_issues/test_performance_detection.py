@@ -10,13 +10,13 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
+from sentry.utils.performance_issues.base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType
 from sentry.utils.performance_issues.performance_detection import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
-    DetectorType,
     EventPerformanceProblem,
     NPlusOneDBSpanDetector,
     PerformanceProblem,
     _detect_performance_problems,
+    detect_performance_problems,
     total_span_time,
 )
 
@@ -31,8 +31,9 @@ BASE_DETECTOR_OPTIONS_OFF = {
 
 
 def assert_n_plus_one_db_problem(perf_problems):
-    assert perf_problems == [
-        PerformanceProblem(
+    assert any(
+        problem
+        == PerformanceProblem(
             fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
             op="db",
             desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
@@ -52,7 +53,8 @@ def assert_n_plus_one_db_problem(perf_problems):
                 "bb32cf50fc56b296",
             ],
         )
-    ]
+        for problem in perf_problems
+    )
 
 
 @pytest.mark.django_db
@@ -72,6 +74,19 @@ class PerformanceDetectionTest(TestCase):
         self.addCleanup(patch_organization.stop)
 
         self.project = self.create_project()
+
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_disabled(self, mock):
+        event = {}
+        detect_performance_problems(event, self.project)
+        assert mock.call_count == 0
+
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_enabled(self, mock):
+        event = {}
+        with override_options({"performance.issues.all.problem-detection": 1.0}):
+            detect_performance_problems(event, self.project)
+        assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
@@ -224,12 +239,12 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 9
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -239,11 +254,6 @@ class PerformanceDetectionTest(TestCase):
                     "_pi_transaction",
                     "da78af6000a6400aaa87cf6e14ddeb40",
                 ),
-                call(
-                    "_pi_slow_span_fp",
-                    "1-GroupType.PERFORMANCE_SLOW_SPAN-8dbbcc64ef67d2d9d390327411669ebe29b0ea45",
-                ),
-                call("_pi_slow_span", "b33db57efd994615"),
                 call(
                     "_pi_n_plus_one_db_fp",
                     "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
@@ -270,6 +280,44 @@ class PerformanceDetectionTest(TestCase):
         truncated_duplicates_event = get_event("n-plus-one-in-django-new-view-truncated-duplicates")
         _detect_performance_problems(truncated_duplicates_event, Mock(), self.project)
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
+
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_metrics_on_uncompressed_assets(self, incr_mock):
+        event = get_event("uncompressed-assets/uncompressed-script-asset")
+        _detect_performance_problems(event, Mock(), self.project)
+        assert (
+            call(
+                "performance.performance_issue.uncompressed_assets",
+                1,
+                tags={"op_resource.script": True},
+            )
+            in incr_mock.mock_calls
+        )
+        assert (
+            call(
+                "performance.performance_issue.detected",
+                instance="True",
+                tags={
+                    "sdk_name": "sentry.javascript.react",
+                    "integration_django": False,
+                    "integration_flask": False,
+                    "integration_sqlalchemy": False,
+                    "integration_mongo": False,
+                    "integration_postgres": False,
+                    "consecutive_db": False,
+                    "slow_db_query": False,
+                    "render_blocking_assets": False,
+                    "n_plus_one_db": False,
+                    "n_plus_one_db_ext": False,
+                    "file_io_main_thread": False,
+                    "n_plus_one_api_calls": False,
+                    "m_n_plus_one_db": False,
+                    "uncompressed_assets": True,
+                    "browser_name": "Chrome",
+                },
+            )
+            in incr_mock.mock_calls
+        )
 
 
 @region_silo_test
@@ -315,7 +363,7 @@ class EventPerformanceProblemTest(TestCase):
                 "test_2",
                 "db",
                 "something horrible happened",
-                GroupType.PERFORMANCE_SLOW_SPAN,
+                GroupType.PERFORMANCE_SLOW_DB_QUERY,
                 ["234"],
                 ["67", "87686", "786"],
                 ["4", "5", "6"],
@@ -336,7 +384,7 @@ class EventPerformanceProblemTest(TestCase):
                 "event_2_test_2",
                 "db",
                 "hello",
-                GroupType.PERFORMANCE_SLOW_SPAN,
+                GroupType.PERFORMANCE_SLOW_DB_QUERY,
                 ["234"],
                 ["fdgh", "gdhgf", "gdgh"],
                 ["gdf", "yu", "kjl"],
@@ -354,7 +402,7 @@ class EventPerformanceProblemTest(TestCase):
             "fake_fingerprint",
             "db",
             "hello",
-            GroupType.PERFORMANCE_SLOW_SPAN,
+            GroupType.PERFORMANCE_SLOW_DB_QUERY,
             ["234"],
             ["fdgh", "gdhgf", "gdgh"],
             ["gdf", "yu", "kjl"],

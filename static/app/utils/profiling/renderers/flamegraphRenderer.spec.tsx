@@ -47,7 +47,13 @@ describe('flamegraphRenderer', () => {
             // @ts-ignore overridee the colors implementation
             STACK_TO_COLOR: () => {
               const colorMap = new Map<string, number[]>([['f0', [1, 0, 0, 1]]]);
-              return {colorBuffer: [1, 0, 0, 1], colorMap};
+              return {
+                colorBuffer: [
+                  // 2 triangles, each with 3 vertices
+                  1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+                ],
+                colorMap,
+              };
             },
           },
         },
@@ -55,7 +61,12 @@ describe('flamegraphRenderer', () => {
       );
 
       expect(JSON.stringify(renderer.colors)).toEqual(
-        JSON.stringify(new Float32Array([1, 0, 0, 1]))
+        JSON.stringify(
+          new Float32Array([
+            // 2 triangles, each with 3 vertices
+            1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+          ])
+        )
       );
     });
   });
@@ -156,7 +167,7 @@ describe('flamegraphRenderer', () => {
         start: 0,
         end: 0,
       })
-    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR);
+    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_GRAYSCALE_COLOR);
   });
 
   it('getHoveredNode', () => {
@@ -246,7 +257,7 @@ describe('flamegraphRenderer', () => {
 
       // @ts-ignore we only need a partial frame mock
       results.set(getFlamegraphFrameSearchId(flamegraph.frames[0]), {});
-      renderer.setSearchResults(results);
+      renderer.setSearchResults('query', results);
 
       expect(JSON.stringify(renderer.searchResults.slice(0, 6))).toEqual(
         JSON.stringify(new Float32Array([1, 1, 1, 1, 1, 1]))

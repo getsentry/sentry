@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Any
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.event_search import parse_search_query
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
@@ -19,6 +21,11 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import Dataset
 
 MAX_REPLAY_COUNT = 51
+MAX_VALS_PROVIDED = {
+    "issue.id": 25,
+    "transaction": 25,
+    "replay_id": 100,
+}
 
 
 @region_silo_endpoint
@@ -50,8 +57,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return Response({})
 
         try:
-            replay_ids_mapping = _query_discover_for_replay_ids(request, params, snuba_params)
-        except ValueError as e:
+            replay_ids_mapping = get_replay_id_mappings(request, params, snuba_params)
+        except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         replay_results = query_replays_count(
@@ -71,10 +78,16 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         return self.respond(counts)
 
 
-def _query_discover_for_replay_ids(
+def get_replay_id_mappings(
     request: Request, params: ParamsType, snuba_params: SnubaParams
 ) -> dict[str, list[int]]:
-    select_column = get_select_column(request.GET.get("query"))
+
+    select_column, value = get_select_column(request.GET.get("query"))
+
+    if select_column == "replay_id":
+        # just return a mapping of replay_id:replay_id instead of hitting discover
+        # if we want to validate list of replay_ids existence
+        return {v: [v] for v in value}
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -100,21 +113,22 @@ def _query_discover_for_replay_ids(
     return replay_id_to_issue_map
 
 
-def get_select_column(query: str) -> str:
+def get_select_column(query: str) -> tuple[str, list[Any]]:
     parsed_query = parse_search_query(query)
+
     select_column_conditions = [
-        cond for cond in parsed_query if cond.key.name in ["issue.id", "transaction"]
+        cond for cond in parsed_query if cond.key.name in ["issue.id", "transaction", "replay_id"]
     ]
 
     if len(select_column_conditions) > 1:
-        raise ValueError("Must provide only one of: issue.id, transaction")
+        raise ValueError("Must provide only one of: issue.id, transaction, replay_id")
 
     if len(select_column_conditions) == 0:
-        raise ValueError("Must provide at least one issue.id or transaction")
+        raise ValueError("Must provide at least one issue.id, transaction, or replay_id")
 
     condition = select_column_conditions[0]
 
-    if len(condition.value.raw_value) > 25:
+    if len(condition.value.raw_value) > MAX_VALS_PROVIDED[condition.key.name]:
         raise ValueError("Too many values provided")
 
-    return condition.key.name
+    return condition.key.name, condition.value.raw_value

@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -16,7 +15,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload, IconPlay} from 'sentry/icons';
@@ -40,8 +39,8 @@ import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
-import {QuickContextHoverWrapper} from 'sentry/views/eventsV2/table/quickContext/quickContextWrapper';
-import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -311,6 +310,7 @@ type SpecialFields = {
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
+  'profile.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
@@ -357,7 +357,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <RightAlignedContainer>
-          <DropdownMenuControl
+          <DropdownMenu
             position="left"
             size="xs"
             triggerProps={{
@@ -461,6 +461,17 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
+  'profile.id': {
+    sortField: 'profile.id',
+    renderFunc: data => {
+      const id: string | unknown = data?.['profile.id'];
+      if (typeof id !== 'string') {
+        return emptyValue;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
   issue: {
     sortField: null,
     renderFunc: (data, {organization}) => {
@@ -480,21 +491,15 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          {organization.features.includes('discover-quick-context') ? (
-            <QuickContextHoverWrapper
-              dataRow={data}
-              contextType={ContextType.ISSUE}
-              organization={organization}
-            >
-              <StyledLink to={target} aria-label={issueID}>
-                <OverflowFieldShortId shortId={`${data.issue}`} />
-              </StyledLink>
-            </QuickContextHoverWrapper>
-          ) : (
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.ISSUE}
+            organization={organization}
+          >
             <StyledLink to={target} aria-label={issueID}>
               <OverflowFieldShortId shortId={`${data.issue}`} />
             </StyledLink>
-          )}
+          </QuickContextHoverWrapper>
         </Container>
       );
     },
@@ -594,17 +599,13 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          {organization.features.includes('discover-quick-context') ? (
-            <QuickContextHoverWrapper
-              dataRow={data}
-              contextType={ContextType.RELEASE}
-              organization={organization}
-            >
-              <Version version={data.release} truncate />
-            </QuickContextHoverWrapper>
-          ) : (
-            <Version version={data.release} tooltipRawVersion truncate />
-          )}
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.RELEASE}
+            organization={organization}
+          >
+            <Version version={data.release} truncate />
+          </QuickContextHoverWrapper>
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>

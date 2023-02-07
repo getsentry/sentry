@@ -18,6 +18,8 @@ EVENT_TYPE_ALIAS = "event.type"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
+PROJECT_DOT_ID_ALIAS = "project.id"
+PROJECT_ID_ALIAS = "project_id"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
@@ -250,24 +252,6 @@ METRIC_DURATION_COLUMNS = {
     key
     for key, value in METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
-}
-# So we can dry run some queries to see how often they'd be compatible
-DRY_RUN_COLUMNS = {
-    METRIC_TOLERATED_TAG_VALUE,
-    METRIC_SATISFIED_TAG_VALUE,
-    METRIC_FRUSTRATED_TAG_VALUE,
-    METRIC_SATISFACTION_TAG_KEY,
-    "environment",
-    "http.method",
-    "measurement_rating",
-    "organization_id",
-    "project.id",
-    "project_id",
-    "release",
-    "timestamp",
-    "transaction.op",
-    "transaction",
-    "transaction.status",
 }
 METRIC_PERCENTILES = {
     0.25,

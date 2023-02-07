@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 import {openSudo} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -41,7 +41,7 @@ type State = {
   loading: boolean;
   organization: Organization | null;
   prevProps: {
-    location: RouteComponentProps<{orgId: string}, {}>['location'];
+    location: Props['location'];
     orgId: string;
     organizationsLoading: boolean;
   };
@@ -344,7 +344,7 @@ export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
 
-export {OrganizationContextContainer as OrganizationLegacyContext, OrganizationContext};
+export {OrganizationContextContainer as OrganizationLegacyContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};

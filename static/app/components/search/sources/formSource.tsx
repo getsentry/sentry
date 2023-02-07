@@ -11,7 +11,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = WithRouterProps<{}> & {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term

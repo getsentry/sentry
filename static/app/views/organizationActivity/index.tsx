@@ -1,15 +1,12 @@
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Activity, Organization} from 'sentry/types';
 import routeTitle from 'sentry/utils/routeTitle';
@@ -20,7 +17,7 @@ import ActivityFeedItem from './activityFeedItem';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}> &
+} & RouteComponentProps<{}, {}> &
   AsyncView['props'];
 
 type State = {
@@ -29,12 +26,13 @@ type State = {
 
 class OrganizationActivity extends AsyncView<Props, State> {
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitle(t('Activity'), orgId, false);
+    const {organization} = this.props;
+    return routeTitle(t('Activity'), organization.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['activity', `/organizations/${this.props.params.orgId}/activity/`]];
+    const {organization} = this.props;
+    return [['activity', `/organizations/${organization.slug}/activity/`]];
   }
 
   renderLoading() {
@@ -62,10 +60,10 @@ class OrganizationActivity extends AsyncView<Props, State> {
     const {loading, activity, activityPageLinks} = this.state;
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <StyledHeading>{t('Activity')}</StyledHeading>
+            <Layout.Title>{t('Activity')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -95,17 +93,9 @@ class OrganizationActivity extends AsyncView<Props, State> {
             )}
           </Layout.Main>
         </Layout.Body>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 export default withOrganization(OrganizationActivity);

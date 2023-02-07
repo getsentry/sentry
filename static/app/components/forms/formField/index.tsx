@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -49,8 +49,8 @@ type ObservedFn<_P, T> = (props: FormFieldPropModel) => T;
 type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
 
 type ObservedPropResolver = [
-  typeof propsToObserve[number],
-  () => ResolvedObservableProps[typeof propsToObserve[number]]
+  (typeof propsToObserve)[number],
+  () => ResolvedObservableProps[(typeof propsToObserve)[number]]
 ];
 
 /**

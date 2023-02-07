@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -9,8 +9,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import withProjects from 'sentry/utils/withProjects';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
 import {
+  getProjectID,
   getSelectedProjectPlatforms,
   handleTrendsClick,
   trendsTargetRoute,
@@ -130,9 +135,28 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
         },
       });
+
+      const transactionTarget = transactionSummaryRouteWithQuery({
+        orgSlug: props.organization.slug,
+        projectID: getProjectID(listItem, projects),
+        transaction: listItem.transaction,
+        query: trendsTarget.query,
+        additionalQuery: {
+          display: DisplayModes.TREND,
+          trendFunction: trendFunctionField,
+          statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
+        },
+      });
+
+      const target = organization.features.includes(
+        'performance-metrics-backed-transaction-summary'
+      )
+        ? transactionTarget
+        : trendsTarget;
+
       return (
         <Fragment>
-          <GrowLink to={trendsTarget}>
+          <GrowLink to={target}>
             <Truncate value={listItem.transaction} maxLength={40} />
           </GrowLink>
           <RightAlignedCell>

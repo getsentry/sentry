@@ -4,6 +4,7 @@ import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/t
 export enum ProblemSpan {
   PARENT = 'parent',
   OFFENDER = 'offender',
+  CAUSE = 'cause',
 }
 
 export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
@@ -11,26 +12,35 @@ export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
 type AddSpanOpts = {
   endTimestamp: number;
   startTimestamp: number;
+  data?: Record<string, any>;
   description?: string;
   op?: string;
-  problemSpan?: ProblemSpan;
+  problemSpan?: ProblemSpan | ProblemSpan[];
   status?: string;
 };
 
+interface TransactionSettings {
+  duration?: number;
+}
 export class TransactionEventBuilder {
   TRACE_ID = '8cbbc19c0f54447ab702f00263262726';
   ROOT_SPAN_ID = '0000000000000000';
   #event: EventTransaction;
   #spans: RawSpanType[] = [];
 
-  constructor(id?: string, title?: string) {
+  constructor(
+    id?: string,
+    title?: string,
+    problemType?: IssueType,
+    transactionSettings?: TransactionSettings
+  ) {
     this.#event = {
       id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       title: title ?? EXAMPLE_TRANSACTION_TITLE,
       type: EventOrGroupType.TRANSACTION,
       startTimestamp: 0,
-      endTimestamp: 0,
+      endTimestamp: transactionSettings?.duration ?? 0,
       contexts: {
         trace: {
           trace_id: this.TRACE_ID,
@@ -50,7 +60,7 @@ export class TransactionEventBuilder {
         causeSpanIds: [],
         offenderSpanIds: [],
         parentSpanIds: [],
-        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+        issueType: problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       },
       // For the purpose of mock data, we don't care as much about the properties below.
       // They're here to satisfy the type constraints, but in the future if we need actual values here
@@ -92,6 +102,10 @@ export class TransactionEventBuilder {
     return (this.#spans.length + 1).toString(16).padStart(16, '0');
   }
 
+  addEntry(entry: EventTransaction['entries'][number]) {
+    this.#event.entries.push(entry);
+  }
+
   addSpan(mockSpan: MockSpan, numSpans = 1, parentSpanId?: string) {
     for (let i = 0; i < numSpans; i++) {
       const spanId = this.generateSpanId();
@@ -104,16 +118,25 @@ export class TransactionEventBuilder {
 
       this.#spans.push(clonedSpan);
 
-      switch (mockSpan.problemSpan) {
-        case ProblemSpan.PARENT:
-          this.#event.perfProblem?.parentSpanIds.push(spanId);
-          break;
-        case ProblemSpan.OFFENDER:
-          this.#event.perfProblem?.offenderSpanIds.push(spanId);
-          break;
-        default:
-          break;
-      }
+      const problemSpans = Array.isArray(mockSpan.problemSpan)
+        ? mockSpan.problemSpan
+        : [mockSpan.problemSpan];
+
+      problemSpans.forEach(problemSpan => {
+        switch (problemSpan) {
+          case ProblemSpan.PARENT:
+            this.#event.perfProblem?.parentSpanIds.push(spanId);
+            break;
+          case ProblemSpan.OFFENDER:
+            this.#event.perfProblem?.offenderSpanIds.push(spanId);
+            break;
+          case ProblemSpan.CAUSE:
+            this.#event.perfProblem?.causeSpanIds.push(spanId);
+            break;
+          default:
+            break;
+        }
+      });
 
       if (clonedSpan.timestamp > this.#event.endTimestamp) {
         this.#event.endTimestamp = clonedSpan.timestamp;
@@ -136,7 +159,7 @@ export class TransactionEventBuilder {
 export class MockSpan {
   span: RawSpanType;
   children: MockSpan[] = [];
-  problemSpan: ProblemSpan | undefined;
+  problemSpan: ProblemSpan | ProblemSpan[] | undefined;
 
   /**
    *
@@ -158,7 +181,7 @@ export class MockSpan {
       op,
       description,
       status: status ?? 'ok',
-      data: {},
+      data: opts.data || {},
       // These values are automatically assigned by the TransactionEventBuilder when the spans are added
       span_id: '',
       trace_id: '',

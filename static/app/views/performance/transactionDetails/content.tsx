@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
@@ -17,7 +16,6 @@ import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
-import PageHeading from 'sentry/components/pageHeading';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -25,7 +23,7 @@ import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {Event, EventTag} from 'sentry/types/event';
+import {Event, EventTag, EventTransaction} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -36,6 +34,8 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
 import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getSelectedProjectPlatforms} from '../utils';
@@ -146,6 +146,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {start, end} = getTraceTimeRangeFromEvent(event);
 
     const hasProfilingFeature = organization.features.includes('profiling');
+    const hasProfilingPreviewsFeature =
+      hasProfilingFeature && organization.features.includes('profiling-previews');
+
+    const profileId = (event as EventTransaction).contexts?.profile?.profile_id ?? null;
 
     return (
       <TraceMetaQuery
@@ -159,6 +163,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
             {results => (
               <TransactionProfileIdProvider
+                projectId={event.projectID}
                 transactionId={event.type === 'transaction' ? event.id : undefined}
                 timestamp={event.dateReceived}
               >
@@ -173,9 +178,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       }}
                       eventSlug={eventSlug}
                     />
-                    <StyledHeading data-test-id="event-header">
-                      {event.title}
-                    </StyledHeading>
+                    <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <ButtonBar gap={1}>
@@ -229,14 +232,43 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           }}
                         >
                           <QuickTraceContext.Provider value={results}>
-                            <BorderlessEventEntries
-                              organization={organization}
-                              event={event}
-                              project={_projects[0] as Project}
-                              showTagSummary={false}
-                              location={location}
-                              api={this.api}
-                            />
+                            {hasProfilingPreviewsFeature && profileId ? (
+                              <ProfilesProvider
+                                orgSlug={organization.slug}
+                                projectSlug={this.projectId}
+                                profileId={profileId}
+                              >
+                                <ProfileContext.Consumer>
+                                  {profiles => (
+                                    <ProfileGroupProvider
+                                      type="flamechart"
+                                      input={
+                                        profiles?.type === 'resolved'
+                                          ? profiles.data
+                                          : null
+                                      }
+                                      traceID={profileId}
+                                    >
+                                      <BorderlessEventEntries
+                                        organization={organization}
+                                        event={event}
+                                        project={_projects[0] as Project}
+                                        showTagSummary={false}
+                                        location={location}
+                                      />
+                                    </ProfileGroupProvider>
+                                  )}
+                                </ProfileContext.Consumer>
+                              </ProfilesProvider>
+                            ) : (
+                              <BorderlessEventEntries
+                                organization={organization}
+                                event={event}
+                                project={_projects[0] as Project}
+                                showTagSummary={false}
+                                location={location}
+                              />
+                            )}
                           </QuickTraceContext.Provider>
                         </SpanEntryContext.Provider>
                       )}
@@ -313,9 +345,5 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 export default EventDetailsContent;

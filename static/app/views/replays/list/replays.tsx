@@ -2,10 +2,8 @@ import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
-import Button from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -52,7 +50,7 @@ function ReplaysList() {
     organization,
   });
 
-  const {hasSentOneReplay, activateSidebar} = useReplayOnboardingSidebarPanel();
+  const {hasSentOneReplay} = useReplayOnboardingSidebarPanel();
 
   return (
     <Layout.Body>
@@ -90,17 +88,7 @@ function ReplaysList() {
             />
           </Fragment>
         ) : (
-          <ReplayOnboardingPanel>
-            <Button onClick={activateSidebar} priority="primary">
-              {t('Set Up Replays')}
-            </Button>
-            <Button
-              href="https://docs.sentry.io/platforms/javascript/session-replay/"
-              external
-            >
-              {t('Read Docs')}
-            </Button>
-          </ReplayOnboardingPanel>
+          <ReplayOnboardingPanel />
         )}
       </Layout.Main>
     </Layout.Body>

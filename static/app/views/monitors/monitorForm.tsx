@@ -5,14 +5,18 @@ import {Observer} from 'mobx-react';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {t, tct} from 'sentry/locale';
+import TimeSince from 'sentry/components/timeSince';
+import timezones from 'sentry/data/timezones';
+import {t, tct, tn} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
+import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -25,13 +29,13 @@ const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 
-const INTERVALS: SelectValue<string>[] = [
-  {value: 'minute', label: 'minute(s)'},
-  {value: 'hour', label: 'hour(s)'},
-  {value: 'day', label: 'day(s)'},
-  {value: 'week', label: 'week(s)'},
-  {value: 'month', label: 'month(s)'},
-  {value: 'year', label: 'year(s)'},
+const getIntervals = (n: number): SelectValue<string>[] => [
+  {value: 'minute', label: tn('minute', 'minutes', n)},
+  {value: 'hour', label: tn('hour', 'hours', n)},
+  {value: 'day', label: tn('day', 'days', n)},
+  {value: 'week', label: tn('week', 'weeks', n)},
+  {value: 'month', label: tn('month', 'months', n)},
+  {value: 'year', label: tn('year', 'years', n)},
 ];
 
 type Props = {
@@ -95,6 +99,7 @@ class MonitorForm extends Component<Props> {
           case 'crontab':
           default:
             rv['config.schedule'] = config.schedule;
+            rv['config.timezone'] = config.timezone;
         }
         break;
       default:
@@ -142,12 +147,11 @@ class MonitorForm extends Component<Props> {
                 </div>
               </FieldGroup>
             )}
-            <SelectField
+            <SentryProjectSelectorField
               name="project"
               label={t('Project')}
-              options={this.props.projects
-                .filter(p => p.isMember)
-                .map(p => ({value: p.slug, label: p.slug}))}
+              projects={this.props.projects.filter(project => project.isMember)}
+              valueIsSlug
               help={t(
                 "Select the project which contains the recurring job you'd like to monitor."
               )}
@@ -165,6 +169,20 @@ class MonitorForm extends Component<Props> {
           <PanelHeader>{t('Config')}</PanelHeader>
 
           <PanelBody>
+            {monitor !== undefined && monitor.nextCheckIn && (
+              <PanelAlert type="info">
+                {tct(
+                  'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
+                  {
+                    nextCheckin: (
+                      <strong>
+                        <TimeSince date={monitor.nextCheckIn} />
+                      </strong>
+                    ),
+                  }
+                )}
+              </PanelAlert>
+            )}
             <NumberField
               name="config.max_runtime"
               label={t('Max Runtime')}
@@ -197,6 +215,17 @@ class MonitorForm extends Component<Props> {
                                 <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
                               ),
                             }
+                          )}
+                          css={{input: {fontFamily: commonTheme.text.familyMono}}}
+                        />
+                        <SelectField
+                          name="config.timezone"
+                          label={t('Timezone')}
+                          defaultValue="UTC"
+                          options={timezones.map(([value, label]) => ({value, label}))}
+                          help={tct(
+                            "The timezone of your execution environment. Be sure to set this correctly, otherwise the schedule may be mismatched and check-ins will be marked as missed! Use [code:timedatectl] or similar to determine your machine's timezone.",
+                            {code: <code />}
                           )}
                         />
                         <NumberField
@@ -231,7 +260,9 @@ class MonitorForm extends Component<Props> {
                           <StyledSelectField
                             name="config.schedule.interval"
                             label={t('Interval')}
-                            options={INTERVALS}
+                            options={getIntervals(
+                              Number(this.form.getValue('config.schedule.frequency') ?? 1)
+                            )}
                             hideLabel
                             required
                           />

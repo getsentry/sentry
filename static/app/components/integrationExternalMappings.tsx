@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconArrow, IconDelete, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';

@@ -59,7 +59,7 @@ export function getUtcToLocalDateObject(date: moment.MomentInput): Date {
 /**
  * Sets time (hours + minutes) of the current date object
  *
- * @param {String} timeStr Time in 24hr format (HH:mm)
+ * @param timeStr Time in 24hr format (HH:mm)
  */
 export function setDateToTime(
   dateObj: string | Date,
@@ -112,7 +112,9 @@ export function getLocalToSystem(dateObj: moment.MomentInput): Date {
   return new Date(moment(dateObj).format(DATE_FORMAT_NO_TIMEZONE));
 }
 
-// Get the beginning of day (e.g. midnight)
+/**
+ * Get the beginning of day (e.g. midnight)
+ */
 export function getStartOfDay(date: moment.MomentInput): Date {
   return moment(date)
     .startOf('day')
@@ -123,8 +125,9 @@ export function getStartOfDay(date: moment.MomentInput): Date {
     .toDate();
 }
 
-// Get tomorrow at midnight so that default endtime
-// is inclusive of today
+/**
+ * Get tomorrow at midnight so that default endtime is inclusive of today
+ */
 export function getEndOfDay(date: moment.MomentInput): Date {
   return moment(date)
     .add(1, 'day')
@@ -143,9 +146,11 @@ export function getPeriodAgo(
   return moment().local().subtract(unit, period);
 }
 
-// Get the start of the day (midnight) for a period ago
-//
-// e.g. 2 weeks ago at midnight
+/**
+ * Get the start of the day (midnight) for a period ago
+ *
+ * e.g. 2 weeks ago at midnight
+ */
 export function getStartOfPeriodAgo(
   period: moment.unitOfTime.DurationConstructor,
   unit: number

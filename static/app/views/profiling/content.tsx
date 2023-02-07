@@ -1,19 +1,18 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -23,9 +22,8 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -40,21 +38,21 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 import {ProfileCharts} from './landing/profileCharts';
+import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
   location: Location;
-  router: InjectedRouter;
 }
 
-function ProfilingContent({location, router}: ProfilingContentProps) {
+function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
-    key: 'count()',
+    key: 'p99()',
     order: 'desc',
   });
 
@@ -120,26 +118,27 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
+  const isNewProfilingDashboardEnabled = organization.features.includes(
+    'profiling-dashboard-redesign'
+  );
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
-        <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
             <Layout.Header>
               <Layout.HeaderContent>
-                <StyledHeading>
+                <Layout.Title>
                   {t('Profiling')}
                   <PageHeadingQuestionTooltip
-                    title={tct(
-                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/profiling/" />
-                        ),
-                      }
+                    docsUrl="https://docs.sentry.io/product/profiling/"
+                    title={t(
+                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
                     )}
                   />
-                </StyledHeading>
+                  <FeatureBadge type="beta" />
+                </Layout.Title>
               </Layout.HeaderContent>
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
@@ -190,16 +189,31 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 </ActionBar>
                 {shouldShowProfilingOnboardingPanel ? (
                   <ProfilingOnboardingPanel>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
-                      {t('Read Docs')}
-                    </Button>
                     <Button onClick={onSetupProfilingClick} priority="primary">
                       {t('Set Up Profiling')}
+                    </Button>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
                     </Button>
                   </ProfilingOnboardingPanel>
                 ) : (
                   <Fragment>
-                    <ProfileCharts router={router} query={query} selection={selection} />
+                    {isNewProfilingDashboardEnabled ? (
+                      <PanelsGrid>
+                        <ProfilingSlowestTransactionsPanel />
+                        <ProfileCharts
+                          query={query}
+                          selection={selection}
+                          hideCount={isNewProfilingDashboardEnabled}
+                        />
+                      </PanelsGrid>
+                    ) : (
+                      <ProfileCharts
+                        query={query}
+                        selection={selection}
+                        hideCount={isNewProfilingDashboardEnabled}
+                      />
+                    )}
                     <ProfileEventsTable
                       columns={FIELDS.slice()}
                       data={
@@ -225,8 +239,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 )}
               </Layout.Main>
             </Layout.Body>
-          </StyledPageContent>
-        </NoProjectMessage>
+          </NoProjectMessage>
+        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
@@ -242,21 +256,24 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = typeof FIELDS[number];
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
+type FieldType = (typeof FIELDS)[number];
 
 const ActionBar = styled('div')`
   display: grid;
   gap: ${space(2)};
   grid-template-columns: min-content auto;
   margin-bottom: ${space(2)};
+`;
+
+// TODO: another simple primitive that can easily be <Grid columns={2} />
+const PanelsGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  gap: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 100%;
+  }
 `;
 
 export default ProfilingContent;

@@ -12,7 +12,7 @@ import {
 } from 'sentry/actionCreators/sentryAppTokens';
 import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
@@ -22,7 +22,7 @@ import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,

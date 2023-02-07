@@ -20,6 +20,7 @@ import {
   DividerLineGhostContainer,
   EmbeddedTransactionBadge,
   ErrorBadge,
+  ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
   RowTitle,
@@ -39,7 +40,7 @@ import {
   getHumanDuration,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -55,6 +56,7 @@ import {
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
+import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -125,6 +127,7 @@ export type SpanBarProps = {
   organization: Organization;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
+  resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
@@ -304,6 +307,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         childTransactions={transactions}
         relatedErrors={errors}
         scrollToHash={this.scrollIntoView}
+        resetCellMeasureCache={this.props.resetCellMeasureCache}
       />
     );
   }
@@ -912,6 +916,29 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return null;
   }
 
+  renderMissingInstrumentationProfileBadge(): React.ReactNode {
+    const {organization, span} = this.props;
+
+    if (!organization.features.includes('profiling-previews')) {
+      return null;
+    }
+
+    if (!isGapSpan(span)) {
+      return null;
+    }
+
+    return (
+      <ProfileContext.Consumer>
+        {profiles => {
+          if (profiles?.type !== 'resolved') {
+            return null;
+          }
+          return <ProfileBadge />;
+        }}
+      </ProfileContext.Consumer>
+    );
+  }
+
   renderWarningText() {
     let warningText = this.getBounds().warning;
 
@@ -975,6 +1002,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
+          {this.renderMissingInstrumentationProfileBadge()}
         </DividerContainer>
         <RowCell
           data-type="span-row-cell"

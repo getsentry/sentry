@@ -1,4 +1,4 @@
-import React, {Component, useEffect, useRef} from 'react';
+import {Component, createRef, useEffect, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -65,7 +65,7 @@ type StateType = {
   spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
 };
 
-const listRef = React.createRef<ReactVirtualizedList>();
+const listRef = createRef<ReactVirtualizedList>();
 
 class SpanTree extends Component<PropType> {
   state: StateType = {
@@ -438,7 +438,7 @@ class SpanTree extends Component<PropType> {
     const isEmbeddedSpanTree = waterfallModel.isEmbeddedSpanTree;
 
     const {spanTree, outOfViewSpansAbove, filteredSpansAbove} = spans.reduce(
-      (acc: AccType, payload: EnhancedProcessedSpanType) => {
+      (acc: AccType, payload: EnhancedProcessedSpanType, index: number) => {
         const {type} = payload;
 
         switch (payload.type) {
@@ -603,6 +603,7 @@ class SpanTree extends Component<PropType> {
             removeContentSpanBarRef,
             storeSpanBar,
             getCurrentLeftPos: this.props.getCurrentLeftPos,
+            resetCellMeasureCache: () => this.cache.clear(index, 0),
           },
         });
 
@@ -630,46 +631,6 @@ class SpanTree extends Component<PropType> {
 
     return spanTree;
   };
-
-  renderSpanNode(
-    node: SpanTreeNode,
-    extraProps: {
-      cellMeasurerCache: CellMeasurerCache;
-      listRef: React.RefObject<ReactVirtualizedList>;
-      measure: () => void;
-    } & SpanContext.SpanContextProps
-  ) {
-    switch (node.type) {
-      case SpanTreeNodeType.SPAN:
-        return (
-          <ProfiledSpanBar
-            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
-            {...node.props}
-            {...extraProps}
-          />
-        );
-      case SpanTreeNodeType.DESCENDANT_GROUP:
-        return (
-          <SpanDescendantGroupBar
-            key={`${node.props.spanNumber}-span-group`}
-            {...node.props}
-            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
-          />
-        );
-      case SpanTreeNodeType.SIBLING_GROUP:
-        return (
-          <SpanSiblingGroupBar
-            key={`${node.props.spanNumber}-span-sibling`}
-            {...node.props}
-            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
-          />
-        );
-      case SpanTreeNodeType.MESSAGE:
-        return node.element;
-      default:
-        return null;
-    }
-  }
 
   renderRow(props: ListRowProps, spanTree: SpanTreeNode[]) {
     return (

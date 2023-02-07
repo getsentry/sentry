@@ -2,7 +2,7 @@ import {Fragment, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -14,7 +14,7 @@ import {
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
-import ExampleIntegrationButton from 'sentry/views/organizationIntegrations/exampleIntegrationButton';
+import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 export type CreateNewIntegrationModalOptions = {organization: Organization};
 type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRenderProps;

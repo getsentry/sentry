@@ -91,23 +91,17 @@ register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
 # Can be used to turn off a projects detection for users if there is a project-specific issue.
 register(key="sentry:performance_issue_creation_rate", default=1.0)
 
+DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
+    "n_plus_one_db_detection_rate": 1.0,
+    "n_plus_one_api_calls_detection_rate": 1.0,
+    "consecutive_db_queries_detection_rate": 1.0,
+    "uncompressed_assets_detection_enabled": True,
+}
 # A dict containing all the specific detection thresholds and rates.
 register(
     key="sentry:performance_issue_settings",
-    default={
-        "n_plus_one_db_detection_rate": 0,
-        "n_plus_one_db_issue_rate": 0,
-        "n_plus_one_db_count": 5,
-        "n_plus_one_db_duration_threshold": 500,
-        "render_blocking_fcp_min": 2000.0,
-        "render_blocking_fcp_max": 10000.0,
-        "render_blocking_fcp_ratio": 0.33,
-        "n_plus_one_api_calls_detection_rate": 1.0,
-    },
+    default=DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS,
 )
-
-# Using simple bools instead of rates for disabling individual detectors
-register(key="sentry:performance_issue_creation_enabled_n_plus_one_db", default=True)
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,

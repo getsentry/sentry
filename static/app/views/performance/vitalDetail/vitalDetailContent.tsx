@@ -6,20 +6,18 @@ import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PageHeading from 'sentry/components/pageHeading';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconCheckmark, IconClose} from 'sentry/icons';
@@ -148,7 +146,7 @@ function VitalDetailContent(props: Props) {
     );
 
     return (
-      <DropdownMenuControl
+      <DropdownMenu
         items={items}
         triggerLabel={vitalAbbreviations[vitalName]}
         triggerProps={{
@@ -264,7 +262,7 @@ function VitalDetailContent(props: Props) {
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumb organization={organization} location={location} vitalName={vital} />
-          <StyledHeading>{vitalMap[vital]}</StyledHeading>
+          <Layout.Title>{vitalMap[vital]}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -299,10 +297,6 @@ function VitalDetailContent(props: Props) {
 }
 
 export default withProjects(VitalDetailContent);
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

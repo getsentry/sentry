@@ -6,7 +6,7 @@ import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -50,6 +50,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
   const [clientState, setClientState] = usePersistedOnboardingState();
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,

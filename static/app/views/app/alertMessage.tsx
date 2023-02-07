@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 
 type Props = {
-  alert: ReturnType<typeof AlertStore['getState']>[number];
+  alert: ReturnType<(typeof AlertStore)['getState']>[number];
   system: boolean;
 };
 

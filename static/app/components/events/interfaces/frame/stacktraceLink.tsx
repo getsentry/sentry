@@ -9,17 +9,27 @@ import {
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {IconClose} from 'sentry/icons/iconClose';
+import {IconCircle, IconCircleFill, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, Frame, Organization, Project} from 'sentry/types';
+import {
+  CodecovStatusCode,
+  Coverage,
+  Event,
+  Frame,
+  LineCoverage,
+  Organization,
+  Project,
+  StacktraceLinkResult,
+} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
-import {getAnalyicsDataForEvent} from 'sentry/utils/events';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
@@ -80,10 +90,10 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       }
     );
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.DISMISS_CTA, {
       view: 'stacktrace_issue_details',
       organization,
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForEvent(event),
     });
   };
 
@@ -98,6 +108,110 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       </CloseButton>
     </CodeMappingButtonContainer>
   );
+}
+
+function shouldshowCodecovFeatures(
+  organization: Organization,
+  match: StacktraceLinkResult
+) {
+  const enabled =
+    organization.features.includes('codecov-stacktrace-integration') &&
+    organization.codecovAccess;
+
+  const codecovStatus = match.codecov?.status;
+  const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
+
+  return enabled && validStatus && match.config?.provider.key === 'github';
+}
+
+interface CodecovLinkProps {
+  event: Event;
+  lineNo: number | null;
+  organization: Organization;
+  coverageUrl?: string;
+  lineCoverage?: LineCoverage[];
+  status?: CodecovStatusCode;
+}
+
+function getCoverageIcon(lineCoverage, lineNo) {
+  const covIndex = lineCoverage.findIndex(line => line[0] === lineNo);
+  if (covIndex === -1) {
+    return null;
+  }
+  switch (lineCoverage[covIndex][1]) {
+    case Coverage.COVERED:
+      return (
+        <CoverageIcon>
+          <IconCircleFill size="xs" color="green100" style={{position: 'absolute'}} />
+          <IconCircle size="xs" color="green300" />
+          {t('Covered')}
+        </CoverageIcon>
+      );
+    case Coverage.PARTIAL:
+      return (
+        <CoverageIcon>
+          <IconCircleFill size="xs" color="yellow100" style={{position: 'absolute'}} />
+          <IconCircle size="xs" color="yellow300" />
+          {t('Partially Covered')}
+        </CoverageIcon>
+      );
+    case Coverage.NOT_COVERED:
+      return (
+        <CodecovContainer>
+          <CoverageIcon>
+            <IconCircleFill size="xs" color="red100" style={{position: 'absolute'}} />
+            <IconCircle size="xs" color="red300" />
+          </CoverageIcon>
+          {t('Not Covered')}
+        </CodecovContainer>
+      );
+    default:
+      return null;
+  }
+}
+
+function CodecovLink({
+  coverageUrl,
+  status = CodecovStatusCode.COVERAGE_EXISTS,
+  lineCoverage,
+  lineNo,
+  organization,
+  event,
+}: CodecovLinkProps) {
+  if (status === CodecovStatusCode.NO_COVERAGE_DATA) {
+    return (
+      <CodecovWarning>
+        {t('Code Coverage not found')}
+        <IconWarning size="xs" color="errorText" />
+      </CodecovWarning>
+    );
+  }
+
+  if (status === CodecovStatusCode.COVERAGE_EXISTS) {
+    if (!coverageUrl || !lineCoverage || !lineNo) {
+      return null;
+    }
+
+    const onOpenCodecovLink = () => {
+      trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_LINK_CLICKED, {
+        view: 'stacktrace_issue_details',
+        organization,
+        group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+        ...getAnalyticsDataForEvent(event),
+      });
+    };
+
+    return (
+      <CodecovContainer>
+        {getCoverageIcon(lineCoverage, lineNo)}
+        <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
+          <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+          {t('Open in Codecov')}
+        </OpenInLink>
+      </CodecovContainer>
+    );
+  }
+  return null;
 }
 
 interface StacktraceLinkProps {
@@ -144,19 +258,24 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     data: match,
     isLoading,
     refetch,
-  } = useStacktraceLink({
-    event,
-    frame,
-    orgSlug: organization.slug,
-    projectSlug: project?.slug,
-  });
+  } = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization.slug,
+      projectSlug: project?.slug,
+    },
+    {
+      enabled: defined(project),
+    }
+  );
 
   useEffect(() => {
     if (isLoading || prompt.isLoading || !match) {
       return;
     }
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.LINK_VIEWED, {
       view: 'stacktrace_issue_details',
       organization,
       platform: project?.platform,
@@ -170,7 +289,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           : !isPromptDismissed
           ? 'prompt'
           : 'empty',
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForEvent(event),
     });
     // excluding isPromptDismissed because we want this only to record once
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,7 +304,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           view: 'stacktrace_issue_details',
           provider: provider.key,
           organization,
-          ...getAnalyicsDataForEvent(event),
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
         },
         {startSession: true}
       );
@@ -223,6 +343,16 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
+        {shouldshowCodecovFeatures(organization, match) && (
+          <CodecovLink
+            coverageUrl={`${match.codecov?.coverageUrl}#L${frame.lineNo}`}
+            status={match.codecov?.status}
+            lineCoverage={match.codecov?.lineCoverage}
+            lineNo={frame.lineNo}
+            organization={organization}
+            event={event}
+          />
+        )}
       </CodeMappingButtonContainer>
     );
   }
@@ -256,12 +386,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           }
           onClick={() => {
             trackIntegrationAnalytics(
-              'integrations.stacktrace_start_setup',
+              StacktraceLinkEvents.START_SETUP,
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
                 organization,
-                ...getAnalyicsDataForEvent(event),
+                ...getAnalyticsDataForEvent(event),
               },
               {startSession: true}
             );
@@ -326,4 +456,22 @@ const OpenInLink = styled(ExternalLink)`
 const StyledLink = styled(Link)`
   ${LinkStyles}
   color: ${p => p.theme.gray300};
+`;
+
+const CodecovWarning = styled('div')`
+  display: flex;
+  color: ${p => p.theme.errorText};
+  gap: ${space(0.75)};
+  align-items: center;
+`;
+
+const CodecovContainer = styled('span')`
+  display: flex;
+  gap: ${space(0.75)};
+`;
+
+const CoverageIcon = styled('span')`
+  display: flex;
+  gap: ${space(0.75)};
+  align-items: center;
 `;

@@ -5,7 +5,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Clipboard from 'sentry/components/clipboard';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -40,7 +39,7 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
     <Layout.Header>
       <Layout.HeaderContent>
         <Breadcrumbs crumbs={crumbs} />
-        <MonitorName>
+        <Layout.Title>
           <IdBadge
             project={monitor.project}
             avatarSize={28}
@@ -48,7 +47,7 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
             avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
           />
           {monitor.name}
-        </MonitorName>
+        </Layout.Title>
         <Clipboard value={monitor.id}>
           <MonitorId>
             {monitor.id} <IconCopy size="xs" />
@@ -73,17 +72,11 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   );
 };
 
-const MonitorName = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const MonitorId = styled('div')`
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
   cursor: pointer;
+  width: max-content;
 `;
 
 const MonitorStats = styled('div')`

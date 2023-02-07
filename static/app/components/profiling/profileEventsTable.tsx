@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import React, {useCallback} from 'react';
 import {Location} from 'history';
 
 import Count from 'sentry/components/count';
@@ -16,19 +16,18 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {Container, NumberContainer, VersionContainer} from 'sentry/utils/discover/styles';
+import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {EventsResults} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {
-  generateProfileFlamechartRoute,
-  generateProfileSummaryRouteWithQuery,
-} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {QuickContextHoverWrapper} from 'sentry/views/eventsV2/table/quickContext/quickContextWrapper';
-import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+
+import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
 
 interface ProfileEventsTableProps<F extends FieldType> {
   columns: readonly F[];
@@ -175,16 +174,11 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     if (defined(project)) {
       return (
         <Container>
-          <Link
-            to={generateProfileSummaryRouteWithQuery({
-              query: props.baggage.location.query,
-              orgSlug: props.baggage.organization.slug,
-              projectSlug: project.slug,
-              transaction: value,
-            })}
-          >
-            {value}
-          </Link>
+          <ProfilingTransactionHovercard
+            transaction={value}
+            project={project}
+            organization={props.baggage.organization}
+          />
         </Container>
       );
     }
@@ -194,22 +188,14 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
 
   if (key === 'release') {
     if (value) {
-      if (props.baggage.organization.features.includes('discover-quick-context')) {
-        return (
-          <QuickContextHoverWrapper
-            dataRow={props.dataRow}
-            contextType={ContextType.RELEASE}
-            organization={props.baggage.organization}
-          >
-            <Version version={value} truncate />
-          </QuickContextHoverWrapper>
-        );
-      }
-
       return (
-        <VersionContainer>
-          <Version version={value} anchor={false} tooltipRawVersion truncate />
-        </VersionContainer>
+        <QuickContextHoverWrapper
+          dataRow={props.dataRow}
+          contextType={ContextType.RELEASE}
+          organization={props.baggage.organization}
+        >
+          <Version version={value} truncate />
+        </QuickContextHoverWrapper>
       );
     }
   }
@@ -288,7 +274,7 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = typeof FIELDS[number];
+type FieldType = (typeof FIELDS)[number];
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'profile.duration',

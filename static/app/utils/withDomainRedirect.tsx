@@ -3,14 +3,13 @@ import {formatPattern, RouteComponent, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
+import * as qs from 'query-string';
 
+import {decodeScalar} from 'sentry/utils/queryString';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Redirect from 'sentry/utils/redirect';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-type WithDomainRedirectOptions = {
-  redirect: Array<{from: string; to: string}>;
-};
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -31,8 +30,7 @@ type WithDomainRedirectOptions = {
  * is rendered.
  */
 function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
-  WrappedComponent: RouteComponent,
-  options?: WithDomainRedirectOptions
+  WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {
     const {customerDomain, links} = window.__initialData;
@@ -62,21 +60,11 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         newParams[param] = `:${param}`;
       });
       const fullRoute = recreateRoute('', {routes, params: newParams});
-      let orglessSlugRoute = fullRoute
-        .replace(/organizations\/:orgId\/?/, '')
-        .replace(/:orgId\/?/, '');
+      const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {
         // :orgId is not present in the route, so we do not need to perform a redirect here.
         return <WrappedComponent {...props} />;
-      }
-
-      if (options && options.redirect) {
-        const result = options.redirect.find(needle => fullRoute.startsWith(needle.from));
-        if (result) {
-          const rest = fullRoute.slice(result.from.length);
-          orglessSlugRoute = `${result.to}${rest}`;
-        }
       }
 
       const orglessRedirectPath = formatPattern(orglessSlugRoute, params);
@@ -85,12 +73,13 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
       }${window.location.hash}`;
 
       const paramOrgId = (params as any).orgId ?? '';
+      const referrer = decodeScalar(qs.parse(window.location.search).referrer ?? '');
 
       Sentry.withScope(function (scope) {
         const wrongOrgId = paramOrgId !== customerDomain.subdomain ? 'yes' : 'no';
         scope.setTag('isCustomerDomain', 'yes');
         scope.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
-        scope.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
+        scope.setTag('customerDomain.referrer', referrer);
         scope.setTag('customerDomain.subdomain', customerDomain.subdomain);
         scope.setTag('customerDomain.fromRoute', fullRoute);
         scope.setTag('customerDomain.redirectRoute', orglessSlugRoute);

@@ -225,7 +225,7 @@ class Columns(Enum):
         event_name="ip_address",
         transaction_name="ip_address",
         discover_name="ip_address",
-        issue_platform_name="ip_address_v4",
+        issue_platform_name="ip_address",
         alias="user.ip",
     )
     USER_DISPLAY = Column(
@@ -250,6 +250,14 @@ class Columns(Enum):
         discover_name="sdk_version",
         issue_platform_name="sdk_version",
         alias="sdk.version",
+    )
+    UNREAL_CRASH_TYPE = Column(
+        group_name="events.contexts[unreal.crash_type]",
+        event_name="contexts[unreal.crash_type]",
+        transaction_name=None,
+        discover_name="contexts[unreal.crash_type]",
+        issue_platform_name="contexts[unreal.crash_type]",
+        alias="unreal.crash_type",
     )
 
     HTTP_METHOD = Column(
@@ -559,6 +567,14 @@ class Columns(Enum):
         issue_platform_name="contexts.value",
         alias="contexts.value",
     )
+    APP_IN_FOREGROUND = Column(
+        group_name="events.contexts[app.in_foreground]",
+        event_name="contexts[app.in_foreground]",
+        transaction_name="contexts[app.in_foreground]",
+        discover_name="contexts[app.in_foreground]",
+        issue_platform_name="contexts[app.in_foreground]",
+        alias="app.in_foreground",
+    )
     # Transactions specific columns
     TRANSACTION_OP = Column(
         group_name=None,
@@ -684,4 +700,12 @@ class Columns(Enum):
         transaction_name="app_start_type",
         discover_name="app_start_type",
         alias="app_start_type",
+    )
+
+    PROFILE_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="profile_id",
+        discover_name="profile_id",
+        alias="profile.id",
     )

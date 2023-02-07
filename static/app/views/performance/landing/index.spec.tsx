@@ -134,11 +134,8 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
-
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();
@@ -242,7 +239,7 @@ describe('Performance > Landing > Index', function () {
           interval: '15m',
           partial: '1',
           project: [],
-          query: 'transaction.duration:<15m event.type:transaction',
+          query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
           statsPeriod: '48h',
           yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
@@ -311,12 +308,7 @@ describe('Performance > Landing > Index', function () {
 
   describe('With transaction search feature', function () {
     it('does not search for empty string transaction', async function () {
-      const data = initializeData({
-        features: [
-          'performance-transaction-name-only-search',
-          'performance-transaction-name-only-search-indexed',
-        ],
-      });
+      const data = initializeData();
 
       render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
@@ -329,7 +321,6 @@ describe('Performance > Landing > Index', function () {
       addMetricsDataMock();
 
       const data = initializeData({
-        features: ['performance-transaction-name-only-search'],
         query: {
           field: 'test',
         },
@@ -344,12 +335,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     it('extracts free text from the query', async function () {
-      const data = initializeData({
-        features: [
-          'performance-transaction-name-only-search',
-          'performance-transaction-name-only-search-indexed',
-        ],
-      });
+      const data = initializeData();
 
       wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 

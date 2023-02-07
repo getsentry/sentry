@@ -6,7 +6,7 @@ import {Event} from 'sentry/types/event';
 type Props = {
   event: Event;
   orgId: Organization['id'];
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   renderer?: Function;
 } & AsyncComponent['props'];
 
@@ -14,13 +14,13 @@ type State = {
   attachmentList: Array<IssueAttachment> | null;
 } & AsyncComponent['state'];
 
-class RRWebIntegration extends AsyncComponent<Props, State> {
+export class EventRRWebIntegration extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId, event} = this.props;
+    const {orgId, projectSlug, event} = this.props;
     return [
       [
         'attachmentList',
-        `/projects/${orgId}/${projectId}/events/${event.id}/attachments/`,
+        `/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/`,
 
         // This was changed from `rrweb.json`, so that we can instead
         // support incremental rrweb events as attachments. This is to avoid
@@ -50,10 +50,10 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
       return null;
     }
 
-    const {orgId, projectId, event} = this.props;
+    const {orgId, projectSlug, event} = this.props;
 
     function createAttachmentUrl(attachment: IssueAttachment) {
-      return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
+      return `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
     }
 
     return renderer(
@@ -64,5 +64,3 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     );
   }
 }
-
-export default RRWebIntegration;

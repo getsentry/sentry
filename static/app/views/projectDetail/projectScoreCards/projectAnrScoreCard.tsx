@@ -1,15 +1,20 @@
 import {Fragment, useEffect, useState} from 'react';
+import {Location} from 'history';
+import pick from 'lodash/pick';
 import round from 'lodash/round';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import {Button} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import {Organization, SessionApiResponse} from 'sentry/types/organization';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import useApi from 'sentry/utils/useApi';
@@ -20,6 +25,7 @@ import {
 
 type Props = {
   isProjectStabilized: boolean;
+  location: Location;
   organization: Organization;
   selection: PageFilters;
   query?: string;
@@ -29,6 +35,7 @@ export function ProjectAnrScoreCard({
   isProjectStabilized,
   organization,
   selection,
+  location,
   query,
 }: Props) {
   const {environments, projects, datetime} = selection;
@@ -45,7 +52,7 @@ export function ProjectAnrScoreCard({
 
     const requestData = {
       orgSlug: organization.slug,
-      field: ['foreground_anr_rate()'],
+      field: ['anr_rate()'],
       environment: environments,
       project: projects,
       query,
@@ -79,7 +86,7 @@ export function ProjectAnrScoreCard({
     } else {
       const requestData = {
         orgSlug: organization.slug,
-        field: ['foreground_anr_rate()'],
+        field: ['anr_rate()'],
         environment: environments,
         project: projects,
         query,
@@ -113,12 +120,10 @@ export function ProjectAnrScoreCard({
     };
   }, [start, end, period, api, organization.slug, environments, projects, query]);
 
-  const value = sessionsData
-    ? sessionsData.groups[0].totals['foreground_anr_rate()']
-    : null;
+  const value = sessionsData ? sessionsData.groups[0].totals['anr_rate()'] : null;
 
   const previousValue = previousSessionData
-    ? previousSessionData.groups[0].totals['foreground_anr_rate()']
+    ? previousSessionData.groups[0].totals['anr_rate()']
     : null;
 
   const hasCurrentAndPrevious = previousValue && value;
@@ -142,13 +147,46 @@ export function ProjectAnrScoreCard({
     ) : null;
   }
 
+  const endpointPath = `/organizations/${organization.slug}/issues/`;
+
+  const issueQuery = ['mechanism:ANR', query].join(' ').trim();
+
+  const queryParams = {
+    ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
+    query: issueQuery,
+    sort: 'freq',
+  };
+
+  const issueSearch = {
+    pathname: endpointPath,
+    query: queryParams,
+  };
+
+  function renderButton() {
+    return (
+      <Button
+        data-test-id="issues-open"
+        size="xs"
+        to={issueSearch}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('project_detail.open_anr_issues', {
+            organization,
+          });
+        }}
+      >
+        {t('View Issues')}
+      </Button>
+    );
+  }
+
   return (
     <ScoreCard
-      title={t('Foreground ANR Rate')}
-      help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
+      title={t('ANR Rate')}
+      help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
       score={value ? formatPercentage(value, 3) : '\u2014'}
       trend={renderTrend()}
       trendStatus={trendStatus}
+      renderOpenButton={renderButton}
     />
   );
 }

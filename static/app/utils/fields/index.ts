@@ -69,6 +69,7 @@ export enum FieldKey {
   OS_KERNEL_VERSION = 'os.kernel_version',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
+  PROFILE_ID = 'profile.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -93,6 +94,7 @@ export enum FieldKey {
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
   TIMES_SEEN = 'timesSeen',
   TITLE = 'title',
+  TOTAL_COUNT = 'total.count',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
   TRACE_SPAN = 'trace.span',
@@ -100,12 +102,14 @@ export enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  UNREAL_CRASH_TYPE = 'unreal.crash_type',
   USER = 'user',
   USER_DISPLAY = 'user.display',
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
 export enum FieldValueType {
@@ -714,6 +718,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.PROFILE_ID]: {
+    desc: t('The ID of an associated profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.PROJECT]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -854,6 +863,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.TOTAL_COUNT]: {
+    desc: t('The total number of events for the current query'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
   [FieldKey.TRACE_PARENT_SPAN]: {
     desc: t('Span identification number of the parent to the event'),
     kind: FieldKind.FIELD,
@@ -881,6 +895,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.TRANSACTION_STATUS]: {
     desc: t('Describes the status of the span/transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.UNREAL_CRASH_TYPE]: {
+    desc: t('Crash type of an Unreal event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -913,6 +932,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Username of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FieldKey.APP_IN_FOREGROUND]: {
+    desc: t('Indicates if the app is in the foreground or background'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -950,6 +974,7 @@ export const ISSUE_FIELDS = [
   FieldKey.ID,
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
@@ -974,10 +999,12 @@ export const ISSUE_FIELDS = [
   FieldKey.TITLE,
   FieldKey.TRACE,
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.APP_IN_FOREGROUND,
 ];
 
 /**
@@ -1005,6 +1032,7 @@ export const DISCOVER_FIELDS = [
   // tags.key and tags.value are omitted on purpose as well.
 
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER,
   FieldKey.USER_ID,
   FieldKey.USER_EMAIL,
@@ -1054,6 +1082,9 @@ export const DISCOVER_FIELDS = [
   FieldKey.STACK_STACK_LEVEL,
   // contexts.key and contexts.value omitted on purpose.
 
+  // App context fields
+  FieldKey.APP_IN_FOREGROUND,
+
   // Transaction event fields.
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
@@ -1062,6 +1093,11 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE,
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
+
+  FieldKey.PROFILE_ID,
+
+  // Meta field that returns total count, usually for equations
+  FieldKey.TOTAL_COUNT,
 
   // Field alises defined in src/sentry/api/event_search.py
   FieldKey.PROJECT,
@@ -1077,50 +1113,64 @@ export const DISCOVER_FIELDS = [
 ];
 
 enum ReplayFieldKey {
+  ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
-  COUNT_ERRORS = 'countErrors',
-  COUNT_SEGMENTS = 'countSegments',
-  // COUNT_URLS = 'countUrls',
-  DEVICE_MODEL = 'device.model',
+  COUNT_ERRORS = 'count_errors',
+  COUNT_SEGMENTS = 'count_segments',
+  COUNT_URLS = 'count_urls',
   DURATION = 'duration',
-  // ERROR_IDS = 'errorIds',
-  // LONGEST_TRANSACTION = 'longestTransaction',
+  ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
-  RELEASES = 'releases',
-  // TRACE_IDS = 'traceIds',
   URLS = 'urls',
-  USER_IP_ADDRESS = 'user.ipAddress',
-  USER_NAME = 'user.name',
 }
 
+/**
+ * Some fields inside the ReplayRecord type are intentionally omitted:
+ * `environment` -> Not backend support, omitted because we have a dropdown for it
+ * `finishedAt` -> No backend support, omitted because we StartDate dropdown and duration field support
+ * `startedAt` -> No backend support, Omitted because we have StartDate dropdown
+ * `longestTransaction` -> value is always zero
+ * `title` -> value is always the empty string
+ */
 export const REPLAY_FIELDS = [
+  ReplayFieldKey.ACTIVITY,
   ReplayFieldKey.BROWSER_NAME,
   ReplayFieldKey.BROWSER_VERSION,
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
+  ReplayFieldKey.COUNT_URLS,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
-  ReplayFieldKey.DEVICE_MODEL,
+  FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   ReplayFieldKey.DURATION,
+  ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
-  ReplayFieldKey.RELEASES,
+  FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
+  FieldKey.TRACE,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
-  ReplayFieldKey.USER_IP_ADDRESS,
-  ReplayFieldKey.USER_NAME,
+  FieldKey.USER_IP,
+  FieldKey.USER_USERNAME,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
+  [ReplayFieldKey.ACTIVITY]: {
+    desc: t(
+      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
   [ReplayFieldKey.BROWSER_NAME]: {
     desc: t('Name of the brower'),
     kind: FieldKind.FIELD,
@@ -1141,15 +1191,20 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
-  [ReplayFieldKey.DEVICE_MODEL]: {
-    desc: t('Model of device'),
+  [ReplayFieldKey.COUNT_URLS]: {
+    desc: t('Number of urls visited within the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.DURATION]: {
     desc: t('Duration of the replay, in seconds'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
+  },
+  [ReplayFieldKey.ERROR_IDS]: {
+    desc: t('Error instance'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
@@ -1161,23 +1216,8 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [ReplayFieldKey.RELEASES]: {
-    desc: t('Releases this Replay spans across'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [ReplayFieldKey.URLS]: {
     desc: t('List of urls that were visited within the Replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.USER_IP_ADDRESS]: {
-    desc: t('IP Address of the user'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.USER_NAME]: {
-    desc: t('Name of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

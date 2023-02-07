@@ -25,7 +25,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import analytics, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -49,7 +49,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    Integration,
     SentryAppInstallationToken,
     Team,
     User,
@@ -66,7 +65,8 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
-from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
@@ -236,8 +236,9 @@ class GroupSerializerBase(Serializer, ABC):
         actor_ids = {r[-1] for r in release_resolutions.values()}
         actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
-            serialized_users = user_service.serialize_users(
-                user_ids=actor_ids, as_user=user, is_active=True
+            serialized_users = user_service.serialize_many(
+                filter={"user_ids": actor_ids, "is_active": True},
+                as_user=user,
             )
             actors = {id: u for id, u in zip(actor_ids, serialized_users)}
         else:
@@ -424,6 +425,14 @@ class GroupSerializerBase(Serializer, ABC):
         if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             status = GroupStatus.RESOLVED
             status_details["autoResolved"] = True
+            analytics.record(
+                "issue.resolved",
+                default_user_id=obj.project.organization.get_default_owner().id,
+                project_id=obj.project.id,
+                organization_id=obj.project.organization_id,
+                group_id=obj.id,
+                resolution_type="automatic",
+            )
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
@@ -644,14 +653,21 @@ class GroupSerializerBase(Serializer, ABC):
 
         integration_annotations = []
         # find all the integration installs that have issue tracking
-        for integration in Integration.objects.filter(organizations=org_id):
+        integrations = integration_service.get_integrations(organization_id=org_id)
+        for integration in integrations:
             if not (
-                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+                integration_service.has_feature(
+                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
+                )
+                or integration_service.has_feature(
+                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
+                )
             ):
                 continue
 
-            install = integration.get_installation(org_id)
+            install = integration_service.get_installation(
+                integration=integration, organization_id=org_id
+            )
             local_annotations_by_group_id = (
                 safe_execute(
                     install.get_annotations_for_group_list,
@@ -893,22 +909,32 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if end_params:
             self.end = min(end_params)
 
-        self.conditions = (
-            [
-                convert_search_filter_to_snuba_query(
-                    search_filter,
-                    params={
-                        "organization_id": organization_id,
-                        "project_id": project_ids,
-                        "environment_id": environment_ids,
-                    },
-                )
-                for search_filter in search_filters
-                if search_filter.key.name not in self.skip_snuba_fields
-            ]
-            if search_filters is not None
-            else []
-        )
+        conditions = []
+        if search_filters is not None:
+            for search_filter in search_filters:
+                if search_filter.key.name not in self.skip_snuba_fields:
+                    formatted_conditions, projects_to_filter, group_ids = format_search_filter(
+                        search_filter,
+                        params={
+                            "organization_id": organization_id,
+                            "project_id": project_ids,
+                            "environment_id": environment_ids,
+                        },
+                    )
+                    # if no re-formatted conditions, use fallback method
+                    conditions.append(
+                        formatted_conditions[0]
+                        if formatted_conditions
+                        else convert_search_filter_to_snuba_query(
+                            search_filter,
+                            params={
+                                "organization_id": organization_id,
+                                "project_id": project_ids,
+                                "environment_id": environment_ids,
+                            },
+                        )
+                    )
+        self.conditions = conditions
 
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user

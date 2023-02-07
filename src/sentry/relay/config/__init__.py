@@ -22,7 +22,7 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.dynamic_sampling.rules_generator import generate_rules
+from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -47,6 +47,7 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:session-replay-recording-scrubbing",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -182,7 +183,7 @@ class TransactionNameRule(TypedDict):
 
 
 def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
-    if not features.has("organizations:transaction-name-sanitization", project.organization):
+    if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
     cluster_rules = get_sorted_rules(project)

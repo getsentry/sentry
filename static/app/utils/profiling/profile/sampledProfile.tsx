@@ -5,6 +5,42 @@ import {Frame} from './../frame';
 import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
+function sortStacks(
+  a: {stack: number[]; weight: number},
+  b: {stack: number[]; weight: number}
+) {
+  const max = Math.max(a.stack.length, b.stack.length);
+
+  for (let i = 0; i < max; i++) {
+    if (a.stack[i] === undefined) {
+      return -1;
+    }
+    if (b.stack[i] === undefined) {
+      return 1;
+    }
+    if (a.stack[i] === b.stack[i]) {
+      continue;
+    }
+    return a.stack[i] - b.stack[i];
+  }
+  return 0;
+}
+
+function stacksWithWeights(profile: Readonly<Profiling.SampledProfile>) {
+  return profile.samples.map((stack, index) => {
+    return {
+      stack,
+      weight: profile.weights[index],
+    };
+  });
+}
+
+function sortSamples(
+  profile: Readonly<Profiling.SampledProfile>
+): {stack: number[]; weight: number}[] {
+  return stacksWithWeights(profile).sort(sortStacks);
+}
+
 // This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
 
@@ -12,7 +48,8 @@ import {createFrameIndex} from './utils';
 export class SampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SampledProfile,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createFrameIndex>,
+    options: {type: 'flamechart' | 'flamegraph'}
   ): Profile {
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
@@ -29,9 +66,14 @@ export class SampledProfile extends Profile {
       );
     }
 
-    for (let i = 0; i < sampledProfile.samples.length; i++) {
-      const stack = sampledProfile.samples[i];
-      let weight = sampledProfile.weights[i];
+    const samples =
+      options.type === 'flamegraph'
+        ? sortSamples(sampledProfile)
+        : stacksWithWeights(sampledProfile);
+
+    for (let i = 0; i < samples.length; i++) {
+      const stack = samples[i].stack;
+      let weight = samples[i].weight;
 
       let resolvedStack = stack.map(n => {
         if (!frameIndex[n]) {
@@ -42,6 +84,7 @@ export class SampledProfile extends Profile {
       });
 
       if (
+        options.type === 'flamechart' &&
         i > 0 &&
         // We check for size <= 2 because we have so far only seen node profiles
         // where GC is either marked as the root node or is directly under the root node.
@@ -53,7 +96,7 @@ export class SampledProfile extends Profile {
           '(garbage collector) [native code]'
       ) {
         // The next stack we append will be previous stack + gc frame placed on top of it
-        resolvedStack = sampledProfile.samples[i - 1]
+        resolvedStack = samples[i - 1].stack
           .map(n => {
             if (!frameIndex[n]) {
               throw new Error(`Could not resolve frame ${n} in frame index`);
@@ -65,16 +108,15 @@ export class SampledProfile extends Profile {
 
         // Now collect all weights of all the consecutive gc frames and skip the samples
         while (
-          sampledProfile.samples[i + 1] &&
+          samples[i + 1] &&
           // We check for size <= 2 because we have so far only seen node profiles
           // where GC is either marked as the root node or is directly under the root node.
           // There is a good chance that this logic will at some point live on the backend
           // and when that happens, we do not want to enter this case as the GC will already
           // be placed at the top of the previous stack and the new stack length will be > 2
-          sampledProfile.samples[i + 1].length <= 2 &&
-          frameIndex[
-            sampledProfile.samples[i + 1][sampledProfile.samples[i + 1].length - 1]
-          ]?.name === '(garbage collector) [native code]'
+          samples[i + 1].stack.length <= 2 &&
+          frameIndex[samples[i + 1][samples[i + 1].stack.length - 1]]?.name ===
+            '(garbage collector) [native code]'
         ) {
           weight += sampledProfile.weights[++i];
         }
@@ -95,7 +137,7 @@ export class SampledProfile extends Profile {
       return;
     }
 
-    let node = this.appendOrderTree;
+    let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
 
     for (const frame of stack) {
@@ -151,7 +193,6 @@ export class SampledProfile extends Profile {
       this.samples.push(node);
       this.weights.push(weight);
     }
-    this.rawWeights.push(weight);
   }
 
   build(): Profile {

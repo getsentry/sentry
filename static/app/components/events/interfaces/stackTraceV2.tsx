@@ -18,13 +18,13 @@ type Props = Pick<
 > & {
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
-function StackTrace({
-  projectId,
+export function StackTraceV2({
+  projectSlug,
   event,
   data,
   hasHierarchicalGrouping,
@@ -48,7 +48,7 @@ function StackTrace({
     <TraceEventDataSection
       type={EntryType.STACKTRACE}
       stackType={STACK_TYPE.ORIGINAL}
-      projectId={projectId}
+      projectSlug={projectSlug}
       eventId={event.id}
       platform={platform}
       stackTraceNotFound={stackTraceNotFound}
@@ -96,5 +96,3 @@ function StackTrace({
     </TraceEventDataSection>
   );
 }
-
-export default StackTrace;

@@ -22,7 +22,8 @@ class BasicEventSerializer(serializers.Serializer):
     platform = serializers.CharField()
     tags = serializers.DictField()
     timestamp = serializers.DateTimeField()
-    message_timestamp = serializers.DateTimeField()
+    received = serializers.DateTimeField()
+    data = serializers.DictField()
 
 
 class IssueOccurrenceSerializer(serializers.Serializer):
@@ -65,7 +66,16 @@ class IssueOccurrenceEndpoint(Endpoint):
                 "platform": "python",
                 "tags": {"environment": "prod"},
                 "timestamp": ensure_aware(datetime.now()),
-                "message_timestamp": ensure_aware(datetime.now()),
+                "received": ensure_aware(datetime.now()),
+                "data": {
+                    "stacktrace": {
+                        "frames": [
+                            {"function": "0x0", "in_app": False},
+                            {"function": "start_sim", "in_app": False},
+                            {"function": "main", "in_app": False, "package": "xctest"},
+                        ]
+                    },
+                },
             }
         else:
             event = request.data.pop("event", None)
@@ -120,8 +130,13 @@ class IssueOccurrenceEndpoint(Endpoint):
             return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         event = event_serializer.validated_data
-        occurrence["event_id"] = str(event["event_id"])
 
+        # hack to put in unserialized data
+        unserialized_data = event.pop("data")
+        if unserialized_data:
+            event.update(unserialized_data)
+
+        occurrence["event_id"] = str(event["event_id"])
         occurrence_serializer = IssueOccurrenceSerializer(data=occurrence)
         if not occurrence_serializer.is_valid():
             return Response(occurrence_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

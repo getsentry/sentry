@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -59,8 +60,25 @@ const StyledButton = styled(Button)`
   }
 `;
 
+export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
+  return (
+    <CollapsibleTimelineLoadingIndicatorContainer>
+      <LoadingIndicator size={size ?? 32} />
+    </CollapsibleTimelineLoadingIndicatorContainer>
+  );
+}
+
 const CollapsibleTimelineContainer = styled('div')`
   position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const CollapsibleTimelineLoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
   height: 100%;
 `;
@@ -78,4 +96,16 @@ const CollapsibleTimelineHeader = styled('div')<{border: string}>`
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
+export const CollapsibleTimelineMessage = styled('p')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  color: ${p => p.theme.subText};
+  padding-bottom: ${space(4)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 export {CollapsibleTimeline};

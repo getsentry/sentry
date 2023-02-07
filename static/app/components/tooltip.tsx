@@ -83,11 +83,10 @@ interface TooltipProps extends InternalTooltipProps {
   disableForVisualTest?: boolean;
 }
 
-/**
- * Tooltip will enhance the internal tooltip with the open/close
- * functionality used in src/sentry/utils/pytest/selenium.py so that tooltips
- * can be opened and closed for specific snapshots.
- */
+// Tooltip will enhance the internal tooltip with the open/close functionality
+// used in src/sentry/utils/pytest/selenium.py so that tooltips can be opened
+// and closed for specific snapshots.
+
 function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   if (IS_ACCEPTANCE_TEST) {
     return disableForVisualTest ? (
@@ -100,4 +99,8 @@ function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-export default Tooltip;
+// TODO: Remove once nothing is using after a week or so
+const DoNotUseMe = Tooltip;
+export default DoNotUseMe;
+
+export {Tooltip};

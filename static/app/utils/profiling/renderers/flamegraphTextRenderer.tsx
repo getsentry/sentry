@@ -6,9 +6,11 @@ import {
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
+  lowerBound,
   Rect,
   resizeCanvasToDisplaySize,
   trimTextCenter,
+  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
@@ -33,7 +35,7 @@ class FlamegraphTextRenderer extends TextRenderer {
   draw(
     configView: Rect,
     configViewToPhysicalSpace: mat3,
-    flamegraphSearchResults: FlamegraphSearch['results']['frames']
+    flamegraphSearchResults?: FlamegraphSearch['results']['frames']
   ): void {
     // Make sure we set font size before we measure text for the first draw
     const FONT_SIZE = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
@@ -55,22 +57,25 @@ class FlamegraphTextRenderer extends TextRenderer {
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;
-    const HAS_SEARCH_RESULTS = flamegraphSearchResults.size > 0;
+    const HAS_SEARCH_RESULTS =
+      flamegraphSearchResults && flamegraphSearchResults.size > 0;
     const TEXT_Y_POSITION = FONT_SIZE / 2 - BASELINE_OFFSET;
 
     // We start by iterating over root frames, so we draw the call stacks top-down.
     // This allows us to do a couple optimizations that improve our best case performance.
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
-    const frames: FlamegraphFrame[] = [...this.flamegraph.root.children];
+
+    // Find the upper and lower bounds of the frames we need to draw so we dont end up
+    // iterating over all of the root frames and avoid creating shallow copies if we dont need to.
+    const start = lowerBound(configView.left, this.flamegraph.root.children);
+    const end = upperBound(configView.right, this.flamegraph.root.children);
+
+    // Populate the initial set of frames to draw
+    const frames: FlamegraphFrame[] = this.flamegraph.root.children.slice(start, end);
 
     while (frames.length > 0) {
       const frame = frames.pop()!;
-
-      // Check if our rect overlaps with the current viewport and skip rendering if it does not.
-      if (frame.end < configView.left || frame.start > configView.right) {
-        continue;
-      }
 
       if (frame.depth > BOTTOM_BOUNDARY) {
         continue;
@@ -95,7 +100,8 @@ class FlamegraphTextRenderer extends TextRenderer {
         continue;
       }
 
-      for (let i = 0; i < frame.children.length; i++) {
+      const endChild = upperBound(configView.right, frame.children);
+      for (let i = lowerBound(configView.left, frame.children); i < endChild; i++) {
         frames.push(frame.children[i]);
       }
 

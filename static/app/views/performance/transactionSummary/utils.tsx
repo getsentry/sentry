@@ -11,7 +11,14 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {DisplayModes} from './transactionOverview/charts';
+export enum DisplayModes {
+  DURATION_PERCENTILE = 'durationpercentile',
+  DURATION = 'duration',
+  LATENCY = 'latency',
+  TREND = 'trend',
+  VITALS = 'vitals',
+  USER_MISERY = 'usermisery',
+}
 
 export enum TransactionFilterOptions {
   FASTEST = 'fastest',
@@ -146,6 +153,8 @@ export function generateTransactionLink(transactionName: string) {
 }
 
 export function generateReplayLink(routes: PlainRoute<any>[]) {
+  const referrer = getRouteStringFromRoutes(routes);
+
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -157,7 +166,6 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     }
 
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
-    const referrer = getRouteStringFromRoutes(routes);
 
     if (!tableRow.timestamp) {
       return {

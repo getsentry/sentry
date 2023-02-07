@@ -43,9 +43,9 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
                 **transaction_event_data,
                 "event_id": "a" * 32,
                 "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "tags": {key: value},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
             },
             project_id=self.project.id,
         )

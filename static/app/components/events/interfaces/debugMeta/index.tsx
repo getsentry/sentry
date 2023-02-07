@@ -10,12 +10,10 @@ import {
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {Button} from 'sentry/components/button';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
@@ -57,7 +55,7 @@ type Props = DefaultProps &
   WithRouterProps & {
     event: Event;
     organization: Organization;
-    projectId: Project['id'];
+    projectSlug: Project['slug'];
     groupId?: Group['id'];
   };
 
@@ -225,7 +223,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       return;
     }
 
-    const {location, organization, projectId: projSlug, groupId, event} = this.props;
+    const {location, organization, projectSlug, groupId, event} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -253,7 +251,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
           {...deps}
           image={image}
           organization={organization}
-          projSlug={projSlug}
+          projSlug={projectSlug}
           event={event}
           onReprocessEvent={
             defined(groupId) ? this.handleReprocessEvent(groupId) : undefined
@@ -534,23 +532,12 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     return (
       <EventDataSection
         type="images-loaded"
-        title={
-          <TitleWrapper>
-            <GuideAnchor target="images-loaded" position="bottom">
-              <Title>{t('Images Loaded')}</Title>
-            </GuideAnchor>
-            <StyledQuestionTooltip
-              size="xs"
-              position="top"
-              title={t(
-                'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
-              )}
-            />
-          </TitleWrapper>
-        }
+        guideTarget="images-loaded"
+        title={t('Images Loaded')}
+        help={t(
+          'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        )}
         actions={actions}
-        wrapTitle={false}
-        isCentered
       >
         {isOpen && (
           <Fragment>
@@ -605,20 +592,6 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   ${p => layout(p.theme, p.scrollbarWidth)}
 `;
 
-const TitleWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
-  align-items: center;
-  padding: ${space(0.75)} 0;
-`;
-
-const Title = styled('h3')`
-  margin-bottom: 0;
-  padding: 0 !important;
-  height: 14px;
-`;
-
 // XXX(ts): Emotion11 has some trouble with List's defaultProps
 const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
   height: auto !important;
@@ -639,8 +612,4 @@ const ToggleButton = styled(Button)`
   &:focus {
     color: ${p => p.theme.textColor};
   }
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  z-index: 2;
 `;

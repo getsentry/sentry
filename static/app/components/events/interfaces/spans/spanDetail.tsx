@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import map from 'lodash/map';
 import omit from 'lodash/omit';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -45,6 +45,7 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import * as SpanEntryContext from './context';
+import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {
@@ -73,6 +74,7 @@ type Props = {
   isRoot: boolean;
   organization: Organization;
   relatedErrors: TraceError[] | null;
+  resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
   span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
@@ -337,16 +339,25 @@ function SpanDetail(props: Props) {
   }
 
   function renderSpanDetails() {
-    const {span, event, organization, scrollToHash} = props;
+    const {span, event, organization, resetCellMeasureCache, scrollToHash} = props;
 
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
-          <InlineDocs
-            platform={event.sdk?.name || ''}
-            orgSlug={organization.slug}
-            projectSlug={event?.projectSlug ?? ''}
-          />
+          {organization.features.includes('profiling-previews') ? (
+            <GapSpanDetails
+              event={event}
+              span={span}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          ) : (
+            <InlineDocs
+              orgSlug={organization.slug}
+              platform={event.sdk?.name || ''}
+              projectSlug={event?.projectSlug ?? ''}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          )}
         </SpanDetails>
       );
     }
@@ -660,7 +671,7 @@ const ValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
   margin: 2px;
 `;
 

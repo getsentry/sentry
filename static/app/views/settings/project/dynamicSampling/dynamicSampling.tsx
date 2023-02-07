@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
@@ -40,7 +40,9 @@ export const knowDynamicSamplingBiases = {
   },
   [DynamicSamplingBiasType.BOOST_ENVIRONMENTS]: {
     label: t('Prioritize dev environments'),
-    help: t('Captures more traces from environments that contain “dev” and “test”'),
+    help: t(
+      'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
+    ),
   },
   [DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS]: {
     label: t('Prioritize key transactions'),

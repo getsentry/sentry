@@ -30,7 +30,6 @@ def query(
     allow_metric_aggregates=True,
     conditions=None,
     functions_acl=None,
-    dry_run=False,
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
@@ -51,20 +50,12 @@ def query(
             functions_acl=functions_acl,
             limit=limit,
             offset=offset,
-            dry_run=dry_run,
             dataset=Dataset.PerformanceMetrics,
             transform_alias_to_input_format=transform_alias_to_input_format,
             use_metrics_layer=use_metrics_layer,
         )
-        if dry_run:
-            metrics_referrer = referrer + ".dry-run"
-        else:
-            metrics_referrer = referrer + ".metrics-enhanced"
+        metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(metrics_referrer)
-        if dry_run:
-            # Query has to reach here to be considered compatible
-            sentry_sdk.set_tag("query.mep_compatible", True)
-            return {}
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
@@ -82,7 +73,6 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    dry_run: bool = False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
 ) -> SnubaTSResult:
@@ -95,7 +85,7 @@ def timeseries_query(
     if comparison_delta is None and not equations:
         metrics_compatible = True
 
-    if metrics_compatible or dry_run:
+    if metrics_compatible:
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
                 params,
@@ -105,18 +95,10 @@ def timeseries_query(
                 selected_columns=columns,
                 functions_acl=functions_acl,
                 allow_metric_aggregates=allow_metric_aggregates,
-                dry_run=dry_run,
                 use_metrics_layer=use_metrics_layer,
             )
-            if dry_run:
-                metrics_referrer = referrer + ".dry-run"
-            else:
-                metrics_referrer = referrer + ".metrics-enhanced"
+            metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(metrics_referrer)
-            if dry_run:
-                # Query has to reach here to be considered compatible
-                sentry_sdk.set_tag("query.mep_compatible", True)
-                return
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
             result = metrics_query.process_results(result)
             result["data"] = (
@@ -142,7 +124,16 @@ def timeseries_query(
                 params["end"],
                 rollup,
             )
-    return SnubaTSResult()
+    return SnubaTSResult(
+        {
+            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            if zerofill_results
+            else [],
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
 
 
 def histogram_query(

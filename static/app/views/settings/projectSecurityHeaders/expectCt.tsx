@@ -57,7 +57,7 @@ class ProjectExpectCtReports extends AsyncView<Props, State> {
         />
 
         <Panel>
-          <PanelHeader>{'About'}</PanelHeader>
+          <PanelHeader>{t('About')}</PanelHeader>
           <PanelBody withPadding>
             <p>
               {tct(
@@ -84,7 +84,7 @@ class ProjectExpectCtReports extends AsyncView<Props, State> {
             <p>
               {tct('For more information, see [link:the article on MDN].', {
                 link: (
-                  <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT" />
+                  <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT" />
                 ),
               })}
             </p>

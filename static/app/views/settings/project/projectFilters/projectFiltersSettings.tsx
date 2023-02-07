@@ -9,7 +9,7 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -200,7 +200,7 @@ type Props = {
 };
 
 type State = {
-  hooksDisabled: ReturnType<typeof HookStore['get']>;
+  hooksDisabled: ReturnType<(typeof HookStore)['get']>;
 } & AsyncComponent['state'];
 
 class ProjectFiltersSettings extends AsyncComponent<Props, State> {

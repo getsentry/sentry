@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -105,7 +105,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
           <ActorName>
             {currentOwner?.type === 'team'
               ? `#${currentOwner?.name}`
-              : currentOwner?.name ?? t('No-one')}
+              : currentOwner?.name ?? t('No one')}
           </ActorName>
         </ActorWrapper>
       </SidebarSection.Content>

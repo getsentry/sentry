@@ -10,8 +10,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openRecoveryOptions} from 'sentry/actionCreators/modal';
 import {fetchOrganizationByMember} from 'sentry/actionCreators/organizations';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import FieldGroup from 'sentry/components/forms/fieldGroup';

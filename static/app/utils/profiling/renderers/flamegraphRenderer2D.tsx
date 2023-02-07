@@ -1,7 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -13,7 +12,7 @@ function colorComponentsToRgba(color: number[]): string {
   )}, ${color[3] ?? 1})`;
 }
 
-export class FlamegraphRenderer2d {
+export class FlamegraphRenderer2D {
   canvas: HTMLCanvasElement | null;
   flamegraph: Flamegraph;
   theme: FlamegraphTheme;
@@ -48,7 +47,7 @@ export class FlamegraphRenderer2d {
   }
 
   getColorForFrame(frame: FlamegraphFrame): number[] {
-    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
+    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
   }
 
   // We dont really need this in node, it's just here for completeness and it makes
@@ -57,7 +56,7 @@ export class FlamegraphRenderer2d {
     return null;
   }
 
-  draw(configViewToPhysicalSpace: mat3, _searchResults: FlamegraphSearch['results']) {
+  draw(configViewToPhysicalSpace: mat3) {
     if (!this.canvas) {
       throw new Error('No canvas to draw on');
     }
@@ -83,7 +82,7 @@ export class FlamegraphRenderer2d {
       ).transformRect(configViewToPhysicalSpace);
 
       const colors =
-        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
+        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
       const color = colorComponentsToRgba(colors);
 
       context.fillStyle = color;

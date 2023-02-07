@@ -28,12 +28,11 @@ def query(
     allow_metric_aggregates=True,
     conditions=None,
     functions_acl=None,
-    dry_run=False,
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
 ):
-    metrics_compatible = not equations or dry_run
+    metrics_compatible = not equations
 
     if metrics_compatible:
         try:
@@ -53,29 +52,19 @@ def query(
                 allow_metric_aggregates,
                 conditions,
                 functions_acl,
-                dry_run,
                 transform_alias_to_input_format,
                 has_metrics,
                 use_metrics_layer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
-            if not dry_run:
-                raise error
-            else:
-                sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
         except Exception as error:
-            if dry_run:
-                return
-            else:
-                raise error
-
-    if dry_run:
-        return {}
+            raise error
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
@@ -114,7 +103,6 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    dry_run: bool = False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
 ) -> SnubaTSResult:
@@ -127,7 +115,7 @@ def timeseries_query(
     if comparison_delta is None and not equations:
         metrics_compatible = True
 
-    if metrics_compatible or dry_run:
+    if metrics_compatible:
         try:
             return metrics_timeseries_query(
                 selected_columns,
@@ -139,27 +127,17 @@ def timeseries_query(
                 allow_metric_aggregates,
                 comparison_delta,
                 functions_acl,
-                dry_run,
                 use_metrics_layer=use_metrics_layer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
-            if not dry_run:
-                raise error
-            else:
-                sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
         except Exception as error:
-            if dry_run:
-                return
-            else:
-                raise error
-
-    if dry_run:
-        return {}
+            raise error
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
@@ -175,7 +153,16 @@ def timeseries_query(
             functions_acl,
             has_metrics=has_metrics,
         )
-    return SnubaTSResult()
+    return SnubaTSResult(
+        {
+            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            if zerofill_results
+            else [],
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
 
 
 def histogram_query(
@@ -202,7 +189,6 @@ def histogram_query(
     """
     # Must need to normalize results to be MEP
     metrics_compatible = normalize_results
-    # TODO: include dry_run here
     if metrics_compatible:
         try:
             return metrics_histogram_query(

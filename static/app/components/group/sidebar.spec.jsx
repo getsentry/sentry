@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -136,6 +136,7 @@ describe('GroupSidebar', function () {
         />,
         {organization}
       );
+      expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(2);
       expect(tagsMock).toHaveBeenCalledWith(
         '/issues/1/tags/',
@@ -192,7 +193,6 @@ describe('GroupSidebar', function () {
         email: 'sohnjmith@example.com',
       }),
     ];
-    const org = {...organization, features: ['issue-actions-v2']};
     render(
       <GroupSidebar
         group={{
@@ -201,11 +201,11 @@ describe('GroupSidebar', function () {
           seenBy: users,
         }}
         project={project}
-        organization={org}
+        organization={organization}
         event={TestStubs.Event()}
         environments={[]}
       />,
-      {organization: org}
+      {organization}
     );
     await act(tick);
 
@@ -223,7 +223,7 @@ describe('GroupSidebar', function () {
       });
     });
 
-    it('renders mobile tags on mobile platform', async function () {
+    it('renders mobile tags on top of tag summary for mobile platforms', async function () {
       render(
         <GroupSidebar
           group={group}
@@ -237,10 +237,13 @@ describe('GroupSidebar', function () {
         />,
         {organization}
       );
-      expect(await screen.findByText('device')).toBeInTheDocument();
+      await waitFor(() => expect(tagsMock).toHaveBeenCalled());
+      expect(
+        within(screen.getByTestId('top-distribution-wrapper')).getByText('device')
+      ).toBeInTheDocument();
     });
 
-    it('does not render mobile tags on non mobile platform', async function () {
+    it('does not render mobile tags on top of tag summary for non mobile platforms', async function () {
       render(
         <GroupSidebar
           group={group}
@@ -255,7 +258,9 @@ describe('GroupSidebar', function () {
         {organization}
       );
       await waitFor(() => expect(tagsMock).toHaveBeenCalled());
-      expect(screen.queryByText('device')).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('top-distribution-wrapper')).queryByText('device')
+      ).not.toBeInTheDocument();
     });
   });
 });

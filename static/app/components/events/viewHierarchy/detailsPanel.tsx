@@ -14,13 +14,11 @@ type DetailsPanelProps = {
 };
 
 function DetailsPanel({data, getTitle}: DetailsPanelProps) {
-  const keyValueData = Object.entries(omit(data, 'id', 'children')).map(
-    ([key, value]) => ({
-      key,
-      value,
-      subject: key,
-    })
-  );
+  const keyValueData = Object.entries(omit(data, 'children')).map(([key, value]) => ({
+    key,
+    value,
+    subject: key,
+  }));
 
   return (
     <Container>
@@ -38,11 +36,6 @@ const Title = styled('header')`
 `;
 
 const Container = styled('div')`
-  margin-top: ${space(1)};
-  border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
   padding-bottom: 0;
-  max-height: 400px;
-  overflow: auto;
 `;

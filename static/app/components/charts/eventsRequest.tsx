@@ -41,6 +41,7 @@ export type TimeSeriesData = {
   timeseriesData?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesTotals?: {count: number};
+  yAxis?: string | string[];
 };
 
 type LoadingStatus = {
@@ -154,7 +155,7 @@ type EventsRequestPartialProps = {
    */
   generatePathname?: (org: OrganizationSummary) => string;
   /**
-   * Hide error toast (used for pages which also query eventsV2). Stops error appearing as a toast.
+   * Hide error toast (used for pages which also query discover). Stops error appearing as a toast.
    */
   hideError?: boolean;
   /**

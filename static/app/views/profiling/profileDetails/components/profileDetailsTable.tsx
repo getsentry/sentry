@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -8,6 +7,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -16,11 +16,11 @@ import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
-import {useProfileGroup} from '../../profileGroupProvider';
 import {useColumnFilters} from '../hooks/useColumnFilters';
 import {useFuseSearch} from '../hooks/useFuseSearch';
 import {usePageLinks} from '../hooks/usePageLinks';
@@ -32,6 +32,7 @@ const RESULTS_PER_PAGE = 50;
 
 export function ProfileDetailsTable() {
   const location = useLocation();
+  const profiles = useProfiles();
   const profileGroup = useProfileGroup();
   const [groupByViewKey, setGroupByView] = useQuerystringState({
     key: 'detailView',
@@ -53,10 +54,7 @@ export function ProfileDetailsTable() {
   const cursor = paginationCursor ? parseInt(paginationCursor, 10) : 0;
 
   const allData = useMemo(() => {
-    const data =
-      profileGroup.type === 'resolved'
-        ? profileGroup.data.profiles.flatMap(collectProfileFrames)
-        : [];
+    const data = profileGroup.profiles.flatMap(collectProfileFrames);
 
     return groupByView.transform(data);
   }, [profileGroup, groupByView]);
@@ -109,7 +107,7 @@ export function ProfileDetailsTable() {
     [setPaginationCursor, setSearchQuery, debouncedSearch]
   );
 
-  useEffectAfterFirstRender(() => {
+  useEffect(() => {
     setFilteredDataBySearch(search(searchQuery ?? ''));
     // purposely omitted `searchQuery` as we only want this to run once.
     // future search filters are called by handleSearch
@@ -191,8 +189,8 @@ export function ProfileDetailsTable() {
       </ActionBar>
 
       <GridEditable
-        isLoading={profileGroup.type === 'loading'}
-        error={profileGroup.type === 'errored'}
+        isLoading={profiles.type === 'loading'}
+        error={profiles.type === 'errored'}
         data={data}
         columnOrder={groupByView.columns.map(key => COLUMNS[key])}
         columnSortBy={[currentSort]}
@@ -324,7 +322,7 @@ const tableColumnKey = [
   'tids',
 ] as const;
 
-type TableColumnKey = typeof tableColumnKey[number];
+type TableColumnKey = (typeof tableColumnKey)[number];
 
 type TableDataRow = Partial<Row<TableColumnKey>>;
 

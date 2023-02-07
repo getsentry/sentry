@@ -1,6 +1,6 @@
 import {createFilter} from 'react-select';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
@@ -206,7 +206,7 @@ export type Field = (
   | SentryProjectSelectorType
   | SelectAsyncType
   | ChoiceMapperType
-  | {type: typeof FieldType[number]}
+  | {type: (typeof FieldType)[number]}
   | FileType
   | DateTimeType
 ) &

@@ -26,6 +26,7 @@ from sentry.models import (
     OrganizationIntegration,
     User,
 )
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -37,7 +38,6 @@ from sentry.shared_integrations.exceptions import (
 from sentry.tasks.integrations import migrate_issues
 from sentry.types.issues import GroupCategory
 from sentry.utils.decorators import classproperty
-from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
@@ -265,7 +265,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             data[self.issues_ignored_fields_key] = ignored_fields_list
 
         config.update(data)
-        self.org_integration.update(config=config)
+        self.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
 
     def get_config_data(self):
         config = self.org_integration.config
@@ -353,7 +356,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         output = [
             "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
+                group.get_absolute_url(params={"referrer": "jira_integration"}),
             )
         ]
 
@@ -373,7 +376,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         logging_context = {"org_id": self.organization_id}
 
         if self.organization_id is not None:
-            logging_context["integration_id"] = attrgetter("org_integration.integration.id")(self)
+            logging_context["integration_id"] = attrgetter("org_integration.integration_id")(self)
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
         return JiraCloudClient(
