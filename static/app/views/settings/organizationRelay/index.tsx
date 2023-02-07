@@ -11,10 +11,7 @@ function OrganizationRelay(props: Omit<RelayWrapper['props'], 'organization'>) {
       features={['relay']}
       hookName="feature-disabled:relay"
     >
-      <RelayWrapper
-        organization={organization as RelayWrapper['props']['organization']}
-        {...props}
-      />
+      <RelayWrapper organization={organization} {...props} />
     </Feature>
   );
 }
