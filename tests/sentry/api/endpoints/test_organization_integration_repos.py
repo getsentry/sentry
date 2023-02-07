@@ -21,16 +21,20 @@ class OrganizationIntegrationReposTest(APITestCase):
     @patch("sentry.integrations.github.GitHubAppsClient.get_repositories", return_value=[])
     def test_simple(self, get_repositories):
         get_repositories.return_value = [
-            {"name": "rad-repo", "full_name": "Example/rad-repo"},
-            {"name": "cool-repo", "full_name": "Example/cool-repo"},
+            {"name": "rad-repo", "full_name": "Example/rad-repo", "default_branch": "main"},
+            {"name": "cool-repo", "full_name": "Example/cool-repo", "default_branch": "master"},
         ]
         response = self.client.get(self.path, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data == {
             "repos": [
-                {"name": "rad-repo", "identifier": "Example/rad-repo"},
-                {"name": "cool-repo", "identifier": "Example/cool-repo"},
+                {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+                {
+                    "name": "cool-repo",
+                    "identifier": "Example/cool-repo",
+                    "default_branch": "master",
+                },
             ],
             "searchable": True,
         }
