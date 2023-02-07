@@ -583,9 +583,15 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export interface BrowserContext {
+  name: string;
+  version: string;
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
+  browser?: BrowserContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
@@ -704,6 +710,7 @@ interface EventBase {
 }
 
 interface TraceEventContexts extends EventContexts {
+  browser?: BrowserContext;
   profile?: ProfileContext;
 }
 
