@@ -31,14 +31,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
-from sentry.grouptype.grouptype import (
-    ErrorGroupType,
-    PerformanceNPlusOneAPICallsGroupType,
-    PerformanceNPlusOneGroupType,
-    PerformanceRenderBlockingAssetSpanGroupType,
-    PerformanceSlowDBQueryGroupType,
-    get_group_type_by_type_id,
-)
+from sentry.grouptype.grouptype import ErrorGroupType, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
@@ -439,23 +432,7 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(
-        default=ErrorGroupType.type_id,
-        choices=(
-            (ErrorGroupType.type_id, _("Error")),
-            (PerformanceNPlusOneGroupType.type_id, _("N Plus One DB Queries")),
-            (PerformanceSlowDBQueryGroupType.type_id, _("Slow DB Query")),
-            (
-                PerformanceRenderBlockingAssetSpanGroupType.type_id,
-                _("Large Render Blocking Asset"),
-            ),
-            (
-                PerformanceNPlusOneAPICallsGroupType.type_id,
-                _("N+1 API Calls"),
-            ),
-            # TODO add more group types when detection starts outputting them
-        ),
-    )
+    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id)
 
     objects = GroupManager(cache_fields=("id",))
 
