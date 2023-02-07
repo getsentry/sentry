@@ -235,16 +235,8 @@ const StyledSearchBar = styled(SearchBar)`
 
 const ProjectCards = styled('div')`
   display: grid;
-  grid-template-columns: minmax(100px, 1fr);
   gap: ${space(3)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
 `;
 
 export {Dashboard};
