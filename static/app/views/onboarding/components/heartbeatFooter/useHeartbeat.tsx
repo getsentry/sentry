@@ -20,10 +20,10 @@ export function useHeartbeat(
 
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstTransactionReceived, setFirstTransactionReceived] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
+  const [sessionReceived, setSessionReceived] = useState(false);
   const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
 
-  const serverConnected = hasSession || firstTransactionReceived;
+  const serverConnected = sessionReceived || firstTransactionReceived;
 
   const {isLoading: eventIsLoading} = useQuery<Project>(
     [`/projects/${organization.slug}/${projectSlug}/`],
@@ -58,7 +58,7 @@ export function useHeartbeat(
         const hasHealthData =
           getCount(data.groups, SessionFieldWithOperation.SESSIONS) > 0;
 
-        setHasSession(hasHealthData);
+        setSessionReceived(hasHealthData);
       },
     }
   );
@@ -82,5 +82,7 @@ export function useHeartbeat(
     loading,
     serverConnected,
     firstErrorReceived,
+    firstTransactionReceived,
+    sessionReceived,
   };
 }

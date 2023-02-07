@@ -20,10 +20,10 @@ import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
+import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
-import {HeartbeatFooter} from './components/heartbeatFooter';
 import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';

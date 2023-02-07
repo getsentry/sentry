@@ -50,6 +50,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
   const [clientState, setClientState] = usePersistedOnboardingState();
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
