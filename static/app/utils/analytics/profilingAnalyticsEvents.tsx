@@ -1,6 +1,7 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
 
 type ProfilingEventSource =
+  | 'missing_instrumentation'
   | 'slowest_transaction_panel'
   | 'transaction_details'
   | 'transaction_hovercard.trigger'
