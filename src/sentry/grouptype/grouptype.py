@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-# from sentry.event_manager import DEFAULT_GROUPHASH_IGNORE_LIMIT
 from sentry.types.issues import GroupCategory
 
 _group_type_registry = {}
@@ -12,8 +11,7 @@ class GroupType:
     slug: str
     description: str
     category: int
-    ignore_limit: int = 3  # CEO temp fix in a tower of dependent PRs
-    # ignore_limit: int = DEFAULT_GROUPHASH_IGNORE_LIMIT
+    ignore_limit: int = 3  # CEO temp fix - this is the value of DEFAULT_GROUPHASH_IGNORE_LIMIT
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

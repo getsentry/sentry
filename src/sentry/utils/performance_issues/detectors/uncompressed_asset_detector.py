@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry import features
+from sentry.grouptype.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.models import Organization, Project
 from sentry.types.issues import GroupType
 
@@ -76,7 +77,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def _fingerprint(self, span) -> str:
         resource_span = fingerprint_resource_span(span)
-        return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{resource_span}"
+        return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return features.has(
