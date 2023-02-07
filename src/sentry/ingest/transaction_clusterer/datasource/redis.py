@@ -7,6 +7,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.ingest.transaction_clusterer.datasource import (
+    HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
     TRANSACTION_SOURCE_URL,
 )
@@ -107,7 +108,7 @@ def _must_store_event(event_data: Mapping[str, Any]) -> bool:
     transaction_info = event_data.get("transaction_info") or {}
     source = transaction_info.get("source")
 
-    if tags and ["http.status_code", "404"] in tags:
+    if tags and HTTP_404_TAG in tags:
         print(f"discarding transaction for tags: {tags=}")
         return False
 
