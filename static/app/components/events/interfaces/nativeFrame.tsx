@@ -19,6 +19,7 @@ import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRepeat} from 'sentry/icons/iconRepeat';
@@ -218,41 +219,26 @@ function NativeFrame({
   const status = getStatus();
 
   return (
-    <GridRow
+    <FrameRow
       expandable={expandable}
       expanded={expanded}
-      className="frame"
       data-test-id="stack-trace-frame"
     >
       <StrictClick onClick={handleToggleContext}>
-        <StrictClickContent>
+        <RowHeader>
           <StatusCell>
-            {(status === 'error' || status === undefined) &&
-              (packageClickable ? (
-                <PackageStatusButton
-                  onClick={handleGoToImagesLoaded}
-                  aria-label={t('Go to images loaded')}
-                  icon={
-                    status === 'error' ? (
-                      <IconFileBroken size="sm" color="errorText" />
-                    ) : (
-                      <IconWarning size="sm" color="warningText" />
-                    )
-                  }
-                  size="zero"
-                  borderless
-                />
-              ) : status === 'error' ? (
-                <IconFileBroken size="sm" color="errorText" />
-              ) : (
-                <IconWarning size="sm" color="warningText" />
-              ))}
+            {status === 'error' ? (
+              <IconFileBroken size="sm" color="errorText" />
+            ) : status === undefined ? (
+              <IconWarning size="sm" color="warningText" />
+            ) : (
+              <IconCheckmark size="sm" color="successText" />
+            )}
           </StatusCell>
           <PackageCell>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
-                {!nextFrame ? t('Crashed in non-app') : t('Called from')}
-                {':'}&nbsp;
+                {!nextFrame ? t('Crashed in Non-App:') : t('Called from:')}
               </Fragment>
             )}
             <span>
@@ -278,13 +264,11 @@ function NativeFrame({
             </Tooltip>
           </AddressCell>
           <FunctionNameCell>
-            <div>
-              {functionName ? (
-                <AnnotatedText value={functionName.value} meta={functionName.meta} />
-              ) : (
-                `<${t('unknown')}>`
-              )}
-            </div>
+            {functionName ? (
+              <AnnotatedText value={functionName.value} meta={functionName.meta} />
+            ) : (
+              `<${t('unknown')}>`
+            )}
             {frame.filename && (
               <Tooltip
                 title={frame.absPath}
@@ -312,7 +296,11 @@ function NativeFrame({
             )}
           </GroupingCell>
           <TypeCell>
-            {frame.inApp ? <Tag>{t('In App')}</Tag> : <Tag>{t('System')}</Tag>}
+            {frame.inApp ? (
+              <Tag>{t('In App')}</Tag>
+            ) : (
+              <Tag type="info">{t('System')}</Tag>
+            )}
           </TypeCell>
           <ExpandCell>
             {expandable && (
@@ -328,28 +316,26 @@ function NativeFrame({
               />
             )}
           </ExpandCell>
-        </StrictClickContent>
+        </RowHeader>
       </StrictClick>
-      <RegistersCell>
-        {expanded && (
-          <Registers
-            frame={frame}
-            event={event}
-            registers={registers}
-            components={components}
-            hasContextSource={hasContextSource(frame)}
-            hasContextVars={hasContextVars(frame)}
-            hasContextRegisters={hasContextRegisters(registers)}
-            emptySourceNotation={emptySourceNotation}
-            hasAssembly={hasAssembly(frame, platform)}
-            expandable={expandable}
-            isExpanded={expanded}
-            registersMeta={registersMeta}
-            frameMeta={frameMeta}
-          />
-        )}
-      </RegistersCell>
-    </GridRow>
+      {expanded && (
+        <Registers
+          frame={frame}
+          event={event}
+          registers={registers}
+          components={components}
+          hasContextSource={hasContextSource(frame)}
+          hasContextVars={hasContextVars(frame)}
+          hasContextRegisters={hasContextRegisters(registers)}
+          emptySourceNotation={emptySourceNotation}
+          hasAssembly={hasAssembly(frame, platform)}
+          expandable={expandable}
+          isExpanded={expanded}
+          registersMeta={registersMeta}
+          frameMeta={frameMeta}
+        />
+      )}
+    </FrameRow>
   );
 }
 
@@ -359,62 +345,28 @@ const Cell = styled('div')`
   display: flex;
   flex-wrap: wrap;
   word-break: break-all;
-  align-items: flex-start;
 `;
 
-const StatusCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 1/1;
-    grid-row: 1/1;
-  }
-`;
+const StatusCell = styled(Cell)``;
 
-const PackageCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 2/2;
-    grid-row: 1/1;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(2, auto);
-  }
-`;
+const PackageCell = styled(Cell)``;
 
 const AddressCell = styled(Cell)`
   color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 3/3;
-    grid-row: 1/1;
-  }
 `;
 
-const GroupingCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 1/1;
-    grid-row: 2/2;
-  }
-`;
+const GroupingCell = styled(Cell)``;
 
 const FunctionNameCell = styled(Cell)`
   font-family: ${p => p.theme.text.familyMono};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 2/-1;
-    grid-row: 2/2;
-  }
 `;
 
 const TypeCell = styled(Cell)``;
 
 const ExpandCell = styled(Cell)``;
 
-const RegistersCell = styled('div')`
-  grid-column: 1/-1;
-  margin-left: -${space(0.5)};
-  margin-right: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
-  cursor: default;
-`;
-
 const Registers = styled(Context)`
+  border-bottom: 1px solid ${p => p.theme.border};
   padding: 0;
   margin: 0;
 `;
@@ -435,18 +387,19 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
-const PackageStatusButton = styled(Button)`
-  padding: 0;
-  border: none;
-`;
-
-const GridRow = styled('li')<{expandable: boolean; expanded: boolean}>`
+const FrameRow = styled('li')<{expandable: boolean; expanded: boolean}>`
   ${p => p.expandable && `cursor: pointer;`};
-  display: grid;
-  background-color: ${p => p.theme.bodyBackground};
-  grid-template-columns: repeat(7, 1fr);
 `;
 
-const StrictClickContent = styled('div')`
-  display: contents;
+const RowHeader = styled('span')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(16px, auto) repeat(2, minmax(130px, 1fr)) 4fr repeat(
+      3,
+      minmax(16px, auto)
+    );
+  grid-column-gap: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.bodyBackground};
+  padding: ${space(0.5)} ${space(1)};
 `;
