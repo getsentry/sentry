@@ -109,6 +109,7 @@ export enum FieldKey {
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
 export enum FieldValueType {
@@ -932,6 +933,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.APP_IN_FOREGROUND]: {
+    desc: t('Indicates if the app is in the foreground or background'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
 };
 
 export const ISSUE_FIELDS = [
@@ -998,6 +1004,7 @@ export const ISSUE_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.APP_IN_FOREGROUND,
 ];
 
 /**
@@ -1074,6 +1081,9 @@ export const DISCOVER_FIELDS = [
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
   // contexts.key and contexts.value omitted on purpose.
+
+  // App context fields
+  FieldKey.APP_IN_FOREGROUND,
 
   // Transaction event fields.
   FieldKey.TRANSACTION_DURATION,

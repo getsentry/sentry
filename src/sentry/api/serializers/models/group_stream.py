@@ -176,6 +176,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         collapse=None,
         expand=None,
         organization_id=None,
+        project_ids=None,
     ):
         super().__init__(
             environment_ids,
@@ -185,6 +186,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             collapse=collapse,
             expand=expand,
             organization_id=organization_id,
+            project_ids=project_ids,
         )
 
         if stats_period is not None:

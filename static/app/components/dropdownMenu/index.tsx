@@ -9,10 +9,10 @@ import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownBut
 import {FormSize} from 'sentry/utils/theme';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 
-import {MenuItemProps} from './item';
+import type {MenuItemProps} from './item';
 import DropdownMenuList, {DropdownMenuContext, DropdownMenuListProps} from './list';
 
-export {MenuItemProps};
+export type {MenuItemProps};
 
 /**
  * Recursively removes hidden items, including those nested in submenus
@@ -277,7 +277,7 @@ function DropdownMenu({
   );
 }
 
-export default DropdownMenu;
+export {DropdownMenu};
 
 const DropdownMenuWrap = styled('div')`
   list-style-type: none;
