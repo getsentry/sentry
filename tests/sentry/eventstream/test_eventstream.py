@@ -9,7 +9,8 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 from sentry.event_manager import EventManager
 from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka import KafkaEventStream
-from sentry.eventstream.snuba import SnubaEventStream
+from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
+from sentry.issues.ingest import save_issue_from_occurrence
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -355,3 +356,35 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert ("queue", b"post_process_issue_platform") in headers
         assert ("occurrence_id", bytes(group_event.occurrence.id, encoding="utf-8")) in headers
         assert body["queue"] == "post_process_issue_platform"
+
+    def test_insert_generic_event_contexts(self):
+        es = SnubaProtocolEventStream()
+
+        event_data = load_data("generic-event")
+        geo_interface = {"city": "San Francisco", "country_code": "US", "region": "California"}
+        event_data["user"] = {"geo": geo_interface}
+        event = self.store_event(data=event_data, project_id=self.project.id)
+        occurrence = self.build_occurrence(event_id=event.event_id)
+
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        # intentionally mutate the event.data after storing the raw contexts
+        contexts_before_insert = dict(group_event.data["contexts"])
+
+        with patch.object(es, "_send") as send, patch.object(
+            event, "for_group", return_value=group_event
+        ):
+            es.insert(
+                group_event,
+                True,
+                True,
+                False,
+                "",
+                0.0,
+            )
+            send_extra_data_data = send.call_args.kwargs["extra_data"][0]["data"]
+            assert "contexts" in send_extra_data_data
+            contexts_after_processing = send_extra_data_data["contexts"]
+            assert contexts_after_processing == {**contexts_before_insert, **{"geo": geo_interface}}
