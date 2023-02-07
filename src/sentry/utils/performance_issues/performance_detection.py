@@ -16,6 +16,7 @@ from symbolic import ProguardMapper  # type: ignore
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
+from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -138,6 +139,25 @@ def detect_performance_problems(data: Event, project: Project) -> List[Performan
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
+    system_settings = {
+        "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
+        "n_plus_one_db_duration_threshold": options.get(
+            "performance.issues.n_plus_one_db.duration_threshold"
+        ),
+        "render_blocking_fcp_min": options.get(
+            "performance.issues.render_blocking_assets.fcp_minimum_threshold"
+        ),
+        "render_blocking_fcp_max": options.get(
+            "performance.issues.render_blocking_assets.fcp_maximum_threshold"
+        ),
+        "render_blocking_fcp_ratio": options.get(
+            "performance.issues.render_blocking_assets.fcp_ratio_threshold"
+        ),
+        "render_blocking_bytes_min": options.get(
+            "performance.issues.render_blocking_assets.size_threshold"
+        ),
+    }
+
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -147,45 +167,20 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         else {}
     )
 
-    project_settings = (
+    project_option_settings = (
         ProjectOption.objects.get_value(
             project_id, "sentry:performance_issue_settings", default_project_settings
         )
         if project_id
-        else {}
+        else DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
     )
 
-    use_project_option_settings = default_project_settings != project_settings
-    merged_project_settings = {
+    project_settings = {
         **default_project_settings,
-        **project_settings,
+        **project_option_settings,
     }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
-    # Use project settings if they've been adjusted at all, to allow customization, otherwise fetch settings from system-wide options.
-    settings = (
-        merged_project_settings
-        if use_project_option_settings
-        else {
-            "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
-            "n_plus_one_db_duration_threshold": options.get(
-                "performance.issues.n_plus_one_db.duration_threshold"
-            ),
-            "render_blocking_fcp_min": options.get(
-                "performance.issues.render_blocking_assets.fcp_minimum_threshold"
-            ),
-            "render_blocking_fcp_max": options.get(
-                "performance.issues.render_blocking_assets.fcp_maximum_threshold"
-            ),
-            "render_blocking_fcp_ratio": options.get(
-                "performance.issues.render_blocking_assets.fcp_ratio_threshold"
-            ),
-            "render_blocking_bytes_min": options.get(
-                "performance.issues.render_blocking_assets.size_threshold"
-            ),
-            "n_plus_one_api_calls_detection_rate": 1.0,
-            "consecutive_db_queries_detection_rate": 1.0,
-        }
-    )
+    settings = {**system_settings, **project_settings}
 
     return {
         DetectorType.SLOW_DB_QUERY: [
@@ -240,6 +235,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "size_threshold_bytes": 500 * 1024,
             "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
+            "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
     }
 
