@@ -228,11 +228,25 @@ function NativeFrame({
         <RowHeader>
           <StatusCell>
             {status === 'error' ? (
-              <IconFileBroken size="sm" color="errorText" />
+              <Tooltip
+                title={t(
+                  'This frame has missing deminification files and could not be symbolicated'
+                )}
+              >
+                <IconFileBroken size="sm" color="errorText" />
+              </Tooltip>
             ) : status === undefined ? (
-              <IconWarning size="sm" color="warningText" />
+              <Tooltip
+                title={t(
+                  'This frame has an unknown problem and could not be symbolicated'
+                )}
+              >
+                <IconWarning size="sm" color="warningText" />
+              </Tooltip>
             ) : (
-              <IconCheckmark size="sm" color="successText" />
+              <Tooltip title={t('This frame has been successfully symbolicated')}>
+                <IconCheckmark size="sm" color="successText" />
+              </Tooltip>
             )}
           </StatusCell>
           <PackageCell>
