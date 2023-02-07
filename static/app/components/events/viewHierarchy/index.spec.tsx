@@ -26,6 +26,10 @@ const DEFAULT_MOCK_DATA = {
         {
           ...DEFAULT_VALUES,
           type: 'Nested Container',
+          x: 10,
+          y: 10,
+          width: 3,
+          height: 4,
           identifier: 'nested',
           children: [
             {
@@ -138,5 +142,25 @@ describe('View Hierarchy', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockUnityProject} />);
 
     expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
+  });
+
+  it('draws the selected node when a tree selection is made', function () {
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+
+    expect(screen.getByTestId('view-hierarchy-wireframe')).toBeInTheDocument();
+
+    // mock the canvas fillRect method
+    const canvas = screen.getByTestId(
+      'view-hierarchy-wireframe-overlay'
+    ) as HTMLCanvasElement;
+
+    userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
+
+    // This is the nested container, the x, y positions are shifted by the parent
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Canvas context is not defined');
+    }
+    expect(context.fillRect).toHaveBeenCalledWith(210, 11, 3, 4);
   });
 });
