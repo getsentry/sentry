@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Iterable, MutableMapping
 
-from sentry import roles
 from sentry.models import OrganizationMember
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
@@ -65,10 +64,6 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         a specific person, or something in between.
         """
         raise NotImplementedError
-
-    def get_role_string(self, member: OrganizationMember) -> str:
-        role_string: str = roles.get(member.role).name
-        return role_string
 
     def build_notification_footer_from_settings_url(
         self, settings_url: str, recipient: User
