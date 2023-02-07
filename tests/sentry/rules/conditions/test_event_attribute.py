@@ -754,10 +754,6 @@ class EventAttributeConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
         rule = self.get_rule(
-            data={
-                "match": MatchType.EQUAL,
-                "attribute": "unreal.crash_type",
-                "value": "NoCrash",
-            }
+            data={"match": MatchType.EQUAL, "attribute": "unreal.crash_type", "value": "NoCrash"}
         )
         self.assertDoesNotPass(rule, event)
