@@ -918,6 +918,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.n_spans = []
 
     def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
+        # XXX: this has to be a hardcoded string otherwise grouping will break
         problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
         full_fingerprint = hashlib.sha1(
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
