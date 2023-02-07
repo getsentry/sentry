@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';

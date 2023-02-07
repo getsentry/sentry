@@ -15,7 +15,7 @@ import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';

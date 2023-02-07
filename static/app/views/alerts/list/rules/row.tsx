@@ -9,7 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';

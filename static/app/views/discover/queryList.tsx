@@ -8,7 +8,7 @@ import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
-import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';

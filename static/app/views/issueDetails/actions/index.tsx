@@ -18,7 +18,7 @@ import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore'
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {
   IconCheckmark,
