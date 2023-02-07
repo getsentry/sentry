@@ -63,7 +63,7 @@ class IgnoreHealthChecksRulesGeneratorV2(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
         return [
             {
-                "samplingValue": {"type": "sampleRate", "value": 0.01},
+                "samplingValue": {"type": "sampleRate", "value": bias_data["sampleRate"]},
                 "type": "transaction",
                 "condition": {
                     "op": "or",

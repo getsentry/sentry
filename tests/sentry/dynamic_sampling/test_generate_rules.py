@@ -42,11 +42,12 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     fake_project = MagicMock()
     # if blended rate is None that means no dynamic sampling behavior should happen.
     # Therefore no rules should be set.
-    assert generate_rules(fake_project) == []
+    assert generate_rules(fake_project, True) == []
     get_blended_sample_rate.assert_called_with(fake_project)
     sentry_sdk.capture_exception.assert_called()
-    config_str = json.dumps({"rules": generate_rules(fake_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -70,13 +71,14 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 1.0,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
@@ -90,12 +92,12 @@ def test_generate_rules_return_uniform_rules_with_rate(
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
     fake_project = MagicMock()
-    assert generate_rules(fake_project) == [
+    assert generate_rules(fake_project, True) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
             "type": "trace",
         }
     ]
@@ -103,8 +105,9 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_enabled_user_biases.assert_called_with(
         fake_project.get_option("sentry:dynamic_sampling_biases", None)
     )
-    config_str = json.dumps({"rules": generate_rules(fake_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -113,9 +116,9 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
     get_blended_sample_rate.return_value = 0.1
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_project, True) == [
         {
-            "sampleRate": 0.02,
+            "samplingValue": {"type": "sampleRate", "value": 0.02},
             "type": "transaction",
             "condition": {
                 "op": "or",
@@ -132,7 +135,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             "id": 1002,
         },
         {
-            "sampleRate": 1,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
             "condition": {
                 "op": "or",
@@ -152,13 +155,14 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
             "type": "trace",
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -166,7 +170,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
     get_blended_sample_rate, default_project, default_team
 ):
-    get_blended_sample_rate.return_value = 0.1
+    get_blended_sample_rate.return_value = 0.0
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
 
@@ -186,7 +190,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
         transaction="/foo",
         project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
     )
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_project, True) == [
         {
             "active": True,
             "condition": {
@@ -201,20 +205,21 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
                 "op": "or",
             },
             "id": 1003,
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "transaction",
         },
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
             "type": "trace",
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -222,7 +227,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
     get_blended_sample_rate, default_project, default_team
 ):
-    get_blended_sample_rate.return_value = 0.1
+    get_blended_sample_rate.return_value = 0.0
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
 
@@ -251,7 +256,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
         transaction="/foo",
         project_team=ProjectTeam.objects.get(project=default_project, team=team_a),
     )
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_project, True) == [
         {
             "active": True,
             "condition": {
@@ -266,20 +271,21 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
                 "op": "or",
             },
             "id": 1003,
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "transaction",
         },
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
             "type": "trace",
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -287,7 +293,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_records(
     get_blended_sample_rate, default_project, default_team
 ):
-    get_blended_sample_rate.return_value = 0.1
+    get_blended_sample_rate.return_value = 0.0
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
 
@@ -310,7 +316,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
             project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
         )
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_project, True) == [
         {
             "active": True,
             "condition": {
@@ -325,20 +331,21 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
                 "op": "or",
             },
             "id": 1003,
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "transaction",
         },
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
             "type": "trace",
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
@@ -349,18 +356,19 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
     fake_project = MagicMock()
-    assert generate_rules(fake_project) == [
+    assert generate_rules(fake_project, True) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 1.0,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
         },
     ]
     get_blended_sample_rate.assert_called_with(fake_project)
-    config_str = json.dumps({"rules": generate_rules(fake_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project, True)})
+    )
 
 
 @freeze_time("2022-10-21 18:50:25+00:00")
@@ -379,7 +387,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 def test_generate_rules_with_different_project_platforms(
     get_blended_sample_rate, version, platform, end, default_project, latest_release_only
 ):
-    get_blended_sample_rate.return_value = 0.1
+    get_blended_sample_rate.return_value = 0.0
 
     redis_client = get_redis_client_for_ds()
 
@@ -393,9 +401,9 @@ def test_generate_rules_with_different_project_platforms(
         time.time(),
     )
 
-    expected = [
+    assert generate_rules(default_project, True) == [
         {
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "active": True,
             "condition": {
@@ -414,19 +422,19 @@ def test_generate_rules_with_different_project_platforms(
                 "start": "2022-10-21 18:50:25+00:00",
                 "end": end,
             },
-            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
         },
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
             "type": "trace",
         },
     ]
-    assert generate_rules(default_project) == expected
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -435,7 +443,7 @@ def test_generate_rules_with_different_project_platforms(
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     get_blended_sample_rate, default_project, latest_release_only
 ):
-    get_blended_sample_rate.return_value = 0.1
+    get_blended_sample_rate.return_value = 0.0
 
     redis_client = get_redis_client_for_ds()
 
@@ -453,9 +461,9 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             time.time(),
         )
 
-    expected = [
+    assert generate_rules(default_project, True) == [
         {
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "active": True,
             "condition": {
@@ -467,10 +475,10 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
         },
         {
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "active": True,
             "condition": {
@@ -482,10 +490,10 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1501,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
         },
         {
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "active": True,
             "condition": {
@@ -497,20 +505,19 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1502,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
         },
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
             "type": "trace",
         },
     ]
-
-    assert generate_rules(default_project) == expected
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -519,7 +526,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 def test_generate_rules_does_not_return_rule_with_deleted_release(
     get_blended_sample_rate, default_project, latest_release_only
 ):
-    get_blended_sample_rate.return_value = 0.1
+    get_blended_sample_rate.return_value = 0.0
 
     redis_client = get_redis_client_for_ds()
 
@@ -540,9 +547,9 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 
     second_release.delete()
 
-    expected = [
+    assert generate_rules(default_project, True) == [
         {
-            "sampleRate": 0.5,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "active": True,
             "condition": {
@@ -554,20 +561,19 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
         },
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 0.1,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
             "type": "trace",
         },
     ]
-
-    assert generate_rules(default_project) == expected
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -579,17 +585,18 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
 
     default_project.update(platform="python")
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_project, True) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 1.0,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
         },
     ]
-    config_str = json.dumps({"rules": generate_rules(default_project)})
-    validate_sampling_configuration(config_str)
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
 
 
 @pytest.mark.django_db
@@ -603,14 +610,137 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 
     redis_client.hset(f"ds::p:{default_project.id}:boosted_releases", f"ds::r:{1234}", time.time())
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_project, True) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
-            "sampleRate": 1.0,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
         },
     ]
+    validate_sampling_configuration(
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project, True)})
+    )
+
+
+@pytest.mark.django_db
+@freeze_time("2022-10-21 18:50:25+00:00")
+@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+def test_generate_rules_with_old_format(get_blended_sample_rate, default_project, default_team):
+    get_blended_sample_rate.return_value = 0.5
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": True},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
+        ],
+    )
+
+    redis_client = get_redis_client_for_ds()
+
+    default_project.update(platform="python")
+    default_project.add_team(default_team)
+
+    TeamKeyTransaction.objects.create(
+        organization=default_project.organization,
+        transaction="/foo",
+        project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
+    )
+
+    first_release = Factories.create_release(project=default_project, version="1.0")
+    redis_client.hset(
+        f"ds::p:{default_project.id}:boosted_releases",
+        f"ds::r:{first_release.id}",
+        time.time(),
+    )
+
+    expected = [
+        {
+            "active": True,
+            "condition": {
+                "inner": [
+                    {
+                        "name": "event.transaction",
+                        "op": "eq",
+                        "options": {"ignoreCase": True},
+                        "value": ["/foo"],
+                    }
+                ],
+                "op": "or",
+            },
+            "id": 1003,
+            "sampleRate": 1.0,
+            "type": "transaction",
+        },
+        {
+            "active": True,
+            "condition": {
+                "inner": [
+                    {
+                        "name": "event.transaction",
+                        "op": "glob",
+                        "options": {"ignoreCase": True},
+                        "value": [
+                            "*healthcheck*",
+                            "*healthy*",
+                            "*live*",
+                            "*ready*",
+                            "*heartbeat*",
+                            "*/health",
+                            "*/healthz",
+                        ],
+                    }
+                ],
+                "op": "or",
+            },
+            "id": 1002,
+            "sampleRate": 0.1,
+            "type": "transaction",
+        },
+        {
+            "active": True,
+            "condition": {
+                "inner": [
+                    {
+                        "name": "trace.environment",
+                        "op": "glob",
+                        "options": {"ignoreCase": True},
+                        "value": ["*dev*", "*test*", "*qa*", "*local*"],
+                    }
+                ],
+                "op": "or",
+            },
+            "id": 1001,
+            "sampleRate": 1,
+            "type": "trace",
+        },
+        {
+            "sampleRate": 1.0,
+            "type": "trace",
+            "active": True,
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": None},
+                ],
+            },
+            "id": 1500,
+            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "decayingFn": {"type": "linear", "decayedSampleRate": 0.5},
+        },
+        {
+            "active": True,
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "sampleRate": 0.5,
+            "type": "trace",
+        },
+    ]
+
+    assert generate_rules(default_project) == expected
     config_str = json.dumps({"rules": generate_rules(default_project)})
     validate_sampling_configuration(config_str)

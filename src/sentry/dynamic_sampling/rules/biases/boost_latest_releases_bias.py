@@ -134,7 +134,7 @@ class BoostLatestReleasesRulesGeneratorV2(BiasRulesGenerator):
                     # of interpolating the adoption growth with the reduction in sample rate.
                     "decayingFn": {
                         "type": "linear",
-                        "decayedSampleRate": bias_data["baseSampleRate"],
+                        "decayedValue": 1.0,
                     },
                 }
                 for idx, boosted_release in enumerate(boosted_releases)

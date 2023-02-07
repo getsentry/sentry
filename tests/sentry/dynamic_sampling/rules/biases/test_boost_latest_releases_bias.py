@@ -11,6 +11,9 @@ from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
     Platform,
 )
+from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import (
+    BoostLatestReleasesRulesGeneratorV2,
+)
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
@@ -92,6 +95,85 @@ def test_generate_bias_rules(data_provider, default_project):
                 "start": now.isoformat(" "),
             },
             "decayingFn": {"type": "linear", "decayedSampleRate": base_sample_rate},
+            "type": "trace",
+        },
+    ]
+
+
+@freeze_time(MOCK_DATETIME)
+@pytest.mark.django_db
+@patch(
+    "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.BoostLatestReleasesDataProvider"
+)
+def test_generate_bias_rules_v2(data_provider, default_project):
+    now = timezone.now()
+
+    factor = 1.5
+    platform = "python"
+
+    default_project.update(platform=platform)
+
+    boosted_releases = [
+        ExtendedBoostedRelease(
+            id=12345,
+            timestamp=now.timestamp(),
+            environment=None,
+            cache_key="abc",
+            version="1.0",
+            platform=Platform(platform),
+        ),
+        ExtendedBoostedRelease(
+            id=678910,
+            timestamp=now.timestamp(),
+            environment="prod",
+            cache_key="def",
+            version="2.0",
+            platform=Platform(platform),
+        ),
+    ]
+
+    data_provider.get_bias_data.return_value = {
+        "id": 1000,
+        "factor": factor,
+        "boostedReleases": boosted_releases,
+    }
+
+    rules = BoostLatestReleasesRulesGeneratorV2(data_provider).generate_bias_rules(MagicMock())
+    assert rules == [
+        {
+            "active": True,
+            "condition": {
+                "inner": [
+                    {"name": "trace.release", "op": "eq", "value": ["1.0"]},
+                    {"name": "trace.environment", "op": "eq", "value": None},
+                ],
+                "op": "and",
+            },
+            "id": 1000,
+            "samplingValue": {"type": "factor", "value": 1.5},
+            "timeRange": {
+                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
+                "start": now.isoformat(" "),
+            },
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "type": "trace",
+        },
+        {
+            "active": True,
+            "condition": {
+                "inner": [
+                    {"name": "trace.release", "op": "eq", "value": ["2.0"]},
+                    {"name": "trace.environment", "op": "eq", "value": "prod"},
+                ],
+                "op": "and",
+            },
+            "id": 1001,
+            "samplingValue": {"type": "factor", "value": 1.5},
+            "timeRange": {
+                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
+                "start": now.isoformat(" "),
+            },
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
             "type": "trace",
         },
     ]
