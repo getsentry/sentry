@@ -13,7 +13,10 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {
+  sentryNameToOption,
+  trackIntegrationAnalytics,
+} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -88,6 +91,7 @@ function RepositoryProjectPathConfigForm({
       placeholder: t('Choose repo'),
       url: `/organizations/${organization.slug}/repos/`,
       defaultOptions: repoChoices,
+      onResults: results => results.map(sentryNameToOption),
       onChange: handleRepoChange,
     },
     {
