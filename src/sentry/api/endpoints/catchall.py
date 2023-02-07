@@ -23,9 +23,10 @@ class CatchallEndpoint(Endpoint):
             if request.META.get("CONTENT_TYPE", "").startswith("application/json"):
                 return JsonResponse(data={"info": f"{help} {suggestion}"}, status=404)
 
-            # Produce error message with a pointer to the trailing slash
-            arrow = f"{' ' * len(suggestion)}^"
-            message = f"{help}\n\n{suggestion}{request.path}/\n{arrow}\n"
+            # Produce error message with a pointer to the trailing slash in plain text
+            arrow_offset = len(suggestion) - 1
+            arrow = f"{' ' * arrow_offset}^"
+            message = f"{help}\n\n{suggestion}\n{arrow}\n"
 
             return HttpResponse(message, status=404, content_type="text/plain")
 
