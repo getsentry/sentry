@@ -35,7 +35,7 @@ class FlamegraphTextRenderer extends TextRenderer {
   draw(
     configView: Rect,
     configViewToPhysicalSpace: mat3,
-    flamegraphSearchResults: FlamegraphSearch['results']['frames']
+    flamegraphSearchResults?: FlamegraphSearch['results']['frames']
   ): void {
     // Make sure we set font size before we measure text for the first draw
     const FONT_SIZE = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
@@ -57,7 +57,8 @@ class FlamegraphTextRenderer extends TextRenderer {
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;
-    const HAS_SEARCH_RESULTS = flamegraphSearchResults.size > 0;
+    const HAS_SEARCH_RESULTS =
+      flamegraphSearchResults && flamegraphSearchResults.size > 0;
     const TEXT_Y_POSITION = FONT_SIZE / 2 - BASELINE_OFFSET;
 
     // We start by iterating over root frames, so we draw the call stacks top-down.

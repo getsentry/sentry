@@ -20,6 +20,7 @@ import {
   DividerLineGhostContainer,
   EmbeddedTransactionBadge,
   ErrorBadge,
+  ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
   RowTitle,
@@ -55,6 +56,7 @@ import {
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
+import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -914,6 +916,29 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return null;
   }
 
+  renderMissingInstrumentationProfileBadge(): React.ReactNode {
+    const {organization, span} = this.props;
+
+    if (!organization.features.includes('profiling-previews')) {
+      return null;
+    }
+
+    if (!isGapSpan(span)) {
+      return null;
+    }
+
+    return (
+      <ProfileContext.Consumer>
+        {profiles => {
+          if (profiles?.type !== 'resolved') {
+            return null;
+          }
+          return <ProfileBadge />;
+        }}
+      </ProfileContext.Consumer>
+    );
+  }
+
   renderWarningText() {
     let warningText = this.getBounds().warning;
 
@@ -977,6 +1002,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
+          {this.renderMissingInstrumentationProfileBadge()}
         </DividerContainer>
         <RowCell
           data-type="span-row-cell"

@@ -1,7 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -13,7 +12,7 @@ function colorComponentsToRgba(color: number[]): string {
   )}, ${color[3] ?? 1})`;
 }
 
-export class FlamegraphRenderer2d {
+export class FlamegraphRenderer2D {
   canvas: HTMLCanvasElement | null;
   flamegraph: Flamegraph;
   theme: FlamegraphTheme;
@@ -57,7 +56,7 @@ export class FlamegraphRenderer2d {
     return null;
   }
 
-  draw(configViewToPhysicalSpace: mat3, _searchResults: FlamegraphSearch['results']) {
+  draw(configViewToPhysicalSpace: mat3) {
     if (!this.canvas) {
       throw new Error('No canvas to draw on');
     }

@@ -377,7 +377,7 @@ function Flamegraph(): ReactElement {
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: uiFrames,
-        mode: 'cover',
+        mode: 'stretchToFit',
         options: {
           inverted: flamegraph.inverted,
           minWidth: uiFrames.minFrameDuration,
