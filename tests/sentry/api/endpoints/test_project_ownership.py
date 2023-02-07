@@ -108,6 +108,50 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 200
         assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
 
+        resp = self.client.put(self.path, {"codeownersAutoSync": True})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is False
+        assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
+        assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True
+
+        resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Suspect Commits"})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is False
+        assert resp.data["autoAssignment"] == "Auto Assign to Suspect Commits"
+        assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True
+
+        resp = self.client.put(self.path, {"codeownersAutoSync": False})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is False
+        assert resp.data["autoAssignment"] == "Auto Assign to Suspect Commits"
+        assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is False
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp.data["autoAssignment"] == "Auto Assign to Suspect Commits"
+
+        resp = self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is False
+        assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
+        assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is False
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
+
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})
         assert resp.status_code == 400
