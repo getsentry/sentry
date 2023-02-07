@@ -10,6 +10,7 @@ import {initializeLocale} from 'sentry/bootstrap/initializeLocale';
 import eventedTrace from './formats/android/trace.json';
 import sampledTrace from './formats/ios/trace.json';
 import jsSelfProfileTrace from './formats/jsSelfProfile/trace.json';
+import nodeTrace from './formats/node/trace.json';
 import typescriptTrace from './formats/typescript/trace.json';
 import {importProfile} from './importProfile';
 
@@ -22,7 +23,7 @@ function benchmark(name: string, callback: () => void) {
   const suite = new benchmarkjs.Suite();
 
   suite
-    .add(name, callback)
+    .add(name, callback, {minSamples: 50})
     .on('cycle', event => {
       // well, we need to see the results somewhere
       // eslint-disable-next-line
@@ -33,10 +34,11 @@ function benchmark(name: string, callback: () => void) {
       throw event;
     });
 
-  suite.run({async: true});
+  suite.run({async: true, minSamples: 100});
 }
 
 benchmark('typescript', () => importProfile(typescriptTrace as any, ''));
 benchmark('js self profile', () => importProfile(jsSelfProfileTrace as any, ''));
 benchmark('evented profile', () => importProfile(eventedTrace as any, ''));
 benchmark('sampled profile', () => importProfile(sampledTrace as any, ''));
+benchmark('sampled node profile', () => importProfile(nodeTrace as any, ''));

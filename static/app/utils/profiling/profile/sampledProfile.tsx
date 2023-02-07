@@ -41,6 +41,10 @@ function sortSamples(
   return stacksWithWeights(profile).sort(sortStacks);
 }
 
+function throwIfMissingFrame(index: number) {
+  throw new Error(`Could not resolve frame ${index} in frame index`);
+}
+
 // This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
 
@@ -71,21 +75,22 @@ export class SampledProfile extends Profile {
         ? sortSamples(sampledProfile)
         : stacksWithWeights(sampledProfile);
 
+    // Keep a reference to previous stack so that we dont need to resolve it twice when we encounter a gc frame
+    let previousStack: Frame[] | undefined = undefined;
+
     for (let i = 0; i < samples.length; i++) {
       const stack = samples[i].stack;
       let weight = samples[i].weight;
 
-      let resolvedStack = stack.map(n => {
-        if (!frameIndex[n]) {
-          throw new Error(`Could not resolve frame ${n} in frame index`);
-        }
+      let resolvedStack: Frame[] = new Array(stack.length);
 
-        return frameIndex[n];
-      });
+      for (let j = 0; j < stack.length; j++) {
+        resolvedStack[j] = frameIndex[j] || throwIfMissingFrame(j);
+      }
 
       if (
         options.type === 'flamechart' &&
-        i > 0 &&
+        previousStack &&
         // We check for size <= 2 because we have so far only seen node profiles
         // where GC is either marked as the root node or is directly under the root node.
         // There is a good chance that this logic will at some point live on the backend
@@ -96,15 +101,7 @@ export class SampledProfile extends Profile {
           '(garbage collector) [native code]'
       ) {
         // The next stack we append will be previous stack + gc frame placed on top of it
-        resolvedStack = samples[i - 1].stack
-          .map(n => {
-            if (!frameIndex[n]) {
-              throw new Error(`Could not resolve frame ${n} in frame index`);
-            }
-
-            return frameIndex[n];
-          })
-          .concat(resolvedStack[resolvedStack.length - 1]);
+        resolvedStack = previousStack.concat(resolvedStack[resolvedStack.length - 1]);
 
         // Now collect all weights of all the consecutive gc frames and skip the samples
         while (
@@ -122,6 +119,7 @@ export class SampledProfile extends Profile {
         }
       }
 
+      previousStack = resolvedStack;
       profile.appendSampleWithWeight(resolvedStack, weight);
     }
 
