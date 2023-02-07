@@ -147,8 +147,6 @@ describe('View Hierarchy', function () {
   it('draws the selected node when a tree selection is made', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    expect(screen.getByTestId('view-hierarchy-wireframe')).toBeInTheDocument();
-
     const canvas = screen.getByTestId(
       'view-hierarchy-wireframe-overlay'
     ) as HTMLCanvasElement;
@@ -164,5 +162,21 @@ describe('View Hierarchy', function () {
 
     // This is the nested container, the x, y positions are shifted by the parent
     expect(context.fillRect).toHaveBeenCalledWith(210, 11, 3, 4);
+  });
+
+  it('does not render a wireframe selection initially', function () {
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+
+    const canvas = screen.getByTestId(
+      'view-hierarchy-wireframe-overlay'
+    ) as HTMLCanvasElement;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Canvas context is not defined');
+    }
+
+    // The overlay should not have rendered anything before any interactions
+    expect(context.fillRect).not.toHaveBeenCalled();
   });
 });

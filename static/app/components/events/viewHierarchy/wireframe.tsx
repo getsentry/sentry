@@ -211,6 +211,11 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
           transformationMatrix,
           window.devicePixelRatio
         );
+
+        if (!clickedNode) {
+          return;
+        }
+
         drawOverlay(transformationMatrix, clickedNode?.rect ?? null, null);
         onNodeSelect(clickedNode?.node);
       }
