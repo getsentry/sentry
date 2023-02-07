@@ -5,8 +5,20 @@ import localStorage from 'sentry/utils/localStorage';
 import PlayerDOMAlert from './playerDOMAlert';
 
 jest.mock('sentry/utils/localStorage');
+jest.useFakeTimers();
+
+const mockGetItem = localStorage.getItem as jest.MockedFunction<
+  typeof localStorage.getItem
+>;
+
+const now = new Date('2020-01-01');
+jest.setSystemTime(now);
 
 describe('PlayerDOMAlert', () => {
+  beforeEach(() => {
+    mockGetItem.mockReset();
+  });
+
   it('should render the alert when local storage key is not set', () => {
     render(<PlayerDOMAlert />);
 
@@ -14,8 +26,7 @@ describe('PlayerDOMAlert', () => {
   });
 
   it('should not render the alert when the local storage key is set', () => {
-    // @ts-expect-error
-    localStorage.getItem.mockImplementationOnce(() => '1');
+    mockGetItem.mockImplementationOnce(() => String(now.getTime()));
     render(<PlayerDOMAlert />);
 
     expect(screen.queryByTestId('player-dom-alert')).not.toBeInTheDocument();
@@ -31,7 +42,7 @@ describe('PlayerDOMAlert', () => {
     expect(screen.queryByTestId('player-dom-alert')).not.toBeInTheDocument();
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'replay-player-dom-alert-dismissed',
-      '1'
+      String(now.getTime())
     );
   });
 });
