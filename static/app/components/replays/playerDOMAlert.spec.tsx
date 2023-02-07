@@ -26,7 +26,7 @@ describe('PlayerDOMAlert', () => {
   });
 
   it('should not render the alert when the local storage key is set', () => {
-    mockGetItem.mockImplementationOnce(() => String(now.getTime()));
+    mockGetItem.mockImplementationOnce(() => now.getTime().toString());
     render(<PlayerDOMAlert />);
 
     expect(screen.queryByTestId('player-dom-alert')).not.toBeInTheDocument();
@@ -38,11 +38,12 @@ describe('PlayerDOMAlert', () => {
     expect(screen.getByTestId('player-dom-alert')).toBeVisible();
 
     screen.getByLabelText('Close Alert').click();
+    jest.runAllTicks();
 
     expect(screen.queryByTestId('player-dom-alert')).not.toBeInTheDocument();
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'replay-player-dom-alert-dismissed',
-      String(now.getTime())
+      '"1577836800000"'
     );
   });
 });

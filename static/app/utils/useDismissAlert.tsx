@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback} from 'react';
 
-import localStorage from 'sentry/utils/localStorage';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 type Opts = {
   /**
@@ -18,6 +18,15 @@ type Opts = {
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
+function isValid(timestamp: number, expirationDays: number) {
+  if (!timestamp || isNaN(timestamp)) {
+    return false;
+  }
+  const duration = Date.now() - timestamp;
+  const days = duration / MS_PER_DAY;
+  return days < expirationDays;
+}
+
 /**
  * Nominally for tracking dismissal/acknowledgement of in-app alerts and
  * notifications, specfically those that don't need to be persisted server side.
@@ -28,32 +37,24 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
  * need something really permanent then save the users' preference to the server.
  */
 function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}: Opts) {
-  const [isDismissed, setDismissed] = useState(false);
+  const [dismissedTimestamp, setDismissedTimestamp] = useLocalStorageState(
+    key,
+    (_val, raw) => raw
+  );
 
-  useEffect(() => {
-    const val = localStorage.getItem(key);
-
-    if (expirationDays === Number.MAX_SAFE_INTEGER) {
-      setDismissed(Boolean(val));
-    } else if (val) {
-      const timestamp = Number(val);
-      if (isNaN(timestamp)) {
-        localStorage.setItem(key, String(Date.now()));
-        setDismissed(true);
-      } else {
-        const duration = Date.now() - timestamp;
-        const days = duration / MS_PER_DAY;
-        setDismissed(days < expirationDays);
-      }
-    }
-  }, [key, expirationDays]);
+  const isDismissed =
+    expirationDays === Number.MAX_SAFE_INTEGER
+      ? Boolean(dismissedTimestamp)
+      : isValid(Number(dismissedTimestamp), expirationDays);
 
   const dismiss = useCallback(() => {
-    setDismissed(true);
-    localStorage.setItem(key, String(Date.now()));
-  }, [key]);
+    setDismissedTimestamp(Date.now().toString());
+  }, [setDismissedTimestamp]);
 
-  return {isDismissed, dismiss};
+  return {
+    isDismissed,
+    dismiss,
+  };
 }
 
 export default useDismissAlert;

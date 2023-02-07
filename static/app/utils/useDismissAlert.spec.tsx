@@ -1,11 +1,7 @@
-import TestRenderer from 'react-test-renderer';
-
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import localStorage from 'sentry/utils/localStorage';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
-
-const {act} = TestRenderer;
 
 jest.mock('sentry/utils/localStorage');
 jest.useFakeTimers();
@@ -43,14 +39,15 @@ describe('useDismissAlert', () => {
   it('should not be dismissed if there is no value in localstorage', () => {
     mockGetItem.mockReturnValue(null);
 
-    const {result} = reactHooks.renderHook(useDismissAlert, {
+    const hook = reactHooks.renderHook(useDismissAlert, {
       initialProps: {key},
     });
+    const {result} = hook;
 
     expect(result.current.isDismissed).toBeFalsy();
   });
 
-  it('should be dismissed if there is a value in localstorage', () => {
+  it('should be dismissed if there is any value in localstorage and no expiration', () => {
     mockGetItem.mockReturnValue('some value');
 
     const {result} = reactHooks.renderHook(useDismissAlert, {
@@ -65,11 +62,15 @@ describe('useDismissAlert', () => {
       initialProps: {key},
     });
 
-    act(() => {
+    reactHooks.act(() => {
       result.current.dismiss();
+      jest.runAllTicks();
     });
 
-    expect(mockSetItem).toHaveBeenCalledWith(key, String(now.getTime()));
+    expect(mockSetItem).toHaveBeenCalledWith(
+      key,
+      JSON.stringify(now.getTime().toString())
+    );
   });
 
   it('should be dismissed if the timestamp in localstorage is older than the expiration', () => {
@@ -77,8 +78,8 @@ describe('useDismissAlert', () => {
     jest.setSystemTime(today);
 
     // Dismissed on christmas
-    const christmas = new Date('2019-12-25').getTime();
-    mockGetItem.mockReturnValue(String(christmas));
+    const christmas = new Date('2019-12-25').getTime().toString();
+    mockGetItem.mockReturnValue(christmas);
 
     // Expires after 2 days
     const {result} = reactHooks.renderHook(useDismissAlert, {
@@ -91,8 +92,8 @@ describe('useDismissAlert', () => {
 
   it('should not be dismissed if the timestamp in localstorage is more recent than the expiration', () => {
     // Dismissed on christmas
-    const christmas = new Date('2019-12-25').getTime();
-    mockGetItem.mockReturnValue(String(christmas));
+    const christmas = new Date('2019-12-25').getTime().toString();
+    mockGetItem.mockReturnValue(christmas);
 
     // Expires after 30 days
     const {result} = reactHooks.renderHook(useDismissAlert, {
@@ -103,13 +104,13 @@ describe('useDismissAlert', () => {
     expect(result.current.isDismissed).toBeTruthy();
   });
 
-  it('should update the timestamp in localstorage if it not a number/timestamp', () => {
+  it('should not be dismissed if the value in localstorage is not a number/timestamp', () => {
     mockGetItem.mockReturnValue('foobar');
 
-    reactHooks.renderHook(useDismissAlert, {
+    const {result} = reactHooks.renderHook(useDismissAlert, {
       initialProps: {key, expirationDays: 30},
     });
 
-    expect(mockSetItem).toHaveBeenCalledWith(key, String(now.getTime()));
+    expect(result.current.isDismissed).toBeFalsy();
   });
 });
