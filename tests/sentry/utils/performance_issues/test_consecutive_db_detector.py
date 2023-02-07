@@ -159,22 +159,12 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_detects_consecutive_db_in_query_waterfall_event(self):
+    def test_does_not_detect_consecutive_db_in_query_waterfall_event(self):
         event = get_event("query-waterfall-in-django-random-view")
 
         problems = self.find_problems(event)
 
-        assert problems == [
-            PerformanceProblem(
-                fingerprint="1-1007-12c8e51ada0049de34d58cd14d13f073b8638259",
-                op="db",
-                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` ASC LIMIT 1",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-                parent_span_ids=None,
-                cause_span_ids=["abca1c35669c11f2", "a6e7c330f656df7f", "857ee9ba7db8cd31"],
-                offender_span_ids=["857ee9ba7db8cd31"],
-            )
-        ]
+        assert problems == []
 
     def test_does_not_detect_consecutive_db_with_low_time_saving(self):
         event = self.create_issue_event(10)
