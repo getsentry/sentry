@@ -15,10 +15,14 @@ EnabledField = serializers.BooleanField(required=False)
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
-    n_plus_one_db_detection_rate = RateField
-    n_plus_one_api_calls_detection_rate = RateField
-    consecutive_db_queries_detection_rate = RateField
-    uncompressed_assets_detection_enabled = EnabledField
+    n_plus_one_db_detection_rate = serializers.FloatField(required=False, min_value=0, max_value=1)
+    n_plus_one_api_calls_detection_rate = serializers.FloatField(
+        required=False, min_value=0, max_value=1
+    )
+    consecutive_db_queries_detection_rate = serializers.FloatField(
+        required=False, min_value=0, max_value=1
+    )
+    uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
 
 
 @region_silo_endpoint
