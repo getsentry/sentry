@@ -246,10 +246,26 @@ def is_integration_provider(provider):
 
 
 def get_emails_for_user_or_org(user, orgId):
+    from django.db.models import Q
+
+    from sentry.models import OrganizationMemberTeam, Team
+
     emails = []
     if user.is_sentry_app:
+        # get owner teams
+        owner_teams = Team.objects.filter(org_role="owner", organization_id=orgId)
+
+        # get owners from owner teams
+        owner_team_members = list(
+            OrganizationMemberTeam.objects.filter(
+                team_id__in=owner_teams,
+            ).values_list("organizationmember_id", flat=True)
+        )
+
         members = OrganizationMember.objects.filter(
-            organization_id=orgId, role="owner", user_id__isnull=False
+            Q(role="owner") | Q(id__in=owner_team_members),
+            organization_id=orgId,
+            user_id__isnull=False,
         ).select_related("user")
         for m in list(members):
             emails.append(m.user.email)
