@@ -149,7 +149,6 @@ describe('View Hierarchy', function () {
 
     expect(screen.getByTestId('view-hierarchy-wireframe')).toBeInTheDocument();
 
-    // mock the canvas fillRect method
     const canvas = screen.getByTestId(
       'view-hierarchy-wireframe-overlay'
     ) as HTMLCanvasElement;
