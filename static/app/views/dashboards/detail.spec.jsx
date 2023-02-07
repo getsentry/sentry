@@ -1409,7 +1409,7 @@ describe('Dashboards > Detail', function () {
       );
 
       userEvent.click(await screen.findByText('All Releases'));
-      userEvent.type(screen.getByText('Search\u2026'), 's');
+      userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
       await act(async () => {
         userEvent.click(await screen.findByText('search-result'));
       });
