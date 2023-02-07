@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   organization: Organization;
@@ -98,7 +98,9 @@ function DeletionPending({organization}: Props) {
   );
 }
 
-function OrganizationDetailsBody({children, organization}: Props) {
+function OrganizationDetailsBody({children}: Omit<Props, 'organization'>) {
+  const organization = useOrganization();
+
   const status = organization?.status?.id;
 
   if (status === 'pending_deletion') {
@@ -117,4 +119,4 @@ function OrganizationDetailsBody({children, organization}: Props) {
   );
 }
 
-export default withOrganization(OrganizationDetailsBody);
+export default OrganizationDetailsBody;
