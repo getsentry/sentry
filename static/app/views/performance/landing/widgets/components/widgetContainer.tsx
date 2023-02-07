@@ -5,8 +5,8 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import CompactSelect from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compositeSelect';
+import CompactSelect, {SelectOption} from 'sentry/components/compactSelect';
+import CompositeSelect from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
@@ -211,9 +211,7 @@ export const WidgetInteractiveTitle = ({
   rowChartSettings,
 }) => {
   const organization = useOrganization();
-  const menuOptions: React.ComponentProps<
-    typeof CompositeSelect
-  >['sections'][number]['options'] = [];
+  const menuOptions: SelectOption<string>[] = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
@@ -277,9 +275,7 @@ export const WidgetContainerActions = ({
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) => {
   const organization = useOrganization();
-  const menuOptions: React.ComponentProps<
-    typeof CompositeSelect
-  >['sections'][number]['options'] = [];
+  const menuOptions: SelectOption<PerformanceWidgetSetting>[] = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
@@ -303,24 +299,6 @@ export const WidgetContainerActions = ({
 
   return (
     <CompositeSelect
-      sections={
-        [
-          {
-            label: t('Display'),
-            options: menuOptions,
-            value: chartSetting,
-            onChange: setChartSetting,
-          },
-          chartDefinition.allowsOpenInDiscover
-            ? {
-                label: t('Other'),
-                options: [{label: t('Open in Discover'), value: 'open_in_discover'}],
-                value: '',
-                onChange: handleWidgetActionChange,
-              }
-            : null,
-        ].filter(Boolean) as React.ComponentProps<typeof CompositeSelect>['sections']
-      }
       trigger={triggerProps => (
         <DropdownButton
           {...triggerProps}
@@ -331,7 +309,22 @@ export const WidgetContainerActions = ({
         />
       )}
       position="bottom-end"
-    />
+    >
+      <CompositeSelect.Region
+        label={t('Display')}
+        options={menuOptions}
+        value={chartSetting}
+        onChange={setChartSetting}
+      />
+      {chartDefinition.allowsOpenInDiscover && (
+        <CompositeSelect.Region
+          label={t('Other')}
+          options={[{label: t('Open in Discover'), value: 'open_in_discover'}]}
+          value=""
+          onChange={handleWidgetActionChange}
+        />
+      )}
+    </CompositeSelect>
   );
 };
 
