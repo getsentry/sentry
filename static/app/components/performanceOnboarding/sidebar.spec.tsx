@@ -8,8 +8,8 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 
 import {generateDocKeys} from './utils';
 

@@ -26,7 +26,7 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
-import {OrganizationContext} from './organizationContext';
+import {OrganizationContext} from '../utils/organizationContext';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;

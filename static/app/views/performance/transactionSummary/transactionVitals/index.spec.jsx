@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
   VITAL_GROUPS,

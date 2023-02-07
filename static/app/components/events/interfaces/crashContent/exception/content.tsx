@@ -10,7 +10,7 @@ import {ExceptionType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import {Mechanism} from './mechanism';
 import {SetupSourceMapsAlert} from './setupSourceMapsAlert';

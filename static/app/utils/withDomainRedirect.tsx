@@ -5,11 +5,11 @@ import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Redirect from 'sentry/utils/redirect';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within

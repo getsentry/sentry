@@ -3,8 +3,8 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {RouteContext} from 'sentry/utils/routeContext';
 import useApiRequests from 'sentry/utils/useApiRequests';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useApiRequests', () => {
   afterEach(() => {

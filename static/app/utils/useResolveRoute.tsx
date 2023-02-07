@@ -2,7 +2,7 @@ import {useContext} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import shouldUseLegacyRoute from './shouldUseLegacyRoute';
 import {normalizeUrl} from './withDomainRequired';

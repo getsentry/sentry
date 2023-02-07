@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {RouteContext} from 'sentry/views/routeContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 
 export function useRouteContext() {
   const route = useContext(RouteContext);

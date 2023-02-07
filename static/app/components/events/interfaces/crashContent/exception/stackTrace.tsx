@@ -9,8 +9,8 @@ import {ExceptionValue, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import StackTraceContent from '../stackTrace/content';
 import StacktraceContentV2 from '../stackTrace/contentV2';

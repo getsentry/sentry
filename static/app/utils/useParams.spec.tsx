@@ -2,9 +2,9 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {RouteContext} from 'sentry/utils/routeContext';
 import {useParams} from 'sentry/utils/useParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();

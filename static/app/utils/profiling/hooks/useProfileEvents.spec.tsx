@@ -4,12 +4,12 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {
   EventsResults,
   formatSort,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();
 const client = new QueryClient();

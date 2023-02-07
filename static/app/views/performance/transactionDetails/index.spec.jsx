@@ -1,7 +1,7 @@
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import EventDetails from 'sentry/views/performance/transactionDetails';
 
 const alertText =

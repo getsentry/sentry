@@ -5,9 +5,9 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 

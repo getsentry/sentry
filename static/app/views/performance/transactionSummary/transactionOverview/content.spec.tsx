@@ -4,11 +4,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
-import {RouteContext} from 'sentry/views/routeContext';
 
 function initialize(project, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];

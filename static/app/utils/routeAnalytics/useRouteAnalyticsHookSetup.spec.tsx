@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import HookStore from 'sentry/stores/hookStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 import useRouteAnalyticsHookSetup from './useRouteAnalyticsHookSetup';

@@ -5,7 +5,7 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import TextField from 'sentry/components/forms/fields/textField';
 import GlobalModal from 'sentry/components/globalModal';
 import IndicatorContainer from 'sentry/components/indicators';
-import {RouteContext} from 'sentry/views/routeContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 
 export default {
   title: 'Components/Feature Feedback',

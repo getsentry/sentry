@@ -6,7 +6,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import Dashboard from 'sentry/views/dashboards/dashboard';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from '../../utils/organizationContext';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({

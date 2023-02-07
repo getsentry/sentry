@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {RouteContext} from 'sentry/views/routeContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {

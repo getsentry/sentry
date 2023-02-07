@@ -11,8 +11,8 @@ import {
   MEPSetting,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {RouteContext} from 'sentry/utils/routeContext';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
   TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),

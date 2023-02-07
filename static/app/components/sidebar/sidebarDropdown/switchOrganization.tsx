@@ -10,9 +10,9 @@ import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import Divider from './divider.styled';
 

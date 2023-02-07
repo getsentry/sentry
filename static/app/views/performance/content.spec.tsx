@@ -8,11 +8,11 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const FEATURES = ['performance-view'];
 

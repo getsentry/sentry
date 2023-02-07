@@ -3,8 +3,8 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import SamplingModal from 'sentry/views/performance/landing/samplingModal';
 
 const initializeData = () => {

@@ -3,10 +3,10 @@ import {Fragment} from 'react';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';

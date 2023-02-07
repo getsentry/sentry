@@ -5,8 +5,8 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 

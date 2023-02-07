@@ -3,8 +3,8 @@ import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor} from 'history';
 
+import {RouteContext} from 'sentry/utils/routeContext';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {linkStyles} from './styles';
 

@@ -10,9 +10,9 @@ import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import useApi from '../useApi';
 

@@ -2,8 +2,8 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import {RouteContext} from 'sentry/utils/routeContext';
 import useRouter from 'sentry/utils/useRouter';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useRouter', () => {
   it('returns the current router object', function () {

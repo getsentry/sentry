@@ -9,7 +9,7 @@ import {
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
-import {RouteContext} from 'sentry/views/routeContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 
 function ComponentProviders({children}: {children: React.ReactNode}) {
   const {router} = initializeOrg();

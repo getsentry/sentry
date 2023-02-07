@@ -11,7 +11,7 @@ import {
   PersistedStoreProvider,
   usePersistedStoreCategory,
 } from 'sentry/stores/persistedStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 describe('PersistedStore', function () {
   let org, wrapper;

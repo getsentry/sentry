@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 import ProfileGroupProvider from 'sentry/views/profiling/profilesProvider';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const FlamegraphContainer = styled('div')`
   display: flex;

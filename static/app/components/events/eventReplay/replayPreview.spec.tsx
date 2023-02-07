@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 
 import ReplayPreview from './replayPreview';
 

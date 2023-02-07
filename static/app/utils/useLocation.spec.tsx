@@ -2,8 +2,8 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import {RouteContext} from 'sentry/utils/routeContext';
 import {useLocation} from 'sentry/utils/useLocation';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useLocation', () => {
   it('returns the current location object', function () {

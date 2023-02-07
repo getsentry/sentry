@@ -12,10 +12,10 @@ import {
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/components/charts/worldMapChart', () => ({
   WorldMapChart: () => null,

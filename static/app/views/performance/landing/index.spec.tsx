@@ -13,8 +13,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';

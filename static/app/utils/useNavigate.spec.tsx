@@ -3,8 +3,8 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import {RouteContext} from 'sentry/utils/routeContext';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useNavigate', () => {
   const initialData = window.__initialData;

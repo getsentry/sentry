@@ -6,9 +6,9 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
-import {RouteContext} from 'sentry/views/routeContext';
 
 type InitializeOrgProps = {
   location?: {

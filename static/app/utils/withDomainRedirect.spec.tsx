@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 

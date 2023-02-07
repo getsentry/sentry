@@ -6,8 +6,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 

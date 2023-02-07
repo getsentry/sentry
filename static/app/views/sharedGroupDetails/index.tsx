@@ -16,7 +16,7 @@ import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from '../../utils/organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 

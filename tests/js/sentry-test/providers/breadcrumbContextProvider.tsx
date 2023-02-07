@@ -1,6 +1,6 @@
 import {InjectedRouter, PlainRoute} from 'react-router';
 
-import {RouteContext} from 'sentry/views/routeContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 
 export function BreadcrumbContextProvider({

@@ -10,7 +10,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from 'sentry/utils/queryClient';
-import {RouteContext} from 'sentry/views/routeContext';
+import {RouteContext} from 'sentry/utils/routeContext';
 
 import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
 /**

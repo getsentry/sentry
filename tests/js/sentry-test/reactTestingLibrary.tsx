@@ -10,10 +10,10 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {RouteContext} from 'sentry/utils/routeContext';
 import {lightTheme} from 'sentry/utils/theme';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 

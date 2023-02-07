@@ -7,7 +7,7 @@ import {
   isPlatformSupported,
 } from 'sentry/components/performanceOnboarding/utils';
 import {PlatformIntegration} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 describe('useOnboardingDocs', function () {
   it('fetches onboarding documentation steps', async function () {
