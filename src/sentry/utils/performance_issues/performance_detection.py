@@ -24,8 +24,8 @@ from .base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     PerformanceDetector,
-    fingerprint_span,
     fingerprint_resource_span,
+    fingerprint_span,
     fingerprint_spans,
     get_span_duration,
 )
