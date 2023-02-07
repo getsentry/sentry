@@ -135,7 +135,7 @@ function TagFacetsDistributionMeter({
           };
           return (
             <div
-              key={value.value}
+              key={value.isOther ? 'other' : `segment-${value.value}`}
               style={{width: pct + '%'}}
               onMouseOver={() => {
                 setHoveredValue(value);
