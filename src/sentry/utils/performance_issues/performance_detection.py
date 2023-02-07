@@ -514,7 +514,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     def _fingerprint(self, span: Span):
         resource_url_hash = fingerprint_resource_span(span)
-        return f"1-{PerformanceRenderBlockingAssetSpanGroupType}-{resource_url_hash}"
+        return f"1-{PerformanceRenderBlockingAssetSpanGroupType.type_id}-{resource_url_hash}"
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
@@ -675,7 +675,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         hashed_spans = fingerprint_spans(
             [self.consecutive_db_spans[prior_span_index]] + self.independent_db_spans
         )
-        return f"1-{PerformanceConsecutiveDBQueriesGroupType}-{hashed_spans}"
+        return f"1-{PerformanceConsecutiveDBQueriesGroupType.type_id}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
