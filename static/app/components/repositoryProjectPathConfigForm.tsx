@@ -59,6 +59,7 @@ function RepositoryProjectPathConfigForm({
       onChange: (id: string) => {
         const repo = repos.find(r => r.id === id);
         if (repo?.defaultBranch) {
+          // Automatically switch to the default branch for the repo
           formRef.current.setValue('defaultBranch', repo.defaultBranch);
         }
       },
