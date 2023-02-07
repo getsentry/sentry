@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
-from urllib.parse import urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
@@ -26,6 +25,7 @@ from .base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_span,
+    fingerprint_resource_span,
     fingerprint_spans,
     get_span_duration,
 )
@@ -510,30 +510,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         return span_duration / self.fcp > fcp_ratio_threshold
 
     def _fingerprint(self, span: Span):
-        url_hash = self._url_hash(span)
-        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{url_hash}"
-
-    # Finds dash-separated UUIDs. (Without dashes will be caught by
-    # ASSET_HASH_REGEX).
-    UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
-    # Preserves filename in e.g. main.[hash].js, but includes number when chunks
-    # are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
-    CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
-    # Finds trailing hashes before the final extension.
-    TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
-    # Looks for anything hex hash-like, but with a larger min size than the
-    # above to limit false positives.
-    ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
-
-    def _url_hash(self, span: Span) -> str:
-        url = urlparse(span.get("description") or "")
-        path = url.path
-        path = self.UUID_REGEX.sub("*", path)
-        path = self.CHUNK_HASH_REGEX.sub(".*.chunk", path)
-        path = self.TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
-        path = self.ASSET_HASH_REGEX.sub("*", path)
-        stripped_url = url._replace(path=path, query="").geturl()
-        return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
+        resource_url_hash = fingerprint_resource_span(span)
+        return f"1-{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-{resource_url_hash}"
 
 
 class ConsecutiveDBSpanDetector(PerformanceDetector):
