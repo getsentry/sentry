@@ -1,6 +1,7 @@
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {Event, Group, IssueCategory} from 'sentry/types';
+import {Event, Group} from 'sentry/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 
 type EvidenceProps = {event: Event; group?: Group};
 
@@ -13,7 +14,7 @@ type EvidenceProps = {event: Event; group?: Group};
 export const EventEvidence = ({event, group}: EvidenceProps) => {
   const evidenceDisplay = event.occurrence?.evidenceDisplay;
 
-  if (!evidenceDisplay?.length || group?.issueCategory === IssueCategory.PERFORMANCE) {
+  if (!group || !evidenceDisplay?.length || !getConfigForIssueType(group).evidence) {
     return null;
   }
 

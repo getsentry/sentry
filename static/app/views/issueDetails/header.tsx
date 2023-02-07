@@ -28,7 +28,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
-import {getIssueCapability} from 'sentry/utils/groupCapabilities';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -74,6 +74,8 @@ function GroupHeaderTabs({
   const hasSessionReplay =
     organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
 
+  const issueTypeConfig = getConfigForIssueType(group);
+
   return (
     <StyledTabList hideBorder>
       <Item
@@ -98,7 +100,7 @@ function GroupHeaderTabs({
       <Item
         key={Tab.USER_FEEDBACK}
         textValue={t('User Feedback')}
-        hidden={!getIssueCapability(group.issueCategory, 'userFeedback').enabled}
+        hidden={!issueTypeConfig.userFeedback.enabled}
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
         to={`${baseUrl}feedback/${location.search}`}
       >
@@ -106,10 +108,7 @@ function GroupHeaderTabs({
       </Item>
       <Item
         key={Tab.ATTACHMENTS}
-        hidden={
-          !hasEventAttachments ||
-          !getIssueCapability(group.issueCategory, 'attachments').enabled
-        }
+        hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
         disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
         to={`${baseUrl}attachments/${location.search}`}
       >
@@ -127,7 +126,7 @@ function GroupHeaderTabs({
       </Item>
       <Item
         key={Tab.MERGED}
-        hidden={!getIssueCapability(group.issueCategory, 'mergedIssues').enabled}
+        hidden={!issueTypeConfig.mergedIssues.enabled}
         disabled={disabledTabs.includes(Tab.MERGED)}
         to={`${baseUrl}merged/${location.search}`}
       >
@@ -135,10 +134,7 @@ function GroupHeaderTabs({
       </Item>
       <Item
         key={Tab.GROUPING}
-        hidden={
-          !hasGroupingTreeUI ||
-          !getIssueCapability(group.issueCategory, 'grouping').enabled
-        }
+        hidden={!hasGroupingTreeUI || !issueTypeConfig.grouping.enabled}
         disabled={disabledTabs.includes(Tab.GROUPING)}
         to={`${baseUrl}grouping/${location.search}`}
       >
@@ -146,10 +142,7 @@ function GroupHeaderTabs({
       </Item>
       <Item
         key={Tab.SIMILAR_ISSUES}
-        hidden={
-          !hasSimilarView ||
-          !getIssueCapability(group.issueCategory, 'similarIssues').enabled
-        }
+        hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
         to={`${baseUrl}similar/${location.search}`}
       >
@@ -158,9 +151,7 @@ function GroupHeaderTabs({
       <Item
         key={Tab.REPLAYS}
         textValue={t('Replays')}
-        hidden={
-          !hasSessionReplay || !getIssueCapability(group.issueCategory, 'replays').enabled
-        }
+        hidden={!hasSessionReplay || !issueTypeConfig.replays.enabled}
         to={`${baseUrl}replays/${location.search}`}
       >
         {t('Replays')}
