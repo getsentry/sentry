@@ -18,7 +18,7 @@ describe('CompactSelect', function () {
   it('renders disabled', function () {
     render(
       <CompactSelect
-        isDisabled
+        disabled
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -61,7 +61,7 @@ describe('CompactSelect', function () {
     userEvent.click(screen.getByRole('button'));
 
     // select Option One
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Option One'}));
+    userEvent.click(screen.getByRole('option', {name: 'Option One'}));
 
     expect(mock).toHaveBeenCalledWith({value: 'opt_one', label: 'Option One'});
     expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
@@ -84,8 +84,8 @@ describe('CompactSelect', function () {
     userEvent.click(screen.getByRole('button'));
 
     // select Option One & Option Two
-    userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Option One'}));
-    userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Option Two'}));
+    userEvent.click(screen.getByRole('option', {name: 'Option One'}));
+    userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
 
     expect(mock).toHaveBeenCalledWith([
       {value: 'opt_one', label: 'Option One'},
@@ -124,14 +124,12 @@ describe('CompactSelect', function () {
     userEvent.click(screen.getByRole('button'));
 
     // type 'Two' into the search box
-    userEvent.click(screen.getByText('Search here…'));
+    userEvent.click(screen.getByPlaceholderText('Search here…'));
     userEvent.keyboard('Two');
 
     // only Option Two should be available, Option One should be filtered out
-    expect(screen.getByRole('menuitemradio', {name: 'Option Two'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Option One'})
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
   });
 
   it('triggers onClose when the menu is closed if provided', function () {
@@ -153,7 +151,7 @@ describe('CompactSelect', function () {
     expect(onCloseMock).not.toHaveBeenCalled();
 
     // close the menu
-    userEvent.keyboard('{esc}');
+    userEvent.click(document.body);
     expect(onCloseMock).toHaveBeenCalled();
   });
 });

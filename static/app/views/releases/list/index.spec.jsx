@@ -392,8 +392,8 @@ describe('ReleasesList', () => {
     userEvent.click(statusTriggerButton);
 
     // Expect to have 2 options in the status dropdown
-    const statusActiveOption = screen.getByText('Active');
-    let statusArchivedOption = screen.getAllByText('Archived')[1];
+    const statusActiveOption = screen.getByRole('option', {name: 'Active'});
+    let statusArchivedOption = screen.getByRole('option', {name: 'Archived'});
     expect(statusActiveOption).toBeInTheDocument();
     expect(statusArchivedOption).toBeInTheDocument();
 
@@ -405,7 +405,7 @@ describe('ReleasesList', () => {
     });
 
     userEvent.click(statusTriggerButton);
-    statusArchivedOption = screen.getAllByText('Archived')[1];
+    statusArchivedOption = screen.getByRole('option', {name: 'Archived'});
     userEvent.click(statusArchivedOption);
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({

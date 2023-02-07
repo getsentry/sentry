@@ -69,7 +69,7 @@ describe('Discover > ResultsChart', function () {
           DisplayModes.BAR,
         ].includes(value as DisplayModes)
       ) {
-        expect(screen.getByRole('menuitemradio', {name: String(label)})).toBeEnabled();
+        expect(screen.getByRole('option', {name: String(label)})).toBeEnabled();
       }
     });
   });
@@ -127,11 +127,9 @@ describe('Discover > ResultsChart', function () {
 
     userEvent.click(await screen.findByText(/Y-Axis/));
 
-    expect(screen.getAllByRole('menuitemcheckbox')).toHaveLength(2);
+    expect(screen.getAllByRole('option')).toHaveLength(2);
 
-    expect(screen.getByRole('menuitemcheckbox', {name: 'count()'})).toBeEnabled();
-    expect(
-      screen.getByRole('menuitemcheckbox', {name: 'count_unique(user)'})
-    ).toBeEnabled();
+    expect(screen.getByRole('option', {name: 'count()'})).toBeEnabled();
+    expect(screen.getByRole('option', {name: 'count_unique(user)'})).toBeEnabled();
   });
 });

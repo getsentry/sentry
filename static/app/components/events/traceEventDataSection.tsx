@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compositeSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
@@ -238,28 +237,19 @@ export function TraceEventDataSection({
                 value: value as keyof typeof sortByOptions,
               }))}
             />
-            <CompositeSelect
+            <CompactSelect
               triggerProps={{
                 icon: <IconEllipsis size="xs" />,
                 size: 'xs',
                 showChevron: false,
                 'aria-label': t('Options'),
               }}
+              multiple
               triggerLabel=""
               position="bottom-end"
-              sections={[
-                {
-                  label: t('Display'),
-                  value: 'display',
-                  defaultValue: state.display,
-                  multiple: true,
-                  options: getDisplayOptions().map(option => ({
-                    ...option,
-                    value: String(option.value),
-                  })),
-                  onChange: display => setState({...state, display}),
-                },
-              ]}
+              value={state.display}
+              onChange={opts => setState({...state, display: opts.map(opt => opt.value)})}
+              options={[{label: t('Display'), options: getDisplayOptions()}]}
             />
           </ButtonBar>
         )

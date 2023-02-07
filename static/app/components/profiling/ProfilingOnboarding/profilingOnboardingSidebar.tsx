@@ -83,11 +83,10 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   }, [pageFilters.selection.projects, supportedProjects, unsupportedProjects]);
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<Project>[] = supportedProjects.map(
+    const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
       project => {
         return {
-          key: project.id,
-          value: project,
+          value: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),
@@ -95,11 +94,10 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       }
     );
 
-    const unsupportedProjectItems: SelectValue<Project>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
       project => {
         return {
-          key: project.id,
-          value: project,
+          value: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),
@@ -111,12 +109,10 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       {
         label: t('Supported'),
         options: supportedProjectItems,
-        value: {} as any,
       },
       {
         label: t('Unsupported'),
         options: unsupportedProjectItems,
-        value: {},
       },
     ];
   }, [supportedProjects, unsupportedProjects]);
@@ -161,7 +157,8 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
                 t('Select a project')
               )
             }
-            onChange={option => setCurrentProject(option.value)}
+            value={currentProject?.id}
+            onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
             triggerProps={{'aria-label': currentProject?.slug}}
             options={projectSelectOptions}
             position="bottom-end"
