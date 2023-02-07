@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import IntegrationRow from 'sentry/views/organizationIntegrations/integrationRow';
+import IntegrationRow from 'sentry/views/settings/organizationIntegrations/integrationRow';
 
 describe('IntegrationRow', function () {
   const {organization: org, routerContext} = initializeOrg();

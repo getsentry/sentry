@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
+import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function () {
   const org = TestStubs.Organization();

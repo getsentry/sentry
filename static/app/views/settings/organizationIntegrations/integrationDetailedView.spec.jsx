@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import IntegrationDetailedView from 'sentry/views/organizationIntegrations/integrationDetailedView';
+import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>

@@ -14,7 +14,7 @@ import {
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
-import ExampleIntegrationButton from 'sentry/views/organizationIntegrations/exampleIntegrationButton';
+import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 export type CreateNewIntegrationModalOptions = {organization: Organization};
 type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRenderProps;

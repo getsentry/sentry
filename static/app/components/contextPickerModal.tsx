@@ -19,7 +19,7 @@ import space from 'sentry/styles/space';
 import {Integration, Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
+import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type Props = ModalRenderProps & {
   integrationConfigs: Integration[];
