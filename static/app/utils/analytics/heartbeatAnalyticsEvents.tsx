@@ -32,7 +32,7 @@ export const heartbeatEventMap: Record<keyof HeartbeatEventParameters, string> =
   'heartbeat.onboarding_go_to_my_error_button_clicked':
     'Heartbeat: Onboarding Go My Error Button Clicked',
   'heartbeat.onboarding_go_to_performance_button_clicked':
-    'Heartbeat: Onboarding Go Performance Button Clicked',
+    'Heartbeat: Onboarding Go To Performance Button Clicked',
   'heartbeat.onboarding_session_received': 'Heartbeat: Onboarding Session Received',
   'heartbeat.onboarding_back_button_clicked': 'Heartbeat: Onboarding Back Button Clicked',
 };
