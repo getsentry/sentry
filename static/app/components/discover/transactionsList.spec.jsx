@@ -216,7 +216,7 @@ describe('TransactionsList', function () {
       expect(filterDropdown).toBeInTheDocument();
       userEvent.click(filterDropdown);
 
-      const menuOptions = await screen.findAllByRole('menuitemradio');
+      const menuOptions = await screen.findAllByRole('option');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Transactions',
         'Failing Transactions',
@@ -342,7 +342,7 @@ describe('TransactionsList', function () {
       expect(filterDropdown).toBeInTheDocument();
       userEvent.click(filterDropdown);
 
-      const menuOptions = await screen.findAllByRole('menuitemradio');
+      const menuOptions = await screen.findAllByRole('option');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Transactions',
         'Failing Transactions',

@@ -4,7 +4,7 @@ export enum GPUKnownDataType {
   VERSION = 'version',
   VENDOR_NAME = 'vendor_name',
   VENDOR_ID = 'vendor_id',
-  MEMORY = 'memory',
+  MEMORY_SIZE = 'memory_size',
   NPOT_SUPPORT = 'npot_support',
   MULTI_THREAD_RENDERING = 'multi_threaded_rendering',
   API_TYPE = 'api_type',
