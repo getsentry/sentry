@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Iterable, MutableMapping
+from typing import TYPE_CHECKING, Iterable, MutableMapping, Sequence
 
-from sentry import roles
 from sentry.models import OrganizationMember
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
@@ -13,6 +12,7 @@ if TYPE_CHECKING:
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
+    member_role_by_user_id: MutableMapping[int, str] = {}
 
     def __init__(self, organization: Organization):
         self.organization = organization
@@ -33,6 +33,20 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         """
         self.member_by_user_id[member.user_id] = member
 
+    def get_member_role(self, user: APIUser) -> str:
+        # cache the result
+        if user.class_name() != "User":
+            raise OrganizationMember.DoesNotExist()
+        if user.id not in self.member_role_by_user_id:
+            self.member_role_by_user_id[user.id] = OrganizationMember.objects.get(
+                user_id=user.id, organization=self.organization
+            ).role
+        return self.member_role_by_user_id[user.id]
+
+    def set_members_roles_in_cache(self, members: Sequence[OrganizationMember], role: str) -> None:
+        for member in members:
+            self.member_role_by_user_id[member.id] = role
+
     def determine_recipients(
         self,
     ) -> Iterable[RpcUser]:
@@ -51,15 +65,11 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def get_role_string(self, member: OrganizationMember) -> str:
-        role_string: str = roles.get(member.role).name
-        return role_string
-
     def build_notification_footer_from_settings_url(
         self, settings_url: str, recipient: User
     ) -> str:
-        recipient_member = self.get_member(recipient)
+        role = self.get_member_role(recipient)
         return (
             "You are receiving this notification because you're listed as an organization "
-            f"{self.get_role_string(recipient_member)} | {settings_url}"
+            f"{role} | {settings_url}"
         )
