@@ -251,11 +251,17 @@ function NativeFrame({
           <PackageCell>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
-                {!nextFrame ? t('Crashed in Non-App') : t('Called from')}
+                {!nextFrame ? (
+                  <PackageNote>{t('Crashed in Non-App')}</PackageNote>
+                ) : (
+                  <PackageNote>{t('Called from')}</PackageNote>
+                )}
               </Fragment>
             )}
             <Tooltip
               title={frame.package ?? t('Go to images loaded')}
+              position="bottom"
+              containerDisplayMode="inline-flex"
               delay={tooltipDelay}
             >
               <Package>
@@ -283,7 +289,6 @@ function NativeFrame({
                 title={frame.absPath}
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
-                containerDisplayMode="inline-flex"
               >
                 <FileName>
                   {'('}
@@ -296,10 +301,7 @@ function NativeFrame({
           </FunctionNameCell>
           <GroupingCell>
             {isUsedForGrouping && (
-              <Tooltip
-                title={t('This frame is repeated in every event of this issue')}
-                containerDisplayMode="inline-flex"
-              >
+              <Tooltip title={t('This frame is repeated in every event of this issue')}>
                 <IconRepeat size="sm" color="textColor" />
               </Tooltip>
             )}
@@ -350,10 +352,7 @@ function NativeFrame({
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
-const Cell = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
+const Cell = styled('div')``;
 
 const StatusCell = styled(Cell)``;
 
@@ -366,6 +365,7 @@ const AddressCell = styled(Cell)`
 
 const FunctionNameCell = styled(Cell)`
   font-family: ${p => p.theme.text.familyMono};
+  word-break: break-all;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/6;
@@ -403,12 +403,16 @@ const Registers = styled(Context)`
   margin: 0;
 `;
 
+const PackageNote = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+`;
+
 const Package = styled('span')`
-  display: block;
-  width: 100%;
   white-space: nowrap;
-  text-overflow: ellipsis;
   overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 `;
 
 const FileName = styled('span')`
@@ -425,6 +429,7 @@ const RowHeader = styled('span')`
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;
   grid-template-rows: repeat(2, auto);
   align-items: center;
+  align-content: center;
   grid-column-gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.bodyBackground};
@@ -432,9 +437,9 @@ const RowHeader = styled('span')`
   padding: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 140px 120px 1fr auto auto 16px;
+    grid-template-columns: auto 150px 120px 4fr auto auto 16px;
+    padding: ${space(1)} ${space(1.5)};
     min-height: 32px;
-    padding: ${space(0.5)} ${space(1.5)};
   }
 `;
 
