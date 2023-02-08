@@ -13,9 +13,9 @@ def detect_sdk_crash(data: Event):
     return
 
 
-def is_sdk_crash(frames: Sequence[Mapping[str, Any]]) -> bool:
+def is_cocoa_sdk_crash(frames: Sequence[Mapping[str, Any]]) -> bool:
     """
-    Returns true if the stacktrace is a SDK crash.
+    Returns true if the stacktrace is a Cocoa SDK crash.
 
     :param frames: The stacktrace frames ordered from newest to oldest.
     """

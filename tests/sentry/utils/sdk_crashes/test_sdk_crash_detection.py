@@ -2,7 +2,7 @@ from typing import Any, Mapping
 
 import pytest
 
-from sentry.utils.sdk_crashes.sdk_crash_detection import is_sdk_crash
+from sentry.utils.sdk_crashes.sdk_crash_detection import is_cocoa_sdk_crash
 
 in_app_frame = {
     "function": "LoginViewController.viewDidAppear",
@@ -33,7 +33,7 @@ in_app_frame = {
         ("+[SentrySDK crash]", False),
     ],
 )
-def test_sdk_crash_detection(function, expected):
+def test_cocoa_sdk_crash_detection(function, expected):
     frames = [
         create_sentry_frame(function),
         {
@@ -77,10 +77,10 @@ def test_sdk_crash_detection(function, expected):
         },
     ]
 
-    assert is_sdk_crash(frames) is expected
+    assert is_cocoa_sdk_crash(frames) is expected
 
 
-def test_is_sdk_crash_only_non_inapp_after_sentry_frame():
+def test_is_cocoa_sdk_crash_only_non_inapp_after_sentry_frame():
     frames = [
         {
             "function": "__handleUncaughtException",
@@ -103,10 +103,10 @@ def test_is_sdk_crash_only_non_inapp_after_sentry_frame():
         },
     ]
 
-    assert is_sdk_crash(frames) is True
+    assert is_cocoa_sdk_crash(frames) is True
 
 
-def test_is_sdk_crash_only_inapp_after_sentry_frame():
+def test_is_cocoa_sdk_crash_only_inapp_after_sentry_frame():
     frames = [
         in_app_frame,
         {
@@ -130,7 +130,7 @@ def test_is_sdk_crash_only_inapp_after_sentry_frame():
         },
     ]
 
-    assert is_sdk_crash(frames) is False
+    assert is_cocoa_sdk_crash(frames) is False
 
 
 @pytest.mark.parametrize(
@@ -141,7 +141,7 @@ def test_is_sdk_crash_only_inapp_after_sentry_frame():
         ("SentrMonitor_CPPException.cpp", False),
     ],
 )
-def test_is_sdk_crash_filename(filename, expected):
+def test_is_cocoa_sdk_crash_filename(filename, expected):
     frames = [
         {
             "function": "__handleUncaughtException",
@@ -171,19 +171,19 @@ def test_is_sdk_crash_filename(filename, expected):
         },
     ]
 
-    assert is_sdk_crash(frames) is expected
+    assert is_cocoa_sdk_crash(frames) is expected
 
 
-def test_is_sdk_crash_no_frames():
-    assert is_sdk_crash([]) is False
+def test_is_cocoa_sdk_crash_no_frames():
+    assert is_cocoa_sdk_crash([]) is False
 
 
-def test_is_sdk_crash_empty_frames():
-    assert is_sdk_crash([{"empty": "frame"}]) is False
+def test_is_cocoa_sdk_crash_empty_frames():
+    assert is_cocoa_sdk_crash([{"empty": "frame"}]) is False
 
 
-def test_is_sdk_crash_single_frame():
-    assert is_sdk_crash([create_sentry_frame("-[Sentry]")]) is True
+def test_is_cocoa_sdk_crash_single_frame():
+    assert is_cocoa_sdk_crash([create_sentry_frame("-[Sentry]")]) is True
 
 
 def create_sentry_frame(function) -> Mapping[str, Any]:
