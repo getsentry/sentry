@@ -48,7 +48,12 @@ export function GapSpanDetails({
 
   // we want to try to go straight to the same config view as the preview
   const query = canvasView?.configView
-    ? {fov: Rect.encode(canvasView.configView)}
+    ? {
+        fov: Rect.encode(canvasView.configView),
+        // force the x axis to align with the profile in case
+        // the user set it to transaction
+        xAxis: 'profile',
+      }
     : undefined;
 
   const target = generateProfileFlamechartRouteWithQuery({
