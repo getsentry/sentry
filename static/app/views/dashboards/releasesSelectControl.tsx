@@ -57,7 +57,7 @@ function ReleasesSelectControl({
       multiple
       clearable
       searchable
-      isDisabled={isDisabled}
+      disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
