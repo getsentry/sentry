@@ -449,6 +449,20 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(query=f"project:{project.slug}")
         assert len(response.data) == 1
 
+    def test_project_negation_invalid(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.min_ago),
+                "environment": "production",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query="!project:invalid-project")
+        assert len(response.data) == 1
+
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
