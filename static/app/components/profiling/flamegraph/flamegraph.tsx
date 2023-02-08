@@ -394,10 +394,7 @@ function Flamegraph(): ReactElement {
         minWidth: uiFrames.minFrameDuration,
         barHeight: 10,
         depthOffset: 0,
-        configSpaceTransform:
-          xAxis === 'transaction'
-            ? new Rect(-flamegraph.profile.startedAt, 0, 0, 0)
-            : undefined,
+        configSpaceTransform: xAxis === 'transaction' ? new Rect(0, 0, 0, 0) : undefined,
       },
     });
 

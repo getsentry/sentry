@@ -57,6 +57,7 @@ export function FlamegraphPreview({
     const canvasView = new CanvasView({
       canvas: flamegraphCanvas,
       model: flamegraph,
+      modelConfigSpace: flamegraph.configSpace,
       options: {barHeight: flamegraphTheme.SIZES.BAR_HEIGHT},
       mode: 'anchorBottom',
     });
