@@ -2298,7 +2298,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     for new_grouphash in new_grouphashes:
                         group_type = performance_problems_by_hash[new_grouphash].type
-                        if not should_create_group(client, new_grouphash, group_type):
+                        if not should_create_group(client, new_grouphash, group_type, project):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2411,8 +2411,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
-    times_seen = client.incr(f"grouphash:{grouphash}")
+def should_create_group(client: Any, grouphash: str, type: GroupType, project: Project) -> bool:
+    times_seen = client.incr(f"grouphash:{grouphash}:{project.id}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
         tags={
