@@ -332,4 +332,55 @@ describe('SentrySampledProfile', () => {
       )
     ).toThrow(new TypeError('startedAt or endedAt is NaN'));
   });
+
+  it('flamegraph tracks node occurences', () => {
+    const sampledProfile = makeSentrySampledProfile({
+      transactions: [
+        {
+          id: '',
+          name: 'foo',
+          active_thread_id: '1',
+          relative_start_ns: '0',
+          relative_end_ns: '1000000',
+          trace_id: '1',
+        },
+      ],
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: '1000',
+            thread_id: '0',
+          },
+          {
+            stack_id: 1,
+            elapsed_since_start_ns: '2000',
+            thread_id: '0',
+          },
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: '3000',
+            thread_id: '0',
+          },
+        ],
+        thread_metadata: {
+          '0': {
+            name: 'bar',
+          },
+        },
+        // Frame 0 occurs 3 times, frame 1 occurs once
+        stacks: [[0], [1, 0], [0]],
+        frames: [{function: 'f0'}, {function: 'f1'}, {function: '2'}],
+      },
+    });
+
+    const profile = SentrySampledProfile.FromProfile(
+      sampledProfile,
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamegraph'}
+    );
+
+    expect(profile.callTree.children[0].count).toBe(3);
+    expect(profile.callTree.children[0].children[0].count).toBe(1);
+  });
 });
