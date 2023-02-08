@@ -3,7 +3,6 @@ import logging
 import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Sequence
-from unittest import mock
 
 import pytest
 
