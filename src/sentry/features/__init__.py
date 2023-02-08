@@ -124,6 +124,7 @@ default_manager.add("organizations:performance-transaction-name-only-search", Or
 default_manager.add("organizations:performance-transaction-name-only-search-indexed", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-vitals-inp", OrganizationFeature, True)
+default_manager.add("organizations:performance-landing-page-stats-period", OrganizationFeature, True)
 default_manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, True)
 default_manager.add("organizations:performance-mep-reintroduce-histograms", OrganizationFeature, True)
 default_manager.add("organizations:performance-new-widget-designs", OrganizationFeature, True)

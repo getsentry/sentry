@@ -1159,6 +1159,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enables a longer stats period for the performance landing page
+    "organizations:performance-landing-page-stats-period": False,
     # Enable internal view for bannerless MEP view
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
