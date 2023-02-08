@@ -175,7 +175,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     params={
                         "organization_id": organization_id,
                         "project_id": project_ids,
-                        "environment_id": environments,
+                        "environment": environments,
                     },
                 )
 
