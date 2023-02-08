@@ -137,7 +137,7 @@ export function ProfileDetailsTable() {
           triggerProps={{
             prefix: t('View'),
           }}
-          placement="bottom right"
+          position="bottom-end"
           onChange={option => {
             setSearchQuery('');
             setPaginationCursor(undefined);
@@ -166,7 +166,7 @@ export function ProfileDetailsTable() {
           }}
           multiple
           onChange={columnFilters.type.onChange}
-          placement="bottom right"
+          position="bottom-end"
         />
         <CompactSelect
           options={columnFilters.image.values.map(value => ({value, label: value}))}
@@ -183,7 +183,7 @@ export function ProfileDetailsTable() {
           }}
           multiple
           onChange={columnFilters.image.onChange}
-          placement="bottom right"
+          position="bottom-end"
           searchable
         />
       </ActionBar>
