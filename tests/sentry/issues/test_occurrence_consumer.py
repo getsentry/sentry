@@ -157,10 +157,10 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         message["event"]["tags"]["nan-tag"] = float("nan")
         self.run_test(message)
 
-    @mock.patch("sentry.issues.occurrence_consumer.logger")
-    def test_project_ids_mismatch(self, mock_logger):
+    def test_project_ids_mismatch(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         message["project_id"] = 1
         message["event"]["project_id"] = 2
-        assert _get_kwargs(message) is None
-        assert mock_logger.exception.call_count == 1
+        with mock.patch("sentry.issues.occurrence_consumer.logger") as mock_logger:
+            assert _get_kwargs(message) is None
+            assert mock_logger.exception.call_count == 1
