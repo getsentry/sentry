@@ -85,11 +85,11 @@ def clear_transaction_names(project: Project) -> None:
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
     transaction_name = event_data.get("transaction")
 
-    if transaction_name and features.has(
-        "organizations:transaction-name-clusterer", project.organization
+    if (
+        transaction_name
+        and features.has("organizations:transaction-name-clusterer", project.organization)
+        and _must_store_event(event_data)
     ):
-        if not _must_store_event(event_data):
-            return
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
 
         # TODO: For every transaction that had a rule applied to it, we should
