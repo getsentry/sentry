@@ -2,7 +2,7 @@ import {ReactElement, useEffect} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
+import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const project = TestStubs.Project();
