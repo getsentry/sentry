@@ -144,10 +144,10 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
 
 def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
     # Gets the sampling value from the rule, based on the type.
-    if "samplingValue" in rule and "value" in rule["samplingValue"]:
-        return "factor", float(rule["samplingValue"]["value"])
+    if "samplingValue" in rule and "value" in rule["samplingValue"]:  # type:ignore
+        return "factor", float(rule["samplingValue"]["value"])  # type:ignore
     elif "sampleRate" in rule:
-        return "sample_rate", rule["sampleRate"]
+        return "sample_rate", rule["sampleRate"]  # type:ignore
 
     return None
 
