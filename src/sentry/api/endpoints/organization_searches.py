@@ -40,7 +40,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             # the same organization. DOES include the requesting users pinned
             # search
             .exclude(
-                ~Q(owner=request.user),
+                ~Q(owner_id=request.user.id),
                 visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
             )
             .filter(
@@ -83,7 +83,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 organization=organization,
                 type=SearchType.ISSUE.value,
                 visibility=Visibility.OWNER,
-                owner=request.user,
+                owner_id=request.user.id,
                 query=result["query"],
             ).exists():
                 return Response(
@@ -93,7 +93,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
 
         saved_search = SavedSearch.objects.create(
             organization=organization,
-            owner=request.user,
+            owner_id=request.user.id,
             type=result["type"],
             name=result["name"],
             query=result["query"],

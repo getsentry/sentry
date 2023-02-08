@@ -7,7 +7,7 @@ from sentry.models import (
     ReleaseFile,
     ScheduledDeletion,
 )
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 
 

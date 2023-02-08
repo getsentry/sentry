@@ -14,7 +14,7 @@ from sentry.models import (
     GroupRedirect,
     UserReport,
 )
-from sentry.tasks.deletion import delete_groups
+from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

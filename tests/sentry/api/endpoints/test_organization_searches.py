@@ -42,7 +42,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
         savedsearch_org = SavedSearch.objects.create(
             organization=self.organization,
-            owner=user_1,
+            owner_id=user_1.id,
             name="B Simple SavedSearch 1",
             query="some test",
             sort=SortOptions.NEW,
@@ -51,7 +51,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
         savedsearch_org_diff_owner = SavedSearch.objects.create(
             organization=self.organization,
-            owner=user_2,
+            owner_id=user_2.id,
             name="C Simple SavedSearch for same org diff owner",
             query="some other test",
             sort=SortOptions.DATE,
@@ -60,7 +60,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
         savedsearch_owner_me = SavedSearch.objects.create(
             organization=self.organization,
-            owner=user_1,
+            owner_id=user_1.id,
             name="D My personal search",
             query="some other test",
             sort=SortOptions.DATE,
@@ -69,7 +69,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
         savedsearch_other_owner = SavedSearch.objects.create(
             organization=self.organization,
-            owner=user_2,
+            owner_id=user_2.id,
             name="E Other user personal search",
             query="whatever",
             sort=SortOptions.DATE,
@@ -78,7 +78,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
         savedsearch_my_pinned = SavedSearch.objects.create(
             organization=self.organization,
-            owner=user_1,
+            owner_id=user_1.id,
             name="F My pinned search",
             query="whatever",
             sort=SortOptions.DATE,
@@ -87,7 +87,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
         savedsearch_other_pinned = SavedSearch.objects.create(
             organization=self.organization,
-            owner=user_2,
+            owner_id=user_2.id,
             name="G Other user pinned search",
             query="whatever",
             sort=SortOptions.DATE,
@@ -271,7 +271,7 @@ class CreateOrganizationSearchesTest(APITestCase):
             name="Some user search",
             query="user search",
             visibility=Visibility.OWNER,
-            owner=self.member,
+            owner_id=self.member.id,
         )
         self.login_as(user=self.member)
         resp = self.get_response(
@@ -292,7 +292,7 @@ class CreateOrganizationSearchesTest(APITestCase):
             name="Some other user in org made this search",
             query="user search",
             visibility=Visibility.OWNER,
-            owner=self.create_user("otheruser@test.com"),
+            owner_id=self.create_user("otheruser@test.com").id,
         )
 
         # User 2 creates a similar search in the same org
@@ -318,7 +318,7 @@ class CreateOrganizationSearchesTest(APITestCase):
             name="My Pinned Search",
             query="user pinned search",
             visibility=Visibility.OWNER_PINNED,
-            owner=self.member,
+            owner_id=self.member.id,
         )
 
         # Member creates a saved search with the same query

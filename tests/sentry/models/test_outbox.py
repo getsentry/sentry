@@ -17,7 +17,6 @@ from sentry.models import (
     User,
     WebhookProviderIdentifier,
 )
-from sentry.receivers import maybe_write_outbox
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.factories import Factories
@@ -27,8 +26,8 @@ from sentry.testutils.silo import control_silo_test, region_silo_test
 @pytest.mark.django_db(transaction=True)
 @region_silo_test(stable=True)
 def test_creating_org_outboxes():
-    maybe_write_outbox(Organization.outbox_for_update(10))
-    maybe_write_outbox(OrganizationMember.outbox_for_update(12, 15))
+    Organization.outbox_for_update(10).save()
+    OrganizationMember.outbox_for_update(12, 15).save()
     assert RegionOutbox.objects.count() == 2
 
 
@@ -45,7 +44,7 @@ def test_creating_user_outboxes():
     Factories.create_member(organization=org2, user=user1)
 
     for outbox in User.outboxes_for_update(user1.id):
-        maybe_write_outbox(outbox)
+        outbox.save()
 
     assert (
         ControlOutbox.objects.count() == 1
@@ -59,12 +58,12 @@ def test_creating_user_outboxes():
 def test_concurrent_coalesced_object_processing():
     # Two objects coalesced
     outbox = OrganizationMember.outbox_for_update(org_id=1, org_member_id=1)
-    maybe_write_outbox(outbox)
-    maybe_write_outbox(OrganizationMember.outbox_for_update(org_id=1, org_member_id=1))
+    outbox.save()
+    OrganizationMember.outbox_for_update(org_id=1, org_member_id=1).save()
 
     # Unrelated
-    maybe_write_outbox(OrganizationMember.outbox_for_update(org_id=1, org_member_id=2))
-    maybe_write_outbox(OrganizationMember.outbox_for_update(org_id=2, org_member_id=2))
+    OrganizationMember.outbox_for_update(org_id=1, org_member_id=2).save()
+    OrganizationMember.outbox_for_update(org_id=2, org_member_id=2).save()
 
     assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
@@ -75,7 +74,7 @@ def test_concurrent_coalesced_object_processing():
         assert outbox.select_coalesced_messages().count() == 2
 
         # concurrent write of coalesced object update.
-        maybe_write_outbox(OrganizationMember.outbox_for_update(org_id=1, org_member_id=1))
+        OrganizationMember.outbox_for_update(org_id=1, org_member_id=1).save()
         assert RegionOutbox.objects.count() == 5
         assert outbox.select_coalesced_messages().count() == 3
 
@@ -96,11 +95,11 @@ def test_region_sharding_keys():
     org1 = Factories.create_organization()
     org2 = Factories.create_organization()
 
-    maybe_write_outbox(Organization.outbox_for_update(org1.id))
-    maybe_write_outbox(Organization.outbox_for_update(org2.id))
+    Organization.outbox_for_update(org1.id).save()
+    Organization.outbox_for_update(org2.id).save()
 
-    maybe_write_outbox(OrganizationMember.outbox_for_update(org_id=org1.id, org_member_id=1))
-    maybe_write_outbox(OrganizationMember.outbox_for_update(org_id=org2.id, org_member_id=2))
+    OrganizationMember.outbox_for_update(org_id=org1.id, org_member_id=1).save()
+    OrganizationMember.outbox_for_update(org_id=org2.id, org_member_id=2).save()
 
     shards = {
         (row["shard_scope"], row["shard_identifier"])
@@ -123,21 +122,21 @@ def test_control_sharding_keys():
     Factories.create_member(organization=org, user=user2)
 
     for inst in User.outboxes_for_update(user1.id):
-        maybe_write_outbox(inst)
+        inst.save()
     for inst in User.outboxes_for_update(user2.id):
-        maybe_write_outbox(inst)
+        inst.save()
 
     for inst in ControlOutbox.for_webhook_update(
         webhook_identifier=WebhookProviderIdentifier.SLACK,
         region_names=[MONOLITH_REGION_NAME, "special-slack-region"],
     ):
-        maybe_write_outbox(inst)
+        inst.save()
 
     for inst in ControlOutbox.for_webhook_update(
         webhook_identifier=WebhookProviderIdentifier.GITHUB,
         region_names=[MONOLITH_REGION_NAME, "special-github-region"],
     ):
-        maybe_write_outbox(inst)
+        inst.save()
 
     shards = {
         (row["shard_scope"], row["shard_identifier"], row["region_name"])
@@ -186,8 +185,8 @@ def test_outbox_rescheduling(task_runner):
                 object_identifier=org,
             )
 
-        maybe_write_outbox(Organization.outbox_for_update(org_id=10001))
-        maybe_write_outbox(Organization.outbox_for_update(org_id=10002))
+        Organization.outbox_for_update(org_id=10001).save()
+        Organization.outbox_for_update(org_id=10002).save()
 
         start_time = datetime(2022, 10, 1, 0)
         with freeze_time(start_time):
@@ -210,7 +209,7 @@ def test_outbox_rescheduling(task_runner):
             ensure_converged()
 
             # Concurrently added items still follow the largest retry schedule
-            maybe_write_outbox(Organization.outbox_for_update(10002))
+            Organization.outbox_for_update(10002).save()
             ensure_converged()
 
 
@@ -218,11 +217,11 @@ def test_outbox_rescheduling(task_runner):
 @region_silo_test(stable=True)
 def test_outbox_converges(task_runner):
     with patch("sentry.models.outbox.process_region_outbox.send") as mock_process_region_outbox:
-        maybe_write_outbox(Organization.outbox_for_update(10001))
-        maybe_write_outbox(Organization.outbox_for_update(10001))
+        Organization.outbox_for_update(10001).save()
+        Organization.outbox_for_update(10001).save()
 
-        maybe_write_outbox(Organization.outbox_for_update(10002))
-        maybe_write_outbox(Organization.outbox_for_update(10002))
+        Organization.outbox_for_update(10002).save()
+        Organization.outbox_for_update(10002).save()
 
         last_call_count = 0
         while True:
