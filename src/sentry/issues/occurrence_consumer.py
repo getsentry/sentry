@@ -125,7 +125,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
             if "event" in payload:
                 event_payload = payload["event"]
                 if payload["project_id"] != event_payload.get("project_id"):
-                    raise ValueError(
+                    raise InvalidEventPayloadError(
                         f"project_id in occurrence ({payload['project_id']}) is different from project_id in event ({event_payload.get('project_id')})"
                     )
 

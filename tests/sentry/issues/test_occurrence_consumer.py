@@ -3,7 +3,6 @@ import logging
 import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Sequence
-from unittest import mock
 
 import pytest
 
@@ -161,6 +160,5 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         message = deepcopy(get_test_message(self.project.id))
         message["project_id"] = 1
         message["event"]["project_id"] = 2
-        with mock.patch("sentry.issues.occurrence_consumer.logger") as mock_logger:
-            assert _get_kwargs(message) is None
-            assert mock_logger.exception.call_count == 1
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(message)
