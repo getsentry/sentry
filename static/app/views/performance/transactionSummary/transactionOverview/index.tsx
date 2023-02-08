@@ -106,7 +106,18 @@ function OverviewContentWrapper(props: ChildProps) {
     queryExtras,
   });
 
+  const additionalQueryData = useDiscoverQuery({
+    eventView: getUnfilteredTotalsEventView(eventView, location),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+    queryExtras,
+  });
+
   const {data: tableData, isLoading, error} = queryData;
+  const {data: unfilteredTableData} = additionalQueryData;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
@@ -133,6 +144,10 @@ function OverviewContentWrapper(props: ChildProps) {
 
   const totals: TotalValues | null =
     (tableData?.data?.[0] as {[k: string]: number}) ?? null;
+
+  const unfilteredTotals: TotalValues | null =
+    (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null;
+
   return (
     <SummaryContent
       location={location}
@@ -145,6 +160,7 @@ function OverviewContentWrapper(props: ChildProps) {
       totalValues={totals}
       onChangeFilter={onChangeFilter}
       spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+      unfilteredTotalValues={unfilteredTotals}
     />
   );
 }
@@ -200,6 +216,40 @@ function generateEventView({
     },
     location
   );
+}
+
+function getUnfilteredTotalsEventView(
+  eventView: EventView,
+  location: Location
+): EventView {
+  const totalsColumns: QueryFieldValue[] = [
+    {
+      kind: 'function',
+      function: ['tpm', '', undefined, undefined],
+    },
+  ];
+
+  // Use the user supplied query but remove any non transaction name
+  // or event type conditions they applied.
+  const query = decodeScalar(location.query.query, '');
+  const transactionName = decodeScalar(location.query.transaction);
+  const conditions = new MutableSearch(query);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  if (transactionName) {
+    conditions.setFilterValues('transaction', [transactionName]);
+  }
+
+  Object.keys(conditions.filters).forEach(field => {
+    if (field !== 'event.type' && field !== 'transaction') {
+      conditions.removeFilter(field);
+    }
+  });
+
+  const unfilteredEventView = eventView.withColumns([...totalsColumns]);
+  unfilteredEventView.query = conditions.formatString();
+
+  return unfilteredEventView;
 }
 
 function getTotalsEventView(

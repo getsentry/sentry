@@ -78,6 +78,7 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
+  unfilteredTotalValues?: Record<string, number> | null;
 };
 
 function SummaryContent({
@@ -92,6 +93,7 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
+  unfilteredTotalValues,
 }: Props) {
   const routes = useRoutes();
   function handleSearch(query: string) {
@@ -416,6 +418,7 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           transactionName={transactionName}
+          unfilteredTotals={unfilteredTotalValues}
         />
         <SidebarSpacer />
         <Tags

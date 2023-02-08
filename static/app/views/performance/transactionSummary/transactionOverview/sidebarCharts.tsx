@@ -23,11 +23,7 @@ import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-} from 'sentry/utils/formatters';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -52,9 +48,13 @@ type ContainerProps = {
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
+  unfilteredTotals?: Record<string, number> | null;
 };
 
-type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
+type Props = Pick<
+  ContainerProps,
+  'organization' | 'isLoading' | 'error' | 'totals' | 'unfilteredTotals'
+> & {
   chartData: {
     chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
@@ -82,10 +82,26 @@ function SidebarCharts({
   chartData,
   eventView,
   transactionName,
+  unfilteredTotals,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
+
+  function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
+    if (totalValues) {
+      if (unfilteredTotalValues) {
+        return tct('[tpm] tpm', {
+          tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
+        });
+      }
+      return tct('[tpm] tpm', {
+        tpm: formatFloat(totalValues[field], 4),
+      });
+    }
+    return null;
+  }
+
   return (
     <RelativeBox>
       <ChartLabel top="0px">
@@ -135,13 +151,7 @@ function SidebarCharts({
           data-test-id="tpm-summary-value"
           isLoading={isLoading}
           error={error}
-          value={
-            totals
-              ? tct('[tpm] tpm', {
-                  tpm: formatFloat(totals['tpm()'], 4),
-                })
-              : null
-          }
+          value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
         />
       </ChartLabel>
 
@@ -231,6 +241,7 @@ function SidebarChartsContainer({
   error,
   totals,
   transactionName,
+  unfilteredTotals,
 }: ContainerProps) {
   const location = useLocation();
   const router = useRouter();
@@ -325,7 +336,7 @@ function SidebarChartsContainer({
         gridIndex: 2,
         splitNumber: 4,
         axisLabel: {
-          formatter: formatAbbreviatedNumber,
+          formatter: value => formatPercentage(value, 0),
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -365,6 +376,7 @@ function SidebarChartsContainer({
     end,
     utc,
     totals,
+    unfilteredTotals,
   };
 
   const datetimeSelection = {
@@ -387,11 +399,27 @@ function SidebarChartsContainer({
     >
       {({results, errored, loading, reloading}) => {
         const series = results
-          ? results.map((values, i: number) => ({
-              ...values,
-              yAxisIndex: i,
-              xAxisIndex: i,
-            }))
+          ? results
+              .map(_values => {
+                if (_values.seriesName === 'epm()') {
+                  const totalTPM = totals ? totals['tpm()'] : null;
+                  if (totalTPM) {
+                    return {
+                      ..._values,
+                      data: _values.data.map(point => ({
+                        ...point,
+                        value: point.value / totalTPM,
+                      })),
+                    };
+                  }
+                }
+                return _values;
+              })
+              .map((v, i: number) => ({
+                ...v,
+                yAxisIndex: i,
+                xAxisIndex: i,
+              }))
           : [];
 
         return (
