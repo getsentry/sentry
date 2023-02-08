@@ -481,6 +481,16 @@ urlpatterns += [
                     name="sentry-customer-domain-developer-settings-settings",
                 ),
                 url(
+                    r"^document-integrations/",
+                    react_page_view,
+                    name="sentry-customer-domain-document-integrations-settings",
+                ),
+                url(
+                    r"^sentry-apps/",
+                    react_page_view,
+                    name="sentry-customer-domain-sentry-apps-settings",
+                ),
+                url(
                     r"^billing/",
                     react_page_view,
                     name="sentry-customer-domain-billing-settings",
