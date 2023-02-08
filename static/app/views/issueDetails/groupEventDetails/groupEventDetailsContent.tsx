@@ -17,10 +17,6 @@ import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
-import {
-  getResourceDescription,
-  getResourceLinks,
-} from 'sentry/components/events/interfaces/performance/utils';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
@@ -123,10 +119,7 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      <Resources
-        description={getResourceDescription(group.issueType)}
-        links={getResourceLinks(group.issueType, event.platform)}
-      />
+      <Resources {...{event, group}} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <EventContexts group={group} event={event} />

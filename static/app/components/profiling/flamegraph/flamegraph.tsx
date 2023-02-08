@@ -9,10 +9,7 @@ import {
 } from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
-import {
-  ProfileDragDropImport,
-  ProfileDragDropImportProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
+import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {
@@ -35,6 +32,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphProfiles';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -58,7 +56,11 @@ import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/uni
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {
+  useProfileTransaction,
+  useSetProfiles,
+} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -104,25 +106,62 @@ function collectAllSpanEntriesFromTransaction(
   return allSpans;
 }
 
+type FlamegraphCandidate = {
+  frame: FlamegraphFrame;
+  threadId: number;
+  isActiveThread?: boolean; // this is the thread referred to by the active profile index
+};
+
+function findLongestMatchingFrame(
+  flamegraph: FlamegraphModel,
+  focusFrame: FlamegraphProfiles['highlightFrames']
+): FlamegraphFrame | null {
+  if (focusFrame === null) {
+    return null;
+  }
+
+  let longestFrame: FlamegraphFrame | null = null;
+
+  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
+  while (frames.length > 0) {
+    const frame = frames.pop()!;
+    if (
+      focusFrame.name === frame.frame.name &&
+      // the image name on a frame is optional,
+      // treat it the same as the empty string
+      focusFrame.package === (frame.frame.image || '') &&
+      (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
+    ) {
+      longestFrame = frame;
+    }
+
+    for (let i = 0; i < frame.children.length; i++) {
+      frames.push(frame.children[i]);
+    }
+  }
+
+  return longestFrame;
+}
+
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
 
 const noopFormatDuration = () => '';
-interface FlamegraphProps {
-  onImport: ProfileDragDropImportProps['onImport'];
-  profiles: ProfileGroup;
-}
 
-function Flamegraph(props: FlamegraphProps): ReactElement {
+function Flamegraph(): ReactElement {
   const organization = useOrganization();
   const devicePixelRatio = useDevicePixelRatio();
   const profiledTransaction = useProfileTransaction();
   const dispatch = useDispatchFlamegraphState();
 
+  const setProfiles = useSetProfiles();
+  const profileGroup = useProfileGroup();
+
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
-  const {sorting, view, xAxis} = useFlamegraphPreferences();
+  const profiles = useFlamegraphProfiles();
+  const {sorting, view, type, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -148,16 +187,16 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   }, [organization.features]);
 
   const hasUIFrames = useMemo(() => {
-    const platform = props.profiles.metadata.platform;
+    const platform = profileGroup.metadata.platform;
     return (
       (platform === 'cocoa' || platform === 'android') &&
       organization.features.includes('profiling-ui-frames')
     );
-  }, [organization.features, props.profiles.metadata.platform]);
+  }, [organization.features, profileGroup.metadata.platform]);
 
   const profile = useMemo(() => {
-    return props.profiles.profiles.find(p => p.threadId === threadId);
-  }, [props.profiles, threadId]);
+    return profileGroup.profiles.find(p => p.threadId === threadId);
+  }, [profileGroup, threadId]);
 
   const spanTree: SpanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
@@ -194,10 +233,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       leftHeavy: sorting === 'left heavy',
       configSpace:
         xAxis === 'transaction'
-          ? getTransactionConfigSpace(props.profiles, profile.startedAt, profile.unit)
+          ? getTransactionConfigSpace(profileGroup, profile.startedAt, profile.unit)
           : undefined,
     });
-  }, [profile, props.profiles, sorting, threadId, view, xAxis]);
+  }, [profile, profileGroup, sorting, threadId, view, xAxis]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
@@ -205,14 +244,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     }
     return new UIFrames(
       {
-        slow: props.profiles.measurements?.slow_frame_renders,
-        frozen: props.profiles.measurements?.frozen_frame_renders,
+        slow: profileGroup.measurements?.slow_frame_renders,
+        frozen: profileGroup.measurements?.frozen_frame_renders,
       },
       {unit: flamegraph.profile.unit},
       flamegraph.configSpace.withHeight(1)
     );
   }, [
-    props.profiles.measurements,
+    profileGroup.measurements,
     flamegraph.profile.unit,
     flamegraph.configSpace,
     hasUIFrames,
@@ -338,7 +377,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: uiFrames,
-        mode: 'cover',
+        mode: 'stretchToFit',
         options: {
           inverted: flamegraph.inverted,
           minWidth: uiFrames.minFrameDuration,
@@ -665,6 +704,93 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     [dispatch]
   );
 
+  const onTypeChange: FlamegraphViewSelectMenuProps['onTypeChange'] = useCallback(
+    newView => {
+      dispatch({type: 'set type', payload: newView});
+    },
+    [dispatch]
+  );
+
+  const onImport = useCallback(
+    (p: Profiling.ProfileInput) => {
+      setProfiles({type: 'resolved', data: p});
+    },
+    [setProfiles]
+  );
+
+  useEffect(() => {
+    if (defined(profiles.threadId)) {
+      return;
+    }
+    const threadID =
+      typeof profileGroup.activeProfileIndex === 'number'
+        ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
+        : null;
+
+    // if the state has a highlight frame specified, then we want to jump to the
+    // thread containing it, highlight the frames on the thread, and change the
+    // view so it's obvious where it is
+    if (highlightFrames) {
+      const candidate = profileGroup.profiles.reduce<FlamegraphCandidate | null>(
+        (prevCandidate, currentProfile) => {
+          // if the previous candidate is the active thread, it always takes priority
+          if (prevCandidate?.isActiveThread) {
+            return prevCandidate;
+          }
+
+          const graph = new FlamegraphModel(currentProfile, currentProfile.threadId, {
+            inverted: false,
+            leftHeavy: false,
+            configSpace: undefined,
+          });
+
+          const frame = findLongestMatchingFrame(graph, highlightFrames);
+
+          if (!defined(frame)) {
+            return prevCandidate;
+          }
+
+          const newScore = frame.node.totalWeight || 0;
+          const oldScore = prevCandidate?.frame?.node?.totalWeight || 0;
+
+          // if we find the frame on the active thread, it always takes priority
+          if (newScore > 0 && currentProfile.threadId === threadID) {
+            return {
+              frame,
+              threadId: currentProfile.threadId,
+              isActiveThread: true,
+            };
+          }
+
+          return newScore <= oldScore
+            ? prevCandidate
+            : {
+                frame,
+                threadId: currentProfile.threadId,
+              };
+        },
+        null
+      );
+
+      if (defined(candidate)) {
+        dispatch({
+          type: 'set thread id',
+          payload: candidate.threadId,
+        });
+        return;
+      }
+    }
+
+    // fall back case, when we finally load the active profile index from the profile,
+    // make sure we update the thread id so that it is show first
+    if (defined(threadID)) {
+      dispatch({
+        type: 'set thread id',
+        payload: threadID,
+      });
+    }
+  }, [profileGroup, highlightFrames, profiles.threadId, dispatch]);
+
   // A bit unfortunate for now, but the search component accepts a list
   // of model to search through. This will become useful as we  build
   // differential flamecharts or start comparing different profiles/charts
@@ -675,15 +801,17 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     <Fragment>
       <FlamegraphToolbar>
         <FlamegraphThreadSelector
-          profileGroup={props.profiles}
+          profileGroup={profileGroup}
           threadId={threadId}
           onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
+          type={type}
           view={view}
           sorting={sorting}
           onSortingChange={onSortingChange}
           onViewChange={onViewChange}
+          onTypeChange={onTypeChange}
         />
         <FlamegraphSearch
           spans={spans}
@@ -695,7 +823,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       <FlamegraphLayout
         uiFrames={
-          hasUIFrames ? (
+          hasUIFrames && type === 'flamechart' ? (
             <FlamegraphUIFrames
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
@@ -708,7 +836,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           ) : null
         }
         spans={
-          spanChart ? (
+          spanChart && type === 'flamechart' ? (
             <FlamegraphSpans
               canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
@@ -733,7 +861,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           />
         }
         flamegraph={
-          <ProfileDragDropImport onImport={props.onImport}>
+          <ProfileDragDropImport onImport={onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
               canvasBounds={flamegraphCanvasBounds}
@@ -751,7 +879,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         flamegraphDrawer={
           <FlamegraphDrawer
-            profileGroup={props.profiles}
+            profileGroup={profileGroup}
             getFrameColor={getFrameColor}
             referenceNode={referenceNode}
             rootNodes={rootNodes}

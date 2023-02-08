@@ -65,66 +65,6 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
 }
 
-type CapabilityInfo = {
-  enabled: boolean;
-  disabledReason?: string;
-};
-
-/**
- * Defines what capabilities a category of issue has. Not all categories of
- * issues work the same.
- */
-export type IssueCategoryCapabilities = {
-  /**
-   * Is the Attachments tab shown for this issue
-   */
-  attachments: CapabilityInfo;
-  /**
-   * Are codeowner features shown for this issue
-   */
-  codeowners: CapabilityInfo;
-  /**
-   * Can the issue be deleted
-   */
-  delete: CapabilityInfo;
-  /**
-   * Can the issue be deleted and discarded
-   */
-  deleteAndDiscard: CapabilityInfo;
-  /**
-   * Is the Grouping tab shown for this issue
-   */
-  grouping: CapabilityInfo;
-  /**
-   * Can the issue be ignored (and the dropdown options)
-   */
-  ignore: CapabilityInfo;
-  /**
-   * Can the issue be merged
-   */
-  merge: CapabilityInfo;
-  /**
-   * Is the Merged Issues tab shown for this issue
-   */
-  mergedIssues: CapabilityInfo;
-  /**
-   * Is the Replays tab shown for this issue
-   */
-  replays: CapabilityInfo;
-  /**
-   * Can the issue be shared
-   */
-  share: CapabilityInfo;
-  /**
-   * Is the Similar Issues tab shown for this issue
-   */
-  similarIssues: CapabilityInfo;
-  /**
-   * Is the User Feedback tab enabled for this issue
-   */
-  userFeedback: CapabilityInfo;
-};
-
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;

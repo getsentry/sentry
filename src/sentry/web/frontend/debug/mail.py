@@ -45,7 +45,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.types.issues import GROUP_TYPE_TO_TEXT
@@ -193,8 +193,9 @@ def make_performance_event(project, sample_name: str):
         {
             "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
         }
-    ):
+    ), Feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
         perf_data = dict(
             load_data(
                 sample_name,
@@ -424,42 +425,6 @@ def alert(request):
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
             "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
-        },
-    ).render(request)
-
-
-@login_required
-def release_alert(request):
-    platform = request.GET.get("platform", "python")
-    org = Organization(id=1, slug="example", name="Example")
-    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
-
-    event = make_error_event(request, project, platform)
-    group = event.group
-
-    rule = Rule(id=1, label="An example rule")
-    # In non-debug context users_seen we get users_seen from group.count_users_seen()
-    users_seen = get_random(request).randint(0, 100 * 1000)
-
-    contexts = event.data["contexts"].items() if "contexts" in event.data else None
-    event_user = event.data["event_user"] if "event_user" in event.data else None
-
-    return MailPreview(
-        html_template="sentry/emails/release_alert.html",
-        text_template="sentry/emails/release_alert.txt",
-        context={
-            **get_shared_context(rule, org, project, group, event),
-            "interfaces": get_interface_list(event),
-            "event_user": event_user,
-            "contexts": contexts,
-            "users_seen": users_seen,
-            "project": project,
-            "last_release": {
-                "version": "13.9.2",
-            },
-            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
-            "environment": "production",
-            "regression": False,
         },
     ).render(request)
 

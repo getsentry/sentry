@@ -474,6 +474,17 @@ class AuthLoginCustomerDomainTest(TestCase):
         assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/", 302)]
         self.assertTemplateUsed("sentry/organization-login.html")
 
+    def test_renders_correct_template_existent_org_preserve_querystring(self):
+        resp = self.client.get(
+            f"{self.path}?one=two",
+            HTTP_HOST=f"{self.organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/?one=two", 302)]
+        self.assertTemplateUsed("sentry/organization-login.html")
+
     def test_renders_correct_template_nonexistent_org(self):
         resp = self.client.get(
             self.path,

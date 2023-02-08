@@ -25,7 +25,7 @@ export function getGPUKnownDataDetails({data, type}: Props): Output | undefined 
         subject: t('Version'),
         value: data.version,
       };
-    case GPUKnownDataType.MEMORY:
+    case GPUKnownDataType.MEMORY_SIZE:
       return {
         subject: t('Memory'),
         value: data.memory_size ? formatMemory(data.memory_size) : undefined,
