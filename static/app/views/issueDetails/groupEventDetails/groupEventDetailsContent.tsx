@@ -47,24 +47,19 @@ type GroupEventEntryProps = {
 
 const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProps) => {
   const organization = useOrganization();
-  const entries = event.entries.filter(entry => entry.type === entryType);
+  const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
-  if (!entries.length) {
+  if (!matchingEntry) {
     return null;
   }
 
   return (
-    <Fragment>
-      {entries.map((entry, index) => (
-        <EventEntry
-          key={index}
-          projectSlug={project.slug}
-          isShare={false}
-          group={group}
-          {...{organization, event, entry}}
-        />
-      ))}
-    </Fragment>
+    <EventEntry
+      projectSlug={project.slug}
+      group={group}
+      entry={matchingEntry}
+      {...{organization, event}}
+    />
   );
 };
 
@@ -110,7 +105,6 @@ const GroupEventDetailsContent = ({
         organization={organization}
         projectSlug={project.slug}
         location={location}
-        isShare={false}
       />
       <EventEvidence event={event} group={group} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
