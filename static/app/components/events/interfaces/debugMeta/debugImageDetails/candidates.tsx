@@ -166,6 +166,7 @@ class Candidates extends Component<Props, State> {
         label: filterOptionCategories.status,
         options: candidateStatus.map(status => ({
           value: `status-${status}`,
+          textValue: status,
           label: <Status status={status} />,
         })),
       });

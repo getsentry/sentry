@@ -146,6 +146,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
         filterLevels.push({
           value: `level-${level}`,
+          textValue: level,
           label: (
             <LevelWrap>
               <Level level={level} />

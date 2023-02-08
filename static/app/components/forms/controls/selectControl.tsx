@@ -439,8 +439,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   };
 
   const filterOptions = createFilter({
-    // Use plainTextLabel if available
-    stringify: option => option.data.plainTextLabel ?? `${option.label} ${option.value}`,
+    // Use `textValue` if available
+    stringify: option => option.data.textValue ?? `${option.label} ${option.value}`,
   });
 
   return (

@@ -53,7 +53,7 @@ export interface SelectValue<T> extends MenuListItemProps {
    * will be unable to filter to that label. Use this to specify the plain text of
    * the label.
    */
-  plainTextLabel?: string;
+  textValue?: string;
 }
 
 /**
