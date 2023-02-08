@@ -1,11 +1,12 @@
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import Any, Dict, Set
 
 from sentry.types.issues import GroupCategory
 
-_group_type_registry = {}
-_slug_lookup = {}
-_category_lookup = defaultdict(set)
+_group_type_registry: Dict[int, Any] = {}
+_slug_lookup: Dict[str, Any] = {}
+_category_lookup: Dict[int, Set[int]] = defaultdict(set)
 
 
 @dataclass(frozen=True)
@@ -14,9 +15,9 @@ class GroupType:
     slug: str
     description: str
     category: int
-    ignore_limit: int = 3 
+    ignore_limit: int = 3
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls: Any, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if _group_type_registry.get(cls.type_id):
             raise ValueError(
@@ -26,27 +27,27 @@ class GroupType:
         _slug_lookup[cls.slug] = cls
         _category_lookup[cls.category].add(cls.type_id)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
 
-def get_all_group_type_ids():
+def get_all_group_type_ids() -> Set[int]:
     return {type.type_id for type in _group_type_registry.values()}
 
 
-def get_group_types_by_category(category):
+def get_group_types_by_category(category: int) -> Set[int]:
     return _category_lookup[category]
 
 
-def get_group_type_by_slug(slug):
+def get_group_type_by_slug(slug: str) -> Any:
     if slug not in _slug_lookup.keys():
         raise ValueError(f"No group type with the slug {slug} is registered.")
     return _slug_lookup[slug]
 
 
-def get_group_type_by_type_id(id):
+def get_group_type_by_type_id(id: int) -> Any:
     if id not in _group_type_registry.keys():
         raise ValueError(f"No group type with the id {id} is registered.")
     return _group_type_registry[id]

@@ -144,7 +144,7 @@ def convert_category_value(
     environments: Optional[Sequence[Environment]],
 ) -> List[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
-    results = []
+    results: List[int] = []
     for category in value:
         group_category = getattr(GroupCategory, category.upper(), None)
         if not group_category:
