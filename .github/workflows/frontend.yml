@@ -228,13 +228,12 @@ jobs:
       # codecov's carry forward functionality.
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations.
-      # TODO: Enable at the full switch
-      #- name: Handle artifacts
-      #  uses: ./.github/actions/artifacts
-      #  if: ${{ always() && needs.files-changed.outputs.frontend_all == 'true' }}
-      #  with:
-      #    files: .artifacts/coverage/*
-      #    type: frontend
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+        if: ${{ always() && needs.files-changed.outputs.frontend_all == 'true' }}
+        with:
+          files: .artifacts/coverage/*
+          type: frontend
 
   frontend-visual-diff:
     needs: [frontend-browser-tests]
