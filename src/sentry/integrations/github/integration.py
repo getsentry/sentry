@@ -118,7 +118,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             id=self.org_integration.organization_id, user_id=None
         )
         if not organization_context:
-            logger.exception("No organization information was found.", extra=extra)
+            logger.exception(
+                "No organization information was found. Continuing execution.", extra=extra
+            )
         else:
             trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
 
@@ -135,14 +137,23 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         """
         if not query:
             return [
-                {"name": i["name"], "identifier": i["full_name"]}
+                {
+                    "name": i["name"],
+                    "identifier": i["full_name"],
+                    "default_branch": i.get("default_branch"),
+                }
                 for i in self.get_client().get_repositories(fetch_max_pages)
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
         return [
-            {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
+            {
+                "name": i["name"],
+                "identifier": i["full_name"],
+                "default_branch": i.get("default_branch"),
+            }
+            for i in response.get("items", [])
         ]
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:

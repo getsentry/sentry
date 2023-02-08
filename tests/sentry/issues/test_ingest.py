@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import datetime
 from hashlib import md5
 from unittest import mock
 
@@ -46,8 +47,10 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
         # assert result["data"][0]["group_ids"] == [self.group.id]
 
     def test_different_ids(self) -> None:
-        event_data = load_data("generic-event")
-        event = self.store_event(data=event_data, project_id=self.project.id)
+        event_data = load_data("generic-event-profiling").data
+        project_id = event_data["event"].pop("project_id", self.project.id)
+        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
             ValueError, "IssueOccurrence must have the same event_id as the passed Event"
@@ -184,8 +187,10 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 @region_silo_test(stable=True)
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        event_data = load_data("generic-event")
-        event = self.store_event(data=event_data, project_id=self.project.id)
+        event_data = load_data("generic-event-profiling").data
+        project_id = event_data["event"].pop("project_id")
+        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None

@@ -1,11 +1,11 @@
 import uniqBy from 'lodash/uniqBy';
 
-import type {ExceptionValue, Frame, Organization, PlatformType} from 'sentry/types';
+import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-import {isFrameFilenamePathlike} from './utils';
+import {isFrameFilenamePathlike, sourceMapSdkDocsMap} from './utils';
 
 interface BaseSourceMapDebugError {
   message: string;
@@ -130,40 +130,24 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
   });
 }
 
-const ALLOWED_PLATFORMS = [
-  'node',
-  'javascript',
-  'javascript-react',
-  'javascript-angular',
-  'javascript-angularjs',
-  'javascript-backbone',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-vue',
-  'javascript-nextjs',
-  'javascript-remix',
-  'javascript-svelte',
-  // dart and unity might require more docs links
-  // 'dart',
-  // 'unity',
-];
+const ALLOWED_SDKS = Object.keys(sourceMapSdkDocsMap);
 const MAX_FRAMES = 3;
 
 /**
  * Check we have all required props and platform is supported
  */
 export function debugFramesEnabled({
-  platform,
+  sdkName,
   eventId,
   organization,
   projectSlug,
 }: {
-  platform: PlatformType;
   eventId?: string;
   organization?: Organization | null;
   projectSlug?: string;
+  sdkName?: string;
 }) {
-  if (!organization || !organization.features || !projectSlug || !eventId) {
+  if (!organization || !organization.features || !projectSlug || !eventId || !sdkName) {
     return false;
   }
 
@@ -171,7 +155,7 @@ export function debugFramesEnabled({
     return false;
   }
 
-  return ALLOWED_PLATFORMS.includes(platform);
+  return ALLOWED_SDKS.includes(sdkName);
 }
 
 /**

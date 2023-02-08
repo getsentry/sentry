@@ -1,10 +1,9 @@
 import {useState} from 'react';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 
 function getView({
@@ -53,14 +52,15 @@ export function Generic({type, data, meta}: Props) {
       type={type}
       title={t('Report')}
       actions={
-        <ButtonBar merged active={view}>
-          <Button barId="report" size="xs" onClick={() => setView('report')}>
-            {t('Report')}
-          </Button>
-          <Button barId="raw" size="xs" onClick={() => setView('raw')}>
-            {t('Raw')}
-          </Button>
-        </ButtonBar>
+        <SegmentedControl
+          aria-label={t('View')}
+          size="xs"
+          value={view}
+          onChange={setView}
+        >
+          <SegmentedControl.Item key="report">{t('Report')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+        </SegmentedControl>
       }
     >
       {getView({view, data, meta})}

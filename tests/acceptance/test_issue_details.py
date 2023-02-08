@@ -118,7 +118,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details javascript - event details", desktop_only=True)
 
-        self.browser.click('[aria-label="curl"]')
+        self.browser.click('label[data-test-id="curl"]')
         self.browser.snapshot(
             "issue details javascript - event details - curl command", desktop_only=True
         )

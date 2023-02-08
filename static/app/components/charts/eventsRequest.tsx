@@ -41,6 +41,7 @@ export type TimeSeriesData = {
   timeseriesData?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesTotals?: {count: number};
+  yAxis?: string | string[];
 };
 
 type LoadingStatus = {

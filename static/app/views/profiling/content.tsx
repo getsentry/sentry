@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -136,6 +137,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                       'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
                     )}
                   />
+                  <FeatureBadge type="beta" />
                 </Layout.Title>
               </Layout.HeaderContent>
               <Layout.HeaderActions>

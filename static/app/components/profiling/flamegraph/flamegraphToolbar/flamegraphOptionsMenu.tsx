@@ -1,7 +1,8 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/button';
-import CompositeSelect from 'sentry/components/compositeSelect';
+import {SelectOption} from 'sentry/components/compactSelect';
+import CompositeSelect from 'sentry/components/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -16,44 +17,8 @@ interface FlamegraphOptionsMenuProps {
 function FlamegraphOptionsMenu({
   canvasPoolManager,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
-  const {colorCoding, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, xAxis, type} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
-
-  const options = useMemo(() => {
-    return [
-      {
-        label: t('X Axis'),
-        value: 'x axis',
-        defaultValue: xAxis,
-        options: Object.entries(X_AXIS).map(([value, label]) => ({
-          label,
-          value,
-        })),
-        onChange: value =>
-          dispatch({
-            type: 'set xAxis',
-            payload: value,
-          }),
-      },
-      {
-        label: t('Color Coding'),
-        value: 'by symbol name',
-        defaultValue: colorCoding,
-        options: Object.entries(COLOR_CODINGS).map(([value, label]) => ({
-          label,
-          value,
-        })),
-        onChange: value =>
-          dispatch({
-            type: 'set color coding',
-            payload: value,
-          }),
-      },
-    ];
-    // If we add color and xAxis it updates the memo and the component is re-rendered (losing hovered state)
-    // Not ideal, but since we are only passing default value I guess we can live with it
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
 
   return (
     <Fragment>
@@ -67,24 +32,50 @@ function FlamegraphOptionsMenu({
           size: 'xs',
         }}
         position="bottom-end"
-        sections={options}
-      />
+        closeOnSelect={false}
+      >
+        <CompositeSelect.Region
+          label={t('X Axis')}
+          value={xAxis}
+          options={xAxisOptions.map(opt => ({
+            ...opt,
+            disabled: opt.value === 'transaction' && type === 'flamegraph',
+          }))}
+          onChange={value =>
+            dispatch({
+              type: 'set xAxis',
+              payload: value,
+            })
+          }
+        />
+        <CompositeSelect.Region
+          label={t('Color Coding')}
+          value={colorCoding}
+          options={colorCodingOptions}
+          onChange={value =>
+            dispatch({
+              type: 'set color coding',
+              payload: value,
+            })
+          }
+        />
+      </CompositeSelect>
     </Fragment>
   );
 }
 
-const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
-  profile: t('Profile'),
-  transaction: t('Transaction'),
-};
+const xAxisOptions: SelectOption<FlamegraphPreferences['xAxis']>[] = [
+  {value: 'profile', label: t('Profile')},
+  {value: 'transaction', label: t('Transaction')},
+];
 
-const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
-  'by symbol name': t('By Symbol Name'),
-  'by library': t('By Package'),
-  'by system frame': t('By System Frame'),
-  'by application frame': t('By Application Frame'),
-  'by recursion': t('By Recursion'),
-  'by frequency': t('By Frequency'),
-};
+const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [
+  {value: 'by symbol name', label: t('By Symbol Name')},
+  {value: 'by library', label: t('By Package')},
+  {value: 'by system frame', label: t('By System Frame')},
+  {value: 'by application frame', label: t('By Application Frame')},
+  {value: 'by recursion', label: t('By Recursion')},
+  {value: 'by frequency', label: t('By Frequency')},
+];
 
 export {FlamegraphOptionsMenu};

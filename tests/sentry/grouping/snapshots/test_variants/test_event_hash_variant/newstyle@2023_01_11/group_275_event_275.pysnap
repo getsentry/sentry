@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:26.825643Z'
+created: '2023-02-01T08:21:59.594363Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -103,27 +103,27 @@ app:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "07fb068d9b0e76878c72b462ea20cab3"
+  hash: "2c1bbd635b64d5adccdb64a620044075"
   component:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queues_init_once"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_wqthread"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_worker_thread2"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queue_drain"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
           frame*
@@ -132,7 +132,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -146,7 +146,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -193,7 +193,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
         type (ignored because exception is synthetic)

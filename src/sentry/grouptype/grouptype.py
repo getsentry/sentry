@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from sentry.event_manager import DEFAULT_GROUPHASH_IGNORE_LIMIT
 from sentry.types.issues import GroupCategory
 
 _group_type_registry = {}
@@ -12,7 +11,7 @@ class GroupType:
     slug: str
     description: str
     category: int
-    ignore_limit: int = DEFAULT_GROUPHASH_IGNORE_LIMIT
+    ignore_limit: int = 3  # CEO temp fix - this is the value of DEFAULT_GROUPHASH_IGNORE_LIMIT
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -49,7 +48,7 @@ class ErrorGroupType(GroupType):
 
 
 @dataclass(frozen=True)
-class SlowDBQueryGroupType(GroupType):
+class PerformanceSlowDBQueryGroupType(GroupType):
     type_id = 1001
     slug = "performance_slow_db_query"
     description = "Slow DB Query"
@@ -112,6 +111,7 @@ class PerformanceUncompressedAssetsGroupType(GroupType):
     slug = "performance_uncompressed_assets"
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 10
 
 
 @dataclass(frozen=True)
