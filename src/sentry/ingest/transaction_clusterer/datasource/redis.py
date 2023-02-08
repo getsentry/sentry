@@ -88,7 +88,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
     if (
         transaction_name
         and features.has("organizations:transaction-name-clusterer", project.organization)
-        and _must_store_event(event_data)
+        and _should_store_transaction_name(event_data)
     ):
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
 
@@ -99,7 +99,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
         # payload so we can check it here.
 
 
-def _must_store_event(event_data: Mapping[str, Any]) -> bool:
+def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
     """Returns whether the given event must be stored as input for the
     transaction clusterer."""
     tags = event_data.get("tags")
