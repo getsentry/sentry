@@ -58,8 +58,8 @@ def can_set_team_role(access: Access, team: Team, new_role: TeamRole) -> bool:
     if not can_admin_team(access, team):
         return False
 
-    org_role = access.get_organization_role()
-    if org_role and org_role.can_manage_team_role(new_role):
+    org_roles = access.get_organization_roles()
+    if any(org_role.can_manage_team_role(new_role) for org_role in org_roles):
         return True
 
     team_role = access.get_team_role(team)
@@ -120,6 +120,8 @@ __all__ = (
     "OrganizationJoinRequestEndpoint",
     "OrganizationMemberDetailsEndpoint",
     "OrganizationMemberIndexEndpoint",
-    "get_allowed_org_roles",
     "save_team_assignments",
+    "can_set_team_role",
+    "can_admin_team",
+    "get_allowed_org_roles",
 )
