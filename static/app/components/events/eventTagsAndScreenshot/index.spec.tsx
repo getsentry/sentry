@@ -185,7 +185,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          hasContext
         />,
         {organization}
       );
@@ -235,7 +234,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          hasContext
           isShare
         />,
         {organization}
@@ -257,7 +255,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          hasContext
           isShare
         />
       );
@@ -285,11 +282,10 @@ describe('EventTagsAndScreenshot', function () {
         <Fragment>
           <GlobalModal />
           <EventTagsAndScreenshot
-            event={event}
+            event={TestStubs.Event({user: {}, contexts: {}})}
             organization={organization}
             projectSlug={project.slug}
             location={router.location}
-            hasContext={false}
           />
         </Fragment>,
         {organization}
@@ -347,7 +343,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          hasContext
         />,
         {organization}
       );
@@ -407,7 +402,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          hasContext
         />,
         {organization}
       );
@@ -442,7 +436,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          hasContext
         />,
         {organization}
       );
@@ -476,7 +469,6 @@ describe('EventTagsAndScreenshot', function () {
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
-          hasContext={false}
         />,
         {organization}
       );
