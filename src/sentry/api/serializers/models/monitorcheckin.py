@@ -14,7 +14,7 @@ class MonitorCheckInSerializer(Serializer):
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
-            "attachmentId": obj.attachment.id,
+            "attachmentId": obj.attachment_id,
         }
 
 

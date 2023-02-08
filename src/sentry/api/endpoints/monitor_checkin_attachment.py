@@ -30,5 +30,5 @@ class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
         file = File.objects.create(name=fileobj.name, type="checkin.attachment", headers=headers)
         file.putfile(fileobj)
 
-        checkin.update(attachment=file)
+        checkin.update(attachment_id=file.id)
         return self.respond(serialize(checkin, request.user))

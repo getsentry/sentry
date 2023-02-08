@@ -4,7 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorType
+from sentry.models import CheckInStatus, File, Monitor, MonitorCheckIn, MonitorType
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -64,8 +64,9 @@ class UploadMonitorCheckInAttachmentTest(APITestCase):
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
 
             assert checkin.status == CheckInStatus.IN_PROGRESS
-            assert checkin.attachment.name == "log.txt"
-            assert checkin.attachment.getfile().read() == b"test log data"
+            file = File.objects.get(id=checkin.attachment_id)
+            assert file.name == "log.txt"
+            assert file.getfile().read() == b"test log data"
 
     def test_upload_no_file(self):
         for path_func in self._get_path_functions():
