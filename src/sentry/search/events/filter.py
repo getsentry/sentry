@@ -968,11 +968,11 @@ def format_search_filter(term, params):
                     f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
                 )
             elif term.operator in INEQUALITY_OPERATORS:
-                # Set non-existent excluded projects to empty value
+                # Set search filter to project name instead of id
                 term = SearchFilter(
-                    SearchKey("project_id"),
+                    SearchKey("project.name"),
                     term.operator,
-                    SearchValue(""),
+                    SearchValue(missing if term.is_in_filter else missing[0]),
                 )
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
