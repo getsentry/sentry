@@ -51,12 +51,12 @@ def test_generate_bias_rules(data_provider, default_project):
 )
 def test_generate_bias_rules_v2(data_provider, default_project):
     rule_id = 1002
-    factor = 1.5
+    sample_rate = 0.5
     key_transactions = ["/foo", "/bar"]
 
     data_provider.get_bias_data.return_value = {
         "id": rule_id,
-        "factor": factor,
+        "sampleRate": sample_rate,
         "keyTransactions": key_transactions,
     }
 
@@ -76,7 +76,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "op": "or",
             },
             "id": rule_id,
-            "samplingValue": {"type": "factor", "value": factor},
+            "samplingValue": {"type": "sampleRate", "value": sample_rate},
             "type": "transaction",
         }
     ]

@@ -108,7 +108,8 @@ def test_generate_bias_rules(data_provider, default_project):
 def test_generate_bias_rules_v2(data_provider, default_project):
     now = timezone.now()
 
-    factor = 1.5
+    base_sample_rate = 0.1
+    sample_rate = 0.5
     platform = "python"
 
     default_project.update(platform=platform)
@@ -134,7 +135,8 @@ def test_generate_bias_rules_v2(data_provider, default_project):
 
     data_provider.get_bias_data.return_value = {
         "id": 1000,
-        "factor": factor,
+        "baseSampleRate": base_sample_rate,
+        "sampleRate": sample_rate,
         "boostedReleases": boosted_releases,
     }
 
@@ -150,12 +152,12 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "op": "and",
             },
             "id": 1000,
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "sampleRate", "value": sample_rate},
             "timeRange": {
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": base_sample_rate},
             "type": "trace",
         },
         {
@@ -168,12 +170,12 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "op": "and",
             },
             "id": 1001,
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "sampleRate", "value": sample_rate},
             "timeRange": {
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": base_sample_rate},
             "type": "trace",
         },
     ]
