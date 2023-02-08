@@ -17,7 +17,7 @@ botocore==1.25.12
 brotli==1.0.9
 cachetools==4.2.4
 celery==4.4.7
-certifi==2022.5.18.1
+certifi==2022.12.7
 cffi==1.15.1
 chardet==4.0.0
 click==8.0.4
