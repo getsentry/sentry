@@ -300,4 +300,26 @@ describe('SampledProfile', () => {
     expect(profile.callTree.children[0].children[0].children[1]).toBe(undefined);
     expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(6);
   });
+
+  it('flamegraph tracks node occurences', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1, 1],
+      samples: [[0], [0, 1], [0]],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('node', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.callTree.children[0].count).toBe(3);
+    expect(profile.callTree.children[0].children[0].count).toBe(1);
+  });
 });
