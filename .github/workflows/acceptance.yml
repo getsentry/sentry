@@ -128,6 +128,8 @@ jobs:
           files: .artifacts/coverage/*
           type: frontend
 
+  # Just a test
+
   acceptance:
     if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
