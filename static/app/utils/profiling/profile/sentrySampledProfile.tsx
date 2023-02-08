@@ -133,6 +133,7 @@ export class SentrySampledProfile extends Profile {
 
     for (const stackNode of framesInStack) {
       stackNode.frame.addToTotalWeight(weight);
+      stackNode.incrementCount();
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample
