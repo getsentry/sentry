@@ -26,11 +26,13 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 interface FlamegraphPreviewProps {
   relativeStartTimestamp: number;
   relativeStopTimestamp: number;
+  updateFlamegraphView?: (canvasView: CanvasView<FlamegraphModel> | null) => void;
 }
 
 export function FlamegraphPreview({
   relativeStartTimestamp,
   relativeStopTimestamp,
+  updateFlamegraphView,
 }: FlamegraphPreviewProps) {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -99,6 +101,10 @@ export function FlamegraphPreview({
     relativeStartTimestamp,
     relativeStopTimestamp,
   ]);
+
+  useEffect(() => {
+    updateFlamegraphView?.(flamegraphView);
+  }, [flamegraphView, updateFlamegraphView]);
 
   const flamegraphCanvases = useMemo(() => [flamegraphCanvasRef], [flamegraphCanvasRef]);
 
