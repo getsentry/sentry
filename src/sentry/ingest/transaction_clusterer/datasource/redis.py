@@ -106,9 +106,6 @@ def _must_store_event(event_data: Mapping[str, Any]) -> bool:
     transaction_info = event_data.get("transaction_info") or {}
     source = transaction_info.get("source")
 
-    if tags and HTTP_404_TAG in tags:
-        return False
-
     # For now, we also feed back transactions into the clustering algorithm
     # that have already been sanitized, so we have a chance to discover
     # more high cardinality segments after partial sanitation.
@@ -118,6 +115,9 @@ def _must_store_event(event_data: Mapping[str, Any]) -> bool:
     # Disadvantage: the load on redis does not decrease over time.
     #
     if source not in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED):
+        return False
+
+    if tags and HTTP_404_TAG in tags:
         return False
 
     return True
