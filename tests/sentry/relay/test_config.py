@@ -314,17 +314,13 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 
 @pytest.mark.django_db
 @region_silo_test(stable=True)
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.eval_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
-    eval_dynamic_factor,
     default_project,
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
-    eval_dynamic_factor.return_value = 1.5
-
     redis_client = get_redis_client_for_ds()
     ts = time.time()
 
@@ -573,7 +569,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 "id": 1001,
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "sampleRate", "value": 0.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -592,10 +588,10 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+                "decayingFn": {"type": "linear", "decayedValue": 0.1},
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "sampleRate", "value": 0.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -614,10 +610,10 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+                "decayingFn": {"type": "linear", "decayedValue": 0.1},
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "sampleRate", "value": 0.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -636,10 +632,10 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+                "decayingFn": {"type": "linear", "decayedValue": 0.1},
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "sampleRate", "value": 0.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -658,10 +654,10 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+                "decayingFn": {"type": "linear", "decayedValue": 0.1},
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "sampleRate", "value": 0.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -680,10 +676,10 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+                "decayingFn": {"type": "linear", "decayedValue": 0.1},
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "sampleRate", "value": 0.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -702,7 +698,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 1.0},
+                "decayingFn": {"type": "linear", "decayedValue": 0.1},
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},
