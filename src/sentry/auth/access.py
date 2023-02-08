@@ -64,7 +64,7 @@ def has_organization_role(user_id: int, organization: Organization, role: str) -
         user=user_id,
         organization_id=organization.id,
     )
-    return (
+    return bool(
         query.filter(role=role).exists()
         or OrganizationMemberTeam.objects.filter(
             team__in=organization.get_teams_with_org_role(role),
@@ -157,7 +157,7 @@ class Access(abc.ABC):
 
     @abc.abstractmethod
     def has_organization_role(
-        self, role: str, organization: Organization, user_id: int = None
+        self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
         pass
 
@@ -315,9 +315,11 @@ class DbAccess(Access):
         return self.project_ids_with_team_membership
 
     def has_organization_role(
-        self, role: str, organization: Organization, user_id: int = None
+        self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
-        return has_organization_role(self._member.user_id, role, organization)
+        if self._member:
+            return has_organization_role(self._member.user_id, role, organization)
+        return False
 
     def has_team_scope(self, team: Team, scope: str) -> bool:
         """
@@ -455,11 +457,12 @@ class ApiBackedAccess(Access):
         return organization_service.get_all_org_roles(self.api_user_organization_context.member)
 
     def has_organization_role(
-        self, role: str, organization: Organization, user_id: int = None
+        self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
-        return has_organization_role(
-            self.api_user_organization_context.member.user_id, role, organization
-        )
+        member = self.api_user_organization_context.member
+        if member and member.user_id:
+            return has_organization_role(member.user_id, role, organization)
+        return False
 
     @cached_property
     def team_ids_with_membership(self) -> FrozenSet[int]:
@@ -769,9 +772,11 @@ class OrganizationlessAccess(Access):
         return None
 
     def has_organization_role(
-        self, role: str, organization: Organization, user_id: int = None
+        self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
-        return has_organization_role(user_id, organization, role)
+        if user_id:
+            return has_organization_role(user_id, organization, role)
+        return False
 
     @property
     def team_ids_with_membership(self) -> FrozenSet[int]:
