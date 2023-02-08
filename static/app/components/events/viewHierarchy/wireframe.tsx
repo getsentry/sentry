@@ -156,9 +156,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
     let start: vec2 | null;
     let isDragging = false;
     const selectedRect: Rect | null =
-      selectedNode && nodeLookupMap.has(selectedNode)
-        ? nodeLookupMap.get(selectedNode)!.rect
-        : null;
+      (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
     let hoveredRect: Rect | null = null;
     const currTransformationMatrix = mat3.clone(transformationMatrix);
 
