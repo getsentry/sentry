@@ -26,7 +26,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     def test_owner_can_delete_org_searches(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.create_user(),
+            owner_id=self.create_user().id,
             name="foo",
             query="",
             visibility=Visibility.ORGANIZATION,
@@ -38,7 +38,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     def test_owners_can_delete_their_searches(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.user,
+            owner_id=self.user.id,
             name="foo",
             query="",
             visibility=Visibility.OWNER,
@@ -51,7 +51,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     def test_member_can_delete_their_searches(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.member,
+            owner_id=self.member.id,
             name="foo",
             query="",
             visibility=Visibility.OWNER,
@@ -65,7 +65,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     def test_owners_cannot_delete_searches_they_do_not_own(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.create_user(),
+            owner_id=self.create_user().id,
             name="foo",
             query="",
             visibility=Visibility.OWNER,
@@ -90,7 +90,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     def test_members_cannot_delete_shared_searches(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.user,
+            owner_id=self.user.id,
             name="foo",
             query="",
             visibility=Visibility.ORGANIZATION,
@@ -119,7 +119,7 @@ class PutOrganizationSearchTest(APITestCase):
     def test_owner_can_edit_shared_search(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.create_user(),
+            owner_id=self.create_user().id,
             name="foo",
             query="",
             visibility=Visibility.ORGANIZATION,
@@ -141,7 +141,7 @@ class PutOrganizationSearchTest(APITestCase):
     def test_member_cannot_edit_org_search(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.user,
+            owner_id=self.user.id,
             name="foo",
             query="",
             visibility=Visibility.ORGANIZATION,
@@ -160,7 +160,7 @@ class PutOrganizationSearchTest(APITestCase):
     def test_member_can_edit_personal_search(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.member,
+            owner_id=self.member.id,
             name="foo",
             query="",
             visibility=Visibility.OWNER,
@@ -183,7 +183,7 @@ class PutOrganizationSearchTest(APITestCase):
     def test_member_cannot_switch_personal_search_to_org(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.member,
+            owner_id=self.member.id,
             name="foo",
             query="",
             visibility=Visibility.OWNER,
@@ -208,7 +208,7 @@ class PutOrganizationSearchTest(APITestCase):
             visibility=Visibility.ORGANIZATION,
         )
         SavedSearch.objects.create(
-            owner=self.member,
+            owner_id=self.member.id,
             type=SearchType.ISSUE.value,
             name="Some other users search",
             query="is:mine",
@@ -216,7 +216,7 @@ class PutOrganizationSearchTest(APITestCase):
         )
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.user,
+            owner_id=self.user.id,
             name="foo",
             query="",
             visibility=Visibility.OWNER,
@@ -248,7 +248,7 @@ class PutOrganizationSearchTest(APITestCase):
     def test_can_edit_without_changing_query(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.create_user(),
+            owner_id=self.create_user().id,
             name="foo",
             query="test123",
             visibility=Visibility.ORGANIZATION,
