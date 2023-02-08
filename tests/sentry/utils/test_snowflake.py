@@ -18,6 +18,8 @@ from sentry.utils.snowflake import (
     get_redis_cluster,
 )
 
+prevID = 0
+
 
 class SnowflakeUtilsTest(TestCase):
     CURRENT_TIME = datetime(2022, 7, 21, 6, 0)
@@ -30,6 +32,23 @@ class SnowflakeUtilsTest(TestCase):
         )
 
         assert snowflake_id == expected_value
+
+    @freeze_time(CURRENT_TIME)
+    def test_generate_unique_ids(self):
+        snowflake_id_1 = generate_snowflake_id("test_redis_key")
+        snowflake_id_2 = generate_snowflake_id("test_redis_key")
+        assert snowflake_id_1 != snowflake_id_2
+
+    @freeze_time(CURRENT_TIME)
+    def test_unique_id_across_tests_1(self):
+        global prevID
+        prevID = generate_snowflake_id("test_redis_key")
+
+    @freeze_time(CURRENT_TIME)
+    def test_unique_id_across_tests_2(self):
+        global prevID
+        newID = generate_snowflake_id("test_redis_key")
+        assert prevID != newID
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_sequence(self):
