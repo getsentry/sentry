@@ -6,7 +6,6 @@ import capitalize from 'lodash/capitalize';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -24,6 +23,8 @@ import {
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+
+import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 
 type CodeOwnersAssociationMappings = {
   [projectSlug: string]: {
