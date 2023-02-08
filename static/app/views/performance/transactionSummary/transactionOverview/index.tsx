@@ -227,6 +227,10 @@ function getUnfilteredTotalsEventView(
       kind: 'function',
       function: ['tpm', '', undefined, undefined],
     },
+    {
+      kind: 'function',
+      function: ['count', '', undefined, undefined],
+    },
   ];
 
   // Use the user supplied query but remove any non transaction name

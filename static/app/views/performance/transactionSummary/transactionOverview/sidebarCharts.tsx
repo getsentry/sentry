@@ -87,6 +87,7 @@ function SidebarCharts({
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
+  const displayTPMAsPercentage = !!unfilteredTotals;
 
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
@@ -140,10 +141,16 @@ function SidebarCharts({
 
       <ChartLabel top="320px">
         <ChartTitle>
-          {t('TPM')}
+          {displayTPMAsPercentage ? t('Total Transactions') : t('TPM')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
+            title={
+              displayTPMAsPercentage
+                ? tct('[count] events', {
+                    count: unfilteredTotals['count()'].toLocaleString(),
+                  })
+                : getTermHelp(organization, PERFORMANCE_TERM.TPM)
+            }
             size="sm"
           />
         </ChartTitle>
@@ -349,8 +356,12 @@ function SidebarChartsContainer({
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: (value, label) =>
-        tooltipFormatter(value, aggregateOutputType(label)),
+      valueFormatter: (value, label) => {
+        const shouldUsePercentageForTPM = unfilteredTotals && label === 'epm()';
+        return shouldUsePercentageForTPM
+          ? tooltipFormatter(value, 'percentage')
+          : tooltipFormatter(value, aggregateOutputType(label));
+      },
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },
@@ -402,16 +413,21 @@ function SidebarChartsContainer({
           ? results
               .map(_values => {
                 if (_values.seriesName === 'epm()') {
-                  const totalTPM = totals ? totals['tpm()'] : null;
-                  if (totalTPM) {
+                  const unfilteredTotalTPM = unfilteredTotals
+                    ? unfilteredTotals['tpm()']
+                    : null;
+                  if (unfilteredTotalTPM) {
                     return {
                       ..._values,
-                      data: _values.data.map(point => ({
-                        ...point,
-                        value: point.value / totalTPM,
-                      })),
+                      data: _values.data.map(point => {
+                        return {
+                          ...point,
+                          value: point.value / unfilteredTotalTPM,
+                        };
+                      }),
                     };
                   }
+                  return _values;
                 }
                 return _values;
               })
