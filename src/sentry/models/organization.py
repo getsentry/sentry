@@ -374,7 +374,7 @@ class Organization(Model, SnowflakeIdMixin):
             .exclude(organizationmember_id__in=owners)
             .values_list("id", flat=True)
         )
-        return len(owners[:2]) == 1
+        return len(owners) == 1
 
     def merge_to(from_org, to_org):
         from sentry.models import (
