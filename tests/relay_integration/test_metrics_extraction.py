@@ -89,6 +89,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             #: to the indexer because they already exist in the release health
             #: indexer db.
             known_non_common_strings = {
+                "foo",
                 "other",
                 "platform",
                 "d:transactions/measurements.inp@millisecond",
