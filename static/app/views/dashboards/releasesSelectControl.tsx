@@ -55,13 +55,13 @@ function ReleasesSelectControl({
   return (
     <CompactSelect
       multiple
-      isClearable
-      isSearchable
+      clearable
+      searchable
       isDisabled={isDisabled}
-      isLoading={loading}
+      loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
-      onInputChange={debounce(val => {
+      onSearch={debounce(val => {
         onSearch(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       options={[
