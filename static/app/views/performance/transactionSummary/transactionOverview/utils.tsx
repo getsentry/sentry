@@ -46,13 +46,14 @@ export function canUseTransactionMetricsData(organization, location) {
 export function getTransactionMEPParamsIfApplicable(
   mepContext: MetricsEnhancedSettingContext,
   organization: Organization,
-  location: Location
+  location: Location,
+  unfiltered: boolean = false
 ) {
   if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
     return undefined;
   }
 
-  if (!canUseTransactionMetricsData(organization, location)) {
+  if (!unfiltered && !canUseTransactionMetricsData(organization, location)) {
     return undefined;
   }
 

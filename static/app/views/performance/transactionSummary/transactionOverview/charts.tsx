@@ -15,13 +15,11 @@ import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {
-  DISPLAY_MAP_DENY_LIST,
-  getTransactionMEPParamsIfApplicable,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
@@ -77,6 +75,7 @@ type Props = {
   organization: Organization;
   totalValue: number | null;
   withoutZerofill: boolean;
+  unfilteredTotalValue?: number | null;
 };
 
 function TransactionSummaryCharts({
@@ -86,6 +85,7 @@ function TransactionSummaryCharts({
   location,
   currentFilter,
   withoutZerofill,
+  unfilteredTotalValue,
 }: Props) {
   function handleDisplayChange(value: string) {
     const display = decodeScalar(location.query.display, DisplayModes.DURATION);
@@ -165,7 +165,20 @@ function TransactionSummaryCharts({
     location
   );
   // For mep-incompatible displays hide event count
-  const hideTransactionCount = DISPLAY_MAP_DENY_LIST.includes(display as DisplayModes);
+  const hideTransactionCount = display === DisplayModes.TREND;
+
+  // For partially-mep-compatible displays show event count as a %
+  const showTransactionCountAsPercentage = display === DisplayModes.LATENCY;
+
+  function getTotalValue() {
+    if (totalValue === null || hideTransactionCount) {
+      return <Placeholder height="24px" />;
+    }
+    if (showTransactionCountAsPercentage && unfilteredTotalValue) {
+      return formatPercentage(totalValue / unfilteredTotalValue);
+    }
+    return totalValue.toLocaleString();
+  }
 
   return (
     <Panel>
@@ -182,7 +195,7 @@ function TransactionSummaryCharts({
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
             queryExtras={queryExtras}
-            totalCount={hideTransactionCount ? totalValue : null}
+            totalCount={showTransactionCountAsPercentage ? totalValue : null}
           />
         )}
         {display === DisplayModes.DURATION && (
@@ -263,13 +276,7 @@ function TransactionSummaryCharts({
           <SectionHeading key="total-heading">
             {hideTransactionCount ? '' : t('Total Transactions')}
           </SectionHeading>
-          <SectionValue key="total-value">
-            {totalValue === null || hideTransactionCount ? (
-              <Placeholder height="24px" />
-            ) : (
-              totalValue.toLocaleString()
-            )}
-          </SectionValue>
+          <SectionValue key="total-value">{getTotalValue()}</SectionValue>
         </InlineContainer>
         <InlineContainer>
           {display === DisplayModes.TREND && (

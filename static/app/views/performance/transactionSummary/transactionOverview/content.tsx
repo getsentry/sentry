@@ -212,6 +212,9 @@ function SummaryContent({
 
   const query = decodeScalar(location.query.query, '');
   const totalCount = totalValues === null ? null : totalValues['count()'];
+  const unfilteredTotalCount = unfilteredTotalValues
+    ? unfilteredTotalValues['count()']
+    : null;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -336,6 +339,7 @@ function SummaryContent({
           totalValue={totalCount}
           currentFilter={spanOperationBreakdownFilter}
           withoutZerofill={hasPerformanceChartInterpolation}
+          unfilteredTotalValue={unfilteredTotalCount}
         />
         <TransactionsList
           location={location}

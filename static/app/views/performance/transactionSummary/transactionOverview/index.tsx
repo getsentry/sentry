@@ -106,6 +106,13 @@ function OverviewContentWrapper(props: ChildProps) {
     queryExtras,
   });
 
+  const unfilteredQueryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location,
+    true
+  );
+
   const additionalQueryData = useDiscoverQuery({
     eventView: getUnfilteredTotalsEventView(eventView, location),
     orgSlug: organization.slug,
@@ -113,7 +120,7 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
-    queryExtras,
+    queryExtras: unfilteredQueryExtras,
   });
 
   const {data: tableData, isLoading, error} = queryData;
@@ -233,22 +240,13 @@ function getUnfilteredTotalsEventView(
     },
   ];
 
-  // Use the user supplied query but remove any non transaction name
-  // or event type conditions they applied.
-  const query = decodeScalar(location.query.query, '');
   const transactionName = decodeScalar(location.query.transaction);
-  const conditions = new MutableSearch(query);
+  const conditions = new MutableSearch('');
 
   conditions.setFilterValues('event.type', ['transaction']);
   if (transactionName) {
     conditions.setFilterValues('transaction', [transactionName]);
   }
-
-  Object.keys(conditions.filters).forEach(field => {
-    if (field !== 'event.type' && field !== 'transaction') {
-      conditions.removeFilter(field);
-    }
-  });
 
   const unfilteredEventView = eventView.withColumns([...totalsColumns]);
   unfilteredEventView.query = conditions.formatString();
