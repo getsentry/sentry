@@ -2,7 +2,7 @@ from typing import Any, Mapping
 
 import pytest
 
-from sentry.utils.sdk_crashes.sdk_crash_detection import is_cocoa_sdk_crash
+from sentry.utils.sdk_crashes.sdk_crash_detection import detect_sdk_crash, is_cocoa_sdk_crash
 
 in_app_frame = {
     "function": "LoginViewController.viewDidAppear",
@@ -17,6 +17,53 @@ in_app_frame = {
     "instruction_addr": "0x102b16630",
     "symbol_addr": "0x1025e8000",
 }
+
+
+def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
+    result = {
+        "type": "error",
+        "platform": "cocoa",
+        "exception": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": function,
+                                "package": "Sentry",
+                                "in_app:": False,
+                            }
+                        ],
+                    },
+                    "type": "SIGABRT",
+                    "mechanism": {"handled": handled},
+                }
+            ]
+        },
+    }
+    result.update(kwargs)
+    return result
+
+
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        (
+            make_crash_event(),
+            True,
+        ),
+        (
+            make_crash_event(handled=True),
+            False,
+        ),
+        (make_crash_event(function="Senry"), False),
+        (make_crash_event(platform="coco"), False),
+        (make_crash_event(type="erro"), False),
+        (make_crash_event(exception=[]), False),
+    ],
+)
+def test_process(data, expected):
+    assert detect_sdk_crash(data) is expected
 
 
 @pytest.mark.parametrize(

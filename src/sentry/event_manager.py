@@ -660,6 +660,7 @@ class EventManager:
         )
 
         _track_outcome_accepted_many(jobs)
+        _detect_sdk_crashes(jobs)
 
         self._data = job["event"].data.data
 
@@ -2479,7 +2480,6 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
-    _detect_sdk_crashes(jobs)
     return jobs
 
 

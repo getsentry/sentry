@@ -4,13 +4,26 @@ from typing import Any, Mapping, Sequence
 
 from sentry.eventstore.models import Event
 from sentry.utils.glob import glob_match
+from sentry.utils.safe import get_path
 
 
-def detect_sdk_crash(data: Event):
-    event_id = data.get("event_id", None)
-    if event_id is None:
-        return
-    return
+def detect_sdk_crash(data: Event) -> bool:
+    if data.get("type") != "error" or data.get("platform") != "cocoa":
+        return False
+
+    is_unhandled = get_path(data, "exception", "values", -1, "mechanism", "handled") is False
+
+    if is_unhandled is False:
+        return False
+
+    frames = get_path(data, "exception", "values", -1, "stacktrace", "frames")
+    if not frames:
+        return False
+
+    if is_cocoa_sdk_crash(frames):
+        return True
+
+    return False
 
 
 def is_cocoa_sdk_crash(frames: Sequence[Mapping[str, Any]]) -> bool:
