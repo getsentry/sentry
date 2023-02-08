@@ -1029,7 +1029,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     // Check that the the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
-    const userMiseryOption = await screen.findByTestId('user_misery_area');
+    const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
     userEvent.click(userMiseryOption);
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'

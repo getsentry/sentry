@@ -56,30 +56,6 @@ async function getParameterDropdown() {
   return dropdown;
 }
 
-async function selectMenuItemFromDropdown(value) {
-  (browserHistory.push as any).mockReset();
-  expect(browserHistory.push).not.toHaveBeenCalled();
-  const option = await screen.findByTestId(value);
-  expect(option).toBeInTheDocument();
-  clickEl(option);
-
-  await waitFor(() => expect(browserHistory.push).toHaveBeenCalled());
-}
-
-async function selectTrendFunction(value) {
-  const dropdown = await getTrendDropdown();
-  clickEl(dropdown);
-
-  await selectMenuItemFromDropdown(value);
-}
-
-async function selectTrendParameter(value) {
-  const dropdown = await getParameterDropdown();
-  clickEl(dropdown);
-
-  await selectMenuItemFromDropdown(value);
-}
-
 async function waitForMockCall(mock: any) {
   await waitFor(() => {
     expect(mock).toHaveBeenCalled();
@@ -461,7 +437,13 @@ describe('Performance > Trends', function () {
     );
 
     for (const trendFunction of TRENDS_FUNCTIONS) {
-      await selectTrendFunction(trendFunction.field);
+      // Open dropdown
+      const dropdown = await getTrendDropdown();
+      clickEl(dropdown);
+
+      // Select function
+      const option = screen.getByRole('option', {name: trendFunction.label});
+      clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
@@ -534,7 +516,13 @@ describe('Performance > Trends', function () {
     );
 
     for (const parameter of TRENDS_PARAMETERS) {
-      await selectTrendParameter(parameter.label);
+      // Open dropdown
+      const dropdown = await getParameterDropdown();
+      clickEl(dropdown);
+
+      // Select parameter
+      const option = screen.getByRole('option', {name: parameter.label});
+      clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
