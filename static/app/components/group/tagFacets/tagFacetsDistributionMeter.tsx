@@ -1,12 +1,14 @@
 import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 import {LocationDescriptor} from 'history';
 import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -20,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const MAX_SEGMENTS = 4;
+const TOOLTIP_DELAY = 800;
 
 type Props = {
   segments: TagSegment[];
@@ -85,7 +88,11 @@ function TagFacetsDistributionMeter({
     return (
       <Title>
         <TitleType>{title}</TitleType>
-        <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+        <TitleDescription>
+          <StyledTooltip delay={TOOLTIP_DELAY} title={topSegments[0].name || t('n/a')}>
+            {topSegments[0].name || t('n/a')}
+          </StyledTooltip>
+        </TitleDescription>
         <ExpandToggleButton
           borderless
           size="zero"
@@ -129,7 +136,7 @@ function TagFacetsDistributionMeter({
           };
           return (
             <div
-              key={value.value}
+              key={value.isOther ? 'other' : `segment-${value.value}`}
               style={{width: pct + '%'}}
               onMouseOver={() => {
                 setHoveredValue(value);
@@ -167,43 +174,53 @@ function TagFacetsDistributionMeter({
 
   function renderLegend() {
     return (
-      <LegendContainer aria-label={title}>
-        {topSegments.map((segment, index) => {
-          const pctLabel = Math.floor(percent(segment.count, totalValues));
-          const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
-          const focus = hoveredValue?.value === segment.value;
-          const isOtherSegment =
-            index === topSegments.length - 1 && segment.value === 'other';
-          const linkLabel = isOtherSegment
-            ? t(
-                'Other %s tag values, %s of all events. View other tags.',
-                title,
-                `${pctLabel}%`
-              )
-            : t(
-                '%s, %s, %s of all events. View events with this tag value.',
-                title,
-                segment.value,
-                `${pctLabel}%`
-              );
-          return (
-            <li key={`segment-${segment.name}-${index}`}>
-              <Link to={segment.url} aria-label={linkLabel}>
-                <LegendRow
-                  onMouseOver={() => setHoveredValue(segment)}
-                  onMouseLeave={() => setHoveredValue(null)}
-                >
-                  <LegendDot color={colors[index]} focus={focus} />
-                  <LegendText unfocus={unfocus}>
-                    {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
-                  </LegendText>
-                  {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
-                </LegendRow>
-              </Link>
-            </li>
-          );
-        })}
-      </LegendContainer>
+      <LegendAnimateContainer
+        expanded={expanded}
+        animate={expanded ? {height: '100%', opacity: 1} : {height: '0', opacity: 0}}
+      >
+        <LegendContainer>
+          {topSegments.map((segment, index) => {
+            const pctLabel = Math.floor(percent(segment.count, totalValues));
+            const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
+            const focus = hoveredValue?.value === segment.value;
+            const linkLabel = segment.isOther
+              ? t(
+                  'Other %s tag values, %s of all events. View other tags.',
+                  title,
+                  `${pctLabel}%`
+                )
+              : t(
+                  '%s, %s, %s of all events. View events with this tag value.',
+                  title,
+                  segment.value,
+                  `${pctLabel}%`
+                );
+            return (
+              <li key={`segment-${segment.name}-${index}`}>
+                <Link to={segment.url} aria-label={linkLabel}>
+                  <LegendRow
+                    onMouseOver={() => setHoveredValue(segment)}
+                    onMouseLeave={() => setHoveredValue(null)}
+                  >
+                    <LegendDot
+                      color={colors[segment.isOther ? colors.length - 1 : index]}
+                      focus={focus}
+                    />
+                    <LegendText unfocus={unfocus}>
+                      {(
+                        <StyledTooltip delay={TOOLTIP_DELAY} title={segment.name}>
+                          {segment.name}
+                        </StyledTooltip>
+                      ) ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
+                    </LegendText>
+                    {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                  </LegendRow>
+                </Link>
+              </li>
+            );
+          })}
+        </LegendContainer>
+      </LegendAnimateContainer>
     );
   }
 
@@ -232,13 +249,13 @@ function TagFacetsDistributionMeter({
 
   return (
     <TagSummary>
-      <details open={expanded} onClick={e => e.preventDefault()}>
-        <summary>
+      <details open aria-expanded={expanded} onClick={e => e.preventDefault()}>
+        <StyledSummary>
           <TagHeader clickable onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
             {renderSegments()}
           </TagHeader>
-        </summary>
+        </StyledSummary>
         {renderLegend()}
       </details>
     </TagSummary>
@@ -311,6 +328,12 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   padding: 1px ${space(0.5)} 0 0;
 `;
 
+const LegendAnimateContainer = styled(motion.div)<{expanded: boolean}>`
+  height: 0;
+  opacity: 0;
+  ${p => (!p.expanded ? 'overflow: hidden;' : '')}
+`;
+
 const LegendContainer = styled('ol')`
   list-style: none;
   padding: 0;
@@ -373,4 +396,16 @@ const ExpandToggleButton = styled(Button)`
 
 const NotApplicableLabel = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const StyledSummary = styled('summary')`
+  &::-webkit-details-marker {
+    display: none;
+  }
 `;

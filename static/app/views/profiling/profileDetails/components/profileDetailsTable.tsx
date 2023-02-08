@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -8,6 +7,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -18,8 +18,9 @@ import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
-import {useProfileGroup} from '../../profileGroupProvider';
 import {useColumnFilters} from '../hooks/useColumnFilters';
 import {useFuseSearch} from '../hooks/useFuseSearch';
 import {usePageLinks} from '../hooks/usePageLinks';
@@ -31,6 +32,7 @@ const RESULTS_PER_PAGE = 50;
 
 export function ProfileDetailsTable() {
   const location = useLocation();
+  const profiles = useProfiles();
   const profileGroup = useProfileGroup();
   const [groupByViewKey, setGroupByView] = useQuerystringState({
     key: 'detailView',
@@ -52,10 +54,7 @@ export function ProfileDetailsTable() {
   const cursor = paginationCursor ? parseInt(paginationCursor, 10) : 0;
 
   const allData = useMemo(() => {
-    const data =
-      profileGroup.type === 'resolved'
-        ? profileGroup.data.profiles.flatMap(collectProfileFrames)
-        : [];
+    const data = profileGroup.profiles.flatMap(collectProfileFrames);
 
     return groupByView.transform(data);
   }, [profileGroup, groupByView]);
@@ -138,7 +137,7 @@ export function ProfileDetailsTable() {
           triggerProps={{
             prefix: t('View'),
           }}
-          placement="bottom right"
+          position="bottom-end"
           onChange={option => {
             setSearchQuery('');
             setPaginationCursor(undefined);
@@ -167,7 +166,7 @@ export function ProfileDetailsTable() {
           }}
           multiple
           onChange={columnFilters.type.onChange}
-          placement="bottom right"
+          position="bottom-end"
         />
         <CompactSelect
           options={columnFilters.image.values.map(value => ({value, label: value}))}
@@ -184,14 +183,14 @@ export function ProfileDetailsTable() {
           }}
           multiple
           onChange={columnFilters.image.onChange}
-          placement="bottom right"
-          isSearchable
+          position="bottom-end"
+          searchable
         />
       </ActionBar>
 
       <GridEditable
-        isLoading={profileGroup.type === 'loading'}
-        error={profileGroup.type === 'errored'}
+        isLoading={profiles.type === 'loading'}
+        error={profiles.type === 'errored'}
         data={data}
         columnOrder={groupByView.columns.map(key => COLUMNS[key])}
         columnSortBy={[currentSort]}

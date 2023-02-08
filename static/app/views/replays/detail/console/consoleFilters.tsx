@@ -28,7 +28,7 @@ function Filters({
         onChange={selected => setLogLevel(selected.map(_ => _.value))}
         size="sm"
         value={logLevel}
-        isDisabled={!logLevels.length}
+        disabled={!logLevels.length}
       />
       <SearchBar
         onChange={setSearchTerm}

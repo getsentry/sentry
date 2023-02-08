@@ -71,7 +71,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "invite-members",
             "invite-members-rate-limits",
-            "issue-actions-v2",
             "minute-resolution-sessions",
             "open-membership",
             "relay",
@@ -80,6 +79,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "performance-issues-search",
         }
 
     @mock.patch("sentry.features.batch_has")

@@ -61,7 +61,8 @@ function Filter(props: Props) {
   return (
     <GuideAnchor target="span_op_breakdowns_filter" position="top">
       <CompactSelect
-        isClearable
+        clearable
+        disallowEmptySelection={false}
         menuTitle={t('Filter by operation')}
         options={menuOptions}
         value={currentFilter}

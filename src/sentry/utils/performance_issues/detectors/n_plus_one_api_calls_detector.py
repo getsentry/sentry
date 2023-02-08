@@ -5,12 +5,12 @@ import os
 import random
 import re
 from datetime import timedelta
+from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from sentry import features
+from sentry.grouptype.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import Organization, Project
-from sentry.types.issues import GroupType
-from sentry.utils import metrics
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -172,6 +172,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return False
 
         url = get_url_from_span(span)
+
+        # Next.js error pages cause an N+1 API Call that isn't useful to anyone
+        if "__nextjs_original-stack-frame" in url:
+            return False
+
         if not url:
             return False
 
@@ -202,6 +207,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         last_span = self.spans[-1]
 
         fingerprint = self._fingerprint()
+        if not fingerprint:
+            return
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -212,22 +220,23 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             offender_span_ids=[span["span_id"] for span in self.spans],
         )
 
-    def _fingerprint(self) -> str:
+    def _fingerprint(self) -> Optional[str]:
         first_url = get_url_from_span(self.spans[0])
         parameterized_first_url = self.parameterize_url(first_url)
 
-        metrics.incr(
-            "performance.performance_issues.n1-api-calls.parameterize-url",
-            sample_rate=1.0,
-            tags={"is_different": parameterized_first_url != first_url},
-        )
+        # Check if we parameterized the URL at all. If not, do not attempt
+        # fingerprinting. Unparameterized URLs run too high a risk of
+        # fingerprinting explosions. Query parameters are parameterized by
+        # definition, so exclude them from comparison
+        if without_query_params(parameterized_first_url) == without_query_params(first_url):
+            return None
 
         parsed_first_url = urlparse(parameterized_first_url)
         path = parsed_first_url.path
 
         fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
-        return f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value}-{fingerprint}"
+        return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
         span_a_start: int = span_a.get("start_timestamp", 0) or 0
@@ -242,3 +251,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             span_a["hash"] == span_b["hash"]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
+
+
+def without_query_params(url: str) -> str:
+    return urlparse(url)._replace(query="").geturl()

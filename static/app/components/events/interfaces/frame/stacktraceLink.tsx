@@ -29,12 +29,11 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
-import {getAnalyicsDataForEvent} from 'sentry/utils/events';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {isMobilePlatform} from 'sentry/utils/platform';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -93,7 +92,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
     trackIntegrationAnalytics(StacktraceLinkEvents.DISMISS_CTA, {
       view: 'stacktrace_issue_details',
       organization,
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForEvent(event),
     });
   };
 
@@ -196,7 +195,8 @@ function CodecovLink({
       trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_LINK_CLICKED, {
         view: 'stacktrace_issue_details',
         organization,
-        ...getAnalyicsDataForEvent(event),
+        group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+        ...getAnalyticsDataForEvent(event),
       });
     };
 
@@ -222,15 +222,6 @@ interface StacktraceLinkProps {
   line: string;
 }
 
-export function isMobileLanguage(event: Event) {
-  return (
-    isMobilePlatform(event.platform) ||
-    (event.platform === 'other' &&
-      isMobilePlatform(event.release?.projects?.[0].platform)) ||
-    (event.platform === 'java' && isMobilePlatform(event.release?.projects?.[0].platform))
-  );
-}
-
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -250,8 +241,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           snoozedTime: prompt.data.data.snoozed_ts,
         })
       : false;
-
-  const isMobile = isMobileLanguage(event);
 
   const {
     data: match,
@@ -288,7 +277,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           : !isPromptDismissed
           ? 'prompt'
           : 'empty',
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForEvent(event),
     });
     // excluding isPromptDismissed because we want this only to record once
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -303,7 +292,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           view: 'stacktrace_issue_details',
           provider: provider.key,
           organization,
-          ...getAnalyicsDataForEvent(event),
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
         },
         {startSession: true}
       );
@@ -313,11 +303,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const handleSubmit = () => {
     refetch();
   };
-
-  // Temporarily prevent mobile platforms from showing stacktrace link
-  if (isMobile) {
-    return null;
-  }
 
   if (isLoading || !match) {
     return (
@@ -389,7 +374,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
                 organization,
-                ...getAnalyicsDataForEvent(event),
+                ...getAnalyticsDataForEvent(event),
               },
               {startSession: true}
             );

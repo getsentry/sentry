@@ -4,7 +4,7 @@ declare namespace JSSelfProfiling {
 
   type Sample = {
     timestamp: number;
-    stackId?: number;
+    stackId: number;
     marker?: Marker;
   };
 

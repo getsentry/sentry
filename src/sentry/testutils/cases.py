@@ -1953,12 +1953,16 @@ class TestMigrations(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.setup_initial_state()
 
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 
         connection = connections[self.connection]
+        with connection.cursor() as cursor:
+            cursor.execute("SET ROLE 'postgres'")
+
+        self.setup_initial_state()
+
         executor = MigrationExecutor(connection)
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:

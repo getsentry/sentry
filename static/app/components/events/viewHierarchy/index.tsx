@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Node} from 'sentry/components/events/viewHierarchy/node';
@@ -48,6 +48,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
     viewHierarchy.windows[0]
   );
+  const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;
   }, [viewHierarchy.windows]);
@@ -79,7 +80,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onFocus={() => {
           setSelectedNode(r.item.node);
         }}
-        onClick={handleRowClick}
+        onClick={e => {
+          handleRowClick(e);
+          setSelectedNode(r.item.node);
+          setUserHasSelected(true);
+        }}
       >
         {depthMarkers}
         <Node
@@ -100,6 +105,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     scrollContainerStyles,
     hoveredGhostRowRef,
     clickedGhostRowRef,
+    handleScrollTo,
   } = useVirtualizedTree({
     renderRow,
     rowHeight: 20,
@@ -109,6 +115,16 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     overscroll: 10,
     initialSelectedNodeIndex: 0,
   });
+
+  // Scroll to the selected node when it changes
+  const onWireframeNodeSelect = useCallback(
+    (node?: ViewHierarchyWindow) => {
+      setUserHasSelected(true);
+      setSelectedNode(node);
+      handleScrollTo(item => item === node);
+    },
+    [handleScrollTo]
+  );
 
   const showWireframe = project?.platform !== 'unity';
 
@@ -134,7 +150,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         </Left>
         {showWireframe && (
           <Right>
-            <Wireframe hierarchy={hierarchy} />
+            <Wireframe
+              hierarchy={hierarchy}
+              selectedNode={userHasSelected ? selectedNode : undefined}
+              onNodeSelect={onWireframeNodeSelect}
+            />
           </Right>
         )}
       </Content>

@@ -21,14 +21,20 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
-  DATA_CATEGORY_NAMES,
+  DATA_CATEGORY_INFO,
   DEFAULT_RELATIVE_PERIODS,
   DEFAULT_STATS_PERIOD,
 } from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
+import {
+  DataCategoryInfo,
+  DateString,
+  Organization,
+  PageFilters,
+  Project,
+} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -71,24 +77,32 @@ const UsageStatsOrganization = HookOrDefault({
 });
 
 export class OrganizationStats extends Component<Props> {
-  get dataCategory(): DataCategory {
+  get dataCategory(): DataCategoryInfo['plural'] {
     const dataCategory = this.props.location?.query?.dataCategory;
 
     switch (dataCategory) {
-      case DataCategory.ERRORS:
-      case DataCategory.TRANSACTIONS:
-      case DataCategory.ATTACHMENTS:
-      case DataCategory.PROFILES:
-      case DataCategory.REPLAYS:
-        return dataCategory as DataCategory;
+      case DATA_CATEGORY_INFO.error.plural:
+      case DATA_CATEGORY_INFO.transaction.plural:
+      case DATA_CATEGORY_INFO.attachment.plural:
+      case DATA_CATEGORY_INFO.profile.plural:
+      case DATA_CATEGORY_INFO.replay.plural:
+        return dataCategory;
       default:
-        return DataCategory.ERRORS;
+        return DATA_CATEGORY_INFO.error.plural;
     }
   }
 
+  get dataCategoryInfo(): DataCategoryInfo {
+    const dataCategoryPlural = this.props.location?.query?.dataCategory;
+    const dataCategoryInfo =
+      Object.values(DATA_CATEGORY_INFO).find(
+        categoryInfo => categoryInfo.plural === dataCategoryPlural
+      ) ?? DATA_CATEGORY_INFO.error;
+    return dataCategoryInfo;
+  }
+
   get dataCategoryName(): string {
-    const dataCategory = this.dataCategory;
-    return DATA_CATEGORY_NAMES[dataCategory] ?? t('Unknown Data Category');
+    return this.dataCategoryInfo.titleName ?? t('Unknown Data Category');
   }
 
   get dataDatetime(): DateTimeObject {
@@ -161,15 +175,12 @@ export class OrganizationStats extends Component<Props> {
   }
 
   /**
-   * Note: For now, we're checking for both project-stats and global-views to enable this new UI
-   * This may change once we GA the project-stats feature flag. These are the planned scenarios:
-   *  - w/o global-views: Project Selector defaults to first project, hence no more 'Org Stats' w/o global-views
-   *  - w/ global-views: Project Selector defaults to 'My Projects', behaviour for 'Org Stats' is preserved
+   * Note: Since we're not checking for 'global-views', orgs without that flag will only ever get
+   * the single project view. This is a trade-off of using the global project header, but creates
+   * product consistency, since multi-project selection should be controlled by this flag.
    */
   get hasProjectStats(): boolean {
-    return ['project-stats', 'global-views'].every(flag =>
-      this.props.organization.features.includes(flag)
-    );
+    return this.props.organization.features.includes('project-stats');
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -210,7 +221,7 @@ export class OrganizationStats extends Component<Props> {
   setStateOnUrl = (
     nextState: {
       cursor?: string;
-      dataCategory?: DataCategory;
+      dataCategory?: DataCategoryInfo['plural'];
       // TODO(Leander): Remove date selector props once project-stats flag is GA
       pageEnd?: DateString;
       pageStart?: DateString;
@@ -255,7 +266,9 @@ export class OrganizationStats extends Component<Props> {
     const hasReplay = organization.features.includes('session-replay-ui');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
+      : CHART_OPTIONS_DATACATEGORY.filter(
+          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
+        );
 
     return (
       <PageControl>
@@ -265,9 +278,7 @@ export class OrganizationStats extends Component<Props> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt =>
-              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
-            }
+            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
           />
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
@@ -310,7 +321,9 @@ export class OrganizationStats extends Component<Props> {
     const hasReplay = organization.features.includes('session-replay-ui');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
+      : CHART_OPTIONS_DATACATEGORY.filter(
+          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
+        );
 
     return (
       <SelectorGrid>
@@ -318,7 +331,7 @@ export class OrganizationStats extends Component<Props> {
           triggerProps={{prefix: t('Category')}}
           value={this.dataCategory}
           options={options}
-          onChange={opt => this.setStateOnUrl({dataCategory: opt.value as DataCategory})}
+          onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
         />
 
         <StyledPageTimeRangeSelector
@@ -421,6 +434,7 @@ const SelectorGrid = styled('div')`
 `;
 
 const DropdownDataCategory = styled(CompactSelect)`
+  width: auto;
   position: relative;
   grid-column: auto / span 1;
 

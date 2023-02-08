@@ -6,7 +6,6 @@ import isObject from 'lodash/isObject';
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
@@ -26,13 +25,13 @@ import {
   CurrentRelease,
   Environment,
   Group,
-  IssueType,
   Organization,
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
@@ -76,14 +75,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
-      group_id: parseInt(group.id, 10),
-      issue_category: group.issueCategory,
-      issue_type: group.issueType ?? IssueType.ERROR,
       action_type: 'assign',
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      ...getAnalyticsDataForGroup(group),
     });
   };
 
@@ -211,19 +208,12 @@ class BaseGroupSidebar extends Component<Props, State> {
   render() {
     const {event, group, organization, project, environments} = this.props;
     const {allEnvironmentsGroupData, currentRelease} = this.state;
-    const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
     const hasStreamlineTargetingFeature = organization.features.includes(
       'streamline-targeting-context'
     );
 
     return (
       <Container>
-        {!hasIssueActionsV2 && (
-          <PageFiltersContainer>
-            <EnvironmentPageFilter alignDropdown="right" />
-          </PageFiltersContainer>
-        )}
-
         {!hasStreamlineTargetingFeature && (
           <OwnedBy group={group} project={project} organization={organization} />
         )}
@@ -286,15 +276,11 @@ class BaseGroupSidebar extends Component<Props, State> {
         />
 
         {this.renderParticipantData()}
-        {hasIssueActionsV2 && this.renderSeenByList()}
+        {this.renderSeenByList()}
       </Container>
     );
   }
 }
-
-const PageFiltersContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

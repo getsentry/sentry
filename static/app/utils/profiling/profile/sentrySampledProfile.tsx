@@ -5,6 +5,14 @@ import {Frame} from './../frame';
 import {Profile} from './profile';
 import {createSentrySampleProfileFrameIndex} from './utils';
 
+function sortSentrySampledProfileSamples(
+  samples: Readonly<Profiling.SentrySampledProfile['profile']['samples']>
+) {
+  return [...samples].sort((a, b) => {
+    return a.stack_id - b.stack_id;
+  });
+}
+
 // This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
 
@@ -12,9 +20,15 @@ import {createSentrySampleProfileFrameIndex} from './utils';
 export class SentrySampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SentrySampledProfile,
-    frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>
+    frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>,
+    options: {type: 'flamechart' | 'flamegraph'}
   ): Profile {
-    const {samples, stacks, thread_metadata = {}} = sampledProfile.profile;
+    const {stacks, thread_metadata = {}} = sampledProfile.profile;
+    const samples =
+      options.type === 'flamegraph'
+        ? sortSentrySampledProfileSamples(sampledProfile.profile.samples)
+        : sampledProfile.profile.samples;
+
     const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
     const endedAt = parseInt(samples[samples.length - 1].elapsed_since_start_ns, 10);
     if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
@@ -34,6 +48,7 @@ export class SentrySampledProfile extends Profile {
         ? `${profileTransactionName} (${threadName})`
         : threadName,
       threadId,
+      type: options.type,
     });
 
     let previousSampleWeight = 0;
@@ -69,7 +84,7 @@ export class SentrySampledProfile extends Profile {
       return;
     }
 
-    let node = this.appendOrderTree;
+    let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
 
     // frames are ordered outermost -> innermost so we have to iterate backward
@@ -118,6 +133,7 @@ export class SentrySampledProfile extends Profile {
 
     for (const stackNode of framesInStack) {
       stackNode.frame.addToTotalWeight(weight);
+      stackNode.incrementCount();
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample
