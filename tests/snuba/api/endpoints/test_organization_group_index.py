@@ -460,7 +460,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_success_response(query="!project:invalid-project")
+        response = self.get_success_response(query="!project:[invalid-project,also-invalid]")
         assert len(response.data) == 1
 
     def test_auto_resolved(self):
