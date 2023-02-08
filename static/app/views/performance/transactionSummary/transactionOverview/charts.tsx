@@ -75,12 +75,12 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  totalValues: number | null;
+  totalValue: number | null;
   withoutZerofill: boolean;
 };
 
 function TransactionSummaryCharts({
-  totalValues,
+  totalValue,
   eventView,
   organization,
   location,
@@ -182,6 +182,7 @@ function TransactionSummaryCharts({
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
             queryExtras={queryExtras}
+            totalCount={hideTransactionCount ? totalValue : null}
           />
         )}
         {display === DisplayModes.DURATION && (
@@ -263,10 +264,10 @@ function TransactionSummaryCharts({
             {hideTransactionCount ? '' : t('Total Transactions')}
           </SectionHeading>
           <SectionValue key="total-value">
-            {totalValues === null || hideTransactionCount ? (
+            {totalValue === null || hideTransactionCount ? (
               <Placeholder height="24px" />
             ) : (
-              totalValues.toLocaleString()
+              totalValue.toLocaleString()
             )}
           </SectionValue>
         </InlineContainer>

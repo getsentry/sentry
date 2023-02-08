@@ -333,7 +333,7 @@ function SummaryContent({
           organization={organization}
           location={location}
           eventView={eventView}
-          totalValues={totalCount}
+          totalValue={totalCount}
           currentFilter={spanOperationBreakdownFilter}
           withoutZerofill={hasPerformanceChartInterpolation}
         />
