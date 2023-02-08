@@ -100,7 +100,7 @@ function Filter({
   return (
     <CompactSelect
       multiple
-      isClearable
+      clearable
       maxMenuWidth="24rem"
       options={menuOptions}
       onChange={onChange}

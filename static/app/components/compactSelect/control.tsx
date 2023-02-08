@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
-import {AriaPositionProps} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
 import {ListState} from '@react-stately/list';
 import {OverlayTriggerState} from '@react-stately/overlays';
@@ -64,20 +63,15 @@ export const SelectContext = createContext<SelectContextValue>({
 export interface ControlProps extends UseOverlayProps {
   children?: React.ReactNode;
   className?: string;
-  disabled?: boolean;
   /**
    * If true, there will be a "Clear" button in the menu header.
    */
-  isClearable?: boolean;
+  clearable?: boolean;
+  disabled?: boolean;
   /**
    * If true, there will be a loading indicator in the menu header.
    */
-  isLoading?: boolean;
-  /**
-   * If true, there will be a search box on top of the menu, useful for quickly finding
-   * menu items.
-   */
-  isSearchable?: boolean;
+  loading?: boolean;
   maxMenuHeight?: number | string;
   maxMenuWidth?: number | string;
   /**
@@ -86,25 +80,24 @@ export interface ControlProps extends UseOverlayProps {
   menuTitle?: React.ReactNode;
   menuWidth?: number | string;
   /**
-   * Called when the clear button is clicked (applicable only when `isClearable` is
+   * Called when the clear button is clicked (applicable only when `clearable` is
    * true).
    */
   onClear?: () => void;
   /**
-   * Called when the search input's value changes (applicable only when `isSearchable`
+   * Called when the search input's value changes (applicable only when `searchable`
    * is true).
    */
-  onInputChange?: (value: string) => void;
+  onSearch?: (value: string) => void;
   /**
-   * The search input's placeholder text (applicable only when `isSearchable` is true).
+   * The search input's placeholder text (applicable only when `searchable` is true).
    */
-  placeholder?: string;
+  searchPlaceholder?: string;
   /**
-   * Position of the overlay menu relative to the trigger button. Allowed for backward
-   * compatibility only. Use the `position` prop instead.
-   * @deprecated
+   * If true, there will be a search box on top of the menu, useful for quickly finding
+   * menu items.
    */
-  placement?: AriaPositionProps['placement'];
+  searchable?: boolean;
   size?: FormSize;
   /**
    * Optional replacement for the default trigger button. Note that the replacement must
@@ -138,7 +131,6 @@ export function Control({
   onClose,
   disabled,
   position = 'bottom-start',
-  placement,
   offset,
   menuTitle,
   maxMenuHeight = '32rem',
@@ -147,12 +139,12 @@ export function Control({
 
   // Select props
   size = 'md',
-  isSearchable = false,
-  placeholder = 'Search…',
-  onInputChange,
-  isClearable = false,
+  searchable = false,
+  searchPlaceholder = 'Search…',
+  onSearch,
+  clearable = false,
   onClear,
-  isLoading = false,
+  loading = false,
   children,
   ...wrapperProps
 }: ControlProps) {
@@ -177,9 +169,9 @@ export function Control({
   const updateSearch = useCallback(
     (newValue: string) => {
       setSearch(newValue);
-      onInputChange?.(newValue);
+      onSearch?.(newValue);
     },
-    [onInputChange]
+    [onSearch]
   );
   const filterOption = useCallback<SelectContextValue['filterOption']>(
     opt =>
@@ -211,26 +203,7 @@ export function Control({
     onClear?.();
   }, [onClear, listStates]);
 
-  // Get overlay props. We need to support both the `position` and `placement` props for
-  // backward compatibility. TODO: convert existing usages from `placement` to `position`
-  const overlayPosition = useMemo(
-    () =>
-      position ??
-      placement
-        ?.split(' ')
-        .map(key => {
-          switch (key) {
-            case 'right':
-              return 'end';
-            case 'left':
-              return 'start';
-            default:
-              return key;
-          }
-        })
-        .join('-'),
-    [position, placement]
-  );
+  // Manage overlay position
   const {
     isOpen: overlayIsOpen,
     state: overlayState,
@@ -240,7 +213,7 @@ export function Control({
     overlayProps,
   } = useOverlay({
     type: 'listbox',
-    position: overlayPosition,
+    position,
     offset,
     isOpen,
     onOpenChange: async open => {
@@ -370,12 +343,12 @@ export function Control({
             maxHeightProp={maxMenuHeight}
           >
             <FocusScope contain={overlayIsOpen}>
-              {(menuTitle || isClearable) && (
+              {(menuTitle || clearable) && (
                 <MenuHeader size={size} data-header>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
-                    {isLoading && <StyledLoadingIndicator size={12} mini />}
-                    {isClearable && (
+                    {loading && <StyledLoadingIndicator size={12} mini />}
+                    {clearable && (
                       <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
                       </ClearButton>
@@ -383,9 +356,9 @@ export function Control({
                   </MenuHeaderTrailingItems>
                 </MenuHeader>
               )}
-              {isSearchable && (
+              {searchable && (
                 <SearchInput
-                  placeholder={placeholder}
+                  placeholder={searchPlaceholder}
                   value={search}
                   onChange={e => updateSearch(e.target.value)}
                   visualSize={size}
