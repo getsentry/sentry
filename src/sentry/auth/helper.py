@@ -236,7 +236,7 @@ class AuthIdentityHandler:
             log_service.record_audit_log(
                 event=AuditLogEvent(
                     organization_id=self.organization.id,
-                    time_of_creation=timezone.now(),
+                    date_added=timezone.now(),
                     event_id=audit_log.get_event_id("MEMBER_ADD"),
                     actor_user_id=user.id,
                     actor_label=user.username,
@@ -319,7 +319,7 @@ class AuthIdentityHandler:
             log_service.record_audit_log(
                 event=AuditLogEvent(
                     organization_id=self.organization.id,
-                    time_of_creation=timezone.now(),
+                    date_added=timezone.now(),
                     event_id=audit_log.get_event_id("SSO_IDENTITY_LINK"),
                     actor_user_id=self.user.id,
                     actor_label=self.user.username,

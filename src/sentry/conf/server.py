@@ -580,6 +580,9 @@ CELERY_IMPORTS = (
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
+    "sentry.tasks.deletion.scheduled",
+    "sentry.tasks.deletion.groups",
+    "sentry.tasks.deletion.hybrid_cloud",
     "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -804,6 +807,10 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25},
+    },
+    "schedule-hybrid-cloud-foreign-key-jobs": {
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        "schedule": timedelta(minutes=15),
     },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
