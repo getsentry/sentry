@@ -35,21 +35,19 @@ in_app_frame = {
 )
 def test_sdk_crash_detection(function, expected):
     frames = [
+        create_sentry_frame(function),
         {
-            "function": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
-            "symbol": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
-            "package": "UIKitCore",
-            "in_app": False,
+            "function": "LoginViewController.viewDidAppear",
+            "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
+            "package": "SentryApp",
+            "filename": "LoginViewController.swift",
+            "lineno": 196,
+            "in_app": True,
         },
+        in_app_frame,
         {
-            "function": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
-            "symbol": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
-            "package": "UIKitCore",
-            "in_app": False,
-        },
-        {
-            "function": "-[UIViewController _endAppearanceTransition:]",
-            "symbol": "-[UIViewController _endAppearanceTransition:]",
+            "function": "-[UIViewController _setViewAppearState:isAnimating:]",
+            "symbol": "-[UIViewController _setViewAppearState:isAnimating:]",
             "package": "UIKitCore",
             "in_app": False,
         },
@@ -60,21 +58,23 @@ def test_sdk_crash_detection(function, expected):
             "in_app": False,
         },
         {
-            "function": "-[UIViewController _setViewAppearState:isAnimating:]",
-            "symbol": "-[UIViewController _setViewAppearState:isAnimating:]",
+            "function": "-[UIViewController _endAppearanceTransition:]",
+            "symbol": "-[UIViewController _endAppearanceTransition:]",
             "package": "UIKitCore",
             "in_app": False,
         },
-        in_app_frame,
         {
-            "function": "LoginViewController.viewDidAppear",
-            "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
-            "package": "SentryApp",
-            "filename": "LoginViewController.swift",
-            "lineno": 196,
-            "in_app": True,
+            "function": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
+            "symbol": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
+            "package": "UIKitCore",
+            "in_app": False,
         },
-        create_sentry_frame(function),
+        {
+            "function": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
+            "symbol": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
+            "package": "UIKitCore",
+            "in_app": False,
+        },
     ]
 
     assert is_sdk_crash(frames) is expected
@@ -83,22 +83,22 @@ def test_sdk_crash_detection(function, expected):
 def test_is_sdk_crash_only_non_inapp_after_sentry_frame():
     frames = [
         {
-            "function": "std::__terminate",
-            "symbol": "_ZSt11__terminatePFvvE",
-            "package": "libc++abi.dylib",
+            "function": "__handleUncaughtException",
+            "symbol": "__handleUncaughtException",
+            "package": "CoreFoundation",
             "in_app": False,
         },
-        create_sentry_frame("sentrycrashdl_getBinaryImage"),
         {
             "function": "_objc_terminate",
             "symbol": "_ZL15_objc_terminatev",
             "package": "libobjc.A.dylib",
             "in_app": False,
         },
+        create_sentry_frame("sentrycrashdl_getBinaryImage"),
         {
-            "function": "__handleUncaughtException",
-            "symbol": "__handleUncaughtException",
-            "package": "CoreFoundation",
+            "function": "std::__terminate",
+            "symbol": "_ZSt11__terminatePFvvE",
+            "package": "libc++abi.dylib",
             "in_app": False,
         },
     ]
@@ -108,26 +108,26 @@ def test_is_sdk_crash_only_non_inapp_after_sentry_frame():
 
 def test_is_sdk_crash_only_inapp_after_sentry_frame():
     frames = [
-        {
-            "function": "std::__terminate",
-            "symbol": "_ZSt11__terminatePFvvE",
-            "package": "libc++abi.dylib",
-            "in_app": False,
-        },
-        create_sentry_frame("sentrycrashdl_getBinaryImage"),
-        {
-            "function": "_objc_terminate",
-            "symbol": "_ZL15_objc_terminatev",
-            "package": "libobjc.A.dylib",
-            "in_app": False,
-        },
+        in_app_frame,
         {
             "function": "__handleUncaughtException",
             "symbol": "__handleUncaughtException",
             "package": "CoreFoundation",
             "in_app": False,
         },
-        in_app_frame,
+        {
+            "function": "_objc_terminate",
+            "symbol": "_ZL15_objc_terminatev",
+            "package": "libobjc.A.dylib",
+            "in_app": False,
+        },
+        create_sentry_frame("sentrycrashdl_getBinaryImage"),
+        {
+            "function": "std::__terminate",
+            "symbol": "_ZSt11__terminatePFvvE",
+            "package": "libc++abi.dylib",
+            "in_app": False,
+        },
     ]
 
     assert is_sdk_crash(frames) is False
@@ -144,9 +144,15 @@ def test_is_sdk_crash_only_inapp_after_sentry_frame():
 def test_is_sdk_crash_filename(filename, expected):
     frames = [
         {
-            "function": "std::__terminate",
-            "symbol": "_ZSt11__terminatePFvvE",
-            "package": "libc++abi.dylib",
+            "function": "__handleUncaughtException",
+            "symbol": "__handleUncaughtException",
+            "package": "CoreFoundation",
+            "in_app": False,
+        },
+        {
+            "function": "_objc_terminate",
+            "symbol": "_ZL15_objc_terminatev",
+            "package": "libobjc.A.dylib",
             "in_app": False,
         },
         {
@@ -158,15 +164,9 @@ def test_is_sdk_crash_filename(filename, expected):
             "in_app": False,
         },
         {
-            "function": "_objc_terminate",
-            "symbol": "_ZL15_objc_terminatev",
-            "package": "libobjc.A.dylib",
-            "in_app": False,
-        },
-        {
-            "function": "__handleUncaughtException",
-            "symbol": "__handleUncaughtException",
-            "package": "CoreFoundation",
+            "function": "std::__terminate",
+            "symbol": "_ZSt11__terminatePFvvE",
+            "package": "libc++abi.dylib",
             "in_app": False,
         },
     ]

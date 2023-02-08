@@ -14,10 +14,15 @@ def detect_sdk_crash(data: Event):
 
 
 def is_sdk_crash(frames: Sequence[Mapping[str, Any]]) -> bool:
+    """
+    Returns true if the stacktrace is a SDK crash.
+
+    :param frames: The stacktrace frames ordered from newest to oldest.
+    """
     if not frames:
         return False
 
-    for frame in reversed(frames):
+    for frame in frames:
 
         function = frame.get("function")
 
