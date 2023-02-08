@@ -348,7 +348,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             }
 
         if not features.has("organizations:performance-issues-search", organization):
-            group_categories.discard(GroupCategory.PERFORMANCE)
+            group_categories.discard(GroupCategory.PERFORMANCE.value)
 
         query_params_for_categories = [
             self._prepare_params_for_category(
@@ -558,7 +558,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             span.set_data("Max Candidates", max_candidates)
             span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
-
         too_many_candidates = False
         if not group_ids:
             # no matches could possibly be found from this point on

@@ -466,7 +466,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
-        with pytest.raises(InvalidSearchQuery):
+        with pytest.raises(ValueError):
             self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
 
     def test_status_with_environment(self):

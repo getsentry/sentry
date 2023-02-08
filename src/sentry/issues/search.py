@@ -222,14 +222,14 @@ def _query_params_for_generic(
 
 # TODO: We need to add a way to make this dynamic for additional generic types
 SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
-    GroupCategory.ERROR: _query_params_for_error,
-    GroupCategory.PERFORMANCE: _query_params_for_perf,
-    GroupCategory.PROFILE: _query_params_for_generic,
+    GroupCategory.ERROR.value: _query_params_for_error,
+    GroupCategory.PERFORMANCE.value: _query_params_for_perf,
+    GroupCategory.PROFILE.value: _query_params_for_generic,
 }
 
 
 SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
-    GroupCategory.PERFORMANCE: lambda search_filters: [
+    GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf
         for sf in search_filters
