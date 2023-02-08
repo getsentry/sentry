@@ -84,9 +84,9 @@ function TeamFilter({
   return (
     <CompactSelect
       multiple
-      isClearable
-      isSearchable
-      isLoading={fetching}
+      clearable
+      searchable
+      loading={fetching}
       menuTitle={t('Filter teams')}
       options={
         showSuggestedOptions
@@ -97,7 +97,7 @@ function TeamFilter({
           : teamOptions
       }
       value={selectedTeams}
-      onInputChange={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
+      onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       onChange={opts => {
         // Compact select type inference does not work - onChange type is actually T | null.
         if (!opts) {

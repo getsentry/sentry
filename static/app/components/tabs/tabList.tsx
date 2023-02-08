@@ -188,7 +188,7 @@ function BaseTabList({
             options={overflowMenuItems}
             value={[...state.selectionManager.selectedKeys][0]}
             onChange={opt => state.setSelectedKey(opt.value)}
-            isDisabled={disabled}
+            disabled={disabled}
             position="bottom-end"
             size="sm"
             offset={4}
