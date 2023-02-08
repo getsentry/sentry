@@ -228,11 +228,15 @@ export const profiling = [
   'python',
   'python-django',
   'python-flask',
+  'python-fastapi',
+  'python-starlette',
   'python-sanic',
+  'python-celery',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
   'python-tornado',
+  'python-rq',
   // rust
   'rust',
 ] as const;
