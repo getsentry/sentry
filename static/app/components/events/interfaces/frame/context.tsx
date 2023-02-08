@@ -4,10 +4,7 @@ import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {
-  isMobileLanguage,
-  StacktraceLink,
-} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -111,7 +108,6 @@ const Context = ({
   frameMeta,
   registersMeta,
 }: Props) => {
-  const isMobile = isMobileLanguage(event);
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -155,37 +151,13 @@ const Context = ({
       : {}
   );
 
-  if (
-    !hasContextSource &&
-    !hasContextVars &&
-    !hasContextRegisters &&
-    !hasAssembly &&
-    !isMobile
-  ) {
+  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
       <div className="empty-context">
         <StyledIconFlag size="xs" />
         <p>{t('No additional details are available for this frame.')}</p>
       </div>
     ) : null;
-  }
-
-  // Temporarily allow mobile platforms to make API call and "show" stacktrace link
-  if (isMobile) {
-    if (
-      event.platform !== 'java' ||
-      (event.platform === 'java' && frame?.module?.startsWith('com.'))
-    ) {
-      return (
-        <ErrorBoundary customComponent={null}>
-          <StacktraceLink
-            line={frame.function ? frame.function : ''}
-            frame={frame}
-            event={event}
-          />
-        </ErrorBoundary>
-      );
-    }
   }
 
   const startLineNo = hasContextSource ? frame.context[0][0] : 0;
