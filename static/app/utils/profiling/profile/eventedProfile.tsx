@@ -1,7 +1,7 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {makeFormatTo} from 'sentry/utils/profiling/units/units';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile';
 import {createFrameIndex} from './utils';
@@ -31,10 +31,11 @@ export class EventedProfile extends Profile {
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.
     profile.lastValue = Math.max(0, eventedProfile.startValue);
-    profile.samplingIntervalApproximation = makeFormatTo(
+    profile.samplingIntervalApproximation = formatTo(
+      10,
       'milliseconds',
       eventedProfile.unit
-    )(10);
+    );
 
     for (const event of eventedProfile.events) {
       const frame = frameIndex[event.frame];
