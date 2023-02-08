@@ -189,6 +189,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
+            self.project.id,
             uuid.uuid4().hex,
             uuid.uuid4().hex,
             ["some-fingerprint"],
@@ -204,7 +205,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
         event.group.type = GroupType.PROFILE_BLOCKED_THREAD
@@ -241,6 +242,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
             uuid.uuid4().hex,
+            self.project.id,
             uuid.uuid4().hex,
             ["some-fingerprint"],
             "something bad happened",
@@ -251,7 +253,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             GroupType.PROFILE_BLOCKED_THREAD,
             ensure_aware(datetime.now()),
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
         event.group.type = GroupType.PROFILE_BLOCKED_THREAD
