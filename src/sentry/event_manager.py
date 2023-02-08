@@ -2412,7 +2412,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
 def should_create_group(client: Any, grouphash: str, type: GroupType, project: Project) -> bool:
-    times_seen = client.incr(f"grouphash:{grouphash}:{project.id}")
+    key = f"grouphash:{grouphash}:{project.id}"
+    times_seen = client.incr(key)
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
         tags={
@@ -2432,7 +2433,7 @@ def should_create_group(client: Any, grouphash: str, type: GroupType, project: P
 
         return True
     else:
-        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+        client.expire(key, 60 * 60 * 24)  # 24 hour expiration from last seen
         return False
 
 
