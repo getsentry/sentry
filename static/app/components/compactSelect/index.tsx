@@ -16,12 +16,6 @@ export {SelectOption, SelectOptionOrSection, SelectSection};
 
 interface BaseSelectProps<Value extends React.Key> extends ControlProps {
   options: SelectOptionOrSection<Value>[];
-  /**
-   * Same as `disabled` in ControlProps. Allowed only for backward compatibility.
-   * Will be removed soon.
-   * @deprecated
-   */
-  isDisabled?: boolean;
 }
 
 export interface SingleSelectProps<Value extends React.Key>
@@ -60,7 +54,6 @@ function CompactSelect<Value extends React.Key>({
 
   // Control props
   disabled,
-  isDisabled,
   size = 'md',
   closeOnSelect,
   triggerProps,
@@ -86,11 +79,16 @@ function CompactSelect<Value extends React.Key>({
     [options]
   );
 
+  const controlDisabled = useMemo(
+    () => disabled ?? options?.length === 0,
+    [disabled, options]
+  );
+
   return (
     <Control
       {...controlProps}
       triggerProps={{...triggerProps, id: triggerId}}
-      disabled={isDisabled ?? disabled ?? options?.length === 0}
+      disabled={controlDisabled}
       size={size}
     >
       <ListBox

@@ -67,7 +67,7 @@ export default function OpsFilter(props: Props) {
     >
       {results => (
         <CompactSelect
-          isClearable
+          clearable
           maxMenuWidth="24rem"
           disallowEmptySelection={false}
           menuTitle={t('Filter by operation')}

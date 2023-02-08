@@ -226,7 +226,7 @@ export function TraceEventDataSection({
                 size: 'xs',
                 title: sortByTooltip,
               }}
-              isDisabled={!!sortByTooltip}
+              disabled={!!sortByTooltip}
               position="bottom-end"
               onChange={selectedOption => {
                 setState({...state, sortBy: selectedOption.value});

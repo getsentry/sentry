@@ -26,7 +26,7 @@ function DomFilters({
         size="sm"
         onChange={selected => setType(selected.map(_ => _.value))}
         value={type}
-        isDisabled={!mutationTypes.length}
+        disabled={!mutationTypes.length}
       />
       <SearchBar
         size="sm"
