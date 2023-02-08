@@ -48,6 +48,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
     viewHierarchy.windows[0]
   );
+  const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;
   }, [viewHierarchy.windows]);
@@ -82,6 +83,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onClick={e => {
           handleRowClick(e);
           setSelectedNode(r.item.node);
+          setUserHasSelected(true);
         }}
       >
         {depthMarkers}
@@ -116,7 +118,8 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
 
   // Scroll to the selected node when it changes
   const onWireframeNodeSelect = useCallback(
-    (node: ViewHierarchyWindow) => {
+    (node?: ViewHierarchyWindow) => {
+      setUserHasSelected(true);
       setSelectedNode(node);
       handleScrollTo(item => item === node);
     },
@@ -147,7 +150,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         </Left>
         {showWireframe && (
           <Right>
-            <Wireframe hierarchy={hierarchy} onNodeSelect={onWireframeNodeSelect} />
+            <Wireframe
+              hierarchy={hierarchy}
+              selectedNode={userHasSelected ? selectedNode : undefined}
+              onNodeSelect={onWireframeNodeSelect}
+            />
           </Right>
         )}
       </Content>
