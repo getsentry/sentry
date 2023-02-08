@@ -2,7 +2,7 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
-import {Group, IssueCategory} from 'sentry/types';
+import {Group, IssueCategory, IssueType} from 'sentry/types';
 import {EntryType} from 'sentry/types/event';
 
 const {organization, project, router} = initializeData();
@@ -30,7 +30,10 @@ describe('EventEntries', function () {
 
   describe('Rendering', function () {
     it('renders the Resources section for Performance Issues', function () {
-      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      const group: Group = TestStubs.Group({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      });
 
       const newEvent = {
         ...event,
@@ -56,7 +59,10 @@ describe('EventEntries', function () {
     });
 
     it('injects the resources section in the correct spot', function () {
-      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      const group: Group = TestStubs.Group({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      });
       group.issueCategory = IssueCategory.PERFORMANCE;
       const sampleBreadcrumb = {
         type: 'default',
