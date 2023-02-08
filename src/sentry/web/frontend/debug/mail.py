@@ -45,7 +45,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.types.issues import GROUP_TYPE_TO_TEXT
@@ -193,8 +193,9 @@ def make_performance_event(project, sample_name: str):
         {
             "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
         }
-    ):
+    ), Feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
         perf_data = dict(
             load_data(
                 sample_name,
