@@ -6,6 +6,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
+from sentry.utils.samples import load_data
 
 
 @region_silo_test(stable=True)
@@ -112,3 +113,9 @@ class IssueOccurrenceTest(APITestCase):
         data.pop("event", None)
         response = self.client.post(url, data=data, format="json")
         assert response.status_code == 400, response.content
+
+    def test_load_profiling_occurrence(self, mock_func):
+        event_data = load_data("generic-event-profiling")
+        data = event_data.data
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content

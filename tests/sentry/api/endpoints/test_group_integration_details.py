@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Activity, ExternalIssue, GroupLink
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -248,9 +248,12 @@ class GroupIntegrationDetailsTest(APITestCase):
             response = self.client.post(path, data={"assignee": "foo@sentry.io"})
             assert response.status_code == 201
 
-            assert user_option_service.query_options(
-                user_ids=[self.user.id], project_id=group.project_id
-            ).get_one(key="issue:defaults") == {"example": {}}
+            assert get_option_from_list(
+                user_option_service.get_many(
+                    filter={"user_ids": [self.user.id], "project_id": group.project_id}
+                ),
+                key="issue:defaults",
+            ) == {"example": {}}
 
             external_issue = ExternalIssue.objects.get(
                 key="APP-123", integration_id=integration.id, organization_id=org.id

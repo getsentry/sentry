@@ -79,7 +79,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert created_search.sort == SortOptions.DATE
         assert created_search.visibility == Visibility.OWNER
         assert not created_search.is_global
-        assert created_search.owner == self.user
+        assert created_search.owner_id == self.user.id
 
         # And the sidebar should have been updated with the new search item
         assert self.browser.find_element(
@@ -119,7 +119,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert created_search.sort == SortOptions.DATE
         assert created_search.visibility == Visibility.OWNER
         assert not created_search.is_global
-        assert created_search.owner == self.user
+        assert created_search.owner_id == self.user.id
 
         # And the sidebar should have been updated
         assert self.browser.find_element(
