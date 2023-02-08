@@ -156,6 +156,36 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         message["event"]["tags"]["nan-tag"] = float("nan")
         self.run_test(message)
 
+    def test_missing_event_id_and_event_data(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message.pop("event_id", None)
+        message.pop("event", None)
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(message)
+
+    def test_event_id_mismatch(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event_id"] = "id1"
+        message["event"]["event_id"] = "id2"
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(message)
+
+    def test_missing_top_level_event_id(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        event_id = "the_one"
+        message.pop("event_id", None)
+        message["event"]["event_id"] = event_id
+        kwargs = _get_kwargs(message)
+        assert kwargs is not None
+        assert kwargs["occurrence_data"]["event_id"] == kwargs["event_data"]["event_id"] == event_id
+
+    def test_missing_event_id_in_event_data(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event_id"] = "id1"
+        message["event"].pop("event_id", None)
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(message)
+
     def test_project_ids_mismatch(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         message["project_id"] = 1
