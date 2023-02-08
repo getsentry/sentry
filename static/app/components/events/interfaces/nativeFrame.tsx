@@ -438,7 +438,7 @@ const RowHeader = styled('span')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 150px 120px 4fr auto auto 16px;
-    padding: ${space(1)} ${space(1.5)};
+    padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
 `;
