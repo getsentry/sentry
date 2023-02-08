@@ -357,24 +357,28 @@ class Organization(Model, SnowflakeIdMixin):
         return self._default_owner_id
 
     def has_single_owner(self):
-        from sentry.models import OrganizationMember
-
         owners = list(
-            OrganizationMember.objects.filter(
-                organization=self,
-                role=roles.get_top_dog().id,
-                user__isnull=False,
-                user__is_active=True,
-            ).values_list("id", flat=True)
+            self.get_members_with_org_role(roles.get_top_dog().id).values_list("id", flat=True)
         )
-        owners += list(
+        return len(owners[:2]) == 1
+
+    def get_members_with_org_role(self, role: str):
+        members_with_role = OrganizationMember.objects.filter(
+            organization=self,
+            role=role,
+            user__isnull=False,
+            user__is_active=True,
+        )
+        members_on_teams_with_role = (
             OrganizationMemberTeam.objects.filter(
                 team__in=self.get_teams_with_org_role(organization_roles.get_top_dog().id)
             )
-            .exclude(organizationmember_id__in=owners)
-            .values_list("id", flat=True)
+            .exclude(organizationmember_id__in=list(members_with_role.values_list("id", flat=True)))
+            .values_list("organizationmember__id", flat=True)
         )
-        return len(owners) == 1
+        return members_with_role | OrganizationMember.objects.filter(
+            id__in=members_on_teams_with_role
+        )
 
     def merge_to(from_org, to_org):
         from sentry.models import (
