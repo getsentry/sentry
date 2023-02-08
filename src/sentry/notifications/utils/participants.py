@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import features
+from sentry.experiments import manager as expt_manager
 from sentry.models import (
     ActorTuple,
     Group,
@@ -330,7 +331,8 @@ def get_fallthrough_recipients(
         return user_service.get_from_project(project.id)
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        if project.organization.flags.early_adopter.is_set:
+        org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=project.organization)
+        if project.organization.flags.early_adopter.is_set or org_exposed:
             return user_service.get_many(
                 filter={
                     "user_ids": project.member_set.order_by("-user__last_active").values_list(

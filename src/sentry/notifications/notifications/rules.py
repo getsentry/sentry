@@ -6,6 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 import pytz
 
 from sentry.db.models import Model
+from sentry.experiments import manager as expt_manager
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
@@ -210,5 +211,10 @@ class AlertRuleNotification(ProjectNotification):
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
+            # Remove after IssueAlertFallbackExperiment
+            "has_fallback_experiment": expt_manager.get(
+                "IssueAlertFallbackExperiment", org=self.organization
+            ),
+            "is_early_access": self.organization.flags.early_adopter.is_set,
             **super().get_log_params(recipient),
         }
