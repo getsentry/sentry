@@ -18,17 +18,21 @@ export class CanvasView<T extends {configSpace: Rect}> {
   barHeight: number;
 
   model: T;
+  modelConfigSpace: Readonly<Rect>;
+
   canvas: FlamegraphCanvas;
   mode: 'anchorTop' | 'anchorBottom' | 'stretchToFit' = 'anchorTop';
 
   constructor({
     canvas,
     options,
+    modelConfigSpace,
     model,
     mode,
   }: {
     canvas: FlamegraphCanvas;
     model: T;
+    modelConfigSpace: Readonly<Rect>;
     options: {
       barHeight: number;
       configSpaceTransform?: Rect;
@@ -38,13 +42,17 @@ export class CanvasView<T extends {configSpace: Rect}> {
     };
     mode?: CanvasView<T>['mode'];
   }) {
+    this.canvas = canvas;
+
     this.mode = mode || this.mode;
     this.inverted = !!options.inverted;
+
     this.minWidth = options.minWidth ?? 0;
-    this.model = model;
-    this.canvas = canvas;
     this.depthOffset = options.depthOffset ?? 0;
     this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 0;
+
+    this.model = model;
+    this.modelConfigSpace = modelConfigSpace;
 
     // This is a transformation matrix that is applied to the configView, it allows us to
     // transform an entire view and render it without having to recompute the models.
@@ -79,8 +87,8 @@ export class CanvasView<T extends {configSpace: Rect}> {
         this.configSpace = new Rect(
           0,
           0,
-          this.model.configSpace.width,
-          this.model.configSpace.height + this.depthOffset
+          this.modelConfigSpace.width,
+          this.modelConfigSpace.height + this.depthOffset
         );
         return;
       }
@@ -90,9 +98,9 @@ export class CanvasView<T extends {configSpace: Rect}> {
         this.configSpace = new Rect(
           0,
           0,
-          this.model.configSpace.width,
+          this.modelConfigSpace.width,
           Math.max(
-            this.model.configSpace.height + this.depthOffset,
+            this.modelConfigSpace.height + this.depthOffset,
             canvas.physicalSpace.height / this.barHeight
           )
         );

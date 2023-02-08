@@ -306,6 +306,7 @@ function Flamegraph(): ReactElement {
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: flamegraph,
+        modelConfigSpace: flamegraph.configSpace,
         options: {
           inverted: flamegraph.inverted,
           minWidth: flamegraph.profile.minFrameDuration,
@@ -378,75 +379,68 @@ function Flamegraph(): ReactElement {
     [flamegraph, flamegraphCanvas, flamegraphTheme, xAxis]
   );
 
-  const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
-    _previousView => {
-      if (!flamegraphView || !flamegraphCanvas || !uiFrames) {
-        return null;
-      }
+  const uiFramesView = useMemo<CanvasView<UIFrames> | null>(() => {
+    if (!flamegraphView || !flamegraphCanvas || !uiFrames) {
+      return null;
+    }
 
-      const newView = new CanvasView({
-        canvas: flamegraphCanvas,
-        model: uiFrames,
-        mode: 'stretchToFit',
-        options: {
-          inverted: flamegraph.inverted,
-          minWidth: uiFrames.minFrameDuration,
-          barHeight: 10,
-          depthOffset: 0,
-          configSpaceTransform:
-            xAxis === 'transaction'
-              ? new Rect(flamegraph.profile.startedAt, 0, 0, 0)
-              : undefined,
-        },
-      });
+    const newView = new CanvasView({
+      canvas: flamegraphCanvas,
+      model: uiFrames,
+      mode: 'stretchToFit',
+      modelConfigSpace: flamegraph.configSpace,
+      options: {
+        inverted: flamegraph.inverted,
+        minWidth: uiFrames.minFrameDuration,
+        barHeight: 10,
+        depthOffset: 0,
+        configSpaceTransform:
+          xAxis === 'transaction'
+            ? new Rect(-flamegraph.profile.startedAt, 0, 0, 0)
+            : undefined,
+      },
+    });
 
-      // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(
-        flamegraphView.configView.withHeight(newView.configView.height),
-        {width: {min: 0}}
-      );
+    // Initialize configView to whatever the flamegraph configView is
+    newView.setConfigView(
+      flamegraphView.configView.withHeight(newView.configView.height),
+      {width: {min: 0}}
+    );
 
-      return newView;
-    },
-    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, xAxis]
-  );
+    return newView;
+  }, [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, xAxis]);
 
-  const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
-    _previousView => {
-      if (!spansCanvas || !spanChart || !flamegraphView) {
-        return null;
-      }
+  const spansView = useMemo<CanvasView<SpanChart> | null>(() => {
+    if (!spansCanvas || !spanChart || !flamegraphView) {
+      return null;
+    }
 
-      const newView = new CanvasView({
-        canvas: spansCanvas,
-        model: spanChart,
-        options: {
-          inverted: flamegraph.inverted,
-          minWidth: spanChart.minSpanDuration,
-          barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
-          depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
-          configSpaceTransform:
-            // When a standalone axis is selected, the spans need to be relative to profile start time
-            xAxis === 'standalone'
-              ? new Rect(-flamegraph.profile.startedAt, 0, 0, 0)
-              : undefined,
-        },
-      });
+    const newView = new CanvasView({
+      canvas: spansCanvas,
+      model: spanChart,
+      modelConfigSpace: flamegraph.configSpace.withHeight(spanChart.configSpace.height),
+      options: {
+        inverted: false,
+        minWidth: spanChart.minSpanDuration,
+        barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
+        depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
+        configSpaceTransform:
+          // When a standalone axis is selected, the spans need to be relative to profile start time
+          xAxis === 'standalone' ? new Rect(0, 0, 0, 0) : undefined,
+      },
+    });
 
-      // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(flamegraphView.configView, {width: {min: 0}});
-      return newView;
-    },
-    [
-      spanChart,
-      spansCanvas,
-      xAxis,
-      flamegraph.inverted,
-      flamegraphView,
-      flamegraph.profile.startedAt,
-      flamegraphTheme.SIZES,
-    ]
-  );
+    // Initialize configView to whatever the flamegraph configView is
+    newView.setConfigView(flamegraphView.configView, {width: {min: 0}});
+    return newView;
+  }, [
+    spanChart,
+    spansCanvas,
+    xAxis,
+    flamegraphView,
+    flamegraph.configSpace,
+    flamegraphTheme.SIZES,
+  ]);
 
   // We want to make sure that the views have the same min zoom levels so that
   // if you wheel zoom on one, the other one will also zoom to the same level of detail.

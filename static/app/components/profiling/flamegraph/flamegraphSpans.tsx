@@ -135,8 +135,8 @@ export function FlamegraphSpans({
 
     const drawSpans = () => {
       spansRenderer.draw(
-        spansView.configView.transformRect(spansView.configSpaceTransform),
-        spansView.fromConfigView(spansCanvas.physicalSpace)
+        spansView.toOriginConfigView(spansView.configView),
+        spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
       );
     };
 
