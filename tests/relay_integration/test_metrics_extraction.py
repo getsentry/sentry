@@ -6,10 +6,12 @@ from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
+    @override_options({"relay.transaction-names-client-based": 1.0})
     def test_all_transaction_metrics_emitted(self):
         with Feature(
             {
@@ -19,6 +21,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             event_data = {
                 "type": "transaction",
                 "transaction": "foo",
+                "transaction_info": {"source": "url"},  # 'transaction' tag not extracted
                 "timestamp": iso_format(before_now(seconds=1)),
                 "start_timestamp": iso_format(before_now(seconds=2)),
                 "contexts": {
