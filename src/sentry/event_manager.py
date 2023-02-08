@@ -2340,7 +2340,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         span.set_tag("group_type", problem.type.slug)
                         metric_tags["create_group_transaction.outcome"] = "no_group"
-                        metric_tags["group_type"] = problem.type.slug
+                        metric_tags["group_type"] = problem.type.slug.upper()
 
                         group_kwargs = kwargs.copy()
                         group_kwargs["type"] = problem.type.type_id
