@@ -183,9 +183,7 @@ function TagFacetsDistributionMeter({
             const pctLabel = Math.floor(percent(segment.count, totalValues));
             const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
             const focus = hoveredValue?.value === segment.value;
-            const isOtherSegment =
-              index === topSegments.length - 1 && segment.value === 'other';
-            const linkLabel = isOtherSegment
+            const linkLabel = segment.isOther
               ? t(
                   'Other %s tag values, %s of all events. View other tags.',
                   title,
@@ -204,7 +202,10 @@ function TagFacetsDistributionMeter({
                     onMouseOver={() => setHoveredValue(segment)}
                     onMouseLeave={() => setHoveredValue(null)}
                   >
-                    <LegendDot color={colors[index]} focus={focus} />
+                    <LegendDot
+                      color={colors[segment.isOther ? colors.length - 1 : index]}
+                      focus={focus}
+                    />
                     <LegendText unfocus={unfocus}>
                       {(
                         <StyledTooltip delay={TOOLTIP_DELAY} title={segment.name}>
