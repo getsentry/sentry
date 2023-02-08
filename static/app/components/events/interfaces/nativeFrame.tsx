@@ -30,7 +30,6 @@ import space from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {ColorOrAlias} from 'sentry/utils/theme';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -252,23 +251,19 @@ function NativeFrame({
           <PackageCell>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
-                {!nextFrame ? t('Crashed in Non-App:') : t('Called from:')}
+                {!nextFrame ? t('Crashed in Non-App') : t('Called from')}
               </Fragment>
             )}
-            <span>
-              <Tooltip
-                title={frame.package ?? t('Go to images loaded')}
-                delay={tooltipDelay}
-                disabled={frame.package ? false : !packageClickable}
-                containerDisplayMode="inline-flex"
-              >
-                <Package onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
-                  {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
-                </Package>
-              </Tooltip>
-            </span>
+            <Tooltip
+              title={frame.package ?? t('Go to images loaded')}
+              delay={tooltipDelay}
+            >
+              <Package>
+                {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
+              </Package>
+            </Tooltip>
           </PackageCell>
-          <AddressCell>
+          <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
             <Tooltip
               title={addressTooltip}
               disabled={!(foundByStackScanning || inlineFrame)}
@@ -302,10 +297,10 @@ function NativeFrame({
           <GroupingCell>
             {isUsedForGrouping && (
               <Tooltip
-                title={t('Repeated in every event of this issue')}
+                title={t('This frame is repeated in every event of this issue')}
                 containerDisplayMode="inline-flex"
               >
-                <IconRepeat size="sm" color="linkColor" />
+                <IconRepeat size="sm" color="textColor" />
               </Tooltip>
             )}
           </GroupingCell>
@@ -333,7 +328,7 @@ function NativeFrame({
         </RowHeader>
       </StrictClick>
       {expanded && (
-        <Registers
+        <RowBody
           frame={frame}
           event={event}
           registers={registers}
@@ -366,23 +361,36 @@ const StatusCell = styled(Cell)``;
 const PackageCell = styled(Cell)``;
 
 const AddressCell = styled(Cell)`
-  color: ${p => p.theme.subText};
+  ${p => p.onClick && `cursor: pointer`};
+  ${p => p.onClick && `color:` + p.theme.linkColor};
 `;
-
-const GroupingCell = styled(Cell)``;
 
 const FunctionNameCell = styled(Cell)`
   font-family: ${p => p.theme.text.familyMono};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-column: 2/6;
+  }
 `;
 
-const TypeCell = styled(Cell)``;
+const GroupingCell = styled(Cell)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-row: 2/3;
+  }
+`;
 
-const ExpandCell = styled(Cell)``;
+const TypeCell = styled(Cell)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-column: 5/6;
+    grid-row: 1/2;
+  }
+`;
 
-const Registers = styled(Context)`
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: 0;
-  margin: 0;
+const ExpandCell = styled(Cell)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-column: 6/7;
+    grid-row: 1/2;
+  }
 `;
 
 const ToggleButton = styled(Button)`
@@ -390,11 +398,13 @@ const ToggleButton = styled(Button)`
   height: 16px;
 `;
 
-const Package = styled('span')<{color?: ColorOrAlias}>`
-  border-bottom: 1px dashed ${p => p.theme.border};
-  ${p => p.color && `color: ${p.theme[p.color]}`};
-  ${p => p.onClick && `cursor: pointer;`}
+const Registers = styled(Context)`
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding: 0;
+  margin: 0;
 `;
+
+const Package = styled('span')``;
 
 const FileName = styled('span')`
   color: ${p => p.theme.subText};
@@ -407,13 +417,20 @@ const FrameRow = styled('li')<{expandable: boolean; expanded: boolean}>`
 
 const RowHeader = styled('span')`
   display: grid;
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;
+  grid-template-rows: repeat(2, auto);
   align-items: center;
-  grid-template-columns: minmax(16px, auto) repeat(2, minmax(130px, 1fr)) 4fr repeat(
-      3,
-      minmax(16px, auto)
-    );
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.bodyBackground};
-  padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.codeFontSize};
+  padding: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: auto minmax(140px, auto) minmax(120px, auto) 1fr auto auto 16px;
+    min-height: 32px;
+    padding: ${space(0.5)} ${space(2)};
+  }
 `;
+
+const RowBody = styled(Registers)``;
