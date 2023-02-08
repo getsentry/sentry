@@ -961,10 +961,12 @@ def format_search_filter(term, params):
             for p in Project.objects.filter(id__in=params.get("project_id", []), slug__in=slugs)
         }
         missing = [slug for slug in slugs if slug not in projects]
-        if missing and term.operator in EQUALITY_OPERATORS:
-            raise InvalidSearchQuery(
-                f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
-            )
+        if missing:
+            if term.operator in EQUALITY_OPERATORS:
+                raise InvalidSearchQuery(
+                    f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
+                )
+
         project_ids = list(sorted(projects.values()))
         if project_ids:
             # Create a new search filter with the correct values
