@@ -6,7 +6,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
+import IntegrationExternalMappings from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', function () {
   const {organization, routerContext} = initializeOrg();
