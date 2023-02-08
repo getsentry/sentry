@@ -274,14 +274,6 @@ function GroupHeader({
             )}
           />
         )}
-        {group.issueType === IssueType.PERFORMANCE_UNCOMPRESSED_ASSET && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Uncompressed Asset Performance Issues are in active development and may change'
-            )}
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
