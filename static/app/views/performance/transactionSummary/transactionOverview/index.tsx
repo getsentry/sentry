@@ -21,7 +21,10 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  canUseMetricsInTransactionSummary,
+  getTransactionMEPParamsIfApplicable,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -152,8 +155,11 @@ function OverviewContentWrapper(props: ChildProps) {
   const totals: TotalValues | null =
     (tableData?.data?.[0] as {[k: string]: number}) ?? null;
 
-  const unfilteredTotals: TotalValues | null =
-    (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null;
+  const unfilteredTotals: TotalValues | null = canUseMetricsInTransactionSummary(
+    organization
+  )
+    ? (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null
+    : null;
 
   return (
     <SummaryContent

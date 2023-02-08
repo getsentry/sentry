@@ -23,7 +23,11 @@ import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -92,7 +96,7 @@ function SidebarCharts({
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
       if (unfilteredTotalValues) {
-        return tct('[tpm] tpm', {
+        return tct('[tpm]', {
           tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
         });
       }
@@ -343,7 +347,10 @@ function SidebarChartsContainer({
         gridIndex: 2,
         splitNumber: 4,
         axisLabel: {
-          formatter: value => formatPercentage(value, 0),
+          formatter: value =>
+            unfilteredTotals
+              ? formatPercentage(value, 0)
+              : formatAbbreviatedNumber(value),
           color: theme.chartLabel,
         },
         ...axisLineConfig,

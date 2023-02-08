@@ -36,7 +36,10 @@ import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  canUseMetricsInTransactionSummary,
+  canUseTransactionMetricsData,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -179,7 +182,7 @@ function SummaryContent({
   }
 
   function generateActionBarItems(_org: Organization, _location: Location) {
-    if (!_org.features.includes('performance-metrics-backed-transaction-summary')) {
+    if (!canUseMetricsInTransactionSummary(_org)) {
       return undefined;
     }
 

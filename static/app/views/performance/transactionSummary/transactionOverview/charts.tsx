@@ -19,7 +19,10 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  canUseMetricsInTransactionSummary,
+  getTransactionMEPParamsIfApplicable,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
@@ -165,10 +168,12 @@ function TransactionSummaryCharts({
     location
   );
   // For mep-incompatible displays hide event count
-  const hideTransactionCount = display === DisplayModes.TREND;
+  const hideTransactionCount =
+    canUseMetricsInTransactionSummary(organization) && display === DisplayModes.TREND;
 
   // For partially-mep-compatible displays show event count as a %
-  const showTransactionCountAsPercentage = display === DisplayModes.LATENCY;
+  const showTransactionCountAsPercentage =
+    canUseMetricsInTransactionSummary(organization) && display === DisplayModes.LATENCY;
 
   function getTotalValue() {
     if (totalValue === null || hideTransactionCount) {

@@ -59,3 +59,10 @@ export function getTransactionMEPParamsIfApplicable(
 
   return getMEPQueryParams(mepContext);
 }
+
+export function canUseMetricsInTransactionSummary(organization: Organization) {
+  return (
+    canUseMetricsData(organization) &&
+    organization.features.includes('performance-metrics-backed-transaction-summary')
+  );
+}
