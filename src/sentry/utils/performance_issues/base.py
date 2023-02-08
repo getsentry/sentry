@@ -11,7 +11,16 @@ from urllib.parse import urlparse
 
 from sentry import options
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import get_group_type_by_slug
+from sentry.grouptype.grouptype import (
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
+    PerformanceUncompressedAssetsGroupType,
+)
 from sentry.models import Organization, Project
 
 from .types import PerformanceProblemsMap, Span
@@ -30,19 +39,15 @@ class DetectorType(Enum):
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
-    DetectorType.SLOW_DB_QUERY: get_group_type_by_slug("performance_slow_db_query"),
-    DetectorType.RENDER_BLOCKING_ASSET_SPAN: get_group_type_by_slug(
-        "performance_render_blocking_asset_span"
-    ),
-    DetectorType.N_PLUS_ONE_DB_QUERIES: get_group_type_by_slug("performance_n_plus_one_db_queries"),
-    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: get_group_type_by_slug(
-        "performance_n_plus_one_db_queries"
-    ),
-    DetectorType.N_PLUS_ONE_API_CALLS: get_group_type_by_slug("performance_n_plus_one_api_calls"),
-    DetectorType.CONSECUTIVE_DB_OP: get_group_type_by_slug("performance_consecutive_db_queries"),
-    DetectorType.FILE_IO_MAIN_THREAD: get_group_type_by_slug("performance_file_io_main_thread"),
-    DetectorType.M_N_PLUS_ONE_DB: get_group_type_by_slug("performance_m_n_plus_one_db_queries"),
-    DetectorType.UNCOMPRESSED_ASSETS: get_group_type_by_slug("performance_uncompressed_assets"),
+    DetectorType.SLOW_DB_QUERY: PerformanceSlowDBQueryGroupType,
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: PerformanceRenderBlockingAssetSpanGroupType,
+    DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceNPlusOneGroupType,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: PerformanceNPlusOneGroupType,
+    DetectorType.N_PLUS_ONE_API_CALLS: PerformanceNPlusOneAPICallsGroupType,
+    DetectorType.CONSECUTIVE_DB_OP: PerformanceConsecutiveDBQueriesGroupType,
+    DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
+    DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
+    DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
 }
 
 

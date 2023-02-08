@@ -53,7 +53,6 @@ class UserReportWithGroupSerializer(UserReportSerializer):
         groups = list(Group.objects.filter(id__in={i.group_id for i in item_list if i.group_id}))
         serialized_groups = {}
         if groups:
-            # import pdb; pdb.set_trace()
             serialized_groups = {
                 d["id"]: d
                 for d in serialize(

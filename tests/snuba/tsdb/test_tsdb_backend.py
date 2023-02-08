@@ -567,7 +567,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{PerformanceNPlusOneGroupType}-group3"
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group3"
 
         # not sure what's going on here, but `times=1,2,3,4` work fine
         # fails with anything above 4
@@ -655,7 +655,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{PerformanceNPlusOneGroupType}-group4"
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group4"
         ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
         events = []
         for i, _ in enumerate(ids):

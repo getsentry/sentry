@@ -39,7 +39,6 @@ class PerformanceProblem:
             data["fingerprint"],
             data["op"],
             data["desc"],
-            # GroupType(data["type"]),
             get_group_type_by_type_id(data["type"]),
             data["parent_span_ids"],
             data["cause_span_ids"],
