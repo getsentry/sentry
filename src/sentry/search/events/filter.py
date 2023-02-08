@@ -27,7 +27,6 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
     ERROR_UNHANDLED_ALIAS,
-    INEQUALITY_OPERATORS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     MAX_SEARCH_RELEASES,
@@ -967,16 +966,6 @@ def format_search_filter(term, params):
                 raise InvalidSearchQuery(
                     f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
                 )
-            elif term.operator in INEQUALITY_OPERATORS:
-                # Set search filter to project name instead of id
-                term = SearchFilter(
-                    SearchKey("project.name"),
-                    term.operator,
-                    SearchValue(missing if term.is_in_filter else missing[0]),
-                )
-                converted_filter = convert_search_filter_to_snuba_query(term)
-                if converted_filter:
-                    conditions.append(converted_filter)
 
         project_ids = list(sorted(projects.values()))
         if project_ids:
