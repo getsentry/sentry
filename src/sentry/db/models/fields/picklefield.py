@@ -52,5 +52,5 @@ class PickledObjectField(django_picklefield.PickledObjectField):
             if value is None:
                 return None
             return json.loads(value)
-        except ValueError:
+        except (ValueError, TypeError):
             return super().to_python(value)
