@@ -34,7 +34,6 @@ type Props = Omit<
   'projectSlug' | 'hasEventContext'
 > & {
   projectSlug: string;
-  hasContext?: boolean;
   isShare?: boolean;
 };
 
@@ -44,9 +43,9 @@ export function EventTagsAndScreenshot({
   event,
   organization,
   isShare = false,
-  hasContext = false,
 }: Props) {
   const {tags = []} = event;
+  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const {data: attachments} = useFetchEventAttachments(
     {
       orgSlug: organization.slug,

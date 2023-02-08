@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Event, Group} from 'sentry/types';
+import {EntryType, Event, Group, IssueCategory, IssueType} from 'sentry/types';
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
 import GroupEventDetails, {
@@ -283,6 +283,52 @@ describe('groupEventDetails', () => {
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
+    ).toBeInTheDocument();
+  });
+
+  it('renders the Span Evidence and Resources section for Performance Issues', async function () {
+    const props = makeDefaultMockData();
+    const group: Group = TestStubs.Group({
+      issueCategory: IssueCategory.PERFORMANCE,
+      issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    });
+    const transaction = TestStubs.Event({
+      entries: [{type: EntryType.SPANS, data: []}],
+    });
+
+    mockGroupApis(
+      props.organization,
+      props.project,
+      props.group,
+      TestStubs.Event({
+        size: 1,
+        dateCreated: '2019-03-20T00:00:00.000Z',
+        errors: [],
+        entries: [],
+        tags: [{key: 'environment', value: 'dev'}],
+        previousEventID: 'prev-event-id',
+        nextEventID: 'next-event-id',
+      })
+    );
+
+    const routerContext = TestStubs.routerContext();
+    await act(async () => {
+      render(<TestComponent group={group} event={transaction} />, {
+        organization: props.organization,
+        context: routerContext,
+      });
+      await tick();
+    });
+
+    expect(
+      screen.getByRole('heading', {
+        name: /span evidence/i,
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: /resources/i,
+      })
     ).toBeInTheDocument();
   });
 });
