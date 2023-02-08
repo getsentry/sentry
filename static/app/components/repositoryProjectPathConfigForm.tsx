@@ -6,8 +6,9 @@ import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {
+import type {
   Integration,
+  IntegrationRepository,
   Organization,
   Project,
   Repository,
@@ -28,15 +29,6 @@ type Props = {
   repos: Repository[];
   existingConfig?: RepositoryProjectPathConfig;
 };
-
-interface IntegrationRepo {
-  defaultBranch: string;
-  /**
-   * ex - getsentry/sentry
-   */
-  identifier: string;
-  name: string;
-}
 
 function RepositoryProjectPathConfigForm({
   existingConfig,
@@ -66,7 +58,7 @@ function RepositoryProjectPathConfigForm({
         `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
         {query: {search: repo.name}}
       )
-      .then((data: {repos: IntegrationRepo[]}) => {
+      .then((data: {repos: IntegrationRepository[]}) => {
         const {defaultBranch} = data.repos.find(r => r.identifier === repo.name) ?? {};
         const isCurrentRepo = formRef.current.getValue('repositoryId') === repo.id;
         if (defaultBranch && isCurrentRepo) {
