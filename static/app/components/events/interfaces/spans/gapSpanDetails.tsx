@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,7 +8,10 @@ import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
@@ -27,6 +31,7 @@ export function GapSpanDetails({
 }: GapSpanDetailsProps) {
   const organization = useOrganization();
   const profiles = useProfiles();
+  const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   if (profiles?.type !== 'resolved') {
     return (
@@ -41,11 +46,23 @@ export function GapSpanDetails({
 
   const profileId = event.contexts.profile?.profile_id || '';
 
-  // TODO: target the span's time window
-  const target = generateProfileFlamechartRoute({
+  // we want to try to go straight to the same config view as the preview
+  const query = canvasView?.configView
+    ? {
+        fov: Rect.encode(canvasView.configView),
+        // the flamechart persists some preferences to local storage,
+        // force these settings so the view is the same as the preview
+        xAxis: 'profile',
+        view: 'top down',
+        type: 'flamechart',
+      }
+    : undefined;
+
+  const target = generateProfileFlamechartRouteWithQuery({
     orgSlug: organization.slug,
     projectSlug: event?.projectSlug ?? '',
     profileId,
+    query,
   });
 
   function handleGoToProfile() {
@@ -88,6 +105,7 @@ export function GapSpanDetails({
         <FlamegraphPreview
           relativeStartTimestamp={span.start_timestamp - event.startTimestamp}
           relativeStopTimestamp={span.timestamp - event.startTimestamp}
+          updateFlamegraphView={setCanvasView}
         />
       </FlamegraphContainer>
     </Container>
