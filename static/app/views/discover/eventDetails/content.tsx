@@ -251,11 +251,11 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     }}
                   >
                     <QuickTraceContext.Provider value={results}>
-                      {hasProfilingPreviewsFeature && profileId ? (
+                      {hasProfilingPreviewsFeature ? (
                         <ProfilesProvider
                           orgSlug={organization.slug}
                           projectSlug={this.projectId}
-                          profileId={profileId}
+                          profileId={profileId || ''}
                         >
                           <ProfileContext.Consumer>
                             {profiles => (
@@ -264,7 +264,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                                 input={
                                   profiles?.type === 'resolved' ? profiles.data : null
                                 }
-                                traceID={profileId}
+                                traceID={profileId || ''}
                               >
                                 <BorderlessEventEntries
                                   organization={organization}
