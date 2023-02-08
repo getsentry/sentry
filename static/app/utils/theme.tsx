@@ -406,6 +406,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
   [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
+  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
 };
 
 /**
