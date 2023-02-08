@@ -4,6 +4,7 @@ import {Client, ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageFilters, Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
+import {defined} from 'sentry/utils';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -52,9 +53,8 @@ function useFunctions({
 
   const queryFn = () => {
     if (
-      typeof fetchFunctionsOptions.selection === 'undefined' ||
-      (typeof fetchFunctionsOptions.transaction !== 'string' &&
-        fetchFunctionsOptions.transaction === null)
+      !defined(fetchFunctionsOptions.selection) ||
+      !defined(fetchFunctionsOptions.transaction)
     ) {
       throw Error('selection and transaction arguments required for fetchFunctions');
     }
