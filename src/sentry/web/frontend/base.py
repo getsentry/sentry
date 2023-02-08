@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from typing import Any, Mapping, Protocol
 
@@ -303,7 +304,11 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         if self.is_sudo_required(request, *args, **kwargs):
             return self.handle_sudo_required(request, *args, **kwargs)
 
-        if is_using_customer_domain(request) and "organization_slug" not in kwargs:
+        if (
+            is_using_customer_domain(request)
+            and "organization_slug" in inspect.signature(self.convert_args).parameters
+            and "organization_slug" not in kwargs
+        ):
             # In customer domain contexts, we will need to pre-populate the organization_slug keyword argument.
             kwargs["organization_slug"] = organization_slug
 
