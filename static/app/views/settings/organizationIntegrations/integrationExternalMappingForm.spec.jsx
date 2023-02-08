@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
+import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 
 describe('IntegrationExternalMappingForm', function () {
   const dataEndpoint = '/test/dataEndpoint/';
