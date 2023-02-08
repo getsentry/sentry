@@ -164,11 +164,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     "environment": environments,
                 },
             )
-            # if no re-formatted conditions, use fallback method
-            converted_filters.append(
-                conditions[0]
-                if conditions
-                else convert_search_filter_to_snuba_query(
+
+            # if no re-formatted conditions, use fallback method for selected groups
+            new_condition = None
+            if conditions:
+                new_condition = conditions[0]
+            elif group_ids:
+                new_condition = convert_search_filter_to_snuba_query(
                     search_filter,
                     params={
                         "organization_id": organization_id,
@@ -176,7 +178,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                         "environment": environments,
                     },
                 )
-            )
+
+            if new_condition:
+                converted_filters.append(new_condition)
 
         return converted_filters
 
