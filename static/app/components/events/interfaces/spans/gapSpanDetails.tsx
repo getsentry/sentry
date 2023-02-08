@@ -50,9 +50,11 @@ export function GapSpanDetails({
   const query = canvasView?.configView
     ? {
         fov: Rect.encode(canvasView.configView),
-        // force the x axis to align with the profile in case
-        // the user set it to transaction
+        // the flamechart persists some preferences to local storage,
+        // force these settings so the view is the same as the preview
         xAxis: 'profile',
+        view: 'top down',
+        type: 'flamechart',
       }
     : undefined;
 
