@@ -342,6 +342,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
         label: t('Status'),
         options: [...new Set(images.map(image => image.status))].map(status => ({
           value: status,
+          textValue: status,
           label: <Status status={status} />,
         })),
       },
