@@ -7,7 +7,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasParams,
     BiasRulesGenerator,
 )
-from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, BaseRule, RuleType
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 
 
 class UniformDataProvider(BiasDataProvider):
@@ -19,7 +19,7 @@ class UniformDataProvider(BiasDataProvider):
 
 
 class UniformRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
                 "sampleRate": bias_data["sampleRate"],
@@ -30,12 +30,12 @@ class UniformRulesGenerator(BiasRulesGenerator):
                     "inner": [],
                 },
                 "id": bias_data["id"],
-            }  # type:ignore
+            }
         ]
 
 
 class UniformRulesGeneratorV2(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
                 "samplingValue": {
@@ -49,7 +49,7 @@ class UniformRulesGeneratorV2(BiasRulesGenerator):
                     "inner": [],
                 },
                 "id": bias_data["id"],
-            }  # type:ignore
+            }
         ]
 
 

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, TypedDict, Union
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
 from sentry.utils import json
 
@@ -49,9 +49,22 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
+SamplingValueType = Literal["sampleRate", "factor", "rollback"]
+
+
 class SamplingValue(TypedDict):
-    type: str
+    type: SamplingValueType
     value: float
+
+
+class TimeRange(TypedDict):
+    start: str
+    end: str
+
+
+class DecayingFn(TypedDict):
+    type: str
+    decayedSampledRate: Optional[str]
 
 
 class Inner(TypedDict):
@@ -67,27 +80,35 @@ class Condition(TypedDict):
 
 
 class BaseRule(TypedDict):
-    sampleRate: Optional[float]
-    samplingValue: Optional[SamplingValue]
     type: str
     active: bool
     condition: Condition
     id: int
 
 
-class TimeRange(TypedDict):
-    start: str
-    end: str
+class RuleV1(BaseRule):
+    sampleRate: float
 
 
-class DecayingFn(TypedDict):
-    type: str
-    decayedSampledRate: Optional[str]
+class RuleV2(BaseRule):
+    samplingValue: SamplingValue
 
 
-class ReleaseRule(BaseRule):
+class DecayingRule(TypedDict):
     timeRange: Optional[TimeRange]
     decayingFn: Optional[DecayingFn]
+
+
+class DecayingRuleV1(RuleV1, DecayingRule):
+    pass
+
+
+class DecayingRuleV2(RuleV2, DecayingRule):
+    pass
+
+
+# Type defining the all the possible rules types that can exist.
+PolymorphicRule = Union[RuleV1, RuleV2, DecayingRuleV1, DecayingRuleV2]
 
 
 def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
@@ -106,7 +127,7 @@ def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
     return REVERSE_RESERVED_IDS.get(rule["id"], None)
 
 
-def get_rule_hash(rule: BaseRule) -> int:
+def get_rule_hash(rule: PolymorphicRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
     return json.dumps(
@@ -119,6 +140,16 @@ def get_rule_hash(rule: BaseRule) -> int:
             }
         )
     ).__hash__()
+
+
+def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
+    # Gets the sampling value from the rule, based on the type.
+    if "samplingValue" in rule and "value" in rule["samplingValue"]:
+        return "factor", float(rule["samplingValue"]["value"])
+    elif "sampleRate" in rule:
+        return "sample_rate", rule["sampleRate"]
+
+    return None
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
@@ -150,16 +181,3 @@ def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) ->
 
 def get_supported_biases_ids() -> Set[str]:
     return {bias["id"] for bias in DEFAULT_BIASES}
-
-
-def eval_dynamic_factor(base_sample_rate: float, x: float) -> float:
-    """
-    Function responsible for defining the sampling factor for a Relay rule.
-    The input range of the function must be within [0.0, 1.0] as it is designed to make the factor decay from x to 1.
-    """
-    if base_sample_rate < 0.0 or base_sample_rate > 1.0:
-        raise Exception(
-            "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
-        )
-
-    return float(x / (x**base_sample_rate))

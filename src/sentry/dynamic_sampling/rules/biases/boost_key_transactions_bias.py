@@ -11,9 +11,8 @@ from sentry.dynamic_sampling.rules.helpers.key_transactions import get_key_trans
 from sentry.dynamic_sampling.rules.utils import (
     KEY_TRANSACTION_BOOST_FACTOR,
     RESERVED_IDS,
-    BaseRule,
+    PolymorphicRule,
     RuleType,
-    eval_dynamic_factor,
 )
 
 
@@ -22,13 +21,12 @@ class BoostKeyTransactionsDataProvider(BiasDataProvider):
         return {
             "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
             "sampleRate": min(1.0, bias_params.base_sample_rate * KEY_TRANSACTION_BOOST_FACTOR),
-            "factor": eval_dynamic_factor(bias_params.base_sample_rate, 1.5),
             "keyTransactions": get_key_transactions(bias_params.project),
         }
 
 
 class BoostKeyTransactionsRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         if len(bias_data["keyTransactions"]) == 0:
             return []
 
@@ -49,20 +47,20 @@ class BoostKeyTransactionsRulesGenerator(BiasRulesGenerator):
                 },
                 "active": True,
                 "id": bias_data["id"],
-            }  # type:ignore
+            }
         ]
 
 
 class BoostKeyTransactionsRulesGeneratorV2(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         if len(bias_data["keyTransactions"]) == 0:
             return []
 
         return [
             {
                 "samplingValue": {
-                    "type": "factor",
-                    "value": bias_data["factor"],
+                    "type": "sampleRate",
+                    "value": bias_data["sampleRate"],
                 },
                 "type": "transaction",
                 "condition": {
@@ -78,7 +76,7 @@ class BoostKeyTransactionsRulesGeneratorV2(BiasRulesGenerator):
                 },
                 "active": True,
                 "id": bias_data["id"],
-            }  # type:ignore
+            }
         ]
 
 

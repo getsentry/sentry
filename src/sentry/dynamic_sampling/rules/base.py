@@ -9,7 +9,7 @@ from sentry.dynamic_sampling.rules.combine import (
     get_relay_biases_combinator_v2,
 )
 from sentry.dynamic_sampling.rules.logging import log_rules
-from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_enabled_user_biases
+from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.UNIFORM_RULE}
@@ -29,7 +29,8 @@ def _get_rules_of_enabled_biases(
     base_sample_rate: float,
     enabled_biases: Set[str],
     combined_biases: OrderedDict[RuleType, Bias],
-) -> List[BaseRule]:
+    version_2: bool = False,
+) -> List[PolymorphicRule]:
     rules = []
 
     for (rule_type, bias) in combined_biases.items():
@@ -42,12 +43,14 @@ def _get_rules_of_enabled_biases(
         ):
             rules += bias.get_rules(BiasParams(project, base_sample_rate))
 
-    log_rules(project.organization.id, project.id, rules)
+    # We want to log only rules v2, to avoid confusion and duplication.
+    if version_2:
+        log_rules(project.organization.id, project.id, rules)
 
     return rules
 
 
-def generate_rules(project: Project, version_2: bool = False) -> List[BaseRule]:
+def generate_rules(project: Project, version_2: bool = False) -> List[PolymorphicRule]:
     try:
         biases_combinator = (
             get_relay_biases_combinator_v2() if version_2 else get_relay_biases_combinator()
@@ -63,6 +66,7 @@ def generate_rules(project: Project, version_2: bool = False) -> List[BaseRule]:
             # * Bias
             # check in the dynamic_sampling/rules/biases module how existing biases are implemented.
             biases_combinator.get_combined_biases(),
+            version_2,
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)

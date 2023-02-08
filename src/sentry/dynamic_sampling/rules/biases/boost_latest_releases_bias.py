@@ -14,9 +14,8 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import ProjectBoosted
 from sentry.dynamic_sampling.rules.utils import (
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
-    BaseRule,
+    PolymorphicRule,
     RuleType,
-    eval_dynamic_factor,
 )
 
 
@@ -26,7 +25,6 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
             "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE],
             "baseSampleRate": bias_params.base_sample_rate,
             "sampleRate": min(1.0, bias_params.base_sample_rate * RELEASE_BOOST_FACTOR),
-            "factor": eval_dynamic_factor(bias_params.base_sample_rate, 1.5),
             "boostedReleases": ProjectBoostedReleases(
                 bias_params.project.id
             ).get_extended_boosted_releases(),
@@ -34,11 +32,11 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
 
 
 class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         boosted_releases = bias_data["boostedReleases"]
 
         return cast(
-            List[BaseRule],
+            List[PolymorphicRule],
             [
                 {
                     "sampleRate": bias_data["sampleRate"],
@@ -87,11 +85,11 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
 
 
 class BoostLatestReleasesRulesGeneratorV2(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         boosted_releases = bias_data["boostedReleases"]
 
         return cast(
-            List[BaseRule],
+            List[PolymorphicRule],
             [
                 {
                     "samplingValue": {
