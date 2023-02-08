@@ -12,8 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
 )
-from sentry.models import Organization, OrganizationMember, Project
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models import Organization, Project
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 
@@ -103,17 +102,8 @@ class AcceptProjectTransferEndpoint(Endpoint):
             return Response({"detail": "Invalid organization"}, status=400)
 
         # check if user is an owner of the organization
-        query = OrganizationMember.objects.filter(
-            user__is_active=True,
-            user=request.user,
-            organization_id=organization.id,
-        )
-        is_org_owner = (
-            query.filter(role=roles.get_top_dog().id).exists()
-            or OrganizationMemberTeam.objects.filter(
-                team__in=organization.get_teams_with_org_role(roles.get_top_dog().id),
-                organizationmember_id__in=list(query.values_list("id", flat=True)),
-            ).exists()
+        is_org_owner = request.access.has_organization_role(
+            role=roles.get_top_dog().id, organization=organization, user_id=request.user.id
         )
 
         if not is_org_owner:
