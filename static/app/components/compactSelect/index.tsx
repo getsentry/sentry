@@ -106,7 +106,7 @@ function CompactSelect<Value extends React.Key>({
             return (
               <Section key={item.key} title={item.label}>
                 {item.options.map(opt => (
-                  <Item key={opt.value} textValue={String(opt.label)} {...opt}>
+                  <Item key={opt.value} {...opt}>
                     {opt.label}
                   </Item>
                 ))}
@@ -115,7 +115,7 @@ function CompactSelect<Value extends React.Key>({
           }
 
           return (
-            <Item key={item.value} textValue={String(item.label)} {...item}>
+            <Item key={item.value} {...item}>
               {item.label}
             </Item>
           );

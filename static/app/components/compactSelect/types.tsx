@@ -1,11 +1,6 @@
-import {MenuListItemProps} from 'sentry/components/menuListItem';
+import {SelectValue} from 'sentry/types';
 
-export interface SelectOption<Value extends React.Key> extends MenuListItemProps {
-  /**
-   * The option's value, must be unique within the selector.
-   */
-  value: Value;
-}
+export interface SelectOption<Value extends React.Key> extends SelectValue<Value> {}
 
 export interface SelectSection<Value extends React.Key> {
   options: SelectOption<Value>[];
