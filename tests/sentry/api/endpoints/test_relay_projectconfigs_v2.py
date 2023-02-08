@@ -187,7 +187,7 @@ def test_relays_dyamic_sampling(
             "config",
             "dynamicSampling",
         )
-        assert dynamic_sampling == {"rules": []}
+        assert dynamic_sampling == {"rules": [], "rulesV2": []}
 
 
 @pytest.mark.django_db
