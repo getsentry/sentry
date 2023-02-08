@@ -13,6 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
@@ -131,9 +132,10 @@ class GroupAssignee(Model):
 
     project = FlexibleForeignKey("sentry.Project", related_name="assignee_set")
     group = FlexibleForeignKey("sentry.Group", related_name="assignee_set", unique=True)
-    user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, related_name="sentry_assignee_set", null=True
-    )
+    # user = FlexibleForeignKey(
+    #     settings.AUTH_USER_MODEL, related_name="sentry_assignee_set", null=True
+    # )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", related_name="sentry_assignee_set", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 

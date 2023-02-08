@@ -29,6 +29,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -487,7 +488,7 @@ class Release(Model):
     # Deprecated, we no longer write to this field
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
-    owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)

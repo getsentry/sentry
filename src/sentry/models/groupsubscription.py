@@ -13,6 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.helpers import (
     transform_to_notification_settings_by_recipient,
     where_should_be_participating,
@@ -177,7 +178,7 @@ class GroupSubscription(Model):  # type: ignore
     project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")
     group = FlexibleForeignKey("sentry.Group", related_name="subscription_set")
     # namespace related_name on User since we don't own the model
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     is_active = models.BooleanField(default=True)
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -187,6 +188,6 @@ class GroupSubscription(Model):  # type: ignore
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsubscription"
-        unique_together = (("group", "user"),)
+        unique_together = (("group", "user_id"),)
 
     __repr__ = sane_repr("project_id", "group_id", "user_id")
