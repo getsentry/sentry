@@ -1,6 +1,5 @@
 from random import randint
 from typing import Optional
-from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -149,7 +148,7 @@ class AuthLoginView(BaseView):
                 url_prefix = generate_organization_url(request.subdomain)
                 url = absolute_uri(urls[0], url_prefix=url_prefix)
                 if request.GET:
-                    url = f"{url}?{urlencode(request.GET)}"
+                    url = f"{url}?{request.GET.urlencode()}"
                 return HttpResponseRedirect(url)
 
         can_register = self.can_register(request)
