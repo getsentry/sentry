@@ -91,6 +91,7 @@ const storeConfig: TagStoreDefinition = {
           'performance_n_plus_one_db_queries',
           'performance_n_plus_one_api_calls',
           'performance_consecutive_db_queries',
+          'performance_slow_db_query',
         ],
         predefined: true,
       },
