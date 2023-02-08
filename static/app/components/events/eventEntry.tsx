@@ -16,7 +16,6 @@ import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
 import {Resources} from './interfaces/performance/resources';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
-import {getResourceDescription, getResourceLinks} from './interfaces/performance/utils';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
@@ -178,12 +177,7 @@ export function EventEntry({
       if (!group || !group.issueType) {
         return null;
       }
-      return (
-        <Resources
-          description={getResourceDescription(group.issueType)}
-          links={getResourceLinks(group.issueType, event.platform)}
-        />
-      );
+      return <Resources group={group} event={event} />;
 
     // this should not happen
     default:
