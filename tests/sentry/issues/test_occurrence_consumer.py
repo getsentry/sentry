@@ -3,6 +3,7 @@ import logging
 import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Sequence
+from unittest import mock
 
 import pytest
 
@@ -28,6 +29,7 @@ def get_test_message(
     now = datetime.datetime.now()
     payload = {
         "id": uuid.uuid4().hex,
+        "project_id": project_id,
         "fingerprint": ["touch-id"],
         "issue_title": "segfault",
         "subtitle": "buffer overflow",
@@ -154,3 +156,11 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
         self.run_test(message)
+
+    @mock.patch("sentry.issues.occurrence_consumer.logger")
+    def test_project_ids_mismatch(self, mock_logger):
+        message = deepcopy(get_test_message(self.project.id))
+        message["project_id"] = 1
+        message["event"]["project_id"] = 2
+        assert _get_kwargs(message) is None
+        assert mock_logger.exception.call_count == 1
