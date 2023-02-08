@@ -261,11 +261,12 @@ function Flamegraph(): ReactElement {
     if (!flamegraphCanvasRef) {
       return null;
     }
-    return new FlamegraphCanvas(
-      flamegraphCanvasRef,
-      vec2.fromValues(0, flamegraphTheme.SIZES.TIMELINE_HEIGHT * devicePixelRatio)
-    );
-  }, [devicePixelRatio, flamegraphCanvasRef, flamegraphTheme]);
+    const yOrigin =
+      flamegraph.profile.type === 'flamegraph'
+        ? 0
+        : flamegraphTheme.SIZES.TIMELINE_HEIGHT * devicePixelRatio;
+    return new FlamegraphCanvas(flamegraphCanvasRef, vec2.fromValues(0, yOrigin));
+  }, [devicePixelRatio, flamegraphCanvasRef, flamegraphTheme, flamegraph.profile.type]);
 
   const flamegraphMiniMapCanvas = useMemo(() => {
     if (!flamegraphMiniMapCanvasRef) {
