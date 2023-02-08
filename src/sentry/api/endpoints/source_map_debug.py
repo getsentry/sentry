@@ -185,13 +185,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         if not release_version:
             raise Exception
-        try:
-            release = Release.objects.get(
-                organization=project.organization, version=release_version
-            )
-        except Release.DoesNotExist:
-            raise Exception
-        return release
+        return Release.objects.get(organization=project.organization, version=release_version)
 
     def _verify_dist_matches(self, release, event, artifact, filename):
         try:
