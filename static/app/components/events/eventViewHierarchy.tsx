@@ -20,7 +20,7 @@ type Props = {
   project: Project;
 };
 
-function EventViewHierarchy({project, event}: Props) {
+function EventViewHierarchyContent({event, project}: Props) {
   const organization = useOrganization();
 
   const {data: attachments} = useFetchEventAttachments(
@@ -84,6 +84,19 @@ function EventViewHierarchy({project, event}: Props) {
       </ErrorBoundary>
     </EventDataSection>
   );
+}
+
+function EventViewHierarchy(props: Props) {
+  const organization = useOrganization();
+
+  if (
+    !organization.features?.includes('mobile-view-hierarchies') ||
+    !organization.features.includes('event-attachments')
+  ) {
+    return null;
+  }
+
+  return <EventViewHierarchyContent {...props} />;
 }
 
 export {EventViewHierarchy};
