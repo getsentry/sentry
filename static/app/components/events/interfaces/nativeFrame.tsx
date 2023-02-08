@@ -352,8 +352,7 @@ export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-
 
 const Cell = styled('div')`
   display: flex;
-  flex-wrap: wrap;
-  word-break: break-all;
+  flex-direction: column;
 `;
 
 const StatusCell = styled(Cell)``;
@@ -404,7 +403,13 @@ const Registers = styled(Context)`
   margin: 0;
 `;
 
-const Package = styled('span')``;
+const Package = styled('span')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
 
 const FileName = styled('span')`
   color: ${p => p.theme.subText};
@@ -427,9 +432,9 @@ const RowHeader = styled('span')`
   padding: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto minmax(140px, auto) minmax(120px, auto) 1fr auto auto 16px;
+    grid-template-columns: auto 140px 120px 1fr auto auto 16px;
     min-height: 32px;
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${space(0.5)} ${space(1.5)};
   }
 `;
 
