@@ -813,3 +813,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
+
+    def test_filter_by_object_field(self):
+        """Test filtering a query by an object field."""
+        replay1_id = uuid.uuid4().hex
+        timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=30)
+        timestamp2 = datetime.datetime.now() - datetime.timedelta(seconds=20)
+
+        self.store_replays(mock_replay(timestamp1, self.project.id, replay1_id, user_name="test"))
+        self.store_replays(mock_replay(timestamp2, self.project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?query=user:test")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 1
+
+            response = self.client.get(self.url + "?query=!user:test")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0
