@@ -46,11 +46,25 @@ function useFunctions({
     sort,
     transaction,
     cursor,
+    enabled,
   };
   const queryKey = [path, fetchFunctionsOptions];
 
   const queryFn = () => {
-    return fetchFunctions(api, path, fetchFunctionsOptions);
+    if (
+      typeof fetchFunctionsOptions.selection === 'undefined' ||
+      (typeof fetchFunctionsOptions.transaction !== 'string' &&
+        fetchFunctionsOptions.transaction === null)
+    ) {
+      throw Error('selection and transaction arguments required for fetchFunctions');
+    }
+
+    return fetchFunctions(
+      api,
+      path,
+      // tsc doesn't infer the new type from the assertion above??
+      fetchFunctionsOptions as FetchFunctionsOptions
+    );
   };
 
   return useQuery<FetchFunctionsReturn, RequestError>({
@@ -64,11 +78,12 @@ function useFunctions({
 
 interface FetchFunctionsOptions {
   cursor: string | undefined;
+  enabled: boolean;
   functionType: 'application' | 'system' | 'all' | undefined;
   query: string;
-  selection: PageFilters | undefined;
+  selection: PageFilters;
   sort: string;
-  transaction: string | null;
+  transaction: string;
 }
 
 type FetchFunctionsReturn =
@@ -79,10 +94,6 @@ function fetchFunctions(
   path: string,
   {cursor, functionType, query, selection, sort, transaction}: FetchFunctionsOptions
 ): Promise<FetchFunctionsReturn> {
-  if (!selection || !transaction) {
-    throw Error('selection and transaction arguments required for fetchFunctions');
-  }
-
   const conditions = new MutableSearch(query);
   conditions.setFilterValues('transaction_name', [transaction]);
 
