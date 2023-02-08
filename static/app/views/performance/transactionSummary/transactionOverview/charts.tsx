@@ -18,7 +18,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  DISPLAY_MAP_DENY_LIST,
+  getTransactionMEPParamsIfApplicable,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
@@ -161,6 +164,8 @@ function TransactionSummaryCharts({
     organization,
     location
   );
+  // For mep-incompatible displays hide event count
+  const hideTransactionCount = DISPLAY_MAP_DENY_LIST.includes(display as DisplayModes);
 
   return (
     <Panel>
@@ -254,9 +259,11 @@ function TransactionSummaryCharts({
 
       <ChartControls>
         <InlineContainer>
-          <SectionHeading key="total-heading">{t('Total Transactions')}</SectionHeading>
+          <SectionHeading key="total-heading">
+            {hideTransactionCount ? '' : t('Total Transactions')}
+          </SectionHeading>
           <SectionValue key="total-value">
-            {totalValues === null ? (
+            {totalValues === null || hideTransactionCount ? (
               <Placeholder height="24px" />
             ) : (
               totalValues.toLocaleString()

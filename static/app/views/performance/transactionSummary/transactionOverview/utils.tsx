@@ -9,7 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 
-const DISPLAY_MAP_DENY_LIST = [DisplayModes.TREND, DisplayModes.LATENCY];
+export const DISPLAY_MAP_DENY_LIST = [DisplayModes.TREND, DisplayModes.LATENCY];
 
 export function canUseTransactionMetricsData(organization, location) {
   const isUsingMetrics = canUseMetricsData(organization);
