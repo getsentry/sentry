@@ -95,7 +95,7 @@ class AlertRuleSerializer(Serializer):
                     for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
                 }
             if cls is User:
-                resolved_actors[k] = user_service.get_many(actor_ids=owners_by_type[k])
+                resolved_actors[k] = user_service.get_many(filter={"actor_ids": owners_by_type[k]})
 
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:

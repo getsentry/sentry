@@ -141,7 +141,7 @@ class DatabaseBackedUserService(
 
     def _filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
         return self._filter_has_any_key_validator(
-            "user_ids", "organization_id", "team_ids", "project_ids", "emails"
+            "user_ids", "organization_id", "team_ids", "project_ids", "emails", "actor_ids"
         )
 
     def _serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
