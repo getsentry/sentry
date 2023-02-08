@@ -13,6 +13,7 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import Tooltip from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
@@ -411,6 +412,10 @@ function SummaryContent({
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
         />
+
+        {project && (
+          <SuspectFunctionsTable project={project} transaction={transactionName} />
+        )}
       </Layout.Main>
       <Layout.Side>
         <UserStats
