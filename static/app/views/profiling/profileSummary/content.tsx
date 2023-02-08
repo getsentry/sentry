@@ -73,7 +73,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     'application'
   );
 
-  const functions = useFunctions({
+  const functionsQuery = useFunctions({
     cursor: functionsCursor,
     project: props.project,
     query: '', // TODO: This doesnt support the same filters
@@ -147,15 +147,19 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           onChange={({value}) => setFunctionType(value)}
         />
         <StyledPagination
-          pageLinks={functions.type === 'resolved' ? functions.data.pageLinks : null}
+          pageLinks={
+            functionsQuery.isFetched ? functionsQuery.data?.[0]?.pageLinks : null
+          }
           onCursor={handleFunctionsCursor}
           size="xs"
         />
       </TableHeader>
       <FunctionsTable
-        error={functions.type === 'errored' ? functions.error : null}
-        isLoading={functions.type === 'initial' || functions.type === 'loading'}
-        functions={functions.type === 'resolved' ? functions.data.functions : []}
+        error={functionsQuery.isError ? functionsQuery.error.message : null}
+        isLoading={functionsQuery.isLoading}
+        functions={
+          functionsQuery.isFetched ? functionsQuery.data?.[0].functions ?? [] : []
+        }
         project={props.project}
         sort={functionsSort}
       />
