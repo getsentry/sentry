@@ -4,7 +4,7 @@ import functools
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -70,7 +70,7 @@ def assigned_to_filter(
 
     if User in types_to_actors:
         users = types_to_actors[User]
-        user_ids = [u.id for u in users]
+        user_ids: List[int] = [u.id for u in users if u is not None]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
@@ -223,7 +223,7 @@ def assigned_or_suggested_filter(
 
     if User in types_to_owners:
         users = types_to_owners[User]
-        user_ids = [u.id for u in users]
+        user_ids: List[int] = [u.id for u in users if u is not None]
         team_ids = list(
             Team.objects.filter(
                 id__in=OrganizationMemberTeam.objects.filter(
