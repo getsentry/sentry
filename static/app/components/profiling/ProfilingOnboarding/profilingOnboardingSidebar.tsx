@@ -87,6 +87,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       project => {
         return {
           value: project.id,
+          textValue: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),
@@ -98,6 +99,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       project => {
         return {
           value: project.id,
+          textValue: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),
