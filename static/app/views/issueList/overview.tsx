@@ -1204,11 +1204,7 @@ class IssueListOverview extends Component<Props, State> {
         />
         <StyledBody>
           <StyledMain>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              onSearch={this.onSearch}
-            />
+            <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
               <IssueListActions
