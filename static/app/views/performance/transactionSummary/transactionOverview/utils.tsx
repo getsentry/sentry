@@ -9,7 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 
-const DISPLAY_MAP_DENY_LIST = [DisplayModes.TREND, DisplayModes.LATENCY];
+export const DISPLAY_MAP_DENY_LIST = [DisplayModes.TREND, DisplayModes.LATENCY];
 
 export function canUseTransactionMetricsData(organization, location) {
   const isUsingMetrics = canUseMetricsData(organization);
@@ -46,15 +46,23 @@ export function canUseTransactionMetricsData(organization, location) {
 export function getTransactionMEPParamsIfApplicable(
   mepContext: MetricsEnhancedSettingContext,
   organization: Organization,
-  location: Location
+  location: Location,
+  unfiltered: boolean = false
 ) {
   if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
     return undefined;
   }
 
-  if (!canUseTransactionMetricsData(organization, location)) {
+  if (!unfiltered && !canUseTransactionMetricsData(organization, location)) {
     return undefined;
   }
 
   return getMEPQueryParams(mepContext);
+}
+
+export function canUseMetricsInTransactionSummary(organization: Organization) {
+  return (
+    canUseMetricsData(organization) &&
+    organization.features.includes('performance-metrics-backed-transaction-summary')
+  );
 }
