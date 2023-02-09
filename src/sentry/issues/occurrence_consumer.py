@@ -155,7 +155,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 if not payload.get("event_id") and not event_payload.get("event_id"):
                     raise InvalidEventPayloadError("Payload must contain an event_id")
 
-                if not payload.get("event_id") and event_payload.get("event_id"):
+                if not payload.get("event_id"):
                     occurrence_data["event_id"] = event_payload.get("event_id")
 
                 event_data = {
@@ -244,10 +244,8 @@ class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             payload = json.loads(message.payload.value, use_rapid_json=True)
             _process_message(payload)
-        except (rapidjson.JSONDecodeError, InvalidEventPayloadError, EventLookupError) as ee:
-            logger.error(ee)
-        except Exception as e:
-            logger.exception(e)
+        except (rapidjson.JSONDecodeError, InvalidEventPayloadError, EventLookupError, Exception):
+            logger.exception("failed to process message payload")
 
     def close(self) -> None:
         pass
