@@ -9,7 +9,7 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from sentry import features
-from sentry.grouptype.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import Organization, Project
 
 from ..base import (

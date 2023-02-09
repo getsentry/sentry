@@ -76,8 +76,8 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
-from sentry.grouptype.grouptype import GroupType
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -127,7 +127,6 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict

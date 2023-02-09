@@ -4,7 +4,7 @@ from hashlib import md5
 from unittest import mock
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,

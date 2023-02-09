@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.base import DetectorType

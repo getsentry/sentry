@@ -8,7 +8,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.grouptype.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models import (
     Activity,
     ApiToken,

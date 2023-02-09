@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     ErrorGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
