@@ -62,11 +62,6 @@ class TimeRange(TypedDict):
     end: str
 
 
-class DecayingFn(TypedDict):
-    type: str
-    decayedSampledRate: Optional[str]
-
-
 class Inner(TypedDict):
     op: str
     name: str
