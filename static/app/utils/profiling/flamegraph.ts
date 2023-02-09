@@ -77,7 +77,8 @@ export class Flamegraph {
     });
   }
 
-  static From(from: Flamegraph,
+  static From(
+    from: Flamegraph,
     {
       inverted = false,
       sort = 'call order',
