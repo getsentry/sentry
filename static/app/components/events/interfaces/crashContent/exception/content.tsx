@@ -95,7 +95,7 @@ export function Content({
         )}
         <ErrorBoundary mini>
           <Fragment>
-            {!shouldDebugFrames && <SetupSourceMapsAlert event={event} />}
+            {!shouldDebugFrames && excIdx === 0 && <SetupSourceMapsAlert event={event} />}
             {hasSourcemapDebug && (
               <SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />
             )}
