@@ -73,7 +73,7 @@ class ProjectOptionRuleStore:
 
 class CompositeRuleStore:
     #: Maximum number (non-negative integer) of rules to write to stores.
-    MERGE_MAX_RULES: int = 30
+    MERGE_MAX_RULES: int = 50
 
     def __init__(self, stores: List[RuleStore]):
         self._stores = stores
