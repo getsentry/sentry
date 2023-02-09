@@ -210,7 +210,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     def _prepare_params_for_category(
         self,
-        group_category: GroupCategory,
+        group_category: int,
         query_partial: IntermediateSearchQueryPartial,
         organization_id: int,
         project_ids: Sequence[int],
@@ -346,7 +346,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             group_categories = {
                 gc
                 for gc in SEARCH_STRATEGIES.keys()
-                if gc != GroupCategory.PROFILE
+                if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization)
             }
 

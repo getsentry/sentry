@@ -60,13 +60,13 @@ class MergeableRow(TypedDict, total=False):
 
 def group_categories_from(
     search_filters: Optional[Sequence[SearchFilter]],
-) -> Set[GroupCategory]:
+) -> Set[int]:
     """Iterates over search_filters for any Group-specific filters
 
     :returns: a set of GroupCategories if the list of search-filters targets a Group type or category, else
                 an empty set.
     """
-    group_categories: Set[GroupCategory] = set()
+    group_categories: Set[int] = set()
     # determine which dataset to fan-out to based on the search filter criteria provided
     # if its unspecified, we have to query all datasources
     for search_filter in search_filters or ():
@@ -220,14 +220,14 @@ def _query_params_for_generic(
 
 
 # TODO: We need to add a way to make this dynamic for additional generic types
-SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
+SEARCH_STRATEGIES: Mapping[int, GroupSearchStrategy] = {
     GroupCategory.ERROR.value: _query_params_for_error,
     GroupCategory.PERFORMANCE.value: _query_params_for_perf,
     GroupCategory.PROFILE.value: _query_params_for_generic,
 }
 
 
-SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
+SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
     GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf

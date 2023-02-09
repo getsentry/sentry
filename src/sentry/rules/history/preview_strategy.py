@@ -15,7 +15,7 @@ To add support for a new issue category/dataset:
 """
 
 # Maps group category to dataset
-GROUP_CATEGORY_TO_DATASET: Dict[GroupCategory, Dataset] = {
+GROUP_CATEGORY_TO_DATASET: Dict[int, Dataset] = {
     GroupCategory.ERROR.value: Dataset.Events,
     GroupCategory.PERFORMANCE.value: Dataset.Transactions,
 }
