@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, TypedDict, cast
+from typing import Any, Mapping, Optional, Sequence, Type, TypedDict, cast
 
 from django.utils.timezone import is_aware
 
@@ -76,7 +76,7 @@ class IssueOccurrence:
     # This should be human-readable. One of these entries should be marked as `important` for use
     # in more space restricted integrations.
     evidence_display: Sequence[IssueEvidence]
-    type: GroupType
+    type: Type[GroupType]
     detection_time: datetime
     level: Optional[str] = None
 
