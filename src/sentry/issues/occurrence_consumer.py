@@ -31,6 +31,10 @@ class InvalidEventPayloadError(Exception):
     pass
 
 
+class EventLookupError(Exception):
+    pass
+
+
 def get_occurrences_ingest_consumer(
     consumer_type: str,
     strict_offset_reset: bool,
@@ -91,8 +95,10 @@ def process_event(event_data: Dict[str, Any]) -> Optional[Event]:
         return None
 
 
-def lookup_event(project_id: int, event_id: str) -> Optional[Event]:
+def lookup_event(project_id: int, event_id: str) -> Event:
     data = nodestore.get(Event.generate_node_id(project_id, event_id))
+    if data is None:
+        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
     event = Event(event_id=event_id, project_id=project_id)
     event.data = data
     return event
@@ -123,7 +129,14 @@ def process_event_and_issue_occurrence(
 def lookup_event_and_process_issue_occurrence(
     occurrence_data: IssueOccurrenceData,
 ) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
-    event = lookup_event(occurrence_data["project_id"], occurrence_data["event_id"])
+    project_id = occurrence_data["project_id"]
+    event_id = occurrence_data["event_id"]
+    try:
+        event = lookup_event(project_id, event_id)
+    except EventLookupError:
+        raise
+    except Exception:
+        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
     if event is None:
         return None
 

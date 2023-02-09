@@ -7,15 +7,17 @@ from typing import Any, Dict, Optional, Sequence
 import pytest
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType, PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
+    EventLookupError,
     InvalidEventPayloadError,
     _get_kwargs,
     _process_message,
 )
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -26,8 +28,10 @@ def get_test_message(
     project_id: int, include_event: bool = True, **overrides: Any
 ) -> Dict[str, Any]:
     now = datetime.datetime.now()
+    event_id = uuid.uuid4().hex
     payload = {
         "id": uuid.uuid4().hex,
+        "event_id": event_id,
         "project_id": project_id,
         "fingerprint": ["touch-id"],
         "issue_title": "segfault",
@@ -44,7 +48,7 @@ def get_test_message(
 
     if include_event:
         payload["event"] = {
-            "event_id": uuid.uuid4().hex,
+            "event_id": event_id,
             "project_id": project_id,
             "platform": "genesis",
             "stacktrace": {
@@ -62,7 +66,7 @@ def get_test_message(
     return payload
 
 
-class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
+class IssueOccurrenceProcessMessageTest(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
     def setUp(self) -> None:
         super().setUp()
         self.eventstore = SnubaEventStorage()
@@ -87,7 +91,7 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
     @pytest.mark.django_db
-    def test_process_profiling_event(self) -> None:
+    def test_process_profiling_occurrence(self) -> None:
         event_data = load_data("generic-event-profiling")
         result = _process_message(event_data)
         assert result is not None
@@ -115,7 +119,41 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
         assert occurrence is None
 
 
-class ParseEventPayloadTest(IssueOccurrenceTestMessage):
+class IssueOccurrenceLookupEventIdTest(IssueOccurrenceProcessMessageTest):
+    def test_lookup_event_doesnt_exist(self):
+        message = get_test_message(self.project.id, include_event=False)
+        with pytest.raises(EventLookupError):
+            _process_message(message)
+
+    @pytest.mark.django_db
+    def test_transaction_lookup(self) -> None:
+        from sentry.event_manager import EventManager
+
+        event_data = load_data("transaction")
+        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["event_id"] = "d" * 32
+
+        manager = EventManager(data=event_data)
+        manager.normalize()
+        event1 = manager.save(self.project.id)
+        assert event1.get_event_type() == "transaction"
+
+        message = get_test_message(
+            self.project.id,
+            include_event=False,
+            event_id=event1.event_id,
+            type=PerformanceSlowDBQueryGroupType.type_id,
+        )
+        occurrence, group_info = _process_message(message)
+        assert occurrence is not None
+
+        fetched_event = self.eventstore.get_event_by_id(self.project.id, occurrence.event_id)
+        assert fetched_event is not None
+        assert fetched_event.get_event_type() == "transaction"
+
+
+class ParseEventPayloadTest(IssueOccurrenceProcessMessageTest):
     def run_test(self, message: Dict[str, Any]) -> None:
         _get_kwargs(message)
 
