@@ -6,10 +6,9 @@ from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, Ty
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.grouptype.grouptype import get_all_group_type_ids, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
-from sentry.types.issues import GroupCategory
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
 

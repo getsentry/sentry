@@ -1,8 +1,8 @@
 from typing import Any, Dict, Sequence
 
+from sentry.issues.grouptype import GroupCategory
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.issues import GroupCategory
 
 """
 Issue category specific components to computing a preview for a set of rules.

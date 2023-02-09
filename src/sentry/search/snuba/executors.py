@@ -34,7 +34,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.grouptype.grouptype import ErrorGroupType, get_group_types_by_category
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     SEARCH_STRATEGIES,
@@ -48,7 +48,6 @@ from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
-from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query

@@ -8,12 +8,15 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
     StreamGroupSerializerSnuba,
 )
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceNPlusOneGroupType,
+    ProfileBlockedThreadGroupType,
+)
 from sentry.models import Environment
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupCategory
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
