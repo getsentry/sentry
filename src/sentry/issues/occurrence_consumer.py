@@ -121,9 +121,9 @@ def process_event_and_issue_occurrence(
 
 
 def lookup_event_and_process_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, project_id: int, event_id: str
+    occurrence_data: IssueOccurrenceData,
 ) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
-    event = lookup_event(project_id, event_id)
+    event = lookup_event(occurrence_data["project_id"], occurrence_data["event_id"])
     if event is None:
         return None
 
@@ -146,6 +146,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                 "evidence_display": payload.get("evidence_display"),
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
+                # TODO: need to parse level
             }
 
             if "event" in payload:
@@ -233,13 +234,9 @@ def _process_message(
         return None
 
     if "event_data" in kwargs:
-        return process_event_and_issue_occurrence(**kwargs)  # returning for easier testing, for now
+        return process_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
     else:
-        return lookup_event_and_process_issue_occurrence(
-            occurrence_data=kwargs["occurrence_data"],
-            project_id=kwargs["occurrence_data"]["project_id"],
-            event_id=kwargs["occurrence_data"]["event_id"],
-        )
+        return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 
 
 class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
