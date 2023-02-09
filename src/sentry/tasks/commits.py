@@ -8,7 +8,7 @@ from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import (
     Deploy,
     LatestRepoReleaseEnvironment,
-    OrganizationMember,
+    Organization,
     Release,
     ReleaseCommitError,
     ReleaseHeadCommit,
@@ -246,27 +246,11 @@ def is_integration_provider(provider):
 
 
 def get_emails_for_user_or_org(user, orgId):
-    from django.db.models import Q
-
-    from sentry.models import OrganizationMemberTeam, Team
-
     emails = []
     if user.is_sentry_app:
-        # get owner teams
-        owner_teams = Team.objects.filter(org_role="owner", organization_id=orgId)
+        organization = Organization.objects.get(id=orgId)
+        members = organization.get_members_with_org_roles(roles=["owner"]).select_related("user")
 
-        # get owners from owner teams
-        owner_team_members = list(
-            OrganizationMemberTeam.objects.filter(
-                team_id__in=owner_teams,
-            ).values_list("organizationmember_id", flat=True)
-        )
-
-        members = OrganizationMember.objects.filter(
-            Q(role="owner") | Q(id__in=owner_team_members),
-            organization_id=orgId,
-            user_id__isnull=False,
-        ).select_related("user")
         for m in list(members):
             emails.append(m.user.email)
     else:

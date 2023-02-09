@@ -12,7 +12,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.utils.email import MessageBuilder
 from sentry.utils.signing import sign
 
@@ -56,25 +55,14 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
-            owner = OrganizationMember.objects.filter(
-                user__email__iexact=email, role=roles.get_top_dog().id, user__is_active=True
+            owner = OrganizationMember.objects.get_members_by_email_and_role(
+                email=email, role=roles.get_top_dog().id
             )[0]
         except IndexError:
-            try:
-                org_members = list(
-                    OrganizationMember.objects.filter(
-                        user__email__iexact=email, user__is_active=True
-                    ).values_list("id", flat=True)
-                )
-                org_member_id = OrganizationMemberTeam.objects.filter(
-                    team_id__org_role=roles.get_top_dog().id, organizationmember_id__in=org_members
-                )[0].organizationmember_id
-                owner = OrganizationMember.objects.filter(id=org_member_id)[0]
-            except IndexError:
-                return Response(
-                    {"detail": "Could not find an organization owner with that email"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+            return Response(
+                {"detail": "Could not find an organization owner with that email"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         organization = project.organization
         transaction_id = uuid4().hex
