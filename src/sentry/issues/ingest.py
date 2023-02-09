@@ -21,7 +21,6 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY
 from sentry.utils import metrics
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
@@ -90,7 +89,7 @@ def _create_issue_kwargs(
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
-        "type": cast(int, occurrence.type.value),
+        "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
     }
@@ -159,7 +158,7 @@ def save_issue_from_occurrence(
             op="issues.save_issue_from_occurrence.transaction"
         ) as span, metrics.timer(
             "issues.save_issue_from_occurrence.transaction",
-            tags={"platform": event.platform or "unknown", "type": occurrence.type.value},
+            tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             sample_rate=1.0,
         ) as metric_tags, transaction.atomic():
             group, is_new = _save_grouphash_and_group(
@@ -171,12 +170,12 @@ def save_issue_from_occurrence(
             metrics.incr(
                 "group.created",
                 skip_internal=True,
-                tags={"platform": event.platform or "unknown", "type": occurrence.type.value},
+                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
     else:
         group = existing_grouphash.group
-        if group.issue_category != GROUP_TYPE_TO_CATEGORY[occurrence.type]:
+        if group.issue_category.value != occurrence.type.category:
             logger.error(
                 "save_issue_from_occurrence.category_mismatch",
                 extra={

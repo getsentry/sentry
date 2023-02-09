@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
+from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -51,7 +52,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -201,13 +201,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            GroupType.PROFILE_BLOCKED_THREAD,
+            ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
         )
         occurrence.save(self.project.id)
         event.occurrence = occurrence
 
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        event.group.type = ProfileBlockedThreadGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -248,13 +248,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            GroupType.PROFILE_BLOCKED_THREAD,
+            ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
         )
         occurrence.save(self.project.id)
         event.occurrence = occurrence
 
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        event.group.type = ProfileBlockedThreadGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -272,7 +272,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
@@ -1186,7 +1186,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         event = self.store_event(
             data=load_data(
                 "transaction",
-                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
             ),
             project_id=self.project.id,
         )

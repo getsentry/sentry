@@ -18,12 +18,12 @@ from sentry.grouptype.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
-from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
@@ -483,7 +483,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     fingerprint=fingerprint,
                     op=op,
                     desc=span.get("description") or "",
-                    type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                    type=PerformanceRenderBlockingAssetSpanGroupType,
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
                     cause_span_ids=[],
@@ -597,7 +597,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             fingerprint,
             "db",
             desc=query,  # TODO - figure out which query to use for description
-            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+            type=PerformanceConsecutiveDBQueriesGroupType,
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
@@ -890,7 +890,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 fingerprint=fingerprint,
                 op="db",
                 desc=self.n_spans[0].get("description", ""),
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
@@ -1029,7 +1029,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     op=span_list[0].get("op"),
                     desc=span_list[0].get("description", ""),
                     parent_span_ids=[parent_span_id],
-                    type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+                    type=PerformanceFileIOMainThreadGroupType,
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
                 )
@@ -1207,7 +1207,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             fingerprint=self._fingerprint(db_span["hash"]),
             op="db",
             desc=db_span["description"],
-            type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
+            type=PerformanceMNPlusOneDBQueriesGroupType,
             parent_span_ids=[],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],

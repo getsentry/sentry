@@ -48,7 +48,6 @@ from sentry.notifications.utils import get_group_settings_link, get_interface_li
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -424,7 +423,7 @@ def alert(request):
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
-            "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
+            "issue_type": group.issue_type.description,
         },
     ).render(request)
 

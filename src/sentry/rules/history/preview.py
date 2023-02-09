@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from django.utils import timezone
 
+from sentry.grouptype.grouptype import get_group_type_by_type_id
 from sentry.models import Group, Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
@@ -22,7 +23,6 @@ from sentry.types.condition_activity import (
     ConditionActivityType,
     round_to_five_minute,
 )
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
 from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
 
 Conditions = Sequence[Dict[str, Any]]
@@ -279,7 +279,7 @@ def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
     """
     group_categories = Group.objects.filter(id__in=group_ids).values_list("id", "type")
     return {
-        group[0]: GROUP_CATEGORY_TO_DATASET.get(GROUP_TYPE_TO_CATEGORY.get(GroupType(group[1])))
+        group[0]: GROUP_CATEGORY_TO_DATASET.get(get_group_type_by_type_id(group[1]).category)
         for group in group_categories
     }
 
