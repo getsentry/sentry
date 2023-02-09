@@ -5,7 +5,6 @@ from sentry.grouptype.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.models import Organization, Project
 
 from ..base import DetectorType, PerformanceDetector, fingerprint_resource_span, get_span_duration
-from sentry.grouptype.grouptype import PerformanceUncompressedAssetsGroupType
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
