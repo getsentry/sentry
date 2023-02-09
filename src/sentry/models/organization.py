@@ -35,7 +35,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import Team
-from sentry.roles import organization_roles
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import is_using_customer_domain
@@ -368,9 +367,7 @@ class Organization(Model, SnowflakeIdMixin):
             user__is_active=True,
         )
         members_on_teams_with_role = (
-            OrganizationMemberTeam.objects.filter(
-                team__in=self.get_teams_with_org_role(organization_roles.get_top_dog().id)
-            )
+            OrganizationMemberTeam.objects.filter(team__in=self.get_teams_with_org_role(role))
             .exclude(organizationmember_id__in=list(members_with_role.values_list("id", flat=True)))
             .values_list("organizationmember__id", flat=True)
         )
