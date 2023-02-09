@@ -31,7 +31,7 @@ class DeleteProjectTest(TransactionTestCase):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
         group = event.group
-        GroupAssignee.objects.create(group=group, project=project, user=self.user)
+        GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)
         release.add_project(project)
@@ -112,7 +112,7 @@ class DeleteProjectTest(TransactionTestCase):
             project_id=project.id,
         )
         group = event.group
-        group_seen = GroupSeen.objects.create(group=group, project=project, user=self.user)
+        group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)

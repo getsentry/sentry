@@ -56,6 +56,7 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
         remote_addr=request.META["REMOTE_ADDR"],
         signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
+        absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
         authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
     )
@@ -176,6 +177,7 @@ class AuthenticationRequest:
     remote_addr: str | None = None
     signature: str | None = None
     absolute_url: str = ""
+    absolute_url_root: str = ""
     path: str = ""
     authorization_b64: str | None = None
 

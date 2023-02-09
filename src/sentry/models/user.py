@@ -356,24 +356,35 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        model_list = (
+        fk_model_list = (
             Authenticator,
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            GroupShare,
-            GroupSubscription,
             Identity,
             UserAvatar,
             UserEmail,
             UserOption,
         )
 
-        for model in model_list:
+        nonfk_model_list = (
+            GroupAssignee,
+            GroupBookmark,
+            GroupSeen,
+            GroupShare,
+            GroupSubscription,
+        )
+
+        for model in fk_model_list:
             for obj in model.objects.filter(user=from_user):
                 try:
                     with transaction.atomic():
                         obj.update(user=to_user)
+                except IntegrityError:
+                    pass
+
+        for model in nonfk_model_list:
+            for obj in model.objects.filter(user_id=from_user.id):
+                try:
+                    with transaction.atomic():
+                        obj.update(user_id=to_user.id)
                 except IntegrityError:
                     pass
 

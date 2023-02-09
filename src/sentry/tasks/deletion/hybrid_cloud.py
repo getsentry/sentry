@@ -211,7 +211,7 @@ def _process_tombstone_reconcilition(
                 set_watermark(prefix, field, up, tid)
 
         elif field.on_delete == "SET_NULL":
-            model.objects.filter(id__in=to_delete_ids).update({field.name: None})
+            model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
             set_watermark(prefix, field, up, tid)
 
         else:

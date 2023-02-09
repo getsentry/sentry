@@ -807,7 +807,7 @@ class Release(Model):
             if COMMIT_RANGE_DELIMITER in ref["commit"]:
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
-    def set_refs(self, refs, user, fetch=False):
+    def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models import Commit, ReleaseHeadCommit, Repository
@@ -854,7 +854,7 @@ class Release(Model):
                 fetch_commits.apply_async(
                     kwargs={
                         "release_id": self.id,
-                        "user_id": user.id,
+                        "user_id": user_id,
                         "refs": refs,
                         "prev_release_id": prev_release and prev_release.id,
                     }

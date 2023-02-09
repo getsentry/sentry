@@ -169,16 +169,20 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         self.group2.save()
         self.store_group(self.group2)
 
-        GroupBookmark.objects.create(user=self.user, group=self.group2, project=self.group2.project)
+        GroupBookmark.objects.create(
+            user_id=self.user.id, group=self.group2, project=self.group2.project
+        )
 
-        GroupAssignee.objects.create(user=self.user, group=self.group2, project=self.group2.project)
-
-        GroupSubscription.objects.create(
-            user=self.user, group=self.group1, project=self.group1.project, is_active=True
+        GroupAssignee.objects.create(
+            user_id=self.user.id, group=self.group2, project=self.group2.project
         )
 
         GroupSubscription.objects.create(
-            user=self.user, group=self.group2, project=self.group2.project, is_active=False
+            user_id=self.user.id, group=self.group1, project=self.group1.project, is_active=True
+        )
+
+        GroupSubscription.objects.create(
+            user_id=self.user.id, group=self.group2, project=self.group2.project, is_active=False
         )
 
         self.environments = {
@@ -546,7 +550,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             f"bookmarks:[{self.user.username}]", [self.group2], [self.group1]
         )
         user_2 = self.create_user()
-        GroupBookmark.objects.create(user=user_2, group=self.group1, project=self.group2.project)
+        GroupBookmark.objects.create(
+            user_id=user_2.id, group=self.group1, project=self.group2.project
+        )
         self.run_test_query_in_syntax(
             f"bookmarks:[{self.user.username}, {user_2.username}]", [self.group2, self.group1], []
         )
@@ -1014,10 +1020,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         # test team assignee
         ga = GroupAssignee.objects.get(
-            user=self.user, group=self.group2, project=self.group2.project
+            user_id=self.user.id, group=self.group2, project=self.group2.project
         )
-        ga.update(team=self.team, user=None)
-        assert GroupAssignee.objects.get(id=ga.id).user is None
+        ga.update(team=self.team, user_id=None)
+        assert GroupAssignee.objects.get(id=ga.id).user_id is None
 
         results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
         assert set(results) == {self.group2}
@@ -1054,7 +1060,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             [self.group1, group_3],
         )
 
-        GroupAssignee.objects.create(project=self.project, group=group_3, user=other_user)
+        GroupAssignee.objects.create(project=self.project, group=group_3, user_id=other_user.id)
         self.run_test_query_in_syntax(
             f"assigned:[{self.user.username}, {other_user.username}]",
             [self.group2, group_3],
@@ -1068,9 +1074,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         ga_2 = GroupAssignee.objects.get(
-            user=self.user, group=self.group2, project=self.group2.project
+            user_id=self.user.id, group=self.group2, project=self.group2.project
         )
-        ga_2.update(team=self.team, user=None)
+        ga_2.update(team=self.team, user_id=None)
         self.run_test_query_in_syntax(
             f"assigned:[{self.user.username}, {other_user.username}]",
             [self.group2, group_3],
@@ -1161,7 +1167,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         GroupAssignee.objects.create(
             group=assigned_to_other_group,
             project=self.project,
-            user=other_user,
+            user_id=other_user.id,
         )
         self.run_test_query_in_syntax(
             "assigned_or_suggested:[me]",
@@ -1175,7 +1181,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             [group, group1, group2, assigned_group],
         )
 
-        GroupAssignee.objects.create(group=assigned_group, project=self.project, user=self.user)
+        GroupAssignee.objects.create(
+            group=assigned_group, project=self.project, user_id=self.user.id
+        )
         self.run_test_query_in_syntax(
             f"assigned_or_suggested:[{self.user.email}]",
             [assigned_group, group],
@@ -1214,7 +1222,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             [group, group1, assigned_group],
             [assigned_to_other_group, group2],
         )
-        GroupOwner.objects.filter(group=group, user=self.user).delete()
+        GroupOwner.objects.filter(group=group, user_id=self.user.id).delete()
         self.run_test_query_in_syntax(
             f"assigned_or_suggested:[me, none, #{self.team.slug}]",
             [group, group1, assigned_group],
@@ -1251,7 +1259,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         user_2 = self.create_user()
         GroupSubscription.objects.create(
-            user=user_2, group=self.group2, project=self.project, is_active=True
+            user_id=user_2.id, group=self.group2, project=self.project, is_active=True
         )
         self.run_test_query_in_syntax(
             f"subscribed:[{self.user.username}, {user_2.username}]", [self.group1, self.group2], []

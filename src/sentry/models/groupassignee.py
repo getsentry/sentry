@@ -50,7 +50,7 @@ class GroupAssigneeManager(BaseManager):
         elif isinstance(assigned_to, Team):
             assignee_type = "team"
             assignee_type_attr = "team_id"
-            other_type = "user"
+            other_type = "user_id"
         else:
             raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
 
@@ -154,7 +154,7 @@ class GroupAssignee(Model):
 
     def assigned_actor_id(self) -> str:
         # TODO(mgaeta): Create migration for GroupAssignee to use the Actor model.
-        if self.user:
+        if self.user_id:
             return f"user:{self.user_id}"
 
         if self.team:

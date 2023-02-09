@@ -65,7 +65,7 @@ class HerokuReleaseHook(ReleaseHook):
                 },
             )
         self.finish_release(
-            version=request.POST.get("head_long"), url=request.POST.get("url"), owner=user
+            version=request.POST.get("head_long"), url=request.POST.get("url"), owner_id=user.id
         )
 
     def handle(self, request: Request) -> Response:
@@ -100,16 +100,18 @@ class HerokuReleaseHook(ReleaseHook):
             app_name = data.get("app", {}).get("name")
             if app_name:
                 self.finish_release(
-                    version=commit, url=f"http://{app_name}.herokuapp.com", owner=user
+                    version=commit,
+                    url=f"http://{app_name}.herokuapp.com",
+                    owner_id=user.id if user else None,
                 )
             else:
-                self.finish_release(version=commit, owner=user)
+                self.finish_release(version=commit, owner_id=user.id if user else None)
 
         else:
             self.handle_legacy(request)  # TODO delete this else after Feb 17th 2023
 
     def set_refs(self, release, **values):
-        if not values.get("owner", None):
+        if not values.get("owner_id", None):
             return
         # check if user exists, and then try to get refs based on version
         repo_project_option = ProjectOption.objects.get_value(
@@ -138,7 +140,7 @@ class HerokuReleaseHook(ReleaseHook):
             else:
                 release.set_refs(
                     refs=[{"commit": release.version, "repository": repository.name}],
-                    user=values["owner"],
+                    user_id=values["owner_id"],
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint

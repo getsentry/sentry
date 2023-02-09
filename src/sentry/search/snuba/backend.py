@@ -70,10 +70,11 @@ def assigned_to_filter(
 
     if User in types_to_actors:
         users = types_to_actors[User]
+        user_ids = [u.id for u in users]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
-                    user__in=users, project_id__in=[p.id for p in projects]
+                    user_id__in=user_ids, project_id__in=[p.id for p in projects]
                 ).values_list("group_id", flat=True)
             }
         )
@@ -85,7 +86,8 @@ def assigned_to_filter(
                         Team.objects.filter(
                             id__in=OrganizationMemberTeam.objects.filter(
                                 organizationmember__in=OrganizationMember.objects.filter(
-                                    user__in=users, organization_id=projects[0].organization_id
+                                    user_id__in=user_ids,
+                                    organization_id=projects[0].organization_id,
                                 ),
                                 is_active=True,
                             ).values_list("team_id", flat=True)
@@ -221,11 +223,12 @@ def assigned_or_suggested_filter(
 
     if User in types_to_owners:
         users = types_to_owners[User]
+        user_ids = [u.id for u in users]
         team_ids = list(
             Team.objects.filter(
                 id__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__in=OrganizationMember.objects.filter(
-                        user__in=users, organization_id=organization_id
+                        user_id__in=user_ids, organization_id=organization_id
                     ),
                     is_active=True,
                 ).values("team")
@@ -234,7 +237,7 @@ def assigned_or_suggested_filter(
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user__in=users) | Q(team_id__in=team_ids),
+                    Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
@@ -502,7 +505,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "bookmarked_by": QCallbackCondition(
-                lambda users: Q(bookmark_set__project__in=projects, bookmark_set__user__in=users)
+                lambda users: Q(
+                    bookmark_set__project__in=projects,
+                    bookmark_set__user_id__in=[u.id for u in users],
+                )
             ),
             "assigned_to": QCallbackCondition(
                 functools.partial(assigned_to_filter, projects=projects)
@@ -514,7 +520,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "subscribed_by": QCallbackCondition(
                 lambda users: Q(
                     id__in=GroupSubscription.objects.filter(
-                        project__in=projects, user__in=users, is_active=True
+                        project__in=projects, user_id__in=[u.id for u in users], is_active=True
                     ).values_list("group")
                 )
             ),

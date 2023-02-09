@@ -166,7 +166,7 @@ class EventCommittersTest(APITestCase):
 
             GroupOwner.objects.create(
                 group=event.group,
-                user=self.user,
+                user_id=self.user.id,
                 project=self.project,
                 organization=self.organization,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -228,7 +228,7 @@ class EventCommittersTest(APITestCase):
 
             GroupOwner.objects.create(
                 group=event.group,
-                user=self.user,
+                user_id=self.user.id,
                 project=self.project,
                 organization=self.organization,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,

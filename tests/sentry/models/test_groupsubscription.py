@@ -20,7 +20,7 @@ class SubscribeTest(TestCase):
 
         GroupSubscription.objects.subscribe(group=group, user=user)
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
         GroupSubscription.objects.subscribe(group=group, user=user)
@@ -64,7 +64,7 @@ class SubscribeTest(TestCase):
 
         GroupSubscription.objects.subscribe_actor(group=group, actor=user)
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=user)
@@ -80,7 +80,7 @@ class SubscribeTest(TestCase):
 
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
@@ -391,7 +391,7 @@ class GetParticipantsTest(TestCase):
         assert users == {}
 
         GroupSubscription.objects.create(
-            user=user,
+            user_id=user.id,
             group=group,
             project=project,
             is_active=True,
