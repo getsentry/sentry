@@ -18,7 +18,7 @@ class RestoreTest(CliTestCase):
     command = import_
     tmp_backup_filename = "test_backup.json"
 
-    def test_export(self):
+    def test_import(self):
         rv = self.invoke(self.tmp_backup_filename)
         assert rv.exit_code == 0, rv.output
 
