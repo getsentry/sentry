@@ -2530,6 +2530,7 @@ JS_SDK_LOADER_SDK_VERSION = ""
 # - 'https://browser.sentry-cdn.com/6.19.7/bundle.min.js' will stay the same.
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
+
 # block domains which are generally used by spammers -- keep this configurable
 # in case a self-hosted install wants to allow it
 INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
