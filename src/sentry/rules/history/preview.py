@@ -11,9 +11,9 @@ from sentry.models import Group, Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
     DATASET_TO_COLUMN_NAME,
-    GROUP_CATEGORY_TO_DATASET,
-    UPDATE_KWARGS_FOR_GROUP,
-    UPDATE_KWARGS_FOR_GROUPS,
+    get_dataset_from_category,
+    get_update_kwargs_for_group,
+    get_update_kwargs_for_groups,
 )
 from sentry.rules.processor import get_match_function
 from sentry.snuba.dataset import Dataset
@@ -104,7 +104,6 @@ def preview(
         group_fires = get_fired_groups(
             group_activity, filter_objects, filter_func, start, frequency, event_map
         )
-
         return group_fires
     except PreviewException:
         return None
@@ -236,10 +235,8 @@ def get_top_groups(
     # queries each dataset for top x groups and then gets top x overall
     query_params = []
     for dataset in datasets:
-        if dataset not in UPDATE_KWARGS_FOR_GROUPS:
-            continue
-
-        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+        kwargs = get_update_kwargs_for_groups(
+            dataset,
             group_ids,
             {
                 "dataset": dataset,
@@ -279,7 +276,7 @@ def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
     """
     group_categories = Group.objects.filter(id__in=group_ids).values_list("id", "type")
     return {
-        group[0]: GROUP_CATEGORY_TO_DATASET.get(get_group_type_by_type_id(group[1]).category)
+        group[0]: get_dataset_from_category(get_group_type_by_type_id(group[1]).category)
         for group in group_categories
     }
 
@@ -318,14 +315,11 @@ def get_events(
     query_params = []
     # query events by group_id (first event for each group)
     for dataset, ids in group_ids.items():
-        if (
-            dataset not in columns
-            or dataset not in UPDATE_KWARGS_FOR_GROUP
-            or dataset == Dataset.Transactions
-        ):
+        if dataset not in columns or dataset == Dataset.Transactions:
             # transaction query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
             continue
-        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+        kwargs = get_update_kwargs_for_groups(
+            dataset,
             ids,
             {
                 "dataset": dataset,
@@ -503,10 +497,8 @@ def get_frequency_buckets(
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """
-    if dataset not in UPDATE_KWARGS_FOR_GROUP:
-        return {}
-
-    kwargs = UPDATE_KWARGS_FOR_GROUP[dataset](
+    kwargs = get_update_kwargs_for_group(
+        dataset,
         group_id,
         {
             "dataset": dataset,

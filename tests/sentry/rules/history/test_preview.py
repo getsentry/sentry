@@ -3,7 +3,11 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.issues.grouptype import ErrorGroupType, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    ErrorGroupType,
+    PerformanceNPlusOneGroupType,
+    ProfileBlockedThreadGroupType,
+)
 from sentry.models import Activity, Group, Project
 from sentry.rules.history.preview import (
     FREQUENCY_CONDITION_GROUP_LIMIT,
@@ -192,6 +196,39 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert all(group.id in result for group in errors)
         assert all(group.id not in result for group in n_plus_one)
+
+    def test_issue_platform(self):
+        """Ensure that issues using the issue platform can be shown as a preview."""
+        hours = get_hours(PREVIEW_TIME_RANGE)
+        prev_hour = timezone.now() - timedelta(hours=1)
+        errors = []
+        profile_blocked_thread = []
+        for i in range(hours):
+            if i % 2:
+                errors.append(
+                    Group.objects.create(
+                        project=self.project, first_seen=prev_hour, type=ErrorGroupType.type_id
+                    )
+                )
+            else:
+                profile_blocked_thread.append(
+                    Group.objects.create(
+                        project=self.project,
+                        first_seen=prev_hour,
+                        type=ProfileBlockedThreadGroupType.type_id,
+                    )
+                )
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {
+                "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                "value": ProfileBlockedThreadGroupType.type_id,
+            }
+        ]
+        result = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert all(group.id not in result for group in errors)
+        assert all(group.id in result for group in profile_blocked_thread)
 
     def test_level(self):
         event = self._set_up_event({"tags": {"level": "error"}})
