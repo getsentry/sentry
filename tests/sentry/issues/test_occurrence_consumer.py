@@ -28,6 +28,7 @@ def get_test_message(
     now = datetime.datetime.now()
     payload = {
         "id": uuid.uuid4().hex,
+        "project_id": project_id,
         "fingerprint": ["touch-id"],
         "issue_title": "segfault",
         "subtitle": "buffer overflow",
@@ -154,3 +155,10 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
         self.run_test(message)
+
+    def test_project_ids_mismatch(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["project_id"] = 1
+        message["event"]["project_id"] = 2
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(message)

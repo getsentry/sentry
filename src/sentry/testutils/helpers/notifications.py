@@ -72,6 +72,7 @@ class DummyNotificationWithMoreFields(DummyNotification):
 
 TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     uuid.uuid4().hex,
+    1,
     uuid.uuid4().hex,
     ["some-fingerprint"],
     "something bad happened",

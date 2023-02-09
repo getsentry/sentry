@@ -170,7 +170,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         event = event.for_group(event.groups[0])
         occurrence = self.build_occurrence(level="info")
-        occurrence.save(project_id=self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
         event.group.type = ProfileBlockedThreadGroupType.type_id
