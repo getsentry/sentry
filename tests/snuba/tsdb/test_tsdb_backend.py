@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytz
 from snuba_sdk import Limit
 
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     ProfileBlockedThreadGroupType,

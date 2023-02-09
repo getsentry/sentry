@@ -12,7 +12,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase

@@ -3,7 +3,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (

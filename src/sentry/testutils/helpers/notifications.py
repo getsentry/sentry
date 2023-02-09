@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Iterable, Mapping
 
-from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification

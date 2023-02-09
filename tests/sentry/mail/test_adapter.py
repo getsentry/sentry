@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (

@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, Sequence
 import pytest
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     InvalidEventPayloadError,

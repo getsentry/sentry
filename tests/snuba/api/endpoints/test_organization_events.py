@@ -13,7 +13,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,

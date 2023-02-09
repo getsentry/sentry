@@ -12,6 +12,7 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
 from sentry.api.utils import default_start_end_dates
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.query import apply_performance_conditions
 from sentry.models import (
     Group,
@@ -43,7 +44,6 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
-from sentry.types.issues import GroupCategory
 from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text

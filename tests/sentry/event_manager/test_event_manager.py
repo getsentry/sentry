@@ -39,12 +39,13 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
-from sentry.grouptype.grouptype import (
+from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.issues.grouptype import (
     ErrorGroupType,
+    GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.models import (
     Activity,
     Commit,
@@ -84,7 +85,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome

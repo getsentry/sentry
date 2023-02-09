@@ -17,11 +17,11 @@ from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import Interface, get_interfaces
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
-from sentry.types.issues import GroupCategory
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView

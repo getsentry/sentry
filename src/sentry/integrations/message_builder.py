@@ -5,12 +5,12 @@ from typing import Any, Callable, Mapping, Sequence
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project, Rule, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.issues import GroupCategory
 from sentry.utils.http import absolute_uri
 
 

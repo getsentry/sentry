@@ -10,7 +10,7 @@ from freezegun import freeze_time
 from rest_framework import status
 
 from sentry import options
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
 from sentry.models import (
     GROUP_OWNER_TYPE,
     Activity,

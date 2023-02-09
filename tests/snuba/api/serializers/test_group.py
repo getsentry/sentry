@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     ProfileBlockedThreadGroupType,
 )

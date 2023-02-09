@@ -4,7 +4,7 @@ from unittest.mock import Mock, call
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceMNPlusOneDBQueriesGroupType
+from sentry.issues.grouptype import PerformanceMNPlusOneDBQueriesGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test

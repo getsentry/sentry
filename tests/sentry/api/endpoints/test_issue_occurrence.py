@@ -1,7 +1,7 @@
 from datetime import datetime
 from unittest import mock
 
-from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test

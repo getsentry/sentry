@@ -1,4 +1,4 @@
-from sentry.grouptype.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

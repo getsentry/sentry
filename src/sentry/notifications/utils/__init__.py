@@ -27,12 +27,13 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouptype.grouptype import (
+from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.integrations import IntegrationFeatures, IntegrationProvider
+from sentry.issues.grouptype import (
+    GroupCategory,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
 )
-from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
     Activity,
     Commit,
@@ -53,7 +54,6 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GroupCategory
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
