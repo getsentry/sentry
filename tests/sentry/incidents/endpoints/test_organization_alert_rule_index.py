@@ -20,6 +20,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
@@ -107,10 +108,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=201, **deepcopy(self.alert_rule_dict)
-            )
+        with outbox_runner():
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **deepcopy(self.alert_rule_dict)
+                )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)

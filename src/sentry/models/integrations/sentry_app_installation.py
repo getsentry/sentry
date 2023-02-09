@@ -61,7 +61,6 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         organization_ids: List[int],
         type: str,
         sentry_app_ids: Optional[List[int]] = None,
-        sentry_app_uuids: Optional[List[str]] = None,
         group_by: str = "sentry_app_id",
     ):
         from sentry.models import SentryAppComponent
@@ -82,8 +81,6 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         )
         if sentry_app_ids is not None:
             query = query.filter(sentry_app_id__in=sentry_app_ids)
-        if sentry_app_uuids is not None:
-            query = query.filter(sentry_app__uuid__in=sentry_app_uuids)
 
         sentry_app_installations = query.all()
 

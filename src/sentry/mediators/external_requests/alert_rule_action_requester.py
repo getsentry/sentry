@@ -28,7 +28,7 @@ class AlertRuleActionRequester(Mediator):
     AlertRuleAction settings schema
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.ApiSentryAppInstallation")
     uri = Param((str,))
     fields = Param(list, required=False, default=[])
     http_method = Param(str, required=False, default="POST")

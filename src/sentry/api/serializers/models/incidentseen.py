@@ -11,8 +11,11 @@ class IncidentSeenSerializer(Serializer):
         prefetch_related_objects(item_list, "user")
         user_map = {
             d["id"]: d
-            for d in user_service.serialize_users(
-                user_ids=[i.user_id for i in item_list], as_user=user
+            for d in user_service.serialize_many(
+                filter={
+                    "user_ids": [i.user_id for i in item_list],
+                },
+                as_user=user,
             )
         }
 

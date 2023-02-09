@@ -15,7 +15,8 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TYPE,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import OrganizationMember, SentryAppInstallation, Team
+from sentry.models import OrganizationMember, Team
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
@@ -134,9 +135,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         {"sentry_app": "Missing parameter: sentry_app_installation_uuid"}
                     )
 
-                try:
-                    SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid)
-                except SentryAppInstallation.DoesNotExist:
+                installations = app_service.get_many(filter={"uuid": sentry_app_installation_uuid})
+                if len(installations) == 0:
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
                     )

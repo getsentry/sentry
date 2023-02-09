@@ -1,20 +1,91 @@
 from __future__ import annotations
 
 import abc
+import datetime
+import hmac
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from hashlib import sha256
+from typing import Any, Dict, List, Optional, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
-if TYPE_CHECKING:
-    from sentry.models import SentryApp, SentryAppInstallation
+
+class AppFilterArgs(TypedDict, total=False):
+    organization_id: int
+    uuid: str
+    date_deleted: Optional[datetime.datetime]
+    status: SentryAppInstallationStatus
 
 
-class AppService(InterfaceWithLifecycle):
+@dataclass
+class ApiSentryAppInstallation:
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    uuid: str = ""
+    sentry_app: ApiSentryApp = field(default_factory=lambda: ApiSentryApp())
+
+
+@dataclass
+class ApiApiApplication:
+    id: int = -1
+    client_id: str = ""
+    client_secret: str = ""
+
+
+@dataclass
+class ApiSentryApp:
+    id: int = -1
+    scope_list: List[str] = field(default_factory=list)
+    application: ApiApiApplication = field(default_factory=ApiApiApplication())
+    proxy_user_id: int | None = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    status: str = ""
+    events: List[str] = field(default_factory=list)
+    is_alertable: bool = False
+    components: List[ApiSentryAppComponent] = field(default_factory=list)
+    webhook_url: str = ""
+    is_internal: bool = True
+    is_unpublished: bool = True
+
+    def get_component(self, type: str) -> Optional[ApiSentryAppComponent]:
+        for c in self.components:
+            if c.type == type:
+                return c
+        return None
+
+    def build_signature(self, body):
+        secret = self.application.client_secret
+        return hmac.new(
+            key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
+        ).hexdigest()
+
+    @property
+    def slug_for_metrics(self):
+        if self.is_internal:
+            return "internal"
+        if self.is_unpublished:
+            return "unpublished"
+        return self.slug
+
+
+@dataclass
+class ApiSentryAppComponent:
+    uuid: str = ""
+    type: str = ""
+    schema: JSONField = None
+
+
+class AppService(
+    FilterQueryInterface[AppFilterArgs, ApiSentryAppInstallation, None], InterfaceWithLifecycle
+):
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
@@ -28,7 +99,6 @@ class AppService(InterfaceWithLifecycle):
         organization_ids: List[int],
         type: str,
         sentry_app_ids: Optional[List[int]] = None,
-        sentry_app_uuids: Optional[List[str]] = None,
         group_by="sentry_app_id",
     ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
         pass
@@ -40,45 +110,6 @@ class AppService(InterfaceWithLifecycle):
         organization_id: int,
     ) -> List[ApiSentryAppInstallation]:
         pass
-
-    def serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
-        return ApiSentryApp(
-            id=app.id,
-            scope_list=app.scope_list,
-            application_id=app.application_id,
-            proxy_user_id=app.proxy_user_id,
-            owner_id=app.owner_id,
-            name=app.name,
-            slug=app.slug,
-            uuid=app.uuid,
-            events=app.events,
-            is_alertable=app.is_alertable,
-            status=app.status,
-            components=[self.serialize_sentry_app_component(c) for c in app.components.all()],
-        )
-
-    def serialize_sentry_app_component(
-        self, component: SentryAppComponent
-    ) -> ApiSentryAppComponent:
-        return ApiSentryAppComponent(
-            uuid=component.uuid,
-            type=component.type,
-            schema=component.schema,
-        )
-
-    def serialize_sentry_app_installation(
-        self, installation: SentryAppInstallation, app: SentryApp | None = None
-    ) -> ApiSentryAppInstallation:
-        if app is None:
-            app = installation.sentry_app
-
-        return ApiSentryAppInstallation(
-            id=installation.id,
-            organization_id=installation.organization_id,
-            status=installation.status,
-            uuid=installation.uuid,
-            sentry_app=self.serialize_sentry_app(app),
-        )
 
 
 def impl_with_db() -> AppService:
@@ -94,35 +125,3 @@ app_service: AppService = silo_mode_delegation(
         SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
     }
 )
-
-
-@dataclass
-class ApiSentryAppInstallation:
-    id: int = -1
-    organization_id: int = -1
-    status: int = SentryAppInstallationStatus.PENDING
-    uuid: str = ""
-    sentry_app: ApiSentryApp = field(default_factory=lambda: ApiSentryApp())
-
-
-@dataclass
-class ApiSentryApp:
-    id: int = -1
-    scope_list: List[str] = field(default_factory=list)
-    application_id: int = -1
-    proxy_user_id: int | None = None  # can be null on deletion.
-    owner_id: int = -1  # relation to an organization
-    name: str = ""
-    slug: str = ""
-    uuid: str = ""
-    status: str = ""
-    events: List[str] = field(default_factory=list)
-    is_alertable: bool = False
-    components: List[ApiSentryAppComponent] = field(default_factory=list)
-
-
-@dataclass
-class ApiSentryAppComponent:
-    uuid: str = ""
-    type: str = ""
-    schema: JSONField = None

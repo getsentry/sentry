@@ -1,25 +1,86 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
+from django.db.models import QuerySet
+
+from sentry.api.serializers.base import Serializer
+from sentry.constants import SentryAppInstallationStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models import SentryApp, SentryAppInstallation
-from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, AppService
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.services.hybrid_cloud.app import (
+    ApiApiApplication,
+    ApiSentryApp,
+    ApiSentryAppComponent,
+    ApiSentryAppInstallation,
+    AppFilterArgs,
+    AppService,
+)
+from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.user import UserFilterArgs
+from sentry.services.hybrid_cloud.user_option import UserOptionFilterArgs
 
 
-class DatabaseBackedAppService(AppService):
+class DatabaseBackedAppService(
+    FilterQueryDatabaseImpl[SentryAppInstallation, AppFilterArgs, ApiSentryAppInstallation, None],
+    AppService,
+):
+    def _base_query(self) -> QuerySet:
+        return SentryAppInstallation.objects.select_related("sentry_app").prefetch_related(
+            "sentry_app__components",
+            "sentry_app__application",
+        )
+
+    def _filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
+        return self._filter_has_any_key_validator("organization_ids", "uuid")
+
+    def _apply_filters(
+        self,
+        query: BaseQuerySet,
+        filters: UserFilterArgs,
+    ) -> List[SentryAppInstallation]:
+        query = self._base_query()
+        if "status" not in filters:
+            filters["status"] = SentryAppInstallationStatus.INSTALLED
+        query = query.filter(status=filters["status"])
+
+        if "date_deleted" not in filters:
+            filters["date_deleted"] = None
+        query = query.filter(date_deleted=filters["date_deleted"])
+
+        if "organization_ids" in filters:
+            query = query.filter(organization_id__in=filters["organization_ids"])
+        if "uuid" in filters:
+            query = query.filter(uuid=filters["uuid"])
+
+        return list(query)
+
+    def _serialize_api(self, serializer: Optional[None]) -> Serializer:
+        # SentryAppInstallations should not be serialized in this way
+        raise NotImplementedError
+
     def get_related_sentry_app_components(
         self,
         *,
         organization_ids: List[int],
         type: str,
+        # Pass one of sentry_app_ids, sentry_app_uuids
         sentry_app_ids: Optional[List[int]] = None,
         sentry_app_uuids: Optional[List[str]] = None,
         group_by="sentry_app_id",
     ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
+        if sentry_app_uuids is not None:
+            sentry_app_ids = (
+                SentryAppInstallation.objects.filter(uuid__in=sentry_app_uuids)
+                .distinct("sentry_app_id")
+                .values_list("sentry_app_id", flat=True)
+            )
+
         return SentryAppInstallation.objects.get_related_sentry_app_components(
             organization_ids=organization_ids,
             sentry_app_ids=sentry_app_ids,
-            sentry_app_uuids=sentry_app_uuids,
             type=type,
             group_by=group_by,
         )
@@ -32,7 +93,7 @@ class DatabaseBackedAppService(AppService):
             .select_related("sentry_app")
             .prefetch_related("sentry_app__components")
         )
-        return [self.serialize_sentry_app_installation(i, i.sentry_app) for i in installations]
+        return [self._serialize_rpc(i) for i in installations]
 
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
@@ -43,13 +104,61 @@ class DatabaseBackedAppService(AppService):
             return None
 
         try:
-            installation = SentryAppInstallation.objects.get(
+            installation = SentryAppInstallation.objects.select_related("sentry_app").get(
                 sentry_app_id=sentry_app.id, organization_id=organization_id
             )
         except SentryAppInstallation.DoesNotExist:
             return None
 
-        return self.serialize_sentry_app_installation(installation, sentry_app)
+        return self._serialize_rpc(installation)
+
+    def _serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
+        return ApiSentryApp(
+            id=app.id,
+            scope_list=app.scope_list,
+            application=self._serialize_api_application(app.application),
+            proxy_user_id=app.proxy_user_id,
+            owner_id=app.owner_id,
+            name=app.name,
+            slug=app.slug,
+            uuid=app.uuid,
+            events=app.events,
+            is_alertable=app.is_alertable,
+            status=app.status,
+            components=[self._serialize_sentry_app_component(c) for c in app.components.all()],
+            webhook_url=app.webhook_url,
+            is_internal=app.is_internal,
+            is_unpublished=app.is_unpublished,
+        )
+
+    def _serialize_sentry_app_component(
+        self, component: SentryAppComponent
+    ) -> ApiSentryAppComponent:
+        return ApiSentryAppComponent(
+            uuid=component.uuid,
+            type=component.type,
+            schema=component.schema,
+        )
+
+    def _serialize_api_application(self, api_app: ApiApplication) -> ApiApiApplication:
+        return ApiApiApplication(
+            id=api_app.id,
+            client_id=api_app.client_id,
+            client_secret=api_app.client_secret,
+        )
+
+    def _serialize_rpc(
+        self, installation: SentryAppInstallation | None = None
+    ) -> ApiSentryAppInstallation:
+        app = installation.sentry_app
+
+        return ApiSentryAppInstallation(
+            id=installation.id,
+            organization_id=installation.organization_id,
+            status=installation.status,
+            uuid=installation.uuid,
+            sentry_app=self._serialize_sentry_app(app),
+        )
 
     def close(self) -> None:
         pass

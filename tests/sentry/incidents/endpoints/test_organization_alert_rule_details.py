@@ -18,7 +18,8 @@ from sentry.incidents.models import (
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import AuditLogEntry, OrganizationMemberTeam
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 
@@ -189,10 +190,11 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["name"] = "what"
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
+        with outbox_runner():
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, alert_rule.id, **serialized_alert_rule
+                )
 
         alert_rule.name = "what"
         alert_rule.date_modified = resp.data["dateModified"]
@@ -200,9 +202,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data["name"] == "what"
         assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
 
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=alert_rule.id
-        )
+        with exempt_from_silo_limits():
+            audit_log_entry = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=alert_rule.id
+            )
         assert len(audit_log_entry) == 1
         assert (
             resp.renderer_context["request"].META["REMOTE_ADDR"]
