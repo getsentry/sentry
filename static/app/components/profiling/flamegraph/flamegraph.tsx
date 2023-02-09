@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
@@ -228,7 +229,15 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
-    return new FlamegraphModel(profile, threadId, {
+    const transaction = Sentry.startTransaction({
+      op: 'import',
+      name: 'flamegraph.constructor',
+    });
+
+    transaction.setTag('sorting', sorting.split(' ').join('_'));
+    transaction.setTag('view', view.split(' ').join('_'));
+
+    const newFlamegraph = new FlamegraphModel(profile, threadId, {
       inverted: view === 'bottom up',
       leftHeavy: sorting === 'left heavy',
       configSpace:
@@ -236,6 +245,9 @@ function Flamegraph(): ReactElement {
           ? getTransactionConfigSpace(profileGroup, profile.startedAt, profile.unit)
           : undefined,
     });
+    transaction.finish();
+
+    return newFlamegraph;
   }, [profile, profileGroup, sorting, threadId, view, xAxis]);
 
   const uiFrames = useMemo(() => {
