@@ -3,6 +3,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Rect} from './gl/utils';
 import {Profile} from './profile/profile';
+import {SampledProfile} from './profile/sampledProfile';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
 import {Frame} from './frame';
@@ -69,8 +70,14 @@ export class Flamegraph {
     });
   }
 
-  static From(
-    from: Flamegraph,
+  static Example(): Flamegraph {
+    return new Flamegraph(SampledProfile.Example, 0, {
+      inverted: false,
+      leftHeavy: false,
+    });
+  }
+
+  static From(from: Flamegraph,
     {
       inverted = false,
       sort = 'call order',

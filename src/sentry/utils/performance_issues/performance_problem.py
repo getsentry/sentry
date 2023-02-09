@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence
 
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
+from sentry.grouptype.grouptype import GroupType, get_group_type_by_type_id
 
 
 @dataclass
@@ -23,7 +23,7 @@ class PerformanceProblem:
             "fingerprint": self.fingerprint,
             "op": self.op,
             "desc": self.desc,
-            "type": self.type.value,
+            "type": self.type.type_id,
             "parent_span_ids": self.parent_span_ids,
             "cause_span_ids": self.cause_span_ids,
             "offender_span_ids": self.offender_span_ids,
@@ -31,7 +31,7 @@ class PerformanceProblem:
 
     @property
     def title(self) -> str:
-        return GROUP_TYPE_TO_TEXT.get(self.type, "N+1 Query")
+        return self.type.description
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -39,7 +39,7 @@ class PerformanceProblem:
             data["fingerprint"],
             data["op"],
             data["desc"],
-            GroupType(data["type"]),
+            get_group_type_by_type_id(data["type"]),
             data["parent_span_ids"],
             data["cause_span_ids"],
             data["offender_span_ids"],

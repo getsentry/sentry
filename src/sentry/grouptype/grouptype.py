@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+from collections import defaultdict
 from dataclasses import dataclass
+from typing import Any, Dict, Set, Type
 
 from sentry.types.issues import GroupCategory
 
-_group_type_registry = {}
+_group_type_registry: Dict[int, Type[GroupType]] = {}
+_slug_lookup: Dict[str, Type[GroupType]] = {}
+_category_lookup: Dict[int, Set[int]] = defaultdict(set)
 
 
 @dataclass(frozen=True)
@@ -11,31 +17,42 @@ class GroupType:
     slug: str
     description: str
     category: int
-    ignore_limit: int = 3  # CEO temp fix - this is the value of DEFAULT_GROUPHASH_IGNORE_LIMIT
+    ignore_limit: int = 3
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if _group_type_registry.get(cls.type_id):
             raise ValueError(
                 f"A group type with the type_id {cls.type_id} has already been registered."
             )
         _group_type_registry[cls.type_id] = cls
+        _slug_lookup[cls.slug] = cls
+        _category_lookup[cls.category].add(cls.type_id)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
 
-def get_group_types_by_category(category):
-    return [child.type_id for child in GroupType.__subclasses__() if child.category == category]
+def get_all_group_type_ids() -> Set[int]:
+    return {type.type_id for type in _group_type_registry.values()}
 
 
-def get_group_type_by_slug(slug):
-    for group_type in _group_type_registry.values():
-        if group_type.slug == slug:
-            return group_type
-    raise ValueError(f"No group type with the slug {slug} is registered.")
+def get_group_types_by_category(category: int) -> Set[int]:
+    return _category_lookup[category]
+
+
+def get_group_type_by_slug(slug: str) -> Type[GroupType]:
+    if slug not in _slug_lookup:
+        raise ValueError(f"No group type with the slug {slug} is registered.")
+    return _slug_lookup[slug]
+
+
+def get_group_type_by_type_id(id: int) -> Type[GroupType]:
+    if id not in _group_type_registry:
+        raise ValueError(f"No group type with the id {id} is registered.")
+    return _group_type_registry[id]
 
 
 @dataclass(frozen=True)

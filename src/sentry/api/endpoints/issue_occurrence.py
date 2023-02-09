@@ -8,9 +8,9 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import user_service
-from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -111,7 +111,7 @@ class IssueOccurrenceEndpoint(Endpoint):
                         "important": False,
                     },
                 ],
-                "type": GroupType.PROFILE_BLOCKED_THREAD.value,
+                "type": ProfileBlockedThreadGroupType.type_id,
                 "detection_time": ensure_aware(datetime.now()),
                 "event": event,
             }

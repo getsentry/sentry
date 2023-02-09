@@ -8,12 +8,12 @@ from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
+from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.types.issues import GroupType
 
 
 class OccurrenceTestMixin:
@@ -42,7 +42,7 @@ class OccurrenceTestMixin:
                 {"name": "hi", "value": "bye", "important": True},
                 {"name": "what", "value": "where", "important": False},
             ],
-            "type": GroupType.PROFILE_BLOCKED_THREAD.value,
+            "type": ProfileBlockedThreadGroupType.type_id,
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
         }
