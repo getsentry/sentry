@@ -57,7 +57,7 @@ type Props = {
   dataset: Dataset;
   disabled: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string) => void;
+  onFilterSearch: (query: string, isQueryValid) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -507,12 +507,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                     onKeyDown?.(e);
                   }}
-                  onClose={query => {
-                    onFilterSearch(query);
+                  onClose={(query, {validSearch}) => {
+                    onFilterSearch(query, validSearch);
                     onBlur(query);
                   }}
                   onSearch={query => {
-                    onFilterSearch(query);
+                    onFilterSearch(query, true);
                     onChange(query, {});
                   }}
                   hasRecentSearches={dataset !== Dataset.SESSIONS}

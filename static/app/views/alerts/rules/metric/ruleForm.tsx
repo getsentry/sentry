@@ -103,6 +103,7 @@ type State = {
   dataset: Dataset;
   environment: string | null;
   eventTypes: EventTypes[];
+  isQueryValid: boolean;
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
@@ -172,6 +173,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       dataset,
       eventTypes: eventTypes ?? rule.eventTypes ?? [],
       query: rule.query ?? '',
+      isQueryValid: true, // Assume valid until input is changed
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
       triggerErrors: new Map(),
@@ -489,7 +491,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   // We handle the filter update outside of the fieldChange handler since we
   // don't want to update the filter on every input change, just on blurs and
   // searches.
-  handleFilterUpdate = (query: string) => {
+  handleFilterUpdate = (query: string, isQueryValid: boolean) => {
     const {organization, sessionId} = this.props;
 
     trackAdvancedAnalyticsEvent('alert_builder.filter', {
@@ -498,7 +500,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       query,
     });
 
-    this.setState({query});
+    this.setState({query, isQueryValid});
   };
 
   handleSubmit = async (
