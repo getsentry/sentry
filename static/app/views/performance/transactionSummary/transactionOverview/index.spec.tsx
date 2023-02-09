@@ -251,6 +251,32 @@ describe('Performance > TransactionSummary', function () {
         },
       ],
     });
+    // Events Mock unfiltered totals for percentage calculations
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            'tpm()': 'number',
+            'count()': 'number',
+          },
+        },
+        data: [
+          {
+            'count()': 2,
+            'tpm()': 1,
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return (
+            options.query?.field?.includes('tpm()') &&
+            !options.query?.field?.includes('p95()')
+          );
+        },
+      ],
+    });
     // Events Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
