@@ -431,7 +431,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <AlertContainer>
             <Alert type="info" showIcon>
               {tct(
-                'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
+                'Based on your search criteria and sample rate, the events available may be limited. [link:Learn more].',
                 {
                   link: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#filters" />
