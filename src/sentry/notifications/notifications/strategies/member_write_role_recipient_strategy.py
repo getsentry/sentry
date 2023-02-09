@@ -12,13 +12,13 @@ class MemberWriteRoleRecipientStrategy(RoleBasedRecipientStrategy):
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         valid_roles = (r.id for r in roles.get_all() if r.has_scope("member:write"))
 
-        members = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
+        member_ids = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
             "id", flat=True
         )
         members: Iterable[
             OrganizationMember
         ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id).filter(
-            id__in=members,
+            id__in=member_ids,
         )
 
         for member in members:
