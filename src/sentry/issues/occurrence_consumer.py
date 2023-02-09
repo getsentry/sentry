@@ -87,14 +87,6 @@ def save_event_from_occurrence(
         return event
 
 
-def process_event(event_data: Dict[str, Any]) -> Optional[Event]:
-    try:
-        return save_event_from_occurrence(event_data)
-    except Exception:
-        logger.exception("error saving event")
-        return None
-
-
 def lookup_event(project_id: int, event_id: str) -> Event:
     data = nodestore.get(Event.generate_node_id(project_id, event_id))
     if data is None:
@@ -104,31 +96,21 @@ def lookup_event(project_id: int, event_id: str) -> Event:
     return event
 
 
-def process_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event: Event
-) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
-    occurrence_data["event_id"] = event.event_id
-    try:
-        return save_issue_occurrence(occurrence_data, event)
-    except Exception:
-        logger.exception("error saving occurrence")
-
-    return None
-
-
 def process_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: Dict[str, Any]
-) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
-    event = process_event(event_data)
-    if event is None:
-        return None
+) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+    if occurrence_data["event_id"] != event_data["event_id"]:
+        raise ValueError(
+            f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
+        )
 
-    return process_issue_occurrence(occurrence_data, event)
+    event = save_event_from_occurrence(event_data)
+    return save_issue_occurrence(occurrence_data, event)
 
 
 def lookup_event_and_process_issue_occurrence(
     occurrence_data: IssueOccurrenceData,
-) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
+) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
     project_id = occurrence_data["project_id"]
     event_id = occurrence_data["event_id"]
     try:
@@ -137,13 +119,16 @@ def lookup_event_and_process_issue_occurrence(
         raise
     except Exception:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
-    if event is None:
-        return None
 
-    return process_issue_occurrence(occurrence_data, event)
+    return save_issue_occurrence(occurrence_data, event)
 
 
-def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
+def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    """
+    Processes the incoming message payload into a format we can use.
+
+    :raises InvalidEventPayloadError: when payload contains invalid data
+    """
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.timing("occurrence.ingest.size.data", len(payload))
@@ -162,6 +147,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                 # TODO: need to parse level
             }
 
+            if payload.get("event_id"):
+                occurrence_data["event_id"] = payload["event_id"]
+
             if "event" in payload:
                 event_payload = payload["event"]
                 if payload["project_id"] != event_payload.get("project_id"):
@@ -173,11 +161,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
 
                 if not payload.get("event_id") and event_payload.get("event_id"):
                     occurrence_data["event_id"] = event_payload.get("event_id")
-
-                if occurrence_data.get("event_id") != event_payload.get("event_id"):
-                    raise InvalidEventPayloadError(
-                        f"Payload contains a mismatch event_id in occurrence({occurrence_data.get('event_id')}) and event_data({event_payload.get('event_id')})"
-                    )
 
                 event_data = {
                     "event_id": event_payload.get("event_id"),
@@ -216,13 +199,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     raise InvalidEventPayloadError(
                         "Payload must contain either event_id or event_data"
                     )
-                occurrence_data["event_id"] = payload["event_id"]
 
                 return {"occurrence_data": occurrence_data}
 
-    except (KeyError, ValueError):
-        logger.exception("invalid payload data")
-        return None
+    except (KeyError, ValueError) as e:
+        raise InvalidEventPayloadError(e)
 
 
 def _validate_event_data(event_data: Mapping[str, Any]) -> None:
@@ -236,16 +217,13 @@ def _validate_event_data(event_data: Mapping[str, Any]) -> None:
 def _process_message(
     message: Mapping[str, Any]
 ) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
+    """
+    :raises InvalidEventPayloadError: when the message is invalid
+    :raises EventLookupError: when the provided event_id in the message couldn't be found.
+    """
     metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
 
-    try:
-        kwargs = _get_kwargs(message)
-    except InvalidEventPayloadError:
-        kwargs = None
-
-    if not kwargs:
-        return None
-
+    kwargs = _get_kwargs(message)
     if "event_data" in kwargs:
         return process_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
     else:
@@ -267,8 +245,12 @@ class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             payload = json.loads(message.payload.value, use_rapid_json=True)
             _process_message(payload)
-        except rapidjson.JSONDecodeError:
-            logger.exception("invalid json received")
+        except rapidjson.JSONDecodeError as je:
+            logger.error(je)
+        except ValueError as ve:
+            logger.error(ve)
+        except Exception as e:
+            logger.exception(e)
 
     def close(self) -> None:
         pass

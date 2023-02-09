@@ -66,11 +66,13 @@ def get_test_message(
     return payload
 
 
-class IssueOccurrenceProcessMessageTest(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
+class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
     def setUp(self) -> None:
         super().setUp()
         self.eventstore = SnubaEventStorage()
 
+
+class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
@@ -110,16 +112,23 @@ class IssueOccurrenceProcessMessageTest(OccurrenceTestMixin, TestCase, SnubaTest
 
     def test_invalid_event_payload(self) -> None:
         message = get_test_message(self.project.id, event={"title": "no project id"})
-        occurrence = _process_message(message)
-        assert occurrence is None
+        with pytest.raises(InvalidEventPayloadError):
+            _process_message(message)
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
-        occurrence = _process_message(message)
-        assert occurrence is None
+        with pytest.raises(ValueError):
+            _process_message(message)
+
+    def test_mismatch_event_ids(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event_id"] = "id1"
+        message["event"]["event_id"] = "id2"
+        with pytest.raises(ValueError):
+            _process_message(message)
 
 
-class IssueOccurrenceLookupEventIdTest(IssueOccurrenceProcessMessageTest):
+class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
         message = get_test_message(self.project.id, include_event=False)
         with pytest.raises(EventLookupError):
@@ -154,7 +163,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceProcessMessageTest):
         assert fetched_event.get_event_type() == "transaction"
 
 
-class ParseEventPayloadTest(IssueOccurrenceProcessMessageTest):
+class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def run_test(self, message: Dict[str, Any]) -> None:
         _get_kwargs(message)
 
@@ -203,11 +212,15 @@ class ParseEventPayloadTest(IssueOccurrenceProcessMessageTest):
             _get_kwargs(message)
 
     def test_event_id_mismatch(self) -> None:
+        """
+        if they're mismatched, we move forward and validate further down the line
+        """
         message = deepcopy(get_test_message(self.project.id))
         message["event_id"] = "id1"
         message["event"]["event_id"] = "id2"
-        with pytest.raises(InvalidEventPayloadError):
-            _get_kwargs(message)
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["event_id"] == message["event_id"]
+        assert kwargs["event_data"]["event_id"] == message["event"]["event_id"]
 
     def test_missing_top_level_event_id(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
