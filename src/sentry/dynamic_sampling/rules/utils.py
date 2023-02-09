@@ -49,7 +49,7 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
-SamplingValueType = Literal["sampleRate", "factor", "rollback"]
+SamplingValueType = Literal["sampleRate", "factor"]
 
 
 class SamplingValue(TypedDict):
