@@ -8,6 +8,7 @@ import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -149,6 +150,24 @@ export function generateTransactionLink(transactionName: string) {
       query,
       spanId
     );
+  };
+}
+
+export function generateProfileLink() {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query | undefined
+  ) => {
+    const profileId = tableRow['profile.id'];
+    if (!profileId) {
+      return undefined;
+    }
+    return generateProfileFlamechartRoute({
+      orgSlug: organization.slug,
+      projectSlug: String(tableRow['project.name']),
+      profileId: String(profileId),
+    });
   };
 }
 
