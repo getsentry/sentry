@@ -1,3 +1,5 @@
+import mapValues from 'lodash/mapValues';
+
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {
@@ -202,8 +204,6 @@ const TRANSACTION_SUPPORTED_TAGS = [
   FieldKey.HTTP_METHOD,
 ];
 const SESSION_SUPPORTED_TAGS = [FieldKey.RELEASE];
-
-import mapValues from 'lodash/mapValues';
 
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
