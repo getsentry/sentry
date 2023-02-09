@@ -8,7 +8,7 @@ from typing import Any, Mapping, Optional, Sequence, Type, TypedDict, cast
 from django.utils.timezone import is_aware
 
 from sentry import nodestore
-from sentry.grouptype.grouptype import GroupType, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.utils.dates import parse_timestamp
 
 

@@ -2,9 +2,18 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Dict, Set, Type
 
-from sentry.types.issues import GroupCategory
+
+class GroupCategory(Enum):
+    ERROR = 1
+    PERFORMANCE = 2
+    PROFILE = 3
+
+
+GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+# GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 _group_type_registry: Dict[int, Type[GroupType]] = {}
 _slug_lookup: Dict[str, Type[GroupType]] = {}

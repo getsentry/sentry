@@ -7,7 +7,6 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
@@ -17,6 +16,7 @@ from sentry.integrations.slack.message_builder.issues import (
     get_option_groups,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase

@@ -21,11 +21,10 @@ from sentry.api.issue_search import (
     value_converters,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.grouptype.grouptype import get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupCategory
 
 
 class ParseSearchQueryTest(unittest.TestCase):

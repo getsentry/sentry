@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceFileIOMainThreadGroupType
+from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.models import create_files_from_dif_zip
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event

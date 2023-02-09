@@ -1,7 +1,7 @@
 from typing import Dict, Sequence
 from urllib.parse import parse_qs, urlparse
 
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
 )

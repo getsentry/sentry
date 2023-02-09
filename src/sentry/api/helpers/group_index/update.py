@@ -17,6 +17,7 @@ from sentry import analytics, eventstream, features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -59,7 +60,6 @@ from sentry.signals import (
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 

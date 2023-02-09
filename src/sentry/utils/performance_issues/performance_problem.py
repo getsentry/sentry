@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence
 
-from sentry.grouptype.grouptype import GroupType, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 
 
 @dataclass

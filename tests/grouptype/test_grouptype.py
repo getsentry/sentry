@@ -2,7 +2,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from unittest.mock import patch
 
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
+    GroupCategory,
     GroupType,
     _category_lookup,
     _group_type_registry,
@@ -11,7 +12,6 @@ from sentry.grouptype.grouptype import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupCategory
 
 
 @region_silo_test

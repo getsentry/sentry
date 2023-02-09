@@ -6,7 +6,7 @@ from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.grouptype.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models import (
     Activity,
     ApiKey,

@@ -5,7 +5,7 @@ import pytest
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event

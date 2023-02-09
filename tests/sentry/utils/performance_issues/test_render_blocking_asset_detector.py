@@ -4,7 +4,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,

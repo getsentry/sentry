@@ -8,7 +8,7 @@ import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,

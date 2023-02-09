@@ -6,9 +6,9 @@ from typing import Any, Mapping, MutableMapping, Sequence
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.message_builder import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.notifications.utils.actions import MessageAction
-from sentry.types.issues import GroupCategory
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 

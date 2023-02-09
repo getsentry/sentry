@@ -3,7 +3,7 @@ from unittest import mock
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
 )

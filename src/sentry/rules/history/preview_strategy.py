@@ -1,8 +1,8 @@
 from typing import Any, Dict, Sequence
 
+from sentry.issues.grouptype import GroupCategory
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.issues import GroupCategory
 
 """
 Issue category specific components to computing a preview for a set of rules.
@@ -15,7 +15,7 @@ To add support for a new issue category/dataset:
 """
 
 # Maps group category to dataset
-GROUP_CATEGORY_TO_DATASET: Dict[GroupCategory, Dataset] = {
+GROUP_CATEGORY_TO_DATASET: Dict[int, Dataset] = {
     GroupCategory.ERROR.value: Dataset.Events,
     GroupCategory.PERFORMANCE.value: Dataset.Transactions,
 }
