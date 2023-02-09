@@ -109,9 +109,11 @@ class SlicingRouter(MessageRouter):
                 ),
                 topic=Topic(configuration["topic"]),
             )
-        assert len(self.__slice_to_producer) == len(
-            settings.SENTRY_SLICING_CONFIG[sliceable].keys()
-        )
+        # All logical partitions should be routed to a slice ID that's present in the slice
+        # ID to producer message route mapping
+        assert set(settings.SENTRY_SLICING_CONFIG[sliceable].values()).issubset(
+            self.__slice_to_producer.keys()
+        ), f"Unknown slice ID in SENTRY_SLICING_CONFIG for {sliceable}"
 
     def get_all_producers(self) -> Sequence[Producer]:
         return [route.producer for route in self.__slice_to_producer.values()]
