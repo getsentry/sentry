@@ -546,11 +546,6 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
     )
 
 
-def _accept_transaction_names_strategy(project: Project) -> TransactionNameStrategy:
-    is_selected_org = sample_modulo("relay.transaction-names-client-based", project.organization_id)
-    return "clientBased" if is_selected_org else "strict"
-
-
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
 ) -> TransactionMetricsSettings:
@@ -594,5 +589,5 @@ def get_transaction_metrics_settings(
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
-        "acceptTransactionNames": _accept_transaction_names_strategy(project),
+        "acceptTransactionNames": "clientBased",
     }
