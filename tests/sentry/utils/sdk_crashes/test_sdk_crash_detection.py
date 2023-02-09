@@ -27,6 +27,7 @@ def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
     result = {
         "type": "error",
         "platform": "cocoa",
+        "tags": {"level": "fatal"},
         "exception": {
             "values": [
                 {
@@ -65,8 +66,16 @@ def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
         (make_crash_event(type="erro"), False),
         (make_crash_event(exception=[]), False),
     ],
+    ids=[
+        "unhandled_is_detected",
+        "handled_not_detected",
+        "wrong_function_not_detected",
+        "wrong_platform_not_detected",
+        "wrong_type_not_detected",
+        "no_exception_not_detected",
+    ],
 )
-def test_process(data, expected):
+def test_detect_sdk_crash(data, expected):
     assert detect_sdk_crash(data) is expected
 
 
@@ -216,10 +225,11 @@ def test_strip_frames_removes_in_app():
     [
         ("SentryCrashMonitor_CPPException.cpp", True),
         ("SentryCrashMonitor_CPPException.cpp", False),
-        ("sentrycrashdl_getBinaryImage", True),
+        ("sentr", False),
     ],
+    ids=["sentry_in_app_frame_kept", "sentry_not_in_app_frame_kept", "non_sentry_non_in_app_kept"],
 )
-def test_strip_frames_keeps_sentry(function, in_app):
+def test_strip_frames(function, in_app):
     frames = get_frames(function, sentry_frame_in_app=in_app)
 
     stripped_frames = strip_frames(frames)
