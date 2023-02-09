@@ -117,14 +117,14 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidEventPayloadError):
             _process_message(message)
 
     def test_mismatch_event_ids(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         message["event_id"] = "id1"
         message["event"]["event_id"] = "id2"
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidEventPayloadError):
             _process_message(message)
 
 

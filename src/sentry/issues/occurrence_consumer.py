@@ -21,7 +21,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.utils import json, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
 logger = logging.getLogger(__name__)
@@ -78,7 +77,6 @@ def save_event_from_occurrence(
     data["type"] = "generic"
 
     project_id = data.pop("project_id")
-    data = CanonicalKeyDict(data)
 
     with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
         manager = EventManager(data)
