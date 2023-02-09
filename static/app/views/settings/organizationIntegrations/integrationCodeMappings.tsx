@@ -162,7 +162,9 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
-        <Header closeButton>{t('Configure code path mapping')}</Header>
+        <Header closeButton>
+          <h4>{t('Configure code path mapping')}</h4>
+        </Header>
         <Body>
           <RepositoryProjectPathConfigForm
             organization={organization}
