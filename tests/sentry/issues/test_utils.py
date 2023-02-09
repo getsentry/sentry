@@ -32,6 +32,7 @@ class OccurrenceTestMixin:
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
             "id": uuid.uuid4().hex,
+            "project_id": 1,
             "event_id": uuid.uuid4().hex,
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",

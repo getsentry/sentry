@@ -17,8 +17,8 @@ class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):  # type: ignor
 class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
         occurrence = self.build_occurrence()
-        occurrence.save(self.project.id)
-        fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
+        occurrence.save()
+        fetched_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
         assert fetched_occurrence is not None
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
 

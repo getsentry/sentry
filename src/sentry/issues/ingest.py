@@ -42,7 +42,7 @@ def save_issue_occurrence(
         raise ValueError("IssueOccurrence must have the same event_id as the passed Event")
     # Note: For now we trust the project id passed along with the event. Later on we should make
     # sure that this is somehow validated.
-    occurrence.save(event.project_id)
+    occurrence.save()
 
     # TODO: Pass release here
     group_info = save_issue_from_occurrence(occurrence, event, None)
