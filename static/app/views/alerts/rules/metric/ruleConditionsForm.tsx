@@ -495,6 +495,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   placeholder={this.searchPlaceholder}
                   onChange={onChange}
                   query={initialData.query}
+                  // We only need strict validation for Transaction queries, everything else is fine
+                  highlightUnsupportedTags={[
+                    Dataset.GENERIC_METRICS,
+                    Dataset.TRANSACTIONS,
+                  ].includes(dataset)}
                   onKeyDown={e => {
                     /**
                      * Do not allow enter key to submit the alerts form since it is unlikely
