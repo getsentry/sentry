@@ -36,7 +36,10 @@ import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  canUseMetricsInTransactionSummary,
+  canUseTransactionMetricsData,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -78,6 +81,7 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
+  unfilteredTotalValues?: Record<string, number> | null;
 };
 
 function SummaryContent({
@@ -92,6 +96,7 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
+  unfilteredTotalValues,
 }: Props) {
   const routes = useRoutes();
   function handleSearch(query: string) {
@@ -177,7 +182,7 @@ function SummaryContent({
   }
 
   function generateActionBarItems(_org: Organization, _location: Location) {
-    if (!_org.features.includes('performance-metrics-backed-transaction-summary')) {
+    if (!canUseMetricsInTransactionSummary(_org)) {
       return undefined;
     }
 
@@ -210,6 +215,9 @@ function SummaryContent({
 
   const query = decodeScalar(location.query.query, '');
   const totalCount = totalValues === null ? null : totalValues['count()'];
+  const unfilteredTotalCount = unfilteredTotalValues
+    ? unfilteredTotalValues['count()']
+    : null;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -331,9 +339,10 @@ function SummaryContent({
           organization={organization}
           location={location}
           eventView={eventView}
-          totalValues={totalCount}
+          totalValue={totalCount}
           currentFilter={spanOperationBreakdownFilter}
           withoutZerofill={hasPerformanceChartInterpolation}
+          unfilteredTotalValue={unfilteredTotalCount}
         />
         <TransactionsList
           location={location}
@@ -416,6 +425,7 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           transactionName={transactionName}
+          unfilteredTotals={unfilteredTotalValues}
         />
         <SidebarSpacer />
         <Tags

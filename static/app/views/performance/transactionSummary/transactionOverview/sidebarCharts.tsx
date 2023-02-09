@@ -52,9 +52,13 @@ type ContainerProps = {
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
+  unfilteredTotals?: Record<string, number> | null;
 };
 
-type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
+type Props = Pick<
+  ContainerProps,
+  'organization' | 'isLoading' | 'error' | 'totals' | 'unfilteredTotals'
+> & {
   chartData: {
     chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
@@ -82,10 +86,27 @@ function SidebarCharts({
   chartData,
   eventView,
   transactionName,
+  unfilteredTotals,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
+  const displayTPMAsPercentage = !!unfilteredTotals;
+
+  function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
+    if (totalValues) {
+      if (unfilteredTotalValues) {
+        return tct('[tpm]', {
+          tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
+        });
+      }
+      return tct('[tpm] tpm', {
+        tpm: formatFloat(totalValues[field], 4),
+      });
+    }
+    return null;
+  }
+
   return (
     <RelativeBox>
       <ChartLabel top="0px">
@@ -124,10 +145,16 @@ function SidebarCharts({
 
       <ChartLabel top="320px">
         <ChartTitle>
-          {t('TPM')}
+          {displayTPMAsPercentage ? t('Total Transactions') : t('TPM')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
+            title={
+              displayTPMAsPercentage
+                ? tct('[count] events', {
+                    count: unfilteredTotals['count()'].toLocaleString(),
+                  })
+                : getTermHelp(organization, PERFORMANCE_TERM.TPM)
+            }
             size="sm"
           />
         </ChartTitle>
@@ -135,13 +162,7 @@ function SidebarCharts({
           data-test-id="tpm-summary-value"
           isLoading={isLoading}
           error={error}
-          value={
-            totals
-              ? tct('[tpm] tpm', {
-                  tpm: formatFloat(totals['tpm()'], 4),
-                })
-              : null
-          }
+          value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
         />
       </ChartLabel>
 
@@ -231,6 +252,7 @@ function SidebarChartsContainer({
   error,
   totals,
   transactionName,
+  unfilteredTotals,
 }: ContainerProps) {
   const location = useLocation();
   const router = useRouter();
@@ -325,7 +347,10 @@ function SidebarChartsContainer({
         gridIndex: 2,
         splitNumber: 4,
         axisLabel: {
-          formatter: formatAbbreviatedNumber,
+          formatter: value =>
+            unfilteredTotals
+              ? formatPercentage(value, 0)
+              : formatAbbreviatedNumber(value),
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -338,8 +363,12 @@ function SidebarChartsContainer({
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: (value, label) =>
-        tooltipFormatter(value, aggregateOutputType(label)),
+      valueFormatter: (value, label) => {
+        const shouldUsePercentageForTPM = unfilteredTotals && label === 'epm()';
+        return shouldUsePercentageForTPM
+          ? tooltipFormatter(value, 'percentage')
+          : tooltipFormatter(value, aggregateOutputType(label));
+      },
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },
@@ -365,6 +394,7 @@ function SidebarChartsContainer({
     end,
     utc,
     totals,
+    unfilteredTotals,
   };
 
   const datetimeSelection = {
@@ -387,11 +417,32 @@ function SidebarChartsContainer({
     >
       {({results, errored, loading, reloading}) => {
         const series = results
-          ? results.map((values, i: number) => ({
-              ...values,
-              yAxisIndex: i,
-              xAxisIndex: i,
-            }))
+          ? results
+              .map(_values => {
+                if (_values.seriesName === 'epm()') {
+                  const unfilteredTotalTPM = unfilteredTotals
+                    ? unfilteredTotals['tpm()']
+                    : null;
+                  if (unfilteredTotalTPM) {
+                    return {
+                      ..._values,
+                      data: _values.data.map(point => {
+                        return {
+                          ...point,
+                          value: point.value / unfilteredTotalTPM,
+                        };
+                      }),
+                    };
+                  }
+                  return _values;
+                }
+                return _values;
+              })
+              .map((v, i: number) => ({
+                ...v,
+                yAxisIndex: i,
+                xAxisIndex: i,
+              }))
           : [];
 
         return (
