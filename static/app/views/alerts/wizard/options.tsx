@@ -1,6 +1,12 @@
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {FieldKey, makeTagCollection, MobileVital, WebVital} from 'sentry/utils/fields';
+import {
+  FieldKey,
+  makeTagCollection,
+  MobileVital,
+  SpanOpBreakdown,
+  WebVital,
+} from 'sentry/utils/fields';
 import {
   Dataset,
   EventTypes,
@@ -219,7 +225,7 @@ export const DATASET_SUPPORTED_TAGS: Record<Dataset, TagCollection | undefined> 
 // omissions only
 export const DATASET_OMITTED_TAGS: Record<
   Dataset,
-  Array<FieldKey | WebVital | MobileVital> | undefined
+  Array<FieldKey | WebVital | MobileVital | SpanOpBreakdown> | undefined
 > = {
   [Dataset.ERRORS]: [
     FieldKey.EVENT_TYPE,
@@ -229,6 +235,7 @@ export const DATASET_OMITTED_TAGS: Record<
     FieldKey.PROJECT,
     ...Object.values(WebVital),
     ...Object.values(MobileVital),
+    ...Object.values(SpanOpBreakdown),
     FieldKey.TRANSACTION,
     FieldKey.TRANSACTION_DURATION,
     FieldKey.TRANSACTION_OP,
