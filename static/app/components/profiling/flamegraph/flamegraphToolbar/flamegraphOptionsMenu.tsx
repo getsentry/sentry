@@ -65,8 +65,8 @@ function FlamegraphOptionsMenu({
 }
 
 const xAxisOptions: SelectOption<FlamegraphPreferences['xAxis']>[] = [
-  {value: 'profile', label: t('Profile')},
   {value: 'transaction', label: t('Transaction')},
+  {value: 'profile', label: t('Profile')},
 ];
 
 const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [
