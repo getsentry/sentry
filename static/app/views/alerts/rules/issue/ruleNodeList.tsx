@@ -59,11 +59,12 @@ const createSelectOptions = (
 ): Array<{label: React.ReactNode; value: IssueAlertRuleActionTemplate}> => {
   return actions.map(node => {
     const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
-    let notifyLabel = t('Issue Owners, Team, or Member');
-    if (hasStreamlineTargetingEnabled) {
-      notifyLabel = t('Suggested Assignees, Team, or Member');
-    }
+
     if (node.id.includes('NotifyEmailAction')) {
+      let notifyLabel = t('Issue Owners, Team, or Member');
+      if (hasStreamlineTargetingEnabled) {
+        notifyLabel = t('Suggested Assignees, Team, or Member');
+      }
       return {
         value: node,
         label: notifyLabel,

@@ -106,7 +106,7 @@ describe('RuleNode', () => {
     },
   };
 
-  const renderRuleNode = (node, data, node_organization = organization) => {
+  const renderRuleNode = (node, data, org = organization) => {
     return render(
       <RuleNode
         index={index}
@@ -116,7 +116,7 @@ describe('RuleNode', () => {
           name: '(mock) A new issue is created',
           ...data,
         }}
-        organization={node_organization}
+        organization={org}
         project={project}
         onDelete={onDelete}
         onPropertyChange={onPropertyChange}
