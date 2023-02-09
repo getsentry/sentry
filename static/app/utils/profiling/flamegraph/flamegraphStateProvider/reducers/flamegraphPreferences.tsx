@@ -1,3 +1,5 @@
+import {Flamegraph} from '../../../flamegraph';
+
 export type FlamegraphColorCodings = [
   'by symbol name',
   'by system frame',
@@ -7,14 +9,14 @@ export type FlamegraphColorCodings = [
   'by frequency'
 ];
 
-export type FlamegraphSorting = 'left heavy' | 'call order';
+export type FlamegraphSorting = Flamegraph['sort'];
 export type FlamegraphViewOptions = 'top down' | 'bottom up';
 export type FlamegraphAxisOptions = 'profile' | 'transaction';
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
   layout: 'table right' | 'table bottom' | 'table left';
-  sorting: FlamegraphSorting[number];
+  sorting: FlamegraphSorting;
   timelines: {
     minimap: boolean;
     transaction_spans: boolean;
@@ -48,6 +50,10 @@ export function flamegraphPreferencesReducer(
     case 'set type': {
       return {
         ...state,
+        sorting:
+          action.payload === 'flamegraph' && state.sorting === 'call order'
+            ? 'alphabetical'
+            : state.sorting,
         type: action.payload,
       };
     }

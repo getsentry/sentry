@@ -7,6 +7,33 @@ import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
 import {Frame} from './frame';
 
+function sortByTotalWeight(a: CallTreeNode, b: CallTreeNode) {
+  return b.totalWeight - a.totalWeight;
+}
+
+function sortAlphabetically(a: CallTreeNode, b: CallTreeNode) {
+  return a.frame.name.localeCompare(b.frame.name);
+}
+
+function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {
+  return (root: CallTreeNode) => {
+    const queue: CallTreeNode[] = [root];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+
+      next.children.sort(sortFn);
+
+      for (let i = 0; i < next.children.length; i++) {
+        queue.push(next.children[i]);
+      }
+    }
+  };
+}
+
+const alphabeticTreeSort = makeTreeSort(sortAlphabetically);
+const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
+
 // Intermediary flamegraph data structure for rendering a profile. Constructs a list of frames from a profile
 // and appends them to a virtual root. Taken mostly from speedscope with a few modifications. This should get
 // removed as we port to our own format for profiles. The general idea is to iterate over profiles while
@@ -16,8 +43,8 @@ export class Flamegraph {
   frames: ReadonlyArray<FlamegraphFrame> = [];
   profileIndex: number;
 
-  inverted?: boolean = false;
-  leftHeavy?: boolean = false;
+  inverted: boolean = false;
+  sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
 
   depth = 0;
   configSpace: Rect = Rect.Empty();
@@ -38,12 +65,24 @@ export class Flamegraph {
   static Empty(): Flamegraph {
     return new Flamegraph(Profile.Empty, 0, {
       inverted: false,
-      leftHeavy: false,
+      sort: 'call order',
     });
   }
 
-  static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
-    return new Flamegraph(from.profile, from.profileIndex, {inverted, leftHeavy});
+  static From(
+    from: Flamegraph,
+    {
+      inverted = false,
+      sort = 'call order',
+    }: {
+      inverted?: Flamegraph['inverted'];
+      sort?: Flamegraph['sort'];
+    }
+  ): Flamegraph {
+    return new Flamegraph(from.profile, from.profileIndex, {
+      inverted,
+      sort,
+    });
   }
 
   constructor(
@@ -51,21 +90,42 @@ export class Flamegraph {
     profileIndex: number,
     {
       inverted = false,
-      leftHeavy = false,
+      sort = 'call order',
       configSpace,
-    }: {configSpace?: Rect; inverted?: boolean; leftHeavy?: boolean} = {}
+    }: {
+      configSpace?: Rect;
+      inverted?: boolean;
+      sort?: 'left heavy' | 'alphabetical' | 'call order';
+    } = {}
   ) {
     this.inverted = inverted;
-    this.leftHeavy = leftHeavy;
+    this.sort = sort;
 
     // @TODO check if we can get rid of this profile reference
     this.profile = profile;
     this.profileIndex = profileIndex;
 
     // If a custom config space is provided, use it and draw the chart in it
-    this.frames = leftHeavy
-      ? this.buildLeftHeavyChart(profile)
-      : this.buildCallOrderChart(profile);
+    switch (this.sort) {
+      case 'left heavy': {
+        this.frames = this.buildSortedChart(profile, leftHeavyTreeSort);
+        break;
+      }
+      case 'alphabetical':
+        if (this.profile.type === 'flamechart') {
+          throw new TypeError('Flamechart does not support alphabetical sorting');
+        }
+        this.frames = this.buildSortedChart(profile, alphabeticTreeSort);
+        break;
+      case 'call order':
+        if (this.profile.type === 'flamegraph') {
+          throw new TypeError('Flamegraph does not support call order sorting');
+        }
+        this.frames = this.buildCallOrderChart(profile);
+        break;
+      default:
+        throw new TypeError(`Unknown flamechart sort type: ${this.sort}`);
+    }
 
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
@@ -156,16 +216,14 @@ export class Flamegraph {
     return frames;
   }
 
-  buildLeftHeavyChart(profile: Profile): FlamegraphFrame[] {
+  buildSortedChart(
+    profile: Profile,
+    sortFn: (tree: CallTreeNode) => void
+  ): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
-    const sortTree = (node: CallTreeNode) => {
-      node.children.sort((a, b) => -(a.totalWeight - b.totalWeight));
-      node.children.forEach(sortTree);
-    };
-
-    sortTree(profile.callTree);
+    sortFn(profile.callTree);
 
     const virtualRoot: FlamegraphFrame = {
       key: -1,

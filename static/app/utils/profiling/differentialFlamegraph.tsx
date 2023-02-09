@@ -35,7 +35,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     const differentialFlamegraph = new DifferentialFlamegraph(
       to.profile,
       to.profileIndex,
-      {inverted: from.inverted, leftHeavy: from.leftHeavy}
+      {inverted: from.inverted, sort: from.sort}
     );
 
     const fromCounts = countFrameOccurences(from.frames);
