@@ -94,17 +94,24 @@ class RuleV2(BaseRule):
     samplingValue: SamplingValue
 
 
-class DecayingRule(TypedDict):
-    timeRange: Optional[TimeRange]
-    decayingFn: Optional[DecayingFn]
+class DecayingFnV1(TypedDict):
+    type: str
+    decayedSampleRate: Optional[str]
 
 
-class DecayingRuleV1(RuleV1, DecayingRule):
-    pass
+class DecayingRuleV1(RuleV1):
+    timeRange: TimeRange
+    decayingFn: DecayingFnV1
 
 
-class DecayingRuleV2(RuleV2, DecayingRule):
-    pass
+class DecayingFnV2(TypedDict):
+    type: str
+    decayedValue: Optional[str]
+
+
+class DecayingRuleV2(RuleV2):
+    timeRange: TimeRange
+    decayingFn: DecayingFnV2
 
 
 # Type defining the all the possible rules types that can exist.
@@ -144,10 +151,12 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
 
 def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
     # Gets the sampling value from the rule, based on the type.
-    if "samplingValue" in rule and "value" in rule["samplingValue"]:  # type:ignore
-        return "factor", float(rule["samplingValue"]["value"])  # type:ignore
+    if "samplingValue" in rule:
+        sampling_value = rule["samplingValue"]  # type:ignore
+        return sampling_value["type"], float(sampling_value["value"])
+    # This should be removed once V1 is faded out.
     elif "sampleRate" in rule:
-        return "sample_rate", rule["sampleRate"]  # type:ignore
+        return "sampleRate", rule["sampleRate"]  # type:ignore
 
     return None
 

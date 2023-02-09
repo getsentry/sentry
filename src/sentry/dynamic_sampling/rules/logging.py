@@ -4,9 +4,10 @@ from typing import Dict, List, Union
 import sentry_sdk
 
 from sentry.dynamic_sampling.rules.utils import (
+    DecayingFnV1,
+    DecayingFnV2,
     PolymorphicRule,
     RuleType,
-    RuleV2,
     get_rule_hash,
     get_rule_type,
     get_sampling_value,
@@ -88,7 +89,7 @@ def _format_rules(
                 {
                     "id": rule["id"],
                     "type": rule_type.value if rule_type else "unknown_rule_type",
-                    value_type: value,
+                    "samplingValue": {"type": value_type, "value": value},
                     **_extract_info_from_rule(rule_type, rule),  # type:ignore
                 }
             )
@@ -97,14 +98,15 @@ def _format_rules(
 
 
 def _extract_info_from_rule(
-    rule_type: RuleType, rule: RuleV2
-) -> Dict[str, Union[List[str], str, None]]:
+    rule_type: RuleType, rule: PolymorphicRule
+) -> Dict[str, Union[DecayingFnV1, DecayingFnV2, List[str], str, None]]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
         return {"environments": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
+            "decayingFn": rule["decayingFn"],  # type:ignore
         }
     elif rule_type == RuleType.IGNORE_HEALTH_CHECKS_RULE:
         return {"healthChecks": rule["condition"]["inner"][0]["value"]}
