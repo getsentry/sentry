@@ -79,14 +79,7 @@ class GridRenderer {
 
     // Draw the background of the top timeline
     context.fillStyle = this.theme.COLORS.GRID_FRAME_BACKGROUND_COLOR;
-    context.fillRect(
-      0,
-      0,
-      physicalViewRect.width,
-      this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio +
-        this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio * 2 -
-        this.theme.SIZES.LABEL_FONT_PADDING
-    );
+    context.fillRect(0, 0, physicalViewRect.width, this.theme.SIZES.BAR_HEIGHT);
 
     // Draw top timeline lines
     context.fillStyle = this.theme.COLORS.GRID_LINE_COLOR;

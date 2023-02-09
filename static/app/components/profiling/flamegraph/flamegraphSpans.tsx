@@ -405,7 +405,7 @@ export function FlamegraphSpans({
 
 const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;
-  height: 100%;
+  height: calc(100% - 20px);
   position: absolute;
   left: 0;
   top: 0;
