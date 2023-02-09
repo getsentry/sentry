@@ -66,6 +66,7 @@ def set_watermark(
             field_name=f"{field.model._meta.db_table}.{field.name}",
             watermark=prefix,
         ),
+        sample_rate=1.0,
     )
 
 
@@ -226,6 +227,7 @@ def _process_tombstone_reconcilition(
                 field_name=f"{model._meta.db_table}.{field.name}",
                 watermark=prefix,
             ),
+            sample_rate=1.0,
         )
 
     return has_more

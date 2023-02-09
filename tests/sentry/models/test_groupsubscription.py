@@ -7,8 +7,11 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.user import user_service
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -24,6 +27,23 @@ class SubscribeTest(TestCase):
 
         # should not error
         GroupSubscription.objects.subscribe(group=group, user=user)
+
+    def test_user_deletion_cascade(self):
+        group = self.create_group()
+        user = self.create_user()
+        other_user = self.create_user()
+        GroupSubscription.objects.subscribe(group=group, user=user)
+        GroupSubscription.objects.subscribe(group=group, user=other_user)
+
+        assert GroupSubscription.objects.count() == 2
+        with exempt_from_silo_limits(), outbox_runner():
+            user.delete()
+        assert GroupSubscription.objects.count() == 2
+
+        with TaskRunner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        assert GroupSubscription.objects.count() == 1
 
     def test_bulk(self):
         group = self.create_group()

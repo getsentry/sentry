@@ -132,9 +132,6 @@ class GroupAssignee(Model):
 
     project = FlexibleForeignKey("sentry.Project", related_name="assignee_set")
     group = FlexibleForeignKey("sentry.Group", related_name="assignee_set", unique=True)
-    # user = FlexibleForeignKey(
-    #     settings.AUTH_USER_MODEL, related_name="sentry_assignee_set", null=True
-    # )
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", related_name="sentry_assignee_set", null=True)
     date_added = models.DateTimeField(default=timezone.now)

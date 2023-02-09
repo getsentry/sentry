@@ -157,7 +157,7 @@ class OutboxBase(Model):
 
     def save(self, **kwds: Any):
         tags = {"category": OutboxCategory(self.category).name}
-        metrics.incr("outbox.saved", 1, tags=tags)
+        metrics.incr("outbox.saved", 1, tags=tags, sample_rate=1)
         super().save(**kwds)
 
     @contextlib.contextmanager
@@ -172,11 +172,12 @@ class OutboxBase(Model):
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
             _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             tags = {"category": OutboxCategory(self.category).name}
-            metrics.incr("outbox.processed", deleted, tags=tags)
+            metrics.incr("outbox.processed", deleted, tags=tags, sample_rate=1)
             metrics.timing(
                 "outbox.processing_lag",
                 datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
                 tags=tags,
+                sample_rate=1,
             )
 
     def process(self) -> bool:
@@ -185,6 +186,7 @@ class OutboxBase(Model):
                 with metrics.timer(
                     "outbox.send_signal.duration",
                     tags={"category": OutboxCategory(coalesced.category).name},
+                    sample_rate=1,
                 ):
                     coalesced.send_signal()
                 return True

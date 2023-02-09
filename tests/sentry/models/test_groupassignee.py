@@ -6,8 +6,11 @@ from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.models import Activity, ExternalIssue, GroupAssignee, GroupLink
 from sentry.services.hybrid_cloud.user import user_service
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 
 
@@ -40,6 +43,25 @@ class GroupAssigneeTestCase(TestCase):
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
         assert activity.data["assigneeType"] == "user"
+
+    def test_user_deletion_cascade(self):
+        other_user = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=self.user.id
+        )
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=other_user.id
+        )
+
+        assert GroupAssignee.objects.count() == 2
+        with exempt_from_silo_limits(), outbox_runner():
+            self.user.delete()
+        assert GroupAssignee.objects.count() == 2
+
+        with TaskRunner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        assert GroupAssignee.objects.count() == 1
 
     def test_assign_team(self):
         GroupAssignee.objects.assign(self.group, self.team)

@@ -36,10 +36,12 @@ from sentry.models import (
 )
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import Feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers import Feature, TaskRunner
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils.strings import truncatechars
 
 
@@ -69,6 +71,34 @@ def test_version_is_semver_valid(release_version):
 )
 def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
+
+
+class CascadeTest(TestCase):
+    def test_user_deletion_cascade(self):
+        org = self.create_organization()
+        user = self.create_user()
+        other_user = self.create_user()
+        release = Release.objects.create(version="abcdabc", organization=org, owner_id=user.id)
+        other_release = Release.objects.create(
+            version="dododod", organization=org, owner_id=other_user.id
+        )
+
+        assert Release.objects.count() == 2
+        with exempt_from_silo_limits(), outbox_runner():
+            user.delete()
+        release.refresh_from_db()
+        other_release.refresh_from_db()
+
+        assert release.owner_id is not None
+        assert other_release.owner_id is not None
+
+        with TaskRunner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        release.refresh_from_db()
+        other_release.refresh_from_db()
+        assert release.owner_id is None
+        assert other_release.owner_id is not None
 
 
 @region_silo_test(stable=True)
