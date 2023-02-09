@@ -211,7 +211,7 @@ function importSentrySampledProfile(
   };
 }
 
-function importSchema(
+export function importSchema(
   input: Readonly<Profiling.Schema>,
   traceID: string,
   options: ImportOptions

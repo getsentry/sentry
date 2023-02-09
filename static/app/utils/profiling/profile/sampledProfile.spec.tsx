@@ -234,6 +234,36 @@ describe('SampledProfile', () => {
     expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(3);
   });
 
+  it('places garbage collector calls on top of previous stack and skips stack', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1, 1, 1],
+      samples: [
+        [0, 1],
+        [0, 2],
+        [0, 2],
+        [0, 1],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('node', [
+        {name: 'f0'},
+        {name: 'f1'},
+        {name: '(garbage collector)'},
+      ]),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.weights).toEqual([1, 2, 1]);
+  });
+
   it('does not place garbage collector calls on top of previous stack for node', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
