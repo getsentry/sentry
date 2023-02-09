@@ -110,7 +110,7 @@ class OrganizationMemberManager(BaseManager):
         )
         team_members = OrganizationMemberTeam.objects.filter(
             team_id__org_role=role, organizationmember__in=org_members
-        ).values_list("organizationmember_id")
+        ).values_list("organizationmember_id", flat=True)
 
         return self.filter(Q(role=role, id__in=org_members) | Q(id__in=team_members))
 
