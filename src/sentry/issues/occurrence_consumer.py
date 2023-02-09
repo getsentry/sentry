@@ -115,8 +115,6 @@ def lookup_event_and_process_issue_occurrence(
     event_id = occurrence_data["event_id"]
     try:
         event = lookup_event(project_id, event_id)
-    except EventLookupError:
-        raise
     except Exception:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
 
