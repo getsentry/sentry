@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, Sequence
 import pytest
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     EventLookupError,
