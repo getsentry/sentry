@@ -6,13 +6,12 @@ from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, Ty
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.grouptype.grouptype import get_all_group_type_ids, get_group_type_by_type_id
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
-
-ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
 
 
 class IntermediateSearchQueryPartial(Protocol):
@@ -75,17 +74,17 @@ def group_categories_from(
         if search_filter.key.name in ("issue.category", "issue.type"):
             if search_filter.is_negation:
                 group_categories.update(
-                    GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                    get_group_type_by_type_id(value).category
                     for value in list(
                         filter(
-                            lambda x: x not in ALL_ISSUE_TYPES,
+                            lambda x: x not in get_all_group_type_ids(),
                             search_filter.value.raw_value,
                         )
                     )
                 )
             else:
                 group_categories.update(
-                    GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                    get_group_type_by_type_id(value).category
                     for value in search_filter.value.raw_value
                 )
 
@@ -223,14 +222,14 @@ def _query_params_for_generic(
 
 # TODO: We need to add a way to make this dynamic for additional generic types
 SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
-    GroupCategory.ERROR: _query_params_for_error,
-    GroupCategory.PERFORMANCE: _query_params_for_perf,
-    GroupCategory.PROFILE: _query_params_for_generic,
+    GroupCategory.ERROR.value: _query_params_for_error,
+    GroupCategory.PERFORMANCE.value: _query_params_for_perf,
+    GroupCategory.PROFILE.value: _query_params_for_generic,
 }
 
 
 SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
-    GroupCategory.PERFORMANCE: lambda search_filters: [
+    GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf
         for sf in search_filters

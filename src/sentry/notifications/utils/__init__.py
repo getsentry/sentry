@@ -27,6 +27,10 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.grouptype.grouptype import (
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
@@ -49,7 +53,7 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
@@ -437,7 +441,7 @@ def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if group.issue_category == GroupCategory.PERFORMANCE:
-        issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        issue_type = group.issue_type.description
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
@@ -500,9 +504,9 @@ class PerformanceProblemContext:
         spans: Union[List[Dict[str, Union[str, float]]], None],
         event: Event | None = None,
     ) -> PerformanceProblemContext:
-        if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
+        if problem.type == PerformanceNPlusOneAPICallsGroupType:
             return NPlusOneAPICallProblemContext(problem, spans)
-        if problem.type == GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES:
+        if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)
         else:
             return cls(problem, spans)

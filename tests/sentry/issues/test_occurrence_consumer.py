@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, Sequence
 import pytest
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     InvalidEventPayloadError,
@@ -15,7 +16,6 @@ from sentry.issues.occurrence_consumer import (
 )
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -37,7 +37,7 @@ def get_test_message(
             {"name": "Line", "value": "40", "important": True},
             {"name": "Memory", "value": "breached", "important": False},
         ],
-        "type": GroupType.PROFILE_BLOCKED_THREAD,
+        "type": ProfileBlockedThreadGroupType.type_id,
         "detection_time": now.isoformat(),
     }
 

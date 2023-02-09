@@ -8,11 +8,12 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
     StreamGroupSerializerSnuba,
 )
+from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.models import Environment
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -64,7 +65,7 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
             "timestamp": cur_time.timestamp(),
             "start_timestamp": cur_time.timestamp(),
             "received": cur_time.timestamp(),
-            "fingerprint": [f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            "fingerprint": [f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         }
         event = self.store_event(
             data=event_data,
@@ -83,7 +84,7 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
         proj = self.create_project()
         cur_time = before_now(minutes=5).replace(tzinfo=datetime.timezone.utc)
         event, occurrence, group_info = self.store_search_issue(
-            proj.id, 1, [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group100"], None, cur_time
+            proj.id, 1, [f"{ProfileBlockedThreadGroupType.type_id}-group100"], None, cur_time
         )
         assert group_info
         serialized = serialize(
@@ -91,6 +92,6 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
         )
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == str(GroupCategory.PROFILE.name).lower()
-        assert serialized["issueType"] == str(GroupType.PROFILE_BLOCKED_THREAD.name).lower()
+        assert serialized["issueType"] == str(ProfileBlockedThreadGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1

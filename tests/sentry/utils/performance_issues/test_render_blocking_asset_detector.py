@@ -4,6 +4,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.grouptype.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,
@@ -11,7 +12,6 @@ from sentry.testutils.performance_issues.event_generators import (
 )
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import (
-    GroupType,
     PerformanceProblem,
     RenderBlockingAssetSpanDetector,
     get_detection_settings,
@@ -74,7 +74,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 fingerprint="1-1004-ba43281143a88ba902029356cb543dd0bff8f41c",
                 op="resource.script",
                 desc="https://example.com/a.js",
-                type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                type=PerformanceRenderBlockingAssetSpanGroupType,
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],

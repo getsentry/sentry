@@ -1,8 +1,10 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from unittest.mock import patch
 
 from sentry.grouptype.grouptype import (
     GroupType,
+    _category_lookup,
     _group_type_registry,
     get_group_type_by_slug,
     get_group_types_by_category,
@@ -15,7 +17,9 @@ from sentry.types.issues import GroupCategory
 @region_silo_test
 class GroupTypeTest(TestCase):
     def test_get_types_by_category(self):
-        with patch.dict(_group_type_registry, {}, clear=True):
+        with patch.dict(_group_type_registry, {}, clear=True), patch.dict(
+            _category_lookup, defaultdict(set), clear=True
+        ):
 
             @dataclass(frozen=True)
             class TestGroupType(GroupType):
@@ -39,12 +43,8 @@ class GroupTypeTest(TestCase):
                 description = "AngelGirl"
                 category = GroupCategory.PERFORMANCE.value
 
-        with patch(
-            "sentry.grouptype.grouptype.GroupType.__subclasses__",
-            return_value=[TestGroupType, TestGroupType2, TestGroupType3],
-        ):
-            assert get_group_types_by_category(GroupCategory.PERFORMANCE.value) == [2, 3]
-            assert get_group_types_by_category(GroupCategory.ERROR.value) == [1]
+            assert get_group_types_by_category(GroupCategory.PERFORMANCE.value) == {2, 3}
+            assert get_group_types_by_category(GroupCategory.ERROR.value) == {1}
 
     def test_get_group_type_by_slug(self):
         with patch.dict(_group_type_registry, {}, clear=True):

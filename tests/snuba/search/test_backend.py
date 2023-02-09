@@ -10,6 +10,11 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
+from sentry.grouptype.grouptype import (
+    ErrorGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+)
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Environment,
@@ -32,7 +37,6 @@ from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.types.issues import GroupType
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -138,7 +142,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         self.group1.times_seen = 5
         self.group1.status = GroupStatus.UNRESOLVED
-        self.group1.update(type=GroupType.ERROR.value)
+        self.group1.update(type=ErrorGroupType.type_id)
         self.group1.save()
         self.store_group(self.group1)
 
@@ -165,7 +169,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         self.group2.status = GroupStatus.RESOLVED
         self.group2.times_seen = 10
-        self.group2.update(type=GroupType.ERROR.value)
+        self.group2.update(type=ErrorGroupType.type_id)
         self.group2.save()
         self.store_group(self.group2)
 
@@ -404,7 +408,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         group_3 = event_3.group
-        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        group_3.update(type=PerformanceNPlusOneGroupType.type_id)
         results = self.make_query(search_filter_query="issue.category:performance")
         assert set(results) == {group_3}
 
@@ -430,12 +434,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "fingerprint": ["put-me-in-group3"],
                 "event_id": "c" * 32,
                 "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "type": GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+                "type": PerformanceNPlusOneGroupType.type_id,
             },
             project_id=self.project.id,
         )
         group_3 = event_3.group
-        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        group_3.update(type=PerformanceNPlusOneGroupType.type_id)
 
         results = self.make_query(
             search_filter_query="issue.type:performance_n_plus_one_db_queries"
@@ -451,7 +455,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         group_4 = event_4.group
-        group_4.update(type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value)
+        group_4.update(type=PerformanceRenderBlockingAssetSpanGroupType.type_id)
         results = self.make_query(
             search_filter_query="issue.type:performance_render_blocking_asset_span"
         )
@@ -462,7 +466,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
-        with pytest.raises(InvalidSearchQuery):
+        with pytest.raises(ValueError):
             self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
 
     def test_status_with_environment(self):
@@ -2047,7 +2051,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "timestamp": iso_format(before_now(minutes=1)),
                 "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "tags": {"my_tag": 1},
-                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             },
             project_id=self.project.id,
         )
@@ -2060,7 +2064,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "timestamp": iso_format(before_now(minutes=2)),
                 "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
                 "tags": {"my_tag": 1},
-                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group2"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group2"],
             },
             project_id=self.project.id,
         )
@@ -2191,9 +2195,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [
-                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
-                ],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group12"],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2206,7 +2208,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         created_group = tx.groups[0]
 
         find_group = Group.objects.filter(
-            Q(type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value, message__icontains="tea")
+            Q(type=PerformanceRenderBlockingAssetSpanGroupType.type_id, message__icontains="tea")
         ).first()
 
         assert created_group == find_group
@@ -2238,9 +2240,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [
-                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
-                ],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group12"],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2295,9 +2295,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [
-                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
-                ],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group12"],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),

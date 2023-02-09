@@ -22,6 +22,7 @@ from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
+from sentry.grouptype.grouptype import get_group_type_by_type_id
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -101,7 +102,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
@@ -655,8 +655,7 @@ class Factories:
                     raise ValueError(
                         "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
                     )
-
-                group_type = GroupType(int(f_data[0]))
+                group_type = get_group_type_by_type_id(int(f_data[0]))
                 perf_fingerprint = f_data[1]
 
                 job["performance_problems"].append(
