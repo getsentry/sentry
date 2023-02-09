@@ -170,15 +170,26 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         abs_path = frame.abs_path
         return filename, abs_path
 
-    def _find_matches(self, release_artifacts, unified_path):
-        full_matches = [artifact for artifact in release_artifacts if artifact.name == unified_path]
-        partial_matches = [
+    def _find_matches(self, release_artifacts, unified_path, filename, release, event):
+        full_matches = [
             artifact
             for artifact in release_artifacts
-            if artifact.name.endswith(unified_path.split("/")[-1])
-            if artifact.name.endswith(unified_path.split("/")[-1])
+            if artifact.name == unified_path
+            and self._verify_dist_matches(release, event, artifact, filename)
         ]
+        partial_matches = self._find_partial_matches(unified_path, release_artifacts)
         return full_matches, partial_matches
+
+    def _find_partial_matches(self, unified_path, artifacts):
+        filename = unified_path.split("/")[-1]
+        filename_matches = [artifact for artifact in artifacts if artifact.name.endswith(filename)]
+        artifact_names = [artifact.name.split("/") for artifact in filename_matches]
+        while any(artifact_names):
+            for i in range(len(artifact_names)):
+                if unified_path.endswith("/".join(artifact_names[i])):
+                    return [artifacts[i]]
+                artifact_names[i] = artifact_names[i][1:]
+        return []
 
     def _extract_release(self, event, project):
         release_version = event.get_tag("sentry:release")
@@ -208,7 +219,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         self, release_artifacts, urlparts, abs_path, filename, release, event
     ):
         unified_path = self._unify_url(urlparts)
-        full_matches, partial_matches = self._find_matches(release_artifacts, unified_path)
+        full_matches, partial_matches = self._find_matches(
+            release_artifacts, unified_path, filename, release, event
+        )
 
         artifact_names = [artifact.name for artifact in release_artifacts]
 
@@ -238,11 +251,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                     "artifactNames": artifact_names,
                 },
             )
-        full_matches = [
-            artifact
-            for artifact in full_matches
-            if self._verify_dist_matches(release, event, artifact, filename)
-        ]
         return full_matches[0]
 
     def _get_filename(self, event, exception_idx, frame_idx):
@@ -319,8 +327,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if idx != -1:
             return artifact_name[:idx]
 
-        # If not suffix, find the missing parts and return them
-        filepath = set(filepath.split("/"))
-        artifact_name = set(artifact_name.split("/"))
+        filepath = filepath.split("/")
+        artifact_name = artifact_name.split("/")
+        if len(filepath) == len(artifact_name):
+            idx = [filepath[i] != artifact_name[i] for i in range(len(filepath))].index(True)
+            return "/".join(artifact_name[idx] + "")
 
-        return "/".join(list(filepath.symmetric_difference(artifact_name)) + [""])
+        if len(filepath) + 1 == len(artifact_name):
+            # If not suffix, find the missing parts and return them
+            filepath = set(filepath)
+            artifact_name = set(artifact_name)
+
+            return "/".join(list(filepath.symmetric_difference(artifact_name)) + [""])
