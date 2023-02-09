@@ -396,11 +396,11 @@ def get_incident_aggregates(
 
 
 def subscribe_to_incident(incident, user):
-    return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
+    return IncidentSubscription.objects.get_or_create(incident=incident, user_id=user.id)
 
 
 def unsubscribe_from_incident(incident, user):
-    return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+    return IncidentSubscription.objects.filter(incident=incident, user_id=user.id).delete()
 
 
 def get_incident_subscribers(incident):

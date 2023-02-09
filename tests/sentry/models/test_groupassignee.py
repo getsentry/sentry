@@ -46,11 +46,12 @@ class GroupAssigneeTestCase(TestCase):
 
     def test_user_deletion_cascade(self):
         other_user = self.create_user()
+        other_group = self.create_group()
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=self.user.id
         )
         GroupAssignee.objects.create(
-            group=self.group, project=self.group.project, user_id=other_user.id
+            group=other_group, project=self.group.project, user_id=other_user.id
         )
 
         assert GroupAssignee.objects.count() == 2
