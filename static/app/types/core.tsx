@@ -46,7 +46,6 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
  * The option format used by react-select based components
  */
 export interface SelectValue<T> extends MenuListItemProps {
-  label: string | number | React.ReactElement;
   value: T;
   /**
    * In scenarios where you're using a react element as the label react-select
