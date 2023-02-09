@@ -1,7 +1,10 @@
 import os
 
+from click.testing import CliRunner
+from django.utils.functional import cached_property
+
 from sentry.runner.commands.backup import export, import_
-from sentry.testutils import CliTestCase
+from sentry.testutils import CliTestCase, TransactionTestCase
 
 
 class BackupTest(CliTestCase):
@@ -14,12 +17,16 @@ class BackupTest(CliTestCase):
         assert os.path.exists(self.tmp_backup_filename)
 
 
-class RestoreTest(CliTestCase):
+class RestoreTest(TransactionTestCase):
+    @cached_property
+    def runner(self) -> CliRunner:
+        return CliRunner()
+
     command = import_
     tmp_backup_filename = "test_backup.json"
 
     def test_import(self):
-        rv = self.invoke(self.tmp_backup_filename)
+        rv = self.runner.invoke(self.command, self.tmp_backup_filename)
         assert rv.exit_code == 0, rv.output
 
     if os.path.exists(tmp_backup_filename):
