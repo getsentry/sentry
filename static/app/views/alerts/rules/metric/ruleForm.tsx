@@ -866,7 +866,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
-          const disabled = loading || !(isActiveSuperuser() || hasAccess);
+          const formDisabled = loading || !(isActiveSuperuser() || hasAccess);
+          const submitDisabled = formDisabled || !this.state.isQueryValid;
 
           return (
             <Fragment>
@@ -883,7 +884,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
                     ruleId ? `${ruleId}/` : ''
                   }`}
-                  submitDisabled={disabled}
+                  submitDisabled={submitDisabled}
                   initialData={{
                     name,
                     dataset,
@@ -904,7 +905,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   extraButton={
                     rule.id ? (
                       <Confirm
-                        disabled={disabled}
+                        disabled={formDisabled}
                         message={t('Are you sure you want to delete this alert rule?')}
                         header={t('Delete Alert Rule?')}
                         priority="danger"
@@ -923,7 +924,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       project={project}
                       organization={organization}
                       router={router}
-                      disabled={disabled}
+                      disabled={formDisabled}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={
@@ -944,9 +945,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       showMEPAlertBanner={showMEPAlertBanner}
                     />
                     <AlertListItem>{t('Set thresholds')}</AlertListItem>
-                    {thresholdTypeForm(disabled)}
-                    {triggerForm(disabled)}
-                    {ruleNameOwnerForm(disabled)}
+                    {thresholdTypeForm(formDisabled)}
+                    {triggerForm(formDisabled)}
+                    {ruleNameOwnerForm(formDisabled)}
                   </List>
                 </Form>
               </Main>
