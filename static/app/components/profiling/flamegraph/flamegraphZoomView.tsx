@@ -112,6 +112,9 @@ function FlamegraphZoomView({
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
   const gridRenderer: GridRenderer | null = useMemo(() => {
+    if (flamegraph.profile.type === 'flamegraph') {
+      return null;
+    }
     if (!flamegraphOverlayCanvasRef) {
       return null;
     }
@@ -169,13 +172,27 @@ function FlamegraphZoomView({
   }, [flamegraphRenderer, flamegraphSearch.query, flamegraphSearch.results]);
 
   useEffect(() => {
-    if (
-      !flamegraphCanvas ||
-      !flamegraphView ||
-      !textRenderer ||
-      !gridRenderer ||
-      !flamegraphRenderer
-    ) {
+    if (!gridRenderer || !flamegraphView || !flamegraphCanvas) {
+      return undefined;
+    }
+
+    const drawGrid = () => {
+      gridRenderer.draw(
+        flamegraphView.configView,
+        flamegraphCanvas.physicalSpace,
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        flamegraphView.toConfigView(flamegraphCanvas.logicalSpace)
+      );
+    };
+    scheduler.registerAfterFrameCallback(drawGrid);
+
+    return () => {
+      scheduler.unregisterAfterFrameCallback(drawGrid);
+    };
+  }, [flamegraphCanvas, flamegraphView, gridRenderer, scheduler]);
+
+  useEffect(() => {
+    if (!flamegraphCanvas || !flamegraphView || !textRenderer || !flamegraphRenderer) {
       return undefined;
     }
 
@@ -193,15 +210,6 @@ function FlamegraphZoomView({
         flamegraphView.toOriginConfigView(flamegraphView.configView),
         flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace),
         flamegraphSearch.results.frames
-      );
-    };
-
-    const drawGrid = () => {
-      gridRenderer.draw(
-        flamegraphView.configView,
-        flamegraphCanvas.physicalSpace,
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-        flamegraphView.toConfigView(flamegraphCanvas.logicalSpace)
       );
     };
 
@@ -224,7 +232,6 @@ function FlamegraphZoomView({
     scheduler.registerBeforeFrameCallback(drawRectangles);
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
     scheduler.registerAfterFrameCallback(drawText);
-    scheduler.registerAfterFrameCallback(drawGrid);
     scheduler.registerAfterFrameCallback(drawInternalSampleTicks);
 
     scheduler.draw();
@@ -232,7 +239,6 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
       scheduler.unregisterAfterFrameCallback(drawText);
-      scheduler.unregisterAfterFrameCallback(drawGrid);
       scheduler.unregisterAfterFrameCallback(drawInternalSampleTicks);
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
