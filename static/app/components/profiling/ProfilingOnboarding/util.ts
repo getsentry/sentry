@@ -15,7 +15,9 @@ export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[nu
 export type SupportedProfilingPlatformSDK =
   (typeof supportedProfilingPlatformSDKs)[number];
 
-function getDocsPlatformSDKForPlatform(platform): PlatformKey | null {
+export function getDocsPlatformSDKForPlatform(
+  platform
+): SupportedProfilingPlatform | null {
   if (platform === 'android') {
     return 'android';
   }
