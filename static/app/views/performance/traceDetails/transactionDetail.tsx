@@ -140,8 +140,15 @@ class TransactionDetail extends Component<Props> {
       profileId: transaction.profile_id,
     });
 
+    function handleOnClick() {
+      trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+        organization,
+        source: 'performance.trace_view',
+      });
+    }
+
     return (
-      <StyledButton size="xs" to={target}>
+      <StyledButton size="xs" to={target} onClick={handleOnClick}>
         {t('Go to Profile')}
       </StyledButton>
     );
