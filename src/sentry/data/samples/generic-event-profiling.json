@@ -364,5 +364,6 @@
     "id": "0c6d75ac-3969-41e0-bc4b-33c2ff7f3657",
     "issue_title": "File I/O function called on main thread",
     "subtitle": "Some Transaction",
-    "type": 2000
+    "type": 2000,
+    "project_id": 1
 }

@@ -108,6 +108,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
             kwargs = {
                 "occurrence_data": {
                     "id": payload["id"],
+                    "project_id": payload["project_id"],
                     "fingerprint": payload["fingerprint"],
                     "issue_title": payload["issue_title"],
                     "subtitle": payload["subtitle"],
@@ -123,6 +124,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
 
             if "event" in payload:
                 event_payload = payload["event"]
+                if payload["project_id"] != event_payload.get("project_id"):
+                    raise InvalidEventPayloadError(
+                        f"project_id in occurrence ({payload['project_id']}) is different from project_id in event ({event_payload.get('project_id')})"
+                    )
+
                 kwargs["event_data"] = {
                     "event_id": event_payload.get("event_id"),
                     "project_id": event_payload.get("project_id"),

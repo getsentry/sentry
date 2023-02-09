@@ -189,6 +189,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
+            self.project.id,
             uuid.uuid4().hex,
             uuid.uuid4().hex,
             ["some-fingerprint"],
@@ -204,7 +205,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
         event.group.type = ProfileBlockedThreadGroupType.type_id
@@ -241,6 +242,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
             uuid.uuid4().hex,
+            self.project.id,
             uuid.uuid4().hex,
             ["some-fingerprint"],
             "something bad happened",
@@ -251,7 +253,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
         event.group.type = ProfileBlockedThreadGroupType.type_id
