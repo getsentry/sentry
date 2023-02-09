@@ -120,7 +120,7 @@ class IssueOccurrenceProcessMessageTest(OccurrenceTestMixin, TestCase, SnubaTest
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceProcessMessageTest):
-    def test_lookup_event_doesnt_exist(self):
+    def test_lookup_event_doesnt_exist(self) -> None:
         message = get_test_message(self.project.id, include_event=False)
         with pytest.raises(EventLookupError):
             _process_message(message)
@@ -145,8 +145,9 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceProcessMessageTest):
             event_id=event1.event_id,
             type=PerformanceSlowDBQueryGroupType.type_id,
         )
-        occurrence, group_info = _process_message(message)
-        assert occurrence is not None
+        processed = _process_message(message)
+        assert processed is not None
+        occurrence, _ = processed[0], processed[1]
 
         fetched_event = self.eventstore.get_event_by_id(self.project.id, occurrence.event_id)
         assert fetched_event is not None
