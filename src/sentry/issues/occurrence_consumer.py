@@ -221,11 +221,16 @@ def _process_message(message: Mapping[str, Any]) -> Tuple[IssueOccurrence, Optio
     """
     metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
 
-    kwargs = _get_kwargs(message)
-    if "event_data" in kwargs:
-        return process_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
-    else:
-        return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
+    try:
+        kwargs = _get_kwargs(message)
+        if "event_data" in kwargs:
+            return process_event_and_issue_occurrence(
+                kwargs["occurrence_data"], kwargs["event_data"]
+            )
+        else:
+            return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
+    except (ValueError, KeyError) as e:
+        raise InvalidEventPayloadError(e)
 
 
 class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
