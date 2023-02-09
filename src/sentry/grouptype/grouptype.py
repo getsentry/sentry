@@ -44,13 +44,13 @@ def get_group_types_by_category(category: int) -> Set[int]:
 
 
 def get_group_type_by_slug(slug: str) -> Type[GroupType]:
-    if slug not in _slug_lookup.keys():
+    if slug not in _slug_lookup:
         raise ValueError(f"No group type with the slug {slug} is registered.")
     return _slug_lookup[slug]
 
 
 def get_group_type_by_type_id(id: int) -> Type[GroupType]:
-    if id not in _group_type_registry.keys():
+    if id not in _group_type_registry:
         raise ValueError(f"No group type with the id {id} is registered.")
     return _group_type_registry[id]
 

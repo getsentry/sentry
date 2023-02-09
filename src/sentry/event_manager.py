@@ -76,13 +76,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
-from sentry.grouptype.grouptype import (
-    GroupType,
-    PerformanceConsecutiveDBQueriesGroupType,
-    PerformanceNPlusOneGroupType,
-    PerformanceSlowDBQueryGroupType,
-    PerformanceUncompressedAssetsGroupType,
-)
+from sentry.grouptype.grouptype import GroupType
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -162,13 +156,6 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-
-GROUPHASH_IGNORE_LIMIT_MAP = {
-    PerformanceNPlusOneGroupType: PerformanceNPlusOneGroupType.ignore_limit,
-    PerformanceSlowDBQueryGroupType: PerformanceSlowDBQueryGroupType.ignore_limit,
-    PerformanceConsecutiveDBQueriesGroupType: PerformanceConsecutiveDBQueriesGroupType.ignore_limit,
-    PerformanceUncompressedAssetsGroupType: PerformanceUncompressedAssetsGroupType.ignore_limit,
-}
 
 
 @dataclass
