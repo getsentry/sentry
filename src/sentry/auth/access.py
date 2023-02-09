@@ -58,7 +58,7 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
     return user.roles | user.permissions
 
 
-def has_organization_role(user_id: int, organization: Organization, role: str) -> bool:
+def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
         user__is_active=True,
         user=user_id,
@@ -156,7 +156,7 @@ class Access(abc.ABC):
         return []
 
     @abc.abstractmethod
-    def has_organization_role(
+    def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
         pass
@@ -314,11 +314,13 @@ class DbAccess(Access):
         """
         return self.project_ids_with_team_membership
 
-    def has_organization_role(
+    def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
         if self._member:
-            return has_organization_role(self._member.user_id, role, organization)
+            return has_role_in_organization(
+                role=role, organization=organization, user_id=self._member.user_id
+            )
         return False
 
     def has_team_scope(self, team: Team, scope: str) -> bool:
@@ -456,12 +458,14 @@ class ApiBackedAccess(Access):
             return None
         return organization_service.get_all_org_roles(self.api_user_organization_context.member)
 
-    def has_organization_role(
+    def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
         member = self.api_user_organization_context.member
         if member and member.user_id:
-            return has_organization_role(member.user_id, role, organization)
+            return has_role_in_organization(
+                role=role, organization=organization, user_id=member.user_id
+            )
         return False
 
     @cached_property
@@ -771,11 +775,11 @@ class OrganizationlessAccess(Access):
     def roles(self) -> Iterable[str] | None:
         return None
 
-    def has_organization_role(
+    def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
         if user_id:
-            return has_organization_role(user_id, organization, role)
+            return has_role_in_organization(role=role, organization=organization, user_id=user_id)
         return False
 
     @property

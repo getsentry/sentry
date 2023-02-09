@@ -78,7 +78,7 @@ class OrganizationIndexEndpoint(Endpoint):
             # This is used when closing an account
 
             # also fetches organizations in which you are a member of an owner team
-            queryset = Organization.objects.get_member_top_dog_organizations(
+            queryset = Organization.objects.get_organizations_where_user_is_owner(
                 user_id=request.user.id, queryset=queryset
             )
             org_results = []

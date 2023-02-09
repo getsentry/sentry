@@ -58,7 +58,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        organizations = Organization.objects.get_member_top_dog_organizations(
+        organizations = Organization.objects.get_organizations_where_user_is_owner(
             user_id=request.user.id
         )
 
@@ -102,7 +102,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
             return Response({"detail": "Invalid organization"}, status=400)
 
         # check if user is an owner of the organization
-        is_org_owner = request.access.has_organization_role(
+        is_org_owner = request.access.has_role_in_organization(
             role=roles.get_top_dog().id, organization=organization, user_id=request.user.id
         )
 
