@@ -37,10 +37,9 @@ function isValid(timestamp: number, expirationDays: number) {
  * need something really permanent then save the users' preference to the server.
  */
 function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}: Opts) {
-  const [dismissedTimestamp, setDismissedTimestamp] = useLocalStorageState(
-    key,
-    (_val, raw) => raw
-  );
+  const [dismissedTimestamp, setDismissedTimestamp] = useLocalStorageState<
+    undefined | string
+  >(key, val => (val ? String(val) : undefined));
 
   const isDismissed =
     expirationDays === Number.MAX_SAFE_INTEGER
