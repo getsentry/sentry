@@ -10,7 +10,6 @@ from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     ProfileBlockedThreadGroupType,
 )
-
 from sentry.models import (
     Group,
     GroupEnvironment,
