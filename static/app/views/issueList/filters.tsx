@@ -5,17 +5,36 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {useExperiment} from 'sentry/utils/useExperiment';
+import useOrganization from 'sentry/utils/useOrganization';
+import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 
 import IssueListSearchBar from './searchBar';
 
 interface Props {
   onSearch: (query: string) => void;
-  organization: Organization;
   query: string;
 }
 
-function IssueListFilters({organization, query, onSearch}: Props) {
+function IssueSearch({query, onSearch}: Props) {
+  const organization = useOrganization();
+  const {experimentAssignment} = useExperiment('SavedIssueSearchesLocationExperiment');
+  if (experimentAssignment === 1) {
+    return <IssueSearchWithSavedSearches {...{query, onSearch}} />;
+  }
+
+  return (
+    <StyledIssueListSearchBar
+      searchSource="main_search"
+      organization={organization}
+      query={query || ''}
+      onSearch={onSearch}
+      excludedTags={['environment']}
+    />
+  );
+}
+
+function IssueListFilters({query, onSearch}: Props) {
   return (
     <SearchContainer>
       <StyledPageFilterBar>
@@ -23,13 +42,7 @@ function IssueListFilters({organization, query, onSearch}: Props) {
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
       </StyledPageFilterBar>
-      <StyledIssueListSearchBar
-        searchSource="main_search"
-        organization={organization}
-        query={query || ''}
-        onSearch={onSearch}
-        excludedTags={['environment']}
-      />
+      <IssueSearch {...{query, onSearch}} />
     </SearchContainer>
   );
 }
