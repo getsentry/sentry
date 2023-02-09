@@ -4,7 +4,7 @@ from functools import cached_property
 import pytest
 from django.utils import timezone
 
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     ProfileBlockedThreadGroupType,
 )

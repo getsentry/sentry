@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import (
     Group,
     GroupLink,

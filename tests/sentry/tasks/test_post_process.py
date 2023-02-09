@@ -13,6 +13,11 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+)
+
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
     Activity,
