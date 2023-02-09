@@ -161,7 +161,7 @@ export function generateProfileLink() {
   ) => {
     const profileId = tableRow['profile.id'];
     if (!profileId) {
-      return undefined;
+      return {};
     }
     return generateProfileFlamechartRoute({
       orgSlug: organization.slug,
