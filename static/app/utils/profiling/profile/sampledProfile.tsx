@@ -1,4 +1,3 @@
-import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import {Frame} from './../frame';
@@ -41,6 +40,10 @@ function sortSamples(
   return stacksWithWeights(profile).sort(sortStacks);
 }
 
+function throwIfMissingFrame(index: number) {
+  throw new Error(`Could not resolve frame ${index} in frame index`);
+}
+
 // This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
 
@@ -71,17 +74,25 @@ export class SampledProfile extends Profile {
         ? sortSamples(sampledProfile)
         : stacksWithWeights(sampledProfile);
 
+    // We process each sample in the profile while maintaining a resolved stack of frames.
+    // There is a special case for GC frames where they are appended on top of the previos stack.
+    // By reusing the stack buffer, we avoid creating a new array for each sample and for GC case,
+    // also avoid re-resolving the previous stack frames as they are already in the buffer.
+
+    // If we encounter multiple consecutive GC frames, we will merge them into a single sample
+    // and sum their weights so that only one of them is processed.
+
+    // After we resolve the stack, we call appendSampleWithWeight with the stack buffer, weight
+    // and size of the stack to process. The size indicates how many items from the buffer we want
+    // to process.
+
+    const resolvedStack: Frame[] = new Array(256); // stack size limit
+
     for (let i = 0; i < samples.length; i++) {
       const stack = samples[i].stack;
       let weight = samples[i].weight;
-
-      let resolvedStack = stack.map(n => {
-        if (!frameIndex[n]) {
-          throw new Error(`Could not resolve frame ${n} in frame index`);
-        }
-
-        return frameIndex[n];
-      });
+      let size = samples[i].stack.length;
+      let useCurrentStack = true;
 
       if (
         options.type === 'flamechart' &&
@@ -91,20 +102,16 @@ export class SampledProfile extends Profile {
         // There is a good chance that this logic will at some point live on the backend
         // and when that happens, we do not want to enter this case as the GC will already
         // be placed at the top of the previous stack and the new stack length will be > 2
-        resolvedStack.length <= 2 &&
-        resolvedStack[resolvedStack.length - 1]?.name ===
-          '(garbage collector) [native code]'
+        stack.length <= 2 &&
+        frameIndex[stack[stack.length - 1]]?.name === '(garbage collector) [native code]'
       ) {
-        // The next stack we append will be previous stack + gc frame placed on top of it
-        resolvedStack = samples[i - 1].stack
-          .map(n => {
-            if (!frameIndex[n]) {
-              throw new Error(`Could not resolve frame ${n} in frame index`);
-            }
-
-            return frameIndex[n];
-          })
-          .concat(resolvedStack[resolvedStack.length - 1]);
+        // We have a GC frame, so we will use the previous stack
+        useCurrentStack = false;
+        // The next stack we will process will be the previous stack + our new gc frame.
+        // We write the GC frame on top of the previous stack and set the size to the new stack length.
+        resolvedStack[samples[i - 1].stack.length] = frameIndex[stack[stack.length - 1]];
+        // Size is not sample[i-1].size + our gc frame
+        size = samples[i - 1].stack.length + 1;
 
         // Now collect all weights of all the consecutive gc frames and skip the samples
         while (
@@ -115,20 +122,28 @@ export class SampledProfile extends Profile {
           // and when that happens, we do not want to enter this case as the GC will already
           // be placed at the top of the previous stack and the new stack length will be > 2
           samples[i + 1].stack.length <= 2 &&
-          frameIndex[samples[i + 1][samples[i + 1].stack.length - 1]]?.name ===
+          frameIndex[samples[i + 1].stack[samples[i + 1].stack.length - 1]]?.name ===
             '(garbage collector) [native code]'
         ) {
-          weight += sampledProfile.weights[++i];
+          weight += samples[++i].weight;
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight);
+      // If we are using the current stack, then we need to resolve the frames,
+      // else the processed frames will be the frames that were previously resolved
+      if (useCurrentStack) {
+        for (let j = 0; j < stack.length; j++) {
+          resolvedStack[j] = frameIndex[stack[j]] ?? throwIfMissingFrame(stack[j]);
+        }
+      }
+
+      profile.appendSampleWithWeight(resolvedStack, weight, size);
     }
 
     return profile.build();
   }
 
-  appendSampleWithWeight(stack: Frame[], weight: number): void {
+  appendSampleWithWeight(stack: Frame[], weight: number, end: number): void {
     // Keep track of discarded samples and ones that may have negative weights
     this.trackSampleStats(weight);
 
@@ -140,8 +155,9 @@ export class SampledProfile extends Profile {
     let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
 
-    for (const frame of stack) {
-      const last = lastOfArray(node.children);
+    for (let i = 0; i < end; i++) {
+      const frame = stack[i];
+      const last = node.children[node.children.length - 1];
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {
         node = last;
@@ -167,7 +183,7 @@ export class SampledProfile extends Profile {
         start--;
       }
 
-      framesInStack.push(node);
+      framesInStack[i] = node;
     }
 
     node.addToSelfWeight(weight);
@@ -188,7 +204,7 @@ export class SampledProfile extends Profile {
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample
-    if (node === lastOfArray(this.samples)) {
+    if (node === this.samples[this.samples.length - 1]) {
       this.weights[this.weights.length - 1] += weight;
     } else {
       this.samples.push(node);
