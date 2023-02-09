@@ -165,7 +165,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
     FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.6, 0.1],
     SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
-    GRID_FRAME_BACKGROUND_COLOR: 'rgba(255, 255, 255, 0.8)',
+    GRID_FRAME_BACKGROUND_COLOR: 'rgb(255, 255, 255)',
     GRID_LINE_COLOR: '#e5e7eb',
     HIGHLIGHTED_LABEL_COLOR: [240, 240, 0, 1],
     HOVERED_FRAME_BORDER_COLOR: 'rgba(0, 0, 0, 0.8)',
