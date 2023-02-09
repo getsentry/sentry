@@ -15,4 +15,4 @@ class JavaScriptSdkDynamicLoader(BaseView):
 
     def get(self, request: Request, public_key: str, minified: str) -> Response:
         """Returns a JS file that dynamically loads the SDK based on project settings"""
-        return super().get(request, public_key, minified)
+        return super().get(request)
