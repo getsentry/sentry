@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {FieldKey, MobileVital, WebVital} from 'sentry/utils/fields';
 import {
   Dataset,
   EventTypes,
@@ -186,6 +187,24 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'fid',
   'cls',
 ]);
+
+export const DATASET_OMITTED_TAGS: Record<
+  Dataset,
+  Array<FieldKey | WebVital | MobileVital>
+> = {
+  [Dataset.ERRORS]: [
+    ...Object.values(WebVital),
+    ...Object.values(MobileVital),
+    FieldKey.TRANSACTION,
+    FieldKey.TRANSACTION_DURATION,
+    FieldKey.TRANSACTION_OP,
+    FieldKey.TRANSACTION_STATUS,
+  ],
+  [Dataset.TRANSACTIONS]: [],
+  [Dataset.METRICS]: [],
+  [Dataset.GENERIC_METRICS]: [],
+  [Dataset.SESSIONS]: [],
+};
 
 export function getMEPAlertsDataset(
   dataset: Dataset,
