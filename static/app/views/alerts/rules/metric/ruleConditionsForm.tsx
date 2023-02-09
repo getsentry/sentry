@@ -434,7 +434,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#processed-event-properties" />
+                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#filters" />
                   ),
                 }
               )}
