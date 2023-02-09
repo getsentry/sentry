@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -1241,3 +1242,16 @@ export const getFieldDefinition = (
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
+
+export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
+  return Object.fromEntries(
+    fieldKeys.map(fieldKey => [
+      fieldKey,
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
+    ])
+  );
+}
