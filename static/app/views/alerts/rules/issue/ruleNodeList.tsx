@@ -22,7 +22,7 @@ import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/iss
 
 import {AlertRuleComparisonType} from '../metric/types';
 
-import RuleNode from './ruleNode';
+import RuleNode, {hasStreamlineTargeting} from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -54,15 +54,19 @@ type Props = {
 };
 
 const createSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[]
+  actions: IssueAlertRuleActionTemplate[],
+  hasStreamlineTargetingEnabled: boolean
 ): Array<{label: React.ReactNode; value: IssueAlertRuleActionTemplate}> => {
   return actions.map(node => {
     const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
-
+    let notifyLabel = t('Issue Owners, Team, or Member');
+    if (hasStreamlineTargetingEnabled) {
+      notifyLabel = t('Suggested Assignees, Team, or Member');
+    }
     if (node.id.includes('NotifyEmailAction')) {
       return {
         value: node,
-        label: t('Issue Owners, Team, or Member'),
+        label: notifyLabel,
       };
     }
 
@@ -90,7 +94,10 @@ const groupLabels = {
 /**
  * Group options by category
  */
-const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
+const groupSelectOptions = (
+  actions: IssueAlertRuleActionTemplate[],
+  hasStreamlineTargetingEnabled: boolean
+) => {
   const grouped = actions.reduce<
     Record<
       keyof typeof groupLabels,
@@ -128,7 +135,10 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
   return Object.entries(grouped)
     .filter(([_, values]) => values.length)
     .map(([key, values]) => {
-      return {label: groupLabels[key], options: createSelectOptions(values)};
+      return {
+        label: groupLabels[key],
+        options: createSelectOptions(values, hasStreamlineTargetingEnabled),
+      };
     });
 };
 
@@ -242,11 +252,12 @@ class RuleNodeList extends Component<Props> {
     } = this.props;
 
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
+    const hasStreamlineTargetingEnabled = hasStreamlineTargeting(this.props.organization);
 
     const options =
       selectType === 'grouped'
-        ? groupSelectOptions(enabledNodes)
-        : createSelectOptions(enabledNodes);
+        ? groupSelectOptions(enabledNodes, hasStreamlineTargetingEnabled)
+        : createSelectOptions(enabledNodes, hasStreamlineTargetingEnabled);
 
     return (
       <Fragment>
