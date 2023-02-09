@@ -120,6 +120,42 @@ class OrganizationManager(BaseManager):
             return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
 
+    def get_organizations_where_user_is_owner(
+        self, user_id: int, queryset: QuerySet = None
+    ) -> QuerySet:
+        """
+        Returns a QuerySet of all organizations where a user has the top priority role.
+        The default top priority role in Sentry is owner.
+        """
+
+        # get orgs and orgmemberIDs for the user
+        members = OrganizationMember.objects.filter(user_id=user_id)
+        if queryset:  # queryset is a QuerySet of valid orgs
+            members = members.filter(organization__in=queryset)
+        orgs_and_members = members.values_list("organization_id", "id")
+
+        organizations, org_members = zip(*orgs_and_members)
+
+        # get owner teams
+        owner_teams = Team.objects.filter(
+            organization_id__in=organizations, org_role=roles.get_top_dog().id
+        )
+
+        # get owners from owner teams
+        orgs = set(
+            OrganizationMemberTeam.objects.filter(
+                team__in=owner_teams,
+                organizationmember_id__in=org_members,
+            ).values_list("organizationmember__organization__id", flat=True)
+        )
+
+        # get owners from orgs
+        owner_role_orgs = set(
+            members.filter(role=roles.get_top_dog().id).values_list("organization_id", flat=True)
+        )
+
+        return self.filter(id__in=orgs.union(owner_role_orgs), status=OrganizationStatus.ACTIVE)
+
 
 @region_silo_only_model
 class Organization(Model, SnowflakeIdMixin):
