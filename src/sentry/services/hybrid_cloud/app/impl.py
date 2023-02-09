@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from django.db.models import QuerySet
 
@@ -15,16 +15,16 @@ from sentry.services.hybrid_cloud.app import (
     ApiSentryApp,
     ApiSentryAppComponent,
     ApiSentryAppInstallation,
-    AppFilterArgs,
     AppService,
+    SentryAppInstallationFilterArgs,
 )
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
-from sentry.services.hybrid_cloud.user import UserFilterArgs
-from sentry.services.hybrid_cloud.user_option import UserOptionFilterArgs
 
 
 class DatabaseBackedAppService(
-    FilterQueryDatabaseImpl[SentryAppInstallation, AppFilterArgs, ApiSentryAppInstallation, None],
+    FilterQueryDatabaseImpl[
+        SentryAppInstallation, SentryAppInstallationFilterArgs, ApiSentryAppInstallation, None
+    ],
     AppService,
 ):
     def _base_query(self) -> QuerySet:
@@ -33,13 +33,13 @@ class DatabaseBackedAppService(
             "sentry_app__application",
         )
 
-    def _filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
-        return self._filter_has_any_key_validator("organization_ids", "uuid")
+    def _filter_arg_validator(self) -> Callable[[SentryAppInstallationFilterArgs], Optional[str]]:
+        return self._filter_has_any_key_validator("organization_ids", "uuid", "id")
 
     def _apply_filters(
         self,
         query: BaseQuerySet,
-        filters: UserFilterArgs,
+        filters: SentryAppInstallationFilterArgs,
     ) -> List[SentryAppInstallation]:
         query = self._base_query()
         if "status" not in filters:
@@ -50,8 +50,10 @@ class DatabaseBackedAppService(
             filters["date_deleted"] = None
         query = query.filter(date_deleted=filters["date_deleted"])
 
-        if "organization_ids" in filters:
-            query = query.filter(organization_id__in=filters["organization_ids"])
+        if "id" in filters:
+            query = query.filter(id=filters["id"])
+        if "organization_id" in filters:
+            query = query.filter(organization_id=filters["organization_id"])
         if "uuid" in filters:
             query = query.filter(uuid=filters["uuid"])
 
@@ -69,7 +71,7 @@ class DatabaseBackedAppService(
         # Pass one of sentry_app_ids, sentry_app_uuids
         sentry_app_ids: Optional[List[int]] = None,
         sentry_app_uuids: Optional[List[str]] = None,
-        group_by="sentry_app_id",
+        group_by: str = "sentry_app_id",
     ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
         if sentry_app_uuids is not None:
             sentry_app_ids = (
@@ -78,11 +80,14 @@ class DatabaseBackedAppService(
                 .values_list("sentry_app_id", flat=True)
             )
 
-        return SentryAppInstallation.objects.get_related_sentry_app_components(
-            organization_ids=organization_ids,
-            sentry_app_ids=sentry_app_ids,
-            type=type,
-            group_by=group_by,
+        return cast(
+            Dict[Union[str, int], Dict[str, Dict[str, Any]]],
+            SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_ids=organization_ids,
+                sentry_app_ids=sentry_app_ids,
+                type=type,
+                group_by=group_by,
+            ),
         )
 
     def get_installed_for_organization(
@@ -147,9 +152,7 @@ class DatabaseBackedAppService(
             client_secret=api_app.client_secret,
         )
 
-    def _serialize_rpc(
-        self, installation: SentryAppInstallation | None = None
-    ) -> ApiSentryAppInstallation:
+    def _serialize_rpc(self, installation: SentryAppInstallation) -> ApiSentryAppInstallation:
         app = installation.sentry_app
 
         return ApiSentryAppInstallation(

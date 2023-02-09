@@ -19,7 +19,13 @@ def trigger_sentry_app_action_creators_for_issues(
         if not action.get("id") in SENTRY_APP_ACTIONS:
             continue
 
-        installs = app_service.get_many(filter={"uuid": action.get("sentryAppInstallationUuid")})
+        uuid = action.get("sentryAppInstallationUuid")
+        if uuid is None:
+            raise ValueError(
+                "trigger_sentry_app_action_creators_for_issues requires a sentryAppInstallationUuid argument"
+            )
+
+        installs = app_service.get_many(filter={"uuid": uuid})
         result: AlertRuleActionResult = alert_rule_actions.AlertRuleActionCreator.run(
             install=installs[0],
             fields=action.get("settings"),

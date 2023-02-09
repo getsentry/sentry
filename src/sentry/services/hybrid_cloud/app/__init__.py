@@ -14,11 +14,12 @@ from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 
-class AppFilterArgs(TypedDict, total=False):
+class SentryAppInstallationFilterArgs(TypedDict, total=False):
+    id: int
     organization_id: int
     uuid: str
     date_deleted: Optional[datetime.datetime]
-    status: SentryAppInstallationStatus
+    status: int  # SentryAppInstallationStatus
 
 
 @dataclass
@@ -41,7 +42,7 @@ class ApiApiApplication:
 class ApiSentryApp:
     id: int = -1
     scope_list: List[str] = field(default_factory=list)
-    application: ApiApiApplication = field(default_factory=ApiApiApplication())
+    application: ApiApiApplication = field(default_factory=ApiApiApplication)
     proxy_user_id: int | None = None  # can be null on deletion.
     owner_id: int = -1  # relation to an organization
     name: str = ""
@@ -61,14 +62,14 @@ class ApiSentryApp:
                 return c
         return None
 
-    def build_signature(self, body):
+    def build_signature(self, body: str) -> str:
         secret = self.application.client_secret
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
     @property
-    def slug_for_metrics(self):
+    def slug_for_metrics(self) -> str:
         if self.is_internal:
             return "internal"
         if self.is_unpublished:
@@ -84,7 +85,8 @@ class ApiSentryAppComponent:
 
 
 class AppService(
-    FilterQueryInterface[AppFilterArgs, ApiSentryAppInstallation, None], InterfaceWithLifecycle
+    FilterQueryInterface[SentryAppInstallationFilterArgs, ApiSentryAppInstallation, None],
+    InterfaceWithLifecycle,
 ):
     @abc.abstractmethod
     def find_installation_by_proxy_user(
@@ -99,7 +101,8 @@ class AppService(
         organization_ids: List[int],
         type: str,
         sentry_app_ids: Optional[List[int]] = None,
-        group_by="sentry_app_id",
+        sentry_app_uuids: Optional[List[str]] = None,
+        group_by: str = "sentry_app_id",
     ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
         pass
 

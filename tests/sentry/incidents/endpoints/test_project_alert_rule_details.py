@@ -18,6 +18,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from sentry.utils.types import Dict
@@ -143,10 +144,11 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
-            )
+        with outbox_runner():
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
+                )
 
         self.alert_rule.refresh_from_db()
         self.alert_rule.name = "what"
@@ -256,13 +258,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with exempt_from_silo_limits():
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
@@ -383,13 +386,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with exempt_from_silo_limits():
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
