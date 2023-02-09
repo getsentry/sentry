@@ -26,11 +26,13 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 interface FlamegraphPreviewProps {
   relativeStartTimestamp: number;
   relativeStopTimestamp: number;
+  updateFlamegraphView?: (canvasView: CanvasView<FlamegraphModel> | null) => void;
 }
 
 export function FlamegraphPreview({
   relativeStartTimestamp,
   relativeStopTimestamp,
+  updateFlamegraphView,
 }: FlamegraphPreviewProps) {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -81,14 +83,15 @@ export function FlamegraphPreview({
       mode: 'anchorBottom',
     });
 
-    canvasView.setConfigView(
-      computePreviewConfigView(
-        flamegraph,
-        canvasView.configView,
-        formatTo(relativeStartTimestamp, 'second', 'nanosecond'),
-        formatTo(relativeStopTimestamp, 'second', 'nanosecond')
-      )
+    const {configView, mode} = computePreviewConfigView(
+      flamegraph,
+      canvasView.configView,
+      formatTo(relativeStartTimestamp, 'second', 'nanosecond'),
+      formatTo(relativeStopTimestamp, 'second', 'nanosecond')
     );
+
+    canvasView.setConfigView(configView);
+    canvasView.mode = mode;
 
     return canvasView;
   }, [
@@ -98,6 +101,10 @@ export function FlamegraphPreview({
     relativeStartTimestamp,
     relativeStopTimestamp,
   ]);
+
+  useEffect(() => {
+    updateFlamegraphView?.(flamegraphView);
+  }, [flamegraphView, updateFlamegraphView]);
 
   const flamegraphCanvases = useMemo(() => [flamegraphCanvasRef], [flamegraphCanvasRef]);
 
@@ -192,19 +199,34 @@ export function computePreviewConfigView(
   configView: Rect,
   relativeStartNs: number,
   relativeStopNs: number
-): Rect {
+): {
+  configView: Rect;
+  mode: CanvasView<FlamegraphModel>['mode'];
+} {
   if (flamegraph.depth < configView.height) {
     // if the flamegraph height is less than the config view height,
     // the whole flamechart will fit on the view so we can just use y = 0
-    return new Rect(
-      relativeStartNs,
-      0,
-      relativeStopNs - relativeStartNs,
-      configView.height
-    );
+    return {
+      configView: new Rect(
+        relativeStartNs,
+        0,
+        relativeStopNs - relativeStartNs,
+        configView.height
+      ),
+      // If we're setting y = 0, we'll anchor the config view at the top
+      // because we want to show more from the bottom
+      mode: 'anchorTop',
+    };
   }
 
   const frames: FlamegraphFrame[] = flamegraph.root.children.slice();
+
+  // If we're using the max depth in the window, then we want to anchor it
+  // from the bottom because if the config view grows, we want to show more
+  // frames from the top. If we showed more frames from the bottom then it
+  // would just show whitespace.
+  let mode: CanvasView<FlamegraphModel>['mode'] = 'anchorBottom';
+
   let maxDepthInWindow = 0;
   let innerMostParentFrame: FlamegraphFrame | null = null;
 
@@ -234,15 +256,24 @@ export function computePreviewConfigView(
   // If we were able to find a frame that is likely the parent of the span,
   // we should bias towards that frame.
   if (defined(innerMostParentFrame)) {
-    depth = Math.min(depth, innerMostParentFrame.depth);
+    if (depth > innerMostParentFrame.depth) {
+      // If we find the inner most parent frame, then we anchor it top the top
+      // because there may be more frames out of view at the bottom, so if the
+      // config view grows, we want to show those first
+      mode = 'anchorTop';
+      depth = innerMostParentFrame.depth;
+    }
   }
 
-  return new Rect(
-    relativeStartNs,
-    depth,
-    relativeStopNs - relativeStartNs,
-    configView.height
-  );
+  return {
+    configView: new Rect(
+      relativeStartNs,
+      depth,
+      relativeStopNs - relativeStartNs,
+      configView.height
+    ),
+    mode,
+  };
 }
 
 const CanvasContainer = styled('div')`

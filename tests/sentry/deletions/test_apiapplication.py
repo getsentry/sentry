@@ -1,6 +1,6 @@
 from sentry.models import ApiApplication, ApiGrant, ApiToken, ScheduledDeletion
 from sentry.models.apiapplication import ApiApplicationStatus
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 
 

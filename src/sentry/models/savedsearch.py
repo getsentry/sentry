@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.text import CharField
 from sentry.models.search_common import SearchType
 
@@ -72,7 +73,7 @@ class SavedSearch(Model):
     # Creator of the saved search. When visibility is
     # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
     # search is visibile to.
-    owner = FlexibleForeignKey("sentry.User", null=True)
+    owner_id = HybridCloudForeignKey("sentry.User", on_delete="cascade", null=True)
 
     # Defines who can see the saved search
     visibility = models.CharField(
@@ -86,7 +87,7 @@ class SavedSearch(Model):
         constraints = [
             # Each user may only have one pinned search
             UniqueConstraint(
-                fields=["organization", "owner", "type"],
+                fields=["organization", "owner_id", "type"],
                 condition=Q(visibility=Visibility.OWNER_PINNED),
                 name="sentry_savedsearch_pinning_constraint",
             ),

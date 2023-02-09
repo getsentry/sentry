@@ -205,7 +205,7 @@ describe('CompactSelect', function () {
 
   it('can search', function () {
     render(
-      <CompositeSelect isSearchable placeholder="Search placeholder…">
+      <CompositeSelect searchable searchPlaceholder="Search placeholder…">
         <CompositeSelect.Region
           label="Region 1"
           onChange={() => {}}
