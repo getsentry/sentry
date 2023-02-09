@@ -760,6 +760,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
         )
         context = notification.get_context()
-        assert "fallback=exp" in context["notification_settings_link"]
+        assert "&ref_fallback=exp" in context["notification_settings_link"]
         params = notification.get_log_params(self.user)
         assert params["fallback_experiment"] == "expt"

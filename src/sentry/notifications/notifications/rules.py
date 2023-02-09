@@ -115,7 +115,7 @@ class AlertRuleNotification(ProjectNotification):
         # Piggybacking off of notification_reason that already determines if we're using the fallback
         if notification_reason and self.fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
             _, fallback_experiment = should_use_issue_alert_fallback(org=self.organization)
-            fallback_param = f"&fallback={fallback_experiment}"
+            fallback_param = f"&ref_fallback={fallback_experiment}"
 
         context = {
             "project_label": self.project.get_full_name(),
