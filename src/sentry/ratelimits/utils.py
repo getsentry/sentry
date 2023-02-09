@@ -123,16 +123,16 @@ def get_organization_id_from_token(token_id: str) -> int | None:
 
 
 def get_rate_limit_config(
-    endpoint: Type[object],
+    view_cls: Type[object],
     view_args: Any = None,
     view_kwargs: Any = None,
 ) -> RateLimitConfig | None:
-    """Read the rate limit config from the view function to be used for the rate limit check.
+    """Read the rate limit config from the view to be used for the rate limit check.
 
-    If there is no rate limit defined on the endpoint, use the rate limit defined for the group
+    If there is no rate limit defined on the view_cls, use the rate limit defined for the group
     or the default across the board
     """
-    rate_limit_config = getattr(endpoint, "rate_limits", DEFAULT_RATE_LIMIT_CONFIG)
+    rate_limit_config = getattr(view_cls, "rate_limits", DEFAULT_RATE_LIMIT_CONFIG)
     if callable(rate_limit_config):
         rate_limit_config = rate_limit_config(*view_args, **view_kwargs)
     return RateLimitConfig.from_rate_limit_override_dict(rate_limit_config)
