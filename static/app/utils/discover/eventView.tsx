@@ -44,12 +44,13 @@ import {
 } from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   FieldValueKind,
   TableColumn,
   TableColumnSort,
-} from 'sentry/views/eventsV2/table/types';
-import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+} from 'sentry/views/discover/table/types';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
@@ -1191,7 +1192,7 @@ class EventView {
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
     return {
-      pathname: `/organizations/${slug}/discover/${target}/`,
+      pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
       query: this.generateQueryStringObject(),
     };
   }
@@ -1204,7 +1205,7 @@ class EventView {
       }
     }
     return {
-      pathname: `/organizations/${slug}/discover/results/`,
+      pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
       query: cloneDeep(output as any),
     };
   }
@@ -1236,7 +1237,7 @@ class EventView {
 
     const query = cloneDeep(output as any);
     return {
-      pathname: `/organizations/${slug}/performance/summary/events/`,
+      pathname: normalizeUrl(`/organizations/${slug}/performance/summary/events/`),
       query,
     };
   }

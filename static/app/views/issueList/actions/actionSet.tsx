@@ -4,18 +4,13 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {
-  BaseGroup,
-  IssueCategoryCapabilities,
-  Project,
-  ResolutionStatus,
-} from 'sentry/types';
-import {getIssueCapability} from 'sentry/utils/groupCapabilities';
+import {BaseGroup, Project, ResolutionStatus} from 'sentry/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -256,7 +251,7 @@ function ActionSet({
           {t('Merge')}
         </ActionLink>
       )}
-      <DropdownMenuControl
+      <DropdownMenu
         size="sm"
         items={menuItems}
         triggerProps={{
@@ -273,10 +268,10 @@ function ActionSet({
 
 function isActionSupported(
   selectedIssues: BaseGroup[],
-  capability: keyof IssueCategoryCapabilities
+  actionType: keyof IssueTypeConfig['actions']
 ) {
   for (const issue of selectedIssues) {
-    const info = getIssueCapability(issue.issueCategory, capability);
+    const info = getConfigForIssueType(issue).actions[actionType];
 
     if (!info.enabled) {
       return info;

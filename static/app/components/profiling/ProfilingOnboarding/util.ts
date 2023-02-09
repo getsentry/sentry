@@ -11,33 +11,37 @@ export const supportedProfilingPlatformSDKs = [
   'python',
   'rust',
 ] as const;
-export type SupportedProfilingPlatform = typeof supportedProfilingPlatforms[number];
-export type SupportedProfilingPlatformSDK = typeof supportedProfilingPlatformSDKs[number];
+export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
+export type SupportedProfilingPlatformSDK =
+  (typeof supportedProfilingPlatformSDKs)[number];
 
-const platformToDocsPlatformSDK: Record<
-  SupportedProfilingPlatform,
-  SupportedProfilingPlatformSDK
-> = {
-  android: 'android',
-  'apple-ios': 'apple-ios',
-  node: 'node',
-  'node-express': 'node',
-  'node-koa': 'node',
-  'node-connect': 'node',
-  python: 'python',
-  'python-django': 'python',
-  'python-flask': 'python',
-  'python-sanic': 'python',
-  'python-bottle': 'python',
-  'python-pylons': 'python',
-  'python-pyramid': 'python',
-  'python-tornado': 'python',
-  rust: 'rust',
-};
+function getDocsPlatformSDKForPlatform(platform): PlatformKey | null {
+  if (platform === 'android') {
+    return 'android';
+  }
+
+  if (platform === 'apple-ios') {
+    return 'apple-ios';
+  }
+
+  if (platform.startsWith('node')) {
+    return 'node';
+  }
+
+  if (platform.startsWith('python')) {
+    return 'python';
+  }
+
+  if (platform === 'rust') {
+    return 'rust';
+  }
+
+  return null;
+}
 
 export function isProfilingSupportedOrProjectHasProfiles(project: Project): boolean {
   return !!(
-    (project.platform && platformToDocsPlatformSDK[project.platform]) ||
+    (project.platform && getDocsPlatformSDKForPlatform(project.platform)) ||
     // If this project somehow managed to send profiles, then profiling is supported for this project.
     // Sometimes and for whatever reason, platform can also not be set on a project so the above check alone would fail
     project.hasProfiles
@@ -52,7 +56,7 @@ export const profilingOnboardingDocKeys = [
   '4-upload',
 ] as const;
 
-type ProfilingOnboardingDocKeys = typeof profilingOnboardingDocKeys[number];
+type ProfilingOnboardingDocKeys = (typeof profilingOnboardingDocKeys)[number];
 
 export const supportedPlatformExpectedDocKeys: Record<
   SupportedProfilingPlatformSDK,
@@ -74,13 +78,13 @@ function makeDocKey(platformId: PlatformKey, key: string) {
   return `${platformId}-profiling-onboarding-${key}`;
 }
 
-type DocKeyMap = Record<typeof profilingOnboardingDocKeys[number], string>;
+type DocKeyMap = Record<(typeof profilingOnboardingDocKeys)[number], string>;
 export function makeDocKeyMap(platformId: PlatformKey | undefined) {
-  if (!platformId || !platformToDocsPlatformSDK[platformId]) {
+  const docsPlatform = getDocsPlatformSDKForPlatform(platformId);
+
+  if (!platformId || !docsPlatform) {
     return null;
   }
-
-  const docsPlatform = platformToDocsPlatformSDK[platformId];
 
   const expectedDocKeys: ProfilingOnboardingDocKeys[] =
     supportedPlatformExpectedDocKeys[docsPlatform];
@@ -96,7 +100,7 @@ export function splitProjectsByProfilingSupport(projects: Project[]): {
 } {
   const [supported, unsupported] = partition(
     projects,
-    project => project.platform && platformToDocsPlatformSDK[project.platform]
+    project => project.platform && getDocsPlatformSDKForPlatform(project.platform)
   );
 
   return {supported, unsupported};

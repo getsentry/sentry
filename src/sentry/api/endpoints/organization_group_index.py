@@ -238,16 +238,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         environments = self.get_environments(request, organization)
 
-        serializer = functools.partial(
-            StreamGroupSerializerSnuba,
-            environment_ids=[env.id for env in environments],
-            stats_period=stats_period,
-            stats_period_start=stats_period_start,
-            stats_period_end=stats_period_end,
-            expand=expand,
-            collapse=collapse,
-        )
-
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
@@ -260,6 +250,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
             )
+
+        serializer = functools.partial(
+            StreamGroupSerializerSnuba,
+            environment_ids=[env.id for env in environments],
+            stats_period=stats_period,
+            stats_period_start=stats_period_start,
+            stats_period_end=stats_period_end,
+            expand=expand,
+            collapse=collapse,
+            project_ids=project_ids,
+        )
 
         # we ignore date range for both short id and event ids
         query = request.GET.get("query", "").strip()

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
-from urllib.parse import urljoin
 
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.db.models import Model
@@ -40,12 +38,8 @@ class AutoSyncNotification(ProjectNotification):
         self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
-        context["url"] = str(
-            urljoin(
-                absolute_uri(
-                    f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/"
-                ),
-                self.get_sentry_query_params(ExternalProviders.EMAIL, recipient),
-            )
+        context["url"] = self.organization.absolute_url(
+            f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/",
+            query=self.get_sentry_query_params(ExternalProviders.EMAIL, recipient),
         )
         return context

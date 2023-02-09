@@ -10,6 +10,7 @@ from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportS
 from sentry.data_export.models import ExportedData
 from sentry.models import File
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -112,6 +113,19 @@ class ExportedDataTest(TestCase):
         with self.tasks():
             self.data_export.email_success()
         assert len(mail.outbox) == 1
+
+    @with_feature("organizations:customer-domains")
+    def test_email_success_customer_domains(self):
+        self.data_export.finalize_upload(file=self.file1)
+        with self.tasks():
+            self.data_export.email_success()
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.subject == "Your data is ready."
+        assert (
+            self.organization.absolute_url(f"/organizations/{self.organization.slug}/data-export/")
+            in msg.body
+        )
 
     @patch("sentry.utils.email.MessageBuilder")
     def test_email_success_content(self, builder):

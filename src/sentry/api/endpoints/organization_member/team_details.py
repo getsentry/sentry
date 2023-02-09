@@ -24,6 +24,8 @@ from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
 from sentry.utils.json import JSONData
 
+from . import can_admin_team, can_set_team_role
+
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
 
 
@@ -72,8 +74,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are a team admin or have global write access
         * If the open membership organization setting is enabled
         """
-
-        return request.access.has_global_access or self._can_admin_team(request, team)
+        return request.access.has_global_access or can_admin_team(request.access, team)
 
     def _can_delete(
         self,
@@ -88,7 +89,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are removing their own membership
         * If they are a team admin or have global write access
         """
-
         if is_active_superuser(request):
             return True
 
@@ -98,31 +98,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        if self._can_admin_team(request, team):
-            return True
-
-        return False
-
-    def _can_admin_team(self, request: Request, team: Team) -> bool:
-        if request.access.has_scope("org:write"):
-            return True
-        if not request.access.has_team_membership(team):
-            return False
-        return request.access.has_team_scope(team, "team:write")
-
-    def _can_set_team_role(self, request: Request, team: Team, new_role: TeamRole) -> bool:
-        if not self._can_admin_team(request, team):
-            return False
-
-        org_role = request.access.get_organization_role()
-        if org_role and org_role.can_manage_team_role(new_role):
-            return True
-
-        team_role = request.access.get_team_role(team)
-        if team_role and team_role.can_manage(new_role):
-            return True
-
-        return False
+        return can_admin_team(request.access, team)
 
     def _create_access_request(
         self, request: Request, team: Team, member: OrganizationMember
@@ -145,6 +121,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(
                 team__slug=team_slug, organizationmember=member
@@ -171,6 +148,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         If the user is already a member of the team, this will simply return
         a 204.
+
+        If the team is provisioned through an identity provider, then the user
+        cannot join or request to join the team through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -182,6 +162,12 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)
+
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
 
         if not self._can_create_team_member(request, team):
             self._create_access_request(request, team, member)
@@ -212,6 +198,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
@@ -229,7 +216,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             except KeyError:
                 return Response(status=400)
 
-            if not self._can_set_team_role(request, team, new_role):
+            if not can_set_team_role(request.access, team, new_role):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
             self._change_team_member_role(omt, new_role)
@@ -279,10 +266,18 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not self._can_delete(request, member, team):
             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
+        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
             pass
+
         else:
             self.create_audit_entry(
                 request=request,

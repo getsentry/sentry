@@ -28,12 +28,13 @@ from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -66,7 +67,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
         if timestamp is None:
-            timestamp = before_now(minutes=1)
+            timestamp = self.ten_mins_ago
+
+        min_age = before_now(minutes=10)
+        if timestamp > min_age:
+            # Sentry does some rounding of timestamps to improve cache hits in snuba.
+            # This can result in events not being returns if the timestamps
+            # are too recent.
+            raise Exception(
+                f"Please define a timestamp older than 10 minutes to avoid flakey tests. Want a timestamp before {min_age}, got: {timestamp} "
+            )
 
         start_timestamp = None
         if duration is not None:
@@ -597,6 +607,40 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
+
+    def test_generic_issue_ids_filter(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        event, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            before_now(hours=1).replace(tzinfo=timezone.utc),
+            user=user_data,
+        )
+
+        query = {
+            "field": ["title", "release", "environment", "user.display", "timestamp"],
+            "statsPeriod": "90d",
+            "query": f"issue:{group_info.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(
+            [
+                "organizations:profiling",
+            ]
+        ):
+            response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["title"] == group_info.group.title
+        assert response.data["data"][0]["environment"] == "prod"
+        assert response.data["data"][0]["user.display"] == user_data["email"]
+        assert response.data["data"][0]["timestamp"] == event.timestamp
 
     def test_has_performance_issue_ids(self):
         data = load_data(
@@ -2100,7 +2144,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project2 = self.create_project()
 
-        data = self.load_data(timestamp=before_now(minutes=1))
+        data = self.load_data()
         data["transaction"] = "/count_miserable/horribilis/project2"
         data["user"] = {"email": "project2@example.com"}
         self.store_event(data, project_id=project2.id)
@@ -2972,6 +3016,41 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         result = {r["user.display"] for r in data}
         assert result == {"catherine", "cathy@example.com"}
 
+    def test_user_display_issue_platform(self):
+        project1 = self.create_project()
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        _, _, group_info = self.store_search_issue(
+            project1.id,
+            1,
+            ["group1-fingerprint"],
+            None,
+            before_now(hours=1).replace(tzinfo=timezone.utc),
+            user=user_data,
+        )
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:profiling": True,
+        }
+        query = {
+            "field": ["user.display"],
+            "query": f"user.display:hell* issue.id:{group_info.group.id}",
+            "statsPeriod": "24h",
+            "dataset": "issuePlatform",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["user.display"] for r in data}
+        assert result == {user_data["email"]}
+
     def test_user_display_with_aggregates(self):
         self.store_event(
             data={
@@ -3415,6 +3494,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "var(transaction.duration)",
                 "cov(transaction.duration, transaction.duration)",
                 "corr(transaction.duration, transaction.duration)",
+                "linear_regression(transaction.duration, transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -3433,6 +3513,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["var(transaction.duration)"] == 0.0
         assert data[0]["cov(transaction.duration, transaction.duration)"] == 0.0
         assert data[0]["corr(transaction.duration, transaction.duration)"] == 0.0
+        assert data[0]["linear_regression(transaction.duration, transaction.duration)"] == [0, 0]
         assert data[0]["sum(transaction.duration)"] == 10000
 
     @requires_not_arm64
@@ -5379,9 +5460,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_tag_that_looks_like_aggregate(self):
-        data = self.load_data(
-            timestamp=before_now(minutes=1),
-        )
+        data = self.load_data()
         data["tags"] = {"p95": "<5k"}
         self.store_event(data, project_id=self.project.id)
 
@@ -5545,9 +5624,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert set(fields) == unit_keys
 
     def test_readable_device_name(self):
-        data = self.load_data(
-            timestamp=before_now(minutes=1),
-        )
+        data = self.load_data()
         data["tags"] = {"device": "iPhone14,3"}
         self.store_event(data, project_id=self.project.id)
 

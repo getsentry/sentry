@@ -47,6 +47,7 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:session-replay-recording-scrubbing",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -182,7 +183,7 @@ class TransactionNameRule(TypedDict):
 
 
 def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
-    if not features.has("organizations:transaction-name-sanitization", project.organization):
+    if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
     cluster_rules = get_sorted_rules(project)
@@ -545,11 +546,6 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
     )
 
 
-def _accept_transaction_names_strategy(project: Project) -> TransactionNameStrategy:
-    is_selected_org = sample_modulo("relay.transaction-names-client-based", project.organization_id)
-    return "clientBased" if is_selected_org else "strict"
-
-
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
 ) -> TransactionMetricsSettings:
@@ -593,5 +589,5 @@ def get_transaction_metrics_settings(
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
-        "acceptTransactionNames": _accept_transaction_names_strategy(project),
+        "acceptTransactionNames": "clientBased",
     }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -16,10 +17,12 @@ from typing import (
     Union,
     cast,
 )
+from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
@@ -46,9 +49,9 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils.committers import get_serialized_event_file_committers
-from sentry.utils.http import absolute_uri
+from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     PerformanceProblem,
@@ -193,10 +196,11 @@ def get_group_settings_link(
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
     # Explicitly typing to satisfy mypy.
-    integration_link: str = absolute_uri(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+    return str(
+        organization.absolute_url(
+            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+        )
     )
-    return integration_link
 
 
 @dataclass
@@ -343,23 +347,17 @@ def get_parent_and_repeating_spans(
 
 
 def perf_to_email_html(
-    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem = None
+    spans: Union[List[Dict[str, Union[str, float]]], None],
+    problem: PerformanceProblem = None,
+    event: Event = None,
 ) -> Any:
     """Generate the email HTML for a performance issue alert"""
     if not problem:
         return ""
 
-    parent_span, repeating_spans = get_parent_and_repeating_spans(spans, problem)
+    context = PerformanceProblemContext.from_problem_and_spans(problem, spans, event)
 
-    context = {
-        "transaction_name": get_span_evidence_value_problem(problem),
-        "parent_span": get_span_evidence_value(parent_span),
-        "repeating_spans": get_span_evidence_value(repeating_spans),
-        "num_repeating_spans": str(len(problem.offender_span_ids))
-        if problem.offender_span_ids
-        else "",
-    }
-    return render_to_string("sentry/emails/transactions.html", context)
+    return render_to_string("sentry/emails/transactions.html", context.to_dict())
 
 
 def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
@@ -403,7 +401,7 @@ def get_span_and_problem(
 def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
     spans, matched_problem = get_span_and_problem(event)
-    return perf_to_email_html(spans, matched_problem)
+    return perf_to_email_html(spans, matched_problem, event)
 
 
 def get_generic_data(event: GroupEvent) -> Any:
@@ -462,3 +460,145 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     for provider, participants_with_reasons in participants_by_provider.items():
         participants_, extra_context = split_participants_and_context(participants_with_reasons)
         notify(provider, notification, participants_, shared_context, extra_context)
+
+
+@dataclass
+class PerformanceProblemContext:
+    problem: PerformanceProblem
+    spans: Union[List[Dict[str, Union[str, float]]], None]
+
+    def __post_init__(self) -> None:
+        parent_span, repeating_spans = get_parent_and_repeating_spans(self.spans, self.problem)
+
+        self.parent_span = parent_span
+        self.repeating_spans = repeating_spans
+
+    def to_dict(self) -> Dict[str, str | List[str]]:
+        return {
+            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "parent_span": get_span_evidence_value(self.parent_span),
+            "repeating_spans": get_span_evidence_value(self.repeating_spans),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+            if self.problem.offender_span_ids
+            else "",
+        }
+
+    def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
+        if not self.spans:
+            return None
+
+        for span in self.spans:
+            span_id = span.get("span_id", "") or ""
+            if span_id == id:
+                return span
+        return None
+
+    @classmethod
+    def from_problem_and_spans(
+        cls,
+        problem: PerformanceProblem,
+        spans: Union[List[Dict[str, Union[str, float]]], None],
+        event: Event | None = None,
+    ) -> PerformanceProblemContext:
+        if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
+            return NPlusOneAPICallProblemContext(problem, spans)
+        if problem.type == GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES:
+            return ConsecutiveDBQueriesProblemContext(problem, spans, event)
+        else:
+            return cls(problem, spans)
+
+
+class NPlusOneAPICallProblemContext(PerformanceProblemContext):
+    def to_dict(self) -> Dict[str, str | List[str]]:
+        return {
+            "transaction_name": self.problem.desc,
+            "repeating_spans": self.path_prefix,
+            "parameters": self.parameters,
+            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+            if self.problem.offender_span_ids
+            else "",
+        }
+
+    @property
+    def path_prefix(self) -> str:
+        if not self.repeating_spans or len(self.repeating_spans) == 0:
+            return ""
+
+        url = get_url_from_span(self.repeating_spans)
+        parsed_url = urlparse(url)
+        return parsed_url.path or ""
+
+    @property
+    def parameters(self) -> List[str]:
+        if not self.spans or len(self.spans) == 0:
+            return []
+
+        urls = [
+            get_url_from_span(span)
+            for span in self.spans
+            if span.get("span_id") in self.problem.offender_span_ids
+        ]
+
+        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+
+        for url in urls:
+            parsed_url = urlparse(url)
+            parameters = parse_qs(parsed_url.query)
+
+            for key, value in parameters.items():
+                all_parameters[key] += value
+
+        return [
+            "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
+        ]
+
+
+class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
+    def __init__(
+        self,
+        problem: PerformanceProblem,
+        spans: Union[List[Dict[str, Union[str, float]]], None],
+        event: Event | None,
+    ):
+        PerformanceProblemContext.__init__(self, problem, spans)
+        self.event = event
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "span_evidence_key_value": [
+                {"key": _("Transaction"), "value": self.transaction},
+                {"key": _("Starting Span"), "value": self.starting_span},
+                {
+                    "key": _("Parallelizable Spans"),
+                    "value": self.parallelizable_spans,
+                    "is_multi_value": True,
+                },
+            ],
+        }
+
+    @property
+    def transaction(self) -> str:
+        if self.event and self.event.transaction:
+            return str(self.event.transaction)
+        return ""
+
+    @property
+    def starting_span(self) -> str:
+        if not self.problem.cause_span_ids or len(self.problem.cause_span_ids) < 1:
+            return ""
+
+        starting_span_id = self.problem.cause_span_ids[0]
+
+        return self._find_span_desc_by_id(starting_span_id)
+
+    @property
+    def parallelizable_spans(self) -> List[str]:
+        if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
+            return [""]
+
+        offender_span_ids = self.problem.offender_span_ids
+
+        return [self._find_span_desc_by_id(id) for id in offender_span_ids]
+
+    def _find_span_desc_by_id(self, id: str) -> str:
+        return get_span_evidence_value(self._find_span_by_id(id))

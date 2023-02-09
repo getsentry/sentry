@@ -7,12 +7,14 @@ from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     _store_transaction_name,
     clear_transaction_names,
+    get_active_projects,
     get_transaction_names,
     record_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     _get_rules,
+    get_sorted_rules,
     update_rules,
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
@@ -48,17 +50,6 @@ def test_single_leaf():
     ]
     clusterer.add_input(transaction_names)
     assert clusterer.get_rules() == ["/a/*/**"]
-
-
-def test_asterisk_in_input():
-    """Original asterisks are escaped"""
-    clusterer = TreeClusterer(merge_threshold=2)
-    transaction_names = [
-        "/a/*/c/",
-        "/a/*/d/",
-    ]
-    clusterer.add_input(transaction_names)
-    assert clusterer.get_rules() == [r"/a/\*/*/**"]
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
@@ -112,24 +103,26 @@ def test_distribution():
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "source,txname,feature_enabled,expected",
+    "source, txname, tags, feature_enabled, expected",
     [
-        ("url", "/a/b/c", True, 1),
-        ("route", "/", True, 0),
-        ("url", None, True, 0),
-        ("url", "/", False, 0),
-        ("route", None, False, 0),
+        ("url", "/a/b/c", [["transaction", "/a/b/c"]], True, 1),
+        ("url", "/a/b/c", [["http.status_code", "200"]], True, 1),
+        ("route", "/", [["transaction", "/"]], True, 0),
+        ("url", None, [], True, 0),
+        ("url", "/a/b/c", [["http.status_code", "404"]], True, 0),
+        ("url", "/", [["transaction", "/"]], False, 0),
+        ("route", None, [], False, 0),
     ],
 )
 def test_record_transactions(
-    mocked_record, default_organization, source, txname, feature_enabled, expected
+    mocked_record, default_organization, source, txname, tags, feature_enabled, expected
 ):
     with Feature({"organizations:transaction-name-clusterer": feature_enabled}):
         project = Project(id=111, name="project", organization_id=default_organization.id)
         record_transaction_name(
             project,
             {
-                "tags": [["transaction", txname]],
+                "tags": tags,
                 "transaction": txname,
                 "transaction_info": {"source": source},
             },
@@ -144,6 +137,26 @@ def test_sort_rules():
         ("/a/*/**", 1),
         ("/a/**", 2),
     ]
+
+
+@mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
+@pytest.mark.django_db
+def test_max_rule_threshold_merge_composite_store(default_project):
+    assert len(get_sorted_rules(default_project)) == 0
+
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(default_project, [ReplacementRule("foo/foo")])
+        update_rules(default_project, [ReplacementRule("bar/bar")])
+
+    assert get_sorted_rules(default_project) == [("foo/foo", 946688400), ("bar/bar", 946688400)]
+
+    with freeze_time("2002-02-02 02:00:00"):
+        update_rules(default_project, [ReplacementRule("baz/baz")])
+        assert len(get_sorted_rules(default_project)) == 2
+        update_rules(default_project, [ReplacementRule("qux/qux")])
+        assert len(get_sorted_rules(default_project)) == 2
+
+    assert get_sorted_rules(default_project) == [("baz/baz", 1012615200), ("qux/qux", 1012615200)]
 
 
 @pytest.mark.django_db
@@ -216,24 +229,32 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 
 
 @pytest.mark.django_db
+def test_get_deleted_project():
+    deleted_project = Project(pk=666)
+    _store_transaction_name(deleted_project, "foo")
+    assert list(get_active_projects()) == []
+
+
+@pytest.mark.django_db
 def test_transaction_clusterer_generates_rules(default_project):
     def _get_projconfig_tx_rules(project: Project):
         return (
             get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
         )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    feature = "organizations:transaction-name-normalize"
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
     default_project.update_option(
         "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
     )
 
-    with Feature({"organizations:transaction-name-sanitization": False}):
+    with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction-name-sanitization": True}):
+    with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) == [
             # TTL is 90d, so three months to expire
             {

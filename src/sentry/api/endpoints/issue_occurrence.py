@@ -23,6 +23,7 @@ class BasicEventSerializer(serializers.Serializer):
     tags = serializers.DictField()
     timestamp = serializers.DateTimeField()
     received = serializers.DateTimeField()
+    data = serializers.DictField()
 
 
 class IssueOccurrenceSerializer(serializers.Serializer):
@@ -66,6 +67,15 @@ class IssueOccurrenceEndpoint(Endpoint):
                 "tags": {"environment": "prod"},
                 "timestamp": ensure_aware(datetime.now()),
                 "received": ensure_aware(datetime.now()),
+                "data": {
+                    "stacktrace": {
+                        "frames": [
+                            {"function": "0x0", "in_app": False},
+                            {"function": "start_sim", "in_app": False},
+                            {"function": "main", "in_app": False, "package": "xctest"},
+                        ]
+                    },
+                },
             }
         else:
             event = request.data.pop("event", None)
@@ -76,7 +86,6 @@ class IssueOccurrenceEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        occurrence = {}
         if request.query_params.get("dummyOccurrence") == "True":
             occurrence = {
                 "id": "55f1419e73884cd2b45c79918f4b6dc5",
@@ -115,13 +124,18 @@ class IssueOccurrenceEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        event.setdefault("data", dict())
         event_serializer = BasicEventSerializer(data=event)
         if not event_serializer.is_valid():
             return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         event = event_serializer.validated_data
-        occurrence["event_id"] = str(event["event_id"])
+        # lift whatever is in 'data' dict as top-level event attrs
+        event.update(event["data"])
 
+        occurrence["event_id"] = str(event["event_id"])
+        # XXX: not sure if evidence_data is required or not
+        occurrence.setdefault("evidence_data", dict())
         occurrence_serializer = IssueOccurrenceSerializer(data=occurrence)
         if not occurrence_serializer.is_valid():
             return Response(occurrence_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

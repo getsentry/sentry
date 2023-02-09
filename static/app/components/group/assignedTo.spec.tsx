@@ -78,7 +78,7 @@ describe('Group > AssignedTo', () => {
 
   it('renders unassigned', () => {
     render(<AssignedTo project={project} group={GROUP_1} />, {organization});
-    expect(screen.getByText('No-one')).toBeInTheDocument();
+    expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
   it('does not render chevron when disableDropdown prop is passed', () => {
@@ -92,17 +92,21 @@ describe('Group > AssignedTo', () => {
   });
 
   it('can assign team', async () => {
+    const assignedGroup: Group = {
+      ...GROUP_1,
+      assignedTo: {...TEAM_1, type: 'team'},
+    };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_1.id}/`,
-      body: {
-        ...GROUP_1,
-        assignedTo: {...TEAM_1, type: 'team'},
-      },
+      body: assignedGroup,
     });
-    render(<AssignedTo project={project} group={GROUP_1} event={event} />, {
-      organization,
-    });
+    const {rerender} = render(
+      <AssignedTo project={project} group={GROUP_1} event={event} />,
+      {
+        organization,
+      }
+    );
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -118,24 +122,30 @@ describe('Group > AssignedTo', () => {
       )
     );
 
+    // Group changes are passed down from parent component
+    rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     expect(await screen.findByText(team1slug)).toBeInTheDocument();
     // TEAM_1 initials
     expect(screen.getByTestId('assignee-selector')).toHaveTextContent('CT');
   });
 
   it('successfully clears assignment', async () => {
+    const assignedGroup: Group = {
+      ...GROUP_1,
+      assignedTo: {...TEAM_1, type: 'team'},
+    };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_1.id}/`,
-      body: {
-        ...GROUP_1,
-        assignedTo: {...TEAM_1, type: 'team'},
-      },
+      body: assignedGroup,
     });
 
-    render(<AssignedTo project={project} group={GROUP_1} event={event} />, {
-      organization,
-    });
+    const {rerender} = render(
+      <AssignedTo project={project} group={GROUP_1} event={event} />,
+      {
+        organization,
+      }
+    );
     await openMenu();
 
     // Assign first item in list, which is TEAM_1
@@ -150,6 +160,8 @@ describe('Group > AssignedTo', () => {
       )
     );
 
+    // Group changes are passed down from parent component
+    rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
     userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
 

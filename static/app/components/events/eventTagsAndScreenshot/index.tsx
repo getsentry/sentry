@@ -1,6 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  useDeleteEventAttachmentOptimistic,
+  useFetchEventAttachments,
+} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {DataSection} from 'sentry/components/events/styles';
@@ -9,14 +13,12 @@ import {t, tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
-import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
+import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
 import Screenshot from './screenshot';
 import Tags from './tags';
-
-type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
 const SCREENSHOT_NAMES = [
   'screenshot.jpg',
@@ -31,26 +33,30 @@ type Props = Omit<
   React.ComponentProps<typeof Tags>,
   'projectSlug' | 'hasEventContext'
 > & {
-  attachments: ScreenshotProps['screenshot'][];
-  onDeleteScreenshot: ScreenshotProps['onDelete'];
-  projectId: string;
-  hasContext?: boolean;
+  projectSlug: string;
   isShare?: boolean;
 };
 
 export function EventTagsAndScreenshot({
-  projectId: projectSlug,
+  projectSlug,
   location,
   event,
-  attachments,
-  onDeleteScreenshot,
   organization,
   isShare = false,
-  hasContext = false,
 }: Props) {
   const {tags = []} = event;
-
-  const screenshots = attachments.filter(({name}) => SCREENSHOT_NAMES.includes(name));
+  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const {data: attachments} = useFetchEventAttachments(
+    {
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+    },
+    {enabled: !isShare}
+  );
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots =
+    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
 
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
@@ -64,6 +70,15 @@ export function EventTagsAndScreenshot({
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
+  const handleDeleteScreenshot = (attachmentId: string) => {
+    deleteAttachment({
+      orgSlug: organization.id,
+      projectSlug,
+      eventId: event.id,
+      attachmentId,
+    });
+  };
+
   function handleOpenVisualizationModal(
     eventAttachment: EventAttachment,
     downloadUrl: string
@@ -75,7 +90,7 @@ export function EventTagsAndScreenshot({
       trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_deleted', {
         organization,
       });
-      onDeleteScreenshot(eventAttachment.id);
+      handleDeleteScreenshot(eventAttachment.id);
     }
 
     openModal(
@@ -143,7 +158,7 @@ export function EventTagsAndScreenshot({
                 eventId={event.id}
                 projectSlug={projectSlug}
                 screenshot={screenshot}
-                onDelete={onDeleteScreenshot}
+                onDelete={handleDeleteScreenshot}
                 onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
                 onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
                 screenshotInFocus={screenshotInFocus}

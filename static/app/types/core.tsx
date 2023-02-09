@@ -30,7 +30,7 @@ export type Actor = {
   email?: string;
 };
 
-export type Scope = typeof API_ACCESS_SCOPES[number];
+export type Scope = (typeof API_ACCESS_SCOPES)[number];
 
 export type DateString = Date | string | null;
 
@@ -53,7 +53,7 @@ export interface SelectValue<T> extends MenuListItemProps {
    * will be unable to filter to that label. Use this to specify the plain text of
    * the label.
    */
-  plainTextLabel?: string;
+  textValue?: string;
 }
 
 /**
@@ -66,9 +66,12 @@ export type Choice = [
 
 export type Choices = Choice[];
 
-// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-// Note: the value of the enum on the frontend is plural,
-// but the value of the enum on the backend is singular
+/**
+ * @deprecated in favour of `DataCategoryExact` and `DATA_CATEGORY_INFO`.
+ * This legacy type used plurals which will cause compatibility issues when categories
+ * become more complex, e.g. processed transactions, session replays. Instead, access these values
+ * with `DATA_CATEGORY_INFO[category].plural`, where category is the `DataCategoryExact` enum value.
+ */
 export enum DataCategory {
   DEFAULT = 'default',
   ERRORS = 'errors',
@@ -78,8 +81,11 @@ export enum DataCategory {
   REPLAYS = 'replays',
 }
 
-// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-// Should be used in conjuction with DATA_CATEGORY_INFO rather than manipulating the string
+/**
+ * https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+ * Matches the backend singular backend enum directly.
+ * For display variations, refer to `DATA_CATEGORY_INFO` rather than manipulating these strings
+ */
 export enum DataCategoryExact {
   ERROR = 'error',
   TRANSACTION = 'transaction',
@@ -93,9 +99,9 @@ export enum DataCategoryExact {
 export interface DataCategoryInfo {
   apiName: string;
   displayName: string;
-  name: string;
+  name: DataCategoryExact;
   plural: string;
-  titleName: React.ReactNode;
+  titleName: string;
   uid: number;
 }
 

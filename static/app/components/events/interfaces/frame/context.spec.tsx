@@ -3,7 +3,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Coverage, Frame, LineCoverage} from 'sentry/types';
 
-import Context, {getCoverageColors} from './context';
+import Context, {getCoverageColorClass} from './context';
 
 describe('Frame - Context', function () {
   const org = TestStubs.Organization();
@@ -28,18 +28,18 @@ describe('Frame - Context', function () {
   ];
 
   const lineCoverage: LineCoverage[] = [
-    {lineNo: 230, coverage: Coverage.PARTIAL},
-    {lineNo: 231, coverage: Coverage.PARTIAL},
-    {lineNo: 232, coverage: Coverage.COVERED},
-    {lineNo: 234, coverage: Coverage.NOT_COVERED},
+    [230, Coverage.PARTIAL],
+    [231, Coverage.PARTIAL],
+    [232, Coverage.COVERED],
+    [234, Coverage.NOT_COVERED],
   ];
 
+  const primaryLineNumber = 233;
+
   it('converts coverage data to the right colors', function () {
-    expect(getCoverageColors(lines, lineCoverage)).toEqual([
-      'yellow100',
-      'green100',
-      'transparent',
-      'red100',
+    expect(getCoverageColorClass(lines, lineCoverage, primaryLineNumber)).toEqual([
+      ['partial', 'covered', 'active', 'uncovered'],
+      true,
     ]);
   });
 

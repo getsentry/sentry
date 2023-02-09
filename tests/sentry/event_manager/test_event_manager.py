@@ -2219,6 +2219,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
@@ -2299,6 +2300,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 ],
             )
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
@@ -2337,6 +2339,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.message == "nope"
             assert group.culprit == "/books/"
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self):
         """Test that you can't associate a performance event with an error issue"""
@@ -2362,6 +2365,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             assert len(event.groups) == 0
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
@@ -2387,6 +2391,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             assert len(event.groups) == 0
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_ignored(self):
@@ -2404,6 +2409,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert event.get_event_type() == "transaction"
             assert data["hashes"] == []
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_over_ignored_threshold(self):
@@ -2437,8 +2443,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
     @override_options(
         {
-            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance.issues.slow_db_query.problem-creation": 1.0,
             "performance_issue_creation_rate": 1.0,
+            "performance.issues.all.problem-detection": 1.0,
         }
     )
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
@@ -2462,7 +2469,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             last_event = attempt_to_generate_slow_db_issue()
 
             assert len(last_event.groups) == 1
-            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_SPAN.value
+            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_DB_QUERY.value
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

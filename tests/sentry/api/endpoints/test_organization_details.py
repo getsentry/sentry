@@ -23,6 +23,7 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
 )
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
@@ -138,7 +139,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 44 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 45
+        expected_queries = 50 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 52
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -696,6 +697,57 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
+
+    def test_update_slug_with_mapping(self):
+        self.create_organization_mapping(self.organization, slug="test")
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=self.organization.id, slug="test"
+            ).exists()
+
+        response = self.get_success_response(
+            self.organization.slug, slug="santry", idempotencyKey="1234"
+        )
+
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.slug == "santry"
+
+        with exempt_from_silo_limits():
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id, slug="santry")
+            assert not org_mapping.verified
+            assert org_mapping.idempotency_key
+
+            assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
+
+        # Drain outbox
+        outbox = Organization.outbox_to_verify_mapping(org.id)
+        outbox.drain_shard()
+
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
+            ).exists()
+
+            assert not OrganizationMapping.objects.filter(
+                organization_id=org.id, slug="test"
+            ).exists()
+
+    def test_update_name_with_mapping(self):
+        self.create_organization_mapping(self.organization)
+        response = self.get_success_response(self.organization.slug, name="SaNtRy")
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == "SaNtRy"
+
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=organization_id, name="SaNtRy"
+            ).exists()
+
+    def test_org_mapping_already_taken(self):
+        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
+        self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
 
 @region_silo_test

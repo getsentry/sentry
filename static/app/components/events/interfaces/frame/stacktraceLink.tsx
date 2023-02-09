@@ -14,24 +14,26 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {IconClose, IconWarning} from 'sentry/icons';
+import {IconCircle, IconCircleFill, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   CodecovStatusCode,
+  Coverage,
   Event,
   Frame,
+  LineCoverage,
   Organization,
   Project,
   StacktraceLinkResult,
 } from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
-import {getAnalyicsDataForEvent} from 'sentry/utils/events';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {isMobilePlatform} from 'sentry/utils/platform';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -87,10 +89,10 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       }
     );
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.DISMISS_CTA, {
       view: 'stacktrace_issue_details',
       organization,
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForEvent(event),
     });
   };
 
@@ -115,21 +117,67 @@ function shouldshowCodecovFeatures(
     organization.features.includes('codecov-stacktrace-integration') &&
     organization.codecovAccess;
 
-  const validStatus = [
-    CodecovStatusCode.COVERAGE_EXISTS,
-    CodecovStatusCode.NO_COVERAGE_DATA,
-  ].includes(match.codecovStatusCode!);
+  const codecovStatus = match.codecov?.status;
+  const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
   return enabled && validStatus && match.config?.provider.key === 'github';
 }
 
 interface CodecovLinkProps {
-  sourceUrl: string | undefined;
-  codecovStatusCode?: CodecovStatusCode;
+  event: Event;
+  lineNo: number | null;
+  organization: Organization;
+  coverageUrl?: string;
+  lineCoverage?: LineCoverage[];
+  status?: CodecovStatusCode;
 }
 
-function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
-  if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
+function getCoverageIcon(lineCoverage, lineNo) {
+  const covIndex = lineCoverage.findIndex(line => line[0] === lineNo);
+  if (covIndex === -1) {
+    return null;
+  }
+  switch (lineCoverage[covIndex][1]) {
+    case Coverage.COVERED:
+      return (
+        <CoverageIcon>
+          <IconCircleFill size="xs" color="green100" style={{position: 'absolute'}} />
+          <IconCircle size="xs" color="green300" />
+          {t('Covered')}
+        </CoverageIcon>
+      );
+    case Coverage.PARTIAL:
+      return (
+        <CoverageIcon>
+          <IconCircleFill size="xs" color="yellow100" style={{position: 'absolute'}} />
+          <IconCircle size="xs" color="yellow300" />
+          {t('Partially Covered')}
+        </CoverageIcon>
+      );
+    case Coverage.NOT_COVERED:
+      return (
+        <CodecovContainer>
+          <CoverageIcon>
+            <IconCircleFill size="xs" color="red100" style={{position: 'absolute'}} />
+            <IconCircle size="xs" color="red300" />
+          </CoverageIcon>
+          {t('Not Covered')}
+        </CodecovContainer>
+      );
+    default:
+      return null;
+  }
+}
+
+function CodecovLink({
+  coverageUrl,
+  status = CodecovStatusCode.COVERAGE_EXISTS,
+  lineCoverage,
+  lineNo,
+  organization,
+  event,
+}: CodecovLinkProps) {
+  if (status === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
         {t('Code Coverage not found')}
@@ -138,20 +186,28 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
     );
   }
 
-  if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
-    if (!sourceUrl) {
+  if (status === CodecovStatusCode.COVERAGE_EXISTS) {
+    if (!coverageUrl || !lineCoverage || !lineNo) {
       return null;
     }
-    const codecovUrl = sourceUrl.replaceAll(
-      new RegExp('github.com/.[^/]*', 'g'),
-      'app.codecov.io/gh'
-    );
+
+    const onOpenCodecovLink = () => {
+      trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_LINK_CLICKED, {
+        view: 'stacktrace_issue_details',
+        organization,
+        group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+        ...getAnalyticsDataForEvent(event),
+      });
+    };
 
     return (
-      <OpenInLink href={codecovUrl} openInNewTab>
-        {t('View Coverage Tests on Codecov')}
-        <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-      </OpenInLink>
+      <CodecovContainer>
+        {getCoverageIcon(lineCoverage, lineNo)}
+        <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
+          <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+          {t('Open in Codecov')}
+        </OpenInLink>
+      </CodecovContainer>
     );
   }
   return null;
@@ -164,15 +220,6 @@ interface StacktraceLinkProps {
    * The line of code being linked
    */
   line: string;
-}
-
-export function isMobileLanguage(event: Event) {
-  return (
-    isMobilePlatform(event.platform) ||
-    (event.platform === 'other' &&
-      isMobilePlatform(event.release?.projects?.[0].platform)) ||
-    (event.platform === 'java' && isMobilePlatform(event.release?.projects?.[0].platform))
-  );
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
@@ -195,25 +242,28 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         })
       : false;
 
-  const isMobile = isMobileLanguage(event);
-
   const {
     data: match,
     isLoading,
     refetch,
-  } = useStacktraceLink({
-    event,
-    frame,
-    orgSlug: organization.slug,
-    projectSlug: project?.slug,
-  });
+  } = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization.slug,
+      projectSlug: project?.slug,
+    },
+    {
+      enabled: defined(project),
+    }
+  );
 
   useEffect(() => {
     if (isLoading || prompt.isLoading || !match) {
       return;
     }
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.LINK_VIEWED, {
       view: 'stacktrace_issue_details',
       organization,
       platform: project?.platform,
@@ -227,7 +277,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           : !isPromptDismissed
           ? 'prompt'
           : 'empty',
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForEvent(event),
     });
     // excluding isPromptDismissed because we want this only to record once
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,7 +292,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           view: 'stacktrace_issue_details',
           provider: provider.key,
           organization,
-          ...getAnalyicsDataForEvent(event),
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
         },
         {startSession: true}
       );
@@ -252,11 +303,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const handleSubmit = () => {
     refetch();
   };
-
-  // Temporarily prevent mobile platforms from showing stacktrace link
-  if (isMobile) {
-    return null;
-  }
 
   if (isLoading || !match) {
     return (
@@ -282,8 +328,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         </OpenInLink>
         {shouldshowCodecovFeatures(organization, match) && (
           <CodecovLink
-            sourceUrl={match.sourceUrl}
-            codecovStatusCode={match.codecovStatusCode}
+            coverageUrl={`${match.codecov?.coverageUrl}#L${frame.lineNo}`}
+            status={match.codecov?.status}
+            lineCoverage={match.codecov?.lineCoverage}
+            lineNo={frame.lineNo}
+            organization={organization}
+            event={event}
           />
         )}
       </CodeMappingButtonContainer>
@@ -319,12 +369,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           }
           onClick={() => {
             trackIntegrationAnalytics(
-              'integrations.stacktrace_start_setup',
+              StacktraceLinkEvents.START_SETUP,
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
                 organization,
-                ...getAnalyicsDataForEvent(event),
+                ...getAnalyticsDataForEvent(event),
               },
               {startSession: true}
             );
@@ -394,6 +444,17 @@ const StyledLink = styled(Link)`
 const CodecovWarning = styled('div')`
   display: flex;
   color: ${p => p.theme.errorText};
+  gap: ${space(0.75)};
+  align-items: center;
+`;
+
+const CodecovContainer = styled('span')`
+  display: flex;
+  gap: ${space(0.75)};
+`;
+
+const CoverageIcon = styled('span')`
+  display: flex;
   gap: ${space(0.75)};
   align-items: center;
 `;

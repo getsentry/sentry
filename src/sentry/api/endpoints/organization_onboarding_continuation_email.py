@@ -22,7 +22,9 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
     num_platforms = len(platforms)
     context = {
         "recipient_name": user.get_display_name(),
-        "onboarding_link": f"/onboarding/{organization.slug}/?referrer=onboarding_continuation-email",
+        "onboarding_link": organization.absolute_url(
+            f"/onboarding/{organization.slug}/", query="referrer=onboarding_continuation-email"
+        ),
         "organization_name": organization.name,
         "num_platforms": num_platforms,
         "platforms": oxfordize_list(platforms),

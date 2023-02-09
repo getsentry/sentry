@@ -1,26 +1,15 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import localStorage from 'sentry/utils/localStorage';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-player-dom-alert-dismissed';
 
 function PlayerDOMAlert() {
-  const [isDismissed, setIsDismissed] = useState(true);
-
-  const handleDismiss = () => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, '1');
-    setIsDismissed(true);
-  };
-
-  useEffect(() => {
-    const val = localStorage.getItem(LOCAL_STORAGE_KEY);
-    setIsDismissed(val === '1');
-  }, []);
+  const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
 
   if (isDismissed) {
     return null;
@@ -36,7 +25,7 @@ function PlayerDOMAlert() {
           size="sm"
           icon={<IconClose size="xs" />}
           aria-label={t('Close Alert')}
-          onClick={handleDismiss}
+          onClick={dismiss}
         />
       </DOMAlert>
     </DOMAlertContainer>

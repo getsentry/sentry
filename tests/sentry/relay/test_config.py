@@ -7,6 +7,7 @@ from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling import (
+    ENVIRONMENT_GLOBS,
     HEALTH_CHECK_GLOBS,
     RESERVED_IDS,
     Platform,
@@ -53,7 +54,7 @@ DEFAULT_ENVIRONMENT_RULE = {
             {
                 "op": "glob",
                 "name": "trace.environment",
-                "value": ["*dev*", "*test*"],
+                "value": ENVIRONMENT_GLOBS,
                 "options": {"ignoreCase": True},
             }
         ],
@@ -324,7 +325,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "glob",
                             "name": "trace.environment",
-                            "value": ["*dev*", "*test*"],
+                            "value": ENVIRONMENT_GLOBS,
                             "options": {"ignoreCase": True},
                         }
                     ],
@@ -369,6 +370,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -390,6 +392,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -411,6 +414,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -432,6 +436,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -453,6 +458,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -474,6 +480,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.1,
@@ -514,19 +521,22 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
 def test_project_config_with_organizations_metrics_extraction(
     default_project, set_sentry_option, abnormal_mechanism_rollout, has_metrics_extraction
 ):
-    set_sentry_option(
+    with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
-    )
-    with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
-        cfg = get_project_config(default_project, full_config=True)
+    ):
+        with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
+            cfg = get_project_config(default_project, full_config=True)
 
-    cfg = cfg.to_dict()
-    session_metrics = get_path(cfg, "config", "sessionMetrics")
-    if has_metrics_extraction:
-        assert session_metrics == {"drop": False, "version": 2 if abnormal_mechanism_rollout else 1}
-    else:
-        assert session_metrics is None
+        cfg = cfg.to_dict()
+        session_metrics = get_path(cfg, "config", "sessionMetrics")
+        if has_metrics_extraction:
+            assert session_metrics == {
+                "drop": False,
+                "version": 2 if abnormal_mechanism_rollout else 1,
+            }
+        else:
+            assert session_metrics is None
 
 
 @pytest.mark.django_db
@@ -608,26 +618,17 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
-def test_accept_transaction_names(default_project, org_sample):
-    options = override_options(
-        {
-            "relay.transaction-names-client-based": org_sample,
-        }
-    )
+def test_accept_transaction_names(default_project):
     feature = Feature(
         {
             "organizations:transaction-metrics-extraction": True,
         }
     )
-    with feature, options:
+    with feature:
         config = get_project_config(default_project).to_dict()["config"]
         transaction_metrics_config = config["transactionMetrics"]
-        assert (
-            transaction_metrics_config["acceptTransactionNames"] == "clientBased"
-            if org_sample
-            else "strict"
-        )
+
+        assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
 
 
 @pytest.mark.django_db

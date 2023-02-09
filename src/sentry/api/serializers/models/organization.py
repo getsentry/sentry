@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -28,7 +28,6 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    ORGANIZATION_OPTIONS_AS_FEATURES,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -60,6 +59,23 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+
+# A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
+# Enabling feature-flagging frontend components without an extra API call/endpoint to verify
+# the OrganizationOption.
+OptionFeature = Tuple[str, Callable[[OrganizationOption], bool]]
+ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
+    "sentry:project-rate-limit": [
+        ("legacy-rate-limits", lambda opt: True),
+    ],
+    "sentry:account-rate-limit": [
+        ("legacy-rate-limits", lambda opt: True),
+    ],
+    "quotas:new-spike-protection": [
+        ("spike-projections", lambda opt: bool(opt.value)),
+        ("project-stats", lambda opt: bool(opt.value)),
+    ],
+}
 
 
 class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
@@ -269,13 +285,9 @@ class OrganizationSerializer(Serializer):  # type: ignore
             organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
         )
         for option in options_as_features:
-            option_feature = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
-            if not option_feature:
-                continue
-            feature: str = option_feature[0]  # feature flag string
-            func: Callable[[OrganizationOption], bool] | None = option_feature[1]  # flag validator
-            if not callable(func) or func(option):
-                feature_list.add(feature)
+            for option_feature, option_function in ORGANIZATION_OPTIONS_AS_FEATURES[option.key]:
+                if option_function(option):
+                    feature_list.add(option_feature)
 
         if getattr(obj.flags, "allow_joinleave"):
             feature_list.add("open-membership")
@@ -331,8 +343,8 @@ class OnboardingTasksSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
-        serialized_users = user_service.serialize_users(
-            user_ids=list({item.user_id for item in item_list if item.user_id})
+        serialized_users = user_service.serialize_many(
+            filter={"user_ids": list({item.user_id for item in item_list if item.user_id})}
         )
         user_map = {user["id"]: user for user in serialized_users}
 

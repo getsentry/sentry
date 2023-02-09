@@ -16,6 +16,7 @@ from sentry.issues.occurrence_consumer import (
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,12 @@ def get_test_message(
             "event_id": uuid.uuid4().hex,
             "project_id": project_id,
             "platform": "genesis",
+            "stacktrace": {
+                "frames": [
+                    {"function": "0x0", "in_app": False},
+                    {"function": "start_sim", "in_app": False},
+                ],
+            },
             "tags": {},
             "timestamp": now.isoformat(),
             "received": now.isoformat(),
@@ -73,6 +80,24 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
         fetched_event = self.eventstore.get_event_by_id(
             self.project.id, fetched_occurrence.event_id
         )
+        assert fetched_event is not None
+        assert fetched_event.get_event_type() == "generic"
+
+        assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+
+    @pytest.mark.django_db
+    def test_process_profiling_event(self) -> None:
+        event_data = load_data("generic-event-profiling")
+        result = _process_message(event_data)
+        assert result is not None
+        project_id = event_data["event"]["project_id"]
+        occurrence = result[0]
+
+        fetched_occurrence = IssueOccurrence.fetch(occurrence.id, project_id)
+        assert fetched_occurrence is not None
+        self.assert_occurrences_identical(occurrence, fetched_occurrence)
+        assert fetched_occurrence.event_id is not None
+        fetched_event = self.eventstore.get_event_by_id(project_id, fetched_occurrence.event_id)
         assert fetched_event is not None
         assert fetched_event.get_event_type() == "generic"
 

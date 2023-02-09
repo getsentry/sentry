@@ -25,7 +25,6 @@ from typing import (
     cast,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -142,12 +141,6 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
-# Used to determine if we should or not record an analytic data
-# for a first event of a project with a minified stack trace
-START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
-    2022, 12, 14, tzinfo=pytz.UTC
-)
-
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
 
@@ -166,7 +159,9 @@ PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
 GROUPHASH_IGNORE_LIMIT_MAP = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
-    GroupType.PERFORMANCE_SLOW_SPAN: 100,
+    GroupType.PERFORMANCE_SLOW_DB_QUERY: 100,
+    GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: 15,
+    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: 100,
 }
 
 
@@ -620,10 +615,6 @@ class EventManager:
             if (
                 has_event_minified_stack_trace(job["event"])
                 and not project.flags.has_minified_stack_trace
-                # We only want to record events from projects created after 2022-12-14,
-                # otherwise amplitude would receive a large amount of data in a short period of time
-                and project.date_added
-                > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
             ):
                 first_event_with_minified_stack_trace_received.send_robust(
                     project=project, event=job["event"], sender=Project
@@ -2307,7 +2298,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     for new_grouphash in new_grouphashes:
                         group_type = performance_problems_by_hash[new_grouphash].type
-                        if not should_create_group(client, new_grouphash, group_type):
+                        if not should_create_group(client, new_grouphash, group_type, project):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2420,8 +2411,9 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
-    times_seen = client.incr(f"grouphash:{grouphash}")
+def should_create_group(client: Any, grouphash: str, type: GroupType, project: Project) -> bool:
+    key = f"grouphash:{grouphash}:{project.id}"
+    times_seen = client.incr(key)
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
         tags={
@@ -2441,7 +2433,7 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
 
         return True
     else:
-        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+        client.expire(key, 60 * 60 * 24)  # 24 hour expiration from last seen
         return False
 
 
