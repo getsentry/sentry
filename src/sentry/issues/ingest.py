@@ -13,6 +13,9 @@ from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.event_manager import (
     GroupInfo,
+    _get_or_create_group_environment,
+    _get_or_create_group_release,
+    _increment_release_associated_counts,
     _process_existing_aggregate,
     _save_grouphash_and_group,
     get_event_type,
@@ -44,11 +47,21 @@ def save_issue_occurrence(
     # sure that this is somehow validated.
     occurrence.save()
 
-    # TODO: Pass release here
-    group_info = save_issue_from_occurrence(occurrence, event, None)
+    try:
+        release = Release.get(event.project, event.release)
+    except Release.DoesNotExist:
+        # The release should always exist here since event has been ingested at this point, but just
+        # in case it has been deleted
+        release = None
+    group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
-        # TODO: Create group related releases here
+        environment = event.get_environment()
+        _get_or_create_group_environment(environment, release, [group_info])
+        _increment_release_associated_counts(
+            group_info.group.project, environment, release, [group_info]
+        )
+        _get_or_create_group_release(environment, release, event, [group_info])
 
     return occurrence, group_info
 
