@@ -188,11 +188,22 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'cls',
 ]);
 
+// Some data sets support all tags except some. For these cases, define the
+// omissions only
+const ALWAYS_OMITTED_TAGS = [
+  FieldKey.EVENT_TYPE,
+  FieldKey.RELEASE_VERSION,
+  FieldKey.RELEASE_STAGE,
+  FieldKey.RELEASE_BUILD,
+  FieldKey.PROJECT,
+];
+
 export const DATASET_OMITTED_TAGS: Record<
   Dataset,
   Array<FieldKey | WebVital | MobileVital>
 > = {
   [Dataset.ERRORS]: [
+    ...ALWAYS_OMITTED_TAGS,
     ...Object.values(WebVital),
     ...Object.values(MobileVital),
     FieldKey.TRANSACTION,
@@ -200,10 +211,10 @@ export const DATASET_OMITTED_TAGS: Record<
     FieldKey.TRANSACTION_OP,
     FieldKey.TRANSACTION_STATUS,
   ],
-  [Dataset.TRANSACTIONS]: [],
-  [Dataset.METRICS]: [],
-  [Dataset.GENERIC_METRICS]: [],
-  [Dataset.SESSIONS]: [],
+  [Dataset.TRANSACTIONS]: [...ALWAYS_OMITTED_TAGS],
+  [Dataset.METRICS]: [...ALWAYS_OMITTED_TAGS],
+  [Dataset.GENERIC_METRICS]: [...ALWAYS_OMITTED_TAGS],
+  [Dataset.SESSIONS]: [...ALWAYS_OMITTED_TAGS],
 };
 
 export function getMEPAlertsDataset(

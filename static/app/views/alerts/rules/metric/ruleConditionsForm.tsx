@@ -493,15 +493,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 <StyledSearchBar
                   searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
-                  omitTags={[
-                    'event.type',
-                    'release.version',
-                    'release.stage',
-                    'release.package',
-                    'release.build',
-                    'project',
-                    ...DATASET_OMITTED_TAGS[dataset],
-                  ]}
+                  omitTags={DATASET_OMITTED_TAGS[dataset]}
                   includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
                   useFormWrapper={false}
