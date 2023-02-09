@@ -105,13 +105,11 @@ class OrganizationMemberManager(BaseManager):
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
         from sentry.models import OrganizationMemberTeam
 
-        org_members = list(
-            self.filter(user__email__iexact=email, user__is_active=True).values_list(
-                "id", flat=True
-            )
+        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
+            "id", flat=True
         )
         team_members = OrganizationMemberTeam.objects.filter(
-            team_id__org_role=role, organizationmember_id__in=org_members
+            team_id__org_role=role, organizationmember__in=org_members
         ).values_list("organizationmember_id")
 
         return self.filter(Q(role=role, id__in=org_members) | Q(id__in=team_members))
@@ -540,7 +538,7 @@ class OrganizationMember(Model):
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():
             return False
 
-        # check if any other member has the owner role, including through a team\-
+        # check if any other member has the owner role, including through a team
         is_only_owner = not (
             self.organization.get_members_with_org_roles(roles=[roles.get_top_dog().id])
             .exclude(id=self.id)
