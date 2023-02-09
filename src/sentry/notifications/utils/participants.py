@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence
 
 from sentry import features
 from sentry.models import (
@@ -36,6 +36,7 @@ from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
+from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -159,7 +160,7 @@ def get_owners(
     project: Project,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Sequence[Team | APIUser]:
+) -> List[Team | APIUser]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -261,6 +262,21 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     return output
 
 
+def get_suspect_committers(project: Project, event: Event) -> List[APIUser]:
+    suspect_committers = []
+    committers: Sequence[AuthorCommitsSerialized] = get_serialized_event_file_committers(
+        project, event
+    )
+    user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
+    suspect_committers = user_service.get_many_by_email(user_emails)
+
+    return suspect_committers
+
+
+def dedupe_suggested_assignees(suggested_assignees: Iterable[APIUser]) -> Iterable[APIUser]:
+    return list({assignee.id: assignee for assignee in suggested_assignees}.values())
+
+
 def determine_eligible_recipients(
     project: Project,
     target_type: ActionTargetType,
@@ -286,9 +302,14 @@ def determine_eligible_recipients(
             return {team}
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
-        owners = get_owners(project, event, fallthrough_choice)
-        if owners:
-            return owners
+        suggested_assignees = get_owners(project, event, fallthrough_choice)
+        if features.has("organizations:streamline-targeting-context", project.organization):
+            try:
+                suggested_assignees += get_suspect_committers(project, event)
+            except Exception:
+                logger.exception("Could not get suspect committers. Continuing execution.")
+        if suggested_assignees:
+            return dedupe_suggested_assignees(suggested_assignees)
 
         return get_fallthrough_recipients(project, fallthrough_choice)
 
