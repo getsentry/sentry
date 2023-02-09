@@ -188,24 +188,32 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'cls',
 ]);
 
-const TRANSACTION_SUPPORTED_TAGS = makeTagCollection([
+const TRANSACTION_SUPPORTED_TAGS = [
   FieldKey.RELEASE,
   FieldKey.TRANSACTION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
   FieldKey.HTTP_METHOD,
-]);
-const SESSION_SUPPORTED_TAGS = makeTagCollection([FieldKey.RELEASE]);
+];
+const SESSION_SUPPORTED_TAGS = [FieldKey.RELEASE];
+
+import mapValues from 'lodash/mapValues';
 
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
-export const DATASET_SUPPORTED_TAGS: Record<Dataset, TagCollection | undefined> = {
-  [Dataset.ERRORS]: undefined,
-  [Dataset.TRANSACTIONS]: TRANSACTION_SUPPORTED_TAGS,
-  [Dataset.METRICS]: SESSION_SUPPORTED_TAGS,
-  [Dataset.GENERIC_METRICS]: TRANSACTION_SUPPORTED_TAGS,
-  [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
-};
+export const DATASET_SUPPORTED_TAGS: Record<Dataset, TagCollection | undefined> =
+  mapValues(
+    {
+      [Dataset.ERRORS]: undefined,
+      [Dataset.TRANSACTIONS]: TRANSACTION_SUPPORTED_TAGS,
+      [Dataset.METRICS]: SESSION_SUPPORTED_TAGS,
+      [Dataset.GENERIC_METRICS]: TRANSACTION_SUPPORTED_TAGS,
+      [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
+    },
+    value => {
+      return value ? makeTagCollection(value) : undefined;
+    }
+  );
 
 // Some data sets support all tags except some. For these cases, define the
 // omissions only
