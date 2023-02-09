@@ -58,8 +58,8 @@ export class Profile {
     name: string;
     startedAt: number;
     threadId: number;
+    type: string;
     unit: string;
-    type?: string;
   }) {
     this.threadId = threadId;
     this.duration = duration;
@@ -77,6 +77,7 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
+    type: '',
   }).build();
 
   isEmpty(): boolean {
