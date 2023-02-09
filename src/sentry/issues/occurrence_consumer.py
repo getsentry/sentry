@@ -248,10 +248,8 @@ class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             payload = json.loads(message.payload.value, use_rapid_json=True)
             _process_message(payload)
-        except rapidjson.JSONDecodeError as je:
-            logger.error(je)
-        except ValueError as ve:
-            logger.error(ve)
+        except (rapidjson.JSONDecodeError, InvalidEventPayloadError, EventLookupError) as ee:
+            logger.error(ee)
         except Exception as e:
             logger.exception(e)
 
