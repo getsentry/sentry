@@ -3,8 +3,8 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.models import ProjectOption
 from sentry.grouptype.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
