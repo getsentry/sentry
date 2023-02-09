@@ -60,12 +60,6 @@ function CreateAlertFromViewButton({
 }: CreateAlertFromViewButtonProps) {
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
   const queryParams = eventView.generateQueryStringObject();
-  if (queryParams.query?.includes(`project:${project?.slug}`)) {
-    queryParams.query = (queryParams.query as string).replace(
-      `project:${project?.slug}`,
-      ''
-    );
-  }
 
   const alertTemplate = alertType
     ? AlertWizardRuleTemplates[alertType]
@@ -74,7 +68,6 @@ function CreateAlertFromViewButton({
   const to = {
     pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
     query: {
-      ...queryParams,
       createFromDiscover: true,
       disableMetricDataset,
       referrer,

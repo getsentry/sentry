@@ -112,21 +112,4 @@ describe('CreateAlertFromViewButton', () => {
       '/organizations/org-slug/alerts/wizard/?project=proj-slug'
     );
   });
-
-  it('removes a duplicate project filter', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-      query: 'event.type:error project:project-slug',
-      projects: [2],
-    });
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button'));
-    expect(context.context.router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/org-slug/alerts/new/metric/`,
-      query: expect.objectContaining({
-        query: 'event.type:error ',
-        project: 'project-slug',
-      }),
-    });
-  });
 });
