@@ -48,7 +48,7 @@ function RepositoryProjectPathConfigForm({
    */
   function handleRepoChange(id: string) {
     const repo = repos.find(r => r.id === id);
-    if (!repo || integration.provider.key !== 'github') {
+    if (!repo) {
       return;
     }
 
