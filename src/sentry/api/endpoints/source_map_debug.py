@@ -228,7 +228,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if len(full_matches) == 0:
             if len(partial_matches) > 0:
                 partial_match = partial_matches[0]
-                url_prefix = self._find_url_prefix(urlparts.path, partial_match.name)
+                url_prefix = self._find_url_prefix(filename, partial_match.name)
 
                 raise Exception(
                     SourceMapProcessingIssue.PARTIAL_MATCH,
@@ -330,8 +330,10 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         filepath = filepath.split("/")
         artifact_name = artifact_name.split("/")
         if len(filepath) == len(artifact_name):
-            idx = [filepath[i] != artifact_name[i] for i in range(len(filepath))].index(True)
-            return "/".join(artifact_name[idx] + "")
+            matches = [filepath[i] != artifact_name[i] for i in range(len(filepath))]
+            if sum(matches) == 1:
+                idx = matches.index(True)
+                return artifact_name[idx] + "/" if idx != -1 else None
 
         if len(filepath) + 1 == len(artifact_name):
             # If not suffix, find the missing parts and return them
