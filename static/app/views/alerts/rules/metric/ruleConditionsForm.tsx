@@ -28,7 +28,11 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType, DATASET_OMITTED_TAGS} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertType,
+  DATASET_OMITTED_TAGS,
+  DATASET_SUPPORTED_TAGS,
+} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -144,19 +148,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
-  }
-
-  get searchSupportedTags() {
-    if (isCrashFreeAlert(this.props.dataset)) {
-      return {
-        release: {
-          key: 'release',
-          name: 'release',
-        },
-      };
-    }
-
-    return undefined;
   }
 
   renderEventTypeFilter() {
@@ -494,6 +485,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
                   omitTags={DATASET_OMITTED_TAGS[dataset]}
+                  {...(DATASET_SUPPORTED_TAGS[dataset]
+                    ? {supportedTags: DATASET_SUPPORTED_TAGS[dataset]}
+                    : {})}
                   includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
                   useFormWrapper={false}
@@ -521,9 +515,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     onFilterSearch(query);
                     onChange(query, {});
                   }}
-                  {...(this.searchSupportedTags
-                    ? {supportedTags: this.searchSupportedTags}
-                    : {})}
                   hasRecentSearches={dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>

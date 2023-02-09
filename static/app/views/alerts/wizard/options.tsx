@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {FieldKey, MobileVital, WebVital} from 'sentry/utils/fields';
+import {Organization, TagCollection} from 'sentry/types';
+import {FieldKey, makeTagCollection, MobileVital, WebVital} from 'sentry/utils/fields';
 import {
   Dataset,
   EventTypes,
@@ -188,22 +188,37 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'cls',
 ]);
 
+const TRANSACTION_SUPPORTED_TAGS = makeTagCollection([
+  FieldKey.RELEASE,
+  FieldKey.TRANSACTION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  FieldKey.HTTP_METHOD,
+]);
+const SESSION_SUPPORTED_TAGS = makeTagCollection([FieldKey.RELEASE]);
+
+// Some data sets support a very limited number of tags. For these cases,
+// define all supported tags explicitly
+export const DATASET_SUPPORTED_TAGS: Record<Dataset, TagCollection | undefined> = {
+  [Dataset.ERRORS]: undefined,
+  [Dataset.TRANSACTIONS]: TRANSACTION_SUPPORTED_TAGS,
+  [Dataset.METRICS]: SESSION_SUPPORTED_TAGS,
+  [Dataset.GENERIC_METRICS]: TRANSACTION_SUPPORTED_TAGS,
+  [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
+};
+
 // Some data sets support all tags except some. For these cases, define the
 // omissions only
-const ALWAYS_OMITTED_TAGS = [
-  FieldKey.EVENT_TYPE,
-  FieldKey.RELEASE_VERSION,
-  FieldKey.RELEASE_STAGE,
-  FieldKey.RELEASE_BUILD,
-  FieldKey.PROJECT,
-];
-
 export const DATASET_OMITTED_TAGS: Record<
   Dataset,
-  Array<FieldKey | WebVital | MobileVital>
+  Array<FieldKey | WebVital | MobileVital> | undefined
 > = {
   [Dataset.ERRORS]: [
-    ...ALWAYS_OMITTED_TAGS,
+    FieldKey.EVENT_TYPE,
+    FieldKey.RELEASE_VERSION,
+    FieldKey.RELEASE_STAGE,
+    FieldKey.RELEASE_BUILD,
+    FieldKey.PROJECT,
     ...Object.values(WebVital),
     ...Object.values(MobileVital),
     FieldKey.TRANSACTION,
@@ -211,10 +226,10 @@ export const DATASET_OMITTED_TAGS: Record<
     FieldKey.TRANSACTION_OP,
     FieldKey.TRANSACTION_STATUS,
   ],
-  [Dataset.TRANSACTIONS]: [...ALWAYS_OMITTED_TAGS],
-  [Dataset.METRICS]: [...ALWAYS_OMITTED_TAGS],
-  [Dataset.GENERIC_METRICS]: [...ALWAYS_OMITTED_TAGS],
-  [Dataset.SESSIONS]: [...ALWAYS_OMITTED_TAGS],
+  [Dataset.TRANSACTIONS]: undefined,
+  [Dataset.METRICS]: undefined,
+  [Dataset.GENERIC_METRICS]: undefined,
+  [Dataset.SESSIONS]: undefined,
 };
 
 export function getMEPAlertsDataset(
