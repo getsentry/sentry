@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, Set
 
 from sentry.types.issues import GroupCategory
 
-_group_type_registry: Dict[int, Any] = {}
-_slug_lookup: Dict[str, Any] = {}
+_group_type_registry: Dict[int, GroupType] = {}
+_slug_lookup: Dict[str, GroupType] = {}
 _category_lookup: Dict[int, Set[int]] = defaultdict(set)
 
 
@@ -41,13 +43,13 @@ def get_group_types_by_category(category: int) -> Set[int]:
     return _category_lookup[category]
 
 
-def get_group_type_by_slug(slug: str) -> Any:
+def get_group_type_by_slug(slug: str) -> GroupType:
     if slug not in _slug_lookup.keys():
         raise ValueError(f"No group type with the slug {slug} is registered.")
     return _slug_lookup[slug]
 
 
-def get_group_type_by_type_id(id: int) -> Any:
+def get_group_type_by_type_id(id: int) -> GroupType:
     if id not in _group_type_registry.keys():
         raise ValueError(f"No group type with the id {id} is registered.")
     return _group_type_registry[id]
