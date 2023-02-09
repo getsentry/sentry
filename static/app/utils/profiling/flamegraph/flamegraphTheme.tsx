@@ -201,7 +201,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
     FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.5, 0.4],
     SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
-    GRID_FRAME_BACKGROUND_COLOR: 'rgba(0, 0, 0, 0.4)',
+    GRID_FRAME_BACKGROUND_COLOR: 'rgba(0, 0, 0)',
     GRID_LINE_COLOR: '#222227',
     HIGHLIGHTED_LABEL_COLOR: [136, 50, 0, 1],
     HOVERED_FRAME_BORDER_COLOR: 'rgba(255, 255, 255, 0.8)',
