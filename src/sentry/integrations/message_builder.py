@@ -10,7 +10,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
+from sentry.types.issues import GroupCategory
 from sentry.utils.http import absolute_uri
 
 
@@ -46,7 +46,7 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
     else:
         group = getattr(obj, "group", obj)
         if group.issue_category == GroupCategory.PERFORMANCE:
-            title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+            title = group.issue_type.description
         elif isinstance(obj, GroupEvent) and obj.occurrence is not None:
             title = obj.occurrence.issue_title
         else:

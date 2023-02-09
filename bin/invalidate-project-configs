@@ -22,6 +22,8 @@ def invalidate_project_configs(percentage):
 
     This can be used to speed up incident recovery, for example when faulty project configs
     that cannot be read by Relay have been written to redis.
+    
+    NOTE: This will increase load on the relay_config_bulk Celery queue.
     """
     configure()
     from sentry.models import Organization
