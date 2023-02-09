@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from django.db.models import Q
-
 from sentry import roles
 from sentry.models import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 from .role_based_recipient_strategy import RoleBasedRecipientStrategy
 
@@ -14,16 +11,14 @@ from .role_based_recipient_strategy import RoleBasedRecipientStrategy
 class MemberWriteRoleRecipientStrategy(RoleBasedRecipientStrategy):
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         valid_roles = (r.id for r in roles.get_all() if r.has_scope("member:write"))
-        teams = self.organization.get_teams_with_org_role(roles=valid_roles)
-        team_members = list(
-            OrganizationMemberTeam.objects.filter(
-                team_id__in=teams,
-            ).values_list("organizationmember_id", flat=True)
+
+        members = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
+            "id", flat=True
         )
         members: Iterable[
             OrganizationMember
         ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id).filter(
-            Q(role__in=valid_roles) | Q(id__in=team_members),
+            id__in=members,
         )
 
         for member in members:

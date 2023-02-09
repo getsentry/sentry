@@ -4,6 +4,7 @@ from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry.models import OrganizationMember
+from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
@@ -38,9 +39,10 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         if user.class_name() != "User":
             raise OrganizationMember.DoesNotExist()
         if user.id not in self.member_role_by_user_id:
-            self.member_role_by_user_id[user.id] = OrganizationMember.objects.get(
+            role = OrganizationMember.objects.get(
                 user_id=user.id, organization=self.organization
             ).role
+            self.member_role_by_user_id[user.id] = organization_roles.get(role).name
         return self.member_role_by_user_id[user.id]
 
     def set_members_roles_in_cache(self, members: Iterable[OrganizationMember], role: str) -> None:
