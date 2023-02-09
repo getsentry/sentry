@@ -143,6 +143,34 @@ export class SampledProfile extends Profile {
     return profile.build();
   }
 
+  static Example = SampledProfile.FromProfile(
+    {
+      startValue: 0,
+      endValue: 1000,
+      name: 'Example sampled profile',
+      threadID: 0,
+      unit: 'millisecond',
+      weights: [200, 200, 200, 200, 200],
+      samples: [
+        [0, 1, 2],
+        [0, 1, 2, 3, 4, 5],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3, 4],
+        [0, 1],
+      ],
+      type: 'sampled',
+    },
+    {
+      0: new Frame({key: 0, name: 'f0'}),
+      1: new Frame({key: 1, name: 'f1'}),
+      2: new Frame({key: 2, name: 'f2'}),
+      3: new Frame({key: 3, name: 'f3'}),
+      4: new Frame({key: 4, name: 'f4'}),
+      5: new Frame({key: 5, name: 'f5'}),
+    },
+    {type: 'flamechart'}
+  );
+
   appendSampleWithWeight(stack: Frame[], weight: number, end: number): void {
     // Keep track of discarded samples and ones that may have negative weights
     this.trackSampleStats(weight);
