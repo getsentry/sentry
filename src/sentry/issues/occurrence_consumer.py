@@ -214,9 +214,7 @@ def _validate_event_data(event_data: Mapping[str, Any]) -> None:
         raise InvalidEventPayloadError("Event payload does not match schema")
 
 
-def _process_message(
-    message: Mapping[str, Any]
-) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
+def _process_message(message: Mapping[str, Any]) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
     """
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
