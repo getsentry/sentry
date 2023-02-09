@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Tuple
 
 from sentry import features
 from sentry.experiments import manager as expt_manager
@@ -310,6 +310,19 @@ def get_send_to(
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
+def should_use_issue_alert_fallback(org: Organization) -> Tuple[bool, str]:
+    """
+    Remove after IssueAlertFallbackExperiment experiment
+    Returns a tuple of (enabled, analytics_label)
+    """
+    if org.flags.early_adopter.is_set:
+        return (True, "early")
+    org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) is not None
+    if org_exposed:
+        return (True, "expt")
+    return (False, "ctrl")
+
+
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[APIUser]:
@@ -331,8 +344,8 @@ def get_fallthrough_recipients(
         return user_service.get_from_project(project.id)
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=project.organization)
-        if project.organization.flags.early_adopter.is_set or org_exposed:
+        use_active_members, _ = should_use_issue_alert_fallback(org=project.organization)
+        if use_active_members:
             return user_service.get_many(
                 filter={
                     "user_ids": project.member_set.order_by("-user__last_active").values_list(

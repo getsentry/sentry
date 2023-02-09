@@ -13,8 +13,7 @@ class EmailNotificationSent(analytics.Event):
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("group_id", required=False),
         # Remove after IssueAlertFallbackExperiment
-        analytics.Attribute("has_fallback_experiment", required=False),
-        analytics.Attribute("is_early_access", required=False),
+        analytics.Attribute("fallback_experiment", required=False),
     )
 
 

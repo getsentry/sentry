@@ -6,7 +6,6 @@ from typing import Any, Iterable, Mapping, MutableMapping
 import pytz
 
 from sentry.db.models import Model
-from sentry.experiments import manager as expt_manager
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
@@ -26,7 +25,11 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import get_owner_reason, get_send_to
+from sentry.notifications.utils.participants import (
+    get_owner_reason,
+    get_send_to,
+    should_use_issue_alert_fallback,
+)
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GROUP_CATEGORIES_CUSTOM_EMAIL, GROUP_TYPE_TO_TEXT, GroupCategory
@@ -108,6 +111,11 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             fallthrough_choice=self.fallthrough_choice,
         )
+        fallback_param = ""
+        # Piggybacking off of notification_reason that already determines if we're using the fallback
+        if notification_reason and self.fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
+            _, fallback_experiment = should_use_issue_alert_fallback(org=self.organization)
+            fallback_param = f"&fallback={fallback_experiment}"
 
         context = {
             "project_label": self.project.get_full_name(),
@@ -122,7 +130,7 @@ class AlertRuleNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
-                "/settings/account/notifications/alerts/?referrer=alert_email"
+                f"/settings/account/notifications/alerts/?referrer=alert_email{fallback_param}"
             ),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
@@ -208,13 +216,10 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        _, fallback_experiment = should_use_issue_alert_fallback(org=self.organization)
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            # Remove after IssueAlertFallbackExperiment
-            "has_fallback_experiment": expt_manager.get(
-                "IssueAlertFallbackExperiment", org=self.organization
-            ),
-            "is_early_access": self.organization.flags.early_adopter.is_set,
+            "fallback_experiment": fallback_experiment,
             **super().get_log_params(recipient),
         }
