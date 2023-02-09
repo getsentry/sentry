@@ -55,7 +55,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
             first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
             last_seen=datetime(2018, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
         )
-        GroupAssignee.objects.create(user=self.user, group=event.group, project=self.project)
+        GroupAssignee.objects.create(user_id=self.user.id, group=event.group, project=self.project)
         OrganizationOnboardingTask.objects.create_or_update(
             organization_id=self.project.organization_id,
             task=OnboardingTask.FIRST_EVENT,

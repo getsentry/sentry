@@ -13,7 +13,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.committers import get_frame_paths
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestCommitContext(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -170,7 +170,7 @@ class TestCommitContext(TestCase):
         self.create_member(teams=[self.team], user=user_2, organization=self.organization)
         owner = GroupOwner.objects.create(
             group=self.event.group,
-            user=user_2,
+            user_id=user_2.id,
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -187,7 +187,7 @@ class TestCommitContext(TestCase):
             )
             assert not GroupOwner.objects.filter(id=owner.id).exists()
             assert GroupOwner.objects.filter(group=self.event.group).count() == 1
-            assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
+            assert GroupOwner.objects.filter(group=self.event.group, user_id=self.user.id).exists()
 
     def test_no_inapp_frame_in_stacktrace(self):
         with self.tasks():
@@ -273,7 +273,7 @@ class TestCommitContext(TestCase):
         assert len(GroupOwner.objects.filter(group=self.event.group)) == 1
         owner = GroupOwner.objects.get(group=self.event.group)
         assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
-        assert owner.user is None
+        assert owner.user_id is None
         assert owner.team is None
         assert owner.context == {"commitId": self.commit_2.id}
 
@@ -332,6 +332,6 @@ class TestCommitContext(TestCase):
         assert len(GroupOwner.objects.filter(group=self.event.group)) == 1
         owner = GroupOwner.objects.get(group=self.event.group)
         assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
-        assert owner.user is None
+        assert owner.user_id is None
         assert owner.team is None
         assert owner.context == {"commitId": self.commit_2.id}
