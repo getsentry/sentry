@@ -4,10 +4,10 @@ from unittest.mock import Mock, call
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.grouptype.grouptype import PerformanceMNPlusOneDBQueriesGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
     MNPlusOneDBSpanDetector,
     PerformanceProblem,
@@ -37,7 +37,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint="1-1011-de75036b0dce394e0b23aaabf553ad9f8156f22b",
                 op="db",
-                type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceMNPlusOneDBQueriesGroupType,
                 desc="SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
                 parent_span_ids=[],
                 cause_span_ids=[],

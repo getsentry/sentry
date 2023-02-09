@@ -76,6 +76,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
+from sentry.grouptype.grouptype import GroupType
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -126,7 +127,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
+from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -155,14 +156,6 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-
-DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
-GROUPHASH_IGNORE_LIMIT_MAP = {
-    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
-    GroupType.PERFORMANCE_SLOW_DB_QUERY: 100,
-    GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: 15,
-    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: 10,
-}
 
 
 @dataclass
@@ -2298,7 +2291,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     for new_grouphash in new_grouphashes:
                         group_type = performance_problems_by_hash[new_grouphash].type
-                        if not should_create_group(client, new_grouphash, group_type):
+                        if not should_create_group(client, new_grouphash, group_type, project):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2332,12 +2325,12 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         problem = performance_problems_by_hash[new_grouphash]
 
                         span.set_tag("create_group_transaction.outcome", "no_group")
-                        span.set_tag("group_type", problem.type.name)
+                        span.set_tag("group_type", problem.type.slug)
                         metric_tags["create_group_transaction.outcome"] = "no_group"
-                        metric_tags["group_type"] = problem.type.name
+                        metric_tags["group_type"] = problem.type.slug.upper()
 
                         group_kwargs = kwargs.copy()
-                        group_kwargs["type"] = problem.type.value
+                        group_kwargs["type"] = problem.type.type_id
 
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                             group_kwargs["data"]["metadata"], problem
@@ -2411,28 +2404,29 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
-    times_seen = client.incr(f"grouphash:{grouphash}")
+def should_create_group(client: Any, grouphash: str, type: GroupType, project: Project) -> bool:
+    key = f"grouphash:{grouphash}:{project.id}"
+    times_seen = client.incr(key)
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
         tags={
             "times_seen": times_seen,
-            "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
+            "group_type": type.description,
         },
         sample_rate=1.0,
     )
 
-    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
+    if times_seen >= type.ignore_limit:
         client.delete(grouphash)
         metrics.incr(
             "performance.performance_issue.issue_will_be_created",
-            tags={"group_type": type.name},
+            tags={"group_type": type.slug},
             sample_rate=1.0,
         )
 
         return True
     else:
-        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+        client.expire(key, 60 * 60 * 24)  # 24 hour expiration from last seen
         return False
 
 

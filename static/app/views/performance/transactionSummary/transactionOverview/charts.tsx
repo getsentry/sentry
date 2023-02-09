@@ -15,10 +15,14 @@ import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  canUseMetricsInTransactionSummary,
+  getTransactionMEPParamsIfApplicable,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
@@ -72,17 +76,19 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  totalValues: number | null;
+  totalValue: number | null;
   withoutZerofill: boolean;
+  unfilteredTotalValue?: number | null;
 };
 
 function TransactionSummaryCharts({
-  totalValues,
+  totalValue,
   eventView,
   organization,
   location,
   currentFilter,
   withoutZerofill,
+  unfilteredTotalValue,
 }: Props) {
   function handleDisplayChange(value: string) {
     const display = decodeScalar(location.query.display, DisplayModes.DURATION);
@@ -161,6 +167,23 @@ function TransactionSummaryCharts({
     organization,
     location
   );
+  // For mep-incompatible displays hide event count
+  const hideTransactionCount =
+    canUseMetricsInTransactionSummary(organization) && display === DisplayModes.TREND;
+
+  // For partially-mep-compatible displays show event count as a %
+  const showTransactionCountAsPercentage =
+    canUseMetricsInTransactionSummary(organization) && display === DisplayModes.LATENCY;
+
+  function getTotalValue() {
+    if (totalValue === null || hideTransactionCount) {
+      return <Placeholder height="24px" />;
+    }
+    if (showTransactionCountAsPercentage && unfilteredTotalValue) {
+      return formatPercentage(totalValue / unfilteredTotalValue);
+    }
+    return totalValue.toLocaleString();
+  }
 
   return (
     <Panel>
@@ -177,6 +200,7 @@ function TransactionSummaryCharts({
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
             queryExtras={queryExtras}
+            totalCount={showTransactionCountAsPercentage ? totalValue : null}
           />
         )}
         {display === DisplayModes.DURATION && (
@@ -254,14 +278,10 @@ function TransactionSummaryCharts({
 
       <ChartControls>
         <InlineContainer>
-          <SectionHeading key="total-heading">{t('Total Transactions')}</SectionHeading>
-          <SectionValue key="total-value">
-            {totalValues === null ? (
-              <Placeholder height="24px" />
-            ) : (
-              totalValues.toLocaleString()
-            )}
-          </SectionValue>
+          <SectionHeading key="total-heading">
+            {hideTransactionCount ? '' : t('Total Transactions')}
+          </SectionHeading>
+          <SectionValue key="total-value">{getTotalValue()}</SectionValue>
         </InlineContainer>
         <InlineContainer>
           {display === DisplayModes.TREND && (

@@ -8,6 +8,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.utils import timezone
 
+from sentry.grouptype.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models import (
     Activity,
     ApiToken,
@@ -35,7 +36,6 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
@@ -1215,9 +1215,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
-        group2 = self.create_group(times_seen=50, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
-        group3 = self.create_group(times_seen=2, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
+        group1 = self.create_group(times_seen=1, type=PerformanceSlowDBQueryGroupType.type_id)
+        group2 = self.create_group(times_seen=50, type=PerformanceSlowDBQueryGroupType.type_id)
+        group3 = self.create_group(times_seen=2, type=PerformanceSlowDBQueryGroupType.type_id)
         self.create_group()
 
         self.login_as(user=self.user)
@@ -1417,10 +1417,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
-            status=GroupStatus.RESOLVED, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value
+            status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
         )
         group2 = self.create_group(
-            status=GroupStatus.UNRESOLVED, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value
+            status=GroupStatus.UNRESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
         )
 
         hashes = []
@@ -1490,7 +1490,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 self.create_group(
                     project=self.project,
                     status=GroupStatus.RESOLVED,
-                    type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value,
+                    type=PerformanceSlowDBQueryGroupType.type_id,
                 )
             )
 

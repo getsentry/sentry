@@ -353,7 +353,7 @@ class GroupSerializerBase(Serializer, ABC):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
-            "issueType": obj.issue_type.name.lower(),
+            "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
 
@@ -921,11 +921,13 @@ class GroupSerializerSnuba(GroupSerializerBase):
                             "environment_id": environment_ids,
                         },
                     )
+
                     # if no re-formatted conditions, use fallback method
-                    conditions.append(
-                        formatted_conditions[0]
-                        if formatted_conditions
-                        else convert_search_filter_to_snuba_query(
+                    new_condition = None
+                    if formatted_conditions:
+                        new_condition = formatted_conditions[0]
+                    elif group_ids:
+                        new_condition = convert_search_filter_to_snuba_query(
                             search_filter,
                             params={
                                 "organization_id": organization_id,
@@ -933,7 +935,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
                                 "environment_id": environment_ids,
                             },
                         )
-                    )
+
+                    if new_condition:
+                        conditions.append(new_condition)
         self.conditions = conditions
 
     def _seen_stats_error(

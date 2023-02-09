@@ -405,6 +405,14 @@ class ReplayQueryConfig(QueryConfig):
     sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
     sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
 
+    # These are object-type fields.  User's who query by these fields are likely querying by
+    # the "name" value.
+    user = String(field_alias="user", query_alias="user_name")
+    os = String(field_alias="os", query_alias="os_name")
+    browser = String(field_alias="browser", query_alias="browser_name")
+    device = String(field_alias="device", query_alias="device_name")
+    sdk = String(field_alias="sdk", query_alias="sdk_name")
+
     # Tag
     tags = Tag(field_alias="*")
 

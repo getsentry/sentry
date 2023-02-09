@@ -481,6 +481,16 @@ urlpatterns += [
                     name="sentry-customer-domain-developer-settings-settings",
                 ),
                 url(
+                    r"^document-integrations/",
+                    react_page_view,
+                    name="sentry-customer-domain-document-integrations-settings",
+                ),
+                url(
+                    r"^sentry-apps/",
+                    react_page_view,
+                    name="sentry-customer-domain-sentry-apps-settings",
+                ),
+                url(
                     r"^billing/",
                     react_page_view,
                     name="sentry-customer-domain-billing-settings",
@@ -535,6 +545,11 @@ urlpatterns += [
         name="integration-installation",
     ),
     # Issues
+    url(
+        r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        GroupTagExportView.as_view(),
+        name="sentry-customer-domain-sentry-group-tag-export",
+    ),
     url(r"^issues/", react_page_view, name="issues"),
     # Alerts
     url(r"^alerts/", react_page_view, name="alerts"),

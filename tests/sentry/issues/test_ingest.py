@@ -1,8 +1,10 @@
 from dataclasses import replace
+from datetime import datetime
 from hashlib import md5
 from unittest import mock
 
 from sentry.constants import LOG_LEVELS_MAP
+from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
@@ -15,7 +17,6 @@ from sentry.models import Group
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -46,8 +47,10 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
         # assert result["data"][0]["group_ids"] == [self.group.id]
 
     def test_different_ids(self) -> None:
-        event_data = load_data("generic-event")
-        event = self.store_event(data=event_data, project_id=self.project.id)
+        event_data = load_data("generic-event-profiling").data
+        project_id = event_data["event"].pop("project_id", self.project.id)
+        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
             ValueError, "IssueOccurrence must have the same event_id as the passed Event"
@@ -118,7 +121,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            fingerprint=occurrence.fingerprint, type=PerformanceNPlusOneGroupType.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
@@ -158,7 +161,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,
-            "type": occurrence.type.value,
+            "type": occurrence.type.type_id,
             "first_release": None,
             "data": materialize_metadata(occurrence, event),
         }
@@ -182,8 +185,10 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 @region_silo_test
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        event_data = load_data("generic-event")
-        event = self.store_event(data=event_data, project_id=self.project.id)
+        event_data = load_data("generic-event-profiling").data
+        project_id = event_data["event"].pop("project_id")
+        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None

@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry.grouptype.grouptype import ErrorGroupType, PerformanceNPlusOneGroupType
 from sentry.models import Activity, Group, Project
 from sentry.rules.history.preview import (
     FREQUENCY_CONDITION_GROUP_LIMIT,
@@ -17,7 +18,6 @@ from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
-from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 
 MATCH_ARGS = ("all", "all", 0)
@@ -34,7 +34,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         super().setUp()
         self.transaction_data = load_data(
             "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
 
     def _set_up_first_seen(self):
@@ -170,7 +170,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             if i % 2:
                 errors.append(
                     Group.objects.create(
-                        project=self.project, first_seen=prev_hour, type=GroupType.ERROR.value
+                        project=self.project, first_seen=prev_hour, type=ErrorGroupType.type_id
                     )
                 )
             else:
@@ -178,7 +178,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                     Group.objects.create(
                         project=self.project,
                         first_seen=prev_hour,
-                        type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+                        type=PerformanceNPlusOneGroupType.type_id,
                     )
                 )
 
@@ -186,7 +186,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         filters = [
             {
                 "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": GroupType.ERROR.value,
+                "value": ErrorGroupType.type_id,
             }
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
@@ -486,7 +486,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase):
         super().setUp()
         self.transaction_data = load_data(
             "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
 
     def test_top_groups(self):

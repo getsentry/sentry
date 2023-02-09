@@ -15,7 +15,7 @@ type Props = {
 export function EventContexts({event, group}: Props) {
   const {user, contexts} = event;
 
-  const {feedback, ...otherContexts} = contexts;
+  const {feedback, ...otherContexts} = contexts ?? {};
 
   const usingOtel = useCallback(
     () => otherContexts.otel !== undefined,

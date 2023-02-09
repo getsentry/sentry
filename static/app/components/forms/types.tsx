@@ -5,7 +5,7 @@ import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import FormModel from 'sentry/components/forms/model';
-import {AvatarProject, Project} from 'sentry/types';
+import {AvatarProject, Project, SelectValue} from 'sentry/types';
 
 export const FieldType = [
   'array',
@@ -118,7 +118,7 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   filterOption?: ReturnType<typeof createFilter>;
   multiple?: boolean;
   noOptionsMessage?: () => string;
-  options?: Array<{label: React.ReactNode; value: any}>;
+  options?: SelectValue<any>[];
 };
 
 type TextareaType = {type: 'textarea'} & {
