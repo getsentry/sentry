@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -128,6 +130,16 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
 
   const showWireframe = project?.platform !== 'unity';
 
+  if (!hierarchy.length) {
+    return (
+      <EmptyStateContainer>
+        <EmptyStateWarning small>
+          {t('There is no view hierarchy data to visualize')}
+        </EmptyStateWarning>
+      </EmptyStateContainer>
+    );
+  }
+
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
@@ -227,4 +239,9 @@ const DepthMarker = styled('div')`
 
 const GhostRow = styled('div')`
   top: ${space(1.5)};
+`;
+
+const EmptyStateContainer = styled('div')`
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
 `;
