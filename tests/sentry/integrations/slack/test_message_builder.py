@@ -7,6 +7,7 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.eventstore.models import Event
+from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
@@ -20,7 +21,6 @@ from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -173,7 +173,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         occurrence.save(project_id=self.project.id)
         event.occurrence = occurrence
 
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        event.group.type = ProfileBlockedThreadGroupType.type_id
 
         attachments = SlackIssuesMessageBuilder(group=event.group, event=event).build()
 
@@ -204,7 +204,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         could happen in that case (it is optional). It also creates a performance group that won't
         have a latest event attached to it to mimic a specific edge case.
         """
-        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         attachments = SlackIssuesMessageBuilder(perf_group).build()
 
         assert attachments["color"] == "#2788CE"  # blue for info level

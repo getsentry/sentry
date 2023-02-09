@@ -13,7 +13,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TimeSince from 'sentry/components/timeSince';
-import timezones from 'sentry/data/timezones';
+import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
@@ -222,7 +222,7 @@ class MonitorForm extends Component<Props> {
                           name="config.timezone"
                           label={t('Timezone')}
                           defaultValue="UTC"
-                          options={timezones.map(([value, label]) => ({value, label}))}
+                          options={timezoneOptions}
                           help={tct(
                             "The timezone of your execution environment. Be sure to set this correctly, otherwise the schedule may be mismatched and check-ins will be marked as missed! Use [code:timedatectl] or similar to determine your machine's timezone.",
                             {code: <code />}

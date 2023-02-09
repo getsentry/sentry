@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -48,6 +50,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
     viewHierarchy.windows[0]
   );
+  const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;
   }, [viewHierarchy.windows]);
@@ -82,6 +85,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onClick={e => {
           handleRowClick(e);
           setSelectedNode(r.item.node);
+          setUserHasSelected(true);
         }}
       >
         {depthMarkers}
@@ -116,7 +120,8 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
 
   // Scroll to the selected node when it changes
   const onWireframeNodeSelect = useCallback(
-    (node: ViewHierarchyWindow) => {
+    (node?: ViewHierarchyWindow) => {
+      setUserHasSelected(true);
       setSelectedNode(node);
       handleScrollTo(item => item === node);
     },
@@ -124,6 +129,16 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   );
 
   const showWireframe = project?.platform !== 'unity';
+
+  if (!hierarchy.length) {
+    return (
+      <EmptyStateContainer>
+        <EmptyStateWarning small>
+          {t('There is no view hierarchy data to visualize')}
+        </EmptyStateWarning>
+      </EmptyStateContainer>
+    );
+  }
 
   return (
     <Fragment>
@@ -147,7 +162,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         </Left>
         {showWireframe && (
           <Right>
-            <Wireframe hierarchy={hierarchy} onNodeSelect={onWireframeNodeSelect} />
+            <Wireframe
+              hierarchy={hierarchy}
+              selectedNode={userHasSelected ? selectedNode : undefined}
+              onNodeSelect={onWireframeNodeSelect}
+            />
           </Right>
         )}
       </Content>
@@ -220,4 +239,9 @@ const DepthMarker = styled('div')`
 
 const GhostRow = styled('div')`
   top: ${space(1.5)};
+`;
+
+const EmptyStateContainer = styled('div')`
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
 `;

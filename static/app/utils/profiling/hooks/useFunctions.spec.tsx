@@ -1,4 +1,5 @@
 import {ReactElement, useMemo} from 'react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -22,11 +23,15 @@ const selection: PageFilters = {
 
 function TestContext({children}: {children: ReactElement}) {
   const {organization} = useMemo(() => initializeOrg(), []);
+  // ensure client is rebuilt on each render otherwise caching will interfere with subsequent tests
+  const client = useMemo(() => new QueryClient(), []);
 
   return (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
+    <QueryClientProvider client={client}>
+      <OrganizationContext.Provider value={organization}>
+        {children}
+      </OrganizationContext.Provider>
+    </QueryClientProvider>
   );
 }
 
@@ -36,17 +41,26 @@ describe('useFunctions', function () {
   });
 
   it('initializes with the loading state', function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/profiling/functions/`,
+      body: {functions: []},
+    });
     const hook = reactHooks.renderHook(
       () =>
         useFunctions({
           project,
           query: '',
+          selection,
           transaction: '',
           sort: '-p99',
         }),
       {wrapper: TestContext}
     );
-    expect(hook.result.current).toEqual({type: 'initial'});
+    expect(hook.result.current).toMatchObject(
+      expect.objectContaining({
+        isInitialLoading: true,
+      })
+    );
   });
 
   it('fetches functions', async function () {
@@ -66,15 +80,20 @@ describe('useFunctions', function () {
         }),
       {wrapper: TestContext}
     );
-    expect(hook.result.current).toEqual({type: 'loading'});
+    expect(hook.result.current.isLoading).toEqual(true);
+    expect(hook.result.current.isFetched).toEqual(false);
     await hook.waitForNextUpdate();
-    expect(hook.result.current).toEqual({
-      type: 'resolved',
-      data: {
-        functions: [],
-        pageLinks: null,
-      },
-    });
+    expect(hook.result.current).toMatchObject(
+      expect.objectContaining({
+        isLoading: false,
+        isFetched: true,
+        data: expect.arrayContaining([
+          {
+            functions: expect.any(Array),
+          },
+        ]),
+      })
+    );
   });
 
   it('fetches application functions', async function () {
@@ -96,15 +115,19 @@ describe('useFunctions', function () {
         }),
       {wrapper: TestContext}
     );
-    expect(hook.result.current).toEqual({type: 'loading'});
+    expect(hook.result.current.isLoading).toEqual(true);
     await hook.waitForNextUpdate();
-    expect(hook.result.current).toEqual({
-      type: 'resolved',
-      data: {
-        functions: [],
-        pageLinks: null,
-      },
-    });
+    expect(hook.result.current).toMatchObject(
+      expect.objectContaining({
+        isLoading: false,
+        isFetched: true,
+        data: expect.arrayContaining([
+          {
+            functions: expect.any(Array),
+          },
+        ]),
+      })
+    );
 
     expect(mock).toHaveBeenCalledTimes(1);
   });
@@ -128,15 +151,19 @@ describe('useFunctions', function () {
         }),
       {wrapper: TestContext}
     );
-    expect(hook.result.current).toEqual({type: 'loading'});
+    expect(hook.result.current.isLoading).toEqual(true);
     await hook.waitForNextUpdate();
-    expect(hook.result.current).toEqual({
-      type: 'resolved',
-      data: {
-        functions: [],
-        pageLinks: null,
-      },
-    });
+    expect(hook.result.current).toMatchObject(
+      expect.objectContaining({
+        isLoading: false,
+        isFetched: true,
+        data: expect.arrayContaining([
+          {
+            functions: expect.any(Array),
+          },
+        ]),
+      })
+    );
 
     expect(mock).toHaveBeenCalledTimes(1);
   });
@@ -160,16 +187,45 @@ describe('useFunctions', function () {
         }),
       {wrapper: TestContext}
     );
-    expect(hook.result.current).toEqual({type: 'loading'});
+    expect(hook.result.current.isLoading).toEqual(true);
     await hook.waitForNextUpdate();
-    expect(hook.result.current).toEqual({
-      type: 'resolved',
-      data: {
-        functions: [],
-        pageLinks: null,
-      },
-    });
+    expect(hook.result.current).toMatchObject(
+      expect.objectContaining({
+        isLoading: false,
+        isFetched: true,
+        data: expect.arrayContaining([
+          {
+            functions: expect.any(Array),
+          },
+        ]),
+      })
+    );
 
     expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('errors when selection is undefined or transaction is null', async function () {
+    jest.spyOn(console, 'error').mockImplementation();
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/profiling/functions/`,
+      body: {functions: []},
+    });
+    const hook = reactHooks.renderHook(
+      () =>
+        useFunctions({
+          project,
+          query: '',
+          transaction: '',
+          sort: '-p99',
+        }),
+      {wrapper: TestContext}
+    );
+    await hook.waitForNextUpdate();
+    expect(hook.result.current).toMatchObject(
+      expect.objectContaining({
+        isError: true,
+        error: expect.any(Error),
+      })
+    );
   });
 });

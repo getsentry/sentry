@@ -16,8 +16,8 @@ To add support for a new issue category/dataset:
 
 # Maps group category to dataset
 GROUP_CATEGORY_TO_DATASET: Dict[GroupCategory, Dataset] = {
-    GroupCategory.ERROR: Dataset.Events,
-    GroupCategory.PERFORMANCE: Dataset.Transactions,
+    GroupCategory.ERROR.value: Dataset.Events,
+    GroupCategory.PERFORMANCE.value: Dataset.Transactions,
 }
 
 # Maps datasets to snuba column name

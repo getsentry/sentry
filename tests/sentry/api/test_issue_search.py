@@ -21,10 +21,11 @@ from sentry.api.issue_search import (
     value_converters,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.grouptype.grouptype import get_group_types_by_category
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory
+from sentry.types.issues import GroupCategory
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -279,19 +280,20 @@ class ConvertFirstReleaseValueTest(TestCase):
 @region_silo_test(stable=True)
 class ConvertCategoryValueTest(TestCase):
     def test(self):
-        assert set(convert_category_value(["error"], [self.project], self.user, None)) == {
-            gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.ERROR]
-        }
-        assert set(convert_category_value(["performance"], [self.project], self.user, None)) == {
-            gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
-        }
-        assert set(
-            convert_category_value(["error", "performance"], [self.project], self.user, None)
-        ) == {
-            gt.value
-            for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.ERROR]
-            + GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
-        }
+        error_group_types = get_group_types_by_category(GroupCategory.ERROR.value)
+        perf_group_types = get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+        assert (
+            set(convert_category_value(["error"], [self.project], self.user, None))
+            == error_group_types
+        )
+        assert (
+            set(convert_category_value(["performance"], [self.project], self.user, None))
+            == perf_group_types
+        )
+        assert (
+            set(convert_category_value(["error", "performance"], [self.project], self.user, None))
+            == error_group_types | perf_group_types
+        )
         with pytest.raises(InvalidSearchQuery):
             convert_category_value(["hellboy"], [self.project], self.user, None)
 
@@ -309,5 +311,5 @@ class ConvertTypeValueTest(TestCase):
         assert convert_type_value(
             ["error", "performance_n_plus_one_db_queries"], [self.project], self.user, None
         ) == [1, 1006]
-        with pytest.raises(InvalidSearchQuery):
+        with pytest.raises(ValueError):
             convert_type_value(["hellboy"], [self.project], self.user, None)
