@@ -38,7 +38,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         installation = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
-        return app_service.serialize_sentry_app_installation(installation, sentry_app)
+        return app_service._serialize_rpc(installation)
 
     def test_build_action_response_email(self):
         data = build_action_response(self.email)

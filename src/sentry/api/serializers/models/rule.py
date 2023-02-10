@@ -84,7 +84,10 @@ class RuleSerializer(Serializer):
 
         for k, v in ACTOR_TYPES.items():
             if k == "user":
-                resolved_actors[k] = user_service.get_many(filter={"actor_ids": owners_by_type[k]})
+                resolved_actors[k] = {
+                    a.actor_id: a.id
+                    for a in user_service.get_many(filter={"actor_ids": owners_by_type[k]})
+                }
             elif k == "team":
                 resolved_actors[k] = {
                     a.actor_id: a.id

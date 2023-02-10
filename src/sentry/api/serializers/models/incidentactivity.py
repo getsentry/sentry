@@ -11,7 +11,7 @@ class IncidentActivitySerializer(Serializer):
         prefetch_related_objects(item_list, "incident__organization")
         prefetch_related_objects(item_list, "user")
         serialized_users = user_service.serialize_many(
-            filter={"user_ids": [i.user_id for i in item_list]}, as_user=user
+            filter={"user_ids": [i.user_id for i in item_list if i.user_id]}, as_user=user
         )
         user_lookup = {user["id"]: user for user in serialized_users}
         return {item: {"user": user_lookup.get(str(item.user_id))} for item in item_list}
