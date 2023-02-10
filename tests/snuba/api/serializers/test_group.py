@@ -27,7 +27,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -451,7 +450,7 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
+        first_group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
         timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):
@@ -498,7 +497,7 @@ class ProfilingGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
+        first_group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group1"
         timestamp = timezone.now().replace(hour=0, minute=0, second=0)
         times = 5
         for incr in range(0, times):
