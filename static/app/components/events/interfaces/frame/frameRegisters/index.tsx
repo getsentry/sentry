@@ -119,7 +119,7 @@ const StyledClippedBox = styled(ClippedBox)<{
       }
 
       > *:last-child {
-        background: ${p.theme.white};
+        background: ${p.theme.background};
         right: 0;
         bottom: 0;
         width: 100%;
@@ -129,7 +129,7 @@ const StyledClippedBox = styled(ClippedBox)<{
 `;
 
 const ClipFade = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   display: flex;
   justify-content: flex-end;
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
