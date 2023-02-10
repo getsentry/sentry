@@ -76,7 +76,7 @@ def get_update_kwargs_for_groups(
     group_ids: Sequence[int],
     kwargs: Dict[str, Any],
     has_issue_state_condition: bool = True,
-):
+) -> Dict[str, Any]:
     if dataset == Dataset.Transactions:
         return _transactions_from_groups_kwargs(group_ids, kwargs, has_issue_state_condition)
     return _events_from_groups_kwargs(group_ids, kwargs, has_issue_state_condition)
@@ -97,7 +97,9 @@ Returns the rows that reference the group id without arrayjoining.
 """
 
 
-def get_update_kwargs_for_group(dataset: Dataset, group_id: int, kwargs: Dict[str, Any]):
+def get_update_kwargs_for_group(
+    dataset: Dataset, group_id: int, kwargs: Dict[str, Any]
+) -> Dict[str, Any]:
     if dataset == Dataset.Transactions:
         return _transactions_from_group_kwargs(group_id, kwargs)
     return _events_from_group_kwargs(group_id, kwargs)
