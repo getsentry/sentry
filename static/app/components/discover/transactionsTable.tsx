@@ -251,13 +251,13 @@ class TransactionsTable extends PureComponent<Props> {
 }
 
 function getProfileAnalyticsHandler(organization: Organization, referrer?: string) {
-  let source;
-  if (referrer === 'performance.transactions_summary') {
-    source = 'performance.transactions_summary';
-  } else {
-    source = 'discover.transactions_table';
-  }
   return () => {
+    let source;
+    if (referrer === 'performance.transactions_summary') {
+      source = 'performance.transactions_summary.overview';
+    } else {
+      source = 'discover.transactions_table';
+    }
     trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
       organization,
       source,

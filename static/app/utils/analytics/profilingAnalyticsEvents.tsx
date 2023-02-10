@@ -4,7 +4,7 @@ type ProfilingEventSource =
   | 'discover.transactions_table'
   | 'performance.missing_instrumentation'
   | 'performance.trace_view'
-  | 'performance.transactions_summary'
+  | 'performance.transactions_summary.overview'
   | 'slowest_transaction_panel'
   | 'transaction_details'
   | 'transaction_hovercard.trigger'
