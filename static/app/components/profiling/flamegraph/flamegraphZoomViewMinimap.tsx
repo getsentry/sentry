@@ -16,7 +16,7 @@ import {
   getPhysicalSpacePositionFromOffset,
   Rect,
 } from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';

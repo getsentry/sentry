@@ -1,4 +1,4 @@
-import {vec2} from 'gl-matrix';
+import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
@@ -98,5 +98,9 @@ export class FlamegraphRenderer {
     _searchResults: FlamegraphSearch['results']['frames']
   ) {
     throw new Error('Method `setSearchResults` not implemented.');
+  }
+
+  draw(_configViewToPhysicalSpace: mat3): void {
+    throw new Error('Method `draw` not implemented.');
   }
 }
