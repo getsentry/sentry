@@ -404,6 +404,8 @@ function SummaryContent({
           transactionName={transactionName}
           currentFilter={spanOperationBreakdownFilter}
         />
+
+        <SuspectFunctionsTable project={project} transaction={transactionName} />
         <RelatedIssues
           organization={organization}
           location={location}
@@ -412,10 +414,6 @@ function SummaryContent({
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
         />
-
-        {project && (
-          <SuspectFunctionsTable project={project} transaction={transactionName} />
-        )}
       </Layout.Main>
       <Layout.Side>
         <UserStats
