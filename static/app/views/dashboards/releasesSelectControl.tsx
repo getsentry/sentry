@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import Badge from 'sentry/components/badge';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
