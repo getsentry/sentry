@@ -170,6 +170,8 @@ default_manager.add("organizations:transaction-metrics-extraction", Organization
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
+default_manager.add("organizations:commit-context-fallback", OrganizationFeature, True)
+
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 

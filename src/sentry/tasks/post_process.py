@@ -754,9 +754,15 @@ def process_commits(job: PostProcessJob) -> None:
                     organizations=event.project.organization,
                     provider__in=["github", "gitlab"],
                 )
+                use_fallback = (
+                    features.has(
+                        "organizations:commit-context-fallback", event.project.organization
+                    )
+                    and not integrations.exists()
+                )
                 if (
                     features.has("organizations:commit-context", event.project.organization)
-                    and integrations.exists()
+                    and not use_fallback
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
