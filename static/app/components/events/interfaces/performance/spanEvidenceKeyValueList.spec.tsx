@@ -317,6 +317,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
     });
   });
 
