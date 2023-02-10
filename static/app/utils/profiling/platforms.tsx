@@ -1,4 +1,4 @@
-import {profiling} from 'sentry/data/platformCategories';
+import {PlatformKey, profiling} from 'sentry/data/platformCategories';
 import {Project} from 'sentry/types/project';
 
 export const supportedProfilingPlatforms = profiling;
@@ -14,7 +14,7 @@ export type SupportedProfilingPlatformSDK =
   (typeof supportedProfilingPlatformSDKs)[number];
 
 export function getDocsPlatformSDKForPlatform(
-  platform
+  platform: PlatformKey | undefined
 ): SupportedProfilingPlatform | null {
   if (!platform) {
     return null;
