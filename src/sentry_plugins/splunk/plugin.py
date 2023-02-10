@@ -175,11 +175,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         if super().is_ratelimited(event):
             metrics.incr(
                 "integrations.splunk.forward-event.rate-limited",
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
+                tags={"event_type": event.get_event_type()},
             )
             return True
         return False
@@ -197,11 +193,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         if not (self.project_token and self.project_index and self.project_instance):
             metrics.incr(
                 "integrations.splunk.forward-event.unconfigured",
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
+                tags={"event_type": event.get_event_type()},
             )
             return False
 
@@ -215,14 +207,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             client.request(payload)
         except Exception as exc:
             metric = "integrations.splunk.forward-event.error"
-            metrics.incr(
-                metric,
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
-            )
+            metrics.incr(metric, tags={"event_type": event.get_event_type()})
             logger.info(
                 metric,
                 extra={
@@ -245,11 +230,6 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             raise exc
 
         metrics.incr(
-            "integrations.splunk.forward-event.success",
-            tags={
-                "project_id": event.project_id,
-                "organization_id": event.project.organization_id,
-                "event_type": event.get_event_type(),
-            },
+            "integrations.splunk.forward-event.success", tags={"event_type": event.get_event_type()}
         )
         return True
