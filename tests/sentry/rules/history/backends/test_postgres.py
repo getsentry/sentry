@@ -8,6 +8,7 @@ from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import region_silo_test
 
 
 class BasePostgresRuleHistoryBackendTest(TestCase):
@@ -15,6 +16,7 @@ class BasePostgresRuleHistoryBackendTest(TestCase):
         self.backend = PostgresRuleHistoryBackend()
 
 
+@region_silo_test(stable=True)
 class RecordTest(BasePostgresRuleHistoryBackendTest):
     def test(self):
         rule = Rule.objects.create(project=self.event.project)
@@ -30,6 +32,7 @@ class RecordTest(BasePostgresRuleHistoryBackendTest):
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def run_test(self, rule, start, end, expected, cursor=None, per_page=25):
         result = self.backend.fetch_rule_groups_paginated(rule, start, end, cursor, per_page)
@@ -190,6 +193,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test(self):
         rule = Rule.objects.create(project=self.event.project)

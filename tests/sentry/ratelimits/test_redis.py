@@ -4,8 +4,10 @@ from freezegun import freeze_time
 
 from sentry.ratelimits.redis import RedisRateLimiter
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class RedisRateLimiterTest(TestCase):
     def setUp(self):
         self.backend = RedisRateLimiter()
