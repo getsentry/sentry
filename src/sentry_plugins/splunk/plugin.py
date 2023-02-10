@@ -173,7 +173,10 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
     def is_ratelimited(self, event):
         if super().is_ratelimited(event):
-            metrics.incr("integrations.splunk.forward-event.rate-limited")
+            metrics.incr(
+                "integrations.splunk.forward-event.rate-limited",
+                tags={"event_type": event.get_event_type()},
+            )
             return True
         return False
 
@@ -188,7 +191,10 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
     def forward_event(self, event: Event, payload: MutableMapping[str, Any]) -> bool:
         if not (self.project_token and self.project_index and self.project_instance):
-            metrics.incr("integrations.splunk.forward-event.unconfigured")
+            metrics.incr(
+                "integrations.splunk.forward-event.unconfigured",
+                tags={"event_type": event.get_event_type()},
+            )
             return False
 
         if self.host:
@@ -201,7 +207,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             client.request(payload)
         except Exception as exc:
             metric = "integrations.splunk.forward-event.error"
-            metrics.incr(metric)
+            metrics.incr(metric, tags={"event_type": event.get_event_type()})
             logger.info(
                 metric,
                 extra={
