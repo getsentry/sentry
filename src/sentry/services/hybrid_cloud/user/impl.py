@@ -17,6 +17,7 @@ from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.rpc.endpoints import rpc_method, rpc_service
 from sentry.services.hybrid_cloud.user import (
     APIAvatar,
     APIUser,
@@ -25,12 +26,15 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserService,
 )
+from sentry.silo import SiloMode
 
 
+@rpc_service(SiloMode.CONTROL, "user")
 class DatabaseBackedUserService(
     FilterQueryDatabaseImpl[User, UserFilterArgs, APIUser, UserSerializeType],
     UserService,
 ):
+    @rpc_method
     def get_many_by_email(
         self, emails: List[str], is_active: bool = True, is_verified: bool = True
     ) -> List[APIUser]:
