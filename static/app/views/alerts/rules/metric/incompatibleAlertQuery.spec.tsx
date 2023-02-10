@@ -48,7 +48,9 @@ describe('IncompatibleAlertQuery', () => {
       projects: [2],
     });
     renderComponent(eventView);
-    expect(screen.getByText("An event type wasn't selected")).toBeInTheDocument();
+    expect(screen.getByText(/An event type wasn't selected/)).toHaveTextContent(
+      "An event type wasn't selected. event.type:error has been set as the default"
+    );
   });
 
   it('should warn when yAxis is not allowed', () => {
@@ -103,6 +105,8 @@ describe('IncompatibleAlertQuery', () => {
     });
     renderComponent(eventView);
     expect(screen.getByText('No project was selected')).toBeInTheDocument();
-    expect(screen.getByText("An event type wasn't selected")).toBeInTheDocument();
+    expect(screen.getByText(/An event type wasn't selected/)).toHaveTextContent(
+      "An event type wasn't selected. event.type:error has been set as the default"
+    );
   });
 });
