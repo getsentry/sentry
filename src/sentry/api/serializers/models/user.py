@@ -130,7 +130,8 @@ class UserSerializer(Serializer):  # type: ignore
         self, item_list: Sequence[User], user: User
     ) -> Dict[int, List[AuthIdentity]]:
         if not (env.request and is_active_superuser(env.request)):
-            item_list = [x for x in item_list if x.id == user.id]
+            is_user = isinstance(user, User) or isinstance(user, APIUser)
+            item_list = [x for x in item_list if is_user and x.id == user.id]
 
         queryset = AuthIdentity.objects.filter(
             user_id__in=[i.id for i in item_list]
