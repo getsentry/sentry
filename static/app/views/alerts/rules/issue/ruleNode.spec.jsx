@@ -106,7 +106,7 @@ describe('RuleNode', () => {
     },
   };
 
-  const renderRuleNode = (node, data) => {
+  const renderRuleNode = (node, data, org = organization) => {
     return render(
       <RuleNode
         index={index}
@@ -116,7 +116,7 @@ describe('RuleNode', () => {
           name: '(mock) A new issue is created',
           ...data,
         }}
-        organization={organization}
+        organization={org}
         project={project}
         onDelete={onDelete}
         onPropertyChange={onPropertyChange}
@@ -242,6 +242,19 @@ describe('RuleNode', () => {
     expect(onPropertyChange).toHaveBeenCalledTimes(2);
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetType', 'Team');
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetIdentifier', '');
+  });
+
+  it('renders mail action field with suggested assignees', async () => {
+    const fieldName = 'exampleMailActionField';
+    const label = `Send a notification to {${fieldName}}`;
+    const organizationWithFeat = {
+      ...organization,
+      features: ['streamline-targeting-context'],
+    };
+    renderRuleNode(formNode(label), {targetType: 'IssueOwners'}, organizationWithFeat);
+
+    expect(screen.getByText('Send a notification to')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('Suggested Assignees'), 'Team');
   });
 
   it('renders assignee field', async () => {
