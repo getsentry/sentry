@@ -133,7 +133,7 @@ class Monitors extends AsyncView<Props, State> {
                 <ProjectPageFilter resetParamsOnChange={['cursor']} />
                 <SearchBar
                   query={decodeScalar(qs.parse(location.search)?.query, '')}
-                  placeholder={t('Search for monitors')}
+                  placeholder={t('Search by name')}
                   onSearch={this.handleSearch}
                 />
               </Filters>
@@ -152,11 +152,13 @@ class Monitors extends AsyncView<Props, State> {
                             {monitor.name}
                           </StyledLink>
                         </MonitorName>
-                        {monitor.nextCheckIn ? (
-                          <StyledTimeSince date={monitor.lastCheckIn} />
-                        ) : (
-                          <div>{t('n/a')}</div>
-                        )}
+                        <div>
+                          {monitor.nextCheckIn ? (
+                            <StyledTimeSince date={monitor.lastCheckIn} />
+                          ) : (
+                            t('n/a')
+                          )}
+                        </div>
                         <IdBadge
                           project={monitor.project}
                           avatarSize={18}
