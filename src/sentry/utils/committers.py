@@ -312,12 +312,12 @@ def get_serialized_event_file_committers(
             return []
         commit = Commit.objects.get(id=owner.context.get("commitId"))
 
-        serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
-        author = (
-            serialized_owners[0]
-            if serialized_owners
-            else {"email": commit.author.email, "name": commit.author.name}
-        )
+        author = {"email": commit.author.email, "name": commit.author.name}
+        if owner.user_id is not None:
+            serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
+            # No guarantee that just because the user_id is set that the value exists, so we still have to check
+            if serialized_owners:
+                author = serialized_owners[0]
 
         return [
             {

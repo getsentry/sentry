@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import (
     Group,
     GroupLink,
@@ -19,7 +20,6 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 
 
 @region_silo_test(stable=True)
@@ -368,7 +368,7 @@ class GroupSerializerTest(TestCase):
             "timestamp": cur_time.timestamp(),
             "start_timestamp": cur_time.timestamp(),
             "received": cur_time.timestamp(),
-            "fingerprint": [f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            "fingerprint": [f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         }
         event = self.store_event(
             data=event_data,
