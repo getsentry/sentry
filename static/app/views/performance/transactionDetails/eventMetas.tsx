@@ -171,15 +171,13 @@ class EventMetas extends Component<Props, State> {
                   subtext={httpStatus}
                 />
               )}
-              {isTransaction(event) && event.contexts.browser ? (
+              {isTransaction(event) && event.contexts.browser && (
                 <MetaData
                   headingText={t('Browser')}
                   tooltipText={t('The browser used in this transaction.')}
                   bodyText={<BrowserDisplay event={event} />}
                   subtext={event.contexts.browser?.version}
                 />
-              ) : (
-                <span />
               )}
               {hasReplay && (
                 <ReplayButtonContainer>
@@ -250,8 +248,8 @@ function getEventDetailHeaderCols({hasReplay, type}: EventDetailHeaderProps): st
       : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  6fr;';
   }
   return hasReplay
-    ? 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) minmax(200px, 1fr)  5fr minmax(325px, 1fr);'
-    : 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) minmax(200px, 1fr)  6fr;';
+    ? 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 5fr minmax(325px, 1fr);'
+    : 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 6fr;';
 }
 
 const EventDetailHeader = styled('div')<EventDetailHeaderProps>`
