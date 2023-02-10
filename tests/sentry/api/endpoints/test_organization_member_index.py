@@ -112,7 +112,9 @@ class OrganizationMemberSerializerTest(TestCase):
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
+        assert serializer.errors == {
+            "teamRoles": ["You do not have permission to set that team-level role"]
+        }
 
 
 class OrganizationMemberListTestBase(APITestCase):
