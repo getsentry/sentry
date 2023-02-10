@@ -34,7 +34,7 @@ const makeFlamegraph = (profile: Profiling.EventedProfile) => {
     0,
     {
       inverted: false,
-      leftHeavy: false,
+      sort: 'call order',
     }
   );
 };

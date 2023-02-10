@@ -31,6 +31,19 @@ function getAxisForType(
   return xAxis;
 }
 
+function getSortingForType(
+  type: FlamegraphPreferences['type'],
+  sorting: FlamegraphPreferences['sorting']
+): FlamegraphPreferences['sorting'] {
+  if (type === 'flamegraph' && sorting === 'call order') {
+    return 'alphabetical';
+  }
+  if (type === 'flamechart' && sorting === 'alphabetical') {
+    return 'call order';
+  }
+  return sorting;
+}
+
 interface FlamegraphStateProviderProps {
   children: React.ReactNode;
   initialState?: DeepPartial<FlamegraphState>;
@@ -43,6 +56,10 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
   const xAxis = getAxisForType(
     type,
     initialState?.preferences?.xAxis ?? DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis
+  );
+  const sorting = getSortingForType(
+    type,
+    initialState?.preferences?.sorting ?? DEFAULT_FLAMEGRAPH_STATE.preferences.sorting
   );
 
   return {
@@ -72,9 +89,7 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
       colorCoding:
         initialState?.preferences?.colorCoding ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
-      sorting:
-        initialState?.preferences?.sorting ??
-        DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
+      sorting,
       view: initialState?.preferences?.view ?? DEFAULT_FLAMEGRAPH_STATE.preferences.view,
       xAxis,
     },

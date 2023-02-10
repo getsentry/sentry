@@ -249,7 +249,7 @@ describe('flamegraph', () => {
     ).toThrow('Unbalanced append order stack');
   });
 
-  it('creates leftHeavy graph', () => {
+  it('creates left heavy graph', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
       startValue: 0,

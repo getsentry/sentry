@@ -89,23 +89,23 @@ const makeDrawRightSideOfScreen = (
   };
 };
 
-const androidProfile = importProfile(androidTrace as any, '');
+const androidProfile = importProfile(androidTrace as any, '', 'flamechart');
 const androidFlamegraph = new Flamegraph(
   androidProfile.profiles[androidProfile.activeProfileIndex] as any,
   0,
   {
     inverted: false,
-    leftHeavy: false,
+    sort: 'call order',
   }
 );
 
-const iosProfile = importProfile(ios as any, '');
+const iosProfile = importProfile(ios as any, '', 'flamechart');
 const iosFlamegraph = new Flamegraph(
   iosProfile.profiles[iosProfile.activeProfileIndex] as any,
   0,
   {
     inverted: false,
-    leftHeavy: false,
+    sort: 'call order',
   }
 );
 

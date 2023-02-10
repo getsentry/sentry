@@ -73,7 +73,7 @@ export class Flamegraph {
   static Example(): Flamegraph {
     return new Flamegraph(SampledProfile.Example, 0, {
       inverted: false,
-      leftHeavy: false,
+      sort: 'call order',
     });
   }
 
