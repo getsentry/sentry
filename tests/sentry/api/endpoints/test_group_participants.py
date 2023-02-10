@@ -26,7 +26,7 @@ class GroupParticipantsTest(APITestCase):
     def test_simple(self):
         group = self.create_group()
         GroupSubscription.objects.create(
-            user=self.user, group=group, project=group.project, is_active=True
+            user_id=self.user.id, group=group, project=group.project, is_active=True
         )
 
         for path_func in self._get_path_functions():
