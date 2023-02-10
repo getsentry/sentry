@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import parse_link_header

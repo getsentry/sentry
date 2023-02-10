@@ -5,6 +5,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import ModalStore from 'sentry/stores/modalStore';
@@ -63,6 +64,10 @@ describe('IntegrationCodeMappings', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/repos/`,
       body: repos,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
+      body: {repos: []},
     });
   });
 
@@ -169,5 +174,30 @@ describe('IntegrationCodeMappings', function () {
         }),
       })
     );
+  });
+
+  it('switches default branch to the repo defaultBranch', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
+      body: {
+        repos: [
+          {
+            id: repos[0].id,
+            identifier: repos[1].name,
+            defaultBranch: 'main',
+          },
+        ],
+      },
+    });
+    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+    renderGlobalModal();
+
+    userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
+    expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('master');
+
+    await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
+    });
   });
 });

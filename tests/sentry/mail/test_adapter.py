@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.grouptype.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -189,6 +189,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
+            self.project.id,
             uuid.uuid4().hex,
             uuid.uuid4().hex,
             ["some-fingerprint"],
@@ -204,7 +205,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
         event.group.type = ProfileBlockedThreadGroupType.type_id
@@ -241,6 +242,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
             uuid.uuid4().hex,
+            self.project.id,
             uuid.uuid4().hex,
             ["some-fingerprint"],
             "something bad happened",
@@ -251,7 +253,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
         event.group.type = ProfileBlockedThreadGroupType.type_id

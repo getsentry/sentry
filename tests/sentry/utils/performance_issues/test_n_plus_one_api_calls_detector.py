@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (

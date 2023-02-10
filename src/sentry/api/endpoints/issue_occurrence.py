@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import json
