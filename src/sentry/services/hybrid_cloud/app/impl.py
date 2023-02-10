@@ -91,12 +91,18 @@ class DatabaseBackedAppService(
         )
 
     def get_installed_for_organization(
-        self, *, organization_id: int
+        self,
+        *,
+        organization_id: int,
+        sentry_app_id: Optional[int] = None,
     ) -> List[ApiSentryAppInstallation]:
-        installations = (
-            SentryAppInstallation.objects.get_installed_for_organization(organization_id)
-            .select_related("sentry_app")
-            .prefetch_related("sentry_app__components")
+        installations = SentryAppInstallation.objects.get_installed_for_organization(
+            organization_id
+        )
+        if sentry_app_id is not None:
+            installations = installations.filter(sentry_app_id=sentry_app_id)
+        installations = installations.select_related("sentry_app").prefetch_related(
+            "sentry_app__components"
         )
         return [self._serialize_rpc(i) for i in installations]
 

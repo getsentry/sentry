@@ -1296,18 +1296,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
     # query for the sentry app but make sure it's installed on that org
-    installations = app_service.get_installed_for_organization(organization_id=organization.id)
-    installation = next(
-        filter(
-            lambda i: i.sentry_app.id == sentry_app_id,
-            installations,
-        ),
-        None,
+    installations = app_service.get_installed_for_organization(
+        organization_id=organization.id, sentry_app_id=sentry_app_id
     )
-    if installation is None:
+    if not installations:
         raise InvalidTriggerActionError("No SentryApp found.")
 
-    return installation.sentry_app.id, installation.sentry_app.name
+    return installations[0].sentry_app.id, installations[0].sentry_app.name
 
 
 def delete_alert_rule_trigger_action(trigger_action):

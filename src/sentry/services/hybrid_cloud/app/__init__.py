@@ -111,6 +111,7 @@ class AppService(
         self,
         *,
         organization_id: int,
+        sentry_app_id: Optional[int] = None,
     ) -> List[ApiSentryAppInstallation]:
         pass
 
