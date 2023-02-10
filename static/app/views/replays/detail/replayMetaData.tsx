@@ -50,7 +50,7 @@ function ReplayMetaData({replayRecord}: Props) {
         {replayRecord ? (
           <Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.started_at} shorten />
+            <TimeSince date={replayRecord.started_at} unitStyle="short" />
           </Fragment>
         ) : (
           <HeaderPlaceholder />
