@@ -29,7 +29,14 @@ metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL"
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
 _BAD_TAGS = frozenset(["event", "project", "group"])
-_METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(["process_message"])
+_METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
+    [
+        # snuba related tags
+        "process_message",
+        "commit_log_msg_latency",
+        "process_message.normalized",
+    ]
+)
 
 T = TypeVar("T")
 F = TypeVar("F", bound=Callable[..., Any])
