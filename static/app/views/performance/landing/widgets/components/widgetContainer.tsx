@@ -314,14 +314,14 @@ export const WidgetContainerActions = ({
         label={t('Display')}
         options={menuOptions}
         value={chartSetting}
-        onChange={setChartSetting}
+        onChange={opt => setChartSetting(opt.value)}
       />
       {chartDefinition.allowsOpenInDiscover && (
         <CompositeSelect.Region
           label={t('Other')}
           options={[{label: t('Open in Discover'), value: 'open_in_discover'}]}
           value=""
-          onChange={handleWidgetActionChange}
+          onChange={opt => handleWidgetActionChange(opt.value)}
         />
       )}
     </CompositeSelect>
