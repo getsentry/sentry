@@ -14,6 +14,7 @@ import {
 } from 'sentry/components/events/viewHierarchy/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 
 const MIN_BORDER_SIZE = 20;
@@ -337,11 +338,11 @@ const InteractionContainer = styled('div')`
 
 const Controls = styled('div')`
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: ${space(2)};
+  right: ${space(2)};
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: ${space(0.5)};
 `;
 
 const InteractionOverlayCanvas = styled('canvas')`
