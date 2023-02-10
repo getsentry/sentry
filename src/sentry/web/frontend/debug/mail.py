@@ -214,10 +214,13 @@ def make_performance_event(project, sample_name: str):
 
 
 def make_generic_event(project):
+    event_id = uuid.uuid4().hex
+    occurrence_data = TEST_ISSUE_OCCURRENCE.to_dict()
+    occurrence_data["event_id"] = event_id
     occurrence, group_info = process_event_and_issue_occurrence(
-        TEST_ISSUE_OCCURRENCE.to_dict(),
+        occurrence_data,
         {
-            "event_id": uuid.uuid4().hex,
+            "event_id": event_id,
             "project_id": project.id,
             "timestamp": before_now(minutes=1).isoformat(),
         },
