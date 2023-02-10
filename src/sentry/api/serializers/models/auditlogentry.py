@@ -43,7 +43,7 @@ class AuditLogEntrySerializer(Serializer):
             for d in serialize(
                 {i.actor for i in item_list if i.actor_id}
                 | {i.target_user for i in item_list if i.target_user_id},
-                user=user,
+                user,
             )
         }
 
