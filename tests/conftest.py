@@ -87,9 +87,8 @@ def _error_workflow_command(filesystempath, lineno, longrepr):
 
     if longrepr is None:
         return f"\n::error {details}"
-    else:
-        longrepr = _escape(longrepr)
-        return f"\n::error {details}::{longrepr}"
+    longrepr = _escape(longrepr)
+    return f"\n::error {details}::{longrepr}"
 
 
 def _escape(s):
