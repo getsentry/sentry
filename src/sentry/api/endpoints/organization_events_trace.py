@@ -112,6 +112,7 @@ FullResponse = TypedDict(
         "project_slug": str,
         "parent_span_id": Optional[str],
         "parent_event_id": Optional[str],
+        "profile_id": Optional[str],
         "generation": Optional[int],
         "errors": List[TraceError],
         "timestamp": str,
@@ -171,6 +172,12 @@ class TraceEvent:
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
+
+            contexts = self.nodestore_event.data.get("contexts", {})
+            profile_id = contexts.get("profile", {}).get("profile_id")
+            if profile_id is not None:
+                result["profile_id"] = profile_id
+
             if detailed:
                 if "measurements" in self.nodestore_event.data:
                     result["measurements"] = self.nodestore_event.data.get("measurements")
