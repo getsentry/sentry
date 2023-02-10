@@ -60,15 +60,18 @@ def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]
     return stack
 
 
+class BadMetricTags(RuntimeError):
+    pass
+
+
 def _filter_tags(tags: MutableTags) -> MutableTags:
     """Removes unwanted tags from the tag mapping and returns a filtered one."""
     discarded = frozenset(key for key in tags if key.endswith("_id") or key in BAD_TAGS)
     if not discarded:
         return tags
 
-    if settings.SENTRY_METRICS_WARN_BAD_TAGS:
-        logger = logging.getLogger("sentry.metrics")
-        logger.warning("discarded illegal metric tags: %s", sorted(discarded))
+    if settings.SENTRY_METRICS_DISALLOW_BAD_TAGS:
+        raise BadMetricTags("discarded illegal metric tags: %s" % sorted(discarded))
     return {k: v for k, v in tags.items() if k not in discarded}
 
 
