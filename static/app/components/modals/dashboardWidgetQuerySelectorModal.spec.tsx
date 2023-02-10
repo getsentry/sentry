@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {Client} from 'sentry/api';
 import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {t} from 'sentry/locale';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 

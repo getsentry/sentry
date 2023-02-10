@@ -1,3 +1,6 @@
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
 import {
   Group,
   IssueCategory,
@@ -14,9 +17,7 @@ import {Exception} from './interfaces/exception';
 import {ExceptionV2} from './interfaces/exceptionV2';
 import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
-import {Resources} from './interfaces/performance/resources';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
-import {getResourceDescription, getResourceLinks} from './interfaces/performance/utils';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
@@ -34,7 +35,7 @@ type Props = {
   isShare?: boolean;
 };
 
-export function EventEntry({
+function EventEntryContent({
   entry,
   projectSlug,
   event,
@@ -58,7 +59,7 @@ export function EventEntry({
         <ExceptionV2
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -66,7 +67,7 @@ export function EventEntry({
         <Exception
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -83,7 +84,7 @@ export function EventEntry({
         <StackTraceV2
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -91,7 +92,7 @@ export function EventEntry({
         <StackTrace
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -129,7 +130,7 @@ export function EventEntry({
         <ThreadsV2
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -137,7 +138,7 @@ export function EventEntry({
         <Threads
           event={event}
           data={entry.data}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
@@ -147,7 +148,7 @@ export function EventEntry({
       return (
         <DebugMeta
           event={event}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           groupId={group?.id}
           organization={organization as Organization}
           data={entry.data}
@@ -174,17 +175,6 @@ export function EventEntry({
         />
       );
 
-    case EntryType.RESOURCES:
-      if (!group || !group.issueType) {
-        return null;
-      }
-      return (
-        <Resources
-          description={getResourceDescription(group.issueType)}
-          links={getResourceLinks(group.issueType, event.platform)}
-        />
-      );
-
     // this should not happen
     default:
       if (window.console) {
@@ -193,4 +183,18 @@ export function EventEntry({
       }
       return null;
   }
+}
+
+export function EventEntry(props: Props) {
+  return (
+    <ErrorBoundary
+      customComponent={
+        <EventDataSection type={props.entry.type} title={props.entry.type}>
+          <p>{t('There was an error rendering this data.')}</p>
+        </EventDataSection>
+      }
+    >
+      <EventEntryContent {...props} />
+    </ErrorBoundary>
+  );
 }

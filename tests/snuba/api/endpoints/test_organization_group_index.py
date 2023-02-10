@@ -10,11 +10,11 @@ from freezegun import freeze_time
 from rest_framework import status
 
 from sentry import options
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
 from sentry.models import (
     GROUP_OWNER_TYPE,
     Activity,
     ApiToken,
-    Commit,
     ExternalIssue,
     Group,
     GroupAssignee,
@@ -36,14 +36,11 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Release,
-    ReleaseCommit,
     ReleaseStages,
-    Repository,
     UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -52,15 +49,13 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls, parse_link_header
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
-@apply_feature_flag_on_cls("organizations:release-committer-assignees")
 @region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -439,6 +434,52 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(environment="garbage")
         assert response.status_code == 404
 
+    def test_project(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.min_ago),
+                "environment": "production",
+            },
+            project_id=self.project.id,
+        )
+        project = self.project
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"project:{project.slug}")
+        assert len(response.data) == 1
+
+    def test_project_negation_invalid(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.min_ago),
+                "environment": "production",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query="!project:[invalid-project,also-invalid]")
+        assert len(response.data) == 1
+
+    def test_project_negation_mixed(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.min_ago),
+                "environment": "production",
+            },
+            project_id=self.project.id,
+        )
+        project = self.project
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            query=f"!project:[{project.slug},invalid-project,also-invalid]"
+        )
+        assert len(response.data) == 0
+
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -458,7 +499,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(group2.id)
 
     def test_perf_issue(self):
-        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         self.login_as(user=self.user)
         with self.feature(
             [
@@ -542,6 +583,36 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_success_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
+
+    def test_lookup_by_short_id_alias(self):
+        event_id = "f" * 32
+        group = self.store_event(
+            data={"event_id": event_id, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        ).group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"issue:{short_id}")
+        assert len(response.data) == 1
+
+    def test_lookup_by_multiple_short_id_alias(self):
+        self.login_as(self.user)
+        project = self.project
+        project2 = self.create_project(name="baz", organization=project.organization)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=2))},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=1))},
+            project_id=project2.id,
+        )
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(
+                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]"
+            )
+        assert len(response.data) == 2
 
     def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
@@ -1816,133 +1887,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    def test_only_release_committers(self):
-        release = self.create_release(project=self.project, version="1.0.0")
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=500)),
-                "fingerprint": ["group-1"],
-                "release": release.version,
-            },
-            project_id=self.project.id,
-        )
-        repo = Repository.objects.create(
-            organization_id=self.project.organization_id, name=self.project.name
-        )
-        user2 = self.create_user()
-        self.create_member(organization=self.organization, user=user2)
-        author = self.create_commit_author(project=self.project, user=user2)
-        # External author
-        author2 = CommitAuthor.objects.create(
-            external_id="github:santry",
-            organization_id=self.project.organization_id,
-            email="santry@example.com",
-            name="santry",
-        )
-        commit = Commit.objects.create(
-            organization_id=self.project.organization_id,
-            repository_id=repo.id,
-            key="a" * 40,
-            author=author,
-        )
-        commit2 = Commit.objects.create(
-            organization_id=self.project.organization_id,
-            repository_id=repo.id,
-            key="b" * 40,
-            author=author,
-        )
-        commit3 = Commit.objects.create(
-            organization_id=self.project.organization_id,
-            repository_id=repo.id,
-            key="c" * 40,
-            author=author2,
-        )
-
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=release,
-            commit=commit,
-            order=1,
-        )
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=release,
-            commit=commit2,
-            order=2,
-        )
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=release,
-            commit=commit3,
-            order=3,
-        )
-
-        query = "status:unresolved"
-        self.login_as(user=self.user)
-
-        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-        owners = response.data[0]["owners"]
-        assert len(owners) == 1
-        assert owners[0]["owner"] == f"user:{user2.id}"
-        assert owners[0]["type"] == "releaseCommit"
-
-    def test_multiple_committers(self):
-        release = self.create_release(project=self.project, version="1.0.0")
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=500)),
-                "fingerprint": ["group-1"],
-                "release": release.version,
-            },
-            project_id=self.project.id,
-        )
-        repo = Repository.objects.create(
-            organization_id=self.project.organization_id, name=self.project.name
-        )
-        user2 = self.create_user()
-        self.create_member(organization=self.organization, user=user2)
-        author = self.create_commit_author(project=self.project, user=user2)
-        commit = Commit.objects.create(
-            organization_id=self.project.organization_id,
-            repository_id=repo.id,
-            key="a" * 40,
-            author=author,
-        )
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=release,
-            commit=commit,
-            order=1,
-        )
-
-        query = "status:unresolved"
-        self.login_as(user=self.user)
-
-        # Test with owners
-        GroupOwner.objects.create(
-            group=event.group,
-            project=event.project,
-            organization=event.project.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user=self.user,
-        )
-
-        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-        owners = response.data[0]["owners"]
-        assert len(owners) == 2
-        assert owners[0]["owner"] == f"user:{self.user.id}"
-        assert owners[0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
-        assert owners[1]["owner"] == f"user:{user2.id}"
-        assert owners[1]["type"] == "releaseCommit"
-
 
 @region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
@@ -3077,9 +3021,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
-        group2 = self.create_group(times_seen=50, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
-        group3 = self.create_group(times_seen=2, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
+        group1 = self.create_group(times_seen=1, type=PerformanceSlowDBQueryGroupType.type_id)
+        group2 = self.create_group(times_seen=50, type=PerformanceSlowDBQueryGroupType.type_id)
+        group3 = self.create_group(times_seen=2, type=PerformanceSlowDBQueryGroupType.type_id)
         self.create_group()
 
         self.login_as(user=self.user)
@@ -3336,10 +3280,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
-            status=GroupStatus.RESOLVED, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value
+            status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
         )
         group2 = self.create_group(
-            status=GroupStatus.UNRESOLVED, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value
+            status=GroupStatus.UNRESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
         )
 
         hashes = []
@@ -3414,7 +3358,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 self.create_group(
                     project=self.project,
                     status=GroupStatus.RESOLVED,
-                    type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value,
+                    type=PerformanceSlowDBQueryGroupType.type_id,
                 )
             )
 

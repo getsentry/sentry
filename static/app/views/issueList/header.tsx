@@ -10,7 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
 import {Item, TabList, Tabs} from 'sentry/components/tabs';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,6 +18,7 @@ import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import useProjects from 'sentry/utils/useProjects';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -138,6 +139,8 @@ function IssueListHeader({
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
 
+  const {experimentAssignment} = useExperiment('SavedIssueSearchesLocationExperiment');
+
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -154,13 +157,15 @@ function IssueListHeader({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <IssueListSetAsDefault {...{sort, query, organization}} />
-          <Button
-            size="sm"
-            icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
-            onClick={onSavedSearchesToggleClicked}
-          >
-            {isSavedSearchesOpen ? t('Hide Searches') : t('Saved Searches')}
-          </Button>
+          {experimentAssignment !== 1 && (
+            <Button
+              size="sm"
+              icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
+              onClick={onSavedSearchesToggleClicked}
+            >
+              {isSavedSearchesOpen ? t('Hide Searches') : t('Saved Searches')}
+            </Button>
+          )}
           <Button
             size="sm"
             data-test-id="real-time"

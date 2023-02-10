@@ -37,9 +37,10 @@ class RepositorySwitcher extends PureComponent<Props> {
         value={activeRepo}
         options={repositories.map(repo => ({
           value: repo.name,
+          textValue: repo.name,
           label: <RepoLabel>{repo.name}</RepoLabel>,
         }))}
-        onChange={opt => this.handleRepoFilterChange(opt?.value)}
+        onChange={opt => this.handleRepoFilterChange(String(opt?.value))}
       />
     );
   }

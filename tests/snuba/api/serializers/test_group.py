@@ -6,6 +6,10 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
+from sentry.issues.grouptype import (
+    PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileBlockedThreadGroupType,
+)
 from sentry.models import (
     Group,
     GroupEnvironment,
@@ -23,7 +27,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -138,8 +141,9 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
+    @patch("sentry.analytics.record")
     @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age):
+    def test_auto_resolved(self, mock_is_over_resolve_age, mock_record):
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -148,6 +152,14 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"autoResolved": True}
+        mock_record.assert_called_with(
+            "issue.resolved",
+            default_user_id=self.project.organization.get_default_owner().id,
+            project_id=self.project.id,
+            organization_id=self.project.organization_id,
+            group_id=group.id,
+            resolution_type="automatic",
+        )
 
     def test_subscribed(self):
         user = self.create_user()
@@ -435,7 +447,7 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
+        first_group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
         timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):
@@ -482,7 +494,7 @@ class ProfilingGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
+        first_group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group1"
         timestamp = timezone.now().replace(hour=0, minute=0, second=0)
         times = 5
         for incr in range(0, times):

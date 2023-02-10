@@ -36,7 +36,11 @@ from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, auth_service
-from sentry.services.hybrid_cloud.organization import ApiTeamMember, ApiUserOrganizationContext
+from sentry.services.hybrid_cloud.organization import (
+    ApiTeamMember,
+    ApiUserOrganizationContext,
+    organization_service,
+)
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
@@ -52,6 +56,21 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
     if user is None:
         return FrozenSet()
     return user.roles | user.permissions
+
+
+def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
+    query = OrganizationMember.objects.filter(
+        user__is_active=True,
+        user=user_id,
+        organization_id=organization.id,
+    )
+    return bool(
+        query.filter(role=role).exists()
+        or OrganizationMemberTeam.objects.filter(
+            team__in=organization.get_teams_with_org_role(role),
+            organizationmember_id__in=list(query.values_list("id", flat=True)),
+        ).exists()
+    )
 
 
 class Access(abc.ABC):
@@ -80,9 +99,15 @@ class Access(abc.ABC):
     def permissions(self) -> FrozenSet[str]:
         pass
 
+    # TODO(cathy): remove this
     @property
     @abc.abstractmethod
     def role(self) -> str | None:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def roles(self) -> Iterable[str] | None:
         pass
 
     @property
@@ -119,10 +144,22 @@ class Access(abc.ABC):
         """
         return scope in self.scopes
 
+    # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
             return cast(OrganizationRole, organization_roles.get(self.role))
         return None
+
+    def get_organization_roles(self) -> Iterable[OrganizationRole]:
+        if self.roles is not None:
+            return [cast(OrganizationRole, organization_roles.get(r)) for r in self.roles]
+        return []
+
+    @abc.abstractmethod
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        pass
 
     @abc.abstractmethod
     def has_team_access(self, team: Team) -> bool:
@@ -198,9 +235,14 @@ class DbAccess(Access):
 
     _member: OrganizationMember | None = None
 
+    # TODO(cathy): remove this
     @property
     def role(self) -> str | None:
         return self._member.role if self._member else None
+
+    @property
+    def roles(self) -> Iterable[str] | None:
+        return self._member.get_all_org_roles() if self._member else None
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
@@ -271,6 +313,15 @@ class DbAccess(Access):
         to iterate or query for all such teams.
         """
         return self.project_ids_with_team_membership
+
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        if self._member:
+            return has_role_in_organization(
+                role=role, organization=organization, user_id=self._member.user_id
+            )
+        return False
 
     def has_team_scope(self, team: Team, scope: str) -> bool:
         """
@@ -394,11 +445,28 @@ class ApiBackedAccess(Access):
             self.requested_scopes
         )
 
+    # TODO(cathy): remove this
     @property
     def role(self) -> str | None:
         if self.api_user_organization_context.member is None:
             return None
         return self.api_user_organization_context.member.role
+
+    @property
+    def roles(self) -> Iterable[str] | None:
+        if self.api_user_organization_context.member is None:
+            return None
+        return organization_service.get_all_org_roles(self.api_user_organization_context.member)
+
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        member = self.api_user_organization_context.member
+        if member and member.user_id:
+            return has_role_in_organization(
+                role=role, organization=organization, user_id=member.user_id
+            )
+        return False
 
     @cached_property
     def team_ids_with_membership(self) -> FrozenSet[int]:
@@ -698,9 +766,21 @@ class OrganizationlessAccess(Access):
     def scopes(self) -> FrozenSet[str]:
         return frozenset()
 
+    # TODO(cathy): remove this
     @property
     def role(self) -> str | None:
         return None
+
+    @property
+    def roles(self) -> Iterable[str] | None:
+        return None
+
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        if user_id:
+            return has_role_in_organization(role=role, organization=organization, user_id=user_id)
+        return False
 
     @property
     def team_ids_with_membership(self) -> FrozenSet[int]:

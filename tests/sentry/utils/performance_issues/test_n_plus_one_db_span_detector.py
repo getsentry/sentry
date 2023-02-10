@@ -4,11 +4,11 @@ from typing import Any, Dict, List
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.base import DetectorType
 from sentry.utils.performance_issues.performance_detection import (
-    DetectorType,
-    GroupType,
     NPlusOneDBSpanDetector,
     PerformanceProblem,
     get_detection_settings,
@@ -71,7 +71,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["8dd7a5869a4f4583"],
                 cause_span_ids=["9179e43ae844b174"],
                 offender_span_ids=[
@@ -112,7 +112,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
                 op="db",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 desc='SELECT "expense_expenses"."id", "expense_expenses"."report_id", "expense_expenses"."amount" FROM "expense_expenses" WHERE "expense_expenses"."report_id" = %s',
                 parent_span_ids=["81a4b462bdc5c764"],
                 cause_span_ids=["99797d06e2fa9750"],

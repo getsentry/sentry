@@ -421,6 +421,11 @@ urlpatterns += [
                 ),
                 url(r"^account/", generic_react_page_view, name="sentry-account-settings-generic"),
                 url(
+                    r"^organization/auth/configure/$",
+                    OrganizationAuthSettingsView.as_view(),
+                    name="sentry-customer-domain-organization-auth-provider-settings",
+                ),
+                url(
                     r"^organization/",
                     react_page_view,
                     name="sentry-customer-domain-organization-settings",
@@ -474,6 +479,16 @@ urlpatterns += [
                     r"^developer-settings/",
                     react_page_view,
                     name="sentry-customer-domain-developer-settings-settings",
+                ),
+                url(
+                    r"^document-integrations/",
+                    react_page_view,
+                    name="sentry-customer-domain-document-integrations-settings",
+                ),
+                url(
+                    r"^sentry-apps/",
+                    react_page_view,
+                    name="sentry-customer-domain-sentry-apps-settings",
                 ),
                 url(
                     r"^billing/",
@@ -530,6 +545,11 @@ urlpatterns += [
         name="integration-installation",
     ),
     # Issues
+    url(
+        r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        GroupTagExportView.as_view(),
+        name="sentry-customer-domain-sentry-group-tag-export",
+    ),
     url(r"^issues/", react_page_view, name="issues"),
     # Alerts
     url(r"^alerts/", react_page_view, name="alerts"),
@@ -545,15 +565,15 @@ urlpatterns += [
     # Discover
     url(r"^discover/", react_page_view, name="discover"),
     # Request to join an organization
-    url(r"^join-request/", react_page_view, name="join-request"),
+    url(r"^join-request/", GenericReactPageView.as_view(auth_required=False), name="join-request"),
     # Activity
     url(r"^activity/", react_page_view, name="activity"),
     # Stats
     url(r"^stats/", react_page_view, name="stats"),
     # Replays
     url(r"^replays/", react_page_view, name="replays"),
-    # Monitors
-    url(r"^monitors/", react_page_view, name="monitors"),
+    # Crons
+    url(r"^crons/", react_page_view, name="crons"),
     # Releases
     url(r"^releases/", react_page_view, name="releases"),
     # User Feedback
@@ -660,6 +680,16 @@ urlpatterns += [
                     name="sentry-organization-member-settings-old",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/performance/$",
+                    react_page_view,
+                    name="sentry-organization-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/performance/summary/$",
+                    react_page_view,
+                    name="sentry-organization-performance-summary",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/stats/$",
                     react_page_view,
                     name="sentry-organization-stats",
@@ -698,6 +728,7 @@ urlpatterns += [
         react_page_view,
         name="sentry-manage-project",
     ),
+    # Avatars
     url(
         r"^avatar/(?P<avatar_id>[^\/]+)/$",
         UserAvatarPhotoView.as_view(),

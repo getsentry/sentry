@@ -81,6 +81,7 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail import mail_adapter
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
@@ -122,7 +123,6 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.silo import single_process_silo_mode_state
 from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -130,7 +130,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
@@ -315,7 +314,6 @@ class BaseTestCase(Fixtures):
         GroupMeta.objects.clear_local_cache()
 
     def _post_teardown(self):
-        single_process_silo_mode_state.mode = None
         super()._post_teardown()
 
     def options(self, options):
@@ -485,12 +483,13 @@ class PerformanceIssueTestCase(BaseTestCase):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
         with override_options(
             {
+                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
@@ -869,6 +868,20 @@ class AcceptanceTestCase(TransactionTestCase):
             return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
         ):
             yield
+
+    def wait_for_loading(self):
+        # NOTE: [data-test-id="loading-placeholder"] is not used here as
+        # some dashboards have placeholders that never complete.
+        self.browser.wait_until_not('[data-test-id="events-request-loading"]')
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+        self.browser.wait_until_not(".loading")
+
+    def tearDown(self):
+        # Avoid tests finishing before their API calls have finished.
+        # NOTE: This is not fool-proof, it requires loading indicators to be
+        # used when API requests are made.
+        self.wait_for_loading()
+        super().tearDown()
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
@@ -1940,12 +1953,16 @@ class TestMigrations(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.setup_initial_state()
 
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 
         connection = connections[self.connection]
+        with connection.cursor() as cursor:
+            cursor.execute("SET ROLE 'postgres'")
+
+        self.setup_initial_state()
+
         executor = MigrationExecutor(connection)
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:

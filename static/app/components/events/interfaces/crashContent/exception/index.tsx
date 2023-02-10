@@ -11,7 +11,7 @@ type Props = {
   hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   platform: PlatformType;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   stackType: STACK_TYPE;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
@@ -21,7 +21,7 @@ type Props = {
 function Exception({
   stackView,
   stackType,
-  projectId,
+  projectSlug,
   values,
   event,
   newestFirst,
@@ -35,7 +35,7 @@ function Exception({
       {stackView === STACK_VIEW.RAW ? (
         <RawContent
           eventId={event.id}
-          projectId={projectId}
+          projectSlug={projectSlug}
           type={stackType}
           values={values}
           platform={platform}
@@ -46,6 +46,7 @@ function Exception({
           stackView={stackView}
           values={values}
           platform={platform}
+          projectSlug={projectSlug}
           newestFirst={newestFirst}
           event={event}
           hasHierarchicalGrouping={hasHierarchicalGrouping}

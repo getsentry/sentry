@@ -8,6 +8,7 @@ from typing import FrozenSet, Optional, Sequence
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
+from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -31,7 +32,9 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import is_using_customer_domain
@@ -118,6 +121,50 @@ class OrganizationManager(BaseManager):
         if scope is not None:
             return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
+
+    def get_organizations_where_user_is_owner(
+        self, user_id: int, queryset: QuerySet = None
+    ) -> QuerySet:
+        """
+        Returns a QuerySet of all organizations where a user has the top priority role.
+        The default top priority role in Sentry is owner.
+        """
+
+        # get orgs and orgmemberIDs for the user
+        query = OrganizationMember.objects.filter(user_id=user_id)
+        if queryset:  # queryset is a QuerySet of valid orgs
+            orgs_and_members = query.filter(organization__in=queryset)
+        orgs_and_members = query.values_list("organization_id", "id")
+
+        organizations, org_members = zip(*orgs_and_members)
+        organizations = list(organizations)
+        org_members = list(org_members)
+
+        # get owner teams
+        owner_teams = Team.objects.filter(
+            organization_id__in=organizations, org_role=roles.get_top_dog().id
+        ).values_list("id", flat=True)
+
+        # get owners from owner teams
+        owners = list(
+            OrganizationMemberTeam.objects.filter(
+                team_id__in=owner_teams,
+                organizationmember_id__in=org_members,
+            ).values_list("organizationmember_id", flat=True)
+        )
+
+        # get corresponding orgs from org list
+        members_to_org = {m: organizations[i] for (i, m) in enumerate(org_members)}
+        orgs = {members_to_org[m] for m in owners if m in members_to_org}
+
+        # get owners from orgs
+        owner_role_orgs = set(
+            OrganizationMember.objects.filter(
+                role=roles.get_top_dog().id, user_id=user_id
+            ).values_list("organization_id", flat=True)
+        )
+
+        return self.filter(id__in=orgs.union(owner_role_orgs), status=OrganizationStatus.ACTIVE)
 
 
 @region_silo_only_model
@@ -214,7 +261,7 @@ class Organization(Model, SnowflakeIdMixin):
         if slugify_target is not None:
             lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_target = slugify_target.replace("_", "-").strip("-")
+                slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         if SENTRY_USE_SNOWFLAKE:
@@ -286,7 +333,7 @@ class Organization(Model, SnowflakeIdMixin):
         owner_memberships = OrganizationMember.objects.filter(
             role=roles.get_top_dog().id, organization=self
         ).values_list("user_id", flat=True)
-        return user_service.get_many(owner_memberships)
+        return user_service.get_many(filter={"user_ids": owner_memberships})
 
     def get_default_owner(self) -> APIUser:
         if not hasattr(self, "_default_owner"):
@@ -307,12 +354,26 @@ class Organization(Model, SnowflakeIdMixin):
         return self._default_owner_id
 
     def has_single_owner(self):
-        from sentry.models import OrganizationMember
+        owners = list(
+            self.get_members_with_org_role(roles.get_top_dog().id).values_list("id", flat=True)
+        )
+        return len(owners[:2]) == 1
 
-        count = OrganizationMember.objects.filter(
-            organization=self, role=roles.get_top_dog().id, user__isnull=False, user__is_active=True
-        )[:2].count()
-        return count == 1
+    def get_members_with_org_role(self, role: str):
+        members_with_role = OrganizationMember.objects.filter(
+            organization=self,
+            role=role,
+            user__isnull=False,
+            user__is_active=True,
+        )
+        members_on_teams_with_role = (
+            OrganizationMemberTeam.objects.filter(team__in=self.get_teams_with_org_role(role))
+            .exclude(organizationmember_id__in=list(members_with_role.values_list("id", flat=True)))
+            .values_list("organizationmember__id", flat=True)
+        )
+        return members_with_role | OrganizationMember.objects.filter(
+            id__in=members_on_teams_with_role
+        )
 
     def merge_to(from_org, to_org):
         from sentry.models import (
@@ -621,3 +682,26 @@ class Organization(Model, SnowflakeIdMixin):
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
+
+    def get_teams_with_org_role(self, role):
+        from sentry.models.team import Team
+
+        if role:
+            return Team.objects.filter(org_role=role, organization=self)
+
+        return Team.objects.filter(organization=self).exclude(org_role=None)
+
+    # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
+    @classmethod
+    def remove_organization_mapping(cls, instance, **kwargs):
+        from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+
+        organization_mapping_service.delete(instance.id)
+
+
+post_delete.connect(
+    Organization.remove_organization_mapping,
+    dispatch_uid="sentry.remove_organization_mapping",
+    sender=Organization,
+    weak=False,
+)

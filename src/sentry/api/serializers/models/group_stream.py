@@ -17,10 +17,10 @@ from sentry.api.serializers.models.group import (
     snuba_tsdb,
 )
 from sentry.constants import StatsPeriod
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
-from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -176,6 +176,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         collapse=None,
         expand=None,
         organization_id=None,
+        project_ids=None,
     ):
         super().__init__(
             environment_ids,
@@ -185,6 +186,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             collapse=collapse,
             expand=expand,
             organization_id=organization_id,
+            project_ids=project_ids,
         )
 
         if stats_period is not None:

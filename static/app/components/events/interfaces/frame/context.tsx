@@ -4,10 +4,7 @@ import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {
-  isMobileLanguage,
-  StacktraceLink,
-} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -21,7 +18,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {Color} from 'sentry/utils/theme';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -52,28 +49,46 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
-export function getCoverageColors(
+export function getCoverageColorClass(
   lines: [number, string][],
-  lineCov: LineCoverage[]
-): Array<Color | 'transparent'> {
+  lineCov: LineCoverage[],
+  activeLineNo: number
+): [Array<string>, boolean] {
   const lineCoverage = keyBy(lineCov, 0);
-  return lines.map(([lineNo]) => {
+  let hasCoverage = false;
+  const lineColors = lines.map(([lineNo]) => {
     const coverage = lineCoverage[lineNo]
       ? lineCoverage[lineNo][1]
       : Coverage.NOT_APPLICABLE;
+
+    let color = '';
     switch (coverage) {
       case Coverage.COVERED:
-        return 'green100';
+        color = 'covered';
+        break;
       case Coverage.NOT_COVERED:
-        return 'red100';
+        color = 'uncovered';
+        break;
       case Coverage.PARTIAL:
-        return 'yellow100';
+        color = 'partial';
+        break;
       case Coverage.NOT_APPLICABLE:
       // fallthrough
       default:
-        return 'transparent';
+        break;
     }
+
+    if (color !== '') {
+      hasCoverage = true;
+    }
+
+    if (activeLineNo !== lineNo) {
+      return color;
+    }
+    return color === '' ? 'active' : `active ${color}`;
   });
+
+  return [lineColors, hasCoverage];
 }
 
 const Context = ({
@@ -93,7 +108,6 @@ const Context = ({
   frameMeta,
   registersMeta,
 }: Props) => {
-  const isMobile = isMobileLanguage(event);
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -109,19 +123,35 @@ const Context = ({
     },
     {
       enabled:
-        organization?.features.includes('codecov-stacktrace-integration') &&
-        organization?.codecovAccess &&
+        defined(organization) &&
+        defined(project) &&
+        !!organization.codecovAccess &&
+        organization.features.includes('codecov-stacktrace-integration') &&
         isExpanded,
     }
   );
 
-  if (
-    !hasContextSource &&
-    !hasContextVars &&
-    !hasContextRegisters &&
-    !hasAssembly &&
-    !isMobile
-  ) {
+  const contextLines = isExpanded
+    ? frame?.context
+    : frame?.context?.filter(l => l[0] === frame.lineNo);
+
+  const hasCoverageData =
+    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+
+  const [lineColors = [], hasCoverage] =
+    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo! && contextLines
+      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
+      : [];
+
+  useRouteAnalyticsParams(
+    hasCoverageData
+      ? {
+          has_line_coverage: hasCoverage,
+        }
+      : {}
+  );
+
+  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
       <div className="empty-context">
         <StyledIconFlag size="xs" />
@@ -130,45 +160,17 @@ const Context = ({
     ) : null;
   }
 
-  // Temporarily allow mobile platforms to make API call and "show" stacktrace link
-  if (isMobile) {
-    if (
-      event.platform !== 'java' ||
-      (event.platform === 'java' && frame?.module?.startsWith('com.'))
-    ) {
-      return (
-        <ErrorBoundary customComponent={null}>
-          <StacktraceLink
-            line={frame.function ? frame.function : ''}
-            frame={frame}
-            event={event}
-          />
-        </ErrorBoundary>
-      );
-    }
-  }
-
-  const contextLines = isExpanded
-    ? frame.context
-    : frame.context.filter(l => l[0] === frame.lineNo);
-
-  const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
+  const startLineNo = hasContextSource ? frame.context[0][0] : 0;
   const hasStacktraceLink =
     frame.inApp &&
     !!frame.filename &&
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
-  const hasCoverageData =
-    !isLoading && !!data && data!.codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS;
-
-  const lineColors: Array<Color | 'transparent'> =
-    hasCoverageData && data.lineCoverage!
-      ? getCoverageColors(contextLines, data.lineCoverage)
-      : [];
 
   return (
     <Wrapper
       start={startLineNo}
+      startLineNo={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
     >
       {defined(frame.errors) && (
@@ -188,7 +190,7 @@ const Context = ({
               key={index}
               line={line}
               isActive={isActive}
-              color={isActive ? 'transparent' : lineColors[index] ?? 'transparent'}
+              colorClass={lineColors[index] ?? ''}
             >
               {hasComponents && (
                 <ErrorBoundary mini>
@@ -247,12 +249,68 @@ const StyledIconFlag = styled(IconFlag)`
 
 const StyledContextLine = styled(ContextLine)`
   background: inherit;
-  padding: 0;
-  text-indent: 20px;
   z-index: 1000;
+  list-style: none;
+
+  &::marker {
+    content: none;
+  }
+
+  &:before {
+    content: counter(frame);
+    counter-increment: frame;
+    text-align: center;
+    padding-left: ${space(3)};
+    padding-right: ${space(1.5)};
+    margin-right: ${space(1.5)};
+    display: inline-block;
+    height: 24px;
+    background: transparent;
+    z-index: 1;
+    min-width: 58px;
+    border-right-style: solid;
+    border-right-color: transparent;
+  }
+
+  &.covered:before {
+    background: ${p => p.theme.green100};
+    border-right-color: ${p => p.theme.green300};
+  }
+
+  &.uncovered:before {
+    background: ${p => p.theme.red100};
+  }
+
+  &.partial:before {
+    background: ${p => p.theme.yellow100};
+    border-right-style: dashed;
+    border-right-color: ${p => p.theme.yellow300};
+  }
+
+  &.active {
+    background: ${p => p.theme.stacktraceActiveBackground};
+    color: ${p => p.theme.stacktraceActiveText};
+  }
+
+  &.active.partial:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.yellow200};
+  }
+
+  &.active.covered:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.green200};
+  }
+
+  &.active.uncovered:before {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.red200};
+  }
 `;
 
-const Wrapper = styled('ol')`
+const Wrapper = styled('ol')<{startLineNo: number}>`
+  counter-reset: frame ${p => p.startLineNo - 1};
+
   && {
     border-radius: 0;
   }

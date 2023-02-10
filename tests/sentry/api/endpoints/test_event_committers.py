@@ -8,13 +8,11 @@ from sentry.models.repository import Repository
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
-@apply_feature_flag_on_cls("organizations:release-committer-assignees")
 @region_silo_test(stable=True)
 class EventCommittersTest(APITestCase):
     def test_simple(self):

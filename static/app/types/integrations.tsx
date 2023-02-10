@@ -6,7 +6,7 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
-} from 'sentry/views/organizationIntegrations/constants';
+} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {BaseRelease} from './release';
@@ -79,6 +79,18 @@ export type Repository = {
   provider: {id: string; name: string};
   status: RepositoryStatus;
   url: string;
+};
+
+/**
+ * Integration Repositories from OrganizationIntegrationReposEndpoint
+ */
+export type IntegrationRepository = {
+  /**
+   * ex - getsentry/sentry
+   */
+  identifier: string;
+  name: string;
+  defaultBranch?: string | null;
 };
 
 export type Commit = {
@@ -158,14 +170,19 @@ export enum CodecovStatusCode {
   NO_COVERAGE_DATA = 400,
 }
 
+export interface CodecovResponse {
+  status: CodecovStatusCode;
+  attemptedUrl?: string;
+  coverageUrl?: string;
+  lineCoverage?: LineCoverage[];
+}
+
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
-  codecovStatusCode?: CodecovStatusCode;
-  codecovUrl?: string;
+  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
-  lineCoverage?: LineCoverage[];
   sourceUrl?: string;
 };
 

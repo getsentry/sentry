@@ -37,6 +37,10 @@ export const autoRegisterDetectorOptions: Array<{
     namespace: 'performance.issues.slow_db_query',
     detectorName: 'Slow DB Span',
   },
+  {
+    namespace: 'performance.issues.render_blocking_assets',
+    detectorName: 'Large Render Blocking Assets',
+  },
 ];
 
 export const autoRegisterCohorts = ['la', 'ea', 'ga'];
@@ -131,12 +135,17 @@ export default class AdminSettings extends AsyncView<{}, State> {
 
           <Feature features={['organizations:performance-issues-dev']}>
             <Panel>
-              <PanelHeader>Performance Issues - N+1 Detector</PanelHeader>
+              <PanelHeader>Performance Issues - All</PanelHeader>
+              {fields['performance.issues.all.problem-detection']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Detectors</PanelHeader>
               {fields['performance.issues.n_plus_one_db.problem-creation']}
               {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
               {fields['performance.issues.n_plus_one_db.count_threshold']}
               {fields['performance.issues.n_plus_one_db.duration_threshold']}
             </Panel>
+
             <Panel>
               <PanelHeader>Performance Issues - File IO on Main Thread</PanelHeader>
               {fields['performance.issues.file_io_main_thread.problem-creation']}

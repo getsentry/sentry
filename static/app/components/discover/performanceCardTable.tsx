@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {AsyncComponentProps} from 'sentry/components/asyncComponent';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
 import {PanelItem} from 'sentry/components/panels';
@@ -184,7 +184,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {webVitals.map((vital, index) => (
             <MultipleEmptySubText key={vital[index]}>
-              {<StyledNotAvailable tooltip={t('No results found')} />}
+              <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -192,7 +192,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip={t('No results found')} />}
+              <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -365,7 +365,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip={t('No results found')} />}
+              <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>

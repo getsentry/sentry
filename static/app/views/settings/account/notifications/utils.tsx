@@ -17,13 +17,7 @@ import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel
 /**
  * Which fine-tuning parts are grouped by project
  */
-const notificationsByProject = [
-  'alerts',
-  'email',
-  'workflow',
-  'activeRelease',
-  'spikeProtection',
-];
+const notificationsByProject = ['alerts', 'email', 'workflow', 'spikeProtection'];
 
 export const isGroupedByProject = (notificationType: string): boolean =>
   notificationsByProject.includes(notificationType);

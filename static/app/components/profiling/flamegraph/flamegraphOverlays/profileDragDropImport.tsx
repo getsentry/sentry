@@ -4,14 +4,11 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {
-  importDroppedProfile,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import {parseDroppedProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 export interface ProfileDragDropImportProps {
   children: React.ReactNode;
-  onImport: (profile: ProfileGroup) => void;
+  onImport: (input: Profiling.ProfileInput) => void;
 }
 
 function ProfileDragDropImport({
@@ -32,7 +29,7 @@ function ProfileDragDropImport({
 
       if (file) {
         setDropState('processing');
-        importDroppedProfile(file)
+        parseDroppedProfile(file)
           .then(profile => {
             setDropState('idle');
             setErrorMessage(null);
@@ -107,7 +104,7 @@ const Overlay = styled('div')`
   place-content: center;
   z-index: ${p => p.theme.zIndex.modal};
   text-align: center;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
 `;
 
 export {ProfileDragDropImport};

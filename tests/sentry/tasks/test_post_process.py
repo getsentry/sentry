@@ -13,6 +13,11 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+)
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
     Activity,
     Group,
@@ -40,8 +45,8 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupType
 from sentry.utils.cache import cache
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class EventMatcher:
@@ -62,12 +67,12 @@ class EventMatcher:
 
 class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def create_event(self, data, project_id):
+    def create_event(self, data, project_id, assert_no_errors=True):
         pass
 
     @abc.abstractmethod
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
         pass
 
@@ -99,8 +104,8 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
+            event=event,
             cache_key=cache_key,
-            group_id=None,
         )
 
         assert mock_processor.call_count == 0
@@ -112,44 +117,40 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_no_cache_abort(self, mock_processor):
-        event = self.store_event(data={}, project_id=self.project.id)
+        event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
+            event=event,
             cache_key="total-rubbish",
-            group_id=event.group_id,
         )
 
         assert mock_processor.call_count == 0
 
     def test_processing_cache_cleared(self):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
 
-        self.call_post_process_group(
+        cache_key = self.call_post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assert event_processing_store.get(cache_key) is None
 
     def test_processing_cache_cleared_with_commits(self):
         # Regression test to guard against suspect commit calculations breaking the
         # cache
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
 
         self.create_commit(repo=self.create_repo())
-        self.call_post_process_group(
+        cache_key = self.call_post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assert event_processing_store.get(cache_key) is None
 
@@ -158,14 +159,12 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 @apply_feature_flag_on_cls("organizations:derive-code-mappings-dry-run")
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def _call_post_process_group(self, data: Dict[str, str]) -> None:
-        event = self.store_event(data=data, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data=data, project_id=self.project.id)
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
@@ -183,8 +182,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -195,8 +193,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            group_id=event.group_id,
-            cache_key=cache_key,
+            event=event,
         )
 
         mock_processor.assert_called_once_with(EventMatcher(event), True, False, True, False)
@@ -206,8 +203,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor(self, mock_processor):
-        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -218,8 +214,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         mock_processor.assert_called_once_with(EventMatcher(event), True, False, True, False)
@@ -258,38 +253,33 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
                 project=self.project, data={"conditions": conditions, "actions": actions}
             )
 
-            event = self.store_event(
+            event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
-            event_2 = self.store_event(
+            event_2 = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
-            cache_key = write_event_to_cache(event)
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event.group_id,
+                event=event,
             )
             event.group.update(times_seen=2)
             assert MockAction.return_value.after.call_count == 0
 
-            cache_key = write_event_to_cache(event_2)
             buffer.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event_2.group_id,
+                event=event_2,
             )
             assert MockAction.return_value.after.call_count == 1
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_refresh(self, mock_processor):
-        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group1 = event.group
         group2 = self.create_group(project=self.project)
@@ -309,8 +299,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         # Ensure that rule processing sees the merged group.
         mock_processor.assert_called_with(
@@ -321,8 +310,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
         hook = self.create_service_hook(
             project=self.project,
             organization=self.project.organization,
@@ -335,8 +323,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
+                event=event,
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
@@ -346,8 +333,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.servicehooks.process_service_hook")
     @patch("sentry.rules.processor.RuleProcessor")
     def test_service_hook_fires_on_alert(self, mock_processor, mock_process_service_hook):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -366,8 +352,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
+                event=event,
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
@@ -379,8 +364,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
     def test_service_hook_does_not_fire_without_alert(
         self, mock_processor, mock_process_service_hook
     ):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
 
         mock_processor.return_value.apply.return_value = []
 
@@ -396,16 +380,14 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
+                event=event,
             )
 
         assert not mock_process_service_hook.delay.mock_calls
 
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_does_not_fire_without_event(self, mock_process_service_hook):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
 
         self.create_service_hook(
             project=self.project, organization=self.project.organization, actor=self.user, events=[]
@@ -416,8 +398,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
+                event=event,
             )
 
         assert not mock_process_service_hook.delay.mock_calls
@@ -426,15 +407,13 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_new_group(self, delay):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         delay.assert_called_once_with(action="created", sender="Group", instance_id=group.id)
@@ -442,7 +421,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:integrations-event-hooks")
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_error_events(self, delay):
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "oh no"},
@@ -452,7 +431,6 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = write_event_to_cache(event)
 
         self.create_service_hook(
             project=self.project,
@@ -465,8 +443,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         delay.assert_called_once_with(
@@ -479,38 +456,34 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:integrations-event-hooks")
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_for_non_errors(self, delay):
-        event = self.store_event(
+        event = self.create_event(
             data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = write_event_to_cache(event)
 
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         assert not delay.called
 
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_without_feature_flag(self, delay):
-        event = self.store_event(
+        event = self.create_event(
             data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = write_event_to_cache(event)
 
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         assert not delay.called
@@ -518,7 +491,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:integrations-event-hooks")
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_without_error_created(self, delay):
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "Foo bar",
                 "level": "error",
@@ -528,8 +501,6 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = write_event_to_cache(event)
-
         self.create_service_hook(
             project=self.project, organization=self.project.organization, actor=self.user, events=[]
         )
@@ -538,8 +509,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         assert not delay.called
@@ -548,8 +518,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
 class InboxTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_inbox_regression(self, mock_processor):
-        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
 
@@ -557,32 +526,30 @@ class InboxTestMixin(BasePostProgressGroupMixin):
             is_new=True,
             is_regression=True,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
-        # assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
-        # GroupInbox.objects.filter(
-        #     group=group
-        # ).delete()  # Delete so it creates the .REGRESSION entry.
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(
+            group=group
+        ).delete()  # Delete so it creates the .REGRESSION entry.
 
         mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
 
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         mock_processor.assert_called_with(EventMatcher(event), False, True, False, False)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
-        # assert GroupInbox.objects.filter(
-        #     group=group, reason=GroupInboxReason.REGRESSION.value
-        # ).exists()
+        assert GroupInbox.objects.filter(
+            group=group, reason=GroupInboxReason.REGRESSION.value
+        ).exists()
 
 
 class AssignmentTestMixin(BasePostProgressGroupMixin):
@@ -607,7 +574,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
     def test_owner_assignment_order_precedence(self):
         self.make_ownership()
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -615,13 +582,11 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user == self.user
@@ -647,7 +612,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         self.make_ownership(
             [Rule(Matcher("path", "src/app/things/in/*"), [Owner("user", extra_user.email)])],
         )
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -655,13 +620,11 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user == extra_user
@@ -687,7 +650,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             user=self.user,
             type=GroupOwnerType.OWNERSHIP_RULE.value,
         )
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -695,13 +658,11 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user is None
@@ -714,7 +675,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
     def test_owner_assignment_assign_user(self):
         self.make_ownership()
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -722,20 +683,18 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user == self.user
         assert assignee.team is None
 
     def test_owner_assignment_ownership_no_matching_owners(self):
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -743,19 +702,17 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assert not event.group.assignee_set.exists()
 
     def test_owner_assignment_existing_assignment(self):
         self.make_ownership()
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -763,14 +720,12 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         event.group.assignee_set.create(team=self.team, project=self.project)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user is None
@@ -778,7 +733,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
     def test_only_first_assignment_works(self):
         self.make_ownership()
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -787,19 +742,17 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user == self.user
         assert assignee.team is None
 
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -808,13 +761,11 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         # Assignment shouldn't change.
@@ -826,7 +777,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Remove the team so the rule match will fail to resolve
         self.team.delete()
 
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -834,13 +785,11 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assignee = event.group.assignee_set.first()
         assert assignee is None
@@ -852,7 +801,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         """
         # Create rules and check assignees
         self.make_ownership()
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -860,7 +809,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        event_2 = self.store_event(
+        event_2 = self.create_event(
             data={
                 "message": "Exception",
                 "platform": "python",
@@ -868,21 +817,17 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
-        cache_key_2 = write_event_to_cache(event_2)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key_2,
-            group_id=event_2.group_id,
+            event=event_2,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user == self.user
@@ -901,21 +846,17 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         self.prj_ownership.schema = dump_schema(rules)
         self.prj_ownership.save()
 
-        cache_key = write_event_to_cache(event)
-        cache_key_2 = write_event_to_cache(event_2)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key_2,
-            group_id=event_2.group_id,
+            event=event_2,
         )
 
         # Group should be re-assigned to the new group owner
@@ -943,21 +884,17 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             schema=dump_schema([code_owners_rule]),
         )
 
-        cache_key = write_event_to_cache(event)
-        cache_key_2 = write_event_to_cache(event_2)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key_2,
-            group_id=event_2.group_id,
+            event=event_2,
         )
 
         # Group should be re-assigned to the new group owner
@@ -966,7 +903,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
     def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
         self.make_ownership()
-        event = self.store_event(
+        event = self.create_event(
             data={
                 "message": "oh no",
                 "platform": "python",
@@ -974,7 +911,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
 
         assignee_cache_key = "assignee_exists:1:%s" % event.group.id
         owner_cache_key = "owner_exists:1:%s" % event.group.id
@@ -986,9 +922,86 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
+
+
+class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
+    github_blame_return_value = {
+        "commitId": "asdfwreqr",
+        "committedDate": "",
+        "commitMessage": "placeholder commit message",
+        "commitAuthorName": "",
+        "commitAuthorEmail": "admin@localhost",
+    }
+
+    def setUp(self):
+        self.created_event = self.create_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=10)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": False,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "fingerprint": ["put-me-in-the-control-group"],
+            },
+            project_id=self.project.id,
+        )
+        self.cache_key = write_event_to_cache(self.created_event)
+        self.repo = self.create_repo(
+            name="example",
+            integration_id=self.integration.id,
+        )
+        self.code_mapping = self.create_code_mapping(
+            repo=self.repo, project=self.project, stack_root="src/"
+        )
+        self.commit_author = self.create_commit_author(project=self.project, user=self.user)
+        self.commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.commit_author,
+            key="asdfwreqr",
+            message="placeholder commit message",
+        )
+
+    @with_feature("organizations:commit-context")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value=github_blame_return_value,
+    )
+    def test_debounce_cache_is_set(self, mock_get_commit_context):
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert GroupOwner.objects.get(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+        assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
@@ -996,7 +1009,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze(self, mock_processor, send_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
 
         group = event.group
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
@@ -1006,8 +1018,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
         assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
         GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
@@ -1015,14 +1026,13 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
-        cache_key = write_event_to_cache(event)
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
@@ -1057,31 +1067,26 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             group.update(times_seen=50)
             snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
 
-            cache_key = write_event_to_cache(event)
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event.group_id,
+                event=event,
             )
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
-            cache_key = write_event_to_cache(event_2)
 
             buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event.group_id,
+                event=event_2,
             )
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
         event = self.create_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
         group = event.group
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
@@ -1089,8 +1094,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
+            event=event,
         )
 
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
@@ -1102,6 +1106,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
+    ProcessCommitsTestMixin,
     CorePostProcessGroupTestMixin,
     DeriveCodeMappingsProcessGroupTestMixin,
     InboxTestMixin,
@@ -1110,19 +1115,22 @@ class PostProcessGroupErrorTest(
     ServiceHooksTestMixin,
     SnoozeTestMixin,
 ):
-    def create_event(self, data, project_id):
-        return self.store_event(data=data, project_id=project_id)
+    def create_event(self, data, project_id, assert_no_errors=True):
+        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
             cache_key=cache_key,
-            group_id=group_id,
+            group_id=event.group_id,
         )
+        return cache_key
 
 
 @region_silo_test
@@ -1135,9 +1143,9 @@ class PostProcessGroupPerformanceTest(
     RuleProcessorTestMixin,
     SnoozeTestMixin,
 ):
-    def create_event(self, data, project_id):
+    def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
-        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{fingerprint}"
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         # Store a performance event
         event = self.store_transaction(
             project_id=project_id,
@@ -1147,20 +1155,22 @@ class PostProcessGroupPerformanceTest(
         return event.for_group(event.groups[0])
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
         group_states = (
             [
                 {
-                    "id": group_id,
+                    "id": event.group_id,
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
                 }
             ]
-            if group_id
+            if event.group_id
             else None
         )
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
@@ -1168,6 +1178,7 @@ class PostProcessGroupPerformanceTest(
             cache_key=cache_key,
             group_states=group_states,
         )
+        return cache_key
 
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
@@ -1220,8 +1231,8 @@ class PostProcessGroupPerformanceTest(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[
-                f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1",
-                f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
+                f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1",
+                f"{PerformanceNPlusOneGroupType.type_id}-group2",
             ],
             environment=None,
             timestamp=min_ago,
@@ -1280,3 +1291,74 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         )
 
         assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]
+
+
+@region_silo_test
+class PostProcessGroupGenericTest(
+    TestCase,
+    SnubaTestCase,
+    OccurrenceTestMixin,
+    CorePostProcessGroupTestMixin,
+    InboxTestMixin,
+    RuleProcessorTestMixin,
+    SnoozeTestMixin,
+):
+    def create_event(self, data, project_id, assert_no_errors=True):
+        data["type"] = "generic"
+        event = self.store_event(
+            data=data, project_id=project_id, assert_no_errors=assert_no_errors
+        )
+
+        occurrence_data = self.build_occurrence_data(event_id=event.event_id, project_id=project_id)
+        occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+        return group_event
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=None,
+            group_id=event.group_id,
+            occurrence_id=event.occurrence.id,
+            project_id=event.group.project_id,
+        )
+        return cache_key
+
+    def test_issueless(self):
+        # Skip this test since there's no way to have issueless events in the issue platform
+        pass
+
+    def test_no_cache_abort(self):
+        # We don't use the cache for generic issues, so skip this test
+        pass
+
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_occurrence_deduping(self, mock_processor):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assert mock_processor.call_count == 1
+        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
+
+        # Calling this again should do nothing, since we've already processed this occurrence.
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Make sure we haven't called this again, since we should exit early.
+        assert mock_processor.call_count == 1

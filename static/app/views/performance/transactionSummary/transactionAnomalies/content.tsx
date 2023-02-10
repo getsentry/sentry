@@ -295,7 +295,10 @@ function AnomaliesContent(props: Props) {
       >
         {queryData => (
           <Fragment>
-            <Anomalies {...props} queryData={queryData} />
+            <AnomaliesWrapper>
+              <Anomalies {...props} queryData={queryData} />
+            </AnomaliesWrapper>
+
             <AnomaliesTable
               anomalies={queryData.data?.anomalies}
               {...props}
@@ -316,6 +319,10 @@ const FilterActions = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;
   }
+`;
+
+const AnomaliesWrapper = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export default AnomaliesContent;

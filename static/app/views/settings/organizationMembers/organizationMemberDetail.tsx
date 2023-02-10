@@ -20,7 +20,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
@@ -436,7 +436,7 @@ const InviteField = styled('div')`
 const InviteSection = styled('div')`
   flex-grow: 1;
   display: flex;
-  gap: ${space(1)}; ;
+  gap: ${space(1)};
 `;
 
 const Footer = styled('div')`

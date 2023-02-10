@@ -5,12 +5,12 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import Group, GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -63,6 +63,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
         )
         assert snooze.is_valid(test_rates=True)
 
+    @freeze_time()
     def test_user_delta_reached(self):
         for i in range(0, 100):
             self.store_event(
@@ -102,7 +103,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
                 environment=None,
                 project_id=self.project.id,
                 user_id=str(i),
-                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
             )
         perf_group = event.groups[0]
         snooze = GroupSnooze.objects.create(group=perf_group, user_count=10, user_window=60)
@@ -145,7 +146,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
                 environment=None,
                 project_id=self.project.id,
                 user_id=str(i),
-                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
             )
         perf_group = event.groups[0]
         snooze = GroupSnooze.objects.create(group=perf_group, count=10, window=24 * 60)

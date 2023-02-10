@@ -1,8 +1,8 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, Profiler, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {withProfiler} from '@sentry/react';
+import {setTag, withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
@@ -24,6 +24,7 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
+import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -73,6 +74,13 @@ function ProjectCardList({projects}: {projects: Project[]}) {
   );
 }
 
+function setProjectDataTags(totalProjects: number) {
+  const countGroup = [0, 1, 5, 10, 50, 100, 500, 1000, Infinity].find(
+    n => totalProjects <= n
+  );
+  setTag('projects.total.grouped', `<=${countGroup}`);
+}
+
 function Dashboard({teams, organization, loadingTeams, error, router, location}: Props) {
   useEffect(() => {
     return function cleanup() {
@@ -104,6 +112,8 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     'id'
   );
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
+  setProjectDataTags(projects.length);
+
   const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
@@ -130,7 +140,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember>
+      <NoProjectMessage organization={organization}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
@@ -194,7 +204,10 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                 query={projectQuery}
               />
             </SearchAndSelectorWrapper>
-            <ProjectCardList projects={filteredProjects} />
+
+            <Profiler id="ProjectCardList" onRender={onRenderCallback}>
+              <ProjectCardList projects={filteredProjects} />
+            </Profiler>
           </Layout.Main>
         </Layout.Body>
         {showResources && <Resources organization={organization} />}
@@ -235,16 +248,8 @@ const StyledSearchBar = styled(SearchBar)`
 
 const ProjectCards = styled('div')`
   display: grid;
-  grid-template-columns: minmax(100px, 1fr);
   gap: ${space(3)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
 `;
 
 export {Dashboard};
