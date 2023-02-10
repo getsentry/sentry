@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.models import Group
@@ -32,6 +32,7 @@ class OccurrenceTestMixin:
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
             "id": uuid.uuid4().hex,
+            "project_id": 1,
             "event_id": uuid.uuid4().hex,
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",

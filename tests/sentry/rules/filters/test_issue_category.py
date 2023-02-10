@@ -1,9 +1,8 @@
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouptype.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.grouptype import GroupCategory, PerformanceRenderBlockingAssetSpanGroupType
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.testutils import RuleTestCase, SnubaTestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.types.issues import GroupCategory
 
 
 class IssueCategoryFilterErrorTest(RuleTestCase):

@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from sentry import options
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,

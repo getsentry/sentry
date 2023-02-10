@@ -50,10 +50,15 @@ export function flamegraphPreferencesReducer(
     case 'set type': {
       return {
         ...state,
+        // When a user switches from chart to graph, there is some
+        // cleanup that we need to do to the state as some of the views
+        // are not compatible with each other.
+        xAxis: action.payload === 'flamegraph' ? 'profile' : state.xAxis,
         sorting:
           action.payload === 'flamegraph' && state.sorting === 'call order'
             ? 'alphabetical'
             : state.sorting,
+
         type: action.payload,
       };
     }
