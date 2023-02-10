@@ -237,7 +237,7 @@ def assigned_or_suggested_filter(
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user_id__in=users) | Q(team_id__in=team_ids),
+                    Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
