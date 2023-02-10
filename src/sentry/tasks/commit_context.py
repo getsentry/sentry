@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 
+from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
@@ -12,6 +13,7 @@ from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathCo
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -258,3 +260,20 @@ def process_commit_context(
             )
     except UnableToAcquireLock:
         pass
+    except MaxRetriesExceededError:
+        logger.info(
+            "process_commit_context.max_retries_exceeded",
+            extra={
+                **basic_logging_details,
+                "reason": "max_retries_exceeded",
+            },
+        )
+
+        process_suspect_commits.delay(
+            event_id=event_id,
+            event_platform=event_platform,
+            event_frames=event_frames,
+            group_id=group_id,
+            project_id=project_id,
+            sdk_name=sdk_name,
+        )

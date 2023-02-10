@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
+from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
 from sentry.models import Repository
@@ -335,3 +337,17 @@ class TestCommitContext(TestCase):
         assert owner.user is None
         assert owner.team is None
         assert owner.context == {"commitId": self.commit_2.id}
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        side_effect=ApiError(text="integration_failed"),
+    )
+    def test_fallback_if_max_retries_exceeded(self, mock_get_commit_context):
+        with self.tasks() and pytest.raises(MaxRetriesExceededError):
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=get_frame_paths(self.event),
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
