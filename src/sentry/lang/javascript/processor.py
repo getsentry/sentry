@@ -33,6 +33,7 @@ from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
+from sentry.utils.javascript import find_sourcemap
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
@@ -69,7 +70,6 @@ NODE_MODULES_RE = re.compile(r"\bnode_modules/")
 # Default Webpack output path using multiple namespace - https://webpack.js.org/configuration/output/#outputdevtoolmodulefilenametemplate
 # eg. webpack://myproject/./src/lib/hellothere.js
 WEBPACK_NAMESPACE_RE = re.compile(r"^webpack://[a-zA-Z0-9_\-@\.]+/\./")
-SOURCE_MAPPING_URL_RE = re.compile(b"//# sourceMappingURL=(.*)$")
 CACHE_CONTROL_RE = re.compile(r"max-age=(\d+)")
 CACHE_CONTROL_MAX = 7200
 CACHE_CONTROL_MIN = 60
@@ -176,63 +176,18 @@ def discover_sourcemap(result):
 
     # When coercing the headers returned by urllib to a dict
     # all keys become lowercase so they're normalized
-    sourcemap = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
+    sourcemap_header = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
 
     # Force the header value to bytes since we'll be manipulating bytes here
-    sourcemap = force_bytes(sourcemap) if sourcemap is not None else None
+    sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
+    sourcemap_url = find_sourcemap(sourcemap_header, result.body)
+    sourcemap_url = (
+        force_text(non_standard_url_join(result.url, force_text(sourcemap_url)))
+        if sourcemap_url is not None
+        else None
+    )
 
-    if not sourcemap:
-        parsed_body = result.body.split(b"\n")
-        # Source maps are only going to exist at either the top or bottom of the document.
-        # Technically, there isn't anything indicating *where* it should exist, so we
-        # are generous and assume it's somewhere either in the first or last 5 lines.
-        # If it's somewhere else in the document, you're probably doing it wrong.
-        if len(parsed_body) > 10:
-            possibilities = parsed_body[:5] + parsed_body[-5:]
-        else:
-            possibilities = parsed_body
-
-        # We want to scan each line sequentially, and the last one found wins
-        # This behavior is undocumented, but matches what Chrome and Firefox do.
-        for line in possibilities:
-            if line[:21] in (b"//# sourceMappingURL=", b"//@ sourceMappingURL="):
-                # We want everything AFTER the indicator, which is 21 chars long
-                sourcemap = line[21:].rstrip()
-
-        # If we still haven't found anything, check end of last line AFTER source code.
-        # This is not the literal interpretation of the spec, but browsers support it.
-        # e.g. {code}//# sourceMappingURL={url}
-        if not sourcemap:
-            # Only look at last 300 characters to keep search space reasonable (minified
-            # JS on a single line could be tens of thousands of chars). This is a totally
-            # arbitrary number / best guess; most sourceMappingURLs are relative and
-            # not very long.
-            search_space = possibilities[-1][-300:].rstrip()
-            match = SOURCE_MAPPING_URL_RE.search(search_space)
-            if match:
-                sourcemap = match.group(1)
-
-    if sourcemap:
-        # react-native shoves a comment at the end of the
-        # sourceMappingURL line.
-        # For example:
-        #  sourceMappingURL=app.js.map/*ascii:...*/
-        # This comment is completely out of spec and no browser
-        # would support this, but we need to strip it to make
-        # people happy.
-        if b"/*" in sourcemap and sourcemap[-2:] == b"*/":
-            index = sourcemap.index(b"/*")
-            # comment definitely shouldn't be the first character,
-            # so let's just make sure of that.
-            if index == 0:
-                raise AssertionError(
-                    "react-native comment found at bad location: %d, %r" % (index, sourcemap)
-                )
-            sourcemap = sourcemap[:index]
-        # fix url so its absolute
-        sourcemap = non_standard_url_join(result.url, force_text(sourcemap))
-
-    return force_text(sourcemap) if sourcemap is not None else None
+    return sourcemap_url
 
 
 def get_release_file_cache_key(release_id, releasefile_ident):
