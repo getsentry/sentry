@@ -190,6 +190,13 @@ class OrganizationTest(TestCase):
         org = self.create_organization()
         assert org.default_owner_id is None
 
+    def test_default_owner_id_only_owner_through_team(self):
+        user = self.create_user("foo@example.com")
+        org = self.create_organization()
+        owner_team = self.create_team(organization=org, org_role="owner")
+        self.create_member(organization=org, user=user, teams=[owner_team])
+        assert org.default_owner_id == user.id
+
     @mock.patch.object(
         Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
     )
@@ -488,6 +495,9 @@ class Require2fa(TestCase):
 
     def test_send_delete_confirmation_system_audit(self):
         org = self.create_organization(owner=self.user)
+        user = self.create_user("bar@example.com")
+        owner_team = self.create_team(organization=org, org_role="owner")
+        self.create_member(organization=org, user=user, teams=[owner_team])
         audit_entry = create_system_audit_entry(
             organization=org,
             target_object=org.id,
@@ -496,8 +506,9 @@ class Require2fa(TestCase):
         )
         with self.tasks():
             org.send_delete_confirmation(audit_entry, ONE_DAY)
-        assert len(mail.outbox) == 1
+        assert len(mail.outbox) == 2
         assert "User: Sentry" in mail.outbox[0].body
+        assert "User: Sentry" in mail.outbox[1].body
 
     def test_absolute_url_no_customer_domain(self):
         org = self.create_organization(owner=self.user, slug="acme")
