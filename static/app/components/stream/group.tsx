@@ -395,10 +395,10 @@ function BaseGroupRow({
     <Placeholder height="18px" />
   ) : (
     <TimeSince
-      tooltipTitle={t('Last Triggered')}
+      tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
-      shorten
+      unitStyle="short"
     />
   );
 
