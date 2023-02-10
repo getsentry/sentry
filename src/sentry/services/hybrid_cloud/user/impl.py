@@ -13,7 +13,6 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
-from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
@@ -107,15 +106,6 @@ class DatabaseBackedUserService(
                 is_active=True,
             )
         ]
-
-    def get_from_project(self, project_id: int) -> List[APIUser]:
-        try:
-            project = Project.objects.get(id=project_id)
-        except Project.DoesNotExist:
-            return []
-        return self.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
-        )
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         return [self._serialize_rpc(u) for u in self._base_query().filter(actor_id__in=actor_ids)]
