@@ -12,7 +12,7 @@ from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.logic import get_available_action_integrations_for_org, get_pagerduty_services
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.models import SentryAppInstallation
 
 
 def build_action_response(
@@ -48,22 +48,15 @@ def build_action_response(
 
     elif sentry_app_installation:
         action_response["sentryAppName"] = sentry_app_installation.sentry_app.name
-        action_response["sentryAppId"] = sentry_app_installation.sentry_app.id
+        action_response["sentryAppId"] = sentry_app_installation.sentry_app_id
         action_response["sentryAppInstallationUuid"] = sentry_app_installation.uuid
         action_response["status"] = SentryAppStatus.as_str(
             sentry_app_installation.sentry_app.status
         )
 
         # Sentry Apps can be alertable but not have an Alert Rule UI Component
-        component = next(
-            filter(
-                lambda c: c.type == "alert-rule-action",
-                sentry_app_installation.sentry_app.components,
-            ),
-            None,
-        )
+        component = sentry_app_installation.prepare_sentry_app_components("alert-rule-action")
         if component:
-            component = sentry_app_installation.prepare_ui_component(component)
             action_response["settings"] = component.schema.get("settings", {})
 
     return action_response
@@ -99,10 +92,11 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
                 actions += [
                     build_action_response(registered_type, sentry_app_installation=install)
-                    for install in app_service.get_installed_for_organization(
-                        organization_id=organization.id
+                    for install in SentryAppInstallation.objects.get_installed_for_organization(
+                        organization.id
+                    ).filter(
+                        sentry_app__is_alertable=True,
                     )
-                    if install.sentry_app.is_alertable
                 ]
 
             else:
