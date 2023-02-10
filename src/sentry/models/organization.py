@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import IntEnum
-from typing import FrozenSet, Iterable, Optional, Sequence
+from typing import Collection, FrozenSet, Optional, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -346,14 +346,9 @@ class Organization(Model, SnowflakeIdMixin):
         return self._default_owner_id
 
     def has_single_owner(self):
-        owners = list(
-            self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
-                "id", flat=True
-            )
-        )
-        return len(owners[:2]) == 1
+        return self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).count() == 1
 
-    def get_members_with_org_roles(self, roles: Iterable[str]) -> QuerySet:
+    def get_members_with_org_roles(self, roles: Collection[str]) -> QuerySet:
         members_with_role = OrganizationMember.objects.filter(
             organization=self,
             role__in=roles,
@@ -679,10 +674,10 @@ class Organization(Model, SnowflakeIdMixin):
             scopes.discard("alerts:write")
         return frozenset(scopes)
 
-    def get_teams_with_org_roles(self, roles: Optional[Iterable[str]] = None):
+    def get_teams_with_org_roles(self, roles: Optional[Collection[str]] = None):
         from sentry.models.team import Team
 
-        if roles:
+        if roles is not None:
             return Team.objects.filter(org_role__in=roles, organization=self)
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
