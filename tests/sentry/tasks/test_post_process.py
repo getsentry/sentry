@@ -1310,7 +1310,7 @@ class PostProcessGroupGenericTest(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
 
-        occurrence_data = self.build_occurrence_data(event_id=event.event_id)
+        occurrence_data = self.build_occurrence_data(event_id=event.event_id, project_id=project_id)
         occurrence, group_info = save_issue_occurrence(occurrence_data, event)
         assert group_info is not None
 
