@@ -242,6 +242,9 @@
 - name: 'Team: Ops'
   color: '8D5494'
   description: ''
+- name: 'Team: Replay'
+  color: '8D5494'
+  description: team-emerging-technology
 - name: 'Team: Revenue'
   color: '8D5494'
   description: ''
