@@ -161,6 +161,10 @@ const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListPr
     data={[
       makeTransactionNameRow(event),
       makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(
+        t('Duration Impact'),
+        getSingleSpanDurationImpact(event, offendingSpans[0])
+      ),
     ]}
   />
 );
