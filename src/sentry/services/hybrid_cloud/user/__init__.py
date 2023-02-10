@@ -133,11 +133,6 @@ class UserService(
         pass
 
     @abstractmethod
-    def get_from_project(self, project_id: int) -> List[Group]:
-        """Get all users associated with a project identifier"""
-        pass
-
-    @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
 

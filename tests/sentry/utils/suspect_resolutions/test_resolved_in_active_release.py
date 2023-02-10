@@ -4,11 +4,13 @@ from django.utils import timezone
 
 from sentry.models import Deploy, Group, GroupRelease, GroupStatus
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.suspect_resolutions.resolved_in_active_release import (
     is_resolved_issue_within_active_release,
 )
 
 
+@region_silo_test(stable=True)
 class ResolvedInActiveReleaseTest(TestCase):
     def test_unresolved_issue_in_active_release(self):
         project = self.create_project()
