@@ -2304,6 +2304,9 @@ class MonitorTestCase(APITestCase):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def _get_path_functions(self):
+        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
+        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
+        # decision to permanently remove both url schemas is a TODO.
         return (
             lambda monitor: reverse(self.endpoint, args=[monitor.guid]),
             lambda monitor: reverse(
