@@ -112,7 +112,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         result = ApiTeamMember(
             id=team_member.id,
             is_active=team_member.is_active,
-            role=team_member.get_team_role(),
+            role_id=team_member.get_team_role().id,
             team_id=team_member.team_id,
             project_ids=list(project_ids),
             scopes=list(team_member.get_scopes()),

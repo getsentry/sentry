@@ -5,7 +5,7 @@ import mapValues from 'lodash/mapValues';
 
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
+import {toRoundedPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -161,6 +161,10 @@ const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListPr
     data={[
       makeTransactionNameRow(event),
       makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(
+        t('Duration Impact'),
+        getSingleSpanDurationImpact(event, offendingSpans[0])
+      ),
     ]}
   />
 );
@@ -284,7 +288,7 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
     return null;
   }
   const percent = durationAdded / transactionTime;
-  return `${toPercent(percent)} (${getPerformanceDuration(
+  return `${toRoundedPercent(percent)} (${getPerformanceDuration(
     durationAdded
   )}/${getPerformanceDuration(transactionTime)})`;
 }

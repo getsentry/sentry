@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
@@ -11,6 +10,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     PatchableMixin,
+    SiloDataInterface,
     Unset,
     UnsetVal,
     silo_mode_delegation,
@@ -22,8 +22,7 @@ if TYPE_CHECKING:
     from sentry.models import Organization
 
 
-@dataclass(frozen=True, eq=True)
-class APIOrganizationMapping:
+class APIOrganizationMapping(SiloDataInterface):
     organization_id: int = -1
     slug: str = ""
     name: str = ""
@@ -33,8 +32,7 @@ class APIOrganizationMapping:
     customer_id: Optional[str] = None
 
 
-@dataclass
-class ApiOrganizationMappingUpdate(PatchableMixin["Organization"]):
+class ApiOrganizationMappingUpdate(SiloDataInterface, PatchableMixin["Organization"]):
     organization_id: int = -1
     name: Unset[str] = UnsetVal
     customer_id: Unset[str] = UnsetVal

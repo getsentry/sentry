@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional
 
+from pydantic import Field
+
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.roles import team_roles
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    SiloDataInterface,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 
@@ -139,27 +147,29 @@ def team_status_visible() -> int:
     return int(TeamStatus.VISIBLE)
 
 
-@dataclass
-class ApiTeam:
+class ApiTeam(SiloDataInterface):
     id: int = -1
-    status: int = field(default_factory=team_status_visible)
+    status: int = Field(default_factory=team_status_visible)
     organization_id: int = -1
     slug: str = ""
-    actor_id: int | None = None
+    actor_id: Optional[int] = None
     org_role: str = ""
 
     def class_name(self) -> str:
         return "Team"
 
 
-@dataclass
-class ApiTeamMember:
+class ApiTeamMember(SiloDataInterface):
     id: int = -1
     is_active: bool = False
-    role: Optional[TeamRole] = None
-    project_ids: List[int] = field(default_factory=list)
-    scopes: List[str] = field(default_factory=list)
+    role_id: str = ""
+    project_ids: List[int] = Field(default_factory=list)
+    scopes: List[str] = Field(default_factory=list)
     team_id: int = -1
+
+    @property
+    def role(self) -> Optional[TeamRole]:
+        return team_roles.get(self.role_id) if self.role_id else None
 
 
 def project_status_visible() -> int:
@@ -168,17 +178,15 @@ def project_status_visible() -> int:
     return int(ProjectStatus.VISIBLE)
 
 
-@dataclass
-class ApiProject:
+class ApiProject(SiloDataInterface):
     id: int = -1
     slug: str = ""
     name: str = ""
     organization_id: int = -1
-    status: int = field(default_factory=project_status_visible)
+    status: int = Field(default_factory=project_status_visible)
 
 
-@dataclass
-class ApiOrganizationMemberFlags:
+class ApiOrganizationMemberFlags(SiloDataInterface):
     sso__linked: bool = False
     sso__invalid: bool = False
     member_limit__restricted: bool = False
@@ -193,18 +201,17 @@ class ApiOrganizationMemberFlags:
         return bool(getattr(self, item))
 
 
-@dataclass
-class ApiOrganizationMember:
+class ApiOrganizationMember(SiloDataInterface):
     id: int = -1
     organization_id: int = -1
     # This can be null when the user is deleted.
     user_id: Optional[int] = None
-    member_teams: List[ApiTeamMember] = field(default_factory=list)
+    member_teams: List[ApiTeamMember] = Field(default_factory=list)
     role: str = ""
     has_global_access: bool = False
-    project_ids: List[int] = field(default_factory=list)
-    scopes: List[str] = field(default_factory=list)
-    flags: ApiOrganizationMemberFlags = field(default_factory=lambda: ApiOrganizationMemberFlags())
+    project_ids: List[int] = Field(default_factory=list)
+    scopes: List[str] = Field(default_factory=list)
+    flags: ApiOrganizationMemberFlags = Field(default_factory=lambda: ApiOrganizationMemberFlags())
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -218,8 +225,7 @@ class ApiOrganizationMember:
         }
 
 
-@dataclass
-class ApiOrganizationFlags:
+class ApiOrganizationFlags(SiloDataInterface):
     allow_joinleave: bool = False
     enhanced_privacy: bool = False
     disable_shared_issues: bool = False
@@ -229,39 +235,26 @@ class ApiOrganizationFlags:
     require_email_verification: bool = False
 
 
-@dataclass
-class ApiOrganizationInvite:
+class ApiOrganizationSummary(SiloDataInterface):
     id: int = -1
     token: str = ""
     email: str = ""
 
 
 @dataclass
-class ApiOrganizationSummary:
-    """
-    The subset of organization metadata available from the control silo specifically.
-    """
-
-    slug: str = ""
-    id: int = -1
-    name: str = ""
-
-
-@dataclass
 class ApiOrganization(ApiOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
-    teams: List[ApiTeam] = field(default_factory=list)
-    projects: List[ApiProject] = field(default_factory=list)
+    teams: List[ApiTeam] = Field(default_factory=list)
+    projects: List[ApiProject] = Field(default_factory=list)
 
-    flags: ApiOrganizationFlags = field(default_factory=lambda: ApiOrganizationFlags())
+    flags: ApiOrganizationFlags = Field(default_factory=lambda: ApiOrganizationFlags())
     status: OrganizationStatus = OrganizationStatus.VISIBLE
 
     default_role: str = ""
 
 
-@dataclass
-class ApiUserOrganizationContext:
+class ApiUserOrganizationContext(SiloDataInterface):
     """
     This object wraps an organization result inside of its membership context in terms of an (optional) user id.
     This is due to the large number of callsites that require an organization and a user's membership at the
@@ -273,7 +266,7 @@ class ApiUserOrganizationContext:
     user_id: Optional[int] = None
     # The organization is always non-null because the null wrapping is around this object instead.
     # A None organization => a None ApiUserOrganizationContext
-    organization: ApiOrganization = field(default_factory=lambda: ApiOrganization())
+    organization: ApiOrganization = Field(default_factory=lambda: ApiOrganization())
     # member can be None when the given user_id does not have membership with the given organization.
     # Note that all related fields of this organization member are filtered by visibility and is_active=True.
     member: Optional[ApiOrganizationMember] = None

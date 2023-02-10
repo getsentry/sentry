@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect, {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
