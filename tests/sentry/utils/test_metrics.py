@@ -1,6 +1,8 @@
+import logging
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 
 from sentry.utils import metrics
 
@@ -56,3 +58,20 @@ def test_global():
         assert metrics._get_current_global_tags() == {"tag_a": 123, "tag_b": 123}
 
     assert metrics._get_current_global_tags() == {}
+
+
+def test_filter_tags(caplog):
+    with override_settings(SENTRY_METRICS_WARN_BAD_TAGS=True), caplog.at_level(
+        logging.WARNING, logger="sentry.metrics"
+    ):
+        assert metrics._filter_tags({"foo": "bar"}) == {"foo": "bar"}
+        assert metrics._filter_tags(
+            {"foo": "bar", "foo_id": 42, "project": 42, "group": 99, "event": 22}
+        ) == {"foo": "bar"}
+        assert caplog.record_tuples == [
+            (
+                "sentry.metrics",
+                30,
+                "discarded illegal metric tags: ['event', 'foo_id', 'group', 'project']",
+            )
+        ]

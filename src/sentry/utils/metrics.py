@@ -28,6 +28,8 @@ from sentry.metrics.base import MetricsBackend
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
+BAD_TAGS = frozenset(["event", "project", "group"])
+
 T = TypeVar("T")
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -56,6 +58,18 @@ def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]
 
     stack.append(tags)
     return stack
+
+
+def _filter_tags(tags: MutableTags) -> MutableTags:
+    """Removes unwanted tags from the tag mapping and returns a filtered one."""
+    discarded = frozenset(key for key in tags if key.endswith("_id") or key in BAD_TAGS)
+    if not discarded:
+        return tags
+
+    if settings.SENTRY_METRICS_WARN_BAD_TAGS:
+        logger = logging.getLogger("sentry.metrics")
+        logger.warning("discarded illegal metric tags: %s", sorted(discarded))
+    return {k: v for k, v in tags.items() if k not in discarded}
 
 
 def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
@@ -191,6 +205,7 @@ def incr(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
+    current_tags = _filter_tags(current_tags)
 
     should_send_internal = (
         not metrics_skip_all_internal
@@ -221,6 +236,7 @@ def gauge(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
+    current_tags = _filter_tags(current_tags)
 
     try:
         backend.gauge(key, value, instance, current_tags, sample_rate)
@@ -239,6 +255,7 @@ def timing(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
+    current_tags = _filter_tags(current_tags)
 
     try:
         backend.timing(key, value, instance, current_tags, sample_rate)
@@ -257,6 +274,7 @@ def timer(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
+    current_tags = _filter_tags(current_tags)
 
     start = time.monotonic()
     try:
