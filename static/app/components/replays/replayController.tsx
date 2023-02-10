@@ -127,7 +127,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
       <CompositeSelect.Region
         label={t('Playback Speed')}
         value={speed}
-        onChange={val => setSpeed(val)}
+        onChange={opt => setSpeed(opt.value)}
         options={speedOptions.map(option => ({
           label: `${option}x`,
           value: option,
@@ -137,8 +137,8 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
         aria-label={t('Fast-Forward Inactivity')}
         multiple
         value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
-        onChange={value => {
-          toggleSkipInactive(value.length > 0);
+        onChange={opts => {
+          toggleSkipInactive(opts.length > 0);
         }}
         options={[
           {
