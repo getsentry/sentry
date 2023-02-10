@@ -320,6 +320,9 @@
   description: ''
 
 # Platforms
+- name: 'Platform: .NET'
+  color: '584774'
+  description: ''
 - name: 'Platform: Cocoa'
   color: '584774'
   description: ''
