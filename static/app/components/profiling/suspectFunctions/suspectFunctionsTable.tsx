@@ -14,6 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface SuspectFunctionsTableProps {
+  analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
   project: Project | undefined;
   transaction: string;
 }
@@ -21,6 +22,7 @@ interface SuspectFunctionsTableProps {
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
 
 export function SuspectFunctionsTable({
+  analyticsPageSource,
   project,
   transaction,
 }: SuspectFunctionsTableProps) {
@@ -85,6 +87,7 @@ export function SuspectFunctionsTable({
         />
       </TableHeader>
       <FunctionsTable
+        analyticsPageSource={analyticsPageSource}
         error={functionsQuery.isError ? functionsQuery.error.message : null}
         isLoading={functionsQuery.isLoading}
         functions={

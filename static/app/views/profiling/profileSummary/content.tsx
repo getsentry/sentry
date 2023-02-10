@@ -92,7 +92,11 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         isLoading={profiles.status === 'loading'}
         sort={sort}
       />
-      <SuspectFunctionsTable project={props.project} transaction={props.transaction} />
+      <SuspectFunctionsTable
+        project={props.project}
+        transaction={props.transaction}
+        analyticsPageSource="profiling_transaction"
+      />
     </Layout.Main>
   );
 }

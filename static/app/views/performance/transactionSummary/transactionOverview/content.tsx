@@ -405,7 +405,11 @@ function SummaryContent({
           currentFilter={spanOperationBreakdownFilter}
         />
 
-        <SuspectFunctionsTable project={project} transaction={transactionName} />
+        <SuspectFunctionsTable
+          project={project}
+          transaction={transactionName}
+          analyticsPageSource="performance_transaction"
+        />
         <RelatedIssues
           organization={organization}
           location={location}

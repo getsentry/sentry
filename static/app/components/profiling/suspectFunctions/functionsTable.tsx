@@ -20,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface FunctionsTableProps {
+  analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
   error: string | null;
   functions: SuspectFunction[];
   isLoading: boolean;
@@ -70,7 +71,7 @@ function FunctionsTable(props: FunctionsTableProps) {
             onClick: () =>
               trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
                 organization,
-                source: 'profiling_transaction.suspect_functions_table',
+                source: `${props.analyticsPageSource}.suspect_functions_table`,
               }),
             target: generateProfileFlamechartRouteWithQuery({
               orgSlug: organization.slug,
@@ -87,7 +88,7 @@ function FunctionsTable(props: FunctionsTableProps) {
         }),
       };
     });
-  }, [organization, props.project, props.functions]);
+  }, [organization, props.project, props.functions, props.analyticsPageSource]);
 
   const generateSortLink = useCallback(
     (column: TableColumnKey) => {
