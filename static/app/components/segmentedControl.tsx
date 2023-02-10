@@ -277,32 +277,31 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
   bottom: 0;
   left: 0;
   right: 0;
-  background: ${p =>
-    p.priority === 'primary' ? p.theme.active : p.theme.backgroundElevated};
-  border-radius: ${p =>
-    p.priority === 'primary'
-      ? p.theme.borderRadius
-      : `calc(${p.theme.borderRadius} - 1px)`};
-  box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-
-  input.focus-visible ~ & {
-    box-shadow: ${p =>
-      p.priority === 'primary'
-        ? `0 0 0 3px ${p.theme.focus}`
-        : `0 0 0 2px ${p.theme.focusBorder}`};
-  }
 
   ${p =>
-    p.priority === 'primary' &&
-    `
+    p.priority === 'primary'
+      ? `
+    background: ${p.theme.active};
+    border-radius: ${p.theme.borderRadius};
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 3px ${p.theme.focus};
+    }
+
     top: -1px;
     bottom: -1px;
-
     label:first-child > & {
       left: -1px;
     }
     label:last-child > & {
       right: -1px;
+    }
+  `
+      : `
+    background: ${p.theme.backgroundElevated};
+    border-radius: calc(${p.theme.borderRadius} - 1px);
+    box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 2px ${p.theme.focusBorder};
     }
   `}
 `;
