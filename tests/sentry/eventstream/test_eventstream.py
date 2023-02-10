@@ -6,7 +6,9 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
+from sentry import nodestore
 from sentry.event_manager import EventManager
+from sentry.eventstore.models import Event
 from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
@@ -360,22 +362,26 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def test_insert_generic_event_contexts(self):
         es = SnubaProtocolEventStream()
 
-        event_data = load_data("generic-event")
+        profile_message = load_data("generic-event-profiling")
         geo_interface = {"city": "San Francisco", "country_code": "US", "region": "California"}
+        event_data = profile_message["event"]
         event_data["user"] = {"geo": geo_interface}
 
-        event = self.store_event(data=event_data, project_id=self.project.id)
+        project_id = event_data.get("project_id", self.project.id)
+        event_data["timestamp"] = datetime.utcnow().isoformat()
 
-        event_data["project_id"] = self.project.id
         occurrence, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(), event_data
+            self.build_occurrence_data(event_id=event_data["event_id"], project_id=project_id),
+            event_data,
         )
 
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
-
-        # intentionally mutate the event.data after storing the raw contexts
-        contexts_before_insert = dict(event_data.data["contexts"])
 
         with patch.object(es, "_send") as send:
             es.insert(
@@ -389,4 +395,4 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             send_extra_data_data = send.call_args.kwargs["extra_data"][0]["data"]
             assert "contexts" in send_extra_data_data
             contexts_after_processing = send_extra_data_data["contexts"]
-            assert contexts_after_processing == {**contexts_before_insert, **{"geo": geo_interface}}
+            assert contexts_after_processing == {**{"geo": geo_interface}}
