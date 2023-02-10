@@ -20,6 +20,9 @@ class UpdateMonitorCheckInTest(APITestCase):
         self.latest.guid = "latest"
 
     def _get_path_functions(self):
+        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
+        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
+        # decision to permanently remove either path schema is a TODO.
         return (
             lambda monitor, checkin: reverse(self.endpoint, args=[monitor.guid, checkin.guid]),
             lambda monitor, checkin: reverse(

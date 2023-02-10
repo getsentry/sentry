@@ -12,6 +12,10 @@ class GroupParticipantsTest(APITestCase):
         self.login_as(self.user)
 
     def _get_path_functions(self):
+        # The urls for group participants are supported both with an org slug and without.
+        # We test both as long as we support both.
+        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
+        # decision to permanently remove either path schema is a TODO.
         return (
             lambda group: reverse("sentry-api-0-group-stats", args=[group.id]),
             lambda group: reverse(
