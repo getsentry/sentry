@@ -249,7 +249,15 @@ const StyledSearchBar = styled(SearchBar)`
 const ProjectCards = styled('div')`
   display: grid;
   gap: ${space(3)};
-  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(1fr, 400px));
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: repeat(auto-fill, minmax(470px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  }
 `;
 
 export {Dashboard};
