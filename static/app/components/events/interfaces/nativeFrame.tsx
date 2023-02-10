@@ -221,7 +221,7 @@ function NativeFrame({
     <FrameRow data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader expandable={expandable} expanded={expanded}>
-          <StatusCell>
+          <div>
             {status === 'error' ? (
               <Tooltip
                 title={t(
@@ -243,8 +243,8 @@ function NativeFrame({
                 <IconCheckmark size="sm" color="successText" />
               </Tooltip>
             )}
-          </StatusCell>
-          <PackageCell>
+          </div>
+          <div>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
                 {!nextFrame ? (
@@ -264,7 +264,7 @@ function NativeFrame({
                 {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
               </Package>
             </Tooltip>
-          </PackageCell>
+          </div>
           <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
             <Tooltip
               title={addressTooltip}
@@ -348,18 +348,12 @@ function NativeFrame({
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
-const Cell = styled('div')``;
-
-const StatusCell = styled(Cell)``;
-
-const PackageCell = styled(Cell)``;
-
-const AddressCell = styled(Cell)`
+const AddressCell = styled('div')`
   ${p => p.onClick && `cursor: pointer`};
   ${p => p.onClick && `color:` + p.theme.linkColor};
 `;
 
-const FunctionNameCell = styled(Cell)`
+const FunctionNameCell = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-all;
 
@@ -368,20 +362,20 @@ const FunctionNameCell = styled(Cell)`
   }
 `;
 
-const GroupingCell = styled(Cell)`
+const GroupingCell = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-row: 2/3;
   }
 `;
 
-const TypeCell = styled(Cell)`
+const TypeCell = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 5/6;
     grid-row: 1/2;
   }
 `;
 
-const ExpandCell = styled(Cell)`
+const ExpandCell = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 6/7;
     grid-row: 1/2;
