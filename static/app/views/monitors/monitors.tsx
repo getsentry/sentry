@@ -152,11 +152,13 @@ class Monitors extends AsyncView<Props, State> {
                             {monitor.name}
                           </StyledLink>
                         </MonitorName>
-                        {monitor.nextCheckIn ? (
-                          <StyledTimeSince date={monitor.lastCheckIn} />
-                        ) : (
-                          <div>{t('n/a')}</div>
-                        )}
+                        <div>
+                          {monitor.nextCheckIn ? (
+                            <StyledTimeSince date={monitor.lastCheckIn} />
+                          ) : (
+                            t('n/a')
+                          )}
+                        </div>
                         <IdBadge
                           project={monitor.project}
                           avatarSize={18}
