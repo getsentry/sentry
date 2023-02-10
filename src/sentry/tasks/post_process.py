@@ -745,17 +745,11 @@ def process_commits(job: PostProcessJob) -> None:
 
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
-                metric_tags = {
-                    "event": event.event_id,
-                    "group": event.group_id,
-                    "project": event.project_id,
-                }
                 if features.has("organizations:commit-context", event.project.organization):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr(
                             "sentry.tasks.process_commit_context.debounce",
-                            tags={**metric_tags},
                         )
                         return
                     process_commit_context.delay(
@@ -771,7 +765,6 @@ def process_commits(job: PostProcessJob) -> None:
                     if cache.get(cache_key):
                         metrics.incr(
                             "sentry.tasks.process_suspect_commits.debounce",
-                            tags={**metric_tags},
                         )
                         return
                     process_suspect_commits.delay(
