@@ -418,7 +418,7 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
         assert list(get_incident_subscribers(incident)) == []
-        subscription = subscribe_to_incident(incident, self.user)[0]
+        subscription = subscribe_to_incident(incident, self.user.id)[0]
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 

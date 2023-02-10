@@ -30,7 +30,7 @@ class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
         :auth: required
         """
 
-        subscribe_to_incident(incident, request.user)
+        subscribe_to_incident(incident, request.user.id)
         return Response({}, status=201)
 
     def delete(self, request: Request, organization, incident) -> Response:
@@ -41,5 +41,5 @@ class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
         no-op.
         :auth: required
         """
-        unsubscribe_from_incident(incident, request.user)
+        unsubscribe_from_incident(incident, request.user.id)
         return Response({}, status=200)

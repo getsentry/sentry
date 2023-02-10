@@ -365,8 +365,10 @@ class FakeAuthenticationRequest:
     user_from_signed_request: bool = False
     auth: Any
 
-    def build_absolute_uri(self) -> str:
-        return self.req.absolute_url
+    def build_absolute_uri(self, path: str | None = None) -> str:
+        if path is None:
+            return self.req.absolute_url
+        return self.req.absolute_url_root
 
     def __init__(self, req: AuthenticationRequest) -> None:
         self.auth = None
