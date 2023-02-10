@@ -403,7 +403,7 @@ const Registers = styled(Context)`
   margin: 0;
 `;
 
-const PackageNote = styled('span')`
+const PackageNote = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;

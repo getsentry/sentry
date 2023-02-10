@@ -32,7 +32,6 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
 
   return (
     <Wrapper>
-      <Title>{t('Registers')}</Title>
       <StyledClippedBox
         isRevealed={isRevealed}
         renderedHeight={renderedHeight}
@@ -43,6 +42,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
           return <ClipFade>{showMoreButton}</ClipFade>;
         }}
       >
+        <RegistersTitle>{t('Registers')}</RegistersTitle>
         <Registers>
           {sortedRegisters.map(([name, value]) => {
             if (!defined(value)) {
@@ -62,32 +62,23 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  padding: ${space(1)} ${space(1)} ${space(0.5)} calc(${space(4)} + ${space(0.25)});
-  display: grid;
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1rem;
-  margin-top: ${space(0.5)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(0.5)} ${space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 132px 1fr;
+    padding: 18px 36px;
   }
 `;
 
-const Title = styled('div')`
-  padding-right: ${space(1)};
-  padding-bottom: ${space(1)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    padding-bottom: 0;
-    padding-right: ${space(1)};
-  }
+const RegistersTitle = styled('div')`
+  width: 80px;
+  padding: ${space(1)} 0;
 `;
 
 const Registers = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14.063rem, 1fr));
   gap: ${space(1)};
+  flex-grow: 1;
 `;
 
 const Register = styled('div')`
@@ -110,6 +101,10 @@ const StyledClippedBox = styled(ClippedBox)<{
   margin-right: 0;
   padding: 0;
   border-top: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+  }
 
   ${p =>
     !p.isRevealed &&
