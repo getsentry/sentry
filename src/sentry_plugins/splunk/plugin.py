@@ -173,14 +173,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
     def is_ratelimited(self, event):
         if super().is_ratelimited(event):
-            metrics.incr(
-                "integrations.splunk.forward-event.rate-limited",
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
-            )
+            metrics.incr("integrations.splunk.forward-event.rate-limited")
             return True
         return False
 
@@ -195,14 +188,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
     def forward_event(self, event: Event, payload: MutableMapping[str, Any]) -> bool:
         if not (self.project_token and self.project_index and self.project_instance):
-            metrics.incr(
-                "integrations.splunk.forward-event.unconfigured",
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
-            )
+            metrics.incr("integrations.splunk.forward-event.unconfigured")
             return False
 
         if self.host:
@@ -215,14 +201,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             client.request(payload)
         except Exception as exc:
             metric = "integrations.splunk.forward-event.error"
-            metrics.incr(
-                metric,
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
-            )
+            metrics.incr(metric)
             logger.info(
                 metric,
                 extra={
@@ -244,12 +223,5 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 return False
             raise exc
 
-        metrics.incr(
-            "integrations.splunk.forward-event.success",
-            tags={
-                "project_id": event.project_id,
-                "organization_id": event.project.organization_id,
-                "event_type": event.get_event_type(),
-            },
-        )
+        metrics.incr("integrations.splunk.forward-event.success")
         return True
