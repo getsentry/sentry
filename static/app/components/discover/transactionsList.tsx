@@ -112,6 +112,7 @@ type Props = {
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**
    * A list of preferred table headers to use over the field names.
@@ -228,6 +229,7 @@ class _TransactionsList extends Component<Props> {
       titles,
       generateLink,
       forceLoading,
+      referrer,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -256,6 +258,7 @@ class _TransactionsList extends Component<Props> {
             generateLink={generateLink}
             handleCellAction={handleCellAction}
             useAggregateAlias={false}
+            referrer={referrer}
           />
         </GuideAnchor>
       </Fragment>
