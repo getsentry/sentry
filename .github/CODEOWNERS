@@ -239,11 +239,11 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Replays
-/static/app/components/replays/   @getsentry/emerging-technology
-/static/app/utils/replays/        @getsentry/emerging-technology
-/static/app/views/replays/        @getsentry/emerging-technology
-/src/sentry/replays/              @getsentry/emerging-technology
-/tests/sentry/replays/            @getsentry/emerging-technology
+/static/app/components/replays/   @getsentry/replay-frontend
+/static/app/utils/replays/        @getsentry/replay-frontend
+/static/app/views/replays/        @getsentry/replay-frontend
+/src/sentry/replays/              @getsentry/replay-backend
+/tests/sentry/replays/            @getsentry/replay-backend
 ## End of Replays
 
 

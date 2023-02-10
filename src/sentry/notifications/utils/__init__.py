@@ -22,12 +22,18 @@ from urllib.parse import parse_qs, urlparse
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.models import (
     Activity,
     Commit,
@@ -48,7 +54,6 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
@@ -346,13 +351,15 @@ def get_parent_and_repeating_spans(
 
 
 def perf_to_email_html(
-    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem = None
+    spans: Union[List[Dict[str, Union[str, float]]], None],
+    problem: PerformanceProblem = None,
+    event: Event = None,
 ) -> Any:
     """Generate the email HTML for a performance issue alert"""
     if not problem:
         return ""
 
-    context = PerformanceProblemContext.from_problem_and_spans(problem, spans)
+    context = PerformanceProblemContext.from_problem_and_spans(problem, spans, event)
 
     return render_to_string("sentry/emails/transactions.html", context.to_dict())
 
@@ -398,7 +405,7 @@ def get_span_and_problem(
 def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
     spans, matched_problem = get_span_and_problem(event)
-    return perf_to_email_html(spans, matched_problem)
+    return perf_to_email_html(spans, matched_problem, event)
 
 
 def get_generic_data(event: GroupEvent) -> Any:
@@ -434,7 +441,7 @@ def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if group.issue_category == GroupCategory.PERFORMANCE:
-        issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        issue_type = group.issue_type.description
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
@@ -480,12 +487,27 @@ class PerformanceProblemContext:
             else "",
         }
 
+    def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
+        if not self.spans:
+            return None
+
+        for span in self.spans:
+            span_id = span.get("span_id", "") or ""
+            if span_id == id:
+                return span
+        return None
+
     @classmethod
     def from_problem_and_spans(
-        cls, problem: PerformanceProblem, spans: Union[List[Dict[str, Union[str, float]]], None]
+        cls,
+        problem: PerformanceProblem,
+        spans: Union[List[Dict[str, Union[str, float]]], None],
+        event: Event | None = None,
     ) -> PerformanceProblemContext:
-        if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
+        if problem.type == PerformanceNPlusOneAPICallsGroupType:
             return NPlusOneAPICallProblemContext(problem, spans)
+        if problem.type == PerformanceConsecutiveDBQueriesGroupType:
+            return ConsecutiveDBQueriesProblemContext(problem, spans, event)
         else:
             return cls(problem, spans)
 
@@ -533,3 +555,54 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
         return [
             "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
         ]
+
+
+class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
+    def __init__(
+        self,
+        problem: PerformanceProblem,
+        spans: Union[List[Dict[str, Union[str, float]]], None],
+        event: Event | None,
+    ):
+        PerformanceProblemContext.__init__(self, problem, spans)
+        self.event = event
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "span_evidence_key_value": [
+                {"key": _("Transaction"), "value": self.transaction},
+                {"key": _("Starting Span"), "value": self.starting_span},
+                {
+                    "key": _("Parallelizable Spans"),
+                    "value": self.parallelizable_spans,
+                    "is_multi_value": True,
+                },
+            ],
+        }
+
+    @property
+    def transaction(self) -> str:
+        if self.event and self.event.transaction:
+            return str(self.event.transaction)
+        return ""
+
+    @property
+    def starting_span(self) -> str:
+        if not self.problem.cause_span_ids or len(self.problem.cause_span_ids) < 1:
+            return ""
+
+        starting_span_id = self.problem.cause_span_ids[0]
+
+        return self._find_span_desc_by_id(starting_span_id)
+
+    @property
+    def parallelizable_spans(self) -> List[str]:
+        if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
+            return [""]
+
+        offender_span_ids = self.problem.offender_span_ids
+
+        return [self._find_span_desc_by_id(id) for id in offender_span_ids]
+
+    def _find_span_desc_by_id(self, id: str) -> str:
+        return get_span_evidence_value(self._find_span_by_id(id))

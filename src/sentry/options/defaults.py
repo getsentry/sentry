@@ -419,11 +419,6 @@ register("relay.drop-transaction-metrics", default=[])
 # [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
-# Sample rate for opting in orgs into the new transaction name handling.
-# old behavior: Treat transactions from old SDKs as high-cardinality.
-# new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
-register("relay.transaction-names-client-based", default=0.0)
-
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True)
 

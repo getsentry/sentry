@@ -178,6 +178,8 @@ export const getHumanDuration = (duration: number): string => {
 
 export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
 
+export const toRoundedPercent = (value: number) => `${Math.round(value * 100)}%`;
+
 type Rect = {
   height: number;
   width: number;

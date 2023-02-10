@@ -13,7 +13,6 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
-from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
@@ -95,6 +94,8 @@ class DatabaseBackedUserService(
             )
         if "emails" in filters:
             query = query.filter(in_iexact("emails__email", filters["emails"]))
+        if "actor_ids" in filters:
+            query = query.filter(actor_id__in=filters["actor_ids"])
 
         return list(query)
 
@@ -107,15 +108,6 @@ class DatabaseBackedUserService(
                 is_active=True,
             )
         ]
-
-    def get_from_project(self, project_id: int) -> List[APIUser]:
-        try:
-            project = Project.objects.get(id=project_id)
-        except Project.DoesNotExist:
-            return []
-        return self.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
-        )
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         return [self._serialize_rpc(u) for u in self._base_query().filter(actor_id__in=actor_ids)]
@@ -139,7 +131,7 @@ class DatabaseBackedUserService(
 
     def _filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
         return self._filter_has_any_key_validator(
-            "user_ids", "organization_id", "team_ids", "project_ids", "emails"
+            "user_ids", "organization_id", "team_ids", "project_ids", "emails", "actor_ids"
         )
 
     def _serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:

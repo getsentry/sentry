@@ -45,10 +45,9 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -193,8 +192,9 @@ def make_performance_event(project, sample_name: str):
         {
             "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
         }
-    ):
+    ), Feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
         perf_data = dict(
             load_data(
                 sample_name,
@@ -214,10 +214,13 @@ def make_performance_event(project, sample_name: str):
 
 
 def make_generic_event(project):
+    event_id = uuid.uuid4().hex
+    occurrence_data = TEST_ISSUE_OCCURRENCE.to_dict()
+    occurrence_data["event_id"] = event_id
     occurrence, group_info = process_event_and_issue_occurrence(
-        TEST_ISSUE_OCCURRENCE.to_dict(),
+        occurrence_data,
         {
-            "event_id": uuid.uuid4().hex,
+            "event_id": event_id,
             "project_id": project.id,
             "timestamp": before_now(minutes=1).isoformat(),
         },
@@ -423,7 +426,7 @@ def alert(request):
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
-            "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
+            "issue_type": group.issue_type.description,
         },
     ).render(request)
 

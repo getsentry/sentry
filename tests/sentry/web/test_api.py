@@ -12,7 +12,7 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
 )
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TestCase
 from sentry.utils import json
 

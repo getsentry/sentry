@@ -1,8 +1,8 @@
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 
 
@@ -48,7 +48,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase):
         assert group.get_oldest_event_for_environments(["staging"]) is None
 
     def test_perf_issue(self):
-        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
         event_data_1 = load_data("transaction", fingerprint=[group_fingerprint])
         event_data_1["timestamp"] = iso_format(before_now(seconds=10))

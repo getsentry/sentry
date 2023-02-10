@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,13 +22,13 @@ type Props = {
 
 function getMenuOptions({spanOps, isLoading, error}) {
   if (isLoading) {
-    return [{key: 'isLoading', disabled: true, label: t('Loading…')}];
+    return [{value: 'isLoading', disabled: true, label: t('Loading…')}];
   }
 
   if (error) {
     return [
       {
-        key: 'error',
+        value: 'error',
         disabled: true,
         label: t('Error loading operations'),
         leadingItems: <IconWarning color="subText" />,
@@ -67,8 +67,9 @@ export default function OpsFilter(props: Props) {
     >
       {results => (
         <CompactSelect
-          isClearable
+          clearable
           maxMenuWidth="24rem"
+          disallowEmptySelection={false}
           menuTitle={t('Filter by operation')}
           options={getMenuOptions(results)}
           onChange={opt => handleOpChange(opt?.value)}

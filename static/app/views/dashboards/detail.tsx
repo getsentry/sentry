@@ -738,7 +738,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
-    const eventView = generatePerformanceEventView(location, projects);
+    const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
     const isDashboardUsingTransaction = dashboard.widgets.some(
       isWidgetUsingTransactionName

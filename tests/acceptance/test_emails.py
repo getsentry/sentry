@@ -20,6 +20,7 @@ EMAILS = (
     ("/debug/mail/unable-to-delete-repo/", "unable to delete repo"),
     ("/debug/mail/error-alert/", "alert"),
     ("/debug/mail/performance-alert/transaction-n-plus-one", "performance"),
+    ("/debug/mail/performance-alert/transaction-n-plus-one-api-call/", "n1 api call"),
     ("/debug/mail/digest/", "digest"),
     ("/debug/mail/invalid-identity/", "invalid identity"),
     ("/debug/mail/invitation/", "invitation"),
