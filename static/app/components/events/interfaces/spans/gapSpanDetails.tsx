@@ -186,7 +186,7 @@ function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) 
   function handleGoToProfile() {
     trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
       organization,
-      source: 'missing_instrumentation',
+      source: 'performance.missing_instrumentation',
     });
   }
 
