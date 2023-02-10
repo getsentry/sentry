@@ -44,7 +44,7 @@ function ReleaseContext(props: BaseContextProps) {
   const getCommitAuthorTitle = () => {
     const user = ConfigStore.get('user');
     const commitCount = data?.commitCount || 0;
-    let authorsCount = data?.authors.length || 0;
+    let authorsCount = data?.authors?.length || 0;
 
     const userInAuthors =
       data &&
