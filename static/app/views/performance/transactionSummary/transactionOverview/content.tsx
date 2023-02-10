@@ -29,6 +29,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -53,6 +54,7 @@ import Filter, {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {
+  generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
@@ -244,14 +246,25 @@ function SummaryContent({
 
   const project = projects.find(p => p.id === projectId);
 
+  let transactionsListEventView = eventView.clone();
+  const fields = [...transactionsListEventView.fields];
+
   if (
     organization.features.includes('session-replay-ui') &&
     projectSupportsReplay(project)
   ) {
     transactionsListTitles.push(t('replay'));
+    fields.push({field: 'replayId'});
   }
 
-  let transactionsListEventView = eventView.clone();
+  if (
+    organization.features.includes('profiling') &&
+    project &&
+    isProfilingSupportedOrProjectHasProfiles(project)
+  ) {
+    transactionsListTitles.push(t('profile'));
+    fields.push({field: 'profile.id'});
+  }
 
   // update search conditions
 
@@ -283,8 +296,6 @@ function SummaryContent({
   if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
     durationField = filterToField(spanOperationBreakdownFilter)!;
   }
-
-  const fields = [...transactionsListEventView.fields];
 
   // add ops breakdown duration column as the 3rd column
   fields.splice(2, 0, {field: durationField});
@@ -362,6 +373,7 @@ function SummaryContent({
             id: generateTransactionLink(transactionName),
             trace: generateTraceLink(eventView.normalizeDateSelection(location)),
             replayId: generateReplayLink(routes),
+            'profile.id': generateProfileLink(),
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
@@ -369,6 +381,7 @@ function SummaryContent({
             spanOperationBreakdownFilter,
           })}
           forceLoading={isLoading}
+          referrer="performance.transactions_summary"
         />
         <SuspectSpans
           location={location}
