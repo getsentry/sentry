@@ -289,7 +289,7 @@ function SidebarChartsContainer({
   };
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
-    height: 480,
+    height: 360,
     grid: [
       {
         top: '60px',
@@ -307,7 +307,7 @@ function SidebarChartsContainer({
         top: '380px',
         left: '10px',
         right: '10px',
-        height: '120px',
+        height: '0px',
       },
     ],
     axisPointer: {
