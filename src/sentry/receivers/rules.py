@@ -1,17 +1,9 @@
-from sentry import features
 from sentry.models import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import project_created
 
 DEFAULT_RULE_LABEL = "Send a notification for new issues"
 DEFAULT_RULE_ACTIONS = [
-    {
-        "id": "sentry.mail.actions.NotifyEmailAction",
-        "targetType": "IssueOwners",
-        "targetIdentifier": None,
-    }
-]
-FALLTHROUGH_RULE_ACTIONS = [
     {
         "id": "sentry.mail.actions.NotifyEmailAction",
         "targetType": "IssueOwners",
@@ -31,8 +23,6 @@ def create_default_rules(project, default_rules=True, RuleModel=Rule, **kwargs):
         return
 
     rule_data = DEFAULT_RULE_DATA
-    if features.has("organizations:issue-alert-fallback-targeting", project.organization):
-        rule_data = {**rule_data, "actions": FALLTHROUGH_RULE_ACTIONS}
     RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL, data=rule_data)
 
 

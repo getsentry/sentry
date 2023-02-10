@@ -57,7 +57,7 @@ type Props = {
   dataset: Dataset;
   disabled: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string) => void;
+  onFilterSearch: (query: string, isQueryValid) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -431,10 +431,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <AlertContainer>
             <Alert type="info" showIcon>
               {tct(
-                'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
+                'Based on your search criteria and sample rate, the events available may be limited. [link:Learn more].',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#processed-event-properties" />
+                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#filters" />
                   ),
                 }
               )}
@@ -495,6 +495,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   placeholder={this.searchPlaceholder}
                   onChange={onChange}
                   query={initialData.query}
+                  // We only need strict validation for Transaction queries, everything else is fine
+                  highlightUnsupportedTags={[
+                    Dataset.GENERIC_METRICS,
+                    Dataset.TRANSACTIONS,
+                  ].includes(dataset)}
                   onKeyDown={e => {
                     /**
                      * Do not allow enter key to submit the alerts form since it is unlikely
@@ -507,12 +512,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                     onKeyDown?.(e);
                   }}
-                  onClose={query => {
-                    onFilterSearch(query);
+                  onClose={(query, {validSearch}) => {
+                    onFilterSearch(query, validSearch);
                     onBlur(query);
                   }}
                   onSearch={query => {
-                    onFilterSearch(query);
+                    onFilterSearch(query, true);
                     onChange(query, {});
                   }}
                   hasRecentSearches={dataset !== Dataset.SESSIONS}

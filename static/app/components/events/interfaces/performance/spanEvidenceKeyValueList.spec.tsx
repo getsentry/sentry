@@ -136,7 +136,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
       expect(
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('46.154% (300ms/650ms)');
+      ).toHaveTextContent('46% (300ms/650ms)');
     });
   });
 
@@ -317,6 +317,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
     });
   });
 
@@ -396,7 +397,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('52.309% (487ms/931ms)');
+      ).toHaveTextContent('52% (487ms/931ms)');
     });
   });
 });
