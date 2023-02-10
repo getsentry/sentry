@@ -5,7 +5,7 @@ import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStat
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-export class FlamegraphRenderer {
+export abstract class FlamegraphRenderer {
   canvas: HTMLCanvasElement;
   flamegraph: Flamegraph;
   theme: FlamegraphTheme;
@@ -89,18 +89,12 @@ export class FlamegraphRenderer {
     return hoveredNode;
   }
 
-  setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
-    throw new Error('Method `setHighlightedFrames` not implemented.');
-  }
+  abstract setHighlightedFrames(_frames: FlamegraphFrame[] | null);
 
-  setSearchResults(
+  abstract setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']
-  ) {
-    throw new Error('Method `setSearchResults` not implemented.');
-  }
+  );
 
-  draw(_configViewToPhysicalSpace: mat3): void {
-    throw new Error('Method `draw` not implemented.');
-  }
+  abstract draw(_configViewToPhysicalSpace: mat3): void;
 }

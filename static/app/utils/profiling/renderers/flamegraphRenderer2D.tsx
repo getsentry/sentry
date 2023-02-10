@@ -1,5 +1,6 @@
 import {mat3} from 'gl-matrix';
 
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -53,5 +54,16 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
         queue.push(frame.children[i]);
       }
     }
+  }
+
+  setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
+    throw new Error('Method `setHighlightedFrames` not implemented.');
+  }
+
+  setSearchResults(
+    _query: string,
+    _searchResults: FlamegraphSearch['results']['frames']
+  ) {
+    throw new Error('Method `setSearchResults` not implemented.');
   }
 }
