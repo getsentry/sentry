@@ -326,7 +326,7 @@ function NativeFrame({
         </RowHeader>
       </StrictClick>
       {expanded && (
-        <RowBody
+        <Registers
           frame={frame}
           event={event}
           registers={registers}
@@ -432,5 +432,3 @@ const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
     min-height: 32px;
   }
 `;
-
-const RowBody = styled(Registers)``;
