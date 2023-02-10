@@ -2,7 +2,7 @@ from functools import cached_property
 
 from sentry.incidents.models import IncidentActivity, IncidentActivityType
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
 class BaseIncidentCommentDetailsTest(APITestCase):
@@ -62,7 +62,7 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTest):
     method = "put"
 
@@ -92,9 +92,8 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
             )
 
     def test_superuser_can_edit(self):
-        with exempt_from_silo_limits():
-            self.user.is_superuser = True
-            self.user.save()
+        self.user.is_superuser = True
+        self.user.save()
 
         edited_comment = "this comment has been edited"
 
@@ -111,7 +110,7 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
         assert activity.comment == edited_comment
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTest):
     method = "delete"
 
@@ -132,9 +131,8 @@ class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTe
             )
 
     def test_superuser_can_delete(self):
-        with exempt_from_silo_limits():
-            self.user.is_superuser = True
-            self.user.save()
+        self.user.is_superuser = True
+        self.user.save()
 
         with self.feature("organizations:incidents"):
             self.get_success_response(
