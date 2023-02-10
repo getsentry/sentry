@@ -31,13 +31,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
-from sentry.grouptype.grouptype import ErrorGroupType, get_group_type_by_type_id
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 

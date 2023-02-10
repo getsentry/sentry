@@ -7,9 +7,9 @@ from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.types.issues import GroupCategory
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 

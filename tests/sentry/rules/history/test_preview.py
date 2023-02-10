@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.grouptype.grouptype import ErrorGroupType, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import ErrorGroupType, PerformanceNPlusOneGroupType
 from sentry.models import Activity, Group, Project
 from sentry.rules.history.preview import (
     FREQUENCY_CONDITION_GROUP_LIMIT,
