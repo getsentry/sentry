@@ -61,7 +61,6 @@ def test_few_small_transactions(sample_rate, transactions):
     """
     Test that when we only have a few small transactions, they are sampled at
     their ideal size and the rest is globally adjusted
-    :return:
     """
     MAX_EXPLICIT_TRANSACTIONS = 3
     explicit_transactions, global_rate = adjust_sample_rate(
@@ -118,9 +117,9 @@ big_transactions = [
 @pytest.mark.parametrize("transactions", big_transactions)
 def test_few_big_transactions(sample_rate, transactions):
     """
-    Test that when we only have a few small transactions, they are sampled at
-    their ideal size and the rest is globally adjusted
-    :return:
+    Test that when we only have a few bit transactions,
+    they are sampled at their ideal size and the
+    rest is globally adjusted
     """
     MAX_EXPLICIT_TRANSACTIONS = 3
     explicit_transactions, global_rate = adjust_sample_rate(
@@ -153,6 +152,11 @@ full_resample_transactions = [
 @pytest.mark.parametrize("sample_rate", [0.1, 0.5, 0.9])
 @pytest.mark.parametrize("transactions", full_resample_transactions)
 def test_full_resample(sample_rate, transactions):
+    """
+    Test that when we can adjust all transactions we adjust them
+    either at rate=1.0 or at a sampling rate that generates
+    an ideal number of samples.
+    """
 
     num_explicit_transaction_types = len(transactions)
     explicit_transactions, global_rate = adjust_sample_rate(
