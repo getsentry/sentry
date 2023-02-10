@@ -218,7 +218,7 @@ function NativeFrame({
   const status = getStatus();
 
   return (
-    <FrameRow data-test-id="stack-trace-frame">
+    <li data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader expandable={expandable} expanded={expanded}>
           <div>
@@ -342,7 +342,7 @@ function NativeFrame({
           frameMeta={frameMeta}
         />
       )}
-    </FrameRow>
+    </li>
   );
 }
 
@@ -410,15 +410,13 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
-const FrameRow = styled('li')``;
-
 const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
   display: grid;
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
-  grid-column-gap: ${space(1)};
+  column-gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.bodyBackground};
   font-size: ${p => p.theme.codeFontSize};
