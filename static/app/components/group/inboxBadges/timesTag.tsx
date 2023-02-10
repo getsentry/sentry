@@ -25,10 +25,10 @@ const TimesTag = ({lastSeen, firstSeen}: Props) => {
         getDynamicText({
           value: (
             <TimeSince
-              tooltipTitle={t('Last Seen')}
+              tooltipPrefix={t('Last Seen')}
               date={lastSeen}
               suffix={t('ago')}
-              shorten
+              unitStyle="short"
             />
           ),
           fixed: '10s ago',
@@ -40,11 +40,11 @@ const TimesTag = ({lastSeen, firstSeen}: Props) => {
         getDynamicText({
           value: (
             <TimeSince
-              tooltipTitle={t('First Seen')}
+              tooltipPrefix={t('First Seen')}
               date={firstSeen}
               suffix={t('old')}
               className="hidden-xs hidden-sm"
-              shorten
+              unitStyle="short"
             />
           ),
           fixed: '10s old',
