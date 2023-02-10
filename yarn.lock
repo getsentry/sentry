@@ -2466,10 +2466,10 @@
     localforage "^1.8.1"
     tslib "^1.9.3"
 
-"@sentry/jest-environment@^4.0.0-alpha.1":
-  version "4.0.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@sentry/jest-environment/-/jest-environment-4.0.0-alpha.1.tgz#7748e75ff212900308b690eb5356f31ea91765f8"
-  integrity sha512-VxfW1gxLGPBf9yLGmWBYjMsBOC+UUs0wzvRor01aAwHZ5f7aMgSnzjZLVgAza26YnYvhyCP8y66DWhTL9a2QiA==
+"@sentry/jest-environment@^4.0.0-alpha.2":
+  version "4.0.0-alpha.2"
+  resolved "https://registry.yarnpkg.com/@sentry/jest-environment/-/jest-environment-4.0.0-alpha.2.tgz#20543b4846b1e779c8fb034af2c691e29d77cf91"
+  integrity sha512-8kFQl0aT1lWcZgHuLHrI35pyW3ryO2vDfyRL2hBhIRBfFi8Q5aLkVXN+mbwS3tAIAfnLzlvCB73dK/1h9lH0Dw==
 
 "@sentry/node@7.37.0", "@sentry/node@^7.34.0":
   version "7.37.0"
