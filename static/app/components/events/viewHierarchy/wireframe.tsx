@@ -13,6 +13,7 @@ import {
   useResizeCanvasObserver,
 } from 'sentry/components/events/viewHierarchy/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 
 const MIN_BORDER_SIZE = 20;
@@ -298,10 +299,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
     <Stack>
       <InteractionContainer>
         <Controls>
-          <Button size="xs" ref={setZoomIn}>
+          <Button size="xs" ref={setZoomIn} aria-label={t('Zoom In on wireframe')}>
             <IconAdd size="xs" />
           </Button>
-          <Button size="xs" ref={setZoomOut}>
+          <Button size="xs" ref={setZoomOut} aria-label={t('Zoom Out on wireframe')}>
             <IconSubtract size="xs" />
           </Button>
         </Controls>
