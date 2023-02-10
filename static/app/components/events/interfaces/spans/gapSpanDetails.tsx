@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import {getDocsPlatformSDKForPlatform} from 'sentry/components/profiling/ProfilingOnboarding/util';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -15,6 +13,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -71,11 +70,11 @@ export function GapSpanDetails({
     ? span.timestamp - event.startTimestamp
     : flamegraph.configSpace.width;
 
-  const docsPlatform = getDocsPlatformSDKForPlatform(event.platform);
+  const docsLink = getProfilingDocsForPlatform(event.platform || '');
 
   if (
     // profiling isn't supported for this platform
-    !docsPlatform ||
+    !docsLink ||
     // the project already sent a profile but this transaction doesnt have a profile
     (projectHasProfile && !hasProfile)
   ) {
@@ -91,7 +90,7 @@ export function GapSpanDetails({
 
   return (
     <Container>
-      {!projectHasProfile && <SetupProfilingInstructions docsPlatform={docsPlatform} />}
+      {!projectHasProfile && <SetupProfilingInstructions docsLink={docsLink} />}
       {projectHasProfile && hasProfile && (
         <ProfilePreview
           canvasView={canvasView}
@@ -113,16 +112,10 @@ export function GapSpanDetails({
 }
 
 interface SetupProfilingInstructionsProps {
-  docsPlatform: PlatformKey;
+  docsLink: string;
 }
 
-function SetupProfilingInstructions({docsPlatform}: SetupProfilingInstructionsProps) {
-  // ios is the only supported apple platform right now
-  const docsLink =
-    docsPlatform === 'apple-ios'
-      ? 'https://docs.sentry.io/platforms/apple/guides/ios/profiling/'
-      : `https://docs.sentry.io/platforms/${docsPlatform}/profiling/`;
-
+function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps) {
   return (
     <InstructionsContainer>
       <Heading>{t('Requires Manual Instrumentation')}</Heading>

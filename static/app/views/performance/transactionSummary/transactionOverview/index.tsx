@@ -191,7 +191,6 @@ function getDocumentTitle(transactionName: string): string {
 
 function generateEventView({
   location,
-  organization,
   transactionName,
 }: {
   location: Location;
@@ -213,10 +212,6 @@ function generateEventView({
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
-
-  if (organization.features.includes('session-replay-ui')) {
-    fields.push('replayId');
-  }
 
   return EventView.fromNewQueryWithLocation(
     {
