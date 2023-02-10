@@ -87,12 +87,12 @@ function TimeSince({
     setRelative(computeRelativeDate());
 
     // Start a ticker to update the relative time
-    tickerRef.current = window.setTimeout(
+    tickerRef.current = window.setInterval(
       () => setRelative(computeRelativeDate()),
       ONE_MINUTE_IN_MS
     );
 
-    return () => window.clearTimeout(tickerRef.current);
+    return () => window.clearInterval(tickerRef.current);
   }, [computeRelativeDate]);
 
   const dateObj = getDateObj(date);
