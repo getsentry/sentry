@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface SuspectFunctionsTableProps {
-  project: Project;
+  project: Project | undefined;
   transaction: string;
 }
 
