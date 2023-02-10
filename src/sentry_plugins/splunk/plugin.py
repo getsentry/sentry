@@ -229,5 +229,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 return False
             raise exc
 
-        metrics.incr("integrations.splunk.forward-event.success")
+        metrics.incr(
+            "integrations.splunk.forward-event.success", tags={"event_type": event.get_event_type()}
+        )
         return True
