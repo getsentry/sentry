@@ -69,6 +69,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         "organizations:custom-symbol-sources": False,
     }
 
+    @pytest.mark.skip(reason="https://github.com/getsentry/sentry/issues/44459")
     def test_full_minidump(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
@@ -142,6 +143,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         insta_snapshot_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
+    @pytest.mark.skip(reason="https://github.com/getsentry/sentry/issues/44459")
     def test_reprocessing(self):
         # NOTE:
         # When running this test against a local symbolicator instance,

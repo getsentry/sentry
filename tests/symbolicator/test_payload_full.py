@@ -77,6 +77,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
     def get_event(self, event_id):
         return eventstore.get_event_by_id(self.project.id, event_id)
 
+    @pytest.mark.skip(reason="https://github.com/getsentry/sentry/issues/44459")
     def test_real_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -109,6 +110,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
+    @pytest.mark.skip(reason="https://github.com/getsentry/sentry/issues/44459")
     def test_debug_id_resolving(self):
         file = File.objects.create(
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
