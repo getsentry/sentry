@@ -15,7 +15,6 @@ from sentry.api.endpoints.project_release_files import ArtifactSource
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.lang.javascript.processor import SOURCE_MAPPING_URL_RE
 from sentry.models import (
     Distribution,
     Organization,
@@ -25,6 +24,7 @@ from sentry.models import (
     SourceMapProcessingIssue,
 )
 from sentry.models.releasefile import read_artifact_index
+from sentry.utils.javascript import find_sourcemap
 from sentry.utils.urls import non_standard_url_join
 
 
@@ -95,7 +95,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         try:
             release = self._extract_release(event, project)
-        except Exception:
+        except (SourceMapException, Release.DoesNotExist):
             return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
 
         filename, abs_path = self._get_filename_and_path(exception, frame_idx)
@@ -127,7 +127,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 release_artifacts, urlparts, abs_path, filename, release, event
             )
             sourcemap_url = self._discover_sourcemap_url(artifact, filename)
-        except Exception as e:
+        except SourceMapException as e:
             return self._create_response(issue=e.args[0], data=e.args[1])
 
         if not sourcemap_url:
@@ -145,7 +145,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 release_artifacts, urlparse(sourcemap_url), sourcemap_url, filename, release, event
             )
 
-        except Exception as e:
+        except SourceMapException as e:
             return self._create_response(issue=e.args[0], data=e.args[1])
 
         if not sourcemap_artifact.file.getfile().read():
@@ -195,7 +195,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         release_version = event.get_tag("sentry:release")
 
         if not release_version:
-            raise Exception
+            raise SourceMapException
         return Release.objects.get(organization=project.organization, version=release_version)
 
     def _verify_dist_matches(self, release, event, artifact, filename):
@@ -204,12 +204,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 return
             dist = Distribution.objects.get(release=release, name=event.dist)
         except Distribution.DoesNotExist:
-            raise Exception(
+            raise SourceMapException(
                 SourceMapProcessingIssue.DIST_MISMATCH,
                 {"eventDist": event.dist, "filename": filename},
             )
         if artifact.dist_id != dist.id:
-            raise Exception(
+            raise SourceMapException(
                 SourceMapProcessingIssue.DIST_MISMATCH,
                 {"eventDist": dist.id, "artifactDist": artifact.dist_id, "filename": filename},
             )
@@ -230,7 +230,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 partial_match = partial_matches[0]
                 url_prefix = self._find_url_prefix(filename, partial_match.name)
 
-                raise Exception(
+                raise SourceMapException(
                     SourceMapProcessingIssue.PARTIAL_MATCH,
                     {
                         "absPath": abs_path,
@@ -242,7 +242,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                     },
                 )
 
-            raise Exception(
+            raise SourceMapException(
                 SourceMapProcessingIssue.NO_URL_MATCH,
                 {
                     "absPath": abs_path,
@@ -265,32 +265,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         # Code adapted from sentry/lang/javascript/processor.py
         sourcemap = file.headers.get("Sourcemap", file.headers.get("X-SourceMap"))
         sourcemap = force_bytes(sourcemap) if sourcemap is not None else None
-
-        if not sourcemap:
-            parsed_body = file.getfile().read().split(b"\n")
-            if len(parsed_body) > 10:
-                possibilities = parsed_body[:5] + parsed_body[-5:]
-            else:
-                possibilities = parsed_body
-
-            for line in possibilities:
-                if line[:21] in (b"//# sourceMappingURL=", b"//@ sourceMappingURL="):
-                    sourcemap = line[21:].rstrip()
-
-            if not sourcemap:
-                search_space = possibilities[-1][-300:].rstrip()
-                match = SOURCE_MAPPING_URL_RE.search(search_space)
-                if match:
-                    sourcemap = match.group(1)
-
-        if sourcemap:
-            if b"/*" in sourcemap and sourcemap[-2:] == b"*/":
-                index = sourcemap.index(b"/*")
-                if index == 0:
-                    raise Exception(
-                        SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, {"filename": filename}
-                    )
-                sourcemap = sourcemap[:index]
+        try:
+            sourcemap = find_sourcemap(sourcemap, file.getfile().read())
+        except AssertionError:
+            raise SourceMapException(
+                SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, {"filename": filename}
+            )
 
         return force_text(sourcemap) if sourcemap is not None else None
 
@@ -322,6 +302,13 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         return data_sources
 
     def _find_url_prefix(self, filepath, artifact_name):
+        # Right now, we only support 3 cases for finding the url prefix:
+        # 1. If the file name is a suffix of the artifact name, return the missing prefix
+        # Example : "/static/app.js" and "~/dist/static/app/js"
+        # 2. If there is only 1 substitution needed to make the file name and artifact name match
+        # Example : "~/dist/static/header/app.js" and "~/dist/static/footer/app.js"
+        # 3. If there is only 1 difference that needs to be added to make the file name and artifact name match
+        # Example : "~/dist/app.js" and "~/dist/static/header/app.js"
         idx = artifact_name.find(filepath)
         # If file name is suffix of artifact name, return the missing prefix
         if idx != -1:
@@ -340,4 +327,10 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             filepath = set(filepath)
             artifact_name = set(artifact_name)
 
-            return "/".join(list(filepath.symmetric_difference(artifact_name)) + [""])
+            differences = list(filepath.symmetric_difference(artifact_name))
+            if len(differences) == 1:
+                return "/".join(differences + [""])
+
+
+class SourceMapException(Exception):
+    pass

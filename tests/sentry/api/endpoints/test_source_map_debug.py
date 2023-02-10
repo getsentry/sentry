@@ -1,6 +1,7 @@
 from django.core.files.base import ContentFile
 from rest_framework import status
 
+from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -8,7 +9,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
-class ProjectOwnershipEndpointTestCase(APITestCase):
+class SourceMapDebugEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug"
 
     def setUp(self) -> None:
@@ -31,6 +32,17 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             resp.data["detail"]
             == "Endpoint not available without 'organizations:fix-source-map-cta' feature flag"
         )
+
+    def test_url_prefix(self):
+        cases = [
+            ("~/v1/scripts/footer/bundle.js", "~/v1/assets/footer/bundle.js", "assets/"),
+            ("~/v1/scripts/footer/bundle.js", "~/v1/next/scripts/footer/bundle.js", "next/"),
+            ("/static/js/application.js", "~/dist/static/js/application.js", "~/dist"),
+            ("~/v1/scripts/footer/bundle.js", "~/v1/next/dist/scripts/footer/bundle.js", None),
+        ]
+
+        for filename, artifact_name, expected in cases:
+            assert SourceMapDebugEndpoint()._find_url_prefix(filename, artifact_name) == expected
 
     @with_feature("organizations:fix-source-map-cta")
     def test_missing_event(self):
