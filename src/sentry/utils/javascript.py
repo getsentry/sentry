@@ -17,8 +17,9 @@ def has_sourcemap(event):
     return False
 
 
-def find_sourcemap(sourcemap, body):
-    if not sourcemap:
+def find_sourcemap(sourcemap_header, body):
+    sourcemap_url = sourcemap_header
+    if not sourcemap_header:
         parsed_body = body.split(b"\n")
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
@@ -34,12 +35,12 @@ def find_sourcemap(sourcemap, body):
         for line in possibilities:
             if line[:21] in (b"//# sourceMappingURL=", b"//@ sourceMappingURL="):
                 # We want everything AFTER the indicator, which is 21 chars long
-                sourcemap = line[21:].rstrip()
+                sourcemap_url = line[21:].rstrip()
 
         # If we still haven't found anything, check end of last line AFTER source code.
         # This is not the literal interpretation of the spec, but browsers support it.
         # e.g. {code}//# sourceMappingURL={url}
-        if not sourcemap:
+        if not sourcemap_url:
             # Only look at last 300 characters to keep search space reasonable (minified
             # JS on a single line could be tens of thousands of chars). This is a totally
             # arbitrary number / best guess; most sourceMappingURLs are relative and
@@ -47,9 +48,9 @@ def find_sourcemap(sourcemap, body):
             search_space = possibilities[-1][-300:].rstrip()
             match = SOURCE_MAPPING_URL_RE.search(search_space)
             if match:
-                sourcemap = match.group(1)
+                sourcemap_url = match.group(1)
 
-    if sourcemap:
+    if sourcemap_url:
         # react-native shoves a comment at the end of the
         # sourceMappingURL line.
         # For example:
@@ -57,13 +58,13 @@ def find_sourcemap(sourcemap, body):
         # This comment is completely out of spec and no browser
         # would support this, but we need to strip it to make
         # people happy.
-        if b"/*" in sourcemap and sourcemap[-2:] == b"*/":
-            index = sourcemap.index(b"/*")
+        if b"/*" in sourcemap_url and sourcemap_url[-2:] == b"*/":
+            index = sourcemap_url.index(b"/*")
             # comment definitely shouldn't be the first character,
             # so let's just make sure of that.
             if index == 0:
                 raise AssertionError(
-                    "react-native comment found at bad location: %d, %r" % (index, sourcemap)
+                    "react-native comment found at bad location: %d, %r" % (index, sourcemap_url)
                 )
-            sourcemap = sourcemap[:index]
-    return sourcemap
+            sourcemap_url = sourcemap_url[:index]
+    return sourcemap_url

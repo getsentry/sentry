@@ -176,14 +176,18 @@ def discover_sourcemap(result):
 
     # When coercing the headers returned by urllib to a dict
     # all keys become lowercase so they're normalized
-    sourcemap = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
+    sourcemap_header = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
 
     # Force the header value to bytes since we'll be manipulating bytes here
-    sourcemap = force_bytes(sourcemap) if sourcemap is not None else None
-    sourcemap = find_sourcemap(sourcemap, result.body)
-    sourcemap = non_standard_url_join(result.url, force_text(sourcemap)) if sourcemap else sourcemap
+    sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
+    sourcemap_url = find_sourcemap(sourcemap_header, result.body)
+    sourcemap_url = (
+        force_text(non_standard_url_join(result.url, force_text(sourcemap_url)))
+        if sourcemap_url is not None
+        else None
+    )
 
-    return force_text(sourcemap) if sourcemap is not None else None
+    return sourcemap_url
 
 
 def get_release_file_cache_key(release_id, releasefile_ident):

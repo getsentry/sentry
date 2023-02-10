@@ -128,7 +128,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             )
             sourcemap_url = self._discover_sourcemap_url(artifact, filename)
         except SourceMapException as e:
-            return self._create_response(issue=e.args[0], data=e.args[1])
+            return self._create_response(issue=e.issue, data=e.data)
 
         if not sourcemap_url:
             return self._create_response(
@@ -146,7 +146,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             )
 
         except SourceMapException as e:
-            return self._create_response(issue=e.args[0], data=e.args[1])
+            return self._create_response(issue=e.issue, data=e.data)
 
         if not sourcemap_artifact.file.getfile().read():
             return self._create_response(
@@ -195,7 +195,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         release_version = event.get_tag("sentry:release")
 
         if not release_version:
-            raise SourceMapException
+            raise SourceMapException(SourceMapProcessingIssue.MISSING_RELEASE)
         return Release.objects.get(organization=project.organization, version=release_version)
 
     def _verify_dist_matches(self, release, event, artifact, filename):
@@ -263,10 +263,10 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     def _discover_sourcemap_url(self, artifact, filename):
         file = artifact.file
         # Code adapted from sentry/lang/javascript/processor.py
-        sourcemap = file.headers.get("Sourcemap", file.headers.get("X-SourceMap"))
-        sourcemap = force_bytes(sourcemap) if sourcemap is not None else None
+        sourcemap_header = file.headers.get("Sourcemap", file.headers.get("X-SourceMap"))
+        sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
         try:
-            sourcemap = find_sourcemap(sourcemap, file.getfile().read())
+            sourcemap = find_sourcemap(sourcemap_header, file.getfile().read())
         except AssertionError:
             raise SourceMapException(
                 SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, {"filename": filename}
@@ -333,4 +333,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
 
 class SourceMapException(Exception):
-    pass
+    def __init__(self, issue, data=None):
+        self.issue = issue
+        self.data = data
