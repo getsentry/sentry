@@ -54,7 +54,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
 
       <NoWrapNumeric>
         {getDynamicText({
-          value: <TimeSince date={incident.dateStarted} extraShort />,
+          value: <TimeSince date={incident.dateStarted} unitStyle="extraShort" />,
           fixed: '1w ago',
         })}
       </NoWrapNumeric>

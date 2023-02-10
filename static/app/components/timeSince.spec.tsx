@@ -19,12 +19,12 @@ describe('TimeSince', function () {
   });
 
   it('renders a shortened date', () => {
-    render(<TimeSince shorten date={tenMinAgo} />);
+    render(<TimeSince unitStyle="short" date={tenMinAgo} />);
     expect(screen.getByText('10min ago')).toBeInTheDocument();
   });
 
   it('renders a extrashort date', () => {
-    render(<TimeSince shorten extraShort date={tenMinAgo} />);
+    render(<TimeSince unitStyle="extraShort" date={tenMinAgo} />);
     expect(screen.getByText('10m ago')).toBeInTheDocument();
   });
 
@@ -34,7 +34,7 @@ describe('TimeSince', function () {
   });
 
   it('renders a spanish suffix with shortened', () => {
-    render(<TimeSince shorten extraShort date={tenMinAgo} suffix="atrás" />);
+    render(<TimeSince unitStyle="extraShort" date={tenMinAgo} suffix="atrás" />);
     expect(screen.getByText('10m atrás')).toBeInTheDocument();
   });
 });
