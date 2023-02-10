@@ -18,7 +18,6 @@ from sentry.issues.occurrence_consumer import (
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -73,7 +72,6 @@ class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):  # 
         self.eventstore = SnubaEventStorage()
 
 
-@region_silo_test(stable=True)
 class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
@@ -130,7 +128,6 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             _process_message(message)
 
 
-@region_silo_test(stable=True)
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
         message = get_test_message(self.project.id, include_event=False)
@@ -166,7 +163,6 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
         assert fetched_event.get_event_type() == "transaction"
 
 
-@region_silo_test(stable=True)
 class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def run_test(self, message: Dict[str, Any]) -> None:
         _get_kwargs(message)

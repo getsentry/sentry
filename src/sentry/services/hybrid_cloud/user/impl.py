@@ -94,8 +94,6 @@ class DatabaseBackedUserService(
             )
         if "emails" in filters:
             query = query.filter(in_iexact("emails__email", filters["emails"]))
-        if "actor_ids" in filters:
-            query = query.filter(actor_id__in=filters["actor_ids"])
 
         return list(query)
 
@@ -131,7 +129,7 @@ class DatabaseBackedUserService(
 
     def _filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
         return self._filter_has_any_key_validator(
-            "user_ids", "organization_id", "team_ids", "project_ids", "emails", "actor_ids"
+            "user_ids", "organization_id", "team_ids", "project_ids", "emails"
         )
 
     def _serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:

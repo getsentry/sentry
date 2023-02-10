@@ -15,11 +15,13 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
 )
-from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
-from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.models import (
+    ACTOR_TYPES,
+    Rule,
+    SentryAppInstallation,
+    actor_type_to_class,
+    actor_type_to_string,
+)
 from sentry.snuba.models import SnubaQueryEventType
 
 
@@ -40,10 +42,14 @@ class AlertRuleSerializer(Serializer):
             alert_rule_trigger__alert_rule_id__in=alert_rules.keys()
         ).exclude(sentry_app_config__isnull=True, sentry_app_id__isnull=True)
 
-        sentry_app_installations_by_sentry_app_id = app_service.get_related_sentry_app_components(
-            organization_ids={alert_rule.organization_id for alert_rule in alert_rules.values()},
-            sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
-            type="alert-rule-action",
+        sentry_app_installations_by_sentry_app_id = (
+            SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_ids={
+                    alert_rule.organization_id for alert_rule in alert_rules.values()
+                },
+                sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
+                type="alert-rule-action",
+            )
         )
 
         for trigger, serialized in zip(triggers, serialized_triggers):
@@ -88,14 +94,10 @@ class AlertRuleSerializer(Serializer):
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
         for k, v in ACTOR_TYPES.items():
-            cls = actor_type_to_class(v)
-            if cls is Team:
-                resolved_actors[k] = {
-                    a.actor_id: a.id
-                    for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
-                }
-            if cls is User:
-                resolved_actors[k] = user_service.get_many(filter={"actor_ids": owners_by_type[k]})
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
+            }
 
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:
