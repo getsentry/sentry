@@ -60,7 +60,7 @@ def test_global():
     assert metrics._get_current_global_tags() == {}
 
 
-def test_filter_tags(caplog):
+def test_filter_tags_dev(caplog):
     with override_settings(SENTRY_METRICS_WARN_BAD_TAGS=True), caplog.at_level(
         logging.WARNING, logger="sentry.metrics"
     ):
@@ -75,3 +75,14 @@ def test_filter_tags(caplog):
                 "discarded illegal metric tags: ['event', 'foo_id', 'group', 'project']",
             )
         ]
+
+
+def test_filter_tags_prod(caplog):
+    with override_settings(SENTRY_METRICS_WARN_BAD_TAGS=False), caplog.at_level(
+        logging.WARNING, logger="sentry.metrics"
+    ):
+        assert metrics._filter_tags({"foo": "bar"}) == {"foo": "bar"}
+        assert metrics._filter_tags(
+            {"foo": "bar", "foo_id": 42, "project": 42, "group": 99, "event": 22}
+        ) == {"foo": "bar"}
+        assert caplog.record_tuples == []
