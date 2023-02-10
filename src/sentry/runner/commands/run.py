@@ -364,12 +364,6 @@ def cron(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @strict_offset_reset_option()
-# TODO: Remove this option once we have fully cut over to the streaming consumer
-@click.option(
-    "--use-streaming-consumer",
-    is_flag=True,
-    help="Switches to the new streaming consumer implementation.",
-)
 @click.option(
     "--entity",
     type=click.Choice(["errors", "transactions"]),
