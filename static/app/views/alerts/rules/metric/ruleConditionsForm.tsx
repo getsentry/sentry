@@ -20,7 +20,6 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
@@ -29,7 +28,11 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertType,
+  DATASET_OMITTED_TAGS,
+  DATASET_SUPPORTED_TAGS,
+} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -145,19 +148,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
-  }
-
-  get searchSupportedTags() {
-    if (isCrashFreeAlert(this.props.dataset)) {
-      return {
-        release: {
-          key: 'release',
-          name: 'release',
-        },
-      };
-    }
-
-    return undefined;
   }
 
   renderEventTypeFilter() {
@@ -430,16 +420,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
-    const transactionTags = [
-      'transaction',
-      'transaction.duration',
-      'transaction.op',
-      'transaction.status',
-    ];
-    const measurementTags = Object.values({...WebVital, ...MobileVital});
-    const eventOmitTags =
-      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
-
     const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
     return (
@@ -504,15 +484,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 <StyledSearchBar
                   searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
-                  omitTags={[
-                    'event.type',
-                    'release.version',
-                    'release.stage',
-                    'release.package',
-                    'release.build',
-                    'project',
-                    ...eventOmitTags,
-                  ]}
+                  omitTags={DATASET_OMITTED_TAGS[dataset]}
+                  {...(DATASET_SUPPORTED_TAGS[dataset]
+                    ? {supportedTags: DATASET_SUPPORTED_TAGS[dataset]}
+                    : {})}
                   includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
                   useFormWrapper={false}
@@ -540,9 +515,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     onFilterSearch(query);
                     onChange(query, {});
                   }}
-                  {...(this.searchSupportedTags
-                    ? {supportedTags: this.searchSupportedTags}
-                    : {})}
                   hasRecentSearches={dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>

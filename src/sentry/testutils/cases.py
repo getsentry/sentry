@@ -81,6 +81,7 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail import mail_adapter
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
@@ -129,7 +130,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
@@ -483,7 +483,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()

@@ -6,6 +6,7 @@ from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models import (
     Activity,
     ApiKey,
@@ -27,7 +28,6 @@ from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupType
 
 
 @region_silo_test(stable=True)
@@ -522,7 +522,7 @@ class GroupUpdateTest(APITestCase):
 
     def test_discard_performance_issue(self):
         self.login_as(user=self.user)
-        group = self.create_group(type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
+        group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
         GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
 
         url = f"/api/0/issues/{group.id}/"
@@ -585,7 +585,7 @@ class GroupDeleteTest(APITestCase):
         """Test that a performance issue cannot be deleted"""
         self.login_as(user=self.user)
 
-        group = self.create_group(type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
+        group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
         GroupHash.objects.create(project=group.project, hash="x" * 32, group=group)
 
         url = f"/api/0/issues/{group.id}/"
