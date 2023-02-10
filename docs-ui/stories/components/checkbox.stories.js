@@ -1,5 +1,5 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
+import {useArgs} from '@storybook/client-api';
 
 import Checkbox from 'sentry/components/checkbox';
 
@@ -23,48 +23,29 @@ export default {
 };
 
 export const Default = props => {
-  const [checked, setChecked] = useState(true);
+  const [_, updateArgs] = useArgs();
 
   return (
     <div>
-      <Checkbox
-        {...props}
-        checked={checked}
-        onChange={e => setChecked(e.target.checked)}
-      />
+      <Checkbox {...props} onChange={e => updateArgs({checked: !!e.target.checked})} />
     </div>
   );
 };
 
 export const WithLabel = props => {
-  const [check1, setCheck1] = useState(true);
-  const [check2, setCheck2] = useState(false);
+  const [_, updateArgs] = useArgs();
 
   return (
-    <div>
-      <Label>
-        Label to left
-        <Checkbox
-          {...props}
-          checked={check1}
-          onChange={e => setCheck1(e.target.checked)}
-        />
-      </Label>
-      <Label>
-        <Checkbox
-          {...props}
-          checked={check2}
-          onChange={e => setCheck2(e.target.checked)}
-        />
-        Label to right
-      </Label>
-    </div>
+    <Label>
+      <Checkbox {...props} onChange={e => updateArgs({checked: !!e.target.checked})} />
+      Label
+    </Label>
   );
 };
 
 const Label = styled('label')`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   margin-bottom: 2rem;
 `;

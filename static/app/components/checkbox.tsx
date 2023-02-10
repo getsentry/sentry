@@ -103,7 +103,15 @@ const HiddenInput = styled('input')`
   cursor: pointer;
 
   &.focus-visible + * {
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 2px;
+    ${p =>
+      p.checked
+        ? `
+        box-shadow: ${p.theme.focus} 0 0 0 3px;
+      `
+        : `
+        border-color: ${p.theme.focusBorder};
+        box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
+      `}
   }
 
   &:disabled + * {
