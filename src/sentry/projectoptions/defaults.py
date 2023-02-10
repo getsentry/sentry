@@ -1,7 +1,7 @@
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 8
+LATEST_EPOCH = 9
 
 # grouping related configs
 #
@@ -52,7 +52,7 @@ register(
 # unlikely to be disabled.
 register(
     key="sentry:builtin_symbol_sources",
-    epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"]},
+    epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"]}, 9: ["ios", "microsoft", "android", "nuget.org"]},
 )
 
 # Default legacy-browsers filter
