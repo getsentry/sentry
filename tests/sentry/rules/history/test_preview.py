@@ -5,6 +5,7 @@ from freezegun import freeze_time
 
 from sentry.issues.grouptype import (
     ErrorGroupType,
+    GroupCategory,
     PerformanceNPlusOneGroupType,
     ProfileBlockedThreadGroupType,
 )
@@ -23,6 +24,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 MATCH_ARGS = ("all", "all", 0)
 
@@ -190,7 +192,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         filters = [
             {
                 "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": ErrorGroupType.type_id,
+                "value": GroupCategory.ERROR.value,
             }
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
@@ -223,7 +225,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         filters = [
             {
                 "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": ProfileBlockedThreadGroupType.type_id,
+                "value": GroupCategory.PROFILE.value,
             }
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
@@ -518,7 +520,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
 
 @freeze_time()
 @region_silo_test
-class FrequencyConditionTest(TestCase, SnubaTestCase):
+class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
         self.transaction_data = load_data(
@@ -711,6 +713,42 @@ class FrequencyConditionTest(TestCase, SnubaTestCase):
 
         result = preview(self.project, conditions, [], "any", "all", 0)
         assert group.id in result
+
+    def test_frequency_conditions_issue_platform(self):
+        prev_hour = timezone.now() - timedelta(hours=1)
+        prev_two_hour = timezone.now() - timedelta(hours=2)
+        for time in (prev_hour, prev_two_hour):
+            for i in range(5):
+                event = self.store_event(
+                    project_id=self.project.id, data={"timestamp": iso_format(time)}
+                )
+                event = event.for_group(event.groups[0])
+                occurrence = self.build_occurrence(level="info")
+                occurrence.save()
+                event.occurrence = occurrence
+                event.group.type = ProfileBlockedThreadGroupType.type_id
+
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 4,
+                "interval": "5m",
+            },
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 9,
+                "interval": "1d",
+            },
+        ]
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert event.group.id in result
+
+        conditions[0]["value"] = 5
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert event.group.id not in result
+
+        result = preview(self.project, conditions, [], "any", "all", 0)
+        assert event.group.id in result
 
     def test_interval_comparison(self):
         prev_hour = timezone.now() - timedelta(hours=1)
