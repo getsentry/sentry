@@ -489,7 +489,7 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step}"):
+            with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
                 pipeline_step(job)
         except Exception:
             issue_category_metric = issue_category.name.lower() if issue_category else None
