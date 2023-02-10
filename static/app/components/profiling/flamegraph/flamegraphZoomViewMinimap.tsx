@@ -16,7 +16,7 @@ import {
   getPhysicalSpacePositionFromOffset,
   Rect,
 } from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -74,7 +74,7 @@ function FlamegraphZoomViewMinimap({
       return null;
     }
 
-    return new FlamegraphRenderer(
+    return new FlamegraphRendererWebGL(
       flamegraphMiniMapCanvasRef,
       flamegraph,
       flamegraphTheme

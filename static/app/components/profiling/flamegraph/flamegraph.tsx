@@ -49,7 +49,7 @@ import {
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
@@ -662,7 +662,7 @@ function Flamegraph(): ReactElement {
       return null;
     }
 
-    return new FlamegraphRenderer(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
+    return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
       draw_border: true,
     });
   }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);

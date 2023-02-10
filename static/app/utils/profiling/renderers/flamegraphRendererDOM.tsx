@@ -1,10 +1,10 @@
-import {mat3, vec2} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
@@ -13,15 +13,8 @@ function colorComponentsToRgba(color: number[]): string {
   )}, ${color[3] ?? 1})`;
 }
 
-export class FlamegraphDomRenderer {
-  canvas: HTMLCanvasElement | null;
+export class FlamegraphRendererDOM extends FlamegraphRenderer {
   container: HTMLElement;
-  flamegraph: Flamegraph;
-  theme: FlamegraphTheme;
-  options: {draw_border: boolean};
-
-  frames: ReadonlyArray<FlamegraphFrame> = [];
-  colorMap: Map<string | number, number[]> = new Map();
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -29,44 +22,14 @@ export class FlamegraphDomRenderer {
     theme: FlamegraphTheme,
     options: {draw_border: boolean} = {draw_border: false}
   ) {
-    this.canvas = canvas;
+    super(canvas, flamegraph, theme, options);
 
     const newContainer = document.createElement('div');
     document.body.appendChild(newContainer);
     this.container = newContainer;
-
-    this.flamegraph = flamegraph;
-    this.theme = theme;
-    this.options = options;
-
-    this.init();
   }
 
-  init() {
-    this.frames = [...this.flamegraph.frames];
-    const {colorMap} = this.theme.COLORS.STACK_TO_COLOR(
-      this.frames,
-      this.theme.COLORS.COLOR_MAP,
-      this.theme.COLORS.COLOR_BUCKET
-    );
-
-    this.colorMap = colorMap;
-  }
-
-  getColorForFrame(frame: FlamegraphFrame): number[] {
-    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
-  }
-
-  // We dont really need this in node, it's just here for completeness and it makes
-  // the flamegraph UI not throw errors when used in dev
-  getHoveredNode(_configSpaceCursor: vec2): FlamegraphFrame | null {
-    return null;
-  }
-
-  draw(
-    configViewToPhysicalSpace: mat3,
-    _searchResults: FlamegraphSearch['results']['frames']
-  ) {
+  draw(configViewToPhysicalSpace: mat3) {
     if (!this.container) {
       throw new Error('No container to render into');
     }
