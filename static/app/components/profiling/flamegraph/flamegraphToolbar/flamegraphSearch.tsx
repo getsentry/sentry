@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
@@ -31,7 +31,7 @@ export function searchFrameFzf(
 
   matches.set(getFlamegraphFrameSearchId(frame), {
     frame,
-    match: match.matches[0],
+    match: match.matches,
   });
   return match;
 }
@@ -49,7 +49,7 @@ export function searchSpanFzf(
 
   matches.set(span.node.span.span_id, {
     span,
-    match: match.matches[0],
+    match: match.matches,
   });
   return match;
 }
@@ -70,7 +70,7 @@ export function searchFrameRegExp(
 
   matches.set(getFlamegraphFrameSearchId(frame), {
     frame,
-    match,
+    match: [match],
   });
   return match;
 }
@@ -91,7 +91,7 @@ export function searchSpanRegExp(
 
   matches.set(span.node.span.span_id, {
     span,
-    match,
+    match: [match],
   });
   return match;
 }
@@ -228,7 +228,6 @@ function FlamegraphSearch({
 }: FlamegraphSearchProps): React.ReactElement | null {
   const search = useFlamegraphSearch();
   const dispatch = useDispatchFlamegraphState();
-  const [didInitialSearch, setDidInitialSearch] = useState(!search.query);
 
   const allFlamegraphFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
@@ -301,12 +300,15 @@ function FlamegraphSearch({
   );
 
   useEffect(() => {
-    if (didInitialSearch || allFlamegraphFrames.length === 0) {
+    if (allFlamegraphFrames.length === 0) {
       return;
     }
+
     handleChange(search.query);
-    setDidInitialSearch(true);
-  }, [didInitialSearch, handleChange, allFlamegraphFrames, search.query]);
+    // Dont fire on query changes, we just want this to fire on initial load
+    // as the spans and frames eventually get loaded into the view
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleChange, allFlamegraphFrames, spans]);
 
   const onNextSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
