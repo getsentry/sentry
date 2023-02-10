@@ -183,7 +183,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project=event.project,
             organization=event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user=self.user,
+            user_id=self.user.id,
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content

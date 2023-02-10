@@ -358,22 +358,22 @@ class User(BaseModel, AbstractBaseUser):
 
         model_list = (
             Authenticator,
+            Identity,
+            UserAvatar,
+            UserEmail,
+            UserOption,
             GroupAssignee,
             GroupBookmark,
             GroupSeen,
             GroupShare,
             GroupSubscription,
-            Identity,
-            UserAvatar,
-            UserEmail,
-            UserOption,
         )
 
         for model in model_list:
-            for obj in model.objects.filter(user=from_user):
+            for obj in model.objects.filter(user_id=from_user.id):
                 try:
                     with transaction.atomic():
-                        obj.update(user=to_user)
+                        obj.update(user_id=to_user.id)
                 except IntegrityError:
                     pass
 

@@ -27,7 +27,7 @@ class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
         instance = self.fetch_instance(**kwargs)
 
         if not OrganizationMember.objects.filter(
-            user=request.user, organization=instance.organization
+            user_id=request.user.id, organization=instance.organization
         ).exists():
             raise Http404
 

@@ -55,7 +55,7 @@ def send_subscriber_notifications(activity_id):
         user = subscriber.user
         access = from_user(user, activity.incident.organization)
         if not any(project for project in projects if access.has_project_access(project)):
-            unsubscribe_from_incident(activity.incident, user)
+            unsubscribe_from_incident(activity.incident, user.id)
         elif user != activity.user:
             msg = generate_incident_activity_email(activity, user)
             msg.send_async([user.email])

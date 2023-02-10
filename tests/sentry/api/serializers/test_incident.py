@@ -36,7 +36,7 @@ class DetailedIncidentSerializerTest(TestCase):
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer, user=self.user)
         assert not result["isSubscribed"]
-        subscribe_to_incident(incident, self.user)
+        subscribe_to_incident(incident, self.user.id)
         result = serialize(incident, serializer=serializer, user=self.user)
         assert result["isSubscribed"]
 

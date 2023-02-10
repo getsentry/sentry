@@ -66,7 +66,7 @@ class OrganizationIncidentUnsubscribeEndpointTest(
         )
         self.login_as(self.user)
         incident = self.create_incident()
-        subscribe_to_incident(incident, self.user)
+        subscribe_to_incident(incident, self.user.id)
         with self.feature("organizations:incidents"):
             self.get_success_response(self.organization.slug, incident.identifier, status_code=200)
         assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()

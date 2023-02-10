@@ -45,7 +45,7 @@ class AssignedToFilter(EventFilter):
                         return True
             elif target_type == AssigneeTargetType.MEMBER:
                 for assignee in self.get_assignees(event.group):
-                    if assignee.user and assignee.user_id == target_id:
+                    if assignee.user_id and assignee.user_id == target_id:
                         return True
             return False
 

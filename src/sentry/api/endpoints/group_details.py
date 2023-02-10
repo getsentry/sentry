@@ -61,9 +61,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         return Activity.objects.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request: Request, group):
-        seen_by = list(
-            GroupSeen.objects.filter(group=group).select_related("user").order_by("-last_seen")
-        )
+        seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return serialize(seen_by, request.user)
 
     def _get_actions(self, request: Request, group):

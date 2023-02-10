@@ -246,7 +246,7 @@ class GroupUpdateTest(APITestCase):
         assert group.status == GroupStatus.RESOLVED
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
     def test_resolved_in_next_release(self):
@@ -292,7 +292,7 @@ class GroupUpdateTest(APITestCase):
         assert group.get_status() == GroupStatus.IGNORED
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
     def test_bookmark(self):
@@ -307,10 +307,10 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200, response.content
 
         # ensure we've created the bookmark
-        assert GroupBookmark.objects.filter(group=group, user=self.user).exists()
+        assert GroupBookmark.objects.filter(group=group, user_id=self.user.id).exists()
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
     def test_assign_username(self):
@@ -324,7 +324,7 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
         assert (
             Activity.objects.filter(
@@ -337,17 +337,17 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         response = self.client.put(url, data={"assignedTo": ""}, format="json")
 
         assert response.status_code == 200, response.content
 
-        assert not GroupAssignee.objects.filter(group=group, user=self.user).exists()
+        assert not GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
     def test_assign_id(self):
         self.login_as(user=self.user)
@@ -360,7 +360,7 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
         assert (
             Activity.objects.filter(
@@ -373,17 +373,17 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         response = self.client.put(url, data={"assignedTo": ""}, format="json")
 
         assert response.status_code == 200, response.content
 
-        assert not GroupAssignee.objects.filter(group=group, user=self.user).exists()
+        assert not GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
     def test_assign_id_via_api_key(self):
         # XXX: This test is written to verify that using api keys works when
@@ -404,7 +404,7 @@ class GroupUpdateTest(APITestCase):
             HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
         )
         assert response.status_code == 200, response.content
-        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
     def test_assign_team(self):
         self.login_as(user=self.user)
@@ -424,7 +424,7 @@ class GroupUpdateTest(APITestCase):
         assert Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value).count() == 1
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         response = self.client.put(url, data={"assignedTo": ""}, format="json")
@@ -457,13 +457,13 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        assert GroupSeen.objects.filter(group=group, user=self.user).exists()
+        assert GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
         response = self.client.put(url, data={"hasSeen": "0"}, format="json")
 
         assert response.status_code == 200, response.content
 
-        assert not GroupSeen.objects.filter(group=group, user=self.user).exists()
+        assert not GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
     def test_mark_seen_as_non_member(self):
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -477,7 +477,7 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        assert not GroupSeen.objects.filter(group=group, user=self.user).exists()
+        assert not GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
     def test_subscription(self):
         self.login_as(user=self.user)
@@ -488,13 +488,13 @@ class GroupUpdateTest(APITestCase):
         resp = self.client.put(url, data={"isSubscribed": "true"})
         assert resp.status_code == 200, resp.content
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         resp = self.client.put(url, data={"isSubscribed": "false"})
         assert resp.status_code == 200, resp.content
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=False
+            user_id=self.user.id, group=group, is_active=False
         ).exists()
 
     def test_discard(self):
