@@ -159,7 +159,7 @@ def update_incident_status(
             comment=comment,
         )
         if user:
-            subscribe_to_incident(incident, user)
+            subscribe_to_incident(incident, user.id)
 
         prev_status = incident.status
         kwargs = {"status": status.value, "status_method": status_method.value}
@@ -227,7 +227,7 @@ def create_incident_activity(
     date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
-        subscribe_to_incident(incident, user)
+        subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value
     previous_value = str(previous_value) if previous_value is not None else previous_value
     kwargs = {}
