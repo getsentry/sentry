@@ -367,19 +367,16 @@ class GetSendToOwnersTest(TestCase):
 
     @with_feature("organizations:streamline-targeting-context")
     def test_send_to_suspect_committers(self):
-        self.release = self.create_release(project=self.project, version="v12")
-        self.group = self.create_group(
-            project=self.project, message="Message", first_release=self.release
-        )
+        release = self.create_release(project=self.project, version="v12")
         event = self.store_event(
             data={
                 "platform": "java",
                 "stacktrace": STACKTRACE,
-                "tags": {"sentry:release": self.release.version},
+                "tags": {"sentry:release": release.version},
             },
             project_id=self.project.id,
         )
-        self.release.set_commits(
+        release.set_commits(
             [
                 {
                     "id": "a" * 40,
@@ -394,7 +391,7 @@ class GetSendToOwnersTest(TestCase):
             ]
         )
         GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+            group_id=event.group.id, project_id=self.project.id, release_id=release.id
         )
 
         assert self.get_send_to_owners(event) == {
@@ -444,7 +441,7 @@ class GetSendToOwnersTest(TestCase):
         project_no_team = self.create_project(
             name="No Team Project", organization=self.organization
         )
-        self.commit = self.create_sample_commit(self.user3)
+        commit = self.create_sample_commit(self.user3)
         event = self.store_event(
             data={
                 "stacktrace": {
@@ -469,7 +466,7 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": self.commit.id},
+            context={"commitId": commit.id},
         )
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
@@ -483,7 +480,7 @@ class GetSendToOwnersTest(TestCase):
     @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_dupe_with_commit_context_feature_flag(self):
-        self.commit = self.create_sample_commit(self.user)
+        commit = self.create_sample_commit(self.user)
         event = self.store_event(
             data={
                 "stacktrace": STACKTRACE,
@@ -497,7 +494,7 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": self.commit.id},
+            context={"commitId": commit.id},
         )
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},

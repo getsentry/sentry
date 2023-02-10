@@ -264,7 +264,14 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     return output
 
 
-def get_suspect_committers(project: Project, event: Event) -> List[APIUser]:
+def get_suspect_commit_users(project: Project, event: Event) -> List[APIUser]:
+    """
+    Returns a list of users that are suspect committers for the given event.
+
+    `project`: The project that the event is associated to
+    `event`: The event that suspect committers are wanted for
+    """
+
     suspect_committers = []
     committers: Sequence[AuthorCommitsSerialized] = get_serialized_event_file_committers(
         project, event
@@ -307,7 +314,7 @@ def determine_eligible_recipients(
         suggested_assignees = get_owners(project, event, fallthrough_choice)
         if features.has("organizations:streamline-targeting-context", project.organization):
             try:
-                suggested_assignees += get_suspect_committers(project, event)
+                suggested_assignees += get_suspect_commit_users(project, event)
             except Exception:
                 logger.exception("Could not get suspect committers. Continuing execution.")
         if suggested_assignees:
