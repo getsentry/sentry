@@ -18,7 +18,7 @@ class AuditLogEntrySerializerTest(TestCase):
         )
 
         serializer = AuditLogEntrySerializer()
-        result = serialize(log, serializer)
+        result = serialize(log, serializer=serializer)
 
         assert result["event"] == "team.create"
         assert result["actor"]["username"] == self.user.username
@@ -39,7 +39,7 @@ class AuditLogEntrySerializerTest(TestCase):
         )
 
         serializer = AuditLogEntrySerializer()
-        result = serialize(log, serializer)
+        result = serialize(log, serializer=serializer)
 
         assert result["actor"]["name"] == "SCIM Internal Integration (" + uuid_prefix + ")"
 
@@ -53,5 +53,5 @@ class AuditLogEntrySerializerTest(TestCase):
         )
 
         serializer = AuditLogEntrySerializer()
-        result = serialize(log, serializer)
+        result = serialize(log, serializer=serializer)
         assert result["note"] == ""
