@@ -15,9 +15,11 @@ class OwnerRecipientStrategy(RoleBasedRecipientStrategy):
         ).values_list("id", flat=True)
 
         # Explicitly typing to satisfy mypy.
-        members: Iterable[OrganizationMember] = OrganizationMember.get_contactable_members_for_org(
-            self.organization.id
-        ).filter(id__in=owners)
+        members: Iterable[
+            OrganizationMember
+        ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id).filter(
+            id__in=owners
+        )
         self.set_members_roles_in_cache(members, roles.get_top_dog().name)
 
         return members
