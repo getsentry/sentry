@@ -55,8 +55,8 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
-            owner = OrganizationMember.objects.get_members_by_email_and_role(
-                email=email, role=roles.get_top_dog().id
+            owner = OrganizationMember.objects.filter(
+                user__email__iexact=email, role=roles.get_top_dog().id, user__is_active=True
             )[0]
         except IndexError:
             return Response(

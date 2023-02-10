@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import IntEnum
-from typing import Collection, FrozenSet, Optional, Sequence
+from typing import FrozenSet, Optional, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -131,29 +131,37 @@ class OrganizationManager(BaseManager):
         """
 
         # get orgs and orgmemberIDs for the user
-        members = OrganizationMember.objects.filter(user_id=user_id)
+        query = OrganizationMember.objects.filter(user_id=user_id)
         if queryset:  # queryset is a QuerySet of valid orgs
-            members = members.filter(organization__in=queryset)
-        orgs_and_members = members.values_list("organization_id", "id")
+            orgs_and_members = query.filter(organization__in=queryset)
+        orgs_and_members = query.values_list("organization_id", "id")
 
         organizations, org_members = zip(*orgs_and_members)
+        organizations = list(organizations)
+        org_members = list(org_members)
 
         # get owner teams
         owner_teams = Team.objects.filter(
             organization_id__in=organizations, org_role=roles.get_top_dog().id
-        )
+        ).values_list("id", flat=True)
 
         # get owners from owner teams
-        orgs = set(
+        owners = list(
             OrganizationMemberTeam.objects.filter(
-                team__in=owner_teams,
+                team_id__in=owner_teams,
                 organizationmember_id__in=org_members,
-            ).values_list("organizationmember__organization__id", flat=True)
+            ).values_list("organizationmember_id", flat=True)
         )
+
+        # get corresponding orgs from org list
+        members_to_org = {m: organizations[i] for (i, m) in enumerate(org_members)}
+        orgs = {members_to_org[m] for m in owners if m in members_to_org}
 
         # get owners from orgs
         owner_role_orgs = set(
-            members.filter(role=roles.get_top_dog().id).values_list("organization_id", flat=True)
+            OrganizationMember.objects.filter(
+                role=roles.get_top_dog().id, user_id=user_id
+            ).values_list("organization_id", flat=True)
         )
 
         return self.filter(id__in=orgs.union(owner_role_orgs), status=OrganizationStatus.ACTIVE)
@@ -321,11 +329,11 @@ class Organization(Model, SnowflakeIdMixin):
         }
 
     def get_owners(self) -> Sequence[APIUser]:
-        owners = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
-            "user_id", flat=True
-        )
 
-        return user_service.get_many(filter={"user_ids": owners})
+        owner_memberships = OrganizationMember.objects.filter(
+            role=roles.get_top_dog().id, organization=self
+        ).values_list("user_id", flat=True)
+        return user_service.get_many(filter={"user_ids": owner_memberships})
 
     def get_default_owner(self) -> APIUser:
         if not hasattr(self, "_default_owner"):
@@ -346,22 +354,23 @@ class Organization(Model, SnowflakeIdMixin):
         return self._default_owner_id
 
     def has_single_owner(self):
-        return self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).count() == 1
+        owners = list(
+            self.get_members_with_org_role(roles.get_top_dog().id).values_list("id", flat=True)
+        )
+        return len(owners[:2]) == 1
 
-    def get_members_with_org_roles(self, roles: Collection[str]) -> QuerySet:
+    def get_members_with_org_role(self, role: str):
         members_with_role = OrganizationMember.objects.filter(
             organization=self,
-            role__in=roles,
+            role=role,
             user__isnull=False,
             user__is_active=True,
         )
         members_on_teams_with_role = (
-            OrganizationMemberTeam.objects.filter(team__in=self.get_teams_with_org_roles(roles))
+            OrganizationMemberTeam.objects.filter(team__in=self.get_teams_with_org_role(role))
             .exclude(organizationmember_id__in=list(members_with_role.values_list("id", flat=True)))
             .values_list("organizationmember__id", flat=True)
         )
-
-        # union of querysets, is distinct
         return members_with_role | OrganizationMember.objects.filter(
             id__in=members_on_teams_with_role
         )
@@ -674,11 +683,11 @@ class Organization(Model, SnowflakeIdMixin):
             scopes.discard("alerts:write")
         return frozenset(scopes)
 
-    def get_teams_with_org_roles(self, roles: Optional[Collection[str]] = None):
+    def get_teams_with_org_role(self, role):
         from sentry.models.team import Team
 
-        if roles is not None:
-            return Team.objects.filter(org_role__in=roles, organization=self)
+        if role:
+            return Team.objects.filter(org_role=role, organization=self)
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
 
