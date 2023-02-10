@@ -334,5 +334,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
 class SourceMapException(Exception):
     def __init__(self, issue, data=None):
+        super().__init__(issue, data)
         self.issue = issue
         self.data = data
