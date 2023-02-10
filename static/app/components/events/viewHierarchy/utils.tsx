@@ -118,3 +118,14 @@ export function getDeepestNodeAtPoint(
 
   return clickedNode;
 }
+
+// Adapted from static/app/profiling/gl/utils.ts
+export function getCenterScaleMatrixFromConfigPosition(scale: number, center: vec2) {
+  const invertedConfigCenter = vec2.fromValues(-center[0], -center[1]);
+
+  const centerScaleMatrix = mat3.create();
+  mat3.fromTranslation(centerScaleMatrix, center);
+  mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, scale));
+  mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
+  return centerScaleMatrix;
+}
