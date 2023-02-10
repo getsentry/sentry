@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types';
 import errorConfig from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
+import profileConfig from 'sentry/utils/issueTypeConfig/profileConfig';
 import {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -30,6 +31,7 @@ const BASE_CONFIG: IssueTypeConfig = {
 const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
+  [IssueCategory.PROFILE]: profileConfig,
 };
 
 /**

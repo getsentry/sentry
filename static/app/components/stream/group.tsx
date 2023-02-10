@@ -309,6 +309,7 @@ function BaseGroupRow({
   const groupCategoryCountTitles: Record<IssueCategory, string> = {
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
+    [IssueCategory.PROFILE]: t('Profile Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
