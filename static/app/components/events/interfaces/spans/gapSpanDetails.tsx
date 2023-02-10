@@ -95,8 +95,8 @@ export function GapSpanDetails({
   // The event's platform is more accurate than the project
   // so use that first and fall back to the project's platform
   const docsLink =
-    getProfilingDocsForPlatform(event.platform || '') ??
-    getProfilingDocsForPlatform(project.platform || '');
+    getProfilingDocsForPlatform(event.platform) ??
+    getProfilingDocsForPlatform(project.platform);
 
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.

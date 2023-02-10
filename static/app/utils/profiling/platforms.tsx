@@ -1,4 +1,4 @@
-import {PlatformKey, profiling} from 'sentry/data/platformCategories';
+import {profiling} from 'sentry/data/platformCategories';
 import {Project} from 'sentry/types/project';
 
 export const supportedProfilingPlatforms = profiling;
@@ -14,7 +14,7 @@ export type SupportedProfilingPlatformSDK =
   (typeof supportedProfilingPlatformSDKs)[number];
 
 export function getDocsPlatformSDKForPlatform(
-  platform: PlatformKey | undefined
+  platform: string | undefined
 ): SupportedProfilingPlatform | null {
   if (!platform) {
     return null;
@@ -52,7 +52,7 @@ export function isProfilingSupportedOrProjectHasProfiles(project: Project): bool
   );
 }
 
-export function getProfilingDocsForPlatform(platform: string): string | null {
+export function getProfilingDocsForPlatform(platform: string | undefined): string | null {
   const docsPlatform = getDocsPlatformSDKForPlatform(platform);
   if (!docsPlatform) {
     return null;
