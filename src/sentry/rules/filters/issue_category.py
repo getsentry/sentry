@@ -4,7 +4,7 @@ from typing import Any, Dict
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
@@ -27,9 +27,7 @@ class IssueCategoryFilter(EventFilter):
 
     def _passes(self, group: Group) -> bool:
         try:
-            value: GroupCategory = GroupCategory(
-                get_group_type_by_type_id(int(self.get_option("value"))).category
-            )
+            value: GroupCategory = GroupCategory(int(self.get_option("value")))
         except (TypeError, ValueError):
             return False
 
