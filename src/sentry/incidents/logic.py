@@ -403,7 +403,6 @@ def unsubscribe_from_incident(incident, user_id):
     return IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
 
 
-
 def get_incident_subscribers(incident):
     return IncidentSubscription.objects.filter(incident=incident)
 
