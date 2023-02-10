@@ -363,8 +363,8 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         assert group_event.occurrence is None
 
     def test_get_latest_event_occurrence(self):
-        occurrence_data = self.build_occurrence_data(project_id=self.project.id)
         event_id = uuid.uuid4().hex
+        occurrence_data = self.build_occurrence_data(event_id=event_id, project_id=self.project.id)
         occurrence = process_event_and_issue_occurrence(
             occurrence_data,
             {
