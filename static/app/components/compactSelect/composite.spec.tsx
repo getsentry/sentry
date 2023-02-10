@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 
 describe('CompactSelect', function () {
   it('renders', function () {
@@ -165,7 +165,7 @@ describe('CompactSelect', function () {
     userEvent.click(screen.getByRole('option', {name: 'Choice One'}));
 
     // Region 1's callback is called, and trigger label is updated
-    expect(region1Mock).toHaveBeenCalledWith('choice_one');
+    expect(region1Mock).toHaveBeenCalledWith({value: 'choice_one', label: 'Choice One'});
     expect(screen.getByRole('button', {name: 'Choice One'})).toBeInTheDocument();
 
     // open the menu again
@@ -199,7 +199,9 @@ describe('CompactSelect', function () {
       'aria-selected',
       'true'
     );
-    expect(region2Mock).toHaveBeenCalledWith(['choice_three']);
+    expect(region2Mock).toHaveBeenCalledWith([
+      {value: 'choice_three', label: 'Choice Three'},
+    ]);
     expect(screen.getByRole('button', {name: 'Choice One +1'})).toBeInTheDocument();
   });
 

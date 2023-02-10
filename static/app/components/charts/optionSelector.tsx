@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect, {
+import {
+  CompactSelect,
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,

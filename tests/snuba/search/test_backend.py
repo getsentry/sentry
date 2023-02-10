@@ -2330,10 +2330,11 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         super().setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
+        event_id_1 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(),
+            self.build_occurrence_data(event_id=event_id_1),
             {
-                "event_id": uuid.uuid4().hex,
+                "event_id": event_id_1,
                 "project_id": self.project.id,
                 "title": "some problem",
                 "platform": "python",
@@ -2344,10 +2345,11 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         )
         self.profile_group_1 = group_info.group
 
+        event_id_2 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(fingerprint=["put-me-in-group-2"]),
+            self.build_occurrence_data(event_id=event_id_2, fingerprint=["put-me-in-group-2"]),
             {
-                "event_id": uuid.uuid4().hex,
+                "event_id": event_id_2,
                 "project_id": self.project.id,
                 "title": "some other problem",
                 "platform": "python",
@@ -2358,10 +2360,11 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         )
         self.profile_group_2 = group_info.group
 
+        event_id_3 = uuid.uuid4().hex
         process_event_and_issue_occurrence(
-            self.build_occurrence_data(fingerprint=["put-me-in-group-3"]),
+            self.build_occurrence_data(event_id=event_id_3, fingerprint=["put-me-in-group-3"]),
             {
-                "event_id": uuid.uuid4().hex,
+                "event_id": event_id_3,
                 "project_id": self.project.id,
                 "title": "some other problem",
                 "platform": "python",

@@ -7,15 +7,18 @@ from typing import Any, Dict, Optional, Sequence
 import pytest
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileBlockedThreadGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
+    EventLookupError,
     InvalidEventPayloadError,
     _get_kwargs,
     _process_message,
 )
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -26,8 +29,10 @@ def get_test_message(
     project_id: int, include_event: bool = True, **overrides: Any
 ) -> Dict[str, Any]:
     now = datetime.datetime.now()
+    event_id = uuid.uuid4().hex
     payload = {
         "id": uuid.uuid4().hex,
+        "event_id": event_id,
         "project_id": project_id,
         "fingerprint": ["touch-id"],
         "issue_title": "segfault",
@@ -44,7 +49,7 @@ def get_test_message(
 
     if include_event:
         payload["event"] = {
-            "event_id": uuid.uuid4().hex,
+            "event_id": event_id,
             "project_id": project_id,
             "platform": "genesis",
             "stacktrace": {
@@ -62,11 +67,14 @@ def get_test_message(
     return payload
 
 
-class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
+class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
     def setUp(self) -> None:
         super().setUp()
         self.eventstore = SnubaEventStorage()
 
+
+@region_silo_test(stable=True)
+class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
@@ -87,7 +95,7 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
     @pytest.mark.django_db
-    def test_process_profiling_event(self) -> None:
+    def test_process_profiling_occurrence(self) -> None:
         event_data = load_data("generic-event-profiling")
         result = _process_message(event_data)
         assert result is not None
@@ -106,16 +114,60 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
 
     def test_invalid_event_payload(self) -> None:
         message = get_test_message(self.project.id, event={"title": "no project id"})
-        occurrence = _process_message(message)
-        assert occurrence is None
+        with pytest.raises(InvalidEventPayloadError):
+            _process_message(message)
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
-        occurrence = _process_message(message)
-        assert occurrence is None
+        with pytest.raises(InvalidEventPayloadError):
+            _process_message(message)
+
+    def test_mismatch_event_ids(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event_id"] = "id1"
+        message["event"]["event_id"] = "id2"
+        with pytest.raises(InvalidEventPayloadError):
+            _process_message(message)
 
 
-class ParseEventPayloadTest(IssueOccurrenceTestMessage):
+@region_silo_test(stable=True)
+class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
+    def test_lookup_event_doesnt_exist(self) -> None:
+        message = get_test_message(self.project.id, include_event=False)
+        with pytest.raises(EventLookupError):
+            _process_message(message)
+
+    @pytest.mark.django_db
+    def test_transaction_lookup(self) -> None:
+        from sentry.event_manager import EventManager
+
+        event_data = load_data("transaction")
+        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["event_id"] = "d" * 32
+
+        manager = EventManager(data=event_data)
+        manager.normalize()
+        event1 = manager.save(self.project.id)
+        assert event1.get_event_type() == "transaction"
+
+        message = get_test_message(
+            self.project.id,
+            include_event=False,
+            event_id=event1.event_id,
+            type=PerformanceSlowDBQueryGroupType.type_id,
+        )
+        processed = _process_message(message)
+        assert processed is not None
+        occurrence, _ = processed[0], processed[1]
+
+        fetched_event = self.eventstore.get_event_by_id(self.project.id, occurrence.event_id)
+        assert fetched_event is not None
+        assert fetched_event.get_event_type() == "transaction"
+
+
+@region_silo_test(stable=True)
+class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def run_test(self, message: Dict[str, Any]) -> None:
         _get_kwargs(message)
 
@@ -155,6 +207,40 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
         self.run_test(message)
+
+    def test_missing_event_id_and_event_data(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message.pop("event_id", None)
+        message.pop("event", None)
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(message)
+
+    def test_event_id_mismatch(self) -> None:
+        """
+        if they're mismatched, we move forward and validate further down the line
+        """
+        message = deepcopy(get_test_message(self.project.id))
+        message["event_id"] = "id1"
+        message["event"]["event_id"] = "id2"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["event_id"] == message["event_id"]
+        assert kwargs["event_data"]["event_id"] == message["event"]["event_id"]
+
+    def test_missing_top_level_event_id(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        event_id = "the_one"
+        message.pop("event_id", None)
+        message["event"]["event_id"] = event_id
+        kwargs = _get_kwargs(message)
+        assert kwargs is not None
+        assert kwargs["occurrence_data"]["event_id"] == kwargs["event_data"]["event_id"] == event_id
+
+    def test_missing_event_id_in_event_data(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event_id"] = "id1"
+        message["event"].pop("event_id", None)
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(message)
 
     def test_project_ids_mismatch(self) -> None:
         message = deepcopy(get_test_message(self.project.id))

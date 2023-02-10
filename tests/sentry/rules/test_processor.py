@@ -22,6 +22,7 @@ from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",
@@ -40,6 +41,7 @@ class MockConditionTrue(EventCondition):
         return True
 
 
+@region_silo_test(stable=True)
 class RuleProcessorTest(TestCase):
     def setUp(self):
         self.group_event = self.store_event(data={}, project_id=self.project.id)
@@ -240,6 +242,7 @@ class MockFilterFalse(EventFilter):
         return False
 
 
+@region_silo_test(stable=True)
 class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",
@@ -446,6 +449,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
 
+@region_silo_test(stable=True)
 class RuleProcessorActiveReleaseTest(TestCase):
     def setUp(self):
         self.group_event = self.store_event(
