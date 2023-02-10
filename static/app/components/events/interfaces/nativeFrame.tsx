@@ -218,13 +218,9 @@ function NativeFrame({
   const status = getStatus();
 
   return (
-    <FrameRow
-      expandable={expandable}
-      expanded={expanded}
-      data-test-id="stack-trace-frame"
-    >
+    <FrameRow data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
-        <RowHeader>
+        <RowHeader expandable={expandable} expanded={expanded}>
           <StatusCell>
             {status === 'error' ? (
               <Tooltip
@@ -420,13 +416,11 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
-const FrameRow = styled('li')<{expandable: boolean; expanded: boolean}>`
-  ${p => p.expandable && `cursor: pointer;`};
-`;
+const FrameRow = styled('li')``;
 
-const RowHeader = styled('span')`
+const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
@@ -435,9 +429,13 @@ const RowHeader = styled('span')`
   background-color: ${p => p.theme.bodyBackground};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
+  ${p => p.expandable && `cursor: pointer;`};
+  ${p =>
+    p.expandable && `grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr auto auto 16px;
+    grid-template-columns: auto 150px 120px 4fr auto auto;
+    ${p => p.expandable && `grid-template-columns: auto 150px 120px 4fr auto auto 16px;`};
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
