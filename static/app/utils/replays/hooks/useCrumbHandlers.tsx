@@ -49,6 +49,15 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
         setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
       }
 
+      if (
+        crumb.data &&
+        'action' in crumb.data &&
+        crumb.data.action === 'largest-contentful-paint'
+      ) {
+        setActiveTab('dom');
+        return;
+      }
+
       if ('type' in crumb) {
         switch (crumb.type) {
           case BreadcrumbType.NAVIGATION:
