@@ -52,9 +52,13 @@ type ContainerProps = {
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
+  unfilteredTotals?: Record<string, number> | null;
 };
 
-type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
+type Props = Pick<
+  ContainerProps,
+  'organization' | 'isLoading' | 'error' | 'totals' | 'unfilteredTotals'
+> & {
   chartData: {
     chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
@@ -82,10 +86,27 @@ function SidebarCharts({
   chartData,
   eventView,
   transactionName,
+  unfilteredTotals,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
+  const displayTPMAsPercentage = !!unfilteredTotals;
+
+  function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
+    if (totalValues) {
+      if (unfilteredTotalValues) {
+        return tct('[tpm]', {
+          tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
+        });
+      }
+      return tct('[tpm] tpm', {
+        tpm: formatFloat(totalValues[field], 4),
+      });
+    }
+    return null;
+  }
+
   return (
     <RelativeBox>
       <ChartLabel top="0px">
@@ -124,10 +145,16 @@ function SidebarCharts({
 
       <ChartLabel top="320px">
         <ChartTitle>
-          {t('TPM')}
+          {displayTPMAsPercentage ? t('Total Events') : t('TPM')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
+            title={
+              displayTPMAsPercentage
+                ? tct('[count] events', {
+                    count: unfilteredTotals['count()'].toLocaleString(),
+                  })
+                : getTermHelp(organization, PERFORMANCE_TERM.TPM)
+            }
             size="sm"
           />
         </ChartTitle>
@@ -135,13 +162,7 @@ function SidebarCharts({
           data-test-id="tpm-summary-value"
           isLoading={isLoading}
           error={error}
-          value={
-            totals
-              ? tct('[tpm] tpm', {
-                  tpm: formatFloat(totals['tpm()'], 4),
-                })
-              : null
-          }
+          value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
         />
       </ChartLabel>
 
@@ -231,6 +252,7 @@ function SidebarChartsContainer({
   error,
   totals,
   transactionName,
+  unfilteredTotals,
 }: ContainerProps) {
   const location = useLocation();
   const router = useRouter();
@@ -267,7 +289,7 @@ function SidebarChartsContainer({
   };
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
-    height: 480,
+    height: 360,
     grid: [
       {
         top: '60px',
@@ -285,7 +307,7 @@ function SidebarChartsContainer({
         top: '380px',
         left: '10px',
         right: '10px',
-        height: '120px',
+        height: '0px',
       },
     ],
     axisPointer: {
@@ -325,7 +347,10 @@ function SidebarChartsContainer({
         gridIndex: 2,
         splitNumber: 4,
         axisLabel: {
-          formatter: formatAbbreviatedNumber,
+          formatter: value =>
+            unfilteredTotals
+              ? formatPercentage(value, 0)
+              : formatAbbreviatedNumber(value),
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -338,8 +363,12 @@ function SidebarChartsContainer({
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: (value, label) =>
-        tooltipFormatter(value, aggregateOutputType(label)),
+      valueFormatter: (value, label) => {
+        const shouldUsePercentageForTPM = unfilteredTotals && label === 'epm()';
+        return shouldUsePercentageForTPM
+          ? tooltipFormatter(value, 'percentage')
+          : tooltipFormatter(value, aggregateOutputType(label));
+      },
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },
@@ -365,6 +394,7 @@ function SidebarChartsContainer({
     end,
     utc,
     totals,
+    unfilteredTotals,
   };
 
   const datetimeSelection = {
@@ -380,15 +410,15 @@ function SidebarChartsContainer({
       interval={getInterval(datetimeSelection)}
       showLoading={false}
       includePrevious={false}
-      yAxis={['apdex()', 'failure_rate()', 'epm()']}
+      yAxis={['apdex()', 'failure_rate()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
       queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {
         const series = results
-          ? results.map((values, i: number) => ({
-              ...values,
+          ? results.map((v, i: number) => ({
+              ...v,
               yAxisIndex: i,
               xAxisIndex: i,
             }))

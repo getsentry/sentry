@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
@@ -87,6 +87,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       project => {
         return {
           value: project.id,
+          textValue: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),
@@ -98,6 +99,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       project => {
         return {
           value: project.id,
+          textValue: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),

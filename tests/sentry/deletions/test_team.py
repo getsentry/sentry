@@ -1,5 +1,5 @@
 from sentry.models import Project, ProjectTeam, Rule, ScheduledDeletion, Team
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 

@@ -39,6 +39,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators import (
     sentry_app_installation_tokens,
     sentry_app_installations,
@@ -101,7 +102,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
@@ -654,8 +654,7 @@ class Factories:
                     raise ValueError(
                         "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
                     )
-
-                group_type = GroupType(int(f_data[0]))
+                group_type = get_group_type_by_type_id(int(f_data[0]))
                 perf_fingerprint = f_data[1]
 
                 job["performance_problems"].append(
@@ -1365,6 +1364,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_silo_limits()
     def create_sentry_function(name, code, **kwargs):
         return SentryFunction.objects.create(
             name=name,
@@ -1375,5 +1375,9 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_silo_limits()
     def create_saved_search(name: str, **kwargs):
+        if "owner" in kwargs:
+            owner = kwargs.pop("owner")
+            kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
         return SavedSearch.objects.create(name=name, **kwargs)

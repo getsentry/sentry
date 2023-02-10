@@ -23,9 +23,14 @@ import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 const searchHandlerMock = jest.fn();
 
 const WrappedComponent = ({data, withStaticFilters = false}) => {
-  const eventView = generatePerformanceEventView(data.router.location, data.projects, {
-    withStaticFilters,
-  });
+  const eventView = generatePerformanceEventView(
+    data.router.location,
+    data.projects,
+    {
+      withStaticFilters,
+    },
+    data.organization
+  );
 
   const client = new QueryClient();
 

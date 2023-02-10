@@ -1,4 +1,4 @@
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
@@ -26,7 +26,7 @@ function DomFilters({
         size="sm"
         onChange={selected => setType(selected.map(_ => _.value))}
         value={type}
-        isDisabled={!mutationTypes.length}
+        disabled={!mutationTypes.length}
       />
       <SearchBar
         size="sm"

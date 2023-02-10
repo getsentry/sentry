@@ -112,6 +112,9 @@ function FlamegraphZoomView({
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
   const gridRenderer: GridRenderer | null = useMemo(() => {
+    if (flamegraph.profile.type === 'flamegraph') {
+      return null;
+    }
     if (!flamegraphOverlayCanvasRef) {
       return null;
     }
@@ -169,13 +172,7 @@ function FlamegraphZoomView({
   }, [flamegraphRenderer, flamegraphSearch.query, flamegraphSearch.results]);
 
   useEffect(() => {
-    if (
-      !flamegraphCanvas ||
-      !flamegraphView ||
-      !textRenderer ||
-      !gridRenderer ||
-      !flamegraphRenderer
-    ) {
+    if (!flamegraphCanvas || !flamegraphView || !textRenderer || !flamegraphRenderer) {
       return undefined;
     }
 
@@ -196,15 +193,6 @@ function FlamegraphZoomView({
       );
     };
 
-    const drawGrid = () => {
-      gridRenderer.draw(
-        flamegraphView.configView,
-        flamegraphCanvas.physicalSpace,
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-        flamegraphView.toConfigView(flamegraphCanvas.logicalSpace)
-      );
-    };
-
     const drawInternalSampleTicks = () => {
       if (!sampleTickRenderer) {
         return;
@@ -215,6 +203,17 @@ function FlamegraphZoomView({
       );
     };
 
+    const drawGrid = gridRenderer
+      ? () => {
+          gridRenderer.draw(
+            flamegraphView.configView,
+            flamegraphCanvas.physicalSpace,
+            flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+            flamegraphView.toConfigView(flamegraphCanvas.logicalSpace)
+          );
+        }
+      : undefined;
+
     const drawRectangles = () => {
       flamegraphRenderer.draw(
         flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
@@ -224,7 +223,11 @@ function FlamegraphZoomView({
     scheduler.registerBeforeFrameCallback(drawRectangles);
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
     scheduler.registerAfterFrameCallback(drawText);
-    scheduler.registerAfterFrameCallback(drawGrid);
+    // We want to register the grid as the last frame callback so that it is drawn on top of everything else,
+    // including text, hovered or clicked nodes, but after the sample tick renderer as those are overlaid on top of it
+    if (drawGrid) {
+      scheduler.registerAfterFrameCallback(drawGrid);
+    }
     scheduler.registerAfterFrameCallback(drawInternalSampleTicks);
 
     scheduler.draw();
@@ -232,8 +235,10 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
       scheduler.unregisterAfterFrameCallback(drawText);
-      scheduler.unregisterAfterFrameCallback(drawGrid);
       scheduler.unregisterAfterFrameCallback(drawInternalSampleTicks);
+      if (drawGrid) {
+        scheduler.unregisterAfterFrameCallback(drawGrid);
+      }
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
   }, [

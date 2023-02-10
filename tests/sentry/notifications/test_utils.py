@@ -1,6 +1,10 @@
 from typing import Dict, Sequence
 from urllib.parse import parse_qs, urlparse
 
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+)
 from sentry.models import NotificationSetting, Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
@@ -27,7 +31,6 @@ from sentry.notifications.utils import (
 )
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
@@ -224,7 +227,7 @@ class PerformanceProblemContextTestCase(TestCase):
                     fingerprint="",
                     op="",
                     desc="",
-                    type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                    type=PerformanceNPlusOneGroupType,
                     parent_span_ids=[],
                     cause_span_ids=[],
                     offender_span_ids=[],
@@ -240,7 +243,7 @@ class PerformanceProblemContextTestCase(TestCase):
                     fingerprint="",
                     op="",
                     desc="",
-                    type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+                    type=PerformanceNPlusOneAPICallsGroupType,
                     parent_span_ids=[],
                     cause_span_ids=[],
                     offender_span_ids=[],
@@ -253,10 +256,10 @@ class PerformanceProblemContextTestCase(TestCase):
     def test_returns_n_plus_one_db_query_context(self):
         context = PerformanceProblemContext(
             PerformanceProblem(
-                fingerprint=f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-153198dd61706844cf3d9a922f6f82543df8125f",
+                fingerprint=f"1-{PerformanceNPlusOneGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
                 op="db",
                 desc="SELECT * FROM table",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["b93d2be92cd64fd5"],
                 cause_span_ids=[],
                 offender_span_ids=["054ba3a374d543eb"],
@@ -277,10 +280,10 @@ class PerformanceProblemContextTestCase(TestCase):
     def test_returns_n_plus_one_api_call_context(self):
         context = NPlusOneAPICallProblemContext(
             PerformanceProblem(
-                fingerprint=f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value}-153198dd61706844cf3d9a922f6f82543df8125f",
+                fingerprint=f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
                 op="http.client",
                 desc="/resources",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+                type=PerformanceNPlusOneAPICallsGroupType,
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["b93d2be92cd64fd5", "054ba3a374d543eb", "563712f9722fb09"],

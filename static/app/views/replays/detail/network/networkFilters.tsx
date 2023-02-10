@@ -1,4 +1,4 @@
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
@@ -32,7 +32,7 @@ function NetworkFilters({
         size="sm"
         onChange={selected => setStatus(selected.map(_ => _.value))}
         value={status}
-        isDisabled={!statusTypes.length}
+        disabled={!statusTypes.length}
       />
       <CompactSelect
         triggerProps={{prefix: t('Type')}}
@@ -42,7 +42,7 @@ function NetworkFilters({
         size="sm"
         onChange={selected => setType(selected.map(_ => _.value))}
         value={type}
-        isDisabled={!resourceTypes.length}
+        disabled={!resourceTypes.length}
       />
       <SearchBar
         size="sm"

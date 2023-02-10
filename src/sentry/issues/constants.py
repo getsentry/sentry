@@ -1,6 +1,6 @@
 from sentry import tsdb
+from sentry.issues.grouptype import GroupCategory
 from sentry.tsdb.base import TSDBModel
-from sentry.types.issues import GroupCategory
 
 ISSUE_TSDB_GROUP_MODELS = {
     GroupCategory.ERROR: tsdb.models.group,

@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 
 describe('CompactSelect', function () {
   it('renders', function () {
@@ -111,8 +111,8 @@ describe('CompactSelect', function () {
   it('can search', function () {
     render(
       <CompactSelect
-        isSearchable
-        placeholder="Search here…"
+        searchable
+        searchPlaceholder="Search here…"
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -136,9 +136,7 @@ describe('CompactSelect', function () {
     const onCloseMock = jest.fn();
     render(
       <CompactSelect
-        isSearchable
         onClose={onCloseMock}
-        placeholder="Search here…"
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},

@@ -9,8 +9,8 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from sentry import features
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import Organization, Project
-from sentry.types.issues import GroupType
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -188,7 +188,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3", ".jpg", ".jpeg"]:
             return False
 
         return True
@@ -236,7 +236,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
-        return f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value}-{fingerprint}"
+        return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
         span_a_start: int = span_a.get("start_timestamp", 0) or 0

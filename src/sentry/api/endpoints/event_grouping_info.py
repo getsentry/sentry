@@ -53,7 +53,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
                 # TODO: Generate more unique keys, in case this event has more than
                 # one problem of a given type
                 variants = {
-                    problem.problem.type.name: PerformanceProblemVariant(problem)
+                    problem.problem.type.slug: PerformanceProblemVariant(problem)
                     for problem in problems
                     if problem
                 }
