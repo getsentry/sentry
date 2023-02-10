@@ -4,7 +4,7 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {SelectOption} from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';

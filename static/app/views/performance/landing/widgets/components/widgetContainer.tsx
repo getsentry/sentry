@@ -5,8 +5,8 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import CompactSelect, {SelectOption} from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
