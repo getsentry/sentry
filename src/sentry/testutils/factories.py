@@ -22,7 +22,6 @@ from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
-from sentry.grouptype.grouptype import get_group_type_by_type_id
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -40,6 +39,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators import (
     sentry_app_installation_tokens,
     sentry_app_installations,
@@ -273,7 +273,6 @@ class Factories:
     @exempt_from_silo_limits()
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
-        teamRole = kwargs.pop("teamRole", None)
 
         om = OrganizationMember.objects.create(**kwargs)
 
@@ -282,7 +281,7 @@ class Factories:
                 Factories.create_team_membership(team=team, member=om, role=role)
         elif teams:
             for team in teams:
-                Factories.create_team_membership(team=team, member=om, role=teamRole)
+                Factories.create_team_membership(team=team, member=om)
         return om
 
     @staticmethod
