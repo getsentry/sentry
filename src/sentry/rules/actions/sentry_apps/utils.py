@@ -7,7 +7,7 @@ from rest_framework import serializers
 from sentry.constants import SENTRY_APP_ACTIONS
 from sentry.mediators import alert_rule_actions
 from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
-from sentry.models import SentryAppInstallation
+from sentry.services.hybrid_cloud.app import app_service
 
 
 def trigger_sentry_app_action_creators_for_issues(
@@ -19,9 +19,15 @@ def trigger_sentry_app_action_creators_for_issues(
         if not action.get("id") in SENTRY_APP_ACTIONS:
             continue
 
-        install = SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid"))
+        uuid = action.get("sentryAppInstallationUuid")
+        if uuid is None:
+            raise ValueError(
+                "trigger_sentry_app_action_creators_for_issues requires a sentryAppInstallationUuid argument"
+            )
+
+        installs = app_service.get_many(filter={"uuid": uuid})
         result: AlertRuleActionResult = alert_rule_actions.AlertRuleActionCreator.run(
-            install=install,
+            install=installs[0],
             fields=action.get("settings"),
         )
         # Bubble up errors from Sentry App to the UI

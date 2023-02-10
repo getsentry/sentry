@@ -35,7 +35,7 @@ class BaseOrganizationSubscriptionEndpointTest:
             assert resp.status_code == 403
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentSubscribeEndpointTest(
     BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):
@@ -54,7 +54,7 @@ class OrganizationIncidentSubscribeEndpointTest(
         assert sub.user == self.user
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentUnsubscribeEndpointTest(
     BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):
