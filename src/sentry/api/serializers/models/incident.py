@@ -108,9 +108,9 @@ class DetailedIncidentSerializer(IncidentSerializer):
         subscribed_incidents = set()
         if user.is_authenticated:
             subscribed_incidents = set(
-                IncidentSubscription.objects.filter(
-                    incident__in=item_list, user_id=user.id
-                ).values_list("incident_id", flat=True)
+                IncidentSubscription.objects.filter(incident__in=item_list, user=user).values_list(
+                    "incident_id", flat=True
+                )
             )
 
         for item in item_list:

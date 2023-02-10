@@ -19,8 +19,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager import BaseManager
-from sentry.models import Team, User  # noqa # pylint: disable=unused-import
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.models import Team, User
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
@@ -579,7 +578,10 @@ class AlertRuleTriggerAction(Model):
     @property
     def target(self):
         if self.target_type == self.TargetType.USER.value:
-            return user_service.get_user(int(self.target_identifier))
+            try:
+                return User.objects.get(id=int(self.target_identifier))
+            except User.DoesNotExist:
+                pass
         elif self.target_type == self.TargetType.TEAM.value:
             try:
                 return Team.objects.get(id=int(self.target_identifier))

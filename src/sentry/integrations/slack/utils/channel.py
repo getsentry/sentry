@@ -6,7 +6,6 @@ from django.http import Http404
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration, Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -72,8 +71,9 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
     """
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
+    try:
+        integration = Integration.objects.get(id=integration_id)
+    except Integration.DoesNotExist:
         raise Http404
 
     token = integration.metadata["access_token"]

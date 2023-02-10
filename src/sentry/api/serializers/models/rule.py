@@ -10,11 +10,10 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleFireHistory,
+    SentryAppInstallation,
     actor_type_to_class,
     actor_type_to_string,
 )
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import user_service
 
 
 def _generate_rule_label(project, rule, data):
@@ -71,11 +70,19 @@ class RuleSerializer(Serializer):
             for action in rule.data.get("actions", [])
         }
 
-        sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
-            organization_ids={rule.project.organization_id for rule in rules.values()},
-            sentry_app_uuids=sentry_app_uuids,
-            type="alert-rule-action",
-            group_by="uuid",
+        sentry_app_ids = (
+            SentryAppInstallation.objects.filter(uuid__in=sentry_app_uuids)
+            .distinct("sentry_app_id")
+            .values_list("sentry_app_id", flat=True)
+        )
+
+        sentry_app_installations_by_uuid = (
+            SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_ids={rule.project.organization_id for rule in rules.values()},
+                sentry_app_ids=sentry_app_ids,
+                type="alert-rule-action",
+                group_by="uuid",
+            )
         )
 
         for item in item_list:
@@ -83,19 +90,10 @@ class RuleSerializer(Serializer):
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
         for k, v in ACTOR_TYPES.items():
-            if k == "user":
-                resolved_actors[k] = {
-                    a.actor_id: a.id
-                    for a in user_service.get_many(filter={"actor_ids": owners_by_type[k]})
-                }
-            elif k == "team":
-                resolved_actors[k] = {
-                    a.actor_id: a.id
-                    for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
-                }
-            else:
-                assert False, "Unhandled actor type in alert rule serializer"
-
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
+            }
         for rule in rules.values():
             if rule.owner_id:
                 type = actor_type_to_string(rule.owner.type)

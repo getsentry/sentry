@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentSeenTest(APITestCase):
     method = "post"
     endpoint = "sentry-api-0-organization-incident-seen"

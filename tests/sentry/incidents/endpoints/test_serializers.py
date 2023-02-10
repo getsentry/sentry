@@ -25,7 +25,6 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerSerializer,
 )
 from sentry.models import ACTOR_TYPES, Environment, Integration
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
@@ -563,11 +562,7 @@ class TestAlertRuleSerializer(TestCase):
         with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
         assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
-        mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            10,
-        )
+        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
 
     def test_event_types(self):
         invalid_values = [
