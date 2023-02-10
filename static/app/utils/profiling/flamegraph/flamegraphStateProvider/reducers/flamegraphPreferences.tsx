@@ -57,6 +57,8 @@ export function flamegraphPreferencesReducer(
         sorting:
           action.payload === 'flamegraph' && state.sorting === 'call order'
             ? 'alphabetical'
+            : action.payload === 'flamechart' && state.sorting === 'alphabetical'
+            ? 'call order'
             : state.sorting,
 
         type: action.payload,
