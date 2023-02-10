@@ -1,4 +1,3 @@
-import {lastOfArray} from 'sentry/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Rect} from './gl/utils';
@@ -115,10 +114,14 @@ export class Flamegraph {
   buildCallOrderChart(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
+
     let idx = 0;
+    let framePointer = -1;
+    let stackPointer = -1;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack) ?? this.root;
+      const parent = stack[stackPointer - 1] ?? this.root;
+      const depth = stackPointer + 1;
 
       const frame: FlamegraphFrame = {
         key: idx,
@@ -126,23 +129,25 @@ export class Flamegraph {
         node,
         parent,
         children: [],
-        depth: 0,
+        depth,
         start: value,
         end: value,
       };
 
-      if (parent) {
-        parent.children.push(frame);
-      } else {
-        this.root.children.push(frame);
-      }
+      // Track max depth
+      this.depth = frame.depth > this.depth ? frame.depth : this.depth;
 
-      stack.push(frame);
+      // Find children that we want to push our node to so we end up with a tree
+      const children = parent ? parent.children : this.root.children;
+      children[children.length] = frame;
+
+      stack[++stackPointer] = frame;
       idx++;
     };
 
     const closeFrame = (_: CallTreeNode, value: number) => {
-      const stackTop = stack.pop();
+      const stackTop = stack[stackPointer];
+      stackPointer = stackPointer - 1;
 
       if (!stackTop) {
         // This is unreachable because the profile importing logic already checks this
@@ -150,14 +155,11 @@ export class Flamegraph {
       }
 
       stackTop.end = value;
-      stackTop.depth = stack.length;
-
       if (stackTop.end - stackTop.start === 0) {
         return;
       }
 
-      frames.push(stackTop);
-      this.depth = Math.max(stackTop.depth, this.depth);
+      frames[++framePointer] = stackTop;
     };
 
     profile.forEach(openFrame, closeFrame);
@@ -175,59 +177,51 @@ export class Flamegraph {
 
     sortTree(profile.callTree);
 
-    const virtualRoot: FlamegraphFrame = {
-      key: -1,
-      frame: CallTreeNode.Root.frame,
-      node: CallTreeNode.Root,
-      parent: null,
-      children: [],
-      depth: 0,
-      start: 0,
-      end: 0,
-    };
-
-    this.root = virtualRoot;
     let idx = 0;
+    let framePointer = -1;
+    let stackPointer = -1;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack) ?? this.root;
+      const parent = stack[stackPointer - 1] ?? this.root;
+      const depth = stackPointer + 1;
+
       const frame: FlamegraphFrame = {
         key: idx,
         frame: node.frame,
         node,
         parent,
         children: [],
-        depth: 0,
+        depth,
         start: value,
         end: value,
       };
 
-      if (parent) {
-        parent.children.push(frame);
-      } else {
-        this.root.children.push(frame);
-      }
+      // Track max depth
+      this.depth = frame.depth > this.depth ? frame.depth : this.depth;
 
-      stack.push(frame);
+      // Find children that we want to push our node to so we end up with a tree
+      const children = parent ? parent.children : this.root.children;
+      children[children.length] = frame;
+
+      stack[++stackPointer] = frame;
       idx++;
     };
 
-    const closeFrame = (_node: CallTreeNode, value: number) => {
-      const stackTop = stack.pop();
+    const closeFrame = (_: CallTreeNode, value: number) => {
+      const stackTop = stack[stackPointer];
+      stackPointer = stackPointer - 1;
 
       if (!stackTop) {
+        // This is unreachable because the profile importing logic already checks this
         throw new Error('Unbalanced stack');
       }
 
       stackTop.end = value;
-      stackTop.depth = stack.length;
-
-      // Dont draw 0 width frames
       if (stackTop.end - stackTop.start === 0) {
         return;
       }
-      frames.push(stackTop);
-      this.depth = Math.max(stackTop.depth, this.depth);
+
+      frames[++framePointer] = stackTop;
     };
 
     function visit(node: CallTreeNode, start: number) {
