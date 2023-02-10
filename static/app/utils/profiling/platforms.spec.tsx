@@ -5,6 +5,7 @@ import {
 
 describe('getDocsPlatformSDKForPlatform', function () {
   it.each([
+    [undefined, null],
     ['android', 'android'],
     ['apple-macos', null],
     ['apple-ios', 'apple-ios'],
