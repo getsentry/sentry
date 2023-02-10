@@ -276,8 +276,8 @@ def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
     """
     group_categories = Group.objects.filter(id__in=group_ids).values_list("id", "type")
     return {
-        group[0]: get_dataset_from_category(get_group_type_by_type_id(group[1]).category)
-        for group in group_categories
+        group_id: get_dataset_from_category(get_group_type_by_type_id(group_type).category)
+        for group_id, group_type in group_categories
     }
 
 
