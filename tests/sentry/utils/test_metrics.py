@@ -61,19 +61,17 @@ def test_global():
 
 def test_filter_tags_dev():
     with override_settings(SENTRY_METRICS_DISALLOW_BAD_TAGS=True):
-        metrics._filter_tags({"foo": "bar"})
+        metrics._filter_tags("x", {"foo": "bar"})
         with pytest.raises(
             metrics.BadMetricTags,
-            match=r"discarded illegal metric tags: \['event', 'foo_id', 'group', 'project'\]",
+            match=r"discarded illegal metric tags: \['event', 'foo_id', 'project'\] for metric 'x'",
         ):
-            metrics._filter_tags(
-                {"foo": "bar", "foo_id": 42, "project": 42, "group": 99, "event": 22}
-            )
+            metrics._filter_tags("x", {"foo": "bar", "foo_id": 42, "project": 42, "event": 22})
 
 
 def test_filter_tags_prod():
     with override_settings(SENTRY_METRICS_DISALLOW_BAD_TAGS=False):
-        assert metrics._filter_tags({"foo": "bar"}) == {"foo": "bar"}
+        assert metrics._filter_tags("x", {"foo": "bar"}) == {"foo": "bar"}
         assert metrics._filter_tags(
-            {"foo": "bar", "foo_id": 42, "project": 42, "group": 99, "event": 22}
+            "x", {"foo": "bar", "foo_id": 42, "project": 42, "event": 22}
         ) == {"foo": "bar"}

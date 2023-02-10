@@ -28,7 +28,8 @@ from sentry.metrics.base import MetricsBackend
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
-BAD_TAGS = frozenset(["event", "project", "group"])
+_BAD_TAGS = frozenset(["event", "project", "group"])
+_METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(["process_message"])
 
 T = TypeVar("T")
 F = TypeVar("F", bound=Callable[..., Any])
@@ -64,14 +65,19 @@ class BadMetricTags(RuntimeError):
     pass
 
 
-def _filter_tags(tags: MutableTags) -> MutableTags:
+def _filter_tags(key: str, tags: MutableTags) -> MutableTags:
     """Removes unwanted tags from the tag mapping and returns a filtered one."""
-    discarded = frozenset(key for key in tags if key.endswith("_id") or key in BAD_TAGS)
+    if key in _METRICS_THAT_CAN_HAVE_BAD_TAGS:
+        return tags
+
+    discarded = frozenset(key for key in tags if key.endswith("_id") or key in _BAD_TAGS)
     if not discarded:
         return tags
 
     if settings.SENTRY_METRICS_DISALLOW_BAD_TAGS:
-        raise BadMetricTags("discarded illegal metric tags: %s" % sorted(discarded))
+        raise BadMetricTags(
+            f"discarded illegal metric tags: {sorted(discarded)} for metric {key!r}"
+        )
     return {k: v for k, v in tags.items() if k not in discarded}
 
 
@@ -208,7 +214,7 @@ def incr(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
-    current_tags = _filter_tags(current_tags)
+    current_tags = _filter_tags(key, current_tags)
 
     should_send_internal = (
         not metrics_skip_all_internal
@@ -239,7 +245,7 @@ def gauge(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
-    current_tags = _filter_tags(current_tags)
+    current_tags = _filter_tags(key, current_tags)
 
     try:
         backend.gauge(key, value, instance, current_tags, sample_rate)
@@ -258,7 +264,7 @@ def timing(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
-    current_tags = _filter_tags(current_tags)
+    current_tags = _filter_tags(key, current_tags)
 
     try:
         backend.timing(key, value, instance, current_tags, sample_rate)
@@ -277,7 +283,7 @@ def timer(
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
-    current_tags = _filter_tags(current_tags)
+    current_tags = _filter_tags(key, current_tags)
 
     start = time.monotonic()
     try:
