@@ -34,7 +34,7 @@ export function GapSpanDetails({
   span,
 }: GapSpanDetailsProps) {
   const {projects} = useProjects({slugs: event.projectSlug ? [event.projectSlug] : []});
-  const projectHasProfile = projects?.[0]?.hasProfiles;
+  const project = projects?.[0];
 
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
@@ -53,31 +53,54 @@ export function GapSpanDetails({
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
   }, [profileGroup.profiles, threadId]);
 
-  const hasProfile = defined(threadId) && defined(profile);
+  const transactionHasProfile = defined(threadId) && defined(profile);
 
   const flamegraph = useMemo(() => {
-    if (!hasProfile) {
+    if (!transactionHasProfile) {
       return FlamegraphModel.Example();
     }
 
     return new FlamegraphModel(profile, threadId, {});
-  }, [hasProfile, profile, threadId]);
+  }, [transactionHasProfile, profile, threadId]);
 
-  const relativeStartTimestamp = hasProfile
+  const relativeStartTimestamp = transactionHasProfile
     ? span.start_timestamp - event.startTimestamp
     : 0;
-  const relativeStopTimestamp = hasProfile
+  const relativeStopTimestamp = transactionHasProfile
     ? span.timestamp - event.startTimestamp
     : flamegraph.configSpace.width;
 
-  const docsLink = getProfilingDocsForPlatform(event.platform || '');
+  // Found the profile, render the preview
+  if (transactionHasProfile) {
+    return (
+      <Container>
+        <ProfilePreview
+          canvasView={canvasView}
+          event={event}
+          organization={organization}
+        />
+        <FlamegraphContainer>
+          <FlamegraphPreview
+            flamegraph={flamegraph}
+            relativeStartTimestamp={relativeStartTimestamp}
+            relativeStopTimestamp={relativeStopTimestamp}
+            renderText={transactionHasProfile}
+            updateFlamegraphView={setCanvasView}
+          />
+        </FlamegraphContainer>
+      </Container>
+    );
+  }
 
-  if (
-    // profiling isn't supported for this platform
-    !docsLink ||
-    // the project already sent a profile but this transaction doesnt have a profile
-    (projectHasProfile && !hasProfile)
-  ) {
+  // The event's platform is more accurate than the project
+  // so use that first and fall back to the project's platform
+  const docsLink =
+    getProfilingDocsForPlatform(event.platform || '') ??
+    getProfilingDocsForPlatform(project.platform || '');
+
+  // This project has received a profile before so they've already
+  // set up profiling. No point showing the profiling setup again.
+  if (!docsLink || project?.hasProfiles) {
     return (
       <InlineDocs
         orgSlug={organization.slug}
@@ -88,22 +111,17 @@ export function GapSpanDetails({
     );
   }
 
+  // At this point we must have a project on a supported
+  // platform that has not setup profiling yet
   return (
     <Container>
-      {!projectHasProfile && <SetupProfilingInstructions docsLink={docsLink} />}
-      {projectHasProfile && hasProfile && (
-        <ProfilePreview
-          canvasView={canvasView}
-          event={event}
-          organization={organization}
-        />
-      )}
+      <SetupProfilingInstructions docsLink={docsLink} />
       <FlamegraphContainer>
         <FlamegraphPreview
           flamegraph={flamegraph}
           relativeStartTimestamp={relativeStartTimestamp}
           relativeStopTimestamp={relativeStopTimestamp}
-          renderText={hasProfile}
+          renderText={transactionHasProfile}
           updateFlamegraphView={setCanvasView}
         />
       </FlamegraphContainer>
