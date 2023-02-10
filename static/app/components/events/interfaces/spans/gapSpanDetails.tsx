@@ -35,7 +35,7 @@ export function GapSpanDetails({
   span,
 }: GapSpanDetailsProps) {
   const {projects} = useProjects({slugs: event.projectSlug ? [event.projectSlug] : []});
-  const projectHasProfile = false && projects?.[0]?.hasProfiles;
+  const projectHasProfile = projects?.[0]?.hasProfiles;
 
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
