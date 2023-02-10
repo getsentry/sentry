@@ -52,7 +52,7 @@ register(
 # unlikely to be disabled.
 register(
     key="sentry:builtin_symbol_sources",
-    epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"]}, 9: ["ios", "microsoft", "android", "nuget"]},
+    epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"], 9: ["ios", "microsoft", "android", "nuget"]},
 )
 
 # Default legacy-browsers filter
