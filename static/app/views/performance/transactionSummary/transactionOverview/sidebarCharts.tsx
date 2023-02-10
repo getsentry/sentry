@@ -145,7 +145,7 @@ function SidebarCharts({
 
       <ChartLabel top="320px">
         <ChartTitle>
-          {displayTPMAsPercentage ? t('Total Transactions') : t('TPM')}
+          {displayTPMAsPercentage ? t('Total Events') : t('TPM')}
           <QuestionTooltip
             position="top"
             title={
@@ -410,39 +410,18 @@ function SidebarChartsContainer({
       interval={getInterval(datetimeSelection)}
       showLoading={false}
       includePrevious={false}
-      yAxis={['apdex()', 'failure_rate()', 'epm()']}
+      yAxis={['apdex()', 'failure_rate()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
       queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {
         const series = results
-          ? results
-              .map(_values => {
-                if (_values.seriesName === 'epm()') {
-                  const unfilteredTotalTPM = unfilteredTotals
-                    ? unfilteredTotals['tpm()']
-                    : null;
-                  if (unfilteredTotalTPM) {
-                    return {
-                      ..._values,
-                      data: _values.data.map(point => {
-                        return {
-                          ...point,
-                          value: point.value / unfilteredTotalTPM,
-                        };
-                      }),
-                    };
-                  }
-                  return _values;
-                }
-                return _values;
-              })
-              .map((v, i: number) => ({
-                ...v,
-                yAxisIndex: i,
-                xAxisIndex: i,
-              }))
+          ? results.map((v, i: number) => ({
+              ...v,
+              yAxisIndex: i,
+              xAxisIndex: i,
+            }))
           : [];
 
         return (
