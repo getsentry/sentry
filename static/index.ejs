@@ -5,6 +5,13 @@
     <meta name="robots" content="NONE,NOARCHIVE" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= htmlWebpackPlugin.options.title || 'Sentry Dev'%></title>
+    <script>
+      function __sentryMark(name) {
+        if (!window.performance || typeof window.performance.mark !== 'function') { return; }
+        window.performance.mark(name);
+      }
+      __sentryMark('head-start');
+    </script>
     <script type="text/javascript">
     try {
       var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');

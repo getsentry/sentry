@@ -6,10 +6,7 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
-import {
-  initializeMeasureAssetsTimeout,
-  LongTaskObserver,
-} from 'sentry/utils/performanceForSentry';
+import {addExtraMeasurements, LongTaskObserver} from 'sentry/utils/performanceForSentry';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -94,6 +91,8 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       return tracesSampleRate;
     },
     beforeSendTransaction(event) {
+      addExtraMeasurements(event);
+
       event.spans = event.spans?.filter(span => {
         // Filter analytic timeout spans.
         return ['reload.getsentry.net', 'amplitude.com'].every(
@@ -139,5 +138,4 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   }
 
   LongTaskObserver.startPerformanceObserver();
-  initializeMeasureAssetsTimeout();
 }
