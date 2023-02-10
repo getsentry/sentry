@@ -381,6 +381,7 @@ function SummaryContent({
             spanOperationBreakdownFilter,
           })}
           forceLoading={isLoading}
+          referrer="performance.transactions_summary"
         />
         <SuspectSpans
           location={location}
