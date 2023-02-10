@@ -269,11 +269,12 @@ class SnubaEventStorage(EventStorage):
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
-        )
+        if event.get_event_type() == "transaction":
+            dataset = snuba.Dataset.Transactions
+        elif event.get_event_type() == "generic":
+            dataset = snuba.Dataset.IssuePlatform
+        else:
+            dataset = snuba.Dataset.Discover
 
         return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
 
@@ -294,11 +295,12 @@ class SnubaEventStorage(EventStorage):
         # to the end condition since it uses a less than condition
         filter.end = event.datetime + timedelta(seconds=1)
 
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
-        )
+        if event.get_event_type() == "transaction":
+            dataset = snuba.Dataset.Transactions
+        elif event.get_event_type() == "generic":
+            dataset = snuba.Dataset.IssuePlatform
+        else:
+            dataset = snuba.Dataset.Discover
 
         return self.__get_event_id_from_filter(
             filter=filter, orderby=DESC_ORDERING, dataset=dataset
