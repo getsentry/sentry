@@ -22,6 +22,7 @@ class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
             "name": {"givenName": "N/A", "familyName": "N/A"},
             "emails": [{"primary": True, "value": obj.get_email(), "type": "work"}],
             "meta": {"resourceType": "User"},
+            "sentryOrgRole": obj.role,
         }
         if "active" in self.expand:
             result["active"] = True

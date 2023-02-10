@@ -1,11 +1,14 @@
+import {useRef} from 'react';
 import pick from 'lodash/pick';
 
 import {FieldFromConfig} from 'sentry/components/forms';
 import Form, {FormProps} from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {
+import type {
   Integration,
+  IntegrationRepository,
   Organization,
   Project,
   Repository,
@@ -15,6 +18,7 @@ import {
   sentryNameToOption,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
   integration: Integration;
@@ -35,8 +39,34 @@ function RepositoryProjectPathConfigForm({
   projects,
   repos,
 }: Props) {
-  const orgSlug = organization.slug;
+  const api = useApi();
+  const formRef = useRef(new FormModel());
   const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
+
+  /**
+   * Automatically switch to the default branch for the repo
+   */
+  function handleRepoChange(id: string) {
+    const repo = repos.find(r => r.id === id);
+    if (!repo) {
+      return;
+    }
+
+    // Use the integration repo search to get the default branch
+    api
+      .requestPromise(
+        `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+        {query: {search: repo.name}}
+      )
+      .then((data: {repos: IntegrationRepository[]}) => {
+        const {defaultBranch} = data.repos.find(r => r.identifier === repo.name) ?? {};
+        const isCurrentRepo = formRef.current.getValue('repositoryId') === repo.id;
+        if (defaultBranch && isCurrentRepo) {
+          formRef.current.setValue('defaultBranch', defaultBranch);
+        }
+      });
+  }
+
   const formFields: Field[] = [
     {
       name: 'projectId',
@@ -51,11 +81,13 @@ function RepositoryProjectPathConfigForm({
       required: true,
       label: t('Repo'),
       placeholder: t('Choose repo'),
-      url: `/organizations/${orgSlug}/repos/`,
+      url: `/organizations/${organization.slug}/repos/`,
       defaultOptions: repoChoices,
       onResults: results => results.map(sentryNameToOption),
+      onChange: handleRepoChange,
     },
     {
+      id: 'defaultBranch',
       name: 'defaultBranch',
       type: 'string',
       required: true,
@@ -120,6 +152,7 @@ function RepositoryProjectPathConfigForm({
       initialData={initialData}
       apiEndpoint={endpoint}
       apiMethod={apiMethod}
+      model={formRef.current}
       onCancel={onCancel}
     >
       {formFields.map(field => (

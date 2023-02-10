@@ -40,6 +40,12 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.issues.grouptype import (
+    ErrorGroupType,
+    GroupCategory,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.models import (
     Activity,
     Commit,
@@ -79,7 +85,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
@@ -2276,14 +2281,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.location() == "/books/"
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
-            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            assert group.issue_type == PerformanceNPlusOneGroupType
             assert EventPerformanceProblem.fetch(
                 event, expected_hash
             ).problem == PerformanceProblem(
                 expected_hash,
                 "db",
                 description,
-                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                PerformanceNPlusOneGroupType,
                 ["8dd7a5869a4f4583"],
                 ["9179e43ae844b174"],
                 [
@@ -2311,7 +2316,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event = manager.save(self.project.id)
             group = event.groups[0]
             assert group.issue_category == GroupCategory.PERFORMANCE
-            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            assert group.issue_type == PerformanceNPlusOneGroupType
             group.data["metadata"] = {
                 "location": "hi",
                 "title": "lol",
@@ -2357,7 +2362,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.ERROR.value
+            group.type = ErrorGroupType.type_id
             group.save()
             manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
@@ -2383,7 +2388,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value
+            group.type = PerformanceNPlusOneGroupType.type_id
             group.save()
             manager = EventManager(make_event())
             manager.normalize()
@@ -2469,7 +2474,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             last_event = attempt_to_generate_slow_db_issue()
 
             assert len(last_event.groups) == 1
-            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_DB_QUERY.value
+            assert last_event.groups[0].type == PerformanceSlowDBQueryGroupType.type_id
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

@@ -40,6 +40,13 @@ export const COLUMN_TITLES = [
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
+export const getDefaultStatsPeriod = (organization: Organization) => {
+  if (organization?.features?.includes('performance-landing-page-stats-period')) {
+    return '7d';
+  }
+  return DEFAULT_STATS_PERIOD;
+};
+
 export enum PERFORMANCE_TERM {
   TPM = 'tpm',
   THROUGHPUT = 'throughput',
@@ -401,7 +408,8 @@ function isUsingLimitedSearch(location: Location, withStaticFilters: boolean) {
 
 function generateGenericPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -434,7 +442,7 @@ function generateGenericPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -482,7 +490,8 @@ function generateGenericPerformanceEventView(
 
 function generateBackendPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -517,7 +526,7 @@ function generateBackendPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -554,7 +563,8 @@ function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
   genericEventView: EventView,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -599,7 +609,7 @@ function generateMobilePerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -635,7 +645,8 @@ function generateMobilePerformanceEventView(
 
 function generateFrontendPageloadPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -668,7 +679,7 @@ function generateFrontendPageloadPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -705,7 +716,8 @@ function generateFrontendPageloadPerformanceEventView(
 
 function generateFrontendOtherPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -738,7 +750,7 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
@@ -776,9 +788,14 @@ function generateFrontendOtherPerformanceEventView(
 export function generatePerformanceEventView(
   location: Location,
   projects: Project[],
-  {isTrends = false, withStaticFilters = false} = {}
+  {isTrends = false, withStaticFilters = false} = {},
+  organization: Organization
 ) {
-  const eventView = generateGenericPerformanceEventView(location, withStaticFilters);
+  const eventView = generateGenericPerformanceEventView(
+    location,
+    withStaticFilters,
+    organization
+  );
   if (isTrends) {
     return eventView;
   }
@@ -786,24 +803,40 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(location, withStaticFilters);
+      return generateFrontendPageloadPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(location, withStaticFilters);
+      return generateFrontendOtherPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(location, withStaticFilters);
+      return generateBackendPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.MOBILE:
       return generateMobilePerformanceEventView(
         location,
         projects,
         eventView,
-        withStaticFilters
+        withStaticFilters,
+        organization
       );
     default:
       return eventView;
   }
 }
 
-export function generatePerformanceVitalDetailView(location: Location): EventView {
+export function generatePerformanceVitalDetailView(
+  location: Location,
+  organization: Organization
+): EventView {
   const {query} = location;
 
   const vitalName = vitalNameFromLocation(location);
@@ -831,7 +864,7 @@ export function generatePerformanceVitalDetailView(location: Location): EventVie
   };
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-count');
 

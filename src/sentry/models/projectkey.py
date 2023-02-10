@@ -227,7 +227,7 @@ class ProjectKey(Model):
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
     @property
-    def js_sdk_loader_cdn_url(self):
+    def js_sdk_loader_cdn_url(self) -> str:
         if settings.JS_SDK_LOADER_CDN_URL:
             return f"{settings.JS_SDK_LOADER_CDN_URL}{self.public_key}.min.js"
         else:
@@ -235,6 +235,17 @@ class ProjectKey(Model):
             return "{}{}".format(
                 endpoint,
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
+            )
+
+    @property
+    def js_sdk_dynamic_loader_cdn_url(self) -> str:
+        if settings.JS_SDK_LOADER_CDN_URL:
+            return f"{settings.JS_SDK_LOADER_CDN_URL}dynamic/{self.public_key}.min.js"
+        else:
+            endpoint = self.get_endpoint()
+            return "{}{}".format(
+                endpoint,
+                reverse("sentry-js-sdk-dynamic-loader", args=[self.public_key, ".min"]),
             )
 
     def get_endpoint(self, public=True):
