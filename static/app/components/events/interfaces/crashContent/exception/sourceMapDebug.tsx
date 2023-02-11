@@ -242,6 +242,7 @@ export function SourceMapDebug({debugFrames, sdkName}: SourcemapDebugProps) {
 
   useRouteAnalyticsParams({
     show_fix_source_map_cta: errorMessages.length > 0,
+    source_map_debug_errors: errorMessages.map(error => error.type).join(','),
   });
 
   if (isLoading || !errorMessages.length) {
