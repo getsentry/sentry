@@ -15,10 +15,12 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
-class GroupTypeTest(TestCase):
-    def test_get_noise_config(self):
+class GroupTypeTest(TestCase):  # type: ignore[misc]
+    def setUp(self) -> None:
+        super().setUp()
         self.org = self.create_organization()
 
+    def test_get_noise_config(self) -> None:
         with patch.dict(_group_policy_registry, {}, clear=True):
 
             @dataclass(frozen=True)
@@ -49,9 +51,7 @@ class GroupTypeTest(TestCase):
             assert noise_config_2.ignore_limit == 10
             assert noise_config_2.expiry_time == 600
 
-    def test_default_noise_config(self):
-        self.org = self.create_organization()
-
+    def test_default_noise_config(self) -> None:
         with patch.dict(_group_policy_registry, {}, clear=True):
 
             @dataclass(frozen=True)
@@ -62,7 +62,7 @@ class GroupTypeTest(TestCase):
             assert noise_config.ignore_limit == DEFAULT_IGNORE_LIMIT
             assert noise_config.expiry_time == DEFAULT_EXPIRY_TIME
 
-    def test_get_group_policy_lookup(self):
+    def test_get_group_policy_lookup(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True), patch.dict(
             _group_policy_registry, {}, clear=True
         ):
@@ -87,7 +87,7 @@ class GroupTypeTest(TestCase):
 
             assert _group_policy_registry[TestGroupType.type_id] == TestGroupPolicy
 
-    def test_noise_config_validation(self):
+    def test_noise_config_validation(self) -> None:
         with patch.dict(_group_policy_registry, {}, clear=True):
 
             @dataclass(frozen=True)
