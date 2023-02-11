@@ -132,7 +132,7 @@ function TimeSince({
 
 export default TimeSince;
 
-export function getRelativeDate(
+function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
   unitStyle: UnitStyle = 'default'
