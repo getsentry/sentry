@@ -347,21 +347,23 @@ class Organization(Model, SnowflakeIdMixin):
         return self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).count() == 1
 
     def get_members_with_org_roles(self, roles: Collection[str]) -> QuerySet:
-        members_with_role = OrganizationMember.objects.filter(
-            organization=self,
-            role__in=roles,
-            user__isnull=False,
-            user__is_active=True,
-        )
-        members_on_teams_with_role = (
-            OrganizationMemberTeam.objects.filter(team__in=self.get_teams_with_org_roles(roles))
-            .exclude(organizationmember_id__in=list(members_with_role.values_list("id", flat=True)))
-            .values_list("organizationmember__id", flat=True)
+        members_with_role = set(
+            OrganizationMember.objects.filter(
+                organization=self,
+                role__in=roles,
+                user__isnull=False,
+                user__is_active=True,
+            ).values_list("id", flat=True)
         )
 
-        # union of querysets, is distinct
-        return members_with_role | OrganizationMember.objects.filter(
-            id__in=members_on_teams_with_role
+        members_on_teams_with_role = set(
+            OrganizationMemberTeam.objects.filter(
+                team__in=self.get_teams_with_org_roles(roles)
+            ).values_list("organizationmember__id", flat=True)
+        )
+
+        return OrganizationMember.objects.filter(
+            id__in=members_with_role.union(members_on_teams_with_role)
         )
 
     def merge_to(from_org, to_org):
