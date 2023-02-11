@@ -117,9 +117,13 @@ export function getDuration(
     return `${label} ${tn('second', 'seconds', result)}`;
   }
 
-  const {label} = roundWithFixed(msValue, fixedDigits);
+  const {label, result} = roundWithFixed(msValue, fixedDigits);
 
-  return label + t('ms');
+  if (extraShort || abbreviation) {
+    return `${label}${t('ms')}`;
+  }
+
+  return `${label} ${tn('millisecond', 'milliseconds', result)}`;
 }
 
 export function getExactDuration(seconds: number, abbreviation: boolean = false) {
