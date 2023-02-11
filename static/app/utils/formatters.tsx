@@ -54,6 +54,13 @@ export const HOUR = 3600000;
 export const MINUTE = 60000;
 export const SECOND = 1000;
 
+/**
+ * Returns a human redable duration rounded to the largest unit.
+ *
+ * e.g. 2 days, or 3 months, or 25 seoconds
+ *
+ * Use `getExactDuration` for exact durations
+ */
 export function getDuration(
   seconds: number,
   fixedDigits: number = 0,
@@ -122,6 +129,11 @@ export function getDuration(
   return label + t('ms');
 }
 
+/**
+ * Returns a human readable exact duration.
+ *
+ * e.g. 1 hour 25 minutes 15 seconds
+ */
 export function getExactDuration(seconds: number, abbreviation: boolean = false) {
   const convertDuration = (secs: number, abbr: boolean): string => {
     // value in milliseconds
