@@ -34,6 +34,7 @@ _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
         # snuba related tags
         "process_message",
         "commit_log_msg_latency",
+        "commit_log_latency",
         "process_message.normalized",
         "batching_consumer.batch.size",
         "batching_consumer.batch.flush",
