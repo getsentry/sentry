@@ -61,7 +61,7 @@ class BaseScheduledDeletion(Model):
     def schedule(cls, instance, days=30, hours=0, data=None, actor=None):
         model = type(instance)
         silo_mode = SiloMode.get_current_mode()
-        if silo_mode not in model._meta.silo_limit.modes:
+        if silo_mode not in model._meta.silo_limit.modes and silo_mode != SiloMode.MONOLITH:
             # Pre-empt the fact that our silo protections wouldn't fire for mismatched model <-> silo deletion objects.
             raise model._meta.silo_limit.AvailabilityError(
                 f"{model!r} was scheduled for deletion by {cls!r}, but is unavailable in {silo_mode!r}"
