@@ -4,7 +4,18 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Mapping, Sequence
 
-from snuba_sdk import Column, Condition, Direction, Entity, Granularity, Op, OrderBy, Query, Request
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -17,14 +28,18 @@ CHUNK_SIZE = 1000
 
 
 def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
+    """
+    This function fetch with pagination orgs and projects with count per root project
+    """
     aggregated_projects = defaultdict(list)
     start_time = time.time()
     offset = 0
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
             Query(
-                match=Entity(EntityKey.GenericMetricsCounters.value),
+                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
                 select=[
+                    Function("sum", [Column("value")], "root_count_value"),
                     Column("org_id"),
                     Column("project_id"),
                 ],
@@ -62,7 +77,7 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
             data = data[:-1]
 
         for row in data:
-            aggregated_projects[row["org_id"]].append(row["project_id"])
+            aggregated_projects[row["org_id"]].append({row["project_id"]: row["root_count_value"]})
 
         if not more_results:
             break
@@ -74,7 +89,3 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
         )
 
     return aggregated_projects
-
-
-def process_projects_with_total_volumes(project_ids):
-    ...

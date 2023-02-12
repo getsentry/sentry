@@ -853,7 +853,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-project-biases": {
         "task": "sentry.dynamic_sampling.tasks.prioritize_by_project",
-        "schedule": timedelta(hours=1),
+        # Run daily at 08:00
+        "schedule": crontab(hour=8, minute=0),
         "options": {"expires": 3600},
     },
 }
@@ -1096,7 +1097,7 @@ SENTRY_FEATURES = {
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
     # Sanitize transaction names in the ingestion pipeline.
-    "organizations:transaction-name-sanitization": False,
+    "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # True if release-health related queries should be run against both
@@ -1157,8 +1158,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable new issue actions on issue details
-    "organizations:issue-actions-v2": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable removing issue from issue list if action taken.
@@ -1270,8 +1269,6 @@ SENTRY_FEATURES = {
     "organizations:onboarding-remove-multiselect-platform": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
-    # Enable deobfuscating exception values in Java issues
-    "organizations:java-exception-value-deobfuscation": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
