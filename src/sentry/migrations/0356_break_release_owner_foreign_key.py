@@ -36,7 +36,7 @@ class Migration(CheckedMigration):
     state_operations = [
         migrations.AlterField(
             model_name="release",
-            name="owner_id",
+            name="owner",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                 "sentry.User", blank=True, db_index=True, null=True, on_delete="SET_NULL"
             ),
