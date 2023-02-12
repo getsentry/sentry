@@ -18,13 +18,13 @@ from django.apps import apps
 from django.db import connections, router
 from django.db.models import Manager, Max
 from django.utils import timezone
-from sentry_sdk import Hub
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
+from sentry.utils.sdk import set_measurement
 
 
 def deletion_silo_modes() -> List[SiloMode]:
@@ -61,8 +61,7 @@ def set_watermark(
             json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
         )
 
-    transaction = Hub.current.scope.transaction
-    transaction.set_measurement("low_bound", value)
+    set_measurement("low_bound", value)
 
 
 def chunk_watermark_batch(
@@ -224,7 +223,7 @@ def _process_tombstone_reconciliation(
                     f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"
                 )
 
-            transaction.set_measurement(
+            set_measurement(
                 "processing_lag",
                 datetime.datetime.now().timestamp() - oldest_seen.timestamp(),
                 "second",

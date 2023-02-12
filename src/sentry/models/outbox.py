@@ -24,6 +24,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.silo import SiloMode
+from sentry.utils.sdk import set_measurement
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -175,7 +176,7 @@ class OutboxBase(Model):
 
             transaction = sentry_sdk.Hub.current.scope.transaction
             if transaction:
-                transaction.set_measurement(
+                set_measurement(
                     "outbox.processing_lag",
                     datetime.datetime.now().timestamp()
                     - first_coalesced.scheduled_from.timestamp(),
@@ -192,9 +193,7 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     finally:
-                        transaction.set_measurement(
-                            "send_signal_duration", time.monotonic() - start, "second"
-                        )
+                        set_measurement("send_signal_duration", time.monotonic() - start, "second")
                     return True
             return False
 
