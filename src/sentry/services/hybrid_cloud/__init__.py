@@ -231,7 +231,7 @@ def _annotate_with_metrics(service: ServiceInterface) -> None:
 def _wrap_with_metrics(
     m: Callable[..., Any], service_class_name: str, method_name: str
 ) -> Callable[..., Any]:
-    def wrapper(*args, **kwds):
+    def wrapper(*args: Any, **kwds: Any) -> Any:
         with sentry_sdk.start_transaction(
             op=f"hybrid_cloud.services.{service_class_name}", name="execute"
         ):
