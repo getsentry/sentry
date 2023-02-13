@@ -56,10 +56,17 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             if result.get("name"):
                 key.label = result["name"]
 
-            if not result.get("browserSdkVersion"):
-                key.data = {"browserSdkVersion": default_version}
-            else:
-                key.data = {"browserSdkVersion": result["browserSdkVersion"]}
+            if not key.data:
+                key.data = {}
+
+            key.data["browserSdkVersion"] = (
+                default_version
+                if not result.get("browserSdkVersion")
+                else result["browserSdkVersion"]
+            )
+
+            if result.get("dynamicSdkLoaderOptions"):
+                key.data["dynamicSdkLoaderOptions"] = result["dynamicSdkLoaderOptions"]
 
             if result.get("isActive") is True:
                 key.status = ProjectKeyStatus.ACTIVE
