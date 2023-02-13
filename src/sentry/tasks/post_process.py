@@ -719,7 +719,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import Commit
+    from sentry.models import Commit, Integration
     from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
@@ -751,7 +751,20 @@ def process_commits(job: PostProcessJob) -> None:
                     "group": event.group_id,
                     "project": event.project_id,
                 }
-                if features.has("organizations:commit-context", event.project.organization):
+                integrations = Integration.objects.filter(
+                    organizations=event.project.organization,
+                    provider__in=["github", "gitlab"],
+                )
+                use_fallback = (
+                    features.has(
+                        "organizations:commit-context-fallback", event.project.organization
+                    )
+                    and not integrations.exists()
+                )
+                if (
+                    features.has("organizations:commit-context", event.project.organization)
+                    and not use_fallback
+                ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr(
