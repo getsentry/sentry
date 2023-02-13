@@ -237,6 +237,9 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
       () => {
         const newScale = direction === 'in' ? scalingFactor : 1 / scalingFactor;
 
+        // Generate a scaling matrix that also accounts for the zoom origin
+        // so when the scale is applied, the zoom origin stays in the same place
+        // i.e. cursor position or center of the canvas
         const center = vec2.fromValues(canvasSize.width / 2, canvasSize.height / 2);
         const origin = zoomOrigin ?? center;
         const scaleMatrix = getCenterScaleMatrixFromConfigPosition(
