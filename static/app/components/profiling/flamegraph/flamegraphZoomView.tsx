@@ -19,7 +19,7 @@ import {
   useDispatchFlamegraphState,
   useFlamegraphState,
 } from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
@@ -83,7 +83,7 @@ function FlamegraphZoomView({
   setFlamegraphCanvasRef,
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
-  const flamegraphTheme = useFlamegraphTheme();
+  const flamegraphTheme = useFlamegraphThemeWithPreferences();
   const profileGroup = useProfileGroup();
   const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();

@@ -6,7 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 
 interface CollapsibleTimelineProps {
   children: React.ReactNode;
@@ -16,7 +16,7 @@ interface CollapsibleTimelineProps {
   title: string;
 }
 function CollapsibleTimeline(props: CollapsibleTimelineProps) {
-  const theme = useFlamegraphTheme();
+  const theme = useFlamegraphThemeWithPreferences();
   return (
     <Fragment>
       <CollapsibleTimelineHeader border={theme.COLORS.GRID_LINE_COLOR}>

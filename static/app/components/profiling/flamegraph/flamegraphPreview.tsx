@@ -1,9 +1,8 @@
-import {CSSProperties, useEffect, useMemo, useState} from 'react';
+import {CSSProperties, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -11,10 +10,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {
-  DarkFlamegraphTheme,
-  LightFlamegraphTheme,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {useFlamegraphThemeWithoutPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
@@ -37,11 +33,11 @@ export function FlamegraphPreview({
   renderText = true,
   updateFlamegraphView,
 }: FlamegraphPreviewProps) {
+  const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const {theme} = useLegacyStore(ConfigStore);
-  const flamegraphTheme = theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
+  const flamegraphTheme = useFlamegraphThemeWithoutPreferences();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -89,13 +85,6 @@ export function FlamegraphPreview({
   }, [flamegraphView, updateFlamegraphView]);
 
   const flamegraphCanvases = useMemo(() => [flamegraphCanvasRef], [flamegraphCanvasRef]);
-
-  useResizeCanvasObserver(
-    flamegraphCanvases,
-    canvasPoolManager,
-    flamegraphCanvas,
-    flamegraphView
-  );
 
   const flamegraphRenderer = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -167,9 +156,63 @@ export function FlamegraphPreview({
     textRenderer,
   ]);
 
+  const hoveredNode: FlamegraphFrame | null = useMemo(() => {
+    if (!configSpaceCursor || !flamegraphRenderer) {
+      return null;
+    }
+    return flamegraphRenderer.findHoveredNode(configSpaceCursor);
+  }, [configSpaceCursor, flamegraphRenderer]);
+
+  const onCanvasMouseMove = useCallback(
+    (evt: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!flamegraphCanvas || !flamegraphView) {
+        return;
+      }
+
+      setConfigSpaceCursor(
+        flamegraphView.getTransformedConfigViewCursor(
+          vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
+          flamegraphCanvas
+        )
+      );
+    },
+    [flamegraphCanvas, flamegraphView]
+  );
+
+  const onCanvasMouseLeave = useCallback(() => {
+    setConfigSpaceCursor(null);
+  }, []);
+
+  const canvasBounds = useResizeCanvasObserver(
+    flamegraphCanvases,
+    canvasPoolManager,
+    flamegraphCanvas,
+    flamegraphView
+  );
+
   return (
     <CanvasContainer>
-      <Canvas ref={setFlamegraphCanvasRef} />
+      <Canvas
+        ref={setFlamegraphCanvasRef}
+        onMouseMove={onCanvasMouseMove}
+        onMouseLeave={onCanvasMouseLeave}
+      />
+      {renderText &&
+      flamegraphCanvas &&
+      flamegraphRenderer &&
+      flamegraphView &&
+      configSpaceCursor &&
+      hoveredNode ? (
+        <FlamegraphTooltip
+          frame={hoveredNode}
+          configSpaceCursor={configSpaceCursor}
+          flamegraphCanvas={flamegraphCanvas}
+          flamegraphRenderer={flamegraphRenderer}
+          flamegraphView={flamegraphView}
+          canvasBounds={canvasBounds}
+          platform={undefined}
+        />
+      ) : null}
     </CanvasContainer>
   );
 }

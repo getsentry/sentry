@@ -8,7 +8,7 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
@@ -49,7 +49,7 @@ export function FlamegraphUIFrames({
   setUIFramesCanvasRef,
 }: FlamegraphUIFramesProps) {
   const profiles = useProfiles();
-  const flamegraphTheme = useFlamegraphTheme();
+  const flamegraphTheme = useFlamegraphThemeWithPreferences();
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);

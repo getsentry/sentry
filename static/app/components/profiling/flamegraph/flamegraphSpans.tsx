@@ -18,7 +18,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
@@ -62,7 +62,7 @@ export function FlamegraphSpans({
   spansCanvasRef,
   setSpansCanvasRef,
 }: FlamegraphSpansProps) {
-  const flamegraphTheme = useFlamegraphTheme();
+  const flamegraphTheme = useFlamegraphThemeWithPreferences();
   const flamegraphSearch = useFlamegraphSearch();
   const scheduler = useCanvasScheduler(canvasPoolManager);
   const profiledTransaction = useProfileTransaction();

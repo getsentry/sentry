@@ -8,7 +8,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigSpaceTranslationBetweenVectors,
@@ -49,7 +49,7 @@ function FlamegraphZoomViewMinimap({
   setFlamegraphMiniMapCanvasRef,
   setFlamegraphMiniMapOverlayCanvasRef,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
-  const flamegraphTheme = useFlamegraphTheme();
+  const flamegraphTheme = useFlamegraphThemeWithPreferences();
   const [lastInteraction, setLastInteraction] = useState<
     'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null
   >(null);

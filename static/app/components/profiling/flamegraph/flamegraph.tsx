@@ -38,7 +38,7 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
@@ -159,7 +159,7 @@ function Flamegraph(): ReactElement {
   const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
-  const flamegraphTheme = useFlamegraphTheme();
+  const flamegraphTheme = useFlamegraphThemeWithPreferences();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
   const {sorting, view, type, xAxis} = useFlamegraphPreferences();
