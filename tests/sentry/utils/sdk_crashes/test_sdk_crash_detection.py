@@ -1,12 +1,9 @@
 from typing import Any, Mapping
+from unittest.mock import Mock
 
 import pytest
 
-from sentry.utils.sdk_crashes.sdk_crash_detection import (
-    detect_sdk_crash,
-    is_cocoa_sdk_crash,
-    strip_frames,
-)
+from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetection
 
 in_app_frame = {
     "function": "LoginViewController.viewDidAppear",
@@ -214,7 +211,15 @@ def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
     ],
 )
 def test_detect_sdk_crash(data, expected):
-    assert detect_sdk_crash(data) is expected
+    crash_reporter = Mock()
+    crash_detector = SDKCrashDetection(crash_reporter)
+
+    crash_detector.detect_sdk_crash(data)
+
+    if expected:
+        crash_reporter.report.assert_called_once_with(data)
+    else:
+        crash_reporter.report.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -234,7 +239,9 @@ def test_detect_sdk_crash(data, expected):
 def test_cocoa_sdk_crash_detection(function, expected):
     frames = get_frames(function)
 
-    assert is_cocoa_sdk_crash(frames) is expected
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert crash_detector.is_cocoa_sdk_crash(frames) is expected
 
 
 def test_is_cocoa_sdk_crash_only_non_inapp_after_sentry_frame():
@@ -260,7 +267,9 @@ def test_is_cocoa_sdk_crash_only_non_inapp_after_sentry_frame():
         },
     ]
 
-    assert is_cocoa_sdk_crash(frames) is True
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert crash_detector.is_cocoa_sdk_crash(frames) is True
 
 
 def test_is_cocoa_sdk_crash_only_inapp_after_sentry_frame():
@@ -287,7 +296,9 @@ def test_is_cocoa_sdk_crash_only_inapp_after_sentry_frame():
         },
     ]
 
-    assert is_cocoa_sdk_crash(frames) is False
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert crash_detector.is_cocoa_sdk_crash(frames) is False
 
 
 @pytest.mark.parametrize(
@@ -328,29 +339,43 @@ def test_is_cocoa_sdk_crash_filename(filename, expected):
         },
     ]
 
-    assert is_cocoa_sdk_crash(frames) is expected
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert crash_detector.is_cocoa_sdk_crash(frames) is expected
 
 
 def test_is_cocoa_sdk_crash_no_frames():
-    assert is_cocoa_sdk_crash([]) is False
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert crash_detector.is_cocoa_sdk_crash([]) is False
 
 
 def test_is_cocoa_sdk_crash_empty_frames():
-    assert is_cocoa_sdk_crash([{"empty": "frame"}]) is False
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert crash_detector.is_cocoa_sdk_crash([{"empty": "frame"}]) is False
 
 
 def test_is_cocoa_sdk_crash_single_frame():
-    assert is_cocoa_sdk_crash([create_sentry_frame("-[Sentry]")]) is True
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert crash_detector.is_cocoa_sdk_crash([create_sentry_frame("-[Sentry]")]) is True
 
 
 def test_is_cocoa_sdk_crash_single_in_app_frame():
-    assert is_cocoa_sdk_crash([create_sentry_frame("-[Sentry]", in_app=True)]) is True
+    crash_detector = SDKCrashDetection(Mock())
+
+    assert (
+        crash_detector.is_cocoa_sdk_crash([create_sentry_frame("-[Sentry]", in_app=True)]) is True
+    )
 
 
 def test_strip_frames_removes_in_app():
     frames = get_frames("sentrycrashdl_getBinaryImage")
 
-    stripped_frames = strip_frames(frames)
+    crash_detector = SDKCrashDetection(Mock())
+
+    stripped_frames = crash_detector.strip_frames(frames)
     assert len(stripped_frames) == 6
     assert (
         len([frame for frame in stripped_frames if frame["function"] == in_app_frame["function"]])
@@ -370,7 +395,9 @@ def test_strip_frames_removes_in_app():
 def test_strip_frames(function, in_app):
     frames = get_frames(function, sentry_frame_in_app=in_app)
 
-    stripped_frames = strip_frames(frames)
+    crash_detector = SDKCrashDetection(Mock())
+
+    stripped_frames = crash_detector.strip_frames(frames)
 
     assert len(stripped_frames) == 6
     assert (

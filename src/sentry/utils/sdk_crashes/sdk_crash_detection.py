@@ -7,75 +7,82 @@ from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
 
-def detect_sdk_crash(data: Event) -> bool:
-    if data.get("type") != "error" or data.get("platform") != "cocoa":
-        return False
+class SDKCrashReporter:
+    def __init__(self):
+        self
 
-    is_unhandled = get_path(data, "exception", "values", -1, "mechanism", "handled") is False
-
-    if is_unhandled is False:
-        return False
-
-    frames = get_path(data, "exception", "values", -1, "stacktrace", "frames")
-    if not frames:
-        return False
-
-    if is_cocoa_sdk_crash(frames):
-        return True
-
-    return False
+    def report(self, event: Event) -> None:
+        pass
 
 
-def strip_event_data(data: Event) -> Event:
-    return data
+class SDKCrashDetection:
+    def __init__(self, sdk_crash_reporter: SDKCrashReporter):
+        self
+        self.sdk_crash_reporter = sdk_crash_reporter
 
+    def detect_sdk_crash(self, data: Event) -> None:
+        if data.get("type") != "error" or data.get("platform") != "cocoa":
+            return
 
-def strip_frames(frames: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
-    return [
-        frame
-        for frame in frames
-        if _is_cocoa_sdk_frame(frame) or frame.get("in_app", True) is False
-    ]
+        is_unhandled = get_path(data, "exception", "values", -1, "mechanism", "handled") is False
 
+        if is_unhandled is False:
+            return
 
-def is_cocoa_sdk_crash(frames: Sequence[Mapping[str, Any]]) -> bool:
-    """
-    Returns true if the stacktrace is a Cocoa SDK crash.
+        frames = get_path(data, "exception", "values", -1, "stacktrace", "frames")
+        if not frames:
+            return
 
-    :param frames: The stacktrace frames ordered from newest to oldest.
-    """
-    if not frames:
-        return False
+        if self.is_cocoa_sdk_crash(frames):
+            self.sdk_crash_reporter.report(data)
 
-    for frame in frames:
-        if _is_cocoa_sdk_frame(frame):
-            return True
+    def strip_event_data(self, data: Event) -> Event:
+        return data
 
-        if frame.get("in_app") is True:
+    def strip_frames(self, frames: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
+        return [
+            frame
+            for frame in frames
+            if self._is_cocoa_sdk_frame(frame) or frame.get("in_app", True) is False
+        ]
+
+    def is_cocoa_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
+        """
+        Returns true if the stacktrace is a Cocoa SDK crash.
+
+        :param frames: The stacktrace frames ordered from newest to oldest.
+        """
+        if not frames:
             return False
 
-    return False
-
-
-def _is_cocoa_sdk_frame(frame: Mapping[str, Any]) -> bool:
-    function = frame.get("function")
-
-    if function is not None:
-        # [SentrySDK crash] is a testing function causing a crash.
-        # Therefore, we don't want to mark it a as a SDK crash.
-        if "SentrySDK crash" in function:
-            return False
-
-        functionsMatchers = ["*sentrycrash*", "**[[]Sentry*"]
-        for matcher in functionsMatchers:
-            if glob_match(frame.get("function"), matcher, ignorecase=True):
+        for frame in frames:
+            if self._is_cocoa_sdk_frame(frame):
                 return True
 
-    filename = frame.get("filename")
-    if filename is not None:
-        filenameMatchers = ["Sentry**"]
-        for matcher in filenameMatchers:
-            if glob_match(filename, matcher, ignorecase=True):
-                return True
+            if frame.get("in_app") is True:
+                return False
 
-    return False
+        return False
+
+    def _is_cocoa_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
+        function = frame.get("function")
+
+        if function is not None:
+            # [SentrySDK crash] is a testing function causing a crash.
+            # Therefore, we don't want to mark it a as a SDK crash.
+            if "SentrySDK crash" in function:
+                return False
+
+            functionsMatchers = ["*sentrycrash*", "**[[]Sentry*"]
+            for matcher in functionsMatchers:
+                if glob_match(frame.get("function"), matcher, ignorecase=True):
+                    return True
+
+        filename = frame.get("filename")
+        if filename is not None:
+            filenameMatchers = ["Sentry**"]
+            for matcher in filenameMatchers:
+                if glob_match(filename, matcher, ignorecase=True):
+                    return True
+
+        return False
