@@ -42,10 +42,10 @@ export function useReplayOnboardingSidebarPanel() {
   const hasSentOneReplay = useHaveSelectedProjectsSentAnyReplayEvents();
 
   useEffect(() => {
-    if (hasSentOneReplay && location.hash === '#replay-sidequest') {
+    if (location.hash === '#replay-sidequest') {
       SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
     }
-  }, [hasSentOneReplay, location.hash]);
+  }, [location.hash]);
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
