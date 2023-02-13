@@ -4,10 +4,6 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.models import NotificationSetting, Project, ProjectOwnership, Team, User
-from sentry.models.commit import Commit
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.grouprelease import GroupRelease
-from sentry.models.repository import Repository
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
@@ -31,19 +27,6 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
-
-STACKTRACE = {
-    "frames": [
-        {
-            "function": "handledError",
-            "abs_path": "Application.java",
-            "module": "io.sentry.example.Application",
-            "in_app": True,
-            "lineno": 39,
-            "filename": "Application.java",
-        },
-    ]
-}
 
 
 class GetSendToMemberTest(TestCase):
@@ -204,23 +187,17 @@ class GetSendToOwnersTest(TestCase):
             event=event,
         )
 
-    def store_event_owners(self, filename: str) -> Event:
+    def store_event(self, filename: str) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=self.project.id)
 
     def setUp(self):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.user3 = self.create_user(email="bar@example.com", is_active=True)
-        self.user_suspect_committer = self.create_user(
-            email="suspectcommitter@example.com", is_active=True
-        )
 
         self.team2 = self.create_team(
             organization=self.organization, members=[self.user, self.user2]
         )
         self.project.add_team(self.team2)
-        self.repo = Repository.objects.create(
-            organization_id=self.organization.id, name=self.organization.id
-        )
 
         ProjectOwnership.objects.create(
             project_id=self.project.id,
@@ -229,7 +206,6 @@ class GetSendToOwnersTest(TestCase):
                     grammar.Rule(Matcher("path", "*.py"), [Owner("team", self.team2.slug)]),
                     grammar.Rule(Matcher("path", "*.jsx"), [Owner("user", self.user.email)]),
                     grammar.Rule(Matcher("path", "*.jx"), [Owner("user", self.user3.email)]),
-                    grammar.Rule(Matcher("path", "*.java"), [Owner("user", self.user.email)]),
                     grammar.Rule(
                         Matcher("path", "*.cbl"),
                         [
@@ -253,22 +229,13 @@ class GetSendToOwnersTest(TestCase):
             team=self.team2,
         )
 
-    def create_sample_commit(self, user: User) -> Commit:
-        return self.create_commit(
-            project=self.project,
-            repo=self.repo,
-            author=self.create_commit_author(project=self.project, user=user),
-            key="a" * 40,
-            message="fix: Fix bug",
-        )
-
     def test_empty(self):
-        event = self.store_event_owners("empty.lol")
+        event = self.store_event("empty.lol")
 
         assert self.get_send_to_owners(event) == {}
 
     def test_single_user(self):
-        event = self.store_event_owners("user.jsx")
+        event = self.store_event("user.jsx")
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
@@ -289,12 +256,12 @@ class GetSendToOwnersTest(TestCase):
         }
 
     def test_single_user_no_teams(self):
-        event = self.store_event_owners("user.jx")
+        event = self.store_event("user.jx")
 
         assert self.get_send_to_owners(event) == {}
 
     def test_team_owners(self):
-        event = self.store_event_owners("team.py")
+        event = self.store_event("team.py")
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
@@ -324,7 +291,7 @@ class GetSendToOwnersTest(TestCase):
         }
 
     def test_disable_alerts_multiple_scopes(self):
-        event = self.store_event_owners("everyone.cbl")
+        event = self.store_event("everyone.cbl")
 
         # Project-independent setting.
         NotificationSetting.objects.update_settings(
@@ -349,7 +316,7 @@ class GetSendToOwnersTest(TestCase):
         }
 
     def test_fallthrough(self):
-        event = self.store_event_owners("no_rule.cpp")
+        event = self.store_event("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
@@ -364,194 +331,9 @@ class GetSendToOwnersTest(TestCase):
 
     def test_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
-        event = self.store_event_owners("no_rule.cpp")
+        event = self.store_event("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {}
-
-    @with_feature("organizations:streamline-targeting-context")
-    def test_send_to_suspect_committers(self):
-        """
-        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
-        flag is not on.
-        """
-        # TODO: Delete this test once Commit Context has GA'd
-        release = self.create_release(project=self.project, version="v12")
-        event = self.store_event(
-            data={
-                "platform": "java",
-                "stacktrace": STACKTRACE,
-                "tags": {"sentry:release": release.version},
-            },
-            project_id=self.project.id,
-        )
-        release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "suspectcommitter@example.com",
-                    "author_name": "Suspect Committer",
-                    "message": "fix: Fix bug",
-                    "patch_set": [
-                        {"path": "src/main/java/io/sentry/example/Application.java", "type": "M"}
-                    ],
-                },
-            ]
-        )
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=release.id
-        )
-
-        assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {
-                user_service.get_user(self.user_suspect_committer.id),
-                user_service.get_user(self.user.id),
-            },
-            ExternalProviders.SLACK: {
-                user_service.get_user(self.user_suspect_committer.id),
-                user_service.get_user(self.user.id),
-            },
-        }
-
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_with_commit_context_feature_flag(self):
-        """
-        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
-        flag is on.
-        """
-        self.commit = self.create_sample_commit(self.user_suspect_committer)
-        event = self.store_event(
-            data={
-                "stacktrace": STACKTRACE,
-            },
-            project_id=self.project.id,
-        )
-
-        GroupOwner.objects.create(
-            group=event.group,
-            user=self.user_suspect_committer,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": self.commit.id},
-        )
-        assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {
-                user_service.get_user(self.user_suspect_committer.id),
-                user_service.get_user(self.user.id),
-            },
-            ExternalProviders.SLACK: {
-                user_service.get_user(self.user_suspect_committer.id),
-                user_service.get_user(self.user.id),
-            },
-        }
-
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_no_owners_with_commit_context_feature_flag(self):
-        """
-        Test suspect committer is added as suggested assignee, where no user owns the file and
-        where the "organizations:commit-context" flag is on.
-        """
-        project_no_team = self.create_project(
-            name="No Team Project", organization=self.organization
-        )
-        commit = self.create_sample_commit(self.user_suspect_committer)
-        event = self.store_event(
-            data={
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handledError",
-                            "abs_path": "Application.lol",
-                            "module": "io.sentry.example.Application",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "Application.lol",
-                        },
-                    ]
-                },
-            },
-            project_id=project_no_team.id,
-        )
-
-        GroupOwner.objects.create(
-            group=event.group,
-            user=self.user_suspect_committer,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": commit.id},
-        )
-        assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {
-                user_service.get_user(self.user_suspect_committer.id),
-            },
-            ExternalProviders.SLACK: {
-                user_service.get_user(self.user_suspect_committer.id),
-            },
-        }
-
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_dupe_with_commit_context_feature_flag(self):
-        """
-        Test suspect committer/owner is added as suggested assignee once where the suspect
-        committer is also the owner and where the "organizations:commit-context" flag is on.
-        """
-        commit = self.create_sample_commit(self.user)
-        event = self.store_event(
-            data={
-                "stacktrace": STACKTRACE,
-            },
-            project_id=self.project.id,
-        )
-
-        GroupOwner.objects.create(
-            group=event.group,
-            user=self.user,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": commit.id},
-        )
-        assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
-            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
-        }
-
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_exception_with_commit_context_feature_flag(self):
-        """
-        Test determine_eligible_recipients throws an exception when get_suspect_committers throws
-        an exception and returns the file owner, where "organizations:commit-context" flag is on.
-        """
-        invalid_commit_id = 10000
-        event = self.store_event(
-            data={
-                "stacktrace": STACKTRACE,
-            },
-            project_id=self.project.id,
-        )
-
-        GroupOwner.objects.create(
-            group=event.group,
-            user=self.user3,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": invalid_commit_id},
-        )
-        assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {
-                user_service.get_user(self.user.id),
-            },
-            ExternalProviders.SLACK: {
-                user_service.get_user(self.user.id),
-            },
-        }
 
 
 class GetOwnersCase(TestCase):
