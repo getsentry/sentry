@@ -24,7 +24,7 @@ describe('useReplaysCount', () => {
   });
 
   const organization = TestStubs.Organization({
-    features: ['session-replay-ui'],
+    features: ['session-replay'],
   });
   const project = TestStubs.Project({
     platform: 'javascript',

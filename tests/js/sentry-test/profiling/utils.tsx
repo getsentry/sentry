@@ -80,6 +80,6 @@ export const makeFlamegraph = (
       {type: 'flamechart'}
     ),
     0,
-    {inverted: false, leftHeavy: false}
+    {inverted: false, sort: 'call order'}
   );
 };

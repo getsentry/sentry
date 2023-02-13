@@ -17,8 +17,8 @@ describe('getDuration()', function () {
     expect(formatSecondsToClock(0)).toBe('00:00');
     expect(formatSecondsToClock(0.001)).toBe('00:00.001');
     expect(formatSecondsToClock(0.01)).toBe('00:00.010');
-    expect(getDuration(0.1)).toBe('100ms');
-    expect(getDuration(0.1, 2)).toBe('100.00ms');
+    expect(getDuration(0.1)).toBe('100 milliseconds');
+    expect(getDuration(0.1, 2)).toBe('100.00 milliseconds');
     expect(getDuration(1)).toBe('1 second');
     expect(getDuration(2)).toBe('2 seconds');
     expect(getDuration(65)).toBe('1 minute');
@@ -37,8 +37,8 @@ describe('getDuration()', function () {
     expect(formatSecondsToClock(0)).toBe('00:00');
     expect(formatSecondsToClock(-0.001)).toBe('00:00.001');
     expect(formatSecondsToClock(-0.01)).toBe('00:00.010');
-    expect(getDuration(-0.1)).toBe('-100ms');
-    expect(getDuration(-0.1, 2)).toBe('-100.00ms');
+    expect(getDuration(-0.1)).toBe('-100 milliseconds');
+    expect(getDuration(-0.1, 2)).toBe('-100.00 milliseconds');
     expect(getDuration(-1)).toBe('-1 second');
     expect(getDuration(-2)).toBe('-2 seconds');
     expect(getDuration(-65)).toBe('-1 minute');
