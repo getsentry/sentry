@@ -92,7 +92,7 @@ class SetRefsTest(TestCase):
 
         assert len(release_heads) == 0
         hook = HerokuReleaseHook(project)
-        hook.finish_release(version=version, owner=user)
+        hook.finish_release(version=version, owner_id=user.id)
 
         release = Release.objects.get(projects=project, version=version)
 
