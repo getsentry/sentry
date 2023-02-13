@@ -331,7 +331,8 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
 `;
 
 const LegendAnimateContainer = styled(motion.div, {
-  shouldForwardProp: prop => prop === 'animate' || (prop !== 'expanded' && isPropValid(prop)),
+  shouldForwardProp: prop =>
+    prop === 'animate' || (prop !== 'expanded' && isPropValid(prop)),
 })<{expanded: boolean}>`
   height: 0;
   opacity: 0;
