@@ -26,6 +26,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   userFeedback: {enabled: false},
   evidence: {title: t('Evidence')},
   resources: null,
+  usesIssuePlatform: true,
 };
 
 const issueTypeConfig: Config = {

@@ -1,4 +1,5 @@
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -193,6 +194,7 @@ export interface NewQuery {
   projects: Readonly<number[]>;
   version: SavedQueryVersions;
   createdBy?: User;
+  dataset?: DiscoverDatasets;
   display?: string;
   end?: string;
   environment?: Readonly<string[]>;

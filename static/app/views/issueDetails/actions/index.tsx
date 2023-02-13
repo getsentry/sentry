@@ -43,6 +43,7 @@ import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
@@ -79,6 +80,8 @@ class Actions extends Component<Props> {
     const {group, project, organization} = this.props;
     const {title, type, shortId} = group;
 
+    const config = getConfigForIssueType(group);
+
     const discoverQuery = {
       id: undefined,
       name: title || type,
@@ -88,6 +91,7 @@ class Actions extends Component<Props> {
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
+      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
