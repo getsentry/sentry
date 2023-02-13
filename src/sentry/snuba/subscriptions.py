@@ -90,6 +90,8 @@ def update_snuba_query(
     removed_event_types = current_event_types - set(event_types)
     old_query_type = SnubaQuery.Type(snuba_query.type)
     old_dataset = Dataset(snuba_query.dataset)
+    old_query = snuba_query.query
+    old_aggregate = snuba_query.aggregate
     with transaction.atomic():
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
@@ -113,7 +115,9 @@ def update_snuba_query(
                 snuba_query=snuba_query, type__in=[et.value for et in removed_event_types]
             ).delete()
 
-        bulk_update_snuba_subscriptions(query_subscriptions, old_query_type, old_dataset)
+        bulk_update_snuba_subscriptions(
+            query_subscriptions, old_query_type, old_dataset, old_aggregate, old_query
+        )
 
 
 def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
@@ -156,7 +160,9 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
     return subscription
 
 
-def bulk_update_snuba_subscriptions(subscriptions, old_query_type, old_dataset):
+def bulk_update_snuba_subscriptions(
+    subscriptions, old_query_type, old_dataset, old_aggregate, old_query
+):
     """
     Updates a list of query subscriptions.
 
@@ -168,12 +174,14 @@ def bulk_update_snuba_subscriptions(subscriptions, old_query_type, old_dataset):
     # TODO: Batch this up properly once we care about multi-project rules.
     for subscription in subscriptions:
         updated_subscriptions.append(
-            update_snuba_subscription(subscription, old_query_type, old_dataset)
+            update_snuba_subscription(
+                subscription, old_query_type, old_dataset, old_aggregate, old_query
+            )
         )
     return subscriptions
 
 
-def update_snuba_subscription(subscription, old_query_type, old_dataset):
+def update_snuba_subscription(subscription, old_query_type, old_dataset, old_aggregate, old_query):
     """
     Updates a subscription to a snuba query.
 
@@ -191,6 +199,8 @@ def update_snuba_subscription(subscription, old_query_type, old_dataset):
                 "query_subscription_id": subscription.id,
                 "old_query_type": old_query_type.value,
                 "old_dataset": old_dataset.value,
+                "old_aggregate": old_aggregate,
+                "old_query": old_query,
             },
             countdown=5,
         )
