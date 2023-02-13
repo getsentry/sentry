@@ -65,18 +65,20 @@ export function getDuration(
   seconds: number,
   fixedDigits: number = 0,
   abbreviation: boolean = false,
-  extraShort: boolean = false
+  extraShort: boolean = false,
+  absolute: boolean = false
 ): string {
-  // value in milliseconds
-  const msValue = seconds * 1000;
-  const value = Math.abs(msValue);
+  const absValue = Math.abs(seconds * 1000);
 
-  if (value >= MONTH && !extraShort) {
+  // value in milliseconds
+  const msValue = absolute ? absValue : seconds * 1000;
+
+  if (absValue >= MONTH && !extraShort) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
     return `${label}${abbreviation ? t('mo') : ` ${tn('month', 'months', result)}`}`;
   }
 
-  if (value >= WEEK) {
+  if (absValue >= WEEK) {
     const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
       return `${label}${t('w')}`;
@@ -87,14 +89,16 @@ export function getDuration(
     return `${label} ${tn('week', 'weeks', result)}`;
   }
 
-  if (value >= DAY) {
+  if (absValue >= DAY) {
     const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
-    return `${label}${
-      abbreviation || extraShort ? t('d') : ` ${tn('day', 'days', result)}`
-    }`;
+
+    if (extraShort || abbreviation) {
+      return `${label}${t('d')}`;
+    }
+    return `${label} ${tn('day', 'days', result)}`;
   }
 
-  if (value >= HOUR) {
+  if (absValue >= HOUR) {
     const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
       return `${label}${t('h')}`;
@@ -105,7 +109,7 @@ export function getDuration(
     return `${label} ${tn('hour', 'hours', result)}`;
   }
 
-  if (value >= MINUTE) {
+  if (absValue >= MINUTE) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
       return `${label}${t('m')}`;
@@ -116,7 +120,7 @@ export function getDuration(
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
 
-  if (value >= SECOND) {
+  if (absValue >= SECOND) {
     const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {
       return `${label}${t('s')}`;
