@@ -6,6 +6,7 @@ import pytest
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
+from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
     ENVIRONMENT_GLOBS,
     HEALTH_CHECK_GLOBS,
@@ -14,7 +15,7 @@ from sentry.dynamic_sampling import (
     RuleType,
     get_redis_client_for_ds,
 )
-from sentry.models import ProjectKey
+from sentry.models import ProjectKey, ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.testutils.factories import Factories
@@ -220,112 +221,35 @@ def test_project_config_exposed_features_raise_exc(default_project):
 
 @pytest.mark.django_db
 @region_silo_test(stable=True)
-@pytest.mark.parametrize(
-    "ds_basic,expected",
-    [
-        # dynamic-sampling: True
-        # `dynamic-sampling` flag has the highest precedence
-        (
-            True,
-            {
-                "rules": [
-                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
-                    DEFAULT_ENVIRONMENT_RULE,
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    },
-                ],
-                "rulesV2": [
-                    {
-                        "samplingValue": {"type": "sampleRate", "value": 0.02},
-                        "type": "transaction",
-                        "condition": {
-                            "op": "or",
-                            "inner": [
-                                {
-                                    "op": "glob",
-                                    "name": "event.transaction",
-                                    "value": HEALTH_CHECK_GLOBS,
-                                    "options": {"ignoreCase": True},
-                                }
-                            ],
-                        },
-                        "active": True,
-                        "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
-                    },
-                    {
-                        "samplingValue": {"type": "sampleRate", "value": 1.0},
-                        "type": "trace",
-                        "condition": {
-                            "op": "or",
-                            "inner": [
-                                {
-                                    "op": "glob",
-                                    "name": "trace.environment",
-                                    "value": ENVIRONMENT_GLOBS,
-                                    "options": {"ignoreCase": True},
-                                }
-                            ],
-                        },
-                        "active": True,
-                        "id": 1001,
-                    },
-                    {
-                        "samplingValue": {"type": "sampleRate", "value": 0.1},
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    },
-                ],
-            },
-        ),
-        (
-            False,
-            None,
-        ),
-    ],
-)
-def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
-    default_project, ds_basic, expected
-):
-    """
-    Tests that dynamic sampling information return correct uniform rules
-    """
-    with Feature(
-        {
-            "organizations:dynamic-sampling": ds_basic,
-        }
-    ):
-        with mock.patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
-            return_value=0.1,
-        ):
-            cfg = get_project_config(default_project)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-    assert dynamic_sampling == expected
-
-
-@pytest.mark.django_db
-@region_silo_test(stable=True)
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
-    default_project,
-):
+def test_project_config_with_all_biases_enabled(default_project, default_team):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
     redis_client = get_redis_client_for_ds()
     ts = time.time()
 
+    # We enable all biases for this project.
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": True},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
+        ],
+    )
+    default_project.add_team(default_team)
+
+    # We create a team key transaction.
+    TeamKeyTransaction.objects.create(
+        organization=default_project.organization,
+        transaction="/foo",
+        project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
+    )
+
     release_ids = []
-    for release_version in ("1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0"):
+    for release_version in ("1.0", "2.0", "3.0"):
         release = Factories.create_release(
             project=default_project,
             version=release_version,
@@ -334,9 +258,9 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
 
     # We mark the first release (1.0) as expired.
     time_to_adoption = Platform(default_project.platform).time_to_adoption
-    boosted_releases = [[release_ids[0], ts - time_to_adoption * 2]]
+    boosted_releases = [(release_ids[0], ts - time_to_adoption * 2)]
     for release_id in release_ids[1:]:
-        boosted_releases.append([release_id, ts])
+        boosted_releases.append((release_id, ts))
 
     for release, timestamp in boosted_releases:
         redis_client.hset(
@@ -344,6 +268,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             f"ds::r:{release}:e:prod",
             timestamp,
         )
+
     with Feature(
         {
             "organizations:dynamic-sampling": True,
@@ -358,181 +283,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     cfg = cfg.to_dict()
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
     assert dynamic_sampling == {
-        "rules": [
-            {
-                "sampleRate": 0.02,
-                "type": "transaction",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "event.transaction",
-                            "value": HEALTH_CHECK_GLOBS,
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1002,
-            },
-            {
-                "sampleRate": 1,
-                "type": "trace",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1001,
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["2.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1500,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["3.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1501,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1502,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1503,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1504,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1505,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedSampleRate": 0.1},
-            },
-            {
-                "sampleRate": 0.1,
-                "type": "trace",
-                "active": True,
-                "condition": {"op": "and", "inner": []},
-                "id": 1000,
-            },
-        ],
+        "rules": [],
         "rulesV2": [
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.02},
@@ -550,6 +301,23 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 },
                 "active": True,
                 "id": 1002,
+            },
+            {
+                "active": True,
+                "condition": {
+                    "inner": [
+                        {
+                            "name": "event.transaction",
+                            "op": "eq",
+                            "options": {"ignoreCase": True},
+                            "value": ["/foo"],
+                        }
+                    ],
+                    "op": "or",
+                },
+                "id": 1003,
+                "samplingValue": {"type": "sampleRate", "value": 0.5},
+                "type": "transaction",
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
@@ -606,94 +374,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     ],
                 },
                 "id": 1501,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedValue": 0.1},
-            },
-            {
-                "samplingValue": {"type": "sampleRate", "value": 0.5},
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1502,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedValue": 0.1},
-            },
-            {
-                "samplingValue": {"type": "sampleRate", "value": 0.5},
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1503,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedValue": 0.1},
-            },
-            {
-                "samplingValue": {"type": "sampleRate", "value": 0.5},
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1504,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-                "decayingFn": {"type": "linear", "decayedValue": 0.1},
-            },
-            {
-                "samplingValue": {"type": "sampleRate", "value": 0.5},
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1505,
                 "timeRange": {
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",

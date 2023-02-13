@@ -74,29 +74,12 @@ class Condition(TypedDict):
     inner: List[Inner]
 
 
-class BaseRule(TypedDict):
+class RuleV2(TypedDict):
+    samplingValue: SamplingValue
     type: str
     active: bool
     condition: Condition
     id: int
-
-
-class RuleV1(BaseRule):
-    sampleRate: float
-
-
-class RuleV2(BaseRule):
-    samplingValue: SamplingValue
-
-
-class DecayingFnV1(TypedDict):
-    type: str
-    decayedSampleRate: Optional[str]
-
-
-class DecayingRuleV1(RuleV1):
-    timeRange: TimeRange
-    decayingFn: DecayingFnV1
 
 
 class DecayingFnV2(TypedDict):
@@ -104,16 +87,16 @@ class DecayingFnV2(TypedDict):
     decayedValue: Optional[str]
 
 
-class DecayingRuleV2(RuleV2):
+class DecayingRuleV2V2(RuleV2):
     timeRange: TimeRange
     decayingFn: DecayingFnV2
 
 
 # Type defining the all the possible rules types that can exist.
-PolymorphicRule = Union[RuleV1, RuleV2, DecayingRuleV1, DecayingRuleV2]
+PolymorphicRule = Union[RuleV2, DecayingRuleV2V2]
 
 
-def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
+def get_rule_type(rule: RuleV2) -> Optional[RuleType]:
     # Edge case handled naively in which we check if the ID is within the possible bounds. This is done because the
     # latest release rules have ids from 1500 to 1500 + (limit - 1). For example if the limit is 2, we will only have
     # ids: 1500, 1501.
@@ -145,15 +128,8 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
 
 
 def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
-    # Gets the sampling value from the rule, based on the type.
-    if "samplingValue" in rule:
-        sampling_value = rule["samplingValue"]  # type:ignore
-        return sampling_value["type"], float(sampling_value["value"])
-    # This should be removed once V1 is faded out.
-    elif "sampleRate" in rule:
-        return "sampleRate", rule["sampleRate"]  # type:ignore
-
-    return None
+    sampling_value = rule["samplingValue"]
+    return sampling_value["type"], float(sampling_value["value"])
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
@@ -197,4 +173,4 @@ def eval_dynamic_factor(base_sample_rate: float, x: float) -> float:
             "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
         )
 
-    return x / x**base_sample_rate
+    return float(x / x**base_sample_rate)
