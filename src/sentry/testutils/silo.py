@@ -12,7 +12,9 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
+from sentry import deletions
 from sentry.db.models.base import ModelSiloLimit
+from sentry.deletions.base import BaseDeletionTask
 from sentry.silo import SiloMode
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
@@ -230,6 +232,22 @@ def validate_models_have_silos(exemptions: Set[Type[Model]]) -> None:
 def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[Model]]]) -> None:
     for model in iter_models():
         validate_model_no_cross_silo_foreign_keys(model, exemptions)
+
+
+def validate_no_cross_silo_deletions(exemptions: Set[Tuple[Type[Model], Type[Model]]]) -> None:
+    for model_class in iter_models():
+        if not hasattr(model_class._meta, "silo_limit"):
+            continue
+        deletion_task: BaseDeletionTask = deletions.get(model=model_class, query={})
+        for relation in deletion_task.get_child_relations(model_class()):
+            to_model = relation.params["model"]
+            if (model_class, to_model) in exemptions or (to_model, model_class) in exemptions:
+                continue
+            for mode in model_class._meta.silo_limit.modes:
+                if mode not in to_model._meta.silo_limit.modes:
+                    raise ValueError(
+                        f"Deletions for {model_class!r} cascade to {to_model!r}, but does not belong to the same silo mode.  Please remove this relation from get_child_relations in deletions configuration"
+                    )
 
 
 def validate_relation_does_not_cross_silo_foreign_keys(

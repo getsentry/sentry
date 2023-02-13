@@ -8,21 +8,9 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return instance.status in {ObjectStatus.DELETION_IN_PROGRESS, ObjectStatus.PENDING_DELETION}
 
     def get_child_relations(self, instance):
-        from sentry.models import (
-            ExternalIssue,
-            Identity,
-            IntegrationExternalProject,
-            PagerDutyService,
-        )
+        from sentry.models import Identity, IntegrationExternalProject, PagerDutyService
 
         relations = [
-            ModelRelation(
-                ExternalIssue,
-                {
-                    "integration_id": instance.integration_id,
-                    "organization_id": instance.organization_id,
-                },
-            ),
             ModelRelation(IntegrationExternalProject, {"organization_integration_id": instance.id}),
             ModelRelation(PagerDutyService, {"organization_integration_id": instance.id}),
         ]
