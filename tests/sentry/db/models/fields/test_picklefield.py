@@ -66,3 +66,11 @@ class PickledObjectFieldTest(TestCase):
         # we observe the update as pickle
         obj = JsonWritingPickleModel.objects.get(id=obj.id)
         self.assertEqual(obj.data, {"foo": "bar"})
+
+    def test_to_python_int(self):
+        obj = PickledObjectField(write_json=False)
+        assert obj.to_python(9) == 9
+
+    def test_to_python_bool(self):
+        obj = PickledObjectField(write_json=False)
+        assert obj.to_python(True) is True
