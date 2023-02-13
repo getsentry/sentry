@@ -136,7 +136,7 @@ def handle_owner_assignment(job):
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_owner"
                 ):
-                    issue_owner_key = "owner_exists:1:%s" % group.id
+                    issue_owner_key = f"owner_exists:1:{group.id}"
                     issue_owners_exists = cache.get(issue_owner_key)
                     if issue_owners_exists is None:
                         # We don't care if a Suspect Commit groupowner exists
