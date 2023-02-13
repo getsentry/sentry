@@ -20,9 +20,7 @@ class DeletionTaskManager:
         return task(manager=self, **kwargs)
 
     def register(self, model, task):
-        orig = self.tasks.get(model)
         self.tasks[model] = task
-        return orig
 
     def add_dependencies(self, model, dependencies):
         self.dependencies[model] |= set(dependencies)
