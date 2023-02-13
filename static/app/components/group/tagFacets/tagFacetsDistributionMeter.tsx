@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

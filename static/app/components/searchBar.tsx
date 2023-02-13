@@ -12,7 +12,7 @@ import {
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery?: string;

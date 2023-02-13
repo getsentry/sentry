@@ -5,7 +5,7 @@ import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 

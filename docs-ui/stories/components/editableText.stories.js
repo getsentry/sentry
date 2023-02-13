@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
 import EditableText from 'sentry/components/editableText';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Components/Forms/Misc/Editable Text',

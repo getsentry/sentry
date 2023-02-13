@@ -13,7 +13,7 @@ import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useMedia from 'sentry/utils/useMedia';

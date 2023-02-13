@@ -8,7 +8,7 @@ import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPage
 import ShareButton from 'sentry/components/replays/shareButton';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import ReplayMetaData, {
   HeaderPlaceholder,

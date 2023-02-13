@@ -16,7 +16,7 @@ import {Item, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
