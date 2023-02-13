@@ -65,7 +65,9 @@ class HerokuReleaseHook(ReleaseHook):
                 },
             )
         self.finish_release(
-            version=request.POST.get("head_long"), url=request.POST.get("url"), owner_id=user.id
+            version=request.POST.get("head_long"),
+            url=request.POST.get("url"),
+            owner_id=user.id if user else None,
         )
 
     def handle(self, request: Request) -> Response:
