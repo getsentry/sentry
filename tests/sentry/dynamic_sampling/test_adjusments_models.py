@@ -31,3 +31,20 @@ def test_adjust_sample_rates_org_with_few_projects():
     ]
 
     assert p.adjust_sample_rates == expected_projects
+
+
+def test_adjust_sample_rates_org_with_even_num_projects():
+    projects = [
+        P(id=1, count_per_root=8.0, blended_sample_rate=0.04),
+        P(id=2, count_per_root=7.0, blended_sample_rate=0.04),
+        P(id=3, count_per_root=3.0, blended_sample_rate=0.04),
+    ]
+    p = AdjustedModel(projects=projects, fidelity_rate=0.25)
+
+    expected_projects = [
+        P(id=1, count_per_root=8.0, new_count_per_root=5.0, blended_sample_rate=0.04),
+        P(id=2, count_per_root=7.0, new_count_per_root=7.0, blended_sample_rate=0.04),
+        P(id=3, count_per_root=3.0, new_count_per_root=6.0, blended_sample_rate=0.04),
+    ]
+
+    assert p.adjust_sample_rates == expected_projects

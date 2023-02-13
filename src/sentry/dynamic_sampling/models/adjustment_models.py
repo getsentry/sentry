@@ -15,6 +15,10 @@ class Project:
 
 @dataclass
 class AdjustedModel:
+    """
+    Model which can adjust sample rate per project inside ORG based on this new counter metric from Relay.
+    """
+
     projects: List[Project]
     fidelity_rate: float
 
@@ -26,13 +30,21 @@ class AdjustedModel:
         # Step 1: sort projects by count per root project
         sorted_projects = list(sorted(self.projects, key=attrgetter("count_per_root")))
 
-        # Step 2: find avg
+        # Step 2: find average project
         average = statistics.mean([p.count_per_root for p in sorted_projects])
 
         # Step 3:
-        # IF len % 2 == 0
-        left_split = sorted_projects[: len(sorted_projects) // 2]
-        right_split = reversed(sorted_projects[len(sorted_projects) // 2 : len(sorted_projects)])
+        if len(sorted_projects) % 2 == 0:
+            left_split = sorted_projects[: len(sorted_projects) // 2]
+            right_split = reversed(
+                sorted_projects[len(sorted_projects) // 2 : len(sorted_projects)]
+            )
+        else:
+            left_split = sorted_projects[: len(sorted_projects) // 2]
+            # ignore middle element, since we don't have capacity to balance it
+            right_split = reversed(
+                sorted_projects[(len(sorted_projects) // 2) + 1 : len(sorted_projects)]
+            )
 
         new_left = []
         new_right = []
@@ -52,4 +64,9 @@ class AdjustedModel:
             # This opinionated `coefficient` reduces adjustment on every step
             coefficient = diff / left.new_count_per_root
 
-        return [*new_right, *reversed(new_left)]
+        if len(sorted_projects) % 2 == 0:
+            return [*new_right, *reversed(new_left)]
+        else:
+            mid_element = sorted_projects[len(sorted_projects) // 2]
+            mid_element.new_count_per_root = mid_element.count_per_root
+            return [*new_right, mid_element, *reversed(new_left)]
