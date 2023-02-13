@@ -4,10 +4,13 @@ from django.utils import timezone
 
 from sentry.models import GroupRelease, Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
 
 
@@ -91,6 +94,35 @@ class TestGroupOwners(TestCase):
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
+
+    def test_user_deletion_cascade(self):
+        other_user = self.create_user()
+        group = self.create_group()
+        other_group = self.create_group()
+        GroupOwner.objects.create(
+            group=group,
+            project=group.project,
+            organization=group.project.organization,
+            type=0,
+            user_id=self.user.id,
+        )
+        GroupOwner.objects.create(
+            group=other_group,
+            project=other_group.project,
+            organization=other_group.project.organization,
+            type=0,
+            user_id=other_user.id,
+        )
+
+        assert GroupOwner.objects.count() == 2
+        with exempt_from_silo_limits(), outbox_runner():
+            self.user.delete()
+        assert GroupOwner.objects.count() == 2
+
+        with TaskRunner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        assert GroupOwner.objects.count() == 1
 
     def test_no_matching_user(self):
         self.set_release_commits("not@real.user")
