@@ -4,7 +4,7 @@ import {vec2} from 'gl-matrix';
 
 import space from 'sentry/styles/space';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useFlamegraphThemeWithoutPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import theme from 'sentry/utils/theme';
@@ -44,7 +44,7 @@ function BoundTooltip({
   canvasView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
-  const flamegraphTheme = useFlamegraphThemeWithoutPreferences();
+  const flamegraphTheme = useFlamegraphTheme();
 
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),

@@ -10,7 +10,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphThemeWithoutPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
@@ -37,7 +37,7 @@ export function FlamegraphPreview({
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const flamegraphTheme = useFlamegraphThemeWithoutPreferences();
+  const flamegraphTheme = useFlamegraphTheme();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -93,6 +93,7 @@ export function FlamegraphPreview({
 
     return new FlamegraphRenderer2D(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
       draw_border: true,
+      colorCoding: 'by symbol name',
     });
   }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 

@@ -6,7 +6,7 @@ import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegrap
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
@@ -28,7 +28,7 @@ interface FlamegraphLayoutProps {
 }
 
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {
-  const flamegraphTheme = useFlamegraphThemeWithPreferences();
+  const flamegraphTheme = useFlamegraphTheme();
   const {layout, timelines} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
   const flamegraphDrawerRef = useRef<HTMLDivElement>(null);

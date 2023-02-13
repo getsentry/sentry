@@ -38,7 +38,7 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
-import {useFlamegraphThemeWithPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
@@ -159,10 +159,10 @@ function Flamegraph(): ReactElement {
   const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
-  const flamegraphTheme = useFlamegraphThemeWithPreferences();
+  const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {sorting, view, type, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, sorting, view, type, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -664,9 +664,10 @@ function Flamegraph(): ReactElement {
     }
 
     return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
+      colorCoding,
       draw_border: true,
     });
-  }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
+  }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const getFrameColor = useCallback(
     (frame: FlamegraphFrame) => {
