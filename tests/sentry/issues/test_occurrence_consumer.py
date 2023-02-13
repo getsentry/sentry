@@ -3,6 +3,7 @@ import logging
 import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Sequence
+from unittest import mock
 
 import pytest
 
@@ -76,7 +77,8 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
-        result = _process_message(message)
+        with self.feature("organizations:profile-blocked-main-thread-ingest"):
+            result = _process_message(message)
         assert result is not None
         occurrence = result[0]
 
@@ -95,7 +97,8 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_process_profiling_occurrence(self) -> None:
         event_data = load_data("generic-event-profiling")
-        result = _process_message(event_data)
+        with self.feature("organizations:profile-blocked-main-thread-ingest"):
+            result = _process_message(event_data)
         assert result is not None
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
@@ -113,26 +116,33 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     def test_invalid_event_payload(self) -> None:
         message = get_test_message(self.project.id, event={"title": "no project id"})
         with pytest.raises(InvalidEventPayloadError):
-            _process_message(message)
+            with self.feature("organizations:profile-blocked-main-thread-ingest"):
+                _process_message(message)
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
         with pytest.raises(InvalidEventPayloadError):
-            _process_message(message)
+            with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
+                "sentry.issues.occurrence_consumer.INGEST_ALLOWED_ISSUE_TYPES",
+                {300},
+            ):
+                _process_message(message)
 
     def test_mismatch_event_ids(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         message["event_id"] = "id1"
         message["event"]["event_id"] = "id2"
         with pytest.raises(InvalidEventPayloadError):
-            _process_message(message)
+            with self.feature("organizations:profile-blocked-main-thread-ingest"):
+                _process_message(message)
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
         message = get_test_message(self.project.id, include_event=False)
         with pytest.raises(EventLookupError):
-            _process_message(message)
+            with self.feature("organizations:profile-blocked-main-thread-ingest"):
+                _process_message(message)
 
     @pytest.mark.django_db
     def test_transaction_lookup(self) -> None:
@@ -154,7 +164,11 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             event_id=event1.event_id,
             type=PerformanceSlowDBQueryGroupType.type_id,
         )
-        processed = _process_message(message)
+        with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
+            "sentry.issues.occurrence_consumer.INGEST_ALLOWED_ISSUE_TYPES",
+            {PerformanceSlowDBQueryGroupType.type_id},
+        ):
+            processed = _process_message(message)
         assert processed is not None
         occurrence, _ = processed[0], processed[1]
 
