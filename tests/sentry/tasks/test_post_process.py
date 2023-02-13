@@ -796,6 +796,34 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee is None
 
+    def test_suspect_committer_affect_cache_debouncing_issue_owners_calculations(self):
+        self.make_ownership()
+        committer = GroupOwner(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+        committer.save()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        event.group.assignee_set.create(team=self.team, project=self.project)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user_id is None
+        assert assignee.team == self.team
+
     def test_owner_assignment_when_owners_have_been_unassigned(self):
         """
         Test that ensures that if certain assignees get unassigned, and project rules are changed
