@@ -20,6 +20,57 @@ in_app_frame = {
 }
 
 
+def create_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any]:
+    return {
+        "function": function,
+        "package": "Sentry",
+        "in_app": in_app,
+    }
+
+
+def get_frames(function: str, sentry_frame_in_app: bool = False):
+    return [
+        create_sentry_frame(function, sentry_frame_in_app),
+        {
+            "function": "LoginViewController.viewDidAppear",
+            "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
+            "package": "SentryApp",
+            "filename": "LoginViewController.swift",
+        },
+        in_app_frame,
+        {
+            "function": "-[UIViewController _setViewAppearState:isAnimating:]",
+            "symbol": "-[UIViewController _setViewAppearState:isAnimating:]",
+            "package": "UIKitCore",
+            "in_app": False,
+        },
+        {
+            "function": "-[UIViewController __viewDidAppear:]",
+            "symbol": "-[UIViewController __viewDidAppear:]",
+            "package": "UIKitCore",
+            "in_app": False,
+        },
+        {
+            "function": "-[UIViewController _endAppearanceTransition:]",
+            "symbol": "-[UIViewController _endAppearanceTransition:]",
+            "package": "UIKitCore",
+            "in_app": False,
+        },
+        {
+            "function": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
+            "symbol": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
+            "package": "UIKitCore",
+            "in_app": False,
+        },
+        {
+            "function": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
+            "symbol": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
+            "package": "UIKitCore",
+            "in_app": False,
+        },
+    ]
+
+
 def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
     result = {
         "event_id": "80e3496eff734ab0ac993167aaa0d1cd",
@@ -35,13 +86,7 @@ def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
             "values": [
                 {
                     "stacktrace": {
-                        "frames": [
-                            {
-                                "function": function,
-                                "package": "Sentry",
-                                "in_app:": False,
-                            }
-                        ],
+                        "frames": get_frames(function),
                     },
                     "type": "SIGABRT",
                     "mechanism": {"handled": handled},
@@ -237,11 +282,17 @@ def test_detect_sdk_crash(data, expected):
     ],
 )
 def test_cocoa_sdk_crash_detection(function, expected):
-    frames = get_frames(function)
+    data = make_crash_event(function=function)
 
-    crash_detector = SDKCrashDetection(Mock())
+    crash_reporter = Mock()
+    crash_detector = SDKCrashDetection(crash_reporter)
 
-    assert crash_detector.is_cocoa_sdk_crash(frames) is expected
+    crash_detector.detect_sdk_crash(data)
+
+    if expected:
+        crash_reporter.report.assert_called_once_with(data)
+    else:
+        crash_reporter.report.assert_not_called()
 
 
 def test_is_cocoa_sdk_crash_only_non_inapp_after_sentry_frame():
@@ -404,54 +455,3 @@ def test_strip_frames(function, in_app):
         len([frame for frame in stripped_frames if frame["function"] == in_app_frame["function"]])
         == 0
     ), "in_app frame should be removed"
-
-
-def create_sentry_frame(function, in_app: bool = False) -> Mapping[str, Any]:
-    return {
-        "function": function,
-        "package": "Sentry",
-        "in_app": in_app,
-    }
-
-
-def get_frames(function: str, sentry_frame_in_app: bool = False):
-    return [
-        create_sentry_frame(function, sentry_frame_in_app),
-        {
-            "function": "LoginViewController.viewDidAppear",
-            "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
-            "package": "SentryApp",
-            "filename": "LoginViewController.swift",
-        },
-        in_app_frame,
-        {
-            "function": "-[UIViewController _setViewAppearState:isAnimating:]",
-            "symbol": "-[UIViewController _setViewAppearState:isAnimating:]",
-            "package": "UIKitCore",
-            "in_app": False,
-        },
-        {
-            "function": "-[UIViewController __viewDidAppear:]",
-            "symbol": "-[UIViewController __viewDidAppear:]",
-            "package": "UIKitCore",
-            "in_app": False,
-        },
-        {
-            "function": "-[UIViewController _endAppearanceTransition:]",
-            "symbol": "-[UIViewController _endAppearanceTransition:]",
-            "package": "UIKitCore",
-            "in_app": False,
-        },
-        {
-            "function": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
-            "symbol": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
-            "package": "UIKitCore",
-            "in_app": False,
-        },
-        {
-            "function": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
-            "symbol": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
-            "package": "UIKitCore",
-            "in_app": False,
-        },
-    ]

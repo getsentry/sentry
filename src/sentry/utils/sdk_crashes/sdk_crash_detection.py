@@ -36,7 +36,7 @@ class SDKCrashDetection:
         if self.is_cocoa_sdk_crash(frames):
             self.sdk_crash_reporter.report(data)
 
-    def strip_event_data(self, data: Event) -> Event:
+    def _strip_event_data(self, data: Event) -> Event:
         return data
 
     def strip_frames(self, frames: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
