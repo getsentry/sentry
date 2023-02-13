@@ -7,13 +7,14 @@ from tests.sentry.release_health.release_monitor import (
 )
 
 
+@region_silo_test(stable=True)
 class SessionFetchProjectsWithRecentSessionsTest(
     BaseFetchProjectsWithRecentSessionsTest, TestCase, SnubaTestCase
 ):
     backend_class = SessionReleaseMonitorBackend
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SessionFetchProjectReleaseHealthTotalsTest(
     BaseFetchProjectReleaseHealthTotalsTest, TestCase, SnubaTestCase
 ):

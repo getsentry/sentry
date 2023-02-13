@@ -2,8 +2,10 @@ from sentry import features
 from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class TestTestUtilsFeatureHelper(TestCase):
     def setUp(self):
         self.org = self.create_organization()

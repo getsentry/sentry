@@ -326,7 +326,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if request.user.is_authenticated and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
-                    organization=organization, user=request.user
+                    organization=organization, user_id=request.user.id
                 )
             except OrganizationMember.DoesNotExist:
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)

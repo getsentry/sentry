@@ -8,6 +8,7 @@ from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import RedisQuota, is_rate_limited
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.redis import clusters
 
 
@@ -64,6 +65,7 @@ def test_is_rate_limited_script():
     assert list(map(bool, is_rate_limited(client, ("orange", "apple"), (1, now + 60)))) == [False]
 
 
+@region_silo_test(stable=True)
 class RedisQuotaTest(TestCase):
     @cached_property
     def quota(self):
