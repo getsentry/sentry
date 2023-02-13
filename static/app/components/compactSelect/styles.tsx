@@ -4,6 +4,7 @@
 
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import space from 'sentry/styles/space';
 
 export const ListWrap = styled('ul')`
@@ -63,6 +64,15 @@ export const SectionWrap = styled('li')`
   list-style-type: none;
 `;
 
+export const SectionHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: content-box;
+  height: 1.5em;
+  padding: ${space(0.25)} ${space(1.5)};
+`;
+
 export const SectionTitle = styled('p')`
   display: inline-block;
   font-weight: 600;
@@ -70,8 +80,34 @@ export const SectionTitle = styled('p')`
   color: ${p => p.theme.subText};
   text-transform: uppercase;
   white-space: nowrap;
-  margin: ${space(0.5)} ${space(1.5)};
-  padding-right: ${space(1)};
+
+  margin: 0;
+  padding-right: ${space(4)};
+`;
+
+export const SectionToggleButton = styled(Button)<{visible: boolean}>`
+  padding: 0 ${space(0.5)};
+  margin: 0 -${space(0.5)} 0 ${space(2)};
+  font-weight: 400;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  transition: opacity 0.1s;
+
+  ${p =>
+    p.visible
+      ? `
+    opacity: 1;
+    pointer-events: all;
+  `
+      : `
+    opacity: 0;
+    pointer-events: none;
+  `}
+
+  &.focus-visible {
+    opacity: 1;
+    pointer-events: all;
+  }
 `;
 
 export const SectionSeparator = styled('li')`

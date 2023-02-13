@@ -1,17 +1,18 @@
-import {useCallback, useContext, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import {AriaGridListOptions} from '@react-aria/gridlist';
 import {AriaListBoxOptions} from '@react-aria/listbox';
 import {ListProps, useListState} from '@react-stately/list';
-import {Selection} from '@react-types/shared';
 
 import {defined} from 'sentry/utils';
+import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
-import {SelectOption, SelectOptionOrSection, SelectOptionOrSectionWithKey} from './types';
+import {SelectOption, SelectOptionOrSectionWithKey} from './types';
+import {getDisabledOptions, getSelectedOptions, HiddenSectionToggle} from './utils';
 
 interface BaseListProps<Value extends React.Key>
   extends ListProps<any>,
@@ -281,76 +282,47 @@ function List<Value extends React.Key>({
     ]
   );
 
-  if (grid) {
-    return (
-      <GridList
-        {...props}
-        listItems={filteredItems}
-        listState={listState}
-        keyDownHandler={keyDownHandler}
-      />
-    );
-  }
+  const listId = useMemo(() => domId('select-list-'), []);
 
   return (
-    <ListBox
-      {...props}
-      listItems={filteredItems}
-      listState={listState}
-      shouldFocusWrap={shouldFocusWrap}
-      shouldFocusOnHover={shouldFocusOnHover}
-      keyDownHandler={keyDownHandler}
-    />
+    <Fragment>
+      {grid ? (
+        <GridList
+          {...props}
+          id={listId}
+          listItems={filteredItems}
+          listState={listState}
+          keyDownHandler={keyDownHandler}
+        />
+      ) : (
+        <ListBox
+          {...props}
+          id={listId}
+          listItems={filteredItems}
+          listState={listState}
+          shouldFocusWrap={shouldFocusWrap}
+          shouldFocusOnHover={shouldFocusOnHover}
+          keyDownHandler={keyDownHandler}
+        />
+      )}
+
+      {multiple &&
+        filteredItems.map(item => {
+          if (item.type !== 'section' || !item.value.showToggleAllButton) {
+            return null;
+          }
+
+          return (
+            <HiddenSectionToggle
+              key={item.key}
+              item={item}
+              listState={listState}
+              listId={listId}
+            />
+          );
+        })}
+    </Fragment>
   );
 }
 
 export {List};
-
-/**
- * Recursively finds the selected option(s) from an options array. Useful for
- * non-flat arrays that contain sections (groups of options).
- */
-function getSelectedOptions<Value extends React.Key>(
-  items: SelectOptionOrSectionWithKey<Value>[],
-  selection: Selection
-): SelectOption<Value>[] {
-  return items.reduce<SelectOption<Value>[]>((acc, cur) => {
-    // If this is a section
-    if ('options' in cur) {
-      return acc.concat(getSelectedOptions(cur.options, selection));
-    }
-
-    // If this is an option
-    if (selection === 'all' || selection.has(String(cur.value))) {
-      const {key: _key, ...opt} = cur;
-      return acc.concat(opt);
-    }
-    return acc;
-  }, []);
-}
-
-/**
- * Recursively finds the selected option(s) from an options array. Useful for
- * non-flat arrays that contain sections (groups of options).
- */
-function getDisabledOptions<Value extends React.Key>(
-  items: SelectOptionOrSection<Value>[],
-  isOptionDisabled?: (opt: SelectOption<Value>) => boolean
-): Value[] {
-  return items.reduce((acc: Value[], cur) => {
-    // If this is a section
-    if ('options' in cur) {
-      if (cur.disabled) {
-        // If the entire section is disabled, then mark all of its children as disabled
-        return acc.concat(cur.options.map(opt => opt.value));
-      }
-      return acc.concat(getDisabledOptions(cur.options, isOptionDisabled));
-    }
-
-    // If this is an option
-    if (isOptionDisabled?.(cur) ?? cur.disabled) {
-      return acc.concat(cur.value);
-    }
-    return acc;
-  }, []);
-}
