@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from datetime import timedelta
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
@@ -9,7 +8,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -170,32 +169,7 @@ def handle_owner_assignment(job):
                         issue_owners = []
                     else:
 
-                        issue_owners, baseline_duration = ProjectOwnership.get_issue_owners(
-                            project.id, event.data
-                        )
-
-                        should_sample = random.randint(1, 10) % 10 == 0
-                        if (
-                            features.has(
-                                "organizations:scaleable-codeowners-search",
-                                project.organization,
-                                actor=None,
-                            )
-                            and should_sample
-                        ):
-
-                            _, experiment_duration = ProjectOwnership.get_issue_owners(
-                                project.id, event.data, experiment=True
-                            )
-
-                            analytics.record(
-                                "issue_owners.time_durations",
-                                group_id=group.id,
-                                project_id=project.id,
-                                event_id=event.event_id,
-                                baseline_duration=baseline_duration,
-                                experiment_duration=experiment_duration,
-                            )
+                        issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.handle_group_owners"
