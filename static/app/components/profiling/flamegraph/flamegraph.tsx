@@ -239,7 +239,7 @@ function Flamegraph(): ReactElement {
 
     const newFlamegraph = new FlamegraphModel(profile, threadId, {
       inverted: view === 'bottom up',
-      leftHeavy: sorting === 'left heavy',
+      sort: sorting,
       configSpace:
         xAxis === 'transaction'
           ? getTransactionConfigSpace(profileGroup, profile.startedAt, profile.unit)
@@ -333,7 +333,8 @@ function Flamegraph(): ReactElement {
         if (
           // if we're still looking at the same profile but only a preference other than
           // left heavy has changed, we do want to persist the config view
-          previousView.model.leftHeavy === newView.model.leftHeavy
+          previousView.model.sort === 'left heavy' &&
+          newView.model.sort === 'left heavy'
         ) {
           newView.setConfigView(
             previousView.configView.withHeight(newView.configView.height)
@@ -753,7 +754,7 @@ function Flamegraph(): ReactElement {
 
           const graph = new FlamegraphModel(currentProfile, currentProfile.threadId, {
             inverted: false,
-            leftHeavy: false,
+            sort: sorting,
             configSpace: undefined,
           });
 
@@ -802,7 +803,7 @@ function Flamegraph(): ReactElement {
         payload: threadID,
       });
     }
-  }, [profileGroup, highlightFrames, profiles.threadId, dispatch]);
+  }, [profileGroup, highlightFrames, profiles.threadId, dispatch, sorting]);
 
   // A bit unfortunate for now, but the search component accepts a list
   // of model to search through. This will become useful as we  build
