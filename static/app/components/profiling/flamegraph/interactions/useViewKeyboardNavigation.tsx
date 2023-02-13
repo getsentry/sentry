@@ -39,7 +39,7 @@ export function useViewKeyboardNavigation(
         }
         canvasPoolManager.dispatch('transform config view', [
           getCenterScaleMatrixFromConfigPosition(
-            0.99 * inertia.current,
+            vec2.fromValues(0.99 * inertia.current, 1),
             vec2.fromValues(view.configView.centerX, view.configView.y)
           ),
           view,
@@ -53,7 +53,7 @@ export function useViewKeyboardNavigation(
         }
         canvasPoolManager.dispatch('transform config view', [
           getCenterScaleMatrixFromConfigPosition(
-            1.01 * inertia.current,
+            vec2.fromValues(1.01 * inertia.current, 1),
             vec2.fromValues(view.configView.centerX, view.configView.y)
           ),
           view,
