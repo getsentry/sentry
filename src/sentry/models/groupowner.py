@@ -9,6 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.group import Group
 from sentry.utils.cache import cache
@@ -59,7 +60,7 @@ class GroupOwner(Model):
         )
     )
     context = JSONField(null=True)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
