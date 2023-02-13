@@ -28,6 +28,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
     evidence: null,
+    usesIssuePlatform: false,
   },
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {
     resources: {
