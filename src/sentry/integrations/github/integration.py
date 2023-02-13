@@ -228,7 +228,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             commit: Mapping[str, Any] = max(
                 (
                     blame
-                    for blame in blame_range or ()
+                    for blame in blame_range
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
                 ),
                 key=lambda blame: datetime.strptime(
