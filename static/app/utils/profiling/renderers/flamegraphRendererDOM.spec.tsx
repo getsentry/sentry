@@ -4,7 +4,7 @@ import {makeCanvasMock, makeFlamegraph} from 'sentry-test/profiling/utils';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
 import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {FlamegraphDomRenderer} from 'sentry/utils/profiling/renderers/flamegraphDomRenderer';
+import {FlamegraphRendererDOM} from 'sentry/utils/profiling/renderers/flamegraphRendererDOM';
 
 import {CanvasView} from '../canvasView';
 import {Flamegraph} from '../flamegraph';
@@ -35,7 +35,7 @@ describe('FlamegraphDomRenderer', () => {
 
     const canvas = makeCanvasMock() as HTMLCanvasElement;
 
-    const renderer = new FlamegraphDomRenderer(canvas, flamegraph, theme);
+    const renderer = new FlamegraphRendererDOM(canvas, flamegraph, theme);
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
 
     const flamegraphView = new CanvasView<Flamegraph>({
@@ -49,10 +49,7 @@ describe('FlamegraphDomRenderer', () => {
       },
     });
 
-    renderer.draw(
-      flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-      new Map()
-    );
+    renderer.draw(flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace));
 
     expect(await screen.findByText(/f0/)).toBeInTheDocument();
   });

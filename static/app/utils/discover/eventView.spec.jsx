@@ -5,6 +5,7 @@ import EventView, {
 } from 'sentry/utils/discover/eventView';
 import {
   CHART_AXIS_OPTIONS,
+  DiscoverDatasets,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
 } from 'sentry/utils/discover/types';
@@ -59,6 +60,7 @@ describe('EventView.fromLocation()', function () {
         environment: ['staging'],
         yAxis: 'p95',
         display: 'previous',
+        dataset: DiscoverDatasets.DISCOVER,
       },
     };
 
@@ -81,6 +83,7 @@ describe('EventView.fromLocation()', function () {
       environment: ['staging'],
       yAxis: 'p95',
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
   });
 
@@ -192,6 +195,7 @@ describe('EventView.fromSavedQuery()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -213,6 +217,7 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['staging'],
       yAxis: undefined,
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
 
     const eventView2 = EventView.fromSavedQuery({
@@ -408,6 +413,7 @@ describe('EventView.fromSavedQuery()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
       yAxis: ['count()'],
     };
     const eventView = EventView.fromSavedQuery(saved);
@@ -428,6 +434,7 @@ describe('EventView.fromSavedQuery()', function () {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'count()',
+      dataset: DiscoverDatasets.DISCOVER,
       display: 'previous',
     });
   });
@@ -627,6 +634,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const location = {
@@ -657,6 +665,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       yAxis: undefined,
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
 
     const savedQuery2 = {...saved, range: undefined};
@@ -701,6 +710,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const location = {
@@ -729,6 +739,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: [],
       yAxis: undefined,
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
   });
 
@@ -1521,6 +1532,7 @@ describe('EventView.toNewQuery()', function () {
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'releases',
+    dataset: DiscoverDatasets.DISCOVER,
   };
 
   it('outputs the right fields', function () {
@@ -1542,6 +1554,7 @@ describe('EventView.toNewQuery()', function () {
       range: '14d',
       environment: ['staging'],
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1571,6 +1584,7 @@ describe('EventView.toNewQuery()', function () {
       range: '14d',
       environment: ['staging'],
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1600,6 +1614,7 @@ describe('EventView.toNewQuery()', function () {
       range: '14d',
       environment: ['staging'],
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1737,6 +1752,7 @@ describe('EventView.clone()', function () {
       environment: ['staging'],
       interval: '5m',
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const eventView = new EventView(state);
@@ -2673,6 +2689,7 @@ describe('EventView.isEqualTo()', function () {
       environment: ['staging'],
       yAxis: 'fam',
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const eventView = new EventView(state);
@@ -2725,6 +2742,7 @@ describe('EventView.isEqualTo()', function () {
       environment: ['staging'],
       yAxis: 'fam',
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const differences = {
@@ -2740,6 +2758,7 @@ describe('EventView.isEqualTo()', function () {
       environment: [],
       yAxis: 'ok boomer',
       display: 'previous',
+      dataset: DiscoverDatasets.ISSUE_PLATFORM,
     };
     const eventView = new EventView(state);
 
@@ -2798,6 +2817,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'previous',
+    dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
 
@@ -2850,6 +2870,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'previous',
+    dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
 
@@ -2910,6 +2931,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'previous',
+    dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
   const showTransactions = 'p99';

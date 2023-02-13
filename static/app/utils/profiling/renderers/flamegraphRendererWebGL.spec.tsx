@@ -14,14 +14,14 @@ import {
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 
 import {Flamegraph} from '../flamegraph';
 import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 
 const originalDpr = window.devicePixelRatio;
 
-describe('flamegraphRenderer', () => {
+describe('flamegraphRendererWebGL', () => {
   beforeEach(() => {
     // We simulate regular screens unless differently specified
     window.devicePixelRatio = 1;
@@ -37,7 +37,7 @@ describe('flamegraphRenderer', () => {
 
       const flamegraph = makeFlamegraph();
 
-      const renderer = new FlamegraphRenderer(
+      const renderer = new FlamegraphRendererWebGL(
         canvas as HTMLCanvasElement,
         flamegraph,
         {
@@ -78,7 +78,7 @@ describe('flamegraphRenderer', () => {
 
     const flamegraph = makeFlamegraph();
 
-    const renderer = new FlamegraphRenderer(
+    const renderer = new FlamegraphRendererWebGL(
       canvas as HTMLCanvasElement,
       flamegraph,
       theme
@@ -125,7 +125,7 @@ describe('flamegraphRenderer', () => {
     const flamegraph = makeFlamegraph();
 
     // @ts-ignore shaders are init from the constructor
-    const _renderer = new FlamegraphRenderer(
+    const _renderer = new FlamegraphRendererWebGL(
       canvas as HTMLCanvasElement,
       flamegraph,
       theme
@@ -147,7 +147,7 @@ describe('flamegraphRenderer', () => {
 
     const flamegraph = makeFlamegraph();
 
-    const renderer = new FlamegraphRenderer(
+    const renderer = new FlamegraphRendererWebGL(
       canvas as HTMLCanvasElement,
       flamegraph,
       theme
@@ -191,7 +191,7 @@ describe('flamegraphRenderer', () => {
       [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}, {name: 'f4'}, {name: 'f5'}]
     );
 
-    const renderer = new FlamegraphRenderer(
+    const renderer = new FlamegraphRendererWebGL(
       makeCanvasMock() as HTMLCanvasElement,
       flamegraph,
       theme
@@ -253,7 +253,7 @@ describe('flamegraphRenderer', () => {
           depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
         },
       });
-      const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
+      const renderer = new FlamegraphRendererWebGL(canvas, flamegraph, theme);
 
       // @ts-ignore we only need a partial frame mock
       results.set(getFlamegraphFrameSearchId(flamegraph.frames[0]), {});
@@ -314,7 +314,7 @@ describe('flamegraphRenderer', () => {
           depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
         },
       });
-      const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
+      const renderer = new FlamegraphRendererWebGL(canvas, flamegraph, theme);
 
       renderer.draw(flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace));
       expect(context.drawArrays).toHaveBeenCalledTimes(1);

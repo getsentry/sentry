@@ -67,6 +67,10 @@ export type IssueTypeConfig = {
    * Is the User Feedback tab shown for this issue
    */
   userFeedback: DisabledWithReasonConfig;
+  /**
+   * Whether or not the issue type is using the issue platform
+   */
+  usesIssuePlatform: boolean;
 };
 
 export interface IssueCategoryConfigMapping

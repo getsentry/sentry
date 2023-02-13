@@ -73,7 +73,7 @@ const Deploy = ({deploy, project, shorten}: DeployProps) => (
       {getDynamicText({
         fixed: '3 hours ago',
         value: (
-          <TimeSince date={deploy.dateFinished} shorten={shorten ? shorten : false} />
+          <TimeSince date={deploy.dateFinished} unitStyle={shorten ? 'short' : 'human'} />
         ),
       })}
     </DeployTime>

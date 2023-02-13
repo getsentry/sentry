@@ -64,11 +64,11 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
 
         self.send_async.reset_mock()
         non_member_user = self.create_user(email="non_member@test.com")
-        subscribe_to_incident(activity.incident, non_member_user)
+        subscribe_to_incident(activity.incident, non_member_user.id)
 
         member_user = self.create_user(email="member@test.com")
         self.create_member([self.team], user=member_user, organization=self.organization)
-        subscribe_to_incident(activity.incident, member_user)
+        subscribe_to_incident(activity.incident, member_user.id)
         send_subscriber_notifications(activity.id)
         self.send_async.assert_called_once_with([member_user.email])
         assert not IncidentSubscription.objects.filter(

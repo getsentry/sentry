@@ -34,6 +34,10 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
+class MockEvent:
+    transaction: str
+
+
 class NotificationHelpersTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -254,6 +258,8 @@ class PerformanceProblemContextTestCase(TestCase):
         )
 
     def test_returns_n_plus_one_db_query_context(self):
+        event = MockEvent()
+        event.transaction = "sentry transaction"
         context = PerformanceProblemContext(
             PerformanceProblem(
                 fingerprint=f"1-{PerformanceNPlusOneGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
@@ -268,16 +274,19 @@ class PerformanceProblemContextTestCase(TestCase):
                 {"span_id": "b93d2be92cd64fd5", "description": "SELECT * FROM parent_table"},
                 {"span_id": "054ba3a374d543eb", "description": "SELECT * FROM table WHERE id=%s"},
             ],
+            event,
         )
 
         assert context.to_dict() == {
-            "transaction_name": "db - SELECT * FROM table",
+            "transaction_name": "sentry transaction",
             "parent_span": "SELECT * FROM parent_table",
             "repeating_spans": "SELECT * FROM table WHERE id=%s",
             "num_repeating_spans": "1",
         }
 
     def test_returns_n_plus_one_api_call_context(self):
+        event = MockEvent()
+        event.transaction = "/resources"
         context = NPlusOneAPICallProblemContext(
             PerformanceProblem(
                 fingerprint=f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
@@ -299,6 +308,7 @@ class PerformanceProblemContextTestCase(TestCase):
                 },
                 {"span_id": "563712f9722fb09", "description": "GET https://resource.io/resource"},
             ],
+            event,
         )
 
         assert context.to_dict() == {

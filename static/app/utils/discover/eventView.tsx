@@ -37,6 +37,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
+  DiscoverDatasets,
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
@@ -298,6 +299,7 @@ class EventView {
   expired?: boolean;
   createdBy: User | undefined;
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
+  dataset?: DiscoverDatasets;
 
   constructor(props: {
     additionalConditions: MutableSearch;
@@ -316,6 +318,7 @@ class EventView {
     team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
     yAxis: string | undefined;
+    dataset?: DiscoverDatasets;
     expired?: boolean;
     interval?: string;
     utc?: string | boolean | undefined;
@@ -361,6 +364,7 @@ class EventView {
     this.utc = props.utc;
     this.environment = environment;
     this.yAxis = props.yAxis;
+    this.dataset = props.dataset;
     this.display = props.display;
     this.topEvents = props.topEvents;
     this.interval = props.interval;
@@ -392,6 +396,7 @@ class EventView {
       interval: decodeScalar(location.query.interval),
       createdBy: undefined,
       additionalConditions: new MutableSearch([]),
+      dataset: decodeScalar(location.query.dataset) as DiscoverDatasets,
     });
   }
 
@@ -469,6 +474,7 @@ class EventView {
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
+      dataset: saved.dataset,
     });
   }
 
@@ -535,6 +541,8 @@ class EventView {
         end: decodeScalar(end),
         statsPeriod: decodeScalar(statsPeriod),
         utc,
+        dataset:
+          (decodeScalar(location.query.dataset) as DiscoverDatasets) ?? saved.dataset,
       });
     }
     return EventView.fromLocation(location);
@@ -554,6 +562,7 @@ class EventView {
       yAxis: 'count()',
       display: DisplayModes.DEFAULT,
       topEvents: '5',
+      dataset: DiscoverDatasets.DISCOVER,
     };
     const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
@@ -603,6 +612,7 @@ class EventView {
       range: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis ? [this.yAxis] : undefined,
+      dataset: this.dataset,
       display: this.display,
       topEvents: this.topEvents,
       interval: this.interval,
@@ -688,6 +698,7 @@ class EventView {
       project: this.project,
       query: this.query,
       yAxis: this.yAxis || this.getYAxis(),
+      dataset: this.dataset,
       display: this.display,
       topEvents: this.topEvents,
       interval: this.interval,
@@ -778,6 +789,7 @@ class EventView {
       statsPeriod: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis,
+      dataset: this.dataset,
       display: this.display,
       topEvents: this.topEvents,
       interval: this.interval,
@@ -1172,6 +1184,7 @@ class EventView {
         sort,
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
+        dataset: this.dataset,
       }
     ) as EventQuery & LocationQuery;
 
