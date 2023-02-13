@@ -4,7 +4,7 @@ import django_picklefield
 from sentry.db.models.fields import jsonfield
 from sentry.utils import json
 
-PICKLE_WRITE_JSON = False
+PICKLE_WRITE_JSON = True
 PICKLE_READ_JSON = True
 
 
