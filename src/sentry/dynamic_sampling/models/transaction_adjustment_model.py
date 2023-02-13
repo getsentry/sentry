@@ -1,3 +1,4 @@
+import operator
 from collections import namedtuple
 from copy import copy
 from typing import List, Mapping, MutableMapping, Tuple
@@ -19,7 +20,7 @@ def adjust_sample_rate(
     second element the transaction rate for all other transactions (that are not in the dict)
     """
     # sort by transaction count
-    transactions = sorted(transactions, key=lambda x: x[1])
+    transactions = sorted(transactions, key=operator.itemgetter(1))
     if len(transactions) <= max_explicit_transactions:
         # we can get the ideal rate to all do a full resample
         return AdjustedSampleRate(
