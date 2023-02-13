@@ -164,7 +164,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def get_issue_owners(
-        cls, project_id, data, limit=2, experiment=False
+        cls, project_id, data, limit=2
     ) -> Sequence[
         Tuple[
             "Rule",
@@ -190,10 +190,8 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, data, experiment)
-            codeowners_rules = (
-                cls._matching_ownership_rules(codeowners, data, experiment) if codeowners else []
-            )
+            ownership_rules = cls._matching_ownership_rules(ownership, data)
+            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
 
             if not (codeowners_rules or ownership_rules):
                 return []
@@ -304,13 +302,12 @@ class ProjectOwnership(Model):
         cls,
         ownership: Union["ProjectOwnership", "ProjectCodeOwners"],
         data: Mapping[str, Any],
-        experiment: bool = False,
     ) -> Sequence["Rule"]:
         rules = []
 
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
-                if rule.test(data, experiment):
+                if rule.test(data):
                     rules.append(rule)
 
         return rules
