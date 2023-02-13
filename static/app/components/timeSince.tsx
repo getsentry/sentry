@@ -16,11 +16,13 @@ function getDateObj(date: RelaxedDateType): Date {
 
 type RelaxedDateType = string | number | Date;
 
-type UnitStyle = 'default' | 'short' | 'extraShort';
+type UnitStyle = 'human' | 'regular' | 'short' | 'extraShort';
 
 interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
+   *
+   * May be in the future
    */
   date: RelaxedDateType;
   /**
@@ -37,7 +39,15 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   liveUpdateInterval?: 'minute' | 'second' | number;
   /**
+   * Prefix before upcoming time (when the date is in the future)
+   *
+   * @default "in"
+   */
+  prefix?: string;
+  /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
+   *
+   * @default "ago"
    */
   suffix?: string;
   /**
@@ -59,32 +69,46 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   tooltipUnderlineColor?: ColorOrAlias;
   /**
-   * How much text should be used for the relative sufixx:
+   * How much text should be used for the suffix:
    *
-   * default:    hour, minute, second
-   * short:      hr, min, sec
-   * extraShort: h, m, s
+   * human:
+   *   hour, minute, second. Uses 'human' fuzzy foormatting for values such as 'a
+   *   minute' or 'a few seconds'. (This is the default)
+   *
+   * regular:
+   *   Shows the full units (hours, minutes, seconds)
+   *
+   * short:
+   *   Like exact but uses shorter units (hr, min, sec)
+   *
+   * extraShort:
+   *   Like short but uses very short units (h, m, s)
+   *
+   * NOTE: shot and extraShort do NOT currently support times in the future.
+   *
+   * @default human
    */
   unitStyle?: UnitStyle;
 }
 
 function TimeSince({
   date,
-  suffix = t('ago'),
   disabledAbsoluteTooltip,
   tooltipShowSeconds,
   tooltipPrefix: tooltipTitle,
   tooltipBody,
   tooltipUnderlineColor,
   unitStyle,
+  prefix = t('in'),
+  suffix = t('ago'),
   liveUpdateInterval = 'minute',
   ...props
 }: Props) {
   const tickerRef = useRef<number | undefined>();
 
   const computeRelativeDate = useCallback(
-    () => getRelativeDate(date, suffix, unitStyle),
-    [date, suffix, unitStyle]
+    () => getRelativeDate(date, suffix, prefix, unitStyle),
+    [date, suffix, prefix, unitStyle]
   );
 
   const [relative, setRelative] = useState<string>(computeRelativeDate());
@@ -112,7 +136,9 @@ function TimeSince({
   const dateObj = getDateObj(date);
   const user = ConfigStore.get('user');
   const options = user ? user.options : null;
-  // Use short months when showing seconds, because "September" causes the tooltip to overflow.
+
+  // Use short months when showing seconds, because "September" causes the
+  // tooltip to overflow.
   const tooltipFormat = tooltipShowSeconds
     ? 'MMM D, YYYY h:mm:ss A z'
     : 'MMMM D, YYYY h:mm A z';
@@ -149,28 +175,30 @@ export default TimeSince;
 function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
-  unitStyle: UnitStyle = 'default'
+  prefix?: string,
+  unitStyle: UnitStyle = 'human'
 ): string {
-  const date = getDateObj(currentDateTime);
+  const momentDate = moment(getDateObj(currentDateTime));
+  const isFuture = momentDate.isAfter(moment());
 
-  const shorten = unitStyle === 'short';
-  const extraShort = unitStyle === 'extraShort';
+  let deltaText: string = '';
 
-  if (unitStyle !== 'default' && suffix) {
-    return t('%(time)s %(suffix)s', {
-      time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
-      suffix,
-    });
-  }
-  if (unitStyle !== 'default' && !suffix) {
-    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
-  }
-  if (!suffix) {
-    return moment(date).fromNow(true);
-  }
-  if (suffix === 'ago') {
-    return moment(date).fromNow();
+  if (unitStyle === 'human') {
+    // Moment provides a nice human relative date that uses "a few" for various units
+    deltaText = momentDate.fromNow(true);
+  } else {
+    deltaText = getDuration(
+      moment().diff(momentDate, 'seconds'),
+      0,
+      unitStyle === 'short',
+      unitStyle === 'extraShort',
+      isFuture
+    );
   }
 
-  return t('%(time)s %(suffix)s', {time: moment(date).fromNow(true), suffix});
+  if (!suffix && !prefix) {
+    return deltaText;
+  }
+
+  return isFuture ? `${prefix} ${deltaText}` : `${deltaText} ${suffix}`;
 }
