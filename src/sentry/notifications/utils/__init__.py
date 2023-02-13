@@ -470,6 +470,7 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 class PerformanceProblemContext:
     problem: PerformanceProblem
     spans: Union[List[Dict[str, Union[str, float]]], None]
+    event: Event | None
 
     def __post_init__(self) -> None:
         parent_span, repeating_spans = get_parent_and_repeating_spans(self.spans, self.problem)
@@ -479,13 +480,19 @@ class PerformanceProblemContext:
 
     def to_dict(self) -> Dict[str, str | List[str]]:
         return {
-            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
             if self.problem.offender_span_ids
             else "",
         }
+
+    @property
+    def transaction(self) -> str:
+        if self.event and self.event.transaction:
+            return str(self.event.transaction)
+        return ""
 
     def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
         if not self.spans:
@@ -505,17 +512,17 @@ class PerformanceProblemContext:
         event: Event | None = None,
     ) -> PerformanceProblemContext:
         if problem.type == PerformanceNPlusOneAPICallsGroupType:
-            return NPlusOneAPICallProblemContext(problem, spans)
+            return NPlusOneAPICallProblemContext(problem, spans, event)
         if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)
         else:
-            return cls(problem, spans)
+            return cls(problem, spans, event)
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
     def to_dict(self) -> Dict[str, str | List[str]]:
         return {
-            "transaction_name": self.problem.desc,
+            "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
@@ -558,15 +565,6 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
 
 class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
-    def __init__(
-        self,
-        problem: PerformanceProblem,
-        spans: Union[List[Dict[str, Union[str, float]]], None],
-        event: Event | None,
-    ):
-        PerformanceProblemContext.__init__(self, problem, spans)
-        self.event = event
-
     def to_dict(self) -> Dict[str, Any]:
         return {
             "span_evidence_key_value": [
@@ -579,12 +577,6 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
                 },
             ],
         }
-
-    @property
-    def transaction(self) -> str:
-        if self.event and self.event.transaction:
-            return str(self.event.transaction)
-        return ""
 
     @property
     def starting_span(self) -> str:
