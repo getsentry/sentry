@@ -36,6 +36,9 @@ class EventLookupError(Exception):
     pass
 
 
+INGEST_ALLOWED_ISSUE_TYPES = frozenset([ProfileBlockedThreadGroupType.type_id])
+
+
 def get_occurrences_ingest_consumer(
     consumer_type: str,
     strict_offset_reset: bool,
@@ -103,15 +106,6 @@ def process_event_and_issue_occurrence(
         raise ValueError(
             f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
         )
-
-    if occurrence_data["type"] != ProfileBlockedThreadGroupType.type_id:
-        return None
-
-    project = Project.objects.get_from_cache(id=event_data["project_id"])
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-
-    if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
-        return None
 
     event = save_event_from_occurrence(event_data)
     return save_issue_occurrence(occurrence_data, event)
@@ -221,7 +215,9 @@ def _validate_event_data(event_data: Mapping[str, Any]) -> None:
         raise InvalidEventPayloadError("Event payload does not match schema")
 
 
-def _process_message(message: Mapping[str, Any]) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+def _process_message(
+    message: Mapping[str, Any]
+) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
     """
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
@@ -230,6 +226,16 @@ def _process_message(message: Mapping[str, Any]) -> Tuple[IssueOccurrence, Optio
 
     try:
         kwargs = _get_kwargs(message)
+        occurrence_data = kwargs["occurrence_data"]
+        if occurrence_data["type"] not in INGEST_ALLOWED_ISSUE_TYPES:
+            return None
+
+        project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+        if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
+            return None
+
         if "event_data" in kwargs:
             return process_event_and_issue_occurrence(
                 kwargs["occurrence_data"], kwargs["event_data"]
