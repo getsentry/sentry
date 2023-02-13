@@ -427,7 +427,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:
-                raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
+                raise snuba.SnubaError(
+                    f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
+                )
             return None
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
