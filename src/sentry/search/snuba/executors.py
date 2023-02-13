@@ -34,6 +34,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     SEARCH_STRATEGIES,
@@ -47,7 +48,6 @@ from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
-from sentry.types.issues import PERFORMANCE_TYPES, GroupCategory, GroupType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
@@ -164,11 +164,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     "environment": environments,
                 },
             )
-            # if no re-formatted conditions, use fallback method
-            converted_filters.append(
-                conditions[0]
-                if conditions
-                else convert_search_filter_to_snuba_query(
+
+            # if no re-formatted conditions, use fallback method for selected groups
+            new_condition = None
+            if conditions:
+                new_condition = conditions[0]
+            elif group_ids:
+                new_condition = convert_search_filter_to_snuba_query(
                     search_filter,
                     params={
                         "organization_id": organization_id,
@@ -176,7 +178,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                         "environment": environments,
                     },
                 )
-            )
+
+            if new_condition:
+                converted_filters.append(new_condition)
 
         return converted_filters
 
@@ -206,7 +210,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     def _prepare_params_for_category(
         self,
-        group_category: GroupCategory,
+        group_category: int,
         query_partial: IntermediateSearchQueryPartial,
         organization_id: int,
         project_ids: Sequence[int],
@@ -342,12 +346,12 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             group_categories = {
                 gc
                 for gc in SEARCH_STRATEGIES.keys()
-                if gc != GroupCategory.PROFILE
+                if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization)
             }
 
         if not features.has("organizations:performance-issues-search", organization):
-            group_categories.discard(GroupCategory.PERFORMANCE)
+            group_categories.discard(GroupCategory.PERFORMANCE.value)
 
         query_params_for_categories = [
             self._prepare_params_for_category(
@@ -524,9 +528,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 # general search query:
                 if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
                     group_queryset = group_queryset.filter(
-                        Q(type=GroupType.ERROR.value)
+                        Q(type=ErrorGroupType.type_id)
                         | (
-                            Q(type__in=PERFORMANCE_TYPES)
+                            Q(type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value))
                             and (
                                 ~Q(message__icontains=sf.value.raw_value)
                                 if sf.is_negation
@@ -557,7 +561,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             span.set_data("Max Candidates", max_candidates)
             span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
-
         too_many_candidates = False
         if not group_ids:
             # no matches could possibly be found from this point on

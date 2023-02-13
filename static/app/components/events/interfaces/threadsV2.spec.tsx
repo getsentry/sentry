@@ -910,9 +910,10 @@ describe('ThreadsV2', function () {
         expect(screen.getByText('Oldest')).toBeInTheDocument();
 
         // Recent first is checked by default
-        expect(
-          within(screen.getByTestId('recent-first')).getByTestId('icon-check-mark')
-        ).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'Newest'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
 
         // Click on recent last
         userEvent.click(screen.getByText('Oldest'));
@@ -1016,6 +1017,9 @@ describe('ThreadsV2', function () {
 
         // Raw content and the Raw stack trace option
         expect(screen.getAllByTestId('raw-stack-trace')).toHaveLength(2);
+
+        // Raw stack trace option
+        expect(screen.getByRole('option', {name: 'Raw stack trace'})).toBeInTheDocument();
       });
     });
   });

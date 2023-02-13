@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -278,7 +278,7 @@ export class OrganizationStats extends Component<Props> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt => this.setStateOnUrl({dataCategory: opt.value})}
+            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
           />
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
@@ -331,7 +331,7 @@ export class OrganizationStats extends Component<Props> {
           triggerProps={{prefix: t('Category')}}
           value={this.dataCategory}
           options={options}
-          onChange={opt => this.setStateOnUrl({dataCategory: opt.value})}
+          onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
         />
 
         <StyledPageTimeRangeSelector
@@ -434,6 +434,7 @@ const SelectorGrid = styled('div')`
 `;
 
 const DropdownDataCategory = styled(CompactSelect)`
+  width: auto;
   position: relative;
   grid-column: auto / span 1;
 

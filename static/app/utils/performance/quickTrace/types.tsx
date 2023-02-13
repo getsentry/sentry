@@ -65,6 +65,7 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   'transaction.op': string;
   'transaction.status': string;
   measurements?: Record<string, Measurement>;
+  profile_id?: string;
   tags?: EventTag[];
 };
 

@@ -18,6 +18,8 @@ function getDateObj(date: RelaxedDateType): Date {
 
 type RelaxedDateType = string | number | Date;
 
+type UnitStyle = 'default' | 'short' | 'extraShort';
+
 interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
@@ -29,23 +31,35 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   disabledAbsoluteTooltip?: boolean;
   /**
-   * Shortens the shortened relative time
-   * min to m, hr to h
-   */
-  extraShort?: boolean;
-  /**
-   * For relative time shortens minutes to min, hour to hr etc.
-   */
-  shorten?: boolean;
-  /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
    */
   suffix?: string;
-
+  /**
+   * Customize the tooltip content. This replaces the long form of the timestamp
+   * completely.
+   */
   tooltipBody?: React.ReactNode;
+  /**
+   * Prefix content to add to the tooltip. Useful to indicate what the relative
+   * time is for
+   */
+  tooltipPrefix?: React.ReactNode;
+  /**
+   * Include seconds in the tooltip
+   */
   tooltipShowSeconds?: boolean;
-  tooltipTitle?: React.ReactNode;
+  /**
+   * Change the color of the underline
+   */
   tooltipUnderlineColor?: ColorOrAlias;
+  /**
+   * How much text should be used for the relative sufixx:
+   *
+   * default:    hour, minute, second
+   * short:      hr, min, sec
+   * extraShort: h, m, s
+   */
+  unitStyle?: UnitStyle;
 }
 
 function TimeSince({
@@ -53,18 +67,17 @@ function TimeSince({
   suffix = t('ago'),
   disabledAbsoluteTooltip,
   tooltipShowSeconds,
-  tooltipTitle,
+  tooltipPrefix: tooltipTitle,
   tooltipBody,
   tooltipUnderlineColor,
-  shorten,
-  extraShort,
+  unitStyle,
   ...props
 }: Props) {
   const tickerRef = useRef<number | undefined>();
 
   const computeRelativeDate = useCallback(
-    () => getRelativeDate(date, suffix, shorten, extraShort),
-    [date, suffix, shorten, extraShort]
+    () => getRelativeDate(date, suffix, unitStyle),
+    [date, suffix, unitStyle]
   );
 
   const [relative, setRelative] = useState<string>(computeRelativeDate());
@@ -74,12 +87,12 @@ function TimeSince({
     setRelative(computeRelativeDate());
 
     // Start a ticker to update the relative time
-    tickerRef.current = window.setTimeout(
+    tickerRef.current = window.setInterval(
       () => setRelative(computeRelativeDate()),
       ONE_MINUTE_IN_MS
     );
 
-    return () => window.clearTimeout(tickerRef.current);
+    return () => window.clearInterval(tickerRef.current);
   }, [computeRelativeDate]);
 
   const dateObj = getDateObj(date);
@@ -122,18 +135,20 @@ export default TimeSince;
 export function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
-  shorten?: boolean,
-  extraShort?: boolean
+  unitStyle: UnitStyle = 'default'
 ): string {
   const date = getDateObj(currentDateTime);
 
-  if ((shorten || extraShort) && suffix) {
+  const shorten = unitStyle === 'short';
+  const extraShort = unitStyle === 'extraShort';
+
+  if (unitStyle !== 'default' && suffix) {
     return t('%(time)s %(suffix)s', {
       time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
       suffix,
     });
   }
-  if ((shorten || extraShort) && !suffix) {
+  if (unitStyle !== 'default' && !suffix) {
     return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
   }
   if (!suffix) {

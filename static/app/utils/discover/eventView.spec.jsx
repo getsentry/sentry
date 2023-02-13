@@ -2770,6 +2770,22 @@ describe('EventView.isEqualTo()', function () {
 });
 
 describe('EventView.getResultsViewUrlTarget()', function () {
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+  });
+
+  afterEach(function () {
+    window.__initialData = {
+      customerDomain: null,
+    };
+  });
+
   const state = {
     id: '1234',
     name: 'best query',
@@ -2785,7 +2801,8 @@ describe('EventView.getResultsViewUrlTarget()', function () {
   };
   const organization = TestStubs.Organization();
 
-  it('generates a URL', function () {
+  it('generates a URL with non-customer domain context', function () {
+    window.__initialData.customerDomain = null;
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -2793,9 +2810,34 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     expect(result.query.project).toEqual(state.project);
     expect(result.query.display).toEqual(state.display);
   });
+
+  it('generates a URL with customer domain context', function () {
+    const view = new EventView(state);
+    const result = view.getResultsViewUrlTarget(organization.slug);
+    expect(result.pathname).toEqual('/discover/results/');
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.display).toEqual(state.display);
+  });
 });
 
 describe('EventView.getResultsViewShortUrlTarget()', function () {
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+  });
+
+  afterEach(function () {
+    window.__initialData = {
+      customerDomain: null,
+    };
+  });
+
   const state = {
     id: '1234',
     name: 'best query',
@@ -2811,7 +2853,8 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
   };
   const organization = TestStubs.Organization();
 
-  it('generates a URL', function () {
+  it('generates a URL with non-customer domain context', function () {
+    window.__initialData.customerDomain = null;
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -2823,9 +2866,38 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     expect(result.query.project).toEqual(state.project);
     expect(result.query.environment).toEqual(state.environment);
   });
+
+  it('generates a URL with customer domain context', function () {
+    const view = new EventView(state);
+    const result = view.getResultsViewShortUrlTarget(organization.slug);
+    expect(result.pathname).toEqual('/discover/results/');
+    expect(result.query).not.toHaveProperty('name');
+    expect(result.query).not.toHaveProperty('fields');
+    expect(result.query).not.toHaveProperty('query');
+    expect(result.query.id).toEqual(state.id);
+    expect(result.query.statsPeriod).toEqual(state.statsPeriod);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.environment).toEqual(state.environment);
+  });
 });
 
 describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+  });
+
+  afterEach(function () {
+    window.__initialData = {
+      customerDomain: null,
+    };
+  });
+
   const state = {
     id: '1234',
     name: 'best query',
@@ -2844,7 +2916,8 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   const breakdown = 'http';
   const webVital = 'measurements.lcp';
 
-  it('generates a URL', function () {
+  it('generates a URL with non-customer domain context', function () {
+    window.__initialData.customerDomain = null;
     const view = new EventView(state);
     const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
       showTransactions,
@@ -2854,6 +2927,23 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     expect(result.pathname).toEqual(
       '/organizations/org-slug/performance/summary/events/'
     );
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.transaction).toEqual(state.name);
+    expect(result.query.showTransactions).toEqual(showTransactions);
+    expect(result.query.breakdown).toEqual(breakdown);
+    expect(result.query.webVital).toEqual(webVital);
+  });
+
+  it('generates a URL with customer domain context', function () {
+    const view = new EventView(state);
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+      showTransactions,
+      breakdown,
+      webVital,
+    });
+    expect(result.pathname).toEqual('/performance/summary/events/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toEqual(state.project);
     expect(result.query.sort).toEqual(['-count']);

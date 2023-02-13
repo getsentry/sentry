@@ -1409,14 +1409,14 @@ describe('Dashboards > Detail', function () {
       );
 
       userEvent.click(await screen.findByText('All Releases'));
-      userEvent.type(screen.getByText('Search\u2026'), 's');
+      userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
       await act(async () => {
-        userEvent.click(await screen.findByText('search-result'));
+        userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
       });
 
       // Validate that after search is cleared, search result still appears
-      await screen.findByText('Latest Release(s)');
-      screen.getByTestId('search-result');
+      expect(screen.getByText('Latest Release(s)')).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
     });
   });
 });

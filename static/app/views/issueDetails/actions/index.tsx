@@ -45,8 +45,8 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -353,9 +353,11 @@ class Actions extends Component<Props> {
       group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
     const isIgnored = status === 'ignored';
 
-    const deleteCap = getIssueCapability(group.issueCategory, 'delete');
-    const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
-    const shareCap = getIssueCapability(group.issueCategory, 'share');
+    const {
+      delete: deleteCap,
+      deleteAndDiscard: deleteDiscardCap,
+      share: shareCap,
+    } = getConfigForIssueType(group).actions;
 
     const hasDeleteAccess = organization.access.includes('event:admin');
 

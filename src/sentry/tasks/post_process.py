@@ -11,12 +11,12 @@ from django.utils import timezone
 
 from sentry import analytics, features
 from sentry.exceptions import PluginError
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -489,7 +489,8 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            pipeline_step(job)
+            with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+                pipeline_step(job)
         except Exception:
             issue_category_metric = issue_category.name.lower() if issue_category else None
             metrics.incr(
@@ -718,7 +719,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import Commit
+    from sentry.models import Commit, Integration
     from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
@@ -750,7 +751,20 @@ def process_commits(job: PostProcessJob) -> None:
                     "group": event.group_id,
                     "project": event.project_id,
                 }
-                if features.has("organizations:commit-context", event.project.organization):
+                integrations = Integration.objects.filter(
+                    organizations=event.project.organization,
+                    provider__in=["github", "gitlab"],
+                )
+                use_fallback = (
+                    features.has(
+                        "organizations:commit-context-fallback", event.project.organization
+                    )
+                    and not integrations.exists()
+                )
+                if (
+                    features.has("organizations:commit-context", event.project.organization)
+                    and not use_fallback
+                ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr(
