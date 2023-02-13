@@ -13,8 +13,7 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import nodestore
-from sentry import features
+from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import ProfileBlockedThreadGroupType
