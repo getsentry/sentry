@@ -659,7 +659,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
   },
   [FieldKey.ISSUE]: {
-    desc: t('The issue identification code'),
+    desc: t('The issue identification short code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -974,6 +974,7 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  // FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
