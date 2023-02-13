@@ -9,7 +9,7 @@ function ReplaysFeatureBadge(
   if (organization.slug === 'testorg-az') {
     return null;
   }
-  return <FeatureBadge {...props} type="beta" />;
+  return <FeatureBadge {...props} type="new" />;
 }
 
 export default ReplaysFeatureBadge;
