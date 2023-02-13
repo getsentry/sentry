@@ -122,24 +122,16 @@ class OrganizationManager(BaseManager):
             return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
 
-    def get_organizations_where_user_is_owner(
-        self, user_id: int, queryset: QuerySet = None
-    ) -> QuerySet:
+    def get_organizations_where_user_is_owner(self, user_id: int) -> QuerySet:
         """
         Returns a QuerySet of all organizations where a user has the top priority role.
         The default top priority role in Sentry is owner.
         """
 
-        if queryset:  # queryset is a QuerySet of valid orgs
-            orgs = queryset.filter(
-                member_set__user_id=user_id,
-                status=OrganizationStatus.VISIBLE,
-            )
-        else:
-            orgs = Organization.objects.distinct().filter(
-                member_set__user_id=user_id,
-                status=OrganizationStatus.VISIBLE,
-            )
+        orgs = Organization.objects.filter(
+            member_set__user_id=user_id,
+            status=OrganizationStatus.VISIBLE,
+        )
 
         # get owners from orgs
         owner_role_orgs = orgs.filter(member_set__role=roles.get_top_dog().id)
