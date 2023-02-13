@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Callable, Generic, Mapping, MutableMapping, Type, TypeVar
 
 from sentry.silo import SiloMode
@@ -14,23 +16,29 @@ class RpcServiceEndpoint(Generic[_ServiceClass]):
         self.method_table = self._build_method_table(service_obj)
 
     @staticmethod
-    def _build_method_table(service_obj: _ServiceClass) -> Mapping[str, Callable[..., Any]]:
+    def _build_method_table(service_obj: _ServiceClass) -> Mapping[str, RpcServiceMethod]:
         table = {}
         for attr_name in dir(service_obj):
             attr = getattr(service_obj, attr_name)
             if callable(attr) and getattr(attr, _RPC_METHOD_LABEL, False):
-                table[attr_name] = attr
+                method_obj = RpcServiceMethod(attr)
+                table[attr_name] = method_obj
         return table
 
 
-_rpc_service_endpoint_registry: MutableMapping[str, RpcServiceEndpoint[Any]] = {}
+class RpcServiceMethod:
+    def __init__(self, method: Callable[..., Any]) -> None:
+        pass
+
+
+_rpc_service_registry: MutableMapping[str, RpcServiceEndpoint[Any]] = {}
 
 
 def rpc_service(silo_mode: SiloMode, name: str) -> Callable[..., Type[_ServiceClass]]:
     def decorator(service_class: Type[_ServiceClass]) -> Type[_ServiceClass]:
         service_obj = service_class()
         endpoint = RpcServiceEndpoint(silo_mode, name, service_obj)
-        _rpc_service_endpoint_registry[name] = endpoint
+        _rpc_service_registry[name] = endpoint
         return service_class
 
     return decorator
@@ -54,7 +62,7 @@ class RpcResolutionError(Exception):
 
 def look_up_method(service_name: str, method_name: str) -> Callable[..., Any]:
     try:
-        service_obj = _rpc_service_endpoint_registry[service_name]
+        service_obj = _rpc_service_registry[service_name]
     except KeyError:
         raise RpcResolutionError(f"Unrecognized service name: {service_name!r}")
 
@@ -64,3 +72,7 @@ def look_up_method(service_name: str, method_name: str) -> Callable[..., Any]:
         raise RpcResolutionError(f"Unrecognized method name: {method_name!r}")
 
     return method_obj
+
+
+def dispatch(service_name: str, method_name: str, serial_arguments: Mapping[str, Any]) -> Any:
+    pass
