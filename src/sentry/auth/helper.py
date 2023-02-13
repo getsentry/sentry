@@ -137,8 +137,6 @@ class AuthIdentityHandler:
             "sso.login_attempt",
             tags={
                 "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
             },
             sample_rate=1.0,
             skip_internal=False,
@@ -156,8 +154,6 @@ class AuthIdentityHandler:
             "sso.login_success",
             tags={
                 "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
             },
             sample_rate=1.0,
             skip_internal=False,
@@ -880,8 +876,6 @@ class AuthHelper(Pipeline):
                 tags={
                     "flow": self.state.flow,
                     "provider": self.provider.key,
-                    "organization_id": self.organization.id,
-                    "user_id": self.request.user.id,
                 },
                 skip_internal=False,
                 sample_rate=1.0,
@@ -892,8 +886,6 @@ class AuthHelper(Pipeline):
                 tags={
                     "flow": self.state.flow,
                     "provider": self.provider.key,
-                    "organization_id": self.organization.id,
-                    "user_id": self.request.user.id,
                 },
                 skip_internal=False,
                 sample_rate=1.0,
@@ -905,8 +897,6 @@ class AuthHelper(Pipeline):
             extra={
                 "flow": self.state.flow,
                 "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": self.request.user.id,
                 "error_message": message,
             },
         )
