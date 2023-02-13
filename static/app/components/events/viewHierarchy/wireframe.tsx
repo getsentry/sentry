@@ -7,7 +7,6 @@ import {Button} from 'sentry/components/button';
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
-  getCenterScaleMatrixFromConfigPosition,
   getDeepestNodeAtPoint,
   getHierarchyDimensions,
   useResizeCanvasObserver,
@@ -15,7 +14,10 @@ import {
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {
+  getCenterScaleMatrixFromConfigPosition,
+  Rect,
+} from 'sentry/utils/profiling/gl/utils';
 
 const MIN_BORDER_SIZE = 20;
 
@@ -237,7 +239,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
 
         const center = vec2.fromValues(canvasSize.width / 2, canvasSize.height / 2);
         const origin = zoomOrigin ?? center;
-        const scaleMatrix = getCenterScaleMatrixFromConfigPosition(newScale, origin);
+        const scaleMatrix = getCenterScaleMatrixFromConfigPosition(
+          vec2.fromValues(newScale, newScale),
+          origin
+        );
         mat3.multiply(currTransformationMatrix, scaleMatrix, currTransformationMatrix);
 
         drawViewHierarchy(currTransformationMatrix);
