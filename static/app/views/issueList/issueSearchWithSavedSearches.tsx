@@ -58,11 +58,7 @@ const SearchBarWithButtonContainer = styled('div')`
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-width: 30rem;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    min-width: 35rem;
+    flex-basis: 35rem;
   }
 `;
 

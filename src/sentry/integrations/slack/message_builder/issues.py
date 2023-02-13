@@ -15,6 +15,7 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -22,7 +23,6 @@ from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.identity import APIIdentity, identity_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupCategory
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 

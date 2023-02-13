@@ -1,9 +1,9 @@
 from django.urls import reverse
 
+from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 
 
 @region_silo_test
@@ -144,7 +144,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "timestamp": four_min_ago,
                 "start_timestamp": four_min_ago,
-                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             },
             project_id=project.id,
         )
@@ -155,7 +155,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "timestamp": three_min_ago,
                 "start_timestamp": three_min_ago,
-                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             },
             project_id=project.id,
         )
@@ -168,7 +168,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "start_timestamp": two_min_ago,
                 "environment": "production",
                 "tags": {"environment": "production"},
-                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             },
             project_id=project.id,
         )

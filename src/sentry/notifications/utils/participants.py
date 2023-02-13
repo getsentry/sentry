@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence
 
 from sentry import features
 from sentry.models import (
@@ -174,11 +174,13 @@ def get_owners(
 
     if not owners:
         outcome = "empty"
-        recipients = list()
+        recipients: List[APIUser] = list()
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
-        recipients = user_service.get_from_project(project.id)
+        recipients = user_service.get_many(
+            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+        )
 
     else:
         outcome = "match"
@@ -327,7 +329,9 @@ def get_fallthrough_recipients(
         return []
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
-        return user_service.get_from_project(project.id)
+        return user_service.get_many(
+            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+        )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         if project.organization.flags.early_adopter.is_set:
@@ -340,7 +344,9 @@ def get_fallthrough_recipients(
             )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
 
         # Return all members for non-EA orgs. This line will be removed once EA is over.
-        return user_service.get_from_project(project.id)
+        return user_service.get_many(
+            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+        )
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 

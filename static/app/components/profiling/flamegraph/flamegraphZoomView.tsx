@@ -237,7 +237,7 @@ function FlamegraphZoomView({
       scheduler.unregisterAfterFrameCallback(drawText);
       scheduler.unregisterAfterFrameCallback(drawInternalSampleTicks);
       if (drawGrid) {
-        scheduler.registerAfterFrameCallback(drawGrid);
+        scheduler.unregisterAfterFrameCallback(drawGrid);
       }
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };

@@ -109,9 +109,9 @@ const Label = styled('div')<{
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: 600;
   color: ${p => (p.failedThreshold ? `${p.theme.errorText}` : `${p.theme.textColor}`)};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border: 1px solid;
-  border-color: ${p => (p.failedThreshold ? p.theme.red300 : p.theme.gray100)};
+  border-color: ${p => (p.failedThreshold ? p.theme.red300 : p.theme.gray200)};
   border-radius: ${p => p.theme.borderRadius};
   height: 75%;
   display: flex;
