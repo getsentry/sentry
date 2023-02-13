@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, TypedDict, Union
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
 from sentry.utils import json
 
@@ -49,6 +49,19 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
+SamplingValueType = Literal["sampleRate", "factor"]
+
+
+class SamplingValue(TypedDict):
+    type: SamplingValueType
+    value: float
+
+
+class TimeRange(TypedDict):
+    start: str
+    end: str
+
+
 class Inner(TypedDict):
     op: str
     name: str
@@ -62,26 +75,42 @@ class Condition(TypedDict):
 
 
 class BaseRule(TypedDict):
-    sampleRate: Optional[float]
     type: str
     active: bool
     condition: Condition
     id: int
 
 
-class TimeRange(TypedDict):
-    start: str
-    end: str
+class RuleV1(BaseRule):
+    sampleRate: float
 
 
-class DecayingFn(TypedDict):
+class RuleV2(BaseRule):
+    samplingValue: SamplingValue
+
+
+class DecayingFnV1(TypedDict):
     type: str
-    decayedSampledRate: Optional[str]
+    decayedSampleRate: Optional[str]
 
 
-class ReleaseRule(BaseRule):
-    timeRange: Optional[TimeRange]
-    decayingFn: Optional[DecayingFn]
+class DecayingRuleV1(RuleV1):
+    timeRange: TimeRange
+    decayingFn: DecayingFnV1
+
+
+class DecayingFnV2(TypedDict):
+    type: str
+    decayedValue: Optional[str]
+
+
+class DecayingRuleV2(RuleV2):
+    timeRange: TimeRange
+    decayingFn: DecayingFnV2
+
+
+# Type defining the all the possible rules types that can exist.
+PolymorphicRule = Union[RuleV1, RuleV2, DecayingRuleV1, DecayingRuleV2]
 
 
 def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
@@ -100,7 +129,7 @@ def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
     return REVERSE_RESERVED_IDS.get(rule["id"], None)
 
 
-def get_rule_hash(rule: BaseRule) -> int:
+def get_rule_hash(rule: PolymorphicRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
     return json.dumps(
@@ -113,6 +142,18 @@ def get_rule_hash(rule: BaseRule) -> int:
             }
         )
     ).__hash__()
+
+
+def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
+    # Gets the sampling value from the rule, based on the type.
+    if "samplingValue" in rule:
+        sampling_value = rule["samplingValue"]  # type:ignore
+        return sampling_value["type"], float(sampling_value["value"])
+    # This should be removed once V1 is faded out.
+    elif "sampleRate" in rule:
+        return "sampleRate", rule["sampleRate"]  # type:ignore
+
+    return None
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
