@@ -1166,19 +1166,17 @@ export const REPLAY_FIELDS = [
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
-    desc: t(
-      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
-    ),
+    desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the brower'),
+    desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the Browser'),
+    desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
