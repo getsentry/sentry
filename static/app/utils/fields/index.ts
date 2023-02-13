@@ -1173,12 +1173,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the brower'),
+    desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the Browser'),
+    desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
