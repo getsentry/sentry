@@ -5,7 +5,7 @@ import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import ProfileGroupProvider from 'sentry/views/profiling/profileGroupProvider';
+import ProfileGroupProvider from 'sentry/views/profiling/profilesProvider';
 import {RouteContext} from 'sentry/views/routeContext';
 
 const FlamegraphContainer = styled('div')`

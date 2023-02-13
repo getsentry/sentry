@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import theme from 'sentry/utils/theme';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar.tsx';
 

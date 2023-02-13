@@ -1,5 +1,6 @@
 from typing import Any, Mapping
 
+from sentry import analytics
 from sentry.models import Group, GroupStatus, Integration, Organization
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
@@ -38,6 +39,16 @@ def sync_status_inbound(
         Group.objects.update_group_status(
             affected_groups, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
         )
+
+        for group in affected_groups:
+            analytics.record(
+                "issue.resolved",
+                project_id=group.project.id,
+                default_user_id=organizations[0].get_default_owner().id,
+                organization_id=organization_id,
+                group_id=group.id,
+                resolution_type="with_third_party_app",
+            )
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(
             affected_groups, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED

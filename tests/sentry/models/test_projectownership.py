@@ -150,7 +150,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
     def test_get_issue_owners_no_codeowners_or_issueowners(self):
-        assert ProjectOwnership.get_issue_owners(self.project.id, {}) == []
+        assert ProjectOwnership.get_issue_owners(self.project.id, {})[0] == []
 
     def test_get_issue_owners_only_issueowners_exists(self):
         rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
@@ -162,13 +162,13 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_issue_owners(self.project.id, {}) == []
+        assert ProjectOwnership.get_issue_owners(self.project.id, {})[0] == []
 
         # Match on stacktrace
         assert ProjectOwnership.get_issue_owners(
             self.project.id,
             {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
-        ) == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
+        )[0] == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
 
     def test_get_issue_owners_where_owner_is_not_in_project(self):
         self.team = self.create_team(
@@ -196,7 +196,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_issue_owners(
                 self.project.id,
                 {"stacktrace": {"frames": [{"filename": "src/foo.js"}]}},
-            )
+            )[0]
             == []
         )
 
@@ -217,12 +217,12 @@ class ProjectOwnershipTestCase(TestCase):
             schema=dump_schema([rule_a]),
         )
         # No data matches
-        assert ProjectOwnership.get_issue_owners(self.project.id, {}) == []
+        assert ProjectOwnership.get_issue_owners(self.project.id, {})[0] == []
 
         # Match on stacktrace
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "foo.js"}]}}
-        ) == [(rule_a, [self.team], OwnerRuleType.CODEOWNERS.value)]
+        )[0] == [(rule_a, [self.team], OwnerRuleType.CODEOWNERS.value)]
 
     def test_get_issue_owners_when_codeowners_and_issueowners_exists(self):
         self.team = self.create_team(
@@ -252,7 +252,7 @@ class ProjectOwnershipTestCase(TestCase):
 
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
-        ) == [
+        )[0] == [
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_c, [self.team2], OwnerRuleType.CODEOWNERS.value),
         ]
@@ -260,7 +260,7 @@ class ProjectOwnershipTestCase(TestCase):
         # more than 2 matches
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
-        ) == [
+        )[0] == [
             (rule_b, [user_service.get_user(self.user.id)], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]

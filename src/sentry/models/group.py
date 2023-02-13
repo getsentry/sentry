@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Mapping, Sequence
 from django.db import models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
-from django.utils.http import urlencode, urlquote
+from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventstore, eventtypes, tagstore
@@ -31,13 +31,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
-from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
@@ -432,23 +431,7 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(
-        default=GroupType.ERROR.value,
-        choices=(
-            (GroupType.ERROR.value, _("Error")),
-            (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
-            (GroupType.PERFORMANCE_SLOW_DB_QUERY.value, _("Slow DB Query")),
-            (
-                GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
-                _("Render Blocking Asset Span"),
-            ),
-            (
-                GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value,
-                _("N+1 API Calls"),
-            ),
-            # TODO add more group types when detection starts outputting them
-        ),
-    )
+    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id)
 
     objects = GroupManager(cache_fields=("id",))
 
@@ -496,21 +479,17 @@ class Group(Model):
         self,
         params: Mapping[str, str] | None = None,
         event_id: int | None = None,
-        organization_slug: str | None = None,
     ) -> str:
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
-        event_path = f"events/{event_id}/" if event_id else ""
-        url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
-            # Pass organization_slug if this needs to be called multiple times to avoid n+1 queries
-            org=urlquote(
-                self.organization.slug if organization_slug is None else organization_slug
-            ),
-            id=self.id,
-            event_path=event_path,
-            params="?" + urlencode(params) if params else "",
-        )
-        return absolute_uri(url)
+        organization = self.organization
+        path = f"/organizations/{organization.slug}/issues/{self.id}/"
+        if event_id:
+            path += f"events/{event_id}/"
+        query = None
+        if params:
+            query = urlencode(params)
+        return organization.absolute_url(path, query=query)
 
     @property
     def qualified_short_id(self):
@@ -702,8 +681,8 @@ class Group(Model):
 
     @property
     def issue_type(self):
-        return GroupType(self.type)
+        return get_group_type_by_type_id(self.type)
 
     @property
     def issue_category(self):
-        return GROUP_TYPE_TO_CATEGORY.get(self.issue_type, None)
+        return GroupCategory(self.issue_type.category)

@@ -45,10 +45,9 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -188,15 +187,17 @@ def make_error_event(request, project, platform):
     return event
 
 
-def make_performance_event(project):
+def make_performance_event(project, sample_name: str):
     with override_options(
         {
+            "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
         }
-    ):
+    ), Feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
         perf_data = dict(
             load_data(
-                "transaction-n-plus-one",
+                sample_name,
                 timestamp=datetime(2017, 9, 6, 0, 0),
             )
         )
@@ -213,10 +214,13 @@ def make_performance_event(project):
 
 
 def make_generic_event(project):
+    event_id = uuid.uuid4().hex
+    occurrence_data = TEST_ISSUE_OCCURRENCE.to_dict()
+    occurrence_data["event_id"] = event_id
     occurrence, group_info = process_event_and_issue_occurrence(
-        TEST_ISSUE_OCCURRENCE.to_dict(),
+        occurrence_data,
         {
-            "event_id": uuid.uuid4().hex,
+            "event_id": event_id,
             "project_id": project.id,
             "timestamp": before_now(minutes=1).isoformat(),
         },
@@ -422,43 +426,7 @@ def alert(request):
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
-            "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
-        },
-    ).render(request)
-
-
-@login_required
-def release_alert(request):
-    platform = request.GET.get("platform", "python")
-    org = Organization(id=1, slug="example", name="Example")
-    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
-
-    event = make_error_event(request, project, platform)
-    group = event.group
-
-    rule = Rule(id=1, label="An example rule")
-    # In non-debug context users_seen we get users_seen from group.count_users_seen()
-    users_seen = get_random(request).randint(0, 100 * 1000)
-
-    contexts = event.data["contexts"].items() if "contexts" in event.data else None
-    event_user = event.data["event_user"] if "event_user" in event.data else None
-
-    return MailPreview(
-        html_template="sentry/emails/release_alert.html",
-        text_template="sentry/emails/release_alert.txt",
-        context={
-            **get_shared_context(rule, org, project, group, event),
-            "interfaces": get_interface_list(event),
-            "event_user": event_user,
-            "contexts": contexts,
-            "users_seen": users_seen,
-            "project": project,
-            "last_release": {
-                "version": "13.9.2",
-            },
-            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
-            "environment": "production",
-            "regression": False,
+            "issue_type": group.issue_type.description,
         },
     ).render(request)
 
@@ -525,7 +493,7 @@ def digest(request):
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
-        perf_event = make_performance_event(project)
+        perf_event = make_performance_event(project, "transaction-n-plus-one")
         # don't clobber error issue ids
         perf_event.group.id = i + 100
         perf_group = perf_event.group

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {EntryData} from 'sentry/types';

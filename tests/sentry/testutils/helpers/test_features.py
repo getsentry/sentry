@@ -2,8 +2,10 @@ from sentry import features
 from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class TestTestUtilsFeatureHelper(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -30,6 +32,28 @@ class TestTestUtilsFeatureHelper(TestCase):
         with self.feature({"organizations:customer-domains": True}):
             org_context = organization_service.get_organization_by_slug(
                 slug=self.org.slug, only_visible=False, user_id=None
+            )
+            assert org_context
+            assert org_context.organization
+            assert isinstance(org_context.organization, ApiOrganization)
+
+            assert features.has("organizations:customer-domains", org_context.organization)
+
+        other_org = self.create_organization()
+        with self.feature({"organizations:customer-domains": [other_org.slug]}):
+            # Feature not enabled for self.org
+            org_context = organization_service.get_organization_by_slug(
+                slug=self.org.slug, only_visible=False, user_id=None
+            )
+            assert org_context
+            assert org_context.organization
+            assert isinstance(org_context.organization, ApiOrganization)
+
+            assert features.has("organizations:customer-domains", org_context.organization) is False
+
+            # Feature enabled for other_org
+            org_context = organization_service.get_organization_by_slug(
+                slug=other_org.slug, only_visible=False, user_id=None
             )
             assert org_context
             assert org_context.organization

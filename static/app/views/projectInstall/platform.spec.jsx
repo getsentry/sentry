@@ -27,6 +27,12 @@ describe('ProjectInstallPlatform', function () {
         body: {},
       });
 
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/projects/',
+        body: [baseProps.project],
+      });
+
       render(<ProjectInstallPlatform {...props} />, {
         context: TestStubs.routerContext([{organization: {id: '1337'}}]),
       });
@@ -67,6 +73,12 @@ describe('ProjectInstallPlatform', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/docs/node/',
         body: {html: '<h1>Documentation here</h1>'},
+      });
+
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/projects/',
+        body: [baseProps.project],
       });
 
       render(<ProjectInstallPlatform {...props} />, {

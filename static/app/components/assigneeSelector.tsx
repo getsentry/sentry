@@ -10,13 +10,13 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import type {Actor, Group, SuggestedOwnerReason} from 'sentry/types';
+import type {Actor, SuggestedOwnerReason} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface AssigneeSelectorProps
@@ -124,19 +124,19 @@ function AssigneeAvatar({
 function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
   const organization = useOrganization();
   const groups = useLegacyStore(GroupStore);
-  const group = groups.find(item => item.id === props.id) as Group;
+  const group = groups.find(item => item.id === props.id);
 
   return (
     <AssigneeWrapper>
       <AssigneeSelectorDropdown
         organization={organization}
-        assignedTo={group.assignedTo}
+        assignedTo={group?.assignedTo}
         {...props}
       >
         {({loading, isOpen, getActorProps, suggestedAssignees}) => {
           const avatarElement = (
             <AssigneeAvatar
-              assignedTo={group.assignedTo}
+              assignedTo={group?.assignedTo}
               suggestedActors={suggestedAssignees}
             />
           );

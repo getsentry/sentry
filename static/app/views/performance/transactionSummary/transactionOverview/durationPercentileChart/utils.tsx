@@ -1,4 +1,6 @@
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 const AGGREGATE_ALIAS_VALUE_EXTRACT_PATTERN = /(\d+)$/;
 const FUNCTION_FIELD_VALUE_EXTRACT_PATTERN = /(\d+)\)$/;
@@ -44,4 +46,22 @@ export function transformData(
       data: extractedData.map(i => ({value: i[1], name: `${i[0].toLocaleString()}%`})),
     },
   ];
+}
+
+export function getPercentiles(organization: Organization) {
+  const isUsingMetrics = canUseMetricsData(organization);
+  const METRICS_PERCENTILES = ['0.25', '0.5', '0.75', '0.9', '0.95', '0.99', '1'];
+  const INDEXED_PERCENTILES = [
+    '0.10',
+    '0.25',
+    '0.50',
+    '0.75',
+    '0.90',
+    '0.95',
+    '0.99',
+    '0.995',
+    '0.999',
+    '1',
+  ];
+  return isUsingMetrics ? METRICS_PERCENTILES : INDEXED_PERCENTILES;
 }

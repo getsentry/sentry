@@ -9,6 +9,7 @@ import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
+import moment from 'moment';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
@@ -414,6 +415,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
         GroupStore.onPopulateStats(groups, data);
+        this.trackTabViewed(groups, data);
       },
       error: err => {
         this.setState({
@@ -615,32 +617,6 @@ class IssueListOverview extends Component<Props, State> {
           }
         }
 
-        const numPerfIssues = data.filter(
-          (group: BaseGroup) => group.issueCategory === IssueCategory.PERFORMANCE
-        ).length;
-
-        const page = this.props.location.query.page;
-
-        const endpointParams = this.getEndpointParams();
-        const tabQueriesWithCounts = getTabsWithCounts(organization);
-        const currentTabQuery = tabQueriesWithCounts.includes(
-          endpointParams.query as Query
-        )
-          ? endpointParams.query
-          : null;
-        const tab = getTabs(organization).find(
-          ([tabQuery]) => currentTabQuery === tabQuery
-        )?.[1];
-
-        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
-          organization,
-          tab: tab?.analyticsName,
-          page: page ? parseInt(page, 10) : 0,
-          query,
-          num_perf_issues: numPerfIssues,
-          num_issues: data.length,
-        });
-
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
@@ -823,6 +799,43 @@ class IssueListOverview extends Component<Props, State> {
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
+  }
+
+  trackTabViewed(groups: string[], data: Group[]) {
+    const {organization, location} = this.props;
+    const page = location.query.page;
+    const endpointParams = this.getEndpointParams();
+    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
+      ? endpointParams.query
+      : null;
+    const tab = getTabs(organization).find(
+      ([tabQuery]) => currentTabQuery === tabQuery
+    )?.[1];
+
+    const numPerfIssues = groups.filter(
+      group => GroupStore.get(group)?.issueCategory === IssueCategory.PERFORMANCE
+    ).length;
+    // First and last seen are only available after the group has fetched stats
+    // Number of issues shown whose first seen is more than 30 days ago
+    const numOldIssues = data.filter((group: BaseGroup) =>
+      moment(new Date(group.firstSeen)).isBefore(moment().subtract(30, 'd'))
+    ).length;
+    // number of issues shown whose first seen is less than 7 days
+    const numNewIssues = data.filter((group: BaseGroup) =>
+      moment(new Date(group.firstSeen)).isAfter(moment().subtract(7, 'd'))
+    ).length;
+
+    trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+      organization,
+      tab: tab?.analyticsName,
+      page: page ? parseInt(page, 10) : 0,
+      query: this.getQuery(),
+      num_perf_issues: numPerfIssues,
+      num_old_issues: numOldIssues,
+      num_new_issues: numNewIssues,
+      num_issues: data.length,
+    });
   }
 
   onIssueListSidebarSearch = (query: string) => {
@@ -1191,11 +1204,7 @@ class IssueListOverview extends Component<Props, State> {
         />
         <StyledBody>
           <StyledMain>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              onSearch={this.onSearch}
-            />
+            <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
               <IssueListActions

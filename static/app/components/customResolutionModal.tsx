@@ -32,6 +32,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
       return {
         item: release.version,
         label: <Version version={release.version} anchor={false} />,
+        plainTextLabel: release.versionInfo.description ?? release.version,
         details: (
           <span>
             {t('Created')} <TimeSince date={release.dateCreated} />

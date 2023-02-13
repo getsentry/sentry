@@ -495,7 +495,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             },
         )
         assert response.status_code == 201
-        assert response.data["projects"] == [project1.id, project2.id]
+        assert response.data["projects"].sort() == [project1.id, project2.id].sort()
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]

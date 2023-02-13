@@ -29,7 +29,7 @@ function Tags({event, organization, projectSlug, location, hasEventContext}: Pro
       <EventTags
         event={event}
         organization={organization}
-        projectId={projectSlug}
+        projectSlug={projectSlug}
         location={location}
       />
     </EventDataSection>

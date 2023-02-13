@@ -11,7 +11,6 @@ into receiving emails but no Slack messages.
 NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.ACTIVE_RELEASE: NotificationSettingOptionValues.NEVER,  # TODO: update
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
     NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.QUOTA: NotificationSettingOptionValues.ALWAYS,
@@ -27,7 +26,6 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
 NOTIFICATION_SETTINGS_DEFAULT_OFF = {
     NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.ACTIVE_RELEASE: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.QUOTA: NotificationSettingOptionValues.NEVER,

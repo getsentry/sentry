@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
@@ -18,6 +18,7 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
 
@@ -72,7 +73,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     'application'
   );
 
-  const functions = useFunctions({
+  const functionsQuery = useFunctions({
     cursor: functionsCursor,
     project: props.project,
     query: '', // TODO: This doesnt support the same filters
@@ -101,6 +102,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
 
   return (
     <Layout.Main fullWidth>
+      <ProfileCharts query={props.query} hideCount />
       <TableHeader>
         <CompactSelect
           triggerProps={{prefix: t('Filter'), size: 'xs'}}
@@ -145,15 +147,19 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           onChange={({value}) => setFunctionType(value)}
         />
         <StyledPagination
-          pageLinks={functions.type === 'resolved' ? functions.data.pageLinks : null}
+          pageLinks={
+            functionsQuery.isFetched ? functionsQuery.data?.[0]?.pageLinks : null
+          }
           onCursor={handleFunctionsCursor}
           size="xs"
         />
       </TableHeader>
       <FunctionsTable
-        error={functions.type === 'errored' ? functions.error : null}
-        isLoading={functions.type === 'initial' || functions.type === 'loading'}
-        functions={functions.type === 'resolved' ? functions.data.functions : []}
+        error={functionsQuery.isError ? functionsQuery.error.message : null}
+        isLoading={functionsQuery.isLoading}
+        functions={
+          functionsQuery.isFetched ? functionsQuery.data?.[0].functions ?? [] : []
+        }
         project={props.project}
         sort={functionsSort}
       />
@@ -171,7 +177,7 @@ const ALL_FIELDS = [
   'profile.duration',
 ] as const;
 
-export type ProfilingFieldType = typeof ALL_FIELDS[number];
+export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
 
 export function getProfilesTableFields(platform: Project['platform']) {
   if (mobile.includes(platform as any)) {

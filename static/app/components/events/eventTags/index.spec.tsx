@@ -25,7 +25,7 @@ describe('event tags', function () {
     render(
       <EventTags
         organization={organization}
-        projectId={project.id}
+        projectSlug={project.slug}
         location={router.location}
         event={event}
       />,
@@ -73,7 +73,7 @@ describe('event tags', function () {
     render(
       <EventTags
         organization={organization}
-        projectId={project.id}
+        projectSlug={project.slug}
         location={router.location}
         event={event}
       />,

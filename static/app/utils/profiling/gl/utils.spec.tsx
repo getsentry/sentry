@@ -8,6 +8,7 @@ import {
   createShader,
   ELLIPSIS,
   findRangeBinarySearch,
+  getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
@@ -54,6 +55,7 @@ describe('upperBound', () => {
     [[1, 2, 3], 2, 1],
     [[-3, -2, -1], -2, 1],
     [[1, 2, 3], 10, 3],
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 4],
   ])(`inserts`, (args, target, insert) => {
     expect(
       upperBound(
@@ -79,6 +81,7 @@ describe('lowerBound', () => {
     [[1, 2, 3], 1, 0],
     [[-3, -2, -1], -1, 1],
     [[1, 2, 3], 10, 3],
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 3],
   ])(`inserts`, (args, target, insert) => {
     expect(
       lowerBound(
@@ -207,7 +210,7 @@ describe('createShader', () => {
 
     // @ts-ignore this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).toThrow(
-      'Failed to compile shader'
+      'Failed to compile 0 shader'
     );
   });
 });
@@ -610,5 +613,40 @@ describe('computeConfigViewWithStrategy', () => {
     expect(
       computeConfigViewWithStrategy('min', view, frame).equals(new Rect(0, 2, 10, 1))
     ).toBe(true);
+  });
+
+  describe('getCenterScaleMatrixFromConfigPosition', function () {
+    it('returns a matrix that represents scaling on both x and y axes', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(
+        vec2.fromValues(2, 2),
+        vec2.fromValues(0, 0)
+      );
+
+      // Scales by 2 along the x and y axis
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          0, 0, 1
+        )
+      );
+    });
+
+    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(
+        vec2.fromValues(2, 2),
+        vec2.fromValues(5, 5)
+      );
+
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          -5, -5, 1
+        )
+      );
+    });
   });
 });

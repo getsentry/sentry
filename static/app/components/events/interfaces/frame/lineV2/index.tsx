@@ -47,6 +47,7 @@ type Props = Omit<
 
 function Line({
   frame,
+  debugFrames,
   nextFrame,
   prevFrame,
   timesRepeated,
@@ -157,6 +158,7 @@ function Line({
             onToggleContext={toggleContext}
             isUsedForGrouping={isUsedForGrouping}
             frameMeta={frameMeta}
+            debugFrames={debugFrames}
           />
         );
     }
@@ -175,7 +177,8 @@ function Line({
   const shouldShowCodecovLegend =
     organization.features.includes('codecov-stacktrace-integration') &&
     organization.codecovAccess &&
-    !nextFrame;
+    !nextFrame &&
+    isExpanded;
 
   return (
     <StyleListItem className={className} data-test-id="stack-trace-frame">

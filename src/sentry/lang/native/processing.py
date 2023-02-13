@@ -302,14 +302,23 @@ def _handles_frame(data, frame):
     return is_native_platform(platform) and frame.get("instruction_addr") is not None
 
 
-def get_frames_for_symbolication(frames, data, modules):
+def get_frames_for_symbolication(
+    frames,
+    data,
+    modules,
+    adjustment=None,
+):
     modules_by_debug_id = None
     rv = []
+    adjustment = adjustment or "auto"
 
     for frame in reversed(frames):
         if not _handles_frame(data, frame):
             continue
         s_frame = dict(frame)
+
+        if adjustment == "none":
+            s_frame["adjust_instruction_addr"] = False
 
         # validate and expand addressing modes.  If we can't validate and
         # expand it, we keep None which is absolute.  That's not great but
@@ -342,6 +351,13 @@ def get_frames_for_symbolication(frames, data, modules):
             s_frame["addr_mode"] = sanitized_addr_mode
         rv.append(s_frame)
 
+    if len(rv) > 0:
+        first_frame = rv[0]
+        if adjustment == "all":
+            first_frame["adjust_instruction_addr"] = True
+        elif adjustment == "all_but_first":
+            first_frame["adjust_instruction_addr"] = False
+
     return rv
 
 
@@ -362,7 +378,10 @@ def process_payload(data):
         {
             "registers": sinfo.stacktrace.get("registers") or {},
             "frames": get_frames_for_symbolication(
-                sinfo.stacktrace.get("frames") or (), data, modules
+                sinfo.stacktrace.get("frames") or (),
+                data,
+                modules,
+                sinfo.stacktrace.get("instruction_addr_adjustment"),
             ),
         }
         for sinfo in stacktrace_infos
@@ -431,10 +450,6 @@ def get_symbolication_function(data):
         return process_applecrashreport
     elif is_native_event(data):
         return process_payload
-
-
-def should_process_with_symbolicator(data):
-    return bool(get_symbolication_function(data))
 
 
 def get_required_attachment_types(data) -> Set[str]:

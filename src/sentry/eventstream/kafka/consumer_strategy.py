@@ -38,6 +38,7 @@ def dispatch_post_process_group_task(
     queue: str,
     skip_consume: bool = False,
     group_states: Optional[GroupStates] = None,
+    occurrence_id: Optional[str] = None,
 ) -> None:
     _dispatch_post_process_group_task(
         event_id,
@@ -50,6 +51,7 @@ def dispatch_post_process_group_task(
         queue,
         skip_consume,
         group_states,
+        occurrence_id=occurrence_id,
     )
 
 

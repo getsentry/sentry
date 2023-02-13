@@ -45,6 +45,7 @@ class DisabledMemberViewTest(TestCase):
         self.login_as(self.user)
 
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_simple(self):
         self.project1.update_option("sentry:performance_issue_creation_rate", 1.0)

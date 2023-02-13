@@ -21,7 +21,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
 from sentry import audit_log, features
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
+from sentry.api.invite_helper import remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -32,17 +32,16 @@ from sentry.auth.idpmigration import (
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import (
-    AuditLogEntry,
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    User,
-)
+from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
+from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, auth_service
+from sentry.services.hybrid_cloud.organization import (
+    ApiOrganization,
+    ApiOrganizationMember,
+    organization_service,
+)
+from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, json, metrics
@@ -55,6 +54,7 @@ from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
+from ..services.hybrid_cloud.log import AuditLogEvent, log_service
 from . import manager
 
 logger = logging.getLogger("sentry.auth")
@@ -98,9 +98,14 @@ class AuthIdentityHandler:
 
     auth_provider: AuthProvider
     provider: Provider
-    organization: Organization
+    organization: ApiOrganization
     request: HttpRequest
     identity: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        # For debugging. TODO: Remove when tests are stable
+        if not isinstance(self.organization, ApiOrganization):
+            raise TypeError
 
     @cached_property
     def user(self) -> User | AnonymousUser:
@@ -159,11 +164,12 @@ class AuthIdentityHandler:
         )
 
     @staticmethod
-    def _set_linked_flag(member: OrganizationMember) -> None:
-        if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
-            setattr(member.flags, "sso:invalid", False)
-            setattr(member.flags, "sso:linked", True)
-            member.save()
+    def _set_linked_flag(member: ApiOrganizationMember) -> None:
+        if member.flags.sso__invalid or not member.flags.sso__linked:
+            member.flags.sso__invalid = False
+            member.flags.sso__linked = True
+
+            organization_service.update_membership_flags(organization_member=member)
 
     def handle_existing_identity(
         self,
@@ -180,11 +186,10 @@ class AuthIdentityHandler:
             last_synced=now,
         )
 
-        try:
-            member = OrganizationMember.objects.get(
-                user=auth_identity.user, organization=self.organization
-            )
-        except OrganizationMember.DoesNotExist:
+        member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=auth_identity.user.id
+        )
+        if member is None:
             # this is likely the case when someone was removed from the org
             # but still has access to rejoin
             member = self._handle_new_membership(auth_identity)
@@ -222,54 +227,25 @@ class AuthIdentityHandler:
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
         return login_redirect_url
 
-    def _handle_new_membership(self, auth_identity: AuthIdentity) -> OrganizationMember | None:
-        user = auth_identity.user
-
-        # If the user is either currently *pending* invite acceptance (as indicated
-        # from the invite token and member id in the session) OR an existing invite exists on this
-        # organization for the email provided by the identity provider.
-        invite_helper = ApiInviteHelper.from_session_or_email(
-            request=self.request, organization=self.organization, email=user.email
+    def _handle_new_membership(self, auth_identity: ApiAuthIdentity) -> ApiOrganizationMember:
+        user, om = auth_service.handle_new_membership(
+            self.request, self.organization, auth_identity, self.auth_provider
         )
 
-        # If we are able to accept an existing invite for the user for this
-        # organization, do so, otherwise handle new membership
-        if invite_helper:
-            if invite_helper.invite_approved:
-                return invite_helper.accept_invite(user)
-
-            # It's possible the user has an _invite request_ that hasn't been approved yet,
-            # and is able to join the organization without an invite through the SSO flow.
-            # In that case, delete the invite request and create a new membership.
-            invite_helper.handle_invite_not_approved()
-
-        flags = OrganizationMember.flags["sso:linked"]
-        # if the org doesn't have the ability to add members then anyone who got added
-        # this way should be disabled until the org upgrades
-        if not features.has("organizations:invite-members", self.organization):
-            flags = flags | OrganizationMember.flags["member-limit:restricted"]
-
-        # Otherwise create a new membership
-        om = OrganizationMember.objects.create(
-            organization=self.organization,
-            role=self.organization.default_role,
-            user=user,
-            flags=flags,
-        )
-
-        default_teams = self.auth_provider.default_teams.all()
-        for team in default_teams:
-            OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
-
-        AuditLogEntry.objects.create(
-            organization=self.organization,
-            actor=user,
-            ip_address=self.request.META["REMOTE_ADDR"],
-            target_object=om.id,
-            target_user=om.user,
-            event=audit_log.get_event_id("MEMBER_ADD"),
-            data=om.get_audit_log_data(),
-        )
+        if om is not None:
+            log_service.record_audit_log(
+                event=AuditLogEvent(
+                    organization_id=self.organization.id,
+                    date_added=timezone.now(),
+                    event_id=audit_log.get_event_id("MEMBER_ADD"),
+                    actor_user_id=user.id,
+                    actor_label=user.username,
+                    ip_address=self.request.META["REMOTE_ADDR"],
+                    target_object_id=om.id,
+                    data=om.get_audit_log_metadata(user.email),
+                    target_user_id=user.id,
+                )
+            )
 
         return om
 
@@ -280,7 +256,7 @@ class AuthIdentityHandler:
             return None
 
     @transaction.atomic  # type: ignore
-    def handle_attach_identity(self, member: OrganizationMember | None = None) -> AuthIdentity:
+    def handle_attach_identity(self, member: ApiOrganizationMember | None = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
@@ -340,13 +316,18 @@ class AuthIdentityHandler:
         self._set_linked_flag(member)
 
         if auth_is_new:
-            AuditLogEntry.objects.create(
-                organization=self.organization,
-                actor=self.user,
-                ip_address=self.request.META["REMOTE_ADDR"],
-                target_object=auth_identity.id,
-                event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
-                data=auth_identity.get_audit_log_data(),
+            log_service.record_audit_log(
+                event=AuditLogEvent(
+                    organization_id=self.organization.id,
+                    date_added=timezone.now(),
+                    event_id=audit_log.get_event_id("SSO_IDENTITY_LINK"),
+                    actor_user_id=self.user.id,
+                    actor_label=self.user.username,
+                    ip_address=self.request.META["REMOTE_ADDR"],
+                    target_object_id=auth_identity.id,
+                    target_user_id=self.user.id,
+                    data=auth_identity.get_audit_log_data(),
+                )
             )
 
             messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
@@ -366,27 +347,29 @@ class AuthIdentityHandler:
 
         # since we've identified an identity which is no longer valid
         # lets preemptively mark it as such
-        try:
-            other_member = OrganizationMember.objects.get(
-                user=auth_identity.user_id, organization=self.organization
-            )
-        except OrganizationMember.DoesNotExist:
+        other_member = organization_service.check_membership_by_id(
+            user_id=auth_identity.user_id, organization_id=self.organization.id
+        )
+        if other_member is None:
             return
-        other_member.flags["sso:invalid"] = True
-        other_member.flags["sso:linked"] = False
-        other_member.save()
+
+        other_member.flags.sso__invalid = True
+        other_member.flags.sso__linked = False
+        organization_service.update_membership_flags(organization_member=other_member)
 
         return deletion_result
 
-    def _get_organization_member(self, auth_identity: AuthIdentity) -> OrganizationMember:
+    def _get_organization_member(self, auth_identity: AuthIdentity) -> ApiOrganizationMember:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.
         """
-        try:
-            return OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        except OrganizationMember.DoesNotExist:
+        member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+        if member is None:
             return self._handle_new_membership(auth_identity)
+        return member
 
     def _respond(
         self,
@@ -474,14 +457,14 @@ class AuthIdentityHandler:
                 is_account_verified = self.has_verified_account(verification_value)
 
         is_new_account = not self.user.is_authenticated  # stateful
-        if self._app_user and self.identity.get("email_verified") or is_account_verified:
+        if self._app_user and (self.identity.get("email_verified") or is_account_verified):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
-            has_membership = OrganizationMember.objects.filter(
-                user=self._app_user, organization=self.organization
-            ).exists()
-            if has_membership:
+            membership = organization_service.check_membership_by_id(
+                user_id=self._app_user.id, organization_id=self.organization.id
+            )
+            if membership is not None:
                 try:
                     self._login(self.user)
                 except self._NotCompletedSecurityChecks:
@@ -750,8 +733,14 @@ class AuthHelper(Pipeline):
         return response
 
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
+        # This is a temporary step to keep test_helper integrated
+        # TODO: Move this conversion further upstream
+        api_organization = DatabaseBackedOrganizationService.serialize_organization(
+            self.organization
+        )
+
         return AuthIdentityHandler(
-            self.provider_model, self.provider, self.organization, self.request, identity
+            self.provider_model, self.provider, api_organization, self.request, identity
         )
 
     @transaction.atomic  # type: ignore
@@ -828,9 +817,10 @@ class AuthHelper(Pipeline):
         data = self.fetch_state()
         config = self.provider.build_config(data)
 
-        try:
-            om = OrganizationMember.objects.get(user=request.user, organization=self.organization)
-        except OrganizationMember.DoesNotExist:
+        om = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=request.user.id
+        )
+        if om is None:
             return self.error(ERR_UID_MISMATCH)
 
         # disable require 2FA for the organization

@@ -1,5 +1,5 @@
 import {EventOrGroupType} from 'sentry/types';
-import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 type SaveQueryParams = {
   fields?: readonly string[];

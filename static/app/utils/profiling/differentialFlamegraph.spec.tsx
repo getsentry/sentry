@@ -23,12 +23,18 @@ const makeFlamegraph = (profile: Profiling.EventedProfile) => {
   return new Flamegraph(
     EventedProfile.FromProfile(
       profile,
-      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}])
+      createFrameIndex('mobile', [
+        {name: 'f0'},
+        {name: 'f1'},
+        {name: 'f2'},
+        {name: 'f3'},
+      ]),
+      {type: 'flamechart'}
     ),
     0,
     {
       inverted: false,
-      leftHeavy: false,
+      sort: 'call order',
     }
   );
 };

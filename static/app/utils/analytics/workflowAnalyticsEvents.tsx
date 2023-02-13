@@ -1,14 +1,13 @@
-import type {IssueCategory, ResolutionStatus} from 'sentry/types';
-import {Tab} from 'sentry/views/organizationGroupDetails/types';
+import type {ResolutionStatus} from 'sentry/types';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
   project_id: string;
 };
 
-type IssueDetailsWithAlert = {
-  group_id: number;
-  issue_category: IssueCategory;
+interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   project_id: number;
   /** The time that the alert was initially fired. */
   alert_date?: string;
@@ -16,10 +15,11 @@ type IssueDetailsWithAlert = {
   alert_rule_id?: string;
   /**  The type of alert notification - email/slack */
   alert_type?: string;
-};
+}
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
+  group_id: number;
   has_commit: boolean;
   has_release: boolean;
   has_source_maps: boolean;
@@ -96,6 +96,7 @@ export type TeamInsightsEventParameters = {
     rule_id: string;
   };
   'project_detail.change_chart': {chart_index: number; metric: string};
+  'project_detail.open_anr_issues': {};
   'project_detail.open_discover': {};
   'project_detail.open_issues': {};
   'project_detail.performance_tour.advance': BaseTour;
@@ -148,6 +149,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
+  'project_detail.open_anr_issues': 'Project Detail: Open issues from ANR rate scorecard',
   'project_detail.change_chart': 'Project Detail: Change Chart',
   'project_detail.performance_tour.advance': 'Project Detail: Performance Tour Advance',
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',

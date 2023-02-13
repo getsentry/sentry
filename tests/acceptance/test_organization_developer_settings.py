@@ -90,6 +90,8 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
+        self.browser.wait_until('[data-test-id="tesla-app"]')
+
         link = self.browser.find_element(by=By.LINK_TEXT, value="Tesla App")
         link.click()
 

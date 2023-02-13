@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
+from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
@@ -56,6 +56,7 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
         remote_addr=request.META["REMOTE_ADDR"],
         signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
+        absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
         authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
     )
@@ -134,6 +135,16 @@ class AuthService(InterfaceWithLifecycle):
         """
         pass
 
+    @abc.abstractmethod
+    def handle_new_membership(
+        self,
+        request: Request,
+        organization: ApiOrganization,
+        auth_identity: ApiAuthIdentity,
+        auth_provider: ApiAuthProvider,
+    ) -> Tuple[APIUser, ApiOrganizationMember]:
+        pass
+
 
 def impl_with_db() -> AuthService:
     from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
@@ -166,6 +177,7 @@ class AuthenticationRequest:
     remote_addr: str | None = None
     signature: str | None = None
     absolute_url: str = ""
+    absolute_url_root: str = ""
     path: str = ""
     authorization_b64: str | None = None
 
@@ -307,6 +319,14 @@ class ApiAuthProvider:
     organization_id: int = -1
     provider: str = ""
     flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
+
+
+@dataclass
+class ApiAuthIdentity:
+    id: int = -1
+    user_id: int = -1
+    provider_id: int = -1
+    ident: str = ""
 
 
 @dataclass(eq=True)

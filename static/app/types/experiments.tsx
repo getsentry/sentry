@@ -42,7 +42,7 @@ export type ExperimentConfig = {
 //
 // [0]: app/data/experimentConfig.tsx
 
-type ExperimentList = typeof experimentList[number];
+type ExperimentList = (typeof experimentList)[number];
 
 type ExperimentSelect<
   C extends ExperimentConfig,

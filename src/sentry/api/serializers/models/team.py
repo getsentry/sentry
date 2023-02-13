@@ -39,6 +39,7 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
+from sentry.roles import team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -94,25 +95,34 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 def get_org_roles(
     org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
-) -> Mapping[int, str]:
-    """Get the role the user has in each org"""
+) -> Mapping[int, Sequence[str]]:
+    """
+    Get the roles the user has in each org
+    Roles are ordered from highest to lower priority (descending priority)
+    """
     if not user.is_authenticated:
         return {}
 
     if optimization:
-        if optimization.access.role is not None:
+        if optimization.access.roles is not None:
             return {
-                optimization.access.api_user_organization_context.organization.id: optimization.access.role
+                optimization.access.api_user_organization_context.organization.id: list(
+                    optimization.access.roles
+                )
             }
         return {}
 
     # map of org id to role
+    # can have multiple org roles through team membership
+    # return them sorted to figure out highest team role
     return {
-        om["organization_id"]: om["role"]
-        for om in OrganizationMember.objects.filter(
-            user_id=user.id, organization__in=set(org_ids)
-        ).values("role", "organization_id")
+        om.organization.id: _get_all_org_roles(om)
+        for om in OrganizationMember.objects.filter(user_id=user.id, organization__in=set(org_ids))
     }
+
+
+def _get_all_org_roles(member: OrganizationMember) -> Sequence[str]:
+    return [role.id for role in member.get_all_org_roles_sorted()]
 
 
 def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Team]:
@@ -143,6 +153,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     isPending: bool
     memberCount: int
     avatar: SerializedAvatarFields
+    orgRole: str
 
 
 @register(Team)
@@ -181,7 +192,7 @@ class TeamSerializer(Serializer):  # type: ignore
             maybe_singular_api_access_org_context(self.access, org_ids) if self.access else None
         )
 
-        org_roles = get_org_roles(org_ids, user, optimization=optimization)
+        all_org_roles = get_org_roles(org_ids, user, optimization=optimization)
 
         member_totals = get_member_totals(item_list, user)
         team_memberships = _get_team_memberships(item_list, user, optimization=optimization)
@@ -193,27 +204,30 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            org_role = org_roles.get(team.organization_id)
-
-            if team.id in team_memberships:
-                is_member = True
-                team_role = team_memberships[team.id]
-                if team_role is None:
-                    team_role = roles.get_minimum_team_role(org_role).id
-            else:
-                is_member = False
-                team_role = None
+            org_roles = all_org_roles.get(team.organization_id) or []
+            is_member = team.id in team_memberships
+            team_role = None
 
             if is_member:
-                has_access = True
-            elif is_superuser:
-                has_access = True
-            elif team.organization.flags.allow_joinleave:
-                has_access = True
-            elif org_role and roles.get(org_role).is_global:
-                has_access = True
-            else:
-                has_access = False
+                team_role = team_memberships[team.id]
+                top_org_role = org_roles[0] if org_roles else None
+
+                if top_org_role is not None:
+                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                    if (
+                        not team_role
+                        or minimum_team_role.priority
+                        > team_roles.get(team_role.lower().replace("team ", "")).priority
+                    ):
+                        team_role = minimum_team_role.id
+
+            has_access = bool(
+                is_member
+                or is_superuser
+                or team.organization.flags.allow_joinleave
+                or any(roles.get(org_role).is_global for org_role in org_roles)
+            )
+
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
@@ -275,6 +289,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
             "avatar": avatar,
+            "orgRole": obj.org_role,
         }
 
         # Expandable attributes.

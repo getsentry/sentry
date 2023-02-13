@@ -25,7 +25,6 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import get_participants_for_release
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
 
@@ -86,7 +85,9 @@ class ReleaseActivityNotification(ActivityNotification):
             "file_count": CommitFileChange.objects.get_count_for_commits(self.commit_list),
             "release": self.release,
             "repos": self.repos,
-            "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
+            "setup_repo_link": self.organization.absolute_url(
+                f"/organizations/{self.organization.slug}/repos/"
+            ),
             "text_description": f"Version {self.version_parsed} was deployed to {self.environment}",
             "version_parsed": self.version_parsed,
         }
@@ -113,7 +114,7 @@ class ReleaseActivityNotification(ActivityNotification):
     ) -> MutableMapping[str, Any]:
         projects = self.get_projects(recipient)
         release_links = [
-            absolute_uri(
+            self.organization.absolute_url(
                 f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}"
             )
             for p in projects
@@ -152,8 +153,9 @@ class ReleaseActivityNotification(ActivityNotification):
                 return [
                     MessageAction(
                         name=project.slug,
-                        url=absolute_uri(
-                            f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                        url=self.organization.absolute_url(
+                            f"/organizations/{project.organization.slug}/releases/{release.version}/",
+                            query=f"project={project.id}&unselectedSeries=Healthy",
                         ),
                     )
                     for project in self.release.projects.all()

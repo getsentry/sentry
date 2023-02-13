@@ -298,10 +298,16 @@ def map_discover_query_args(url: str, args: Mapping[str, str | None]) -> Mapping
     return dict(**args, query=query)
 
 
+discover_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
+)
+
+customer_domain_discover_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
+)
+
 handler: Handler = Handler(
     fn=unfurl_discover,
-    matcher=re.compile(
-        r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
-    ),
+    matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,
 )

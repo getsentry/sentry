@@ -137,7 +137,7 @@ export function getAssignedToDisplayName(group: Group) {
     return user?.name ?? group.assignedTo.name;
   }
 
-  return group.assignedTo?.name ?? t('No-one');
+  return group.assignedTo?.name ?? t('No one');
 }
 
 function AssignedTo({group, project, event, disableDropdown = false}: AssignedToProps) {

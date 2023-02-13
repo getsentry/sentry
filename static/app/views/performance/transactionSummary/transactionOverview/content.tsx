@@ -13,7 +13,9 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Tooltip from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -27,13 +29,18 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
-import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
-import Tags from 'sentry/views/eventsV2/tags';
+import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
+import Tags from 'sentry/views/discover/tags';
+import {
+  canUseMetricsInTransactionSummary,
+  canUseTransactionMetricsData,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -47,6 +54,7 @@ import Filter, {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {
+  generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
@@ -75,6 +83,7 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
+  unfilteredTotalValues?: Record<string, number> | null;
 };
 
 function SummaryContent({
@@ -89,6 +98,7 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
+  unfilteredTotalValues,
 }: Props) {
   const routes = useRoutes();
   function handleSearch(query: string) {
@@ -173,12 +183,43 @@ function SummaryContent({
     return sortedEventView;
   }
 
+  function generateActionBarItems(_org: Organization, _location: Location) {
+    if (!canUseMetricsInTransactionSummary(_org)) {
+      return undefined;
+    }
+
+    return !canUseTransactionMetricsData(_org, _location)
+      ? [
+          {
+            key: 'alert',
+            makeAction: () => ({
+              Button: () => (
+                <Tooltip
+                  title={t(
+                    'Based on your search criteria and sample rate, the events available may be limited.'
+                  )}
+                >
+                  <StyledIconWarning size="sm" color="warningText" />
+                </Tooltip>
+              ),
+              menuItem: {
+                key: 'alert',
+              },
+            }),
+          },
+        ]
+      : undefined;
+  }
+
   const hasPerformanceChartInterpolation = organization.features.includes(
     'performance-chart-interpolation'
   );
 
   const query = decodeScalar(location.query.query, '');
   const totalCount = totalValues === null ? null : totalValues['count()'];
+  const unfilteredTotalCount = unfilteredTotalValues
+    ? unfilteredTotalValues['count()']
+    : null;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -205,14 +246,25 @@ function SummaryContent({
 
   const project = projects.find(p => p.id === projectId);
 
+  let transactionsListEventView = eventView.clone();
+  const fields = [...transactionsListEventView.fields];
+
   if (
     organization.features.includes('session-replay-ui') &&
     projectSupportsReplay(project)
   ) {
     transactionsListTitles.push(t('replay'));
+    fields.push({field: 'replayId'});
   }
 
-  let transactionsListEventView = eventView.clone();
+  if (
+    organization.features.includes('profiling') &&
+    project &&
+    isProfilingSupportedOrProjectHasProfiles(project)
+  ) {
+    transactionsListTitles.push(t('profile'));
+    fields.push({field: 'profile.id'});
+  }
 
   // update search conditions
 
@@ -244,8 +296,6 @@ function SummaryContent({
   if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
     durationField = filterToField(spanOperationBreakdownFilter)!;
   }
-
-  const fields = [...transactionsListEventView.fields];
 
   // add ops breakdown duration column as the 3rd column
   fields.splice(2, 0, {field: durationField});
@@ -293,15 +343,17 @@ function SummaryContent({
             fields={eventView.fields}
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
+            actionBarItems={generateActionBarItems(organization, location)}
           />
         </FilterActions>
         <TransactionSummaryCharts
           organization={organization}
           location={location}
           eventView={eventView}
-          totalValues={totalCount}
+          totalValue={totalCount}
           currentFilter={spanOperationBreakdownFilter}
           withoutZerofill={hasPerformanceChartInterpolation}
+          unfilteredTotalValue={unfilteredTotalCount}
         />
         <TransactionsList
           location={location}
@@ -321,6 +373,7 @@ function SummaryContent({
             id: generateTransactionLink(transactionName),
             trace: generateTraceLink(eventView.normalizeDateSelection(location)),
             replayId: generateReplayLink(routes),
+            'profile.id': generateProfileLink(),
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
@@ -328,6 +381,7 @@ function SummaryContent({
             spanOperationBreakdownFilter,
           })}
           forceLoading={isLoading}
+          referrer="performance.transactions_summary"
         />
         <SuspectSpans
           location={location}
@@ -384,6 +438,7 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           transactionName={transactionName}
+          unfilteredTotals={unfilteredTotalValues}
         />
         <SidebarSpacer />
         <Tags
@@ -496,6 +551,10 @@ const StyledSearchBar = styled(SearchBar)`
     order: initial;
     grid-column: auto;
   }
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  display: block;
 `;
 
 export default withProjects(SummaryContent);

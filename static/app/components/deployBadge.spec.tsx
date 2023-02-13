@@ -22,7 +22,7 @@ describe('DeployBadge', () => {
     expect(screen.queryByTestId('deploy-open-icon')).not.toBeInTheDocument();
   });
 
-  it('renders with icon and link', () => {
+  it('renders with link', () => {
     const projectId = 1;
     render(
       <DeployBadge
@@ -39,6 +39,5 @@ describe('DeployBadge', () => {
       `/organizations/sentry/issues/?environment=${deploy.environment}&project=${projectId}&query=release%3A1.2.3`
     );
     expect(screen.getByText('production')).toBeInTheDocument();
-    expect(screen.getByTestId('deploy-open-icon')).toBeInTheDocument();
   });
 });

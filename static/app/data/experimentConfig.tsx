@@ -16,7 +16,14 @@ export const experimentList: {
   key: string;
   parameter: string;
   type: ExperimentType;
-}[] = [];
+}[] = [
+  {
+    key: 'SavedIssueSearchesLocationExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+];
 
 export const experimentConfig = experimentList.reduce(
   (acc, exp) => ({...acc, [exp.key]: exp}),

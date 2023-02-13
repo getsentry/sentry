@@ -1,10 +1,9 @@
 import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
 import InactivePlugins from 'sentry/components/inactivePlugins';
+import {Panel, PanelItem} from 'sentry/components/panels';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
-
-import {Panel, PanelItem} from './panels';
 
 type Props = {
   organization: Organization;

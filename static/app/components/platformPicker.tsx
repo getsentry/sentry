@@ -27,7 +27,7 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
 
 interface PlatformPickerProps {
   setPlatform: (key: PlatformKey | null) => void;

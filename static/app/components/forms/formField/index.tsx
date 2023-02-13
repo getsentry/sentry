@@ -49,8 +49,8 @@ type ObservedFn<_P, T> = (props: FormFieldPropModel) => T;
 type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
 
 type ObservedPropResolver = [
-  typeof propsToObserve[number],
-  () => ResolvedObservableProps[typeof propsToObserve[number]]
+  (typeof propsToObserve)[number],
+  () => ResolvedObservableProps[(typeof propsToObserve)[number]]
 ];
 
 /**

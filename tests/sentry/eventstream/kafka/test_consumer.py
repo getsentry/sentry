@@ -724,6 +724,7 @@ class BatchedConsumerTest(TestCase):
             queue="post_process_errors",
             is_new_group_environment=False,
             group_states=None,
+            occurrence_id=None,
         )
 
     @patch(
@@ -780,6 +781,7 @@ class BatchedConsumerTest(TestCase):
             queue="post_process_errors",
             is_new_group_environment=False,
             group_states=None,
+            occurrence_id=None,
         )
 
         consumer.signal_shutdown()

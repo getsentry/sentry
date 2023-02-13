@@ -1,7 +1,10 @@
-import contextlib
 import os
+from typing import MutableSet
 
 import pytest
+from django.db.transaction import get_connection
+
+from sentry.silo import SiloMode
 
 pytest_plugins = ["sentry.utils.pytest"]
 
@@ -124,21 +127,53 @@ def register_class_in_model_manifest(request: pytest.FixtureRequest):
 
 
 @pytest.fixture(autouse=True)
-def setup_default_hybrid_cloud_stubs():
-    from sentry.region_to_control.producer import (
-        MockRegionToControlMessageService,
-        region_to_control_message_service,
-    )
-    from sentry.silo import SiloMode
-    from sentry.testutils.hybrid_cloud import service_stubbed
+def validate_silo_mode():
+    # NOTE!  Hybrid cloud uses many mechanisms to simulate multiple different configurations of the application
+    # during tests.  It depends upon `override_settings` using the correct contextmanager behaviors and correct
+    # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has
+    # a bug, or you may be using a contextmanager incorrectly.  Let us know and we can help!
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+        raise Exception(
+            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
+        )
+    yield
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+        raise Exception(
+            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
+        )
 
-    stubs = [
-        service_stubbed(
-            region_to_control_message_service, MockRegionToControlMessageService(), SiloMode.REGION
-        ),
-    ]
 
-    with contextlib.ExitStack() as stack:
-        for stub in stubs:
-            stack.enter_context(stub)
+@pytest.fixture(autouse=True)
+def protect_user_deletion(request):
+    if "django_db_setup" not in request.fixturenames:
         yield
+        return
+
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
+
+    with get_connection().cursor() as conn:
+        conn.execute("SET ROLE 'postgres'")
+
+    reset_test_role(role="postgres_unprivileged")
+
+    # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
+    seen_models: MutableSet[type] = set()
+    for model in iter_models():
+        for field in model._meta.fields:
+            if not isinstance(field, HybridCloudForeignKey):
+                continue
+            fk_model = field.foreign_model
+            if fk_model is None or fk_model in seen_models:
+                continue
+            seen_models.add(fk_model)
+            restrict_role(role="postgres_unprivileged", model=fk_model, revocation_type="DELETE")
+
+    with get_connection().cursor() as conn:
+        conn.execute("SET ROLE 'postgres_unprivileged'")
+
+    try:
+        yield
+    finally:
+        with get_connection().cursor() as conn:
+            conn.execute("SET ROLE 'postgres'")

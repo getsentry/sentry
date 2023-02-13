@@ -78,7 +78,7 @@ def retry(
     func: Callable[..., Any] | None = None,
     on: Sequence[Type[Exception]] = (Exception,),
     exclude: Sequence[Type[Exception]] = (),
-    ignore: Sequence[Type[Exception]] = (Exception,),
+    ignore: Sequence[Type[Exception]] = (),
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))

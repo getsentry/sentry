@@ -430,6 +430,7 @@ def pytest_addoption(parser):
     group._addoption(
         "--no-headless", dest="no_headless", help="show a browser while running the tests (chrome)"
     )
+    group._addoption("--slow-network", dest="slow_network", help="slow the network (chrome)")
 
 
 def pytest_configure(config):
@@ -464,6 +465,7 @@ def browser(request, live_server):
 
     driver_type = request.config.getoption("selenium_driver")
     headless = not request.config.getoption("no_headless")
+    slow_network = request.config.getoption("slow_network")
     if driver_type == "chrome":
         options = webdriver.ChromeOptions()
         options.add_argument("no-sandbox")
@@ -481,6 +483,12 @@ def browser(request, live_server):
             chrome_args["executable_path"] = chromedriver_path
 
         driver = start_chrome(**chrome_args)
+        if slow_network:
+            driver.set_network_conditions(
+                offline=False,
+                latency=400 * 2,  # additional latency (ms)
+                throughput=500 * 1024,  # maximal throughput
+            )
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     elif driver_type == "phantomjs":
@@ -493,20 +501,7 @@ def browser(request, live_server):
 
     driver.set_window_size(window_width, window_height)
 
-    def fin():
-        # dump console log to stdout, will be shown when test fails
-        for entry in driver.get_log("browser"):
-            sys.stderr.write("[browser console] ")
-            sys.stderr.write(repr(entry))
-            sys.stderr.write("\n")
-        # Teardown Selenium.
-        try:
-            driver.quit()
-        except Exception:
-            pass
-
     request.node._driver = driver
-    request.addfinalizer(fin)
 
     browser = Browser(driver, live_server)
 
@@ -525,7 +520,18 @@ def browser(request, live_server):
         request.cls.browser = browser
     request.node.browser = browser
 
-    return driver
+    yield driver
+
+    # dump console log to stdout, will be shown when test fails
+    for entry in driver.get_log("browser"):
+        sys.stderr.write("[browser console] ")
+        sys.stderr.write(repr(entry))
+        sys.stderr.write("\n")
+    # Teardown Selenium.
+    try:
+        driver.quit()
+    except Exception:
+        pass
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

@@ -3,12 +3,15 @@ import selectEvent from 'react-select-event';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ContextPickerModal from 'sentry/components/contextPickerModal';
+import {
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-
-import {makeCloseButton, ModalBody, ModalFooter} from './globalModal/components';
 
 describe('ContextPickerModal', function () {
   let project, project2, project4, org, org2;

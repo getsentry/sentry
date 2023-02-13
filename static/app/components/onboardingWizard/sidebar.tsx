@@ -7,7 +7,7 @@ import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
@@ -171,6 +171,7 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
         key={`${task.task}`}
         onSkip={makeTaskUpdater('skipped')}
         onMarkComplete={makeTaskUpdater('complete')}
+        hidePanel={onClose}
       />
     );
   }

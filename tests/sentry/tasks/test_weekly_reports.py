@@ -56,6 +56,34 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             message = mail.outbox[0]
             assert self.organization.name in message.subject
 
+    @with_feature("organizations:customer-domains")
+    @with_feature("organizations:weekly-email-refresh")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_message_links_customer_domains(self):
+        Project.objects.all().delete()
+
+        now = datetime.now().replace(tzinfo=pytz.utc)
+
+        project = self.create_project(
+            organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(days=1)),
+            },
+            project_id=project.id,
+        )
+        with self.tasks():
+            schedule_organizations(timestamp=to_timestamp(now))
+            assert len(mail.outbox) == 1
+
+            message = mail.outbox[0]
+            assert self.organization.name in message.subject
+            html = message.alternatives[0][0]
+            assert (
+                f"http://{self.organization.slug}.testserver/issues/?referrer=weekly-email" in html
+            )
+
     @mock.patch("sentry.tasks.weekly_reports.send_email")
     def test_deliver_reports_respects_settings(self, mock_send_email):
         user = self.user

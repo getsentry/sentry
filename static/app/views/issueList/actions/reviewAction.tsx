@@ -1,5 +1,5 @@
 import ActionLink from 'sentry/components/actions/actionLink';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

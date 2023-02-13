@@ -122,11 +122,12 @@ const ConsoleLog = styled('div')<{
       ? 'inherit'
       : p.theme.gray300};
 
-  & ${IssueLinkWrapper} {
-    visibility: hidden;
-  }
-
-  &:hover ${IssueLinkWrapper} {
+  /*
+  Show the timestamp button "Play" icon when we hover the row.
+  This is a really generic selector that could find many things, but for now it
+  only targets the one thing that we expect.
+  */
+  &:hover button > svg {
     visibility: visible;
   }
 `;

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import Link from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

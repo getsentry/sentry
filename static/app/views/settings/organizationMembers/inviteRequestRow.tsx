@@ -8,7 +8,7 @@ import {PanelItem} from 'sentry/components/panels';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import Tag from 'sentry/components/tag';
 import TeamSelector from 'sentry/components/teamSelector';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';

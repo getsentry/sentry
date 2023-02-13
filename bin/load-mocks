@@ -1127,6 +1127,39 @@ def create_mock_transactions(
                 spans=[parent_span] + spans,
             )
 
+        def load_render_blocking_asset_issue():
+            transaction_user = generate_user()
+            trace_id = uuid4().hex
+            parent_span_id = uuid4().hex[:16]
+
+            spans = [
+                {
+                    "timestamp": (timestamp + timedelta(milliseconds=1300)).timestamp(),
+                    "start_timestamp": (timestamp + timedelta(milliseconds=300)).timestamp(),
+                    "description": "https://example.com/asset.js",
+                    "op": "resource.script",
+                    "parent_span_id": parent_span_id,
+                    "span_id": uuid4().hex[:16],
+                    "hash": "858fea692d4d93e8",
+                }
+            ]
+
+            create_sample_event(
+                project=frontend_project,
+                platform="transaction",
+                transaction="/render-blocking-asset/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + timedelta(milliseconds=300),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                parent_span_id=parent_span_id,
+                spans=spans,
+                measurements={
+                    "fcp": {"value": 2500.0},
+                },
+            )
+
         def load_performance_issues():
             print(f"    > Loading performance issues data")  # NOQA
             print(f"    > Loading n plus one issue")  # NOQA
@@ -1135,6 +1168,8 @@ def create_mock_transactions(
             load_consecutive_db_issue()
             print(f"    > Loading uncompressed asset issue")  # NOQA
             load_uncompressed_asset_issue()
+            print(f"    > Loading render blocking asset issue")  # NOQA
+            load_render_blocking_asset_issue()
 
         load_performance_issues()
 

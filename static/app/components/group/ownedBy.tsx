@@ -105,7 +105,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
           <ActorName>
             {currentOwner?.type === 'team'
               ? `#${currentOwner?.name}`
-              : currentOwner?.name ?? t('No-one')}
+              : currentOwner?.name ?? t('No one')}
           </ActorName>
         </ActorWrapper>
       </SidebarSection.Content>

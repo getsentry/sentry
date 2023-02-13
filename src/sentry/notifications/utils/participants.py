@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence
 
 from sentry import features
 from sentry.models import (
     ActorTuple,
-    Commit,
     Group,
     GroupSubscription,
     NotificationSetting,
@@ -16,7 +15,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
-    Release,
     Team,
     User,
 )
@@ -35,7 +33,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.user import APIUser, user_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -70,8 +68,12 @@ def get_providers_from_which_to_remove_user(
     }
 
     if (
-        user_option_service.query_options(user_ids=[user.id], keys=["self_notifications"]).get_one(
-            default="0"
+        get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [user.id], "keys": ["self_notifications"]}
+            ),
+            key="self_notifications",
+            default="0",
         )
         == "0"
     ):
@@ -172,11 +174,13 @@ def get_owners(
 
     if not owners:
         outcome = "empty"
-        recipients = list()
+        recipients: List[APIUser] = list()
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
-        recipients = user_service.get_from_project(project.id)
+        recipients = user_service.get_many(
+            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+        )
 
     else:
         outcome = "match"
@@ -188,7 +192,6 @@ def get_owners(
     metrics.incr(
         "features.owners.send_to",
         tags={
-            "organization": project.organization_id,
             "outcome": outcome
             if outcome == "match" or fallthrough_choice is None
             else fallthrough_choice.value,
@@ -210,9 +213,6 @@ def get_owner_reason(
     Provide a human readable reason for why a user is receiving a notification.
     Currently only used to explain "issue owners" w/ fallthrough to everyone
     """
-    if not features.has("organizations:issue-alert-fallback-targeting", project.organization):
-        return None
-
     # Sent to a specific user or team
     if target_type != ActionTargetType.ISSUE_OWNERS:
         return None
@@ -284,9 +284,6 @@ def determine_eligible_recipients(
         if team:
             return {team}
 
-    elif target_type == ActionTargetType.RELEASE_MEMBERS:
-        return get_release_committers(project, event)
-
     elif target_type == ActionTargetType.ISSUE_OWNERS:
         owners = get_owners(project, event, fallthrough_choice)
         if owners:
@@ -295,44 +292,6 @@ def determine_eligible_recipients(
         return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
-
-
-def get_release_committers(project: Project, event: Event) -> Sequence[APIUser]:
-    # get_participants_for_release seems to be the method called when deployments happen
-    # supposedly, this logic should be fairly, close ...
-    # why is get_participants_for_release so much more complex???
-    if not project or not event:
-        return []
-
-    if not event.group:
-        return []
-
-    last_release_version: str | None = event.group.get_last_release()
-    if not last_release_version:
-        return []
-
-    last_release: Release = Release.get(project, last_release_version)
-    if not last_release:
-        return []
-
-    return _get_release_committers(last_release)
-
-
-def _get_release_committers(release: Release) -> Sequence[APIUser]:
-    from sentry.api.serializers import Author, get_users_for_commits
-    from sentry.utils.committers import _get_commits
-
-    commits: Sequence[Commit] = _get_commits([release])
-    if not commits:
-        return []
-
-    # commit_author_id : Author
-    author_users: Mapping[str, Author] = get_users_for_commits(commits)
-
-    if features.has("organizations:active-release-notifications-enable", release.organization):
-        user_ids: set[int] = {au["id"] for au in author_users.values() if au.get("id")}
-        return user_service.get_many(user_ids)
-    return []
 
 
 def get_send_to(
@@ -367,16 +326,24 @@ def get_fallthrough_recipients(
         return []
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
-        return user_service.get_from_project(project.id)
+        return user_service.get_many(
+            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+        )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         if project.organization.flags.early_adopter.is_set:
             return user_service.get_many(
-                project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
+                filter={
+                    "user_ids": project.member_set.order_by("-user__last_active").values_list(
+                        "user_id", flat=True
+                    )
+                }
             )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
 
         # Return all members for non-EA orgs. This line will be removed once EA is over.
-        return user_service.get_from_project(project.id)
+        return user_service.get_many(
+            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+        )
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 
@@ -442,7 +409,7 @@ def get_users_from_team_fall_back(
         # Fall back to notifying each subscribed user if there aren't team notification settings
         member_list = team.member_set.values_list("user_id", flat=True)
         user_ids |= set(member_list)
-    return user_service.get_many(user_ids)
+    return user_service.get_many(filter={"user_ids": list(user_ids)})
 
 
 def combine_recipients_by_provider(

@@ -1265,12 +1265,17 @@ class QueryBuilder(BaseQueryBuilder):
             if not search_filter.value.is_span_id():
                 raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
-        # Validate event ids and trace ids are uuids
-        if name in {"id", "trace"}:
+        # Validate event ids, trace ids, and profile ids are uuids
+        if name in {"id", "trace", "profile.id"}:
             if search_filter.value.is_wildcard():
                 raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
-                label = "Filter ID" if name == "id" else "Filter Trace ID"
+                if name == "trace":
+                    label = "Filter Trace ID"
+                elif name == "profile.id":
+                    label = "Filter Profile ID"
+                else:
+                    label = "Filter ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
         if name in constants.TIMESTAMP_FIELDS:
@@ -1434,6 +1439,14 @@ class QueryBuilder(BaseQueryBuilder):
             flags=Flags(turbo=self.turbo),
         )
 
+    @classmethod
+    def handle_invalid_float(cls, value: float) -> Optional[float]:
+        if math.isnan(value):
+            return 0
+        elif math.isinf(value):
+            return None
+        return value
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
@@ -1483,6 +1496,11 @@ class QueryBuilder(BaseQueryBuilder):
                             value = 0
                         elif math.isinf(value):
                             value = None
+                        value = self.handle_invalid_float(value)
+                    if isinstance(value, list):
+                        for index, item in enumerate(value):
+                            if isinstance(item, float):
+                                value[index] = self.handle_invalid_float(item)
                     if key in self.value_resolver_map:
                         new_value = self.value_resolver_map[key](value)
                     else:

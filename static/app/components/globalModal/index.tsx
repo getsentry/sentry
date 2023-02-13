@@ -21,7 +21,7 @@ type ModalOptions = {
    * Set to `false` to disable the backdrop from being rendered.
    * Set to `true` (the default) to show a translucent backdrop.
    */
-  backdrop?: 'static' | boolean; // TODO(malwilley): Remove 'static' when no longer used in getsentry
+  backdrop?: boolean;
   /**
    * By default, the modal is closed when the backdrop is clicked or the
    * escape key is pressed. This prop allows you to modify that behavior.
@@ -187,8 +187,7 @@ function GlobalModal({onClose}: Props) {
   const backdrop = options.backdrop ?? true;
 
   const allowBackdropClickClose =
-    (closeEvents === 'all' || closeEvents === 'backdrop-click') &&
-    options.backdrop !== 'static';
+    closeEvents === 'all' || closeEvents === 'backdrop-click';
 
   // Only close when we directly click outside of the modal.
   const containerRef = useRef<HTMLDivElement>(null);
