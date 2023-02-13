@@ -120,9 +120,15 @@ export class Flamegraph {
         break;
       }
       case 'alphabetical':
+        if (this.profile.type === 'flamechart') {
+          throw new TypeError('Flamechart does not support alphabetical sorting');
+        }
         this.frames = this.buildSortedChart(profile, alphabeticTreeSort);
         break;
       case 'call order':
+        if (this.profile.type === 'flamegraph') {
+          throw new TypeError('Flamegraph does not support call order sorting');
+        }
         this.frames = this.buildCallOrderChart(profile);
         break;
       default:
