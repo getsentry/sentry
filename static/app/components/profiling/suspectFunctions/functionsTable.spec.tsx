@@ -2,7 +2,7 @@ import {ReactElement, useEffect} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
+import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const project = TestStubs.Project();
@@ -21,6 +21,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading
           error={null}
           functions={[]}
@@ -36,6 +37,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[]}
@@ -65,6 +67,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[func]}
@@ -107,6 +110,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[func]}
@@ -140,6 +144,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[func]}

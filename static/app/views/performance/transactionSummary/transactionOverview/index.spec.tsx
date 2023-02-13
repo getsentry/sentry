@@ -436,6 +436,10 @@ describe('Performance > TransactionSummary', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/profiling/functions/`,
+      body: {functions: []},
+    });
 
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.auto);
   });
