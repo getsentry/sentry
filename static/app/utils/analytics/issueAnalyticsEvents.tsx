@@ -38,6 +38,10 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_error_banner.proguard_missing_mapping.displayed': {
+    group?: string;
+    platform?: string;
+  };
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -156,6 +160,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
+  'issue_error_banner.proguard_missing_mapping.displayed':
+    'Proguard Missing Mapping Issue Error Banner Displayed',
   'issue_error_banner.proguard_misconfigured.clicked':
     'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',

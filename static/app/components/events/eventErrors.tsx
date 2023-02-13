@@ -247,15 +247,26 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
   });
 
   useEffect(() => {
-    if (
-      proguardErrors?.length &&
-      proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin'
-    ) {
-      trackAdvancedAnalyticsEvent('issue_error_banner.proguard_misconfigured.displayed', {
-        organization,
-        group: event?.groupID,
-        platform: project.platform,
-      });
+    if (proguardErrors?.length) {
+      if (proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_misconfigured.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      } else if (proguardErrors[0]?.type === 'proguard_missing_mapping') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_missing_mapping.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      }
     }
     // Just for analytics, only track this once per visit
     // eslint-disable-next-line react-hooks/exhaustive-deps
