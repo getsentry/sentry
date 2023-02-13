@@ -1,4 +1,4 @@
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 
 export default {
   title: 'Components/Composite Select',
@@ -29,38 +29,54 @@ export const _CompositeSelect = props => (
   </CompositeSelect>
 );
 _CompositeSelect.args = {
+  size: 'md',
   disabled: false,
-  menuTitle: '',
-  isSearchable: false,
-  isLoading: false,
-  isClearable: false,
-  placeholder: 'Search…',
-  shouldCloseOnBlur: true,
-  isDismissable: true,
+  menuTitle: undefined,
+  loading: false,
+  clearable: false,
+  onClear: undefined,
+  searchable: false,
+  searchPlaceholder: undefined,
+  onSearch: undefined,
+  position: 'bottom-start',
   offset: 8,
-  crossOffset: 0,
-  containerPadding: 8,
-  placement: 'bottom left',
+  menuWidth: undefined,
+  maxMenuWidth: undefined,
+  maxMenuHeight: undefined,
+  closeOnSelect: undefined,
+  shouldCloseOnBlur: undefined,
+  isDismissable: undefined,
+  preventOverflowOptions: undefined,
   triggerProps: {
     prefix: 'Prefix',
   },
 };
 _CompositeSelect.argTypes = {
-  placement: {
+  size: {control: {type: 'inline-radio'}},
+  menuTitle: {control: {type: 'text'}},
+  searchPlaceholder: {control: {type: 'text'}},
+  position: {
     options: [
       'top',
       'bottom',
       'left',
       'right',
-      'top left',
-      'top right',
-      'bottom left',
-      'bottom right',
-      'left top',
-      'left bottom',
-      'right top',
-      'right bottom',
+      'top-start',
+      'top-end',
+      'bottom-start',
+      'bottom-end',
+      'left-start',
+      'left-end',
+      'right-start',
+      'right-end',
     ],
-    control: {type: 'radio'},
+    control: {type: 'inline-radio'},
   },
+  closeOnSelect: {control: {type: 'boolean'}},
+  shouldCloseOnBlur: {control: {type: 'boolean'}},
+  isDismissable: {control: {type: 'boolean'}},
+  menuWidth: {control: {type: 'number'}},
+  maxMenuWidth: {control: {type: 'number'}},
+  maxMenuHeight: {control: {type: 'number'}},
+  triggerLabel: {control: {type: 'text'}},
 };

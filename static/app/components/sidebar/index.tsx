@@ -250,7 +250,7 @@ function Sidebar({location, organization}: Props) {
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
         // TODO(replay): Remove this special-case for our internal demo org
-        isBeta={organization.slug !== 'testorg-az'}
+        isNew={organization.slug !== 'testorg-az'}
       />
     </Feature>
   );

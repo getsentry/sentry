@@ -10,13 +10,13 @@ import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-const ONE_MINUTE_IN_MS = 60000;
-
 function getDateObj(date: RelaxedDateType): Date {
   return isString(date) || isNumber(date) ? new Date(date) : date;
 }
 
 type RelaxedDateType = string | number | Date;
+
+type UnitStyle = 'default' | 'short' | 'extraShort';
 
 interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
@@ -29,23 +29,43 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   disabledAbsoluteTooltip?: boolean;
   /**
-   * Shortens the shortened relative time
-   * min to m, hr to h
+   * How often should the component live update the timestamp.
+   *
+   * You may specify a custom interval in milliseconds if necissary.
+   *
+   * @default minute
    */
-  extraShort?: boolean;
-  /**
-   * For relative time shortens minutes to min, hour to hr etc.
-   */
-  shorten?: boolean;
+  liveUpdateInterval?: 'minute' | 'second' | number;
   /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
    */
   suffix?: string;
-
+  /**
+   * Customize the tooltip content. This replaces the long form of the timestamp
+   * completely.
+   */
   tooltipBody?: React.ReactNode;
+  /**
+   * Prefix content to add to the tooltip. Useful to indicate what the relative
+   * time is for
+   */
+  tooltipPrefix?: React.ReactNode;
+  /**
+   * Include seconds in the tooltip
+   */
   tooltipShowSeconds?: boolean;
-  tooltipTitle?: React.ReactNode;
+  /**
+   * Change the color of the underline
+   */
   tooltipUnderlineColor?: ColorOrAlias;
+  /**
+   * How much text should be used for the relative sufixx:
+   *
+   * default:    hour, minute, second
+   * short:      hr, min, sec
+   * extraShort: h, m, s
+   */
+  unitStyle?: UnitStyle;
 }
 
 function TimeSince({
@@ -53,18 +73,18 @@ function TimeSince({
   suffix = t('ago'),
   disabledAbsoluteTooltip,
   tooltipShowSeconds,
-  tooltipTitle,
+  tooltipPrefix: tooltipTitle,
   tooltipBody,
   tooltipUnderlineColor,
-  shorten,
-  extraShort,
+  unitStyle,
+  liveUpdateInterval = 'minute',
   ...props
 }: Props) {
   const tickerRef = useRef<number | undefined>();
 
   const computeRelativeDate = useCallback(
-    () => getRelativeDate(date, suffix, shorten, extraShort),
-    [date, suffix, shorten, extraShort]
+    () => getRelativeDate(date, suffix, unitStyle),
+    [date, suffix, unitStyle]
   );
 
   const [relative, setRelative] = useState<string>(computeRelativeDate());
@@ -73,14 +93,21 @@ function TimeSince({
     // Immediately update if props change
     setRelative(computeRelativeDate());
 
+    const interval =
+      liveUpdateInterval === 'minute'
+        ? 60 * 1000
+        : liveUpdateInterval === 'second'
+        ? 1000
+        : liveUpdateInterval;
+
     // Start a ticker to update the relative time
-    tickerRef.current = window.setTimeout(
+    tickerRef.current = window.setInterval(
       () => setRelative(computeRelativeDate()),
-      ONE_MINUTE_IN_MS
+      interval
     );
 
-    return () => window.clearTimeout(tickerRef.current);
-  }, [computeRelativeDate]);
+    return () => window.clearInterval(tickerRef.current);
+  }, [liveUpdateInterval, computeRelativeDate]);
 
   const dateObj = getDateObj(date);
   const user = ConfigStore.get('user');
@@ -119,21 +146,23 @@ function TimeSince({
 
 export default TimeSince;
 
-export function getRelativeDate(
+function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
-  shorten?: boolean,
-  extraShort?: boolean
+  unitStyle: UnitStyle = 'default'
 ): string {
   const date = getDateObj(currentDateTime);
 
-  if ((shorten || extraShort) && suffix) {
+  const shorten = unitStyle === 'short';
+  const extraShort = unitStyle === 'extraShort';
+
+  if (unitStyle !== 'default' && suffix) {
     return t('%(time)s %(suffix)s', {
       time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
       suffix,
     });
   }
-  if ((shorten || extraShort) && !suffix) {
+  if (unitStyle !== 'default' && !suffix) {
     return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
   }
   if (!suffix) {

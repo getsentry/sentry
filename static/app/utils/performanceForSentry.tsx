@@ -2,7 +2,7 @@ import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
 import {captureException, captureMessage} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {IdleTransaction} from '@sentry/tracing';
-import {Transaction} from '@sentry/types';
+import {Transaction, TransactionEvent} from '@sentry/types';
 import {browserPerformanceTimeOrigin, timestampWithMs} from '@sentry/utils';
 
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
@@ -206,7 +206,6 @@ export const VisuallyCompleteWithData = ({
   hasData: boolean;
   id: string;
 }) => {
-  const isVisuallyCompleteSet = useRef(false);
   const isDataCompleteSet = useRef(false);
   const longTaskCount = useRef(0);
 
@@ -243,14 +242,6 @@ export const VisuallyCompleteWithData = ({
         return;
       }
 
-      if (!isVisuallyCompleteSet.current) {
-        const time = performance.now();
-        transaction.registerBeforeFinishCallback((t: Transaction, _) => {
-          // Should be called after performance entries finish callback.
-          t.setMeasurement('visuallyComplete', time, 'ms');
-        });
-        isVisuallyCompleteSet.current = true;
-      }
       if (!isDataCompleteSet.current && hasData) {
         isDataCompleteSet.current = true;
 
@@ -286,11 +277,11 @@ export const VisuallyCompleteWithData = ({
             const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
 
             if (lcp) {
-              t.setMeasurement('lcpDiffVCD', lcp - time, 'ms');
+              t.setMeasurement('lcpDiffVCD', lcp - time, 'millisecond');
             }
 
             t.setTag('longTaskCount', longTaskCount.current);
-            t.setMeasurement('visuallyCompleteData', time, 'ms');
+            t.setMeasurement('visuallyCompleteData', time, 'millisecond');
           });
         }, 0);
       }
@@ -314,78 +305,108 @@ const OP_ASSET_MEASUREMENT_MAP: Record<string, OpAssetMeasurementDefinition> = {
   'resource.script': {
     key: 'script',
   },
-  'resource.css': {
-    key: 'css',
-  },
-  'resource.link': {
-    key: 'link',
-  },
-  'resource.img': {
-    key: 'img',
-  },
 };
 const ASSET_MEASUREMENT_ALL = 'allResources';
+const SENTRY_ASSET_DOMAINS = ['sentry-cdn.com'];
 
-const measureAssetsOnTransaction = () => {
-  try {
-    const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
-    if (!transaction) {
-      return;
+const measureAssetsOnTransaction = (transaction: TransactionEvent) => {
+  const spans = transaction.spans;
+
+  if (!spans) {
+    return;
+  }
+
+  let allTransfered = 0;
+  let allEncoded = 0;
+  let allCount = 0;
+  let hasAssetTimings = false;
+
+  for (const [op, _] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
+    const filtered = spans.filter(
+      s =>
+        s.op === op &&
+        SENTRY_ASSET_DOMAINS.every(
+          domain => !s.description || s.description.includes(domain)
+        )
+    );
+    const count = filtered.length;
+    const transfered = filtered.reduce(
+      (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
+      0
+    );
+    const encoded = filtered.reduce(
+      (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
+      0
+    );
+
+    if (encoded > 0) {
+      hasAssetTimings = true;
     }
 
-    transaction.registerBeforeFinishCallback((t: Transaction) => {
-      const spans: any[] = (t as any).spanRecorder?.spans;
-      const measurements = (t as any)._measurements;
+    allCount += count;
+    allTransfered += transfered;
+    allEncoded += encoded;
+  }
 
-      if (!spans) {
-        return;
-      }
+  if (!transaction.measurements || !transaction.tags) {
+    return;
+  }
 
-      if (measurements[ASSET_MEASUREMENT_ALL]) {
-        return;
-      }
+  transaction.measurements[`${ASSET_MEASUREMENT_ALL}.encoded`] = {
+    value: allEncoded,
+    unit: 'byte',
+  };
+  transaction.measurements[`${ASSET_MEASUREMENT_ALL}.transfer`] = {
+    value: allTransfered,
+    unit: 'byte',
+  };
+  transaction.measurements[`${ASSET_MEASUREMENT_ALL}.count`] = {
+    value: allCount,
+    unit: 'none',
+  };
+  transaction.tags.hasAnyAssetTimings = hasAssetTimings;
+};
 
-      let allTransfered = 0;
-      let allEncoded = 0;
-      let allCount = 0;
+const additionalMeasurements = (transaction: TransactionEvent) => {
+  if (
+    !transaction.measurements ||
+    !browserPerformanceTimeOrigin ||
+    !transaction.start_timestamp
+  ) {
+    return;
+  }
 
-      for (const [op, definition] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
-        const filtered = spans.filter(s => s.op === op);
-        const count = filtered.length;
-        const transfered = filtered.reduce(
-          (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
-          0
-        );
-        const encoded = filtered.reduce(
-          (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
-          0
-        );
+  const ttfb = Object.entries(transaction.measurements).find(([key]) =>
+    key.toLowerCase().includes('ttfb')
+  );
 
-        if (op === 'resource.script') {
-          t.setMeasurement(`assets.${definition.key}.encoded`, encoded, '');
-          t.setMeasurement(`assets.${definition.key}.transfer`, transfered, '');
-          t.setMeasurement(`assets.${definition.key}.count`, count, '');
-        }
+  if (!ttfb || !ttfb[1]) {
+    return;
+  }
 
-        allCount += count;
-        allTransfered += transfered;
-        allEncoded += encoded;
-      }
+  const headMark = performance.getEntriesByName('head-start')[0];
 
-      t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.encoded`, allEncoded, '');
-      t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.transfer`, allTransfered, '');
-      t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.count`, allCount, '');
-    });
+  if (!headMark) {
+    return;
+  }
+
+  const ttfbValue = ttfb[1].value;
+
+  const entryStartSeconds =
+    browserPerformanceTimeOrigin / 1000 + headMark.startTime / 1000;
+  const time = (entryStartSeconds - transaction.start_timestamp) * 1000 - ttfbValue;
+
+  transaction.measurements.pre_bundle_load = {
+    value: time,
+    unit: 'millisecond',
+  };
+};
+
+export const addExtraMeasurements = (transaction: TransactionEvent) => {
+  try {
+    measureAssetsOnTransaction(transaction);
+    additionalMeasurements(transaction);
   } catch (_) {
     // Defensive catch since this code is auxiliary.
   }
-};
-
-/**
- * This will add asset-measurement code to the transaction after a timeout.
- * Meant to be called from the sdk without pushing too many perf concerns into our initializeSdk code,
- * it's fine if not every transaction gets recorded.
- */
-export const initializeMeasureAssetsTimeout = () => {
-  setTimeout(measureAssetsOnTransaction, 1000);
 };

@@ -14,16 +14,16 @@ from symbolic import ProguardMapper  # type: ignore
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
-from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
@@ -483,7 +483,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     fingerprint=fingerprint,
                     op=op,
                     desc=span.get("description") or "",
-                    type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                    type=PerformanceRenderBlockingAssetSpanGroupType,
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
                     cause_span_ids=[],
@@ -597,7 +597,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             fingerprint,
             "db",
             desc=query,  # TODO - figure out which query to use for description
-            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+            type=PerformanceConsecutiveDBQueriesGroupType,
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
@@ -890,7 +890,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 fingerprint=fingerprint,
                 op="db",
                 desc=self.n_spans[0].get("description", ""),
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
@@ -1029,7 +1029,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     op=span_list[0].get("op"),
                     desc=span_list[0].get("description", ""),
                     parent_span_ids=[parent_span_id],
-                    type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+                    type=PerformanceFileIOMainThreadGroupType,
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
                 )
@@ -1096,12 +1096,13 @@ class SearchingForMNPlusOne(MNPlusOneState):
     it transitions to the ContinuingMNPlusOne state.
     """
 
-    __slots__ = ("settings", "recent_spans")
+    __slots__ = ("settings", "event", "recent_spans")
 
     def __init__(
-        self, settings: Dict[str, Any], initial_spans: Optional[Sequence[Span]] = None
+        self, settings: Dict[str, Any], event: Event, initial_spans: Optional[Sequence[Span]] = None
     ) -> None:
         self.settings = settings
+        self.event = event
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
 
     def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
@@ -1119,7 +1120,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
             if self._equivalent(span, recent_span):
                 pattern = recent_span_list[i:]
                 if self._is_valid_pattern(pattern):
-                    return (ContinuingMNPlusOne(self.settings, pattern, span), None)
+                    return (ContinuingMNPlusOne(self.settings, self.event, pattern, span), None)
 
         # We haven't found a pattern yet, so remember this span and keep
         # looking.
@@ -1154,10 +1155,13 @@ class ContinuingMNPlusOne(MNPlusOneState):
     PerformanceProblem if the detected sequence met our thresholds.
     """
 
-    __slots__ = ("settings", "pattern", "spans", "pattern_index")
+    __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
-    def __init__(self, settings: Dict[str, Any], pattern: Sequence[Span], first_span: Span) -> None:
+    def __init__(
+        self, settings: Dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
+    ) -> None:
         self.settings = settings
+        self.event = event
         self.pattern = pattern
 
         # The full list of spans involved in the MN pattern.
@@ -1181,7 +1185,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         start_index = len(self.pattern) * times_occurred
         remaining_spans = self.spans[start_index:] + [span]
         return (
-            SearchingForMNPlusOne(self.settings, remaining_spans),
+            SearchingForMNPlusOne(self.settings, self.event, remaining_spans),
             self._maybe_performance_problem(),
         )
 
@@ -1202,13 +1206,17 @@ class ContinuingMNPlusOne(MNPlusOneState):
         if total_duration < total_duration_threshold:
             return None
 
+        parent_span = self._find_common_parent_span(offender_spans)
+        if not parent_span:
+            return None
+
         db_span = self._first_db_span()
         return PerformanceProblem(
-            fingerprint=self._fingerprint(db_span["hash"]),
+            fingerprint=self._fingerprint(db_span["hash"], parent_span),
             op="db",
             desc=db_span["description"],
-            type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
-            parent_span_ids=[],
+            type=PerformanceMNPlusOneDBQueriesGroupType,
+            parent_span_ids=[parent_span["span_id"]],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
         )
@@ -1219,10 +1227,26 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 return span
         return None
 
-    def _fingerprint(self, db_hash) -> str:
-        # TODO: Add more information to the hash. Since issues aren't being
-        # detected yet, this doesn't matter.
-        full_fingerprint = hashlib.sha1(db_hash.encode("utf8")).hexdigest()
+    def _find_common_parent_span(self, spans: Sequence[Span]):
+        parent_span_id = spans[0].get("parent_span_id")
+        if not parent_span_id:
+            return None
+        for id in [span.get("parent_span_id") for span in spans[1:]]:
+            if not id or id != parent_span_id:
+                return None
+
+        all_spans = self.event.get("spans") or []
+        for span in all_spans:
+            if span.get("span_id") == parent_span_id:
+                return span
+        return None
+
+    def _fingerprint(self, db_hash: str, parent_span: Span) -> str:
+        parent_op = parent_span.get("op") or ""
+        parent_hash = parent_span.get("hash") or ""
+        full_fingerprint = hashlib.sha1(
+            (parent_op + parent_hash + db_hash).encode("utf8")
+        ).hexdigest()
         return f"1-{PerformanceMNPlusOneDBQueriesGroupType.type_id}-{full_fingerprint}"
 
 
@@ -1245,7 +1269,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
     def init(self):
         self.stored_problems = {}
-        self.state = SearchingForMNPlusOne(self.settings)
+        self.state = SearchingForMNPlusOne(self.settings, self.event())
 
     def visit_span(self, span):
         self.state, performance_problem = self.state.next(span)

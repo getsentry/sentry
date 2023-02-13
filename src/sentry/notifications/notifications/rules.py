@@ -6,6 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 import pytz
 
 from sentry.db.models import Model
+from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
@@ -32,7 +33,6 @@ from sentry.notifications.utils.participants import (
 )
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GROUP_CATEGORIES_CUSTOM_EMAIL, GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -133,7 +133,7 @@ class AlertRuleNotification(ProjectNotification):
                 f"/settings/account/notifications/alerts/?referrer=alert_email{fallback_param}"
             ),
             "has_alert_integration": has_alert_integration(self.project),
-            "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
+            "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
         }
 

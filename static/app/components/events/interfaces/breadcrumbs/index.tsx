@@ -5,7 +5,8 @@ import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import CompactSelect, {
+import {
+  CompactSelect,
   SelectOption,
   SelectSection,
 } from 'sentry/components/compactSelect';
@@ -146,6 +147,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
         filterLevels.push({
           value: `level-${level}`,
+          textValue: level,
           label: (
             <LevelWrap>
               <Level level={level} />

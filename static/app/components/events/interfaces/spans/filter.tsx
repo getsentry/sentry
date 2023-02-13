@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -100,7 +100,7 @@ function Filter({
   return (
     <CompactSelect
       multiple
-      isClearable
+      clearable
       maxMenuWidth="24rem"
       options={menuOptions}
       onChange={onChange}

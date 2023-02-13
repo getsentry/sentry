@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';

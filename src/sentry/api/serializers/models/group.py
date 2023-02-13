@@ -33,6 +33,7 @@ from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     ActorTuple,
     Commit,
@@ -72,7 +73,6 @@ from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.issues import GroupCategory
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -353,7 +353,7 @@ class GroupSerializerBase(Serializer, ABC):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
-            "issueType": obj.issue_type.name.lower(),
+            "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
 
@@ -921,11 +921,13 @@ class GroupSerializerSnuba(GroupSerializerBase):
                             "environment_id": environment_ids,
                         },
                     )
+
                     # if no re-formatted conditions, use fallback method
-                    conditions.append(
-                        formatted_conditions[0]
-                        if formatted_conditions
-                        else convert_search_filter_to_snuba_query(
+                    new_condition = None
+                    if formatted_conditions:
+                        new_condition = formatted_conditions[0]
+                    elif group_ids:
+                        new_condition = convert_search_filter_to_snuba_query(
                             search_filter,
                             params={
                                 "organization_id": organization_id,
@@ -933,7 +935,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
                                 "environment_id": environment_ids,
                             },
                         )
-                    )
+
+                    if new_condition:
+                        conditions.append(new_condition)
         self.conditions = conditions
 
     def _seen_stats_error(

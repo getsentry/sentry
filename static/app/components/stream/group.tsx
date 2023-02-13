@@ -309,6 +309,7 @@ function BaseGroupRow({
   const groupCategoryCountTitles: Record<IssueCategory, string> = {
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
+    [IssueCategory.PROFILE]: t('Profile Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -395,10 +396,10 @@ function BaseGroupRow({
     <Placeholder height="18px" />
   ) : (
     <TimeSince
-      tooltipTitle={t('Last Triggered')}
+      tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
-      shorten
+      unitStyle="short"
     />
   );
 

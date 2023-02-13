@@ -23,12 +23,7 @@ interface BaseCompositeSelectRegion<Value extends React.Key> {
  */
 export interface SingleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
-    Omit<
-      SingleListBoxProps<Value>,
-      'children' | 'items' | 'compositeIndex' | 'size' | 'onChange'
-    > {
-  onChange: (value: Value) => void;
-}
+    Omit<SingleListBoxProps<Value>, 'children' | 'items' | 'compositeIndex' | 'size'> {}
 
 /**
  * A multiple-selection (multiple options can be selected at the same time) "region"
@@ -38,12 +33,7 @@ export interface SingleCompositeSelectRegion<Value extends React.Key>
  */
 export interface MultipleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
-    Omit<
-      MultipleListBoxProps<Value>,
-      'children' | 'items' | 'compositeIndex' | 'size' | 'onChange'
-    > {
-  onChange: (values: Value[]) => void;
-}
+    Omit<MultipleListBoxProps<Value>, 'children' | 'items' | 'compositeIndex' | 'size'> {}
 
 /**
  * A "region" inside a composite select. Each "region" is a separated, self-contained
@@ -128,7 +118,7 @@ CompositeSelect.Region = function <Value extends React.Key>(
   return null;
 };
 
-export default CompositeSelect;
+export {CompositeSelect};
 
 type RegionProps<Value extends React.Key> = CompositeSelectRegion<Value> & {
   compositeIndex: SingleListBoxProps<Value>['compositeIndex'];
@@ -158,7 +148,7 @@ function Region<Value extends React.Key>({
         value,
         defaultValue,
         closeOnSelect,
-        onChange: opts => onChange?.(opts.map(opt => opt.value)),
+        onChange,
       };
     }
     return {
@@ -166,7 +156,7 @@ function Region<Value extends React.Key>({
       value,
       defaultValue,
       closeOnSelect,
-      onChange: opt => onChange?.(opt ? opt.value : null),
+      onChange,
     };
   }, [multiple, value, defaultValue, onChange, closeOnSelect]);
 

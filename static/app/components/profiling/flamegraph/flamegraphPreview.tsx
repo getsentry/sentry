@@ -21,43 +21,27 @@ import {Rect, useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {formatTo} from 'sentry/utils/profiling/units/units';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface FlamegraphPreviewProps {
+  flamegraph: FlamegraphModel;
   relativeStartTimestamp: number;
   relativeStopTimestamp: number;
+  renderText?: boolean;
+  updateFlamegraphView?: (canvasView: CanvasView<FlamegraphModel> | null) => void;
 }
 
 export function FlamegraphPreview({
+  flamegraph,
   relativeStartTimestamp,
   relativeStopTimestamp,
+  renderText = true,
+  updateFlamegraphView,
 }: FlamegraphPreviewProps) {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const {theme} = useLegacyStore(ConfigStore);
   const flamegraphTheme = theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
-  const profileGroup = useProfileGroup();
-
-  const threadId = useMemo(
-    () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
-    [profileGroup]
-  );
-
-  const profile = useMemo(() => {
-    if (!defined(threadId)) {
-      return null;
-    }
-    return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
-  }, [profileGroup.profiles, threadId]);
-
-  const flamegraph = useMemo(() => {
-    if (!defined(threadId) || !defined(profile)) {
-      return FlamegraphModel.Empty();
-    }
-
-    return new FlamegraphModel(profile, threadId, {});
-  }, [profile, threadId]);
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -99,6 +83,10 @@ export function FlamegraphPreview({
     relativeStartTimestamp,
     relativeStopTimestamp,
   ]);
+
+  useEffect(() => {
+    updateFlamegraphView?.(flamegraphView);
+  }, [flamegraphView, updateFlamegraphView]);
 
   const flamegraphCanvases = useMemo(() => [flamegraphCanvasRef], [flamegraphCanvasRef]);
 
@@ -146,25 +134,38 @@ export function FlamegraphPreview({
       );
     };
 
-    const drawText = () => {
-      textRenderer.draw(
-        flamegraphView.toOriginConfigView(flamegraphView.configView),
-        flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
-      );
-    };
+    const drawText = renderText
+      ? () => {
+          textRenderer.draw(
+            flamegraphView.toOriginConfigView(flamegraphView.configView),
+            flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
+          );
+        }
+      : null;
 
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
     scheduler.registerBeforeFrameCallback(drawRectangles);
-    scheduler.registerBeforeFrameCallback(drawText);
+    if (drawText) {
+      scheduler.registerBeforeFrameCallback(drawText);
+    }
 
     scheduler.draw();
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
-      scheduler.unregisterBeforeFrameCallback(drawText);
+      if (drawText) {
+        scheduler.unregisterBeforeFrameCallback(drawText);
+      }
     };
-  }, [flamegraphRenderer, flamegraphView, flamegraphCanvas, scheduler, textRenderer]);
+  }, [
+    flamegraphRenderer,
+    flamegraphView,
+    flamegraphCanvas,
+    renderText,
+    scheduler,
+    textRenderer,
+  ]);
 
   return (
     <CanvasContainer>

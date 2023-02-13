@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -811,6 +811,7 @@ function WidgetBuilder({
         loading: false,
         errors: {...state.errors, ...mapErrors(error?.responseJSON ?? {}, {})},
       });
+      addErrorMessage(t('Unable to save widget'));
       return false;
     }
   }
