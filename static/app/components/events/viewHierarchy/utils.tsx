@@ -120,7 +120,10 @@ export function getDeepestNodeAtPoint(
 }
 
 // Adapted from static/app/profiling/gl/utils.ts
-export function getCenterScaleMatrixFromConfigPosition(scale: number, center: vec2) {
+export function getCenterScaleMatrixFromConfigPosition(
+  scale: number,
+  center: vec2
+): mat3 {
   const invertedConfigCenter = vec2.fromValues(-center[0], -center[1]);
 
   const centerScaleMatrix = mat3.create();

@@ -3,6 +3,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
+  getCenterScaleMatrixFromConfigPosition,
   getDeepestNodeAtPoint,
   getHierarchyDimensions,
 } from 'sentry/components/events/viewHierarchy/utils';
@@ -191,6 +192,35 @@ describe('View Hierarchy Utils', function () {
       );
 
       expect(actual).toBeNull();
+    });
+  });
+
+  describe('getCenterScaleMatrixFromConfigPosition', function () {
+    it('returns a matrix that represents scaling on both x and y axes', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(2, vec2.fromValues(0, 0));
+
+      // Scales by 2 along the x and y axis
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          0, 0, 1
+        )
+      );
+    });
+
+    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(2, vec2.fromValues(5, 5));
+
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          -5, -5, 1
+        )
+      );
     });
   });
 });
