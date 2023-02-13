@@ -1,7 +1,6 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {memoizeVariadicByReference} from 'sentry/utils/profiling/profile/utils';
 
 type ProfileGroupContextValue = ProfileGroup;
 
@@ -14,11 +13,6 @@ export function useProfileGroup() {
   }
   return context;
 }
-
-// We memoize the importProfile function by argument references, this is because
-// relying on a useEffect based on prop types runs too late in the lifecycle and
-// causes a temporary missmatch between props.type and importedProfile.type.
-const memoizedImport = memoizeVariadicByReference(importProfile);
 
 const LoadingGroup: ProfileGroup = {
   name: 'Loading',
@@ -38,14 +32,15 @@ interface ProfileGroupProviderProps {
 }
 
 export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
+  const profileGroup = useMemo(() => {
+    if (!props.input) {
+      return LoadingGroup;
+    }
+    return importProfile(props.input, props.traceID, props.type);
+  }, [props.input, props.traceID, props.type]);
+
   return (
-    <ProfileGroupContext.Provider
-      value={
-        props.input
-          ? memoizedImport(props.input, props.traceID, props.type)
-          : LoadingGroup
-      }
-    >
+    <ProfileGroupContext.Provider value={profileGroup}>
       {props.children}
     </ProfileGroupContext.Provider>
   );
