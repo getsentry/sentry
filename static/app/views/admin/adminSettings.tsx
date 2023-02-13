@@ -172,9 +172,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.render_blocking_assets.ga-rollout']}
             </Panel>
             <Panel>
-              <PanelHeader>
-                Profiling Issues - Block Main Thread Asset Detector
-              </PanelHeader>
+              <PanelHeader>Profiling Issues - Block Main Thread Detector</PanelHeader>
               {fields['profile.issues.blocked_main_thread-ingest.la-rollout']}
               {fields['profile.issues.blocked_main_thread-ingest.ea-rollout']}
               {fields['profile.issues.blocked_main_thread-ingest.ga-rollout']}
