@@ -1166,9 +1166,7 @@ export const REPLAY_FIELDS = [
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
-    desc: t(
-      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
-    ),
+    desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
