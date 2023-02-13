@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {Tag, TagCollection} from 'sentry/types';
+import {IssueCategory, IssueType, Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
@@ -80,17 +80,18 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.ISSUE_CATEGORY]: {
         key: FieldKey.ISSUE_CATEGORY,
         name: 'Issue Category',
-        values: ['error', 'performance'],
+        values: [IssueCategory.ERROR, IssueCategory.PERFORMANCE, IssueCategory.PROFILE],
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {
         key: FieldKey.ISSUE_TYPE,
         name: 'Issue Type',
         values: [
-          'performance_n_plus_one_db_queries',
-          'performance_n_plus_one_api_calls',
-          'performance_consecutive_db_queries',
-          'performance_slow_db_query',
+          IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+          IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+          IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+          IssueType.PERFORMANCE_SLOW_DB_QUERY,
+          IssueType.PROFILE_BLOCKED_THREAD,
         ],
         predefined: true,
       },
