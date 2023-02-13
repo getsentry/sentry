@@ -162,7 +162,9 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization) and options.get(
         "dynamic-sampling:enabled-biases"
     ):
-        return {"rules": generate_rules(project), "rulesV2": generate_rules(project, True)}
+        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
+        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
+        return {"rules": [], "rulesV2": generate_rules(project)}
     return None
 
 

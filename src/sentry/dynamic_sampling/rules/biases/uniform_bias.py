@@ -18,22 +18,6 @@ class UniformDataProvider(BiasDataProvider):
         }
 
 
-class UniformRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
-        return [
-            {
-                "sampleRate": bias_data["sampleRate"],
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [],
-                },
-                "id": bias_data["id"],
-            }
-        ]
-
-
 class UniformRulesGeneratorV2(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
@@ -51,11 +35,6 @@ class UniformRulesGeneratorV2(BiasRulesGenerator):
                 "id": bias_data["id"],
             }
         ]
-
-
-class UniformBias(Bias):
-    def __init__(self) -> None:
-        super().__init__(UniformDataProvider, UniformRulesGenerator)
 
 
 class UniformBiasV2(Bias):

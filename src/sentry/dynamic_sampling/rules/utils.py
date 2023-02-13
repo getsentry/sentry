@@ -185,3 +185,16 @@ def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) ->
 
 def get_supported_biases_ids() -> Set[str]:
     return {bias["id"] for bias in DEFAULT_BIASES}
+
+
+def eval_dynamic_factor(base_sample_rate: float, x: float) -> float:
+    """
+    Function responsible for defining the sampling factor for a Relay rule.
+    The input range of the function must be within [0.0, 1.0] as it is designed to make the factor decay from x to 1.
+    """
+    if base_sample_rate < 0.0 or base_sample_rate > 1.0:
+        raise Exception(
+            "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
+        )
+
+    return x / x**base_sample_rate
