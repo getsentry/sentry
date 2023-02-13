@@ -21,6 +21,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading
           error={null}
           functions={[]}
@@ -36,6 +37,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[]}
@@ -65,6 +67,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[func]}
@@ -107,6 +110,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[func]}
@@ -140,6 +144,7 @@ describe('FunctionsTable', function () {
     render(
       <TestContext>
         <FunctionsTable
+          analyticsPageSource="profiling_transaction"
           isLoading={false}
           error={null}
           functions={[func]}
