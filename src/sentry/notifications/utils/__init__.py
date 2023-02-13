@@ -478,13 +478,21 @@ class PerformanceProblemContext:
         self.repeating_spans = repeating_spans
 
     def to_dict(self) -> Dict[str, str | List[str]]:
-        return {
-            "transaction_name": get_span_evidence_value_problem(self.problem),
-            "parent_span": get_span_evidence_value(self.parent_span),
-            "repeating_spans": get_span_evidence_value(self.repeating_spans),
-            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+        num_repeating_spans: str = (
+            f" ({str(len(self.problem.offender_span_ids))})"
             if self.problem.offender_span_ids
-            else "",
+            else ""
+        )
+
+        return {
+            "span_evidence_key_value": [
+                {"key": _("Transaction"), "value": get_span_evidence_value_problem(self.problem)},
+                {"key": _("Parent Span"), "value": get_span_evidence_value(self.parent_span)},
+                {
+                    "key": _("Repeating Spans") + num_repeating_spans,
+                    "value": get_span_evidence_value(self.repeating_spans),
+                },
+            ],
         }
 
     def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
@@ -514,13 +522,17 @@ class PerformanceProblemContext:
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
     def to_dict(self) -> Dict[str, str | List[str]]:
-        return {
-            "transaction_name": self.problem.desc,
-            "repeating_spans": self.path_prefix,
-            "parameters": self.parameters,
-            "num_repeating_spans": str(len(self.problem.offender_span_ids))
+        num_repeating_spans: str = (
+            f" ({str(len(self.problem.offender_span_ids))})"
             if self.problem.offender_span_ids
-            else "",
+            else ""
+        )
+        return {
+            "span_evidence_key_value": [
+                {"key": _("Transaction Name"), "value": self.problem.desc},
+                {"key": _("Repeating Spans") + num_repeating_spans, "value": self.path_prefix},
+                {"key": _("Parameters"), "value": self.parameters, "is_multi_value": True},
+            ],
         }
 
     @property
