@@ -32,7 +32,9 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import is_using_customer_domain
