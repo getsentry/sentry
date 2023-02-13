@@ -24,6 +24,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.silo import SiloMode
+from sentry.utils import metrics
 from sentry.utils.sdk import set_measurement
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -158,9 +159,9 @@ class OutboxBase(Model):
         return now + (self.last_delay() * 2)
 
     def save(self, **kwds: Any):
-        with sentry_sdk.start_transaction(op="outbox.save", name="save") as transaction:
-            transaction.set_tag("category_name", OutboxCategory(self.category).name)
-            super().save(**kwds)
+        tags = {"category": OutboxCategory(self.category).name}
+        metrics.incr("outbox.saved", 1, tags=tags)
+        super().save(**kwds)
 
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
@@ -174,14 +175,11 @@ class OutboxBase(Model):
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
             _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
 
-            transaction = sentry_sdk.Hub.current.scope.transaction
-            if transaction:
-                set_measurement(
-                    "outbox.processing_lag",
-                    datetime.datetime.now().timestamp()
-                    - first_coalesced.scheduled_from.timestamp(),
-                    "second",
-                )
+            set_measurement(
+                "outbox.processing_lag",
+                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                "second",
+            )
 
     def process(self) -> bool:
         with sentry_sdk.start_transaction(op="outbox.process", name="process") as transaction:
