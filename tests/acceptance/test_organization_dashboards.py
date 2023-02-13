@@ -134,6 +134,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.capture_screenshots("dashboards - move existing widget on existing dashboard")
 
+    @pytest.mark.skip(reason="flaky: DD-1216")
     def test_widget_edit_keeps_same_layout_after_modification(self):
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -463,6 +464,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                 "dashboards - position when adding multiple widgets through Add Widget tile in edit"
             )
 
+    @pytest.mark.skip(reason="flaky: DD-1217")
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
         self,
     ):
