@@ -14,7 +14,7 @@ describe('useTags', function () {
     );
 
     const {result} = reactHooks.renderHook(useTags);
-    const {tags} = result.current;
+    const tags = result.current;
 
     const expected = {mechanism: {name: 'Mechanism', key: 'mechanism', values: []}};
     expect(tags).toEqual(expected);
