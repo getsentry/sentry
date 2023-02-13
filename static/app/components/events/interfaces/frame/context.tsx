@@ -312,6 +312,6 @@ const Wrapper = styled('ol')<{startLineNo: number}>`
   counter-reset: frame ${p => p.startLineNo - 1};
 
   && {
-    border-radius: 0;
+    border-radius: 0 !important;
   }
 `;

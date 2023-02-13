@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import {getDocsPlatformSDKForPlatform} from 'sentry/components/profiling/ProfilingOnboarding/util';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -15,6 +13,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -35,7 +34,7 @@ export function GapSpanDetails({
   span,
 }: GapSpanDetailsProps) {
   const {projects} = useProjects({slugs: event.projectSlug ? [event.projectSlug] : []});
-  const projectHasProfile = projects?.[0]?.hasProfiles;
+  const project = projects?.[0];
 
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
@@ -54,31 +53,54 @@ export function GapSpanDetails({
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
   }, [profileGroup.profiles, threadId]);
 
-  const hasProfile = defined(threadId) && defined(profile);
+  const transactionHasProfile = defined(threadId) && defined(profile);
 
   const flamegraph = useMemo(() => {
-    if (!hasProfile) {
+    if (!transactionHasProfile) {
       return FlamegraphModel.Example();
     }
 
     return new FlamegraphModel(profile, threadId, {});
-  }, [hasProfile, profile, threadId]);
+  }, [transactionHasProfile, profile, threadId]);
 
-  const relativeStartTimestamp = hasProfile
+  const relativeStartTimestamp = transactionHasProfile
     ? span.start_timestamp - event.startTimestamp
     : 0;
-  const relativeStopTimestamp = hasProfile
+  const relativeStopTimestamp = transactionHasProfile
     ? span.timestamp - event.startTimestamp
     : flamegraph.configSpace.width;
 
-  const docsPlatform = getDocsPlatformSDKForPlatform(event.platform);
+  // Found the profile, render the preview
+  if (transactionHasProfile) {
+    return (
+      <Container>
+        <ProfilePreview
+          canvasView={canvasView}
+          event={event}
+          organization={organization}
+        />
+        <FlamegraphContainer>
+          <FlamegraphPreview
+            flamegraph={flamegraph}
+            relativeStartTimestamp={relativeStartTimestamp}
+            relativeStopTimestamp={relativeStopTimestamp}
+            renderText={transactionHasProfile}
+            updateFlamegraphView={setCanvasView}
+          />
+        </FlamegraphContainer>
+      </Container>
+    );
+  }
 
-  if (
-    // profiling isn't supported for this platform
-    !docsPlatform ||
-    // the project already sent a profile but this transaction doesnt have a profile
-    (projectHasProfile && !hasProfile)
-  ) {
+  // The event's platform is more accurate than the project
+  // so use that first and fall back to the project's platform
+  const docsLink =
+    getProfilingDocsForPlatform(event.platform) ??
+    getProfilingDocsForPlatform(project.platform);
+
+  // This project has received a profile before so they've already
+  // set up profiling. No point showing the profiling setup again.
+  if (!docsLink || project?.hasProfiles) {
     return (
       <InlineDocs
         orgSlug={organization.slug}
@@ -89,22 +111,17 @@ export function GapSpanDetails({
     );
   }
 
+  // At this point we must have a project on a supported
+  // platform that has not setup profiling yet
   return (
     <Container>
-      {!projectHasProfile && <SetupProfilingInstructions docsPlatform={docsPlatform} />}
-      {projectHasProfile && hasProfile && (
-        <ProfilePreview
-          canvasView={canvasView}
-          event={event}
-          organization={organization}
-        />
-      )}
+      <SetupProfilingInstructions docsLink={docsLink} />
       <FlamegraphContainer>
         <FlamegraphPreview
           flamegraph={flamegraph}
           relativeStartTimestamp={relativeStartTimestamp}
           relativeStopTimestamp={relativeStopTimestamp}
-          renderText={hasProfile}
+          renderText={transactionHasProfile}
           updateFlamegraphView={setCanvasView}
         />
       </FlamegraphContainer>
@@ -113,16 +130,10 @@ export function GapSpanDetails({
 }
 
 interface SetupProfilingInstructionsProps {
-  docsPlatform: PlatformKey;
+  docsLink: string;
 }
 
-function SetupProfilingInstructions({docsPlatform}: SetupProfilingInstructionsProps) {
-  // ios is the only supported apple platform right now
-  const docsLink =
-    docsPlatform === 'apple-ios'
-      ? 'https://docs.sentry.io/platforms/apple/guides/ios/profiling/'
-      : `https://docs.sentry.io/platforms/${docsPlatform}/profiling/`;
-
+function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps) {
   return (
     <InstructionsContainer>
       <Heading>{t('Requires Manual Instrumentation')}</Heading>

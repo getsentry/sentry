@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from datetime import timedelta
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
@@ -9,7 +8,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -127,7 +126,7 @@ def handle_owner_assignment(job):
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import ProjectOwnership
+            from sentry.models import GroupOwnerType, ProjectOwnership
 
             event = job["event"]
             project, group = event.project, event.group
@@ -136,12 +135,22 @@ def handle_owner_assignment(job):
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_owner"
                 ):
-                    owner_key = "owner_exists:1:%s" % group.id
-                    owners_exists = cache.get(owner_key)
-                    if owners_exists is None:
-                        owners_exists = group.groupowner_set.exists()
+                    issue_owner_key = f"owner_exists:1:{group.id}"
+                    issue_owners_exists = cache.get(issue_owner_key)
+                    if issue_owners_exists is None:
+                        # We don't care if a Suspect Commit groupowner exists
+                        issue_owners_exists = group.groupowner_set.filter(
+                            type__in=[
+                                GroupOwnerType.OWNERSHIP_RULE.value,
+                                GroupOwnerType.CODEOWNERS.value,
+                            ],
+                        ).exists()
                         # Cache for an hour if it's assigned. We don't need to move that fast.
-                        cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
+                        cache.set(
+                            issue_owner_key,
+                            issue_owners_exists,
+                            3600 if issue_owners_exists else 60,
+                        )
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_assignee"
@@ -154,7 +163,7 @@ def handle_owner_assignment(job):
                         # Cache for an hour if it's assigned. We don't need to move that fast.
                         cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
 
-                if owners_exists and assignees_exists:
+                if issue_owners_exists and assignees_exists:
                     return
 
                 with sentry_sdk.start_span(
@@ -170,37 +179,12 @@ def handle_owner_assignment(job):
                         issue_owners = []
                     else:
 
-                        issue_owners, baseline_duration = ProjectOwnership.get_issue_owners(
-                            project.id, event.data
-                        )
-
-                        should_sample = random.randint(1, 10) % 10 == 0
-                        if (
-                            features.has(
-                                "organizations:scaleable-codeowners-search",
-                                project.organization,
-                                actor=None,
-                            )
-                            and should_sample
-                        ):
-
-                            _, experiment_duration = ProjectOwnership.get_issue_owners(
-                                project.id, event.data, experiment=True
-                            )
-
-                            analytics.record(
-                                "issue_owners.time_durations",
-                                group_id=group.id,
-                                project_id=project.id,
-                                event_id=event.event_id,
-                                baseline_duration=baseline_duration,
-                                experiment_duration=experiment_duration,
-                            )
+                        issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.handle_group_owners"
                 ):
-                    if issue_owners and not owners_exists:
+                    if issue_owners and not issue_owners_exists:
                         try:
                             handle_group_owners(project, group, issue_owners)
                         except Exception:
@@ -294,6 +278,7 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+
     except UnableToAcquireLock:
         pass
 
@@ -489,7 +474,8 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            pipeline_step(job)
+            with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+                pipeline_step(job)
         except Exception:
             issue_category_metric = issue_category.name.lower() if issue_category else None
             metrics.incr(
@@ -718,7 +704,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import Commit
+    from sentry.models import Commit, Integration
     from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
@@ -750,7 +736,20 @@ def process_commits(job: PostProcessJob) -> None:
                     "group": event.group_id,
                     "project": event.project_id,
                 }
-                if features.has("organizations:commit-context", event.project.organization):
+                integrations = Integration.objects.filter(
+                    organizations=event.project.organization,
+                    provider__in=["github", "gitlab"],
+                )
+                use_fallback = (
+                    features.has(
+                        "organizations:commit-context-fallback", event.project.organization
+                    )
+                    and not integrations.exists()
+                )
+                if (
+                    features.has("organizations:commit-context", event.project.organization)
+                    and not use_fallback
+                ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr(

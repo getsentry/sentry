@@ -149,7 +149,8 @@ class GroupDetails extends Component<Props, State> {
   trackView(project: Project) {
     const {group, event} = this.state;
     const {location, organization, router} = this.props;
-    const {alert_date, alert_rule_id, alert_type} = location.query;
+    // Remove ref_fallback with IssueAlertFallbackExperiment
+    const {alert_date, alert_rule_id, alert_type, ref_fallback} = location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
     this.props.setRouteAnalyticsParams({
@@ -166,6 +167,7 @@ class GroupDetails extends Component<Props, State> {
         router.location.query.project,
         event
       ),
+      ref_fallback,
     });
   }
 
