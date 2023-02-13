@@ -443,49 +443,37 @@ class GetOwnersCase(TestCase):
     def test_get_owner_reason(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
-
-        # Test feature flag
         owner_reason = get_owner_reason(
             project=self.project,
             event=event,
             target_type=ActionTargetType.ISSUE_OWNERS,
             fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
         )
-        assert owner_reason is None
-
-        with self.feature("organizations:issue-alert-fallback-targeting"):
-            owner_reason = get_owner_reason(
-                project=self.project,
-                event=event,
-                target_type=ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
-            )
-            assert (
-                owner_reason
-                == f"We notified all members in the {self.project.get_full_name()} project of this issue"
-            )
-            owner_reason = get_owner_reason(
-                project=self.project,
-                event=event,
-                target_type=ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-            )
-            assert (
-                owner_reason
-                == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
-            )
+        assert (
+            owner_reason
+            == f"We notified all members in the {self.project.get_full_name()} project of this issue"
+        )
+        owner_reason = get_owner_reason(
+            project=self.project,
+            event=event,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+        )
+        assert (
+            owner_reason
+            == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
+        )
 
     def test_get_owner_reason_member(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
-        with self.feature("organizations:issue-alert-fallback-targeting"):
-            owner_reason = get_owner_reason(
-                project=self.project,
-                target_type=ActionTargetType.MEMBER,
-                event=event,
-                fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
-            )
-            assert owner_reason is None
+        owner_reason = get_owner_reason(
+            project=self.project,
+            target_type=ActionTargetType.MEMBER,
+            event=event,
+            fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
+        )
+        assert owner_reason is None
 
 
 class GetSendToFallthroughTest(TestCase):
