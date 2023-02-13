@@ -21,17 +21,6 @@ if TYPE_CHECKING:
 READ_CACHE_DURATION = 3600
 
 
-def get_duration(func):
-    def wrapper(*args, **kwargs):
-        start_time = timezone.now()
-        result = func(*args, **kwargs)
-        end_time = timezone.now()
-        duration = end_time - start_time
-        return result, duration.total_seconds()
-
-    return wrapper
-
-
 @region_silo_only_model
 class ProjectOwnership(Model):
     __include_in_export__ = True
@@ -174,7 +163,6 @@ class ProjectOwnership(Model):
         return result
 
     @classmethod
-    @get_duration
     def get_issue_owners(
         cls, project_id, data, limit=2, experiment=False
     ) -> Sequence[
