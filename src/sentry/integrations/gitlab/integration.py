@@ -154,7 +154,11 @@ class GitlabIntegration(
         if not lineno:
             return None
         try:
-            blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+            blame_range: Mapping[str, Any] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+            if blame_range is None:
+                return None
         except ApiError as e:
             raise e
 
