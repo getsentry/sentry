@@ -130,41 +130,31 @@ class OrganizationManager(BaseManager):
         The default top priority role in Sentry is owner.
         """
 
-        # get orgs and orgmemberIDs for the user
-        query = OrganizationMember.objects.filter(user_id=user_id)
         if queryset:  # queryset is a QuerySet of valid orgs
-            orgs_and_members = query.filter(organization__in=queryset)
-        orgs_and_members = query.values_list("organization_id", "id")
+            orgs = queryset.filter(
+                member_set__user_id=user_id,
+                status=OrganizationStatus.VISIBLE,
+            )
+        else:
+            orgs = Organization.objects.distinct().filter(
+                member_set__user_id=user_id,
+                status=OrganizationStatus.VISIBLE,
+            )
 
-        organizations, org_members = zip(*orgs_and_members)
-        organizations = list(organizations)
-        org_members = list(org_members)
+        # get owners from orgs
+        owner_role_orgs = orgs.filter(member_set__role=roles.get_top_dog().id)
 
         # get owner teams
         owner_teams = Team.objects.filter(
-            organization_id__in=organizations, org_role=roles.get_top_dog().id
+            organization_id__in=orgs, org_role=roles.get_top_dog().id
         ).values_list("id", flat=True)
 
-        # get owners from owner teams
-        owners = list(
-            OrganizationMemberTeam.objects.filter(
-                team_id__in=owner_teams,
-                organizationmember_id__in=org_members,
-            ).values_list("organizationmember_id", flat=True)
-        )
+        # get the orgs in which the user is a member of an owner team
+        owner_team_member_orgs = OrganizationMemberTeam.objects.filter(
+            team__in=owner_teams
+        ).values_list("organizationmember__organization_id", flat=True)
 
-        # get corresponding orgs from org list
-        members_to_org = {m: organizations[i] for (i, m) in enumerate(org_members)}
-        orgs = {members_to_org[m] for m in owners if m in members_to_org}
-
-        # get owners from orgs
-        owner_role_orgs = set(
-            OrganizationMember.objects.filter(
-                role=roles.get_top_dog().id, user_id=user_id
-            ).values_list("organization_id", flat=True)
-        )
-
-        return self.filter(id__in=orgs.union(owner_role_orgs), status=OrganizationStatus.ACTIVE)
+        return self.filter(id__in=owner_team_member_orgs).union(owner_role_orgs)
 
 
 @region_silo_only_model
