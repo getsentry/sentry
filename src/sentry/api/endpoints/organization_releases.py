@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime, timedelta
 
@@ -281,7 +283,7 @@ class OrganizationReleasesEndpoint(
             else:
                 queryset = queryset.filter(status=status_int)
 
-        queryset = queryset.select_related("owner").annotate(date=F("date_added"))
+        queryset = queryset.annotate(date=F("date_added"))
 
         queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
@@ -462,6 +464,9 @@ class OrganizationReleasesEndpoint(
                     projects.append(allowed_projects[slug])
 
                 new_status = result.get("status")
+                owner_id: int | None = None
+                if owner := result.get("owner"):
+                    owner_id = owner.id
 
                 # release creation is idempotent to simplify user
                 # experiences
@@ -472,7 +477,7 @@ class OrganizationReleasesEndpoint(
                         defaults={
                             "ref": result.get("ref"),
                             "url": result.get("url"),
-                            "owner": result.get("owner"),
+                            "owner_id": owner_id,
                             "date_released": result.get("dateReleased"),
                             "status": new_status or ReleaseStatus.OPEN,
                             "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
@@ -537,7 +542,7 @@ class OrganizationReleasesEndpoint(
                         )
                     fetch_commits = not commit_list
                     try:
-                        release.set_refs(refs, request.user, fetch=fetch_commits)
+                        release.set_refs(refs, request.user.id, fetch=fetch_commits)
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
                         return Response({"refs": [str(e)]}, status=400)

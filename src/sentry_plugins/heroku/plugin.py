@@ -138,7 +138,7 @@ class HerokuReleaseHook(ReleaseHook):
             else:
                 release.set_refs(
                     refs=[{"commit": release.version, "repository": repository.name}],
-                    user=values["owner"],
+                    user_id=values["owner"].id,
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint

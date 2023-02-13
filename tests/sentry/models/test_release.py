@@ -607,7 +607,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])
@@ -635,7 +635,7 @@ class SetRefsTest(SetRefsTestCase):
         ]
 
         with pytest.raises(InvalidRepository):
-            self.release.set_refs(refs, self.user)
+            self.release.set_refs(refs, self.user.id)
 
         assert len(Commit.objects.all()) == 0
         assert len(ReleaseHeadCommit.objects.all()) == 0
@@ -657,7 +657,7 @@ class SetRefsTest(SetRefsTestCase):
             {"repository": "test/repo", "commit": "previous-commit-id-3..current-commit-id-3"},
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], "current-commit-id")
@@ -685,7 +685,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, False)
+        self.release.set_refs(refs, self.user.id, False)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])
