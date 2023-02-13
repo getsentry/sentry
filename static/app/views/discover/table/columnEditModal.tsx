@@ -52,8 +52,8 @@ function ColumnEditModal(props: Props) {
     });
   }, [organization.id]);
 
-  const {tags} = useTags();
-  const tagKeys = Object.values(tags).map(({key}) => key);
+  const tags = useTags();
+  const tagKeys = Object.keys(tags);
 
   const [columns, setColumns] = useState<Column[]>(props.columns);
 

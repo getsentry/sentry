@@ -4,7 +4,6 @@ import django.utils.timezone
 from django.db import migrations, models
 
 import sentry.db.models.fields.bounded
-import sentry.db.models.fields.jsonfield
 import sentry.models.scheduledeletion
 from sentry.new_migrations.migrations import CheckedMigration
 
@@ -23,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0354_break_saved_search_foreign_key"),
+        ("sentry", "0356_break_release_owner_foreign_key"),
     ]
 
     operations = [

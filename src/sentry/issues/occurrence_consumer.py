@@ -36,13 +36,19 @@ class EventLookupError(Exception):
 
 def get_occurrences_ingest_consumer(
     consumer_type: str,
+    auto_offset_reset: str,
+    group_id: str,
     strict_offset_reset: bool,
 ) -> StreamProcessor[KafkaPayload]:
-    return create_ingest_occurences_consumer(consumer_type, strict_offset_reset)
+    return create_ingest_occurences_consumer(
+        consumer_type, auto_offset_reset, group_id, strict_offset_reset
+    )
 
 
 def create_ingest_occurences_consumer(
     topic_name: str,
+    auto_offset_reset: str,
+    group_id: str,
     strict_offset_reset: bool,
 ) -> StreamProcessor[KafkaPayload]:
     kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
@@ -51,8 +57,8 @@ def create_ingest_occurences_consumer(
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
             get_kafka_consumer_cluster_options(kafka_cluster),
-            auto_offset_reset="latest",
-            group_id="occurrence-consumer",
+            auto_offset_reset=auto_offset_reset,
+            group_id=group_id,
             strict_offset_reset=strict_offset_reset,
         )
     )
