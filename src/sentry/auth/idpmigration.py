@@ -117,7 +117,7 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any] | None:
     verification_value: Dict[str, Any] = json.loads(verification_str)
     metrics.incr(
         "idpmigration.confirmation_success",
-        tags={key: verification_value.get(key) for key in ("provider", "organization_id")},
+        tags={"provider": verification_value.get("provider")},
         sample_rate=1.0,
     )
     return verification_value

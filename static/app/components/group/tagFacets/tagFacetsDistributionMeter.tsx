@@ -88,11 +88,13 @@ function TagFacetsDistributionMeter({
     return (
       <Title>
         <TitleType>{title}</TitleType>
-        <TitleDescription>
-          <StyledTooltip delay={TOOLTIP_DELAY} title={topSegments[0].name || t('n/a')}>
-            {topSegments[0].name || t('n/a')}
-          </StyledTooltip>
-        </TitleDescription>
+        <Tooltip
+          skipWrapper
+          delay={TOOLTIP_DELAY}
+          title={topSegments[0].name || t('n/a')}
+        >
+          <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+        </Tooltip>
         <ExpandToggleButton
           borderless
           size="zero"
@@ -206,13 +208,13 @@ function TagFacetsDistributionMeter({
                       color={colors[segment.isOther ? colors.length - 1 : index]}
                       focus={focus}
                     />
-                    <LegendText unfocus={unfocus}>
-                      {(
-                        <StyledTooltip delay={TOOLTIP_DELAY} title={segment.name}>
-                          {segment.name}
-                        </StyledTooltip>
-                      ) ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
-                    </LegendText>
+                    <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
+                      <LegendText unfocus={unfocus}>
+                        {segment.name ?? (
+                          <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
+                        )}
+                      </LegendText>
+                    </Tooltip>
                     {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
                   </LegendRow>
                 </Link>
@@ -398,12 +400,6 @@ const ExpandToggleButton = styled(Button)`
 
 const NotApplicableLabel = styled('span')`
   color: ${p => p.theme.gray300};
-`;
-
-const StyledTooltip = styled(Tooltip)`
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const StyledSummary = styled('summary')`
