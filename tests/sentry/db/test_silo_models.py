@@ -141,8 +141,11 @@ fk_emeptions = {
     (IncidentSeen, User),
     (IncidentSnapshot, TimeSeriesSnapshot),
     (IncidentActivity, User),
+    #
     (IncidentSubscription, User),
+    #
     (AlertRuleTriggerAction, SentryApp),
+    #
     (AlertRuleActivity, User),
     (DiscoverSavedQuery, User),
     (ExportedData, User),

@@ -18,6 +18,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
 from sentry.snuba.models import QuerySubscription
@@ -268,13 +269,13 @@ class IncidentSubscription(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentsubscription"
-        unique_together = (("incident", "user"),)
+        unique_together = (("incident", "user_id"),)
 
     __repr__ = sane_repr("incident_id", "user_id")
 
@@ -658,7 +659,7 @@ class AlertRuleActivity(Model):
     previous_alert_rule = FlexibleForeignKey(
         "sentry.AlertRule", null=True, related_name="previous_alert_rule"
     )
-    user = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

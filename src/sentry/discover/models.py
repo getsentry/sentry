@@ -12,6 +12,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -42,7 +43,7 @@ class DiscoverSavedQuery(Model):
 
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
-    created_by = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     name = models.CharField(max_length=255)
     query = JSONField()
     version = models.IntegerField(null=True)
