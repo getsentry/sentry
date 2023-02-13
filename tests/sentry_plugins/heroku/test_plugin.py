@@ -92,7 +92,7 @@ class SetRefsTest(TestCase):
 
         assert len(release_heads) == 0
         hook = HerokuReleaseHook(project)
-        hook.finish_release(version=version, owner=user)
+        hook.finish_release(version=version, owner_id=user.id)
 
         release = Release.objects.get(projects=project, version=version)
 
@@ -127,7 +127,7 @@ class SetRefsTest(TestCase):
 class HookHandleTest(TestCase):
     def test_user_success(self):
         user = self.create_user()
-        organization = self.create_organization(owner=user)
+        organization = self.create_organization(owner_id=user.id)
         project = self.create_project(organization=organization)
         hook = HerokuReleaseHook(project)
         hook.is_valid_signature = Mock()
@@ -148,7 +148,7 @@ class HookHandleTest(TestCase):
 
     def test_actor_email_success(self):
         user = self.create_user()
-        organization = self.create_organization(owner=user)
+        organization = self.create_organization(owner_id=user.id)
         project = self.create_project(organization=organization)
         hook = HerokuReleaseHook(project)
         hook.is_valid_signature = Mock()
@@ -169,7 +169,7 @@ class HookHandleTest(TestCase):
 
     def test_email_mismatch(self):
         user = self.create_user()
-        organization = self.create_organization(owner=user)
+        organization = self.create_organization(owner_id=user.id)
         project = self.create_project(organization=organization)
         hook = HerokuReleaseHook(project)
         hook.is_valid_signature = Mock()
