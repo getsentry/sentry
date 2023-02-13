@@ -10,8 +10,6 @@ import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-const ONE_MINUTE_IN_MS = 60000;
-
 function getDateObj(date: RelaxedDateType): Date {
   return isString(date) || isNumber(date) ? new Date(date) : date;
 }
@@ -30,6 +28,14 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * that
    */
   disabledAbsoluteTooltip?: boolean;
+  /**
+   * How often should the component live update the timestamp.
+   *
+   * You may specify a custom interval in milliseconds if necissary.
+   *
+   * @default minute
+   */
+  liveUpdateInterval?: 'minute' | 'second' | number;
   /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
    */
@@ -71,6 +77,7 @@ function TimeSince({
   tooltipBody,
   tooltipUnderlineColor,
   unitStyle,
+  liveUpdateInterval = 'minute',
   ...props
 }: Props) {
   const tickerRef = useRef<number | undefined>();
@@ -86,14 +93,21 @@ function TimeSince({
     // Immediately update if props change
     setRelative(computeRelativeDate());
 
+    const interval =
+      liveUpdateInterval === 'minute'
+        ? 60 * 1000
+        : liveUpdateInterval === 'second'
+        ? 1000
+        : liveUpdateInterval;
+
     // Start a ticker to update the relative time
     tickerRef.current = window.setInterval(
       () => setRelative(computeRelativeDate()),
-      ONE_MINUTE_IN_MS
+      interval
     );
 
     return () => window.clearInterval(tickerRef.current);
-  }, [computeRelativeDate]);
+  }, [liveUpdateInterval, computeRelativeDate]);
 
   const dateObj = getDateObj(date);
   const user = ConfigStore.get('user');
