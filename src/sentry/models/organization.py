@@ -348,18 +348,18 @@ class Organization(Model, SnowflakeIdMixin):
 
     def get_members_with_org_roles(self, roles: Collection[str]) -> QuerySet:
         members_with_role = set(
-            OrganizationMember.objects.filter(
-                organization=self,
+            self.member_set.filter(
                 role__in=roles,
                 user__isnull=False,
                 user__is_active=True,
             ).values_list("id", flat=True)
         )
 
+        teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
         members_on_teams_with_role = set(
-            OrganizationMemberTeam.objects.filter(
-                team__in=self.get_teams_with_org_roles(roles)
-            ).values_list("organizationmember__id", flat=True)
+            OrganizationMemberTeam.objects.filter(team_id__in=teams_with_org_role).values_list(
+                "organizationmember__id", flat=True
+            )
         )
 
         return OrganizationMember.objects.filter(
