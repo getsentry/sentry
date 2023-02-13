@@ -73,7 +73,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         if heroku_hmac:
             if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
-                logger.error(
+                logger.info(
                     "heroku.webhook.invalid-signature", extra={"project_id": self.project.id}
                 )
                 return HttpResponse(status=401)
