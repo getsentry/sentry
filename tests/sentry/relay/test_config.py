@@ -221,11 +221,18 @@ def test_project_config_exposed_features_raise_exc(default_project):
 
 @pytest.mark.django_db
 @region_silo_test(stable=True)
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.eval_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-def test_project_config_with_all_biases_enabled(default_project, default_team):
+def test_project_config_with_all_biases_enabled(
+    eval_dynamic_factor_tk, eval_dynamic_factor_lr, default_project, default_team
+):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
+    eval_dynamic_factor_tk.return_value = 2.0
+    eval_dynamic_factor_lr.return_value = 1.5
+
     redis_client = get_redis_client_for_ds()
     ts = time.time()
 
@@ -316,7 +323,7 @@ def test_project_config_with_all_biases_enabled(default_project, default_team):
                     "op": "or",
                 },
                 "id": 1003,
-                "samplingValue": {"type": "sampleRate", "value": 0.5},
+                "samplingValue": {"type": "factor", "value": 2.0},
                 "type": "transaction",
             },
             {
@@ -337,7 +344,7 @@ def test_project_config_with_all_biases_enabled(default_project, default_team):
                 "id": 1001,
             },
             {
-                "samplingValue": {"type": "sampleRate", "value": 0.5},
+                "samplingValue": {"type": "factor", "value": 1.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -356,10 +363,10 @@ def test_project_config_with_all_biases_enabled(default_project, default_team):
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 0.1},
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
-                "samplingValue": {"type": "sampleRate", "value": 0.5},
+                "samplingValue": {"type": "factor", "value": 1.5},
                 "type": "trace",
                 "active": True,
                 "condition": {
@@ -378,7 +385,7 @@ def test_project_config_with_all_biases_enabled(default_project, default_team):
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-                "decayingFn": {"type": "linear", "decayedValue": 0.1},
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},

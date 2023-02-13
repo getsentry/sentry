@@ -12,10 +12,10 @@ from sentry.dynamic_sampling.rules.biases.base import (
 )
 from sentry.dynamic_sampling.rules.helpers.latest_releases import ProjectBoostedReleases
 from sentry.dynamic_sampling.rules.utils import (
-    RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     PolymorphicRule,
     RuleType,
+    eval_dynamic_factor,
 )
 
 
@@ -23,8 +23,7 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE],
-            "baseSampleRate": bias_params.base_sample_rate,
-            "sampleRate": min(1.0, bias_params.base_sample_rate * RELEASE_BOOST_FACTOR),
+            "factor": eval_dynamic_factor(bias_params.base_sample_rate, 1.5),
             "boostedReleases": ProjectBoostedReleases(
                 bias_params.project.id
             ).get_extended_boosted_releases(),
@@ -40,8 +39,8 @@ class BoostLatestReleasesRulesGeneratorV2(BiasRulesGenerator):
             [
                 {
                     "samplingValue": {
-                        "type": "sampleRate",
-                        "value": bias_data["sampleRate"],
+                        "type": "factor",
+                        "value": bias_data["factor"],
                     },
                     "type": "trace",
                     "active": True,
@@ -75,11 +74,9 @@ class BoostLatestReleasesRulesGeneratorV2(BiasRulesGenerator):
                             ).replace(tzinfo=UTC)
                         ),
                     },
-                    # We want to use the linear decaying function for latest release boosting, with the goal
-                    # of interpolating the adoption growth with the reduction in sample rate.
                     "decayingFn": {
                         "type": "linear",
-                        "decayedValue": bias_data["baseSampleRate"],
+                        "decayedValue": 1.0,
                     },
                 }
                 for idx, boosted_release in enumerate(boosted_releases)
