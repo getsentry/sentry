@@ -19,7 +19,6 @@ import {
 } from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import withApi from 'sentry/utils/withApi';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 
@@ -285,10 +284,7 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/organizations/${organization.slug}/replays/#replay-sidequest`,
-      display:
-        // Use `features?.` because getsentry has a different `Organization` type/payload
-        organization.features?.includes('session-replay-ui') &&
-        Boolean(projects?.some(projectSupportsReplay)),
+      display: organization.features?.includes('session-replay'),
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
           <EventWaiter
