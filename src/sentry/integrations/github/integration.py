@@ -228,9 +228,8 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             commit: Mapping[str, Any] = max(
                 (
                     blame
-                    for blame in blame_range
-                    if blame is not None
-                    and blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    for blame in blame_range or ()
+                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
                 ),
                 key=lambda blame: datetime.strptime(
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
