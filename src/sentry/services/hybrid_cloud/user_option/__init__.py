@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Iterable, List, Optional
+from dataclasses import dataclass
+from typing import Any, Iterable, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 
@@ -18,28 +19,33 @@ class ApiUserOption:
     organization_id: int | None = None
 
 
-@dataclass
-class ApiUserOptionSet:
-    options: List[ApiUserOption] = field(default_factory=list)
-
-    def get_one(
-        self,
-        *,
-        key: str | None = None,
-        user_id: int | None = None,
-        default: Any = None,
-    ) -> Any:
-
-        for option in self.options:
-            if key is not None and option.key != key:
-                continue
-            if user_id is not None and option.user_id != user_id:
-                continue
-            return option.value
-        return default
+def get_option_from_list(
+    options: List[ApiUserOption],
+    *,
+    key: str | None = None,
+    user_id: int | None = None,
+    default: Any = None,
+) -> Any:
+    for option in options:
+        if key is not None and option.key != key:
+            continue
+        if user_id is not None and option.user_id != user_id:
+            continue
+        return option.value
+    return default
 
 
-class UserOptionService(InterfaceWithLifecycle):
+class UserOptionFilterArgs(TypedDict, total=False):
+    user_ids: Iterable[int]
+    keys: List[str]
+    key: str
+    project_id: Optional[int]
+    organization_id: Optional[int]
+
+
+class UserOptionService(
+    FilterQueryInterface[UserOptionFilterArgs, ApiUserOption, None], InterfaceWithLifecycle
+):
     @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
         pass
@@ -54,18 +60,6 @@ class UserOptionService(InterfaceWithLifecycle):
         project_id: int | None = None,
         organization_id: int | None = None,
     ) -> None:
-        pass
-
-    @abstractmethod
-    def query_options(
-        self,
-        *,
-        user_ids: Iterable[int],
-        keys: List[str] | None = None,
-        key: str | None = None,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-    ) -> ApiUserOptionSet:
         pass
 
 

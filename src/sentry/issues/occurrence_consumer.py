@@ -13,6 +13,7 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.utils import timezone
 
+from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.ingest import save_issue_occurrence
@@ -20,13 +21,16 @@ from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.utils import json, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
 logger = logging.getLogger(__name__)
 
 
 class InvalidEventPayloadError(Exception):
+    pass
+
+
+class EventLookupError(Exception):
     pass
 
 
@@ -73,7 +77,6 @@ def save_event_from_occurrence(
     data["type"] = "generic"
 
     project_id = data.pop("project_id")
-    data = CanonicalKeyDict(data)
 
     with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
         manager = EventManager(data)
@@ -82,48 +85,80 @@ def save_event_from_occurrence(
         return event
 
 
+def lookup_event(project_id: int, event_id: str) -> Event:
+    data = nodestore.get(Event.generate_node_id(project_id, event_id))
+    if data is None:
+        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
+    event = Event(event_id=event_id, project_id=project_id)
+    event.data = data
+    return event
+
+
 def process_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: Dict[str, Any]
-) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
+) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+    if occurrence_data["event_id"] != event_data["event_id"]:
+        raise ValueError(
+            f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
+        )
+
+    event = save_event_from_occurrence(event_data)
+    return save_issue_occurrence(occurrence_data, event)
+
+
+def lookup_event_and_process_issue_occurrence(
+    occurrence_data: IssueOccurrenceData,
+) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+    project_id = occurrence_data["project_id"]
+    event_id = occurrence_data["event_id"]
     try:
-        event = save_event_from_occurrence(event_data)
+        event = lookup_event(project_id, event_id)
     except Exception:
-        logger.exception("error saving event")
-        return None
+        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
 
-    occurrence_data["event_id"] = event.event_id
-    try:
-        return save_issue_occurrence(occurrence_data, event)
-    except Exception:
-        logger.exception("error saving occurrence")
-
-    return None
+    return save_issue_occurrence(occurrence_data, event)
 
 
-def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
+def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    """
+    Processes the incoming message payload into a format we can use.
+
+    :raises InvalidEventPayloadError: when payload contains invalid data
+    """
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.timing("occurrence.ingest.size.data", len(payload))
 
-            kwargs = {
-                "occurrence_data": {
-                    "id": payload["id"],
-                    "fingerprint": payload["fingerprint"],
-                    "issue_title": payload["issue_title"],
-                    "subtitle": payload["subtitle"],
-                    "resource_id": payload.get("resource_id"),
-                    "evidence_data": payload.get("evidence_data"),
-                    "evidence_display": payload.get("evidence_display"),
-                    "type": payload["type"],
-                    "detection_time": payload["detection_time"],
-                }
+            occurrence_data = {
+                "id": payload["id"],
+                "project_id": payload["project_id"],
+                "fingerprint": payload["fingerprint"],
+                "issue_title": payload["issue_title"],
+                "subtitle": payload["subtitle"],
+                "resource_id": payload.get("resource_id"),
+                "evidence_data": payload.get("evidence_data"),
+                "evidence_display": payload.get("evidence_display"),
+                "type": payload["type"],
+                "detection_time": payload["detection_time"],
+                # TODO: need to parse level
             }
-            if "event_id" in payload:
-                kwargs["occurrence_data"]["event_id"] = payload["event_id"]
+
+            if payload.get("event_id"):
+                occurrence_data["event_id"] = payload["event_id"]
 
             if "event" in payload:
                 event_payload = payload["event"]
-                kwargs["event_data"] = {
+                if payload["project_id"] != event_payload.get("project_id"):
+                    raise InvalidEventPayloadError(
+                        f"project_id in occurrence ({payload['project_id']}) is different from project_id in event ({event_payload.get('project_id')})"
+                    )
+                if not payload.get("event_id") and not event_payload.get("event_id"):
+                    raise InvalidEventPayloadError("Payload must contain an event_id")
+
+                if not payload.get("event_id"):
+                    occurrence_data["event_id"] = event_payload.get("event_id")
+
+                event_data = {
                     "event_id": event_payload.get("event_id"),
                     "project_id": event_payload.get("project_id"),
                     "platform": event_payload.get("platform"),
@@ -150,48 +185,48 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                 ]
                 for optional_param in optional_params:
                     if optional_param in event_payload:
-                        kwargs["event_data"][optional_param] = event_payload.get(optional_param)
+                        event_data[optional_param] = event_payload.get(optional_param)
 
-                kwargs["occurrence_data"]["event_id"] = event_payload.get("event_id")
+                _validate_event_data(event_data)
 
-            _validate_kwargs(kwargs)
+                return {"occurrence_data": occurrence_data, "event_data": event_data}
+            else:
+                if not payload.get("event_id"):
+                    raise InvalidEventPayloadError(
+                        "Payload must contain either event_id or event_data"
+                    )
 
-            return kwargs
+                return {"occurrence_data": occurrence_data}
 
-    except (KeyError, ValueError):
-        logger.exception("invalid payload data")
-        return None
+    except (KeyError, ValueError) as e:
+        raise InvalidEventPayloadError(e)
 
 
-def _validate_kwargs(kwargs: Mapping[str, Any]) -> None:
-    # only validate event data, for now
+def _validate_event_data(event_data: Mapping[str, Any]) -> None:
     try:
-        jsonschema.validate(kwargs["event_data"], EVENT_PAYLOAD_SCHEMA)
+        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
         metrics.incr("occurrence_ingest.event_payload_invalid")
         raise InvalidEventPayloadError("Event payload does not match schema")
 
 
-def _process_message(
-    message: Mapping[str, Any]
-) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
+def _process_message(message: Mapping[str, Any]) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+    """
+    :raises InvalidEventPayloadError: when the message is invalid
+    :raises EventLookupError: when the provided event_id in the message couldn't be found.
+    """
     metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
 
     try:
         kwargs = _get_kwargs(message)
-    except InvalidEventPayloadError:
-        kwargs = None
-
-    if not kwargs:
-        return None
-
-    if "event_data" in kwargs:
-        return process_event_and_issue_occurrence(**kwargs)  # returning for easier testing, for now
-    else:
-        # all occurrences will have Event data, for now
-        pass
-
-    return None
+        if "event_data" in kwargs:
+            return process_event_and_issue_occurrence(
+                kwargs["occurrence_data"], kwargs["event_data"]
+            )
+        else:
+            return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
+    except (ValueError, KeyError) as e:
+        raise InvalidEventPayloadError(e)
 
 
 class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
@@ -209,8 +244,8 @@ class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             payload = json.loads(message.payload.value, use_rapid_json=True)
             _process_message(payload)
-        except rapidjson.JSONDecodeError:
-            logger.exception("invalid json received")
+        except (rapidjson.JSONDecodeError, InvalidEventPayloadError, EventLookupError, Exception):
+            logger.exception("failed to process message payload")
 
     def close(self) -> None:
         pass

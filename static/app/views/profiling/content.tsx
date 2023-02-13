@@ -268,11 +268,11 @@ const ActionBar = styled('div')`
 // TODO: another simple primitive that can easily be <Grid columns={2} />
 const PanelsGrid = styled('div')`
   display: grid;
-  grid-template-columns: 50% 50%;
+  grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 100%;
+    grid-template-columns: 1fr;
   }
 `;
 

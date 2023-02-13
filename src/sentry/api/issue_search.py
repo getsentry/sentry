@@ -11,6 +11,11 @@ from sentry.api.event_search import (
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.grouptype import (
+    GroupCategory,
+    get_group_type_by_slug,
+    get_group_types_by_category,
+)
 from sentry.models import Environment, Organization, Project, Team, User
 from sentry.models.group import STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
@@ -21,7 +26,6 @@ from sentry.search.utils import (
     parse_status_value,
     parse_user_value,
 )
-from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory, GroupType
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -143,12 +147,12 @@ def convert_category_value(
     environments: Optional[Sequence[Environment]],
 ) -> List[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
-    results = []
+    results: List[int] = []
     for category in value:
         group_category = getattr(GroupCategory, category.upper(), None)
         if not group_category:
             raise InvalidSearchQuery(f"Invalid category value of '{category}'")
-        results.extend([type.value for type in GROUP_CATEGORY_TO_TYPES.get(group_category, [])])
+        results.extend(get_group_types_by_category(group_category.value))
     return results
 
 
@@ -161,10 +165,10 @@ def convert_type_value(
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
     results = []
     for type in value:
-        group_type = getattr(GroupType, type.upper(), None)
+        group_type = get_group_type_by_slug(type)
         if not group_type:
             raise InvalidSearchQuery(f"Invalid type value of '{type}'")
-        results.append(group_type.value)
+        results.append(group_type.type_id)
     return results
 
 

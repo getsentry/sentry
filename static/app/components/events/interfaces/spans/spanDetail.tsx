@@ -45,6 +45,7 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import * as SpanEntryContext from './context';
+import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {
@@ -343,12 +344,20 @@ function SpanDetail(props: Props) {
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
-          <InlineDocs
-            orgSlug={organization.slug}
-            platform={event.sdk?.name || ''}
-            projectSlug={event?.projectSlug ?? ''}
-            resetCellMeasureCache={resetCellMeasureCache}
-          />
+          {organization.features.includes('profiling-previews') ? (
+            <GapSpanDetails
+              event={event}
+              span={span}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          ) : (
+            <InlineDocs
+              orgSlug={organization.slug}
+              platform={event.sdk?.name || ''}
+              projectSlug={event?.projectSlug ?? ''}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          )}
         </SpanDetails>
       );
     }

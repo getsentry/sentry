@@ -194,11 +194,11 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
     skipSlowestProfile: true,
   });
 
-  if (functionsQuery.type === 'loading') {
+  if (functionsQuery.isLoading) {
     return <FunctionsMiniGridLoading />;
   }
 
-  if (functionsQuery.type === 'resolved' && functions && functions.length === 0) {
+  if (!functions || (functions && functions.length === 0)) {
     return <FunctionsMiniGridEmptyState />;
   }
 

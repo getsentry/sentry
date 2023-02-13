@@ -5,7 +5,8 @@ from .email import *  # noqa: F401,F403
 from .experiments import *  # noqa: F401,F403
 from .features import *  # noqa: F401,F403
 from .onboarding import *  # noqa: F401,F403
-from .outbox import *  # noqa: F401,F403
+from .outbox.control import *  # noqa: F401,F403
+from .outbox.region import *  # noqa: F401,F403
 from .releases import *  # noqa: F401,F403
 from .reprocessing import *  # noqa: F401,F403
 from .rules import *  # noqa: F401,F403

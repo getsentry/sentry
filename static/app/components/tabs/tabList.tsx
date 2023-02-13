@@ -7,7 +7,7 @@ import {ListCollection} from '@react-stately/list';
 import {useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconEllipsis} from 'sentry/icons';
@@ -188,7 +188,7 @@ function BaseTabList({
             options={overflowMenuItems}
             value={[...state.selectionManager.selectedKeys][0]}
             onChange={opt => state.setSelectedKey(opt.value)}
-            isDisabled={disabled}
+            disabled={disabled}
             position="bottom-end"
             size="sm"
             offset={4}

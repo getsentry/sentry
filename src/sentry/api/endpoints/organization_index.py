@@ -76,10 +76,10 @@ class OrganizationIndexEndpoint(Endpoint):
 
         elif owner_only:
             # This is used when closing an account
-            queryset = queryset.filter(
-                member_set__role=roles.get_top_dog().id,
-                member_set__user_id=request.user.id,
-                status=OrganizationStatus.VISIBLE,
+
+            # also fetches organizations in which you are a member of an owner team
+            queryset = Organization.objects.get_organizations_where_user_is_owner(
+                user_id=request.user.id, queryset=queryset
             )
             org_results = []
             for org in sorted(queryset, key=lambda x: x.name):

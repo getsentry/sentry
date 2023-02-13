@@ -67,10 +67,7 @@ from sentry.models.integrations import (
     ProjectIntegration,
     RepositoryProjectPathConfig,
 )
-from tests.sentry.hybrid_cloud import (
-    validate_models_have_silos,
-    validate_no_cross_silo_foreign_keys,
-)
+from sentry.testutils.silo import validate_models_have_silos, validate_no_cross_silo_foreign_keys
 
 
 class any_model:

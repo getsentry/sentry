@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -102,6 +103,7 @@ export enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  UNREAL_CRASH_TYPE = 'unreal.crash_type',
   USER = 'user',
   USER_DISPLAY = 'user.display',
   USER_EMAIL = 'user.email',
@@ -897,6 +899,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.UNREAL_CRASH_TYPE]: {
+    desc: t('Crash type of an Unreal event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.USER]: {
     desc: t('User identification value'),
     kind: FieldKind.FIELD,
@@ -993,6 +1000,7 @@ export const ISSUE_FIELDS = [
   FieldKey.TITLE,
   FieldKey.TRACE,
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
@@ -1025,6 +1033,7 @@ export const DISCOVER_FIELDS = [
   // tags.key and tags.value are omitted on purpose as well.
 
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER,
   FieldKey.USER_ID,
   FieldKey.USER_EMAIL,
@@ -1233,3 +1242,16 @@ export const getFieldDefinition = (
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
+
+export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
+  return Object.fromEntries(
+    fieldKeys.map(fieldKey => [
+      fieldKey,
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
+    ])
+  );
+}
