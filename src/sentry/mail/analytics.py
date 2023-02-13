@@ -12,6 +12,8 @@ class EmailNotificationSent(analytics.Event):
         analytics.Attribute("actor_id"),
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("group_id", required=False),
+        # Remove after IssueAlertFallbackExperiment
+        analytics.Attribute("fallback_experiment", required=False),
     )
 
 
