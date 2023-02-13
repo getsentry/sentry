@@ -210,6 +210,9 @@ class GetSendToOwnersTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.user3 = self.create_user(email="bar@example.com", is_active=True)
+        self.user_suspect_committer = self.create_user(
+            email="suspectcommitter@example.com", is_active=True
+        )
 
         self.team2 = self.create_team(
             organization=self.organization, members=[self.user, self.user2]
@@ -367,6 +370,11 @@ class GetSendToOwnersTest(TestCase):
 
     @with_feature("organizations:streamline-targeting-context")
     def test_send_to_suspect_committers(self):
+        """
+        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
+        flag is not on.
+        """
+        # TODO: Delete this test once Commit Context has GA'd
         release = self.create_release(project=self.project, version="v12")
         event = self.store_event(
             data={
@@ -381,8 +389,8 @@ class GetSendToOwnersTest(TestCase):
                 {
                     "id": "a" * 40,
                     "repository": self.repo.name,
-                    "author_email": "bar@example.com",
-                    "author_name": "Bar",
+                    "author_email": "suspectcommitter@example.com",
+                    "author_name": "Suspect Committer",
                     "message": "fix: Fix bug",
                     "patch_set": [
                         {"path": "src/main/java/io/sentry/example/Application.java", "type": "M"}
@@ -396,11 +404,11 @@ class GetSendToOwnersTest(TestCase):
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
-                user_service.get_user(self.user3.id),
+                user_service.get_user(self.user_suspect_committer.id),
                 user_service.get_user(self.user.id),
             },
             ExternalProviders.SLACK: {
-                user_service.get_user(self.user3.id),
+                user_service.get_user(self.user_suspect_committer.id),
                 user_service.get_user(self.user.id),
             },
         }
@@ -408,7 +416,11 @@ class GetSendToOwnersTest(TestCase):
     @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_with_commit_context_feature_flag(self):
-        self.commit = self.create_sample_commit(self.user3)
+        """
+        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
+        flag is on.
+        """
+        self.commit = self.create_sample_commit(self.user_suspect_committer)
         event = self.store_event(
             data={
                 "stacktrace": STACKTRACE,
@@ -418,7 +430,7 @@ class GetSendToOwnersTest(TestCase):
 
         GroupOwner.objects.create(
             group=event.group,
-            user=self.user3,
+            user=self.user_suspect_committer,
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -426,11 +438,11 @@ class GetSendToOwnersTest(TestCase):
         )
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
-                user_service.get_user(self.user3.id),
+                user_service.get_user(self.user_suspect_committer.id),
                 user_service.get_user(self.user.id),
             },
             ExternalProviders.SLACK: {
-                user_service.get_user(self.user3.id),
+                user_service.get_user(self.user_suspect_committer.id),
                 user_service.get_user(self.user.id),
             },
         }
@@ -438,10 +450,14 @@ class GetSendToOwnersTest(TestCase):
     @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_no_owners_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer is added as suggested assignee, where no user owns the file and
+        where the "organizations:commit-context" flag is on.
+        """
         project_no_team = self.create_project(
             name="No Team Project", organization=self.organization
         )
-        commit = self.create_sample_commit(self.user3)
+        commit = self.create_sample_commit(self.user_suspect_committer)
         event = self.store_event(
             data={
                 "stacktrace": {
@@ -462,7 +478,7 @@ class GetSendToOwnersTest(TestCase):
 
         GroupOwner.objects.create(
             group=event.group,
-            user=self.user3,
+            user=self.user_suspect_committer,
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -470,16 +486,20 @@ class GetSendToOwnersTest(TestCase):
         )
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
-                user_service.get_user(self.user3.id),
+                user_service.get_user(self.user_suspect_committer.id),
             },
             ExternalProviders.SLACK: {
-                user_service.get_user(self.user3.id),
+                user_service.get_user(self.user_suspect_committer.id),
             },
         }
 
     @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_dupe_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer/owner is added as suggested assignee once where the suspect
+        committer is also the owner and where the "organizations:commit-context" flag is on.
+        """
         commit = self.create_sample_commit(self.user)
         event = self.store_event(
             data={
@@ -504,6 +524,10 @@ class GetSendToOwnersTest(TestCase):
     @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_exception_with_commit_context_feature_flag(self):
+        """
+        Test determine_eligible_recipients throws an exception when get_suspect_committers throws
+        an exception and returns the file owner, where "organizations:commit-context" flag is on.
+        """
         invalid_commit_id = 10000
         event = self.store_event(
             data={
