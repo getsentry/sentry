@@ -144,7 +144,12 @@ function Content({
           <BarChart
             grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
             xAxis={xAxis}
-            yAxis={{type: 'value'}}
+            yAxis={{
+              type: 'value',
+              axisLabel: {
+                formatter: value => formatPercentage(value, 0),
+              },
+            }}
             series={[series]}
             tooltip={tooltip}
             colors={colors}
