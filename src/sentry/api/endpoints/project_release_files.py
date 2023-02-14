@@ -201,8 +201,10 @@ class ArtifactSource:
         return len(self.sorted_and_filtered_files)
 
     def __getitem__(self, range):
-        url, info = self.sorted_and_filtered_files[range]
-        return [pseudo_releasefile(url, info, self._dist)]
+        return [
+            pseudo_releasefile(url, info, self._dist)
+            for url, info in self.sorted_and_filtered_files[range]
+        ]
 
 
 def pseudo_releasefile(url, info, dist):

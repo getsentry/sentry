@@ -297,7 +297,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             if artifact_index is not None:
                 files = artifact_index.get("files", {})
                 source = ArtifactSource(dist, files, [], [])
-                data_sources.extend([source[i][0] for i in range(len(source))])
+                data_sources.extend(source[:])
 
         return data_sources
 
