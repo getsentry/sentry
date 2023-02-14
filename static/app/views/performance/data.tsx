@@ -6,11 +6,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  MEPState,
-  METRIC_SEARCH_SETTING_PARAM,
-  METRIC_SETTING_PARAM,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -397,16 +392,6 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function isUsingLimitedSearch(location: Location, withStaticFilters: boolean) {
-  const {query} = location;
-  const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
-  const mepSettingState = decodeScalar(query[METRIC_SETTING_PARAM], ''); // TODO: Can be removed since it's for dev ui only.
-  return (
-    withStaticFilters &&
-    (mepSearchState === MEPState.metricsOnly || mepSettingState === MEPState.metricsOnly)
-  );
-}
-
 function generateGenericPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
@@ -449,7 +434,7 @@ function generateGenericPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
-  const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
+  // const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -464,8 +449,8 @@ function generateGenericPerformanceEventView(
     );
     conditions.freeText = [];
   }
-  if (isLimitedSearch) {
-    // TODO fix transaction.duration  filter here
+
+  if (withStaticFilters) {
     conditions.tokens = conditions.tokens.filter(
       token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
     );
@@ -489,6 +474,7 @@ function generateGenericPerformanceEventView(
 
 function generateBackendPerformanceEventView(
   location: Location,
+  withStaticFilters: boolean,
   organization: Organization
 ): EventView {
   const {query} = location;
@@ -544,6 +530,11 @@ function generateBackendPerformanceEventView(
     );
     conditions.freeText = [];
   }
+  if (withStaticFilters) {
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
+    );
+  }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
@@ -557,6 +548,7 @@ function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
   genericEventView: EventView,
+  withStaticFilters: boolean,
   organization: Organization
 ): EventView {
   const {query} = location;
@@ -622,6 +614,11 @@ function generateMobilePerformanceEventView(
     );
     conditions.freeText = [];
   }
+  if (withStaticFilters) {
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
+    );
+  }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
@@ -633,6 +630,7 @@ function generateMobilePerformanceEventView(
 
 function generateFrontendPageloadPerformanceEventView(
   location: Location,
+  withStaticFilters: boolean,
   organization: Organization
 ): EventView {
   const {query} = location;
@@ -686,6 +684,11 @@ function generateFrontendPageloadPerformanceEventView(
     );
     conditions.freeText = [];
   }
+  if (withStaticFilters) {
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
+    );
+  }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
@@ -698,6 +701,7 @@ function generateFrontendPageloadPerformanceEventView(
 
 function generateFrontendOtherPerformanceEventView(
   location: Location,
+  withStaticFilters: boolean,
   organization: Organization
 ): EventView {
   const {query} = location;
@@ -751,6 +755,11 @@ function generateFrontendOtherPerformanceEventView(
     );
     conditions.freeText = [];
   }
+  if (withStaticFilters) {
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
+    );
+  }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
@@ -778,16 +787,29 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(location, organization);
+      return generateFrontendPageloadPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(location, organization);
+      return generateFrontendOtherPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(location, organization);
+      return generateBackendPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.MOBILE:
       return generateMobilePerformanceEventView(
         location,
         projects,
         eventView,
+        withStaticFilters,
         organization
       );
     default:
