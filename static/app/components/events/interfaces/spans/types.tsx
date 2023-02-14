@@ -1,4 +1,5 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 import {SpanBarProps} from './spanBar';
 import {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
@@ -84,7 +85,7 @@ type CommonEnhancedProcessedSpanType = {
   numOfSpanChildren: number;
   showEmbeddedChildren: boolean;
   toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
+    | ((orgSlug: string, transactions: QuickTraceEvent[]) => void)
     | undefined;
   treeDepth: number;
   groupOccurrence?: number;
