@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Iterable, MutableMapping
+from abc import ABCMeta
+from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
 
+from sentry import roles
 from sentry.models import OrganizationMember
 from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
@@ -14,6 +16,8 @@ if TYPE_CHECKING:
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
     member_role_by_user_id: MutableMapping[int, str] = {}
+    role: Optional[OrganizationRole] = None
+    scope: Optional[str] = None
 
     def __init__(self, organization: Organization):
         self.organization = organization
@@ -59,13 +63,37 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         # convert members to users
         return user_service.get_many(filter={"user_ids": [member.user_id for member in members]})
 
-    @abstractmethod
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         """
         Depending on the type of request this might be all organization owners,
         a specific person, or something in between.
         """
-        raise NotImplementedError
+        members: Iterable[
+            OrganizationMember
+        ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id)
+
+        if not self.scope and not self.role:
+            return members
+
+        valid_roles = []
+        if self.scope:
+            valid_roles.extend([r.id for r in roles.get_all() if r.has_scope("member:write")])
+        if self.role:
+            valid_roles.extend([self.role.id])
+
+        member_ids = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
+            "id", flat=True
+        )
+        # ignore type because of optional filtering
+        members = members.filter(id__in=member_ids)  # type: ignore[attr-defined]
+
+        if self.scope:
+            for member in members:
+                self.member_role_by_user_id[member.id] = member.get_all_org_roles_sorted()[0].name
+        elif self.role:
+            self.set_members_roles_in_cache(members, self.role.name)
+
+        return members
 
     def build_notification_footer_from_settings_url(
         self, settings_url: str, recipient: User
