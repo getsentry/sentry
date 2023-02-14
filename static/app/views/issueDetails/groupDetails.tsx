@@ -12,7 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Item, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
@@ -627,9 +627,9 @@ class GroupDetails extends Component<Props, State> {
           project={project as Project}
         />
         <GroupTabPanels>
-          <Item key={currentTab}>
+          <TabPanels.Item key={currentTab}>
             {isValidElement(children) ? cloneElement(children, childProps) : children}
-          </Item>
+          </TabPanels.Item>
         </GroupTabPanels>
       </Tabs>
     );
