@@ -67,7 +67,7 @@ describe('SuspectSpans', function () {
               eventView={initialData.eventView}
               projectId="1"
               transactionName="Test Transaction"
-              totals={{'count()': 1}}
+              totals={{'count()': 1, 'sum(transaction.duration)': 1000}}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>
