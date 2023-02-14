@@ -507,7 +507,7 @@ def test_process_messages_cardinality_limited(
     with set_sentry_option(
         "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
         [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
+    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 1.0):
 
         class MockCardinalityLimiter(CardinalityLimiter):
             def check_within_quotas(self, requested_quotas):
