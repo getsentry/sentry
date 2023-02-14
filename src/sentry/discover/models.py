@@ -58,7 +58,7 @@ class DiscoverSavedQuery(Model):
         db_table = "sentry_discoversavedquery"
         constraints = [
             UniqueConstraint(
-                fields=["organization", "created_by", "is_homepage"],
+                fields=["organization", "created_by_id", "is_homepage"],
                 condition=Q(is_homepage=True),
                 name="unique_user_homepage_query",
             )
