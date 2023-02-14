@@ -352,6 +352,28 @@ function FlamegraphZoomViewMinimap({
     setLastDragVector(null);
   }, []);
 
+  const onMinimapCanvasDoubleClick = useCallback(
+    (evt: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!flamegraphMiniMapCanvas || !flamegraphMiniMapView || !canvasPoolManager) {
+        return;
+      }
+
+      const configSpaceMouse = flamegraphMiniMapView.getTransformedConfigSpaceCursor(
+        vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
+        flamegraphMiniMapCanvas
+      );
+
+      const view = new Rect(
+        0,
+        configSpaceMouse[1] - flamegraphMiniMapView.configView.height / 2,
+        flamegraphMiniMapView.configSpace.width,
+        flamegraphMiniMapView.configView.height
+      );
+      canvasPoolManager.dispatch('set config view', [view, flamegraphMiniMapView]);
+    },
+    [canvasPoolManager, flamegraphMiniMapCanvas, flamegraphMiniMapView]
+  );
+
   useEffect(() => {
     window.addEventListener('mouseup', onMinimapCanvasMouseUp);
 
@@ -367,6 +389,7 @@ function FlamegraphZoomViewMinimap({
         onMouseDown={onMinimapCanvasMouseDown}
         onMouseMove={onMinimapCanvasMouseMove}
         onMouseLeave={onMinimapCanvasMouseUp}
+        onDoubleClick={onMinimapCanvasDoubleClick}
         cursor={getMinimapCanvasCursor(
           flamegraphMiniMapView?.configView,
           configSpaceCursor,
