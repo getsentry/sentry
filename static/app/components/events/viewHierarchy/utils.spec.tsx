@@ -58,7 +58,7 @@ describe('View Hierarchy Utils', function () {
     });
 
     it('does not shift children when specified', function () {
-      const actual = getHierarchyDimensions(MOCK_HIERARCHY, false);
+      const actual = getHierarchyDimensions(MOCK_HIERARCHY, true);
 
       // One array for each root
       expect(actual).toEqual({
