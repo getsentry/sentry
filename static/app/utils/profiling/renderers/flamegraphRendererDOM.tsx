@@ -5,7 +5,11 @@ import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStat
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {
+  DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
+  FlamegraphRenderer,
+  FlamegraphRendererOptions,
+} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
@@ -21,7 +25,7 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
     canvas: HTMLCanvasElement,
     flamegraph: Flamegraph,
     theme: FlamegraphTheme,
-    options: {draw_border: boolean} = {draw_border: false}
+    options: FlamegraphRendererOptions = DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS
   ) {
     super(canvas, flamegraph, theme, options);
 
