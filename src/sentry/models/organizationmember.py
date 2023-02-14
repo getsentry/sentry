@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -108,11 +108,23 @@ class OrganizationMemberManager(BaseManager):
         org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
             "id", flat=True
         )
-        team_members = OrganizationMemberTeam.objects.filter(
-            team_id__org_role=role, organizationmember__in=org_members
-        ).values_list("organizationmember_id", flat=True)
 
-        return self.filter(Q(role=role, id__in=org_members) | Q(id__in=team_members))
+        # may be empty
+        team_members = set(
+            OrganizationMemberTeam.objects.filter(
+                team_id__org_role=role,
+                organizationmember_id__in=org_members,
+            ).values_list("organizationmember_id", flat=True)
+        )
+
+        org_members = set(
+            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+                "id", flat=True
+            )
+        )
+
+        # use union of sets because a subset may be empty
+        return self.filter(id__in=org_members.union(team_members))
 
 
 @region_silo_only_model
