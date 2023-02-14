@@ -1,6 +1,4 @@
 ---
-created: '2022-07-28T11:40:27.313975Z'
-creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
 contexts:
@@ -25,7 +23,7 @@ debug_meta:
           has_symbols: true
           has_unwind_info: true
         status: ok
-      location: sentry://project_debug_file/5
+      location: sentry://project_debug_file/x
       source: sentry:project
       source_name: Sentry
     code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
