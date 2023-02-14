@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0354_add_missing_uuid_unique_indexes"),
+        ("sentry", "0358_break_group_related_user_fks"),
     ]
 
     operations = [
