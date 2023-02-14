@@ -117,7 +117,7 @@
     "lodash": "^4.17.19",
     "marked": "0.7.0",
     "mini-css-extract-plugin": "^2.7.2",
-    "mobx": "^6.6.1",
+    "mobx": "^6.8.0",
     "mobx-react": "~7.6.0",
     "mockdate": "3.0.5",
     "moment": "2.29.4",
@@ -168,7 +168,7 @@
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
-    "@sentry/jest-environment": "^4.0.0-alpha.1",
+    "@sentry/jest-environment": "^4.0.0-alpha.2",
     "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.5.14",
     "@storybook/addon-actions": "6.5.14",

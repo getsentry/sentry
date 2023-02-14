@@ -16,8 +16,8 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import TimeseriesCardina
 
 
 @pytest.fixture(autouse=True)
-def rollout_all_orgs(set_sentry_option):
-    with set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
+def rollout_all_orgs_release_health(set_sentry_option):
+    with set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 1.0):
         yield
 
 
@@ -134,7 +134,7 @@ def test_sample_rate_zero(set_sentry_option):
     with set_sentry_option(
         "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
         [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 0.0):
+    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 0.0):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = 0
         backend.assert_requests = []
@@ -164,7 +164,7 @@ def test_sample_rate_half(set_sentry_option):
     with set_sentry_option(
         "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
         [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 0.5):
+    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 0.5):
 
         backend = MockCardinalityLimiter()
         backend.grant_hashes = 0

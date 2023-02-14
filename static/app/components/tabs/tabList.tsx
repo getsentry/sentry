@@ -7,12 +7,12 @@ import {ListCollection} from '@react-stately/list';
 import {useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {TabsContext} from './index';
 import {Tab} from './tab';

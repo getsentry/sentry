@@ -12,12 +12,10 @@ export const _TimeSince = args => {
 
 _TimeSince.args = {
   date: new Date('Oct 31, 2020 9:00:00 PM UTC'),
-  disabledAbsoluteTooltip: false,
-  extraShort: false,
-  shorten: false,
   suffix: '',
+  disabledAbsoluteTooltip: false,
   tooltipShowSeconds: false,
-  tooltipTitle: null,
+  tooltipPrefix: null,
   tooltipUnderlineColor: 'black',
 };
 _TimeSince.argTypes = {

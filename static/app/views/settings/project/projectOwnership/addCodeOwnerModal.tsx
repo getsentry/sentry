@@ -13,7 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   CodeOwner,
   CodeownersFile,

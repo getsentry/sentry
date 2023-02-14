@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
 import {SpanOpBreakdown} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';

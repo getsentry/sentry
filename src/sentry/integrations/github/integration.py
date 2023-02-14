@@ -215,12 +215,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not lineno:
             return None
         try:
-            blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+
+            if blame_range is None:
+                return None
         except ApiError as e:
             raise e
 
         try:
-            commit = max(
+            commit: Mapping[str, Any] = max(
                 (
                     blame
                     for blame in blame_range
@@ -229,7 +234,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                 key=lambda blame: datetime.strptime(
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
+                default={},
             )
+            if not commit:
+                return None
         except (ValueError, IndexError):
             return None
 
