@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from itertools import cycle
 from unittest.mock import patch
 
 from sentry.issues.group_policy import (
@@ -9,23 +10,29 @@ from sentry.issues.group_policy import (
     _group_policy_registry,
     get_noise_config,
 )
-from sentry.issues.grouptype import GroupCategory, GroupType, _group_type_registry
+from sentry.issues.grouptype import (
+    GroupCategory,
+    GroupType,
+    _group_type_registry,
+    get_all_group_type_ids,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
-class GroupTypeTest(TestCase):  # type: ignore[misc]
+class GroupTypeTest(TestCase):  # type: ignore
     def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
+        self.next_group_type = cycle(get_all_group_type_ids())
 
     def test_get_noise_config(self) -> None:
         with patch.dict(_group_policy_registry, {}, clear=True):
 
             @dataclass(frozen=True)
             class TestGroupPolicy1(GroupPolicy):
-                group_type_id = 1
+                group_type_id = next(self.next_group_type)
                 organizations = {
                     self.org.slug: NoiseConfig(
                         ignore_limit=100,
@@ -35,7 +42,7 @@ class GroupTypeTest(TestCase):  # type: ignore[misc]
 
             @dataclass(frozen=True)
             class TestGroupPolicy2(GroupPolicy):
-                group_type_id = 2
+                group_type_id = next(self.next_group_type)
                 organizations = {
                     self.org.slug: NoiseConfig(
                         ignore_limit=10,
@@ -56,7 +63,7 @@ class GroupTypeTest(TestCase):  # type: ignore[misc]
 
             @dataclass(frozen=True)
             class TestGroupPolicy(GroupPolicy):
-                group_type_id = 1
+                group_type_id = next(self.next_group_type)
 
             noise_config = get_noise_config(TestGroupPolicy, self.org)
             assert noise_config.ignore_limit == DEFAULT_IGNORE_LIMIT
@@ -77,7 +84,7 @@ class GroupTypeTest(TestCase):  # type: ignore[misc]
 
             @dataclass(frozen=True)
             class TestGroupPolicy(GroupPolicy):
-                group_type_id = 1
+                group_type_id = next(self.next_group_type)
                 organizations = {
                     "test_org": NoiseConfig(
                         ignore_limit=100,
@@ -87,12 +94,49 @@ class GroupTypeTest(TestCase):  # type: ignore[misc]
 
             assert _group_policy_registry[TestGroupType.type_id] == TestGroupPolicy
 
+    def test_invalid_group_types(self) -> None:
+        with patch.dict(_group_type_registry, {}, clear=True), patch.dict(
+            _group_policy_registry, {}, clear=True
+        ):
+
+            good_group_type_id, bad_group_type_id = 1, 2
+
+            @dataclass(frozen=True)
+            class TestGroupType(GroupType):
+                type_id = good_group_type_id
+                slug = "test"
+                description = "Test"
+                category = GroupCategory.ERROR.value
+                ignore_limit = 0
+
+            @dataclass(frozen=True)
+            class TestGroupPolicy1(GroupPolicy):
+                group_type_id = good_group_type_id
+
+            with self.assertRaisesMessage(
+                ValueError,
+                f"No group type with the id {bad_group_type_id} is registered.",
+            ):
+
+                @dataclass(frozen=True)
+                class TestGroupPolicy2(GroupPolicy):
+                    group_type_id = bad_group_type_id
+
+            with self.assertRaisesMessage(
+                ValueError,
+                f"A group policy for the group type {good_group_type_id} has already been registered.",
+            ):
+
+                @dataclass(frozen=True)
+                class TestGroupPolicy3(GroupPolicy):
+                    group_type_id = good_group_type_id
+
     def test_noise_config_validation(self) -> None:
         with patch.dict(_group_policy_registry, {}, clear=True):
 
             @dataclass(frozen=True)
             class TestGroupPolicy1(GroupPolicy):
-                group_type_id = 1
+                group_type_id = next(self.next_group_type)
                 organizations = {
                     "test_org": NoiseConfig(
                         ignore_limit=100,
@@ -102,7 +146,7 @@ class GroupTypeTest(TestCase):  # type: ignore[misc]
 
             @dataclass(frozen=True)
             class TestGroupPolicy2(GroupPolicy):
-                group_type_id = 2
+                group_type_id = next(self.next_group_type)
                 early_access = NoiseConfig(ignore_limit=50)
                 default = NoiseConfig(ignore_limit=10)
 
@@ -124,7 +168,7 @@ class GroupTypeTest(TestCase):  # type: ignore[misc]
             ValueError,
             "Default ignore limit must be lower than Early Access and Limited Access organization limits",
         ):
-            TestGroupPolicy1(
+            TestGroupPolicy2(
                 1,
                 organizations=None,
                 early_access=NoiseConfig(ignore_limit=50),

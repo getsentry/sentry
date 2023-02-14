@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
 
 from django.conf import settings
 
-from sentry.issues.grouptype import GroupType
+from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.models import Organization, Project
 from sentry.utils import metrics, redis
 
@@ -32,6 +32,10 @@ class GroupPolicy:
 
     def __init_subclass__(cls: Type[GroupPolicy], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
+
+        # will raise a ValueError if group type does not exist
+        get_group_type_by_type_id(cls.group_type_id)
+
         if _group_policy_registry.get(cls.group_type_id):
             raise ValueError(
                 f"A group policy for the group type {cls.group_type_id} has already been registered."
