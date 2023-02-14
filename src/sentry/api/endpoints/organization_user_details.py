@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +16,7 @@ class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
         try:
             int(user_id)
         except ValueError:
-            return Response({"detail": "user_id must be an integer"}, status=400)
+            raise ValidationError(f"user_id({user_id}) must be an integer")
 
         users = user_service.serialize_many(
             filter={"user_ids": [user_id], "organization_id": organization.id}, as_user=request.user
