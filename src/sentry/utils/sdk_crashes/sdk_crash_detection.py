@@ -15,7 +15,7 @@ class SDKCrashReporter:
         pass
 
 
-class SDKCrashDetection:
+class SDKCrashDetector:
     def __init__(self, sdk_crash_reporter: SDKCrashReporter):
         self
         self.sdk_crash_reporter = sdk_crash_reporter
