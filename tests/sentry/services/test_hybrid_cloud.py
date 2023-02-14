@@ -16,6 +16,7 @@ from sentry.services.hybrid_cloud import (
     user_option,
 )
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class SiloDataInterfaceTest(TestCase):
@@ -73,3 +74,16 @@ class SiloDataInterfaceTest(TestCase):
         subclasses.difference_update({SiloDataInterface, UnsetType})
         uncovered = subclasses.difference(self.INTERFACE_CLASSES)
         assert uncovered == set(), "SiloDataInterface subclasses exist that are not tested"
+
+    def test_model_serialization(self):
+        for api_type in self.INTERFACE_CLASSES:
+            # All such model classes should have default values for all attributes
+            try:
+                obj = api_type()
+            except TypeError:
+                print(f"Needs default attributes: {api_type.__name__}")
+                continue
+
+            model_dict = obj.dict()
+            serial = json.dumps(model_dict)
+            assert serial
