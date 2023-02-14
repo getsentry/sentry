@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
+
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 1000
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -120,6 +122,24 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
+def should_issue_owners_ratelimit(
+    cache_key,
+):
+    data = cache.get(cache_key)
+    if data is None:
+        requests = 1
+        window_start = datetime.now()
+        cache.set(cache_key, (requests, window_start), 60)
+    else:
+        requests = data[0] + 1
+        window_start = data[1]
+        # timeout should never be less than 0
+        timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
+        cache.set(cache_key, (requests, window_start), timeout)
+
+    return requests > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+
+
 def handle_owner_assignment(job):
     if job["is_reprocessed"]:
         return
@@ -145,6 +165,21 @@ def handle_owner_assignment(job):
             # - we tried to calculate and could not find issue owners with TTL 1 day
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
+
+                with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
+
+                    ratelimit_key = f"issue_owner_assignment_ratelimit:{project.id}"
+
+                    if should_issue_owners_ratelimit(ratelimit_key):
+                        logger.info(
+                            "handle_owner_assignment.ratelimited",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "ratelimited",
+                            },
+                        )
+                        return
+
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
