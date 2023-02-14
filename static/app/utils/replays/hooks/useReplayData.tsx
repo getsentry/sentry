@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import chunk from 'lodash/chunk';
 
-import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -75,11 +74,17 @@ function responsesToAttachments(responses: Array<unknown>) {
  *
  * Core replay data includes:
  * 1. The root replay EventTransaction object
- *    - This includes `startTimestamp` and `tags` data
- * 2. Breadcrumb and Span data from all the related Event objects
- *    - Data is merged for consumption
- * 3. RRWeb payloads for the replayer video stream
- *    - TODO(replay): incrementally load the stream to speedup pageload
+ *    - This includes `startTimestamp`, and `tags`
+ * 2. RRWeb, Breadcrumb, and Span attachment data
+ *    - We make an API call to get a list of segments, each segment contains a
+ *      list of attachments
+ *    - There may be a few large segments, or many small segments. It depends!
+ *      ie: If the replay has many events/errors then there will be many small segments,
+ *      or if the page changes rapidly across each pageload, then there will be
+ *      larger segments, but potentially fewer of them.
+ * 3. Related Event data
+ *    - Event details are not part of the attachments payload, so we have to
+ *      request them separately
  *
  * This function should stay focused on loading data over the network.
  * Front-end processing, filtering and re-mixing of the different data streams
@@ -102,72 +107,39 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     return response.data;
   }, [api, orgSlug, projectSlug, replayId]);
 
-  const fetchAllAttachments = useCallback(async () => {
-    const baseUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`;
+  const fetchAttachments = useCallback(
+    async (replayRecord: ReplayRecord) => {
+      if (!replayRecord.count_segments) {
+        return;
+      }
 
-    const initPerPage = 50;
-    const firstFourUrls = [
-      `${baseUrl}?download&per_page=${initPerPage}&cursor=${initPerPage}:0:1`,
-      `${baseUrl}?download&per_page=${initPerPage}&cursor=${initPerPage}:1:0`,
-      `${baseUrl}?download&per_page=${initPerPage}&cursor=${initPerPage}:2:0`,
-      `${baseUrl}?download&per_page=${initPerPage}&cursor=${initPerPage}:3:0`,
-    ];
+      const baseUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`;
+      const perPage = 100;
 
-    // TODO(replay): fetch a count of how many `/recording-segments/` there are inside this replay,
-    // and use that to parallelize the `while (next.results)` loop below.
+      const pages = Math.ceil(replayRecord.count_segments / 100);
+      const cursors = new Array(pages)
+        .fill(0)
+        .map((_, i) => `${perPage}:${i}:${i === 0 ? 1 : 0}`);
 
-    const parallelResponses = await Promise.allSettled(
-      firstFourUrls.map(url =>
-        api.requestPromise(url, {
-          includeAllArgs: true,
+      await Promise.allSettled(
+        cursors.map(cursor => {
+          const promise = api.requestPromise(
+            `${baseUrl}?download&per_page=${perPage}&cursor=${cursor}`
+          );
+          promise.then(response => {
+            const attachments = responsesToAttachments([response]);
+            setState(prev => ({
+              ...prev,
+              attachments: (prev.attachments ?? []).concat(attachments),
+              errors: prev.errors ?? [],
+            }));
+          });
+          return promise;
         })
-      )
-    );
-
-    const responses = parallelResponses.map(resp =>
-      resp.status === 'fulfilled' ? resp.value[0] : []
-    );
-
-    setState(prev => ({
-      ...prev,
-      attachments: responsesToAttachments(responses),
-      errors: prev.errors ?? [],
-    }));
-
-    const lastResponse = parallelResponses[firstFourUrls.length - 1];
-    const [_lastData, _lastTextStatus, lastResp] =
-      lastResponse.status === 'fulfilled' ? lastResponse.value : [];
-
-    const segmentsPerPage = 100;
-    const cursor = `${segmentsPerPage}:2:0`;
-    const rootUrl = `${baseUrl}?download&per_page=${segmentsPerPage}`;
-    const noNextPage = {href: rootUrl, results: false, cursor: ''};
-    let next: ParsedHeader = lastResp
-      ? lastResp.getResponseHeader('Link')
-        ? {href: rootUrl, results: true, cursor}
-        : noNextPage
-      : noNextPage;
-
-    // TODO(replay): It would be good to load the first page of results then
-    // start to render the UI while the next N pages continue to get fetched in
-    // the background.
-    while (next.results) {
-      const url = `${rootUrl}&cursor=${next.cursor}`;
-
-      const [data, _textStatus, resp] = await api.requestPromise(url, {
-        includeAllArgs: true,
-      });
-
-      setState(prev => ({
-        ...prev,
-        attachments: (prev.attachments ?? []).concat(responsesToAttachments(data)),
-        errors: prev.errors ?? [],
-      }));
-
-      const links = parseLinkHeader(resp?.getResponseHeader('Link') ?? '');
-      next = links.next;
-    }
-  }, [api, orgSlug, projectSlug, replayId]);
+      );
+    },
+    [api, orgSlug, projectSlug, replayId]
+  );
 
   const fetchErrors = useCallback(
     async (replayRecord: ReplayRecord) => {
@@ -213,7 +185,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     [api, orgSlug]
   );
 
-  const fetchReplayAndErrors = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     const fetchedRecord = await fetchReplay();
     const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
     setState(prev => ({
@@ -221,14 +193,14 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       replayRecord: mappedRecord,
     }));
 
-    await fetchErrors(mappedRecord);
-  }, [fetchReplay, fetchErrors]);
+    await Promise.all([fetchAttachments(mappedRecord), fetchErrors(mappedRecord)]);
+  }, [fetchReplay, fetchAttachments, fetchErrors]);
 
   const loadEvents = useCallback(async () => {
     setState(INITIAL_STATE);
 
     try {
-      await Promise.all([fetchReplayAndErrors(), fetchAllAttachments()]);
+      await fetchAll();
 
       setState(prev => ({
         ...prev,
@@ -242,7 +214,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         fetching: false,
       });
     }
-  }, [fetchReplayAndErrors, fetchAllAttachments]);
+  }, [fetchAll]);
 
   useEffect(() => {
     loadEvents();
