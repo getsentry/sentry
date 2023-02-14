@@ -352,6 +352,10 @@ function FlamegraphZoomViewMinimap({
     setLastDragVector(null);
   }, []);
 
+  const onMinimapCanvasDoubleClick = useCallback(() => {
+    canvasPoolManager.dispatch('reset zoom', []);
+  }, [canvasPoolManager]);
+
   useEffect(() => {
     window.addEventListener('mouseup', onMinimapCanvasMouseUp);
 
@@ -367,6 +371,7 @@ function FlamegraphZoomViewMinimap({
         onMouseDown={onMinimapCanvasMouseDown}
         onMouseMove={onMinimapCanvasMouseMove}
         onMouseLeave={onMinimapCanvasMouseUp}
+        onDoubleClick={onMinimapCanvasDoubleClick}
         cursor={getMinimapCanvasCursor(
           flamegraphMiniMapView?.configView,
           configSpaceCursor,
