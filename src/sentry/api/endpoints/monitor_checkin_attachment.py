@@ -9,6 +9,8 @@ from sentry.api.bases.monitor import MonitorCheckInEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
 
+MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
+
 
 @region_silo_endpoint
 class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
@@ -24,6 +26,8 @@ class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
             return Response({"detail": "Missing uploaded file"}, status=400)
 
         fileobj = request.data["file"]
+        if fileobj.size > MAX_ATTACHMENT_SIZE:
+            return Response({"detail": "Please keep uploads below 100kb"}, status=400)
 
         headers = {"Content-Type": fileobj.content_type}
 

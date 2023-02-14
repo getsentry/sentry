@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -87,3 +88,28 @@ class UploadMonitorCheckInAttachmentTest(APITestCase):
 
             assert resp.status_code == 400
             assert resp.data["detail"] == "Missing uploaded file"
+
+    @mock.patch("sentry.api.endpoints.monitor_checkin_attachment.MAX_ATTACHMENT_SIZE", 1)
+    def test_upload_file_too_big(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
+                status=CheckInStatus.IN_PROGRESS,
+            )
+
+            path = path_func(monitor, checkin)
+            resp = self.client.post(
+                path,
+                {
+                    "file": SimpleUploadedFile(
+                        "log.txt", b"test log data", content_type="application/text"
+                    ),
+                },
+                format="multipart",
+            )
+
+            assert resp.status_code == 400
+            assert resp.data["detail"] == "Please keep uploads below 100kb"
