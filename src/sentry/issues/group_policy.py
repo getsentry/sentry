@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
 
 from django.conf import settings
 
+import sentry.issues.grouptype as grouptype
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.models import Organization, Project
 from sentry.utils import metrics, redis
@@ -64,8 +65,8 @@ class GroupPolicy:
 
 
 def get_noise_config(group_policy: Type[GroupPolicy], organization: Organization) -> NoiseConfig:
-    if group_policy.organizations and organization.slug in group_policy.organizations.keys():
-        return group_policy.organizations[organization.slug]
+    if group_policy.organizations and organization.id in group_policy.organizations.keys():
+        return group_policy.organizations[organization.id]
 
     if organization.flags.early_adopter.is_set and group_policy.early_access:
         return group_policy.early_access
@@ -136,15 +137,15 @@ def should_create_group(
 
 @dataclass(frozen=True)
 class ErrorPolicy(GroupPolicy):
-    group_type_id = 1
+    group_type_id = grouptype.ErrorGroupType.type_id
     default = NoiseConfig(
         ignore_limit=0,
     )
 
 
 @dataclass(frozen=True)
-class SlowDBQueryGroupPolicy(GroupPolicy):
-    group_type_id = 1001
+class PerformanceSlowDBQueryGroupPolicy(GroupPolicy):
+    group_type_id = grouptype.PerformanceSlowDBQueryGroupType.type_id
     default = NoiseConfig(
         ignore_limit=100,
     )
@@ -152,12 +153,12 @@ class SlowDBQueryGroupPolicy(GroupPolicy):
 
 @dataclass(frozen=True)
 class PerformanceNPlusOneGroupPolicy(GroupPolicy):
-    group_type_id = 1006
+    group_type_id = grouptype.PerformanceNPlusOneGroupType.type_id
 
 
 @dataclass(frozen=True)
 class PerformanceConsecutiveDBQueriesGroupPolicy(GroupPolicy):
-    group_type_id = 1007
+    group_type_id = grouptype.PerformanceConsecutiveDBQueriesGroupType.type_id
     default = NoiseConfig(
         ignore_limit=15,
     )
@@ -165,7 +166,7 @@ class PerformanceConsecutiveDBQueriesGroupPolicy(GroupPolicy):
 
 @dataclass(frozen=True)
 class PerformanceUncompressedAssetsGroupPolicy(GroupPolicy):
-    group_type_id = 1012
+    group_type_id = grouptype.PerformanceUncompressedAssetsGroupType.type_id
     default = NoiseConfig(
         ignore_limit=100,
     )

@@ -34,7 +34,7 @@ class GroupTypeTest(TestCase):  # type: ignore
             class TestGroupPolicy1(GroupPolicy):
                 group_type_id = next(self.next_group_type)
                 organizations = {
-                    self.org.slug: NoiseConfig(
+                    self.org.id: NoiseConfig(
                         ignore_limit=100,
                         expiry_time=60,
                     )
@@ -44,7 +44,7 @@ class GroupTypeTest(TestCase):  # type: ignore
             class TestGroupPolicy2(GroupPolicy):
                 group_type_id = next(self.next_group_type)
                 organizations = {
-                    self.org.slug: NoiseConfig(
+                    self.org.id: NoiseConfig(
                         ignore_limit=10,
                         expiry_time=600,
                     )
@@ -86,7 +86,7 @@ class GroupTypeTest(TestCase):  # type: ignore
             class TestGroupPolicy(GroupPolicy):
                 group_type_id = next(self.next_group_type)
                 organizations = {
-                    "test_org": NoiseConfig(
+                    self.org.id: NoiseConfig(
                         ignore_limit=100,
                         expiry_time=60,
                     )
@@ -138,7 +138,7 @@ class GroupTypeTest(TestCase):  # type: ignore
             class TestGroupPolicy1(GroupPolicy):
                 group_type_id = next(self.next_group_type)
                 organizations = {
-                    "test_org": NoiseConfig(
+                    self.org.id: NoiseConfig(
                         ignore_limit=100,
                     )
                 }
@@ -157,7 +157,7 @@ class GroupTypeTest(TestCase):  # type: ignore
             TestGroupPolicy1(
                 1,
                 organizations={
-                    "test_org": NoiseConfig(
+                    self.org.id: NoiseConfig(
                         ignore_limit=100,
                     )
                 },
