@@ -11,6 +11,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 def default_uuid():
@@ -29,7 +30,7 @@ class GroupShare(Model):
     group = FlexibleForeignKey("sentry.Group", unique=True)
     uuid = models.CharField(max_length=32, unique=True, default=default_uuid)
     # Tracking the user that initiated the share.
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
