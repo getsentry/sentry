@@ -72,7 +72,6 @@ type Props = {
   organization: Organization;
   totalValue: number | null;
   withoutZerofill: boolean;
-  unfilteredTotalValue?: number | null;
 };
 
 function TransactionSummaryCharts({

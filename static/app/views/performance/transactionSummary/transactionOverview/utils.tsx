@@ -36,39 +36,31 @@ export function canUseTransactionMetricsData(organization, location) {
   return true;
 }
 
-export function queryCompatibleWithMetrics(location) {
-  // span op breakdown filters aren't compatible with metrics
-  const breakdown = decodeScalar(location.query.breakdown, '');
-  if (breakdown) {
-    return false;
-  }
-
-  // in the short term, using any filter will force indexed event search
-  const query = decodeScalar(location.query.query, '');
-  if (query) {
-    return false;
-  }
-
-  return true;
-}
-
 export function getTransactionMEPParamsIfApplicable(
   mepContext: MetricsEnhancedSettingContext,
   organization: Organization,
-  location: Location,
-  unfiltered: boolean = false
+  location: Location
 ) {
   if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
     return undefined;
   }
 
-  // TODO clean this up
-  // still fetches indexed event count in the tooltip
-  if (unfiltered && !queryCompatibleWithMetrics(location)) {
+  if (!canUseTransactionMetricsData(organization, location)) {
     return undefined;
   }
 
-  if (!unfiltered && !canUseTransactionMetricsData(organization, location)) {
+  return getMEPQueryParams(mepContext);
+}
+
+export function getTransactionTotalsMEPParamsIfApplicable(
+  mepContext: MetricsEnhancedSettingContext,
+  organization: Organization
+) {
+  if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
+    return undefined;
+  }
+
+  if (!canUseMetricsData(organization)) {
     return undefined;
   }
 

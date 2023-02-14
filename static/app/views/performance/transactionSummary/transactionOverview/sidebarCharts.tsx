@@ -40,6 +40,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {
   getTransactionMEPParamsIfApplicable,
+  getTransactionTotalsMEPParamsIfApplicable,
   getUnfilteredTotalsEventView,
 } from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
@@ -71,6 +72,7 @@ type Props = Pick<
     series: LineChartProps['series'];
   };
   eventView: EventView;
+  showTPMAsPercentage: boolean;
   transactionName: string;
   utc: boolean;
   end?: Date;
@@ -91,31 +93,27 @@ function SidebarCharts({
   eventView,
   transactionName,
   unfilteredTotals,
+  showTPMAsPercentage,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
-  const displayTPMAsPercentage = !!unfilteredTotals;
   const mepSetting = useMEPSettingContext();
 
-  const unfilteredQueryExtras = getTransactionMEPParamsIfApplicable(
+  const unfilteredQueryExtras = getTransactionTotalsMEPParamsIfApplicable(
     mepSetting,
-    organization,
-    location,
-    true
+    organization
   );
 
   const {data} = useDiscoverQuery({
-    eventView: getUnfilteredTotalsEventView(eventView, location, ['tpm']),
+    eventView: getUnfilteredTotalsEventView(eventView, location, ['count']),
     orgSlug: organization.slug,
     location,
-    // transactionThreshold,
-    // transactionThresholdMetric
     referrer: 'api.performance.transaction-summary.sidebar-chart',
     queryExtras: unfilteredQueryExtras,
   });
 
-  const _numerator_totals = (data?.data?.[0] as {[k: string]: number}) ?? null;
+  const totalCounts = (data?.data?.[0] as {[k: string]: number}) ?? null;
 
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
@@ -169,13 +167,13 @@ function SidebarCharts({
 
       <ChartLabel top="320px">
         <ChartTitle>
-          {displayTPMAsPercentage ? t('Total Transactions') : t('TPM')}
+          {showTPMAsPercentage ? t('Total Transactions') : t('TPM')}
           <QuestionTooltip
             position="top"
             title={
-              displayTPMAsPercentage
+              showTPMAsPercentage
                 ? tct('[count] total transactions', {
-                    count: unfilteredTotals['count()'].toLocaleString(),
+                    count: totalCounts ? totalCounts['count()'].toLocaleString() : null,
                   })
                 : getTermHelp(organization, PERFORMANCE_TERM.TPM)
             }
@@ -186,7 +184,7 @@ function SidebarCharts({
           data-test-id="tpm-summary-value"
           isLoading={isLoading}
           error={error}
-          value={getValueFromTotals('tpm()', totals, _numerator_totals)}
+          value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
         />
       </ChartLabel>
 
@@ -453,6 +451,7 @@ function SidebarChartsContainer({
         return (
           <SidebarCharts
             {...contentCommonProps}
+            showTPMAsPercentage={showTPMAsPercentage}
             transactionName={transactionName}
             eventView={eventView}
             chartData={{series, errored, loading, reloading, chartOptions}}

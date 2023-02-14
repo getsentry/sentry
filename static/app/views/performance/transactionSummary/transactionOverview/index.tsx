@@ -112,12 +112,11 @@ function OverviewContentWrapper(props: ChildProps) {
   const unfilteredQueryExtras = getTransactionMEPParamsIfApplicable(
     mepSetting,
     organization,
-    location,
-    true
+    location
   );
 
   const additionalQueryData = useDiscoverQuery({
-    eventView: getUnfilteredTotalsEventView(eventView, location, ['count']),
+    eventView: getUnfilteredTotalsEventView(eventView, location, ['tpm']),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
