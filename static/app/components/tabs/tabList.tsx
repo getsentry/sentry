@@ -157,6 +157,7 @@ function BaseTabList({
           value: key,
           label: item.props.children,
           disabled: item.props.disabled,
+          textValue: item.textValue,
         };
       });
   }, [state.collection, overflowTabs]);
