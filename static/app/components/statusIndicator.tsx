@@ -4,7 +4,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 
 type Props = {
   status: string;
-  tooltipTitle: string;
+  tooltipTitle: React.ReactNode;
 };
 
 /**

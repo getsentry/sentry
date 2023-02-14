@@ -271,9 +271,9 @@ export function renderTemplate(
  * NOTE: This is a no-op and will return the node if LOCALE_DEBUG is not
  * currently enabled. See setLocaleDebug and toggleLocaleDebug.
  */
-function mark(node: React.ReactNode): string {
+function mark<T extends React.ReactNode>(node: T): T {
   if (!LOCALE_DEBUG) {
-    return node as string;
+    return node;
   }
 
   // TODO(epurkhiser): Explain why we manually create a react node and assign
@@ -293,7 +293,7 @@ function mark(node: React.ReactNode): string {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as unknown as string;
+  return proxy as T;
 }
 
 /**
@@ -330,7 +330,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
   // XXX(ts): It IS possible to use gettext in such a way that it will return a
   // React.ReactNodeArray, however we currently rarely (if at all) use it in
   // this way, and usually just expect strings back.
-  return mark(format(val, args));
+  return mark(format(val, args) as string);
 }
 
 /**
@@ -390,9 +390,9 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
 export function gettextComponentTemplate(
   template: string,
   components: ComponentMap
-): string {
+): JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
+  return mark(renderTemplate(parsedTemplate, components) as JSX.Element);
 }
 
 /**
