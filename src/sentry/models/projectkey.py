@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import petname
 from django.conf import settings
-from django.db import ProgrammingError, models, transaction
+from django.db import ProgrammingError, models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -40,10 +40,8 @@ class ProjectKeyManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(
-            lambda: schedule_invalidate_project_config(
-                public_key=instance.public_key, trigger="projectkey.post_save"
-            )
+        schedule_invalidate_project_config(
+            public_key=instance.public_key, trigger="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
@@ -53,10 +51,8 @@ class ProjectKeyManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(
-            lambda: schedule_invalidate_project_config(
-                public_key=instance.public_key, trigger="projectkey.post_delete"
-            )
+        schedule_invalidate_project_config(
+            public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
 

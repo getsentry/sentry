@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from django.db import models, transaction
+from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
@@ -69,10 +69,8 @@ class OrganizationOptionManager(OptionManager["Organization"]):
             # task.
             #
             # If there is no transaction open, on_commit should run immediately.
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(
-                    organization_id=organization_id, trigger=update_reason
-                )
+            schedule_invalidate_project_config(
+                organization_id=organization_id, trigger=update_reason
             )
 
         cache_key = self._make_key(organization_id)

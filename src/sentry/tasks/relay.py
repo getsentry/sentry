@@ -2,6 +2,7 @@ import logging
 import time
 
 import sentry_sdk
+from django.db import transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
@@ -241,6 +242,27 @@ def invalidate_project_config(
 
 
 def schedule_invalidate_project_config(
+    *,
+    trigger,
+    organization_id=None,
+    project_id=None,
+    public_key=None,
+    countdown=5,
+):
+    # TODO: add docstrings
+
+    transaction.on_commit(
+        lambda: _schedule_invalidate_project_config(
+            trigger=trigger,
+            organization_id=organization_id,
+            project_id=project_id,
+            public_key=public_key,
+            countdown=countdown,
+        )
+    )
+
+
+def _schedule_invalidate_project_config(
     *,
     trigger,
     organization_id=None,

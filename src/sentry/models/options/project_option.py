@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from django.db import models, transaction
+from django.db import models
 
 from sentry import projectoptions
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
@@ -127,11 +127,7 @@ class ProjectOptionManager(OptionManager["Project"]):
             # task.
             #
             # If there is no transaction open, on_commit should run immediately.
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(
-                    project_id=project_id, trigger=update_reason
-                )
-            )
+            schedule_invalidate_project_config(project_id=project_id, trigger=update_reason)
         cache_key = self._make_key(project_id)
         result = {i.key: i.value for i in self.filter(project=project_id)}
         cache.set(cache_key, result)
