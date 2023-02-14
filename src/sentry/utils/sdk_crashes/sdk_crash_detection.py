@@ -5,6 +5,7 @@ from typing import Any, Mapping, Sequence
 from sentry.eventstore.models import Event
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
+from sentry.utils.sdk_crashes.event_stripper import EventStripper
 
 
 class SDKCrashReporter:
@@ -16,9 +17,10 @@ class SDKCrashReporter:
 
 
 class SDKCrashDetector:
-    def __init__(self, sdk_crash_reporter: SDKCrashReporter):
+    def __init__(self, sdk_crash_reporter: SDKCrashReporter, event_stripper: EventStripper):
         self
         self.sdk_crash_reporter = sdk_crash_reporter
+        self.event_stripper = event_stripper
 
     def detect_sdk_crash(self, event: Event) -> None:
         if event.get("type", None) != "error" or event.get("platform") != "cocoa":
@@ -34,10 +36,8 @@ class SDKCrashDetector:
             return
 
         if self._is_cocoa_sdk_crash(frames):
-            self.sdk_crash_reporter.report(event)
-
-    def _strip_event_data(self, data: Event) -> Event:
-        return data
+            sdk_crash_event = self.event_stripper.strip_event_data(event)
+            self.sdk_crash_reporter.report(sdk_crash_event)
 
     def strip_frames(self, frames: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
         return [
