@@ -18,10 +18,7 @@ import errorHandler from 'sentry/utils/errorHandler';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
-import AuthLayout from 'sentry/views/auth/layout';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import IssueListContainer from 'sentry/views/issueList';
-import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -151,7 +148,10 @@ function buildRoutes() {
   //   for routes that have completely changed in this tree.
 
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
-    <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
+    <Route
+      path="/auth/login/"
+      component={errorHandler(make(() => import('sentry/views/auth/layout')))}
+    >
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
       <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
@@ -1671,24 +1671,42 @@ function buildRoutes() {
     </Fragment>
   );
 
+  // XXX(epurkhiser): Note that we're using `webpackMode: "eager"` here to
+  // ensure the issue list is bundled with the initial chunk for performance
   const issueListRoutes = (
     <Fragment>
       {usingCustomerDomain && (
         <Route
           path="/issues/(searches/:searchId/)"
-          component={withDomainRequired(errorHandler(IssueListContainer))}
+          component={withDomainRequired(
+            make(() => import(/* webpackMode: "eager" */ 'sentry/views/issueList'))
+          )}
           key="orgless-issues-route"
         >
-          <IndexRoute component={errorHandler(IssueListOverview)} />
+          <IndexRoute
+            component={errorHandler(
+              make(
+                () => import(/* webpackMode: "eager" */ 'sentry/views/issueList/overview')
+              )
+            )}
+          />
         </Route>
       )}
       <Route
         path="/organizations/:orgId/issues/(searches/:searchId/)"
-        component={withDomainRedirect(errorHandler(IssueListContainer))}
+        component={withDomainRedirect(
+          make(() => import(/* webpackMode: "eager" */ 'sentry/views/issueList'))
+        )}
         key="org-issues"
       >
         <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-        <IndexRoute component={errorHandler(IssueListOverview)} />
+        <IndexRoute
+          component={errorHandler(
+            make(
+              () => import(/* webpackMode: "eager" */ 'sentry/views/issueList/overview')
+            )
+          )}
+        />
       </Route>
     </Fragment>
   );
