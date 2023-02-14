@@ -247,6 +247,7 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
         NotificationSettingTypes.QUOTA_ERRORS,
         NotificationSettingTypes.QUOTA_TRANSACTIONS,
         NotificationSettingTypes.QUOTA_ATTACHMENTS,
+        NotificationSettingTypes.QUOTA_REPLAYS,
         NotificationSettingTypes.QUOTA_WARNINGS,
         NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS,
     ]:
