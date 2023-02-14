@@ -16,7 +16,7 @@ import Placeholder from 'sentry/components/placeholder';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconCircle, IconCircleFill, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
   Coverage,

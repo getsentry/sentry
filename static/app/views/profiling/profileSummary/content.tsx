@@ -10,7 +10,7 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {
   formatSort,
