@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
@@ -154,7 +154,11 @@ class GitlabIntegration(
         if not lineno:
             return None
         try:
-            blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+            if blame_range is None:
+                return None
         except ApiError as e:
             raise e
 
