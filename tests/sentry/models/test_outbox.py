@@ -46,11 +46,8 @@ def test_creating_user_outboxes():
     for outbox in User.outboxes_for_update(user1.id):
         outbox.save()
 
-    assert (
-        ControlOutbox.objects.count() == 1
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH
-        else 2
-    )
+    expected_counts = 1 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 2
+    assert ControlOutbox.objects.count() == expected_counts
 
 
 @pytest.mark.django_db(transaction=True)
