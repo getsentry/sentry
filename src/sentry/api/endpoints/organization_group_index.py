@@ -166,6 +166,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             query_kwargs = build_query_params_from_request(
                 request, organization, projects, environments
             )
+            query_kwargs["referrer"] = "search.group_index"
             if extra_query_kwargs is not None:
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
