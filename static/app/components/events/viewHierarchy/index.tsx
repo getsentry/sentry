@@ -12,12 +12,37 @@ import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
 
 function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
   return identifier ? `${type} - ${identifier}` : type;
+}
+
+function onScrollToNode(
+  node: VirtualizedTreeRenderedRow<ViewHierarchyWindow>,
+  scrollContainer: HTMLElement | null,
+  coordinates: {depth: number; top: number} | undefined
+) {
+  if (node) {
+    // When a user keyboard navigates to a node that's rendered in the "overscroll"
+    const lastCell = node.ref?.lastChild as HTMLElement | null | undefined;
+    if (lastCell) {
+      lastCell.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    }
+  } else if (coordinates) {
+    // When a user clicks on a wireframe node that's not rendered in the "overscroll"
+    // we need to scroll to where the node would be rendered
+    const left = coordinates.depth * 16;
+    scrollContainer?.scrollBy({
+      left,
+    });
+  }
 }
 
 export type ViewHierarchyWindow = {
@@ -97,26 +122,6 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       </TreeItem>
     );
   };
-
-  const onScrollToNode = useCallback((node, scrollContainer, coordinates) => {
-    if (node) {
-      // When a user keyboard navigates to a node that's rendered in the "overscroll"
-      const lastCell = node.ref?.lastChild as HTMLElement | null | undefined;
-      if (lastCell) {
-        lastCell.scrollIntoView({
-          block: 'nearest',
-          inline: 'nearest',
-        });
-      }
-    } else if (coordinates) {
-      // When a user clicks on a wireframe node that's not rendered in the "overscroll"
-      // we need to scroll to where the node would be rendered
-      const left = coordinates.depth * 16;
-      scrollContainer?.scrollBy({
-        left,
-      });
-    }
-  }, []);
 
   const {
     renderedItems,
