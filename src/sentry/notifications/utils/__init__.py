@@ -157,6 +157,7 @@ def get_email_link_extra_params(
     environment: str | None = None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
+    **kwargs: Any,
 ) -> dict[int, str]:
     alert_timestamp_str = (
         str(round(time.time() * 1000)) if not alert_timestamp else str(alert_timestamp)
@@ -171,6 +172,7 @@ def get_email_link_extra_params(
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
                     **dict([] if environment is None else [("environment", environment)]),
+                    **kwargs,
                 }
             )
         )
@@ -184,6 +186,7 @@ def get_group_settings_link(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
     referrer: str = "alert_email",
+    **kwargs: Any,
 ) -> str:
     alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
     return str(
@@ -191,9 +194,9 @@ def get_group_settings_link(
         + (
             ""
             if not alert_rule_id
-            else get_email_link_extra_params(referrer, environment, rule_details, alert_timestamp)[
-                alert_rule_id
-            ]
+            else get_email_link_extra_params(
+                referrer, environment, rule_details, alert_timestamp, **kwargs
+            )[alert_rule_id]
         )
     )
 

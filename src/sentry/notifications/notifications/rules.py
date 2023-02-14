@@ -111,17 +111,19 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             fallthrough_choice=self.fallthrough_choice,
         )
-        fallback_param = ""
+        fallback_params: MutableMapping[str, str] = {}
         # Piggybacking off of notification_reason that already determines if we're using the fallback
         if notification_reason and self.fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
             _, fallback_experiment = should_use_issue_alert_fallback(org=self.organization)
-            fallback_param = f"&ref_fallback={fallback_experiment}"
+            fallback_params = {"ref_fallback": fallback_experiment}
 
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "event": self.event,
-            "link": get_group_settings_link(self.group, environment, rule_details),
+            "link": get_group_settings_link(
+                self.group, environment, rule_details, None, **fallback_params
+            ),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
@@ -130,7 +132,7 @@ class AlertRuleNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
-                f"/settings/account/notifications/alerts/?referrer=alert_email{fallback_param}"
+                "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,

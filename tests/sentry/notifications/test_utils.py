@@ -182,7 +182,9 @@ class NotificationHelpersTest(TestCase):
         rule_details: Sequence[NotificationRuleDetails] = get_rules(
             [rule], self.organization, self.project
         )
-        link = get_group_settings_link(self.group, self.environment.name, rule_details, 1337)
+        link = get_group_settings_link(
+            self.group, self.environment.name, rule_details, 1337, extra="123"
+        )
 
         parsed = urlparse(link)
         query_dict = dict(map(lambda x: (x[0], x[1][0]), parse_qs(parsed.query).items()))
@@ -195,6 +197,7 @@ class NotificationHelpersTest(TestCase):
             "alert_type": "email",
             "alert_timestamp": str(1337),
             "alert_rule_id": str(rule_details[0].id),
+            "extra": "123",
         }
 
     def test_get_email_link_extra_params(self):
