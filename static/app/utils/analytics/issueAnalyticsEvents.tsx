@@ -1,4 +1,5 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;
@@ -8,8 +9,8 @@ type IssueStream = {
 
 type SourceMapDebugParam = {
   type: SourceMapProcessingIssueType;
-  sdkName?: string;
-};
+  group_id?: string;
+} & BaseEventAnalyticsParams;
 
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
