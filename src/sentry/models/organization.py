@@ -146,6 +146,7 @@ class OrganizationManager(BaseManager):
             team_id__in=owner_teams
         ).values_list("organizationmember__organization_id", flat=True)
 
+        # use .union() (UNION) as opposed to | (OR) because it's faster
         return self.filter(id__in=owner_team_member_orgs).union(owner_role_orgs)
 
 
@@ -351,12 +352,15 @@ class Organization(Model, SnowflakeIdMixin):
         )
 
         teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
+
+        # may be empty
         members_on_teams_with_role = set(
             OrganizationMemberTeam.objects.filter(team_id__in=teams_with_org_role).values_list(
                 "organizationmember__id", flat=True
             )
         )
 
+        # use union of sets because a subset may be empty
         return OrganizationMember.objects.filter(
             id__in=members_with_role.union(members_on_teams_with_role)
         )
