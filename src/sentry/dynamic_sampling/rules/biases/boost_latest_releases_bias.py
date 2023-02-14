@@ -17,7 +17,7 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     PolymorphicRule,
     RuleType,
-    eval_dynamic_factor,
+    apply_dynamic_factor,
 )
 
 
@@ -25,7 +25,7 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE],
-            "factor": eval_dynamic_factor(
+            "factor": apply_dynamic_factor(
                 bias_params.base_sample_rate, BOOST_LATEST_RELEASES_FACTOR
             ),
             "decayedFactor": BOOST_LATEST_RELEASES_DECAYED_FACTOR,

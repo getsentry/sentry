@@ -166,10 +166,16 @@ def get_supported_biases_ids() -> Set[str]:
     return {bias["id"] for bias in DEFAULT_BIASES}
 
 
-def eval_dynamic_factor(base_sample_rate: float, x: float) -> float:
+def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     """
-    Function responsible for defining the sampling factor for a Relay rule.
-    The input range of the function must be within [0.0, 1.0] as it is designed to make the factor decay from x to 1.
+    This function known as dynamic factor function is used during the rules generation in order to determine the factor
+    for each rule based on the base_sample_rate of the project.
+
+    The function decreases the factor from x to 1 in the interval [0.0, 1.0] which means that a user with
+    base_sample_rate = 0.0 will have a factor of x, whereas with base_sample_rate = 1.0 we will have a factor of 1.
+
+    The high-level idea is that we want to reduce the factor the bigger the base_sample_rate becomes, this is done
+    because multiplication will exceed 1 very quickly in case we don't reduce the factor.
     """
     if base_sample_rate < 0.0 or base_sample_rate > 1.0:
         raise Exception(
