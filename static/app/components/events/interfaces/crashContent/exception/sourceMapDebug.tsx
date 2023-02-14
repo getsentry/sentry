@@ -35,7 +35,7 @@ function getErrorMessage(
   /**
    * Expandable description
    */
-  desc?: string;
+  desc?: React.ReactNode;
   docsLink?: string;
 }> {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
