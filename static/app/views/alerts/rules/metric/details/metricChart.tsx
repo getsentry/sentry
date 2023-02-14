@@ -33,9 +33,9 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -302,8 +302,10 @@ class MetricChart extends PureComponent<Props, State> {
       ...getRuleChangeSeries(rule, timeseriesData),
     ];
 
-    const queryFilter =
-      filter?.join(' ') + t(' over ') + getDuration(rule.timeWindow * 60);
+    const queryFilter = tct('[filters] over [duration]', {
+      filters: filter?.join(' '),
+      duration: getDuration(rule.timeWindow * 60),
+    });
 
     const percentOfWidth =
       width >= 1151

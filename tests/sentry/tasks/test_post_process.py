@@ -13,6 +13,10 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+)
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
     Activity,
@@ -24,12 +28,14 @@ from sentry.models import (
     GroupOwnerType,
     GroupSnooze,
     GroupStatus,
+    Integration,
     ProjectOwnership,
     ProjectTeam,
 )
 from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group, process_event
@@ -41,7 +47,6 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupType
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -586,7 +591,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         assignee = event.group.assignee_set.first()
-        assert assignee.user == self.user
+        assert assignee.user_id == self.user.id
         assert assignee.team is None
 
         owners = list(GroupOwner.objects.filter(group=event.group))
@@ -624,7 +629,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         assignee = event.group.assignee_set.first()
-        assert assignee.user == extra_user
+        assert assignee.user_id == extra_user.id
         assert assignee.team is None
 
         owners = list(GroupOwner.objects.filter(group=event.group))
@@ -644,7 +649,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             group=self.group,
             project=self.project,
             organization=self.organization,
-            user=self.user,
+            user_id=self.user.id,
             type=GroupOwnerType.OWNERSHIP_RULE.value,
         )
         event = self.create_event(
@@ -662,7 +667,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         assignee = event.group.assignee_set.first()
-        assert assignee.user is None
+        assert assignee.user_id is None
         assert assignee.team == extra_team
 
         owners = list(GroupOwner.objects.filter(group=event.group))
@@ -687,7 +692,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         assignee = event.group.assignee_set.first()
-        assert assignee.user == self.user
+        assert assignee.user_id == self.user.id
         assert assignee.team is None
 
     def test_owner_assignment_ownership_no_matching_owners(self):
@@ -725,7 +730,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         assignee = event.group.assignee_set.first()
-        assert assignee.user is None
+        assert assignee.user_id is None
         assert assignee.team == self.team
 
     def test_only_first_assignment_works(self):
@@ -746,7 +751,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         assignee = event.group.assignee_set.first()
-        assert assignee.user == self.user
+        assert assignee.user_id == self.user.id
         assert assignee.team is None
 
         event = self.create_event(
@@ -766,7 +771,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         assignee = event.group.assignee_set.first()
         # Assignment shouldn't change.
-        assert assignee.user == self.user
+        assert assignee.user_id == self.user.id
         assert assignee.team is None
 
     def test_owner_assignment_owner_is_gone(self):
@@ -790,6 +795,34 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         assignee = event.group.assignee_set.first()
         assert assignee is None
+
+    def test_suspect_committer_affect_cache_debouncing_issue_owners_calculations(self):
+        self.make_ownership()
+        committer = GroupOwner(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+        committer.save()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        event.group.assignee_set.create(team=self.team, project=self.project)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user_id is None
+        assert assignee.team == self.team
 
     def test_owner_assignment_when_owners_have_been_unassigned(self):
         """
@@ -827,7 +860,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event_2,
         )
         assignee = event.group.assignee_set.first()
-        assert assignee.user == self.user
+        assert assignee.user_id == self.user.id
 
         user_3 = self.create_user()
         self.create_team_membership(self.team, user=user_3)
@@ -858,10 +891,10 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
         # Group should be re-assigned to the new group owner
         assignee = event.group.assignee_set.first()
-        assert assignee.user == user_3
+        assert assignee.user_id == user_3.id
 
         # De-assign group assignees
-        GroupAssignee.objects.deassign(event.group, assignee.user)
+        GroupAssignee.objects.deassign(event.group, user_service.get_user(user_id=assignee.user_id))
         assert event.group.assignee_set.first() is None
 
         user_4 = self.create_user()
@@ -896,7 +929,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
         # Group should be re-assigned to the new group owner
         assignee = event.group.assignee_set.first()
-        assert assignee.user == user_4
+        assert assignee.user_id == user_4.id
 
     def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
         self.make_ownership()
@@ -999,6 +1032,25 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
         assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+    @with_feature("organizations:commit-context")
+    @with_feature("organizations:commit-context-fallback")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value=github_blame_return_value,
+    )
+    def test_logic_fallback_no_scm(self, mock_get_commit_context):
+        Integration.objects.all().delete()
+        integration = Integration.objects.create(provider="bitbucket")
+        integration.add_organization(self.organization)
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
@@ -1142,7 +1194,7 @@ class PostProcessGroupPerformanceTest(
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
-        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{fingerprint}"
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         # Store a performance event
         event = self.store_transaction(
             project_id=project_id,
@@ -1228,8 +1280,8 @@ class PostProcessGroupPerformanceTest(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[
-                f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1",
-                f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
+                f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1",
+                f"{PerformanceNPlusOneGroupType.type_id}-group2",
             ],
             environment=None,
             timestamp=min_ago,
@@ -1306,7 +1358,7 @@ class PostProcessGroupGenericTest(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
 
-        occurrence_data = self.build_occurrence_data(event_id=event.event_id)
+        occurrence_data = self.build_occurrence_data(event_id=event.event_id, project_id=project_id)
         occurrence, group_info = save_issue_occurrence(occurrence_data, event)
         assert group_info is not None
 

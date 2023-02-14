@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import ScoreCard from 'sentry/components/scoreCard';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Components/Data Visualization/Score Card',

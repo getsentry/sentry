@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
@@ -226,7 +226,7 @@ export function TraceEventDataSection({
                 size: 'xs',
                 title: sortByTooltip,
               }}
-              isDisabled={!!sortByTooltip}
+              disabled={!!sortByTooltip}
               position="bottom-end"
               onChange={selectedOption => {
                 setState({...state, sortBy: selectedOption.value});

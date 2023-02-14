@@ -364,12 +364,6 @@ def cron(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @strict_offset_reset_option()
-# TODO: Remove this option once we have fully cut over to the streaming consumer
-@click.option(
-    "--use-streaming-consumer",
-    is_flag=True,
-    help="Switches to the new streaming consumer implementation.",
-)
 @click.option(
     "--entity",
     type=click.Choice(["errors", "transactions"]),
@@ -577,6 +571,19 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @run.command("occurrences-ingest-consumer")
 @strict_offset_reset_option()
 @configuration
+@click.option(
+    "--consumer-group",
+    "group_id",
+    default="occurrence-consumer",
+    help="Kafka consumer group for the consumer.",
+)
+@click.option(
+    "--auto-offset-reset",
+    "auto_offset_reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
 def occurrences_ingest_consumer(**options):
     from django.conf import settings
 

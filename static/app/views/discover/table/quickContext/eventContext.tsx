@@ -7,7 +7,7 @@ import {
   StackTracePreviewContent,
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';

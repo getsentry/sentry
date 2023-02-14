@@ -1,7 +1,7 @@
 import {Children, cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {getListSymbolStyle, listSymbol} from './utils';
 

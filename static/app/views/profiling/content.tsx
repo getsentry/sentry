@@ -24,7 +24,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   formatError,
@@ -268,11 +268,10 @@ const ActionBar = styled('div')`
 // TODO: another simple primitive that can easily be <Grid columns={2} />
 const PanelsGrid = styled('div')`
   display: grid;
-  grid-template-columns: 50% 50%;
+  grid-template-columns: minmax(0, 1fr) 1fr;
   gap: ${space(2)};
-
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 100%;
+    grid-template-columns: minmax(0, 1fr);
   }
 `;
 

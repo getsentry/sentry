@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, TagWithTopValues} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';

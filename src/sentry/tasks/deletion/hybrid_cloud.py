@@ -116,20 +116,22 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 ) -> None:
     try:
         model = apps.get_model(app_label=app_name, model_name=model_name)
-        field: HybridCloudForeignKey
-        for field in model._meta.fields:
+        try:
+            field = model._meta.get_field(field_name)
             if not isinstance(field, HybridCloudForeignKey):
-                continue
-            if field.name == field_name:
-                break
-        else:
+                raise Exception(f"The {field_name} field is not a HybridCloudForeignKey")
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
             raise LookupError(f"Could not find field {field_name} on model {app_name}.{model_name}")
 
         tombstone_cls: Any = TombstoneBase.class_for_silo_mode(SiloMode[silo_mode])
 
-        if _process_tombstone_reconcilition(
+        # We rely on the return value of _process_tombstone_reconciliation
+        # to short circuit the second half of this `or` so that the terminal batch
+        # also updates the tombstone watermark.
+        if _process_tombstone_reconciliation(
             field, model, tombstone_cls, True
-        ) or _process_tombstone_reconcilition(field, model, tombstone_cls, False):
+        ) or _process_tombstone_reconciliation(field, model, tombstone_cls, False):
             process_hybrid_cloud_foreign_key_cascade_batch.apply_async(
                 kwargs=dict(
                     app_name=app_name,
@@ -158,7 +160,7 @@ def get_batch_size() -> int:
     return 3000
 
 
-def _process_tombstone_reconcilition(
+def _process_tombstone_reconciliation(
     field: HybridCloudForeignKey,
     model: Any,
     tombstone_cls: Type[TombstoneBase],
@@ -166,18 +168,19 @@ def _process_tombstone_reconcilition(
 ) -> bool:
     from sentry import deletions
 
-    prefix = "row" if row_after_tombstone else "tombstone"
-    watermark_manager: Manager = (
-        field.model.objects if row_after_tombstone else tombstone_cls.objects
-    )
-    watermark_target: str = "r" if row_after_tombstone else "t"
+    prefix = "tombstone"
+    watermark_manager: Manager = tombstone_cls.objects
+    watermark_target = "t"
+    if row_after_tombstone:
+        prefix = "row"
+        watermark_manager: Manager = field.model.objects
+        watermark_target = "r"
 
     low, up, has_more, tid = chunk_watermark_batch(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
-    to_delete_ids: List[int]
+    to_delete_ids: List[int] = []
     if low < up:
-        to_delete_ids: List[int] = []
         oldest_seen: datetime.datetime = timezone.now()
 
         with connections[router.db_for_read(model)].cursor() as conn:
@@ -211,7 +214,7 @@ def _process_tombstone_reconcilition(
                 set_watermark(prefix, field, up, tid)
 
         elif field.on_delete == "SET_NULL":
-            model.objects.filter(id__in=to_delete_ids).update({field.name: None})
+            model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
             set_watermark(prefix, field, up, tid)
 
         else:

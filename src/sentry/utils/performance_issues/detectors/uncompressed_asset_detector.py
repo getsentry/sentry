@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from sentry import features
-from sentry.grouptype.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.models import Organization, Project
-from sentry.types.issues import GroupType
 
 from ..base import DetectorType, PerformanceDetector, fingerprint_resource_span, get_span_duration
 from ..performance_problem import PerformanceProblem
@@ -70,7 +69,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 op=span.get("op"),
                 desc=span.get("description", ""),
                 parent_span_ids=[],
-                type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
+                type=PerformanceUncompressedAssetsGroupType,
                 cause_span_ids=[],
                 offender_span_ids=[span.get("span_id", None)],
             )

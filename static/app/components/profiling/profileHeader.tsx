@@ -9,7 +9,7 @@ import {
   ProfilingBreadcrumbsProps,
 } from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';

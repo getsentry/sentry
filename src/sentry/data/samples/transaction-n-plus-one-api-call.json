@@ -66,7 +66,7 @@
           "__span": "8e7189a4f1e24ac3",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=50"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=50"
         }
       },
       {
@@ -78,7 +78,7 @@
           "__span": "b2af9392df36fa1f",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=96"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=96"
         }
       },
       {
@@ -90,7 +90,7 @@
           "__span": "8869e7e96076fa88",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=43"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=43"
         }
       },
       {
@@ -102,7 +102,7 @@
           "__span": "ae58828e4fdd0bba",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=22"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=22"
         }
       },
       {
@@ -114,7 +114,7 @@
           "__span": "ac71c2e69245f37d",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=79"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=79"
         }
       },
       {
@@ -126,7 +126,7 @@
           "__span": "ba5183ea752ce85a",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=55"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=55"
         }
       },
       {
@@ -138,7 +138,7 @@
           "__span": "bd5f728e61f667cf",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=90"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=90"
         }
       },
       {
@@ -150,7 +150,7 @@
           "__span": "9e87e2127c3a3136",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=69"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=69"
         }
       },
       {
@@ -162,7 +162,7 @@
           "__span": "b38bff8a7d07b1bc",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=1"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=1"
         }
       },
       {
@@ -174,7 +174,7 @@
           "__span": "a530576977ba0714",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=48"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=48"
         }
       },
       {
@@ -186,7 +186,7 @@
           "__span": "918be77fbfd326ca",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=78"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=78"
         }
       },
       {
@@ -198,7 +198,7 @@
           "__span": "ae5b2d34409bb315",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=36"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=36"
         }
       },
       {
@@ -210,7 +210,7 @@
           "__span": "afa8a8b18afbad59",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=67"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=67"
         }
       },
       {
@@ -222,7 +222,7 @@
           "__span": "a39c22ce65e378cc",
           "method": "GET",
           "status_code": 200,
-          "url": "http://127.0.0.1:3000/book/?book_id=44"
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=44"
         }
       }
     ]
@@ -334,7 +334,7 @@
       "timestamp": 1673477527.2685,
       "start_timestamp": 1673477526.9024,
       "exclusive_time": 366.100073,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=96",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=96",
       "op": "http.client",
       "span_id": "b2af9392df36fa1f",
       "parent_span_id": "829d17842d952371",
@@ -344,7 +344,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=96"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=96"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -352,7 +352,7 @@
       "timestamp": 1673477528.2172,
       "start_timestamp": 1673477526.9029,
       "exclusive_time": 1314.30006,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=44",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=44",
       "op": "http.client",
       "span_id": "a39c22ce65e378cc",
       "parent_span_id": "829d17842d952371",
@@ -362,7 +362,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=44"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=44"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -370,7 +370,7 @@
       "timestamp": 1673477527.2787,
       "start_timestamp": 1673477526.9031,
       "exclusive_time": 375.6001,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=22",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=22",
       "op": "http.client",
       "span_id": "ae58828e4fdd0bba",
       "parent_span_id": "829d17842d952371",
@@ -380,7 +380,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=22"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=22"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -388,7 +388,7 @@
       "timestamp": 1673477527.2765,
       "start_timestamp": 1673477526.9033,
       "exclusive_time": 373.19994,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=43",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=43",
       "op": "http.client",
       "span_id": "8869e7e96076fa88",
       "parent_span_id": "829d17842d952371",
@@ -398,7 +398,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=43"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=43"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -406,7 +406,7 @@
       "timestamp": 1673477527.2823,
       "start_timestamp": 1673477526.9035,
       "exclusive_time": 378.799915,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=79",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=79",
       "op": "http.client",
       "span_id": "ac71c2e69245f37d",
       "parent_span_id": "829d17842d952371",
@@ -416,7 +416,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=79"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=79"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -424,7 +424,7 @@
       "timestamp": 1673477527.2668,
       "start_timestamp": 1673477526.9037,
       "exclusive_time": 363.099813,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=50",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=50",
       "op": "http.client",
       "span_id": "8e7189a4f1e24ac3",
       "parent_span_id": "829d17842d952371",
@@ -434,7 +434,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=50"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=50"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -442,7 +442,7 @@
       "timestamp": 1673477527.626,
       "start_timestamp": 1673477526.904,
       "exclusive_time": 721.999884,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=55",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=55",
       "op": "http.client",
       "span_id": "ba5183ea752ce85a",
       "parent_span_id": "829d17842d952371",
@@ -452,7 +452,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=55"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=55"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -460,7 +460,7 @@
       "timestamp": 1673477527.6517,
       "start_timestamp": 1673477526.9043,
       "exclusive_time": 747.400045,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=48",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=48",
       "op": "http.client",
       "span_id": "a530576977ba0714",
       "parent_span_id": "829d17842d952371",
@@ -470,7 +470,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=48"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=48"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -478,7 +478,7 @@
       "timestamp": 1673477527.6335,
       "start_timestamp": 1673477526.9046,
       "exclusive_time": 728.900194,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=90",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=90",
       "op": "http.client",
       "span_id": "bd5f728e61f667cf",
       "parent_span_id": "829d17842d952371",
@@ -488,7 +488,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=90"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=90"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -496,7 +496,7 @@
       "timestamp": 1673477527.6433,
       "start_timestamp": 1673477526.9048,
       "exclusive_time": 738.500118,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=69",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=69",
       "op": "http.client",
       "span_id": "9e87e2127c3a3136",
       "parent_span_id": "829d17842d952371",
@@ -506,7 +506,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=69"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=69"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -514,7 +514,7 @@
       "timestamp": 1673477527.6485,
       "start_timestamp": 1673477526.9051,
       "exclusive_time": 743.399858,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=1",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=1",
       "op": "http.client",
       "span_id": "b38bff8a7d07b1bc",
       "parent_span_id": "829d17842d952371",
@@ -524,7 +524,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=1"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=1"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -532,7 +532,7 @@
       "timestamp": 1673477528.0083,
       "start_timestamp": 1673477526.9052,
       "exclusive_time": 1103.100061,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=36",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=36",
       "op": "http.client",
       "span_id": "ae5b2d34409bb315",
       "parent_span_id": "829d17842d952371",
@@ -542,7 +542,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=36"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=36"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -550,7 +550,7 @@
       "timestamp": 1673477528.0075,
       "start_timestamp": 1673477526.9054,
       "exclusive_time": 1102.099896,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=78",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=78",
       "op": "http.client",
       "span_id": "918be77fbfd326ca",
       "parent_span_id": "829d17842d952371",
@@ -560,7 +560,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=78"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=78"
       },
       "hash": "c2ea6c5f7ba887a2"
     },
@@ -568,7 +568,7 @@
       "timestamp": 1673477528.0129,
       "start_timestamp": 1673477526.9057,
       "exclusive_time": 1107.200146,
-      "description": "GET http://127.0.0.1:3000/book/?book_id=67",
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=67",
       "op": "http.client",
       "span_id": "afa8a8b18afbad59",
       "parent_span_id": "829d17842d952371",
@@ -578,7 +578,7 @@
       "data": {
         "method": "GET",
         "type": "fetch",
-        "url": "http://127.0.0.1:3000/book/?book_id=67"
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=67"
       },
       "hash": "c2ea6c5f7ba887a2"
     },

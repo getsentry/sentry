@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Views/Tabs',

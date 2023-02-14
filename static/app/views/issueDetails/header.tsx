@@ -25,7 +25,7 @@ import {Item, TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -271,14 +271,6 @@ function GroupHeader({
             type="alpha"
             title={t(
               'Large Render Blocking Asset Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_UNCOMPRESSED_ASSET && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Uncompressed Asset Performance Issues are in active development and may change'
             )}
           />
         )}

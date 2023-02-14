@@ -17,7 +17,7 @@ import {
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -194,11 +194,11 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
     skipSlowestProfile: true,
   });
 
-  if (functionsQuery.type === 'loading') {
+  if (functionsQuery.isLoading) {
     return <FunctionsMiniGridLoading />;
   }
 
-  if (functionsQuery.type === 'resolved' && functions && functions.length === 0) {
+  if (!functions || (functions && functions.length === 0)) {
     return <FunctionsMiniGridEmptyState />;
   }
 

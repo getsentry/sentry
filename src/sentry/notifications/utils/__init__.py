@@ -29,6 +29,11 @@ from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+)
 from sentry.models import (
     Activity,
     Commit,
@@ -49,7 +54,6 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
@@ -437,7 +441,7 @@ def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if group.issue_category == GroupCategory.PERFORMANCE:
-        issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        issue_type = group.issue_type.description
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
@@ -466,6 +470,7 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 class PerformanceProblemContext:
     problem: PerformanceProblem
     spans: Union[List[Dict[str, Union[str, float]]], None]
+    event: Event | None
 
     def __post_init__(self) -> None:
         parent_span, repeating_spans = get_parent_and_repeating_spans(self.spans, self.problem)
@@ -475,13 +480,19 @@ class PerformanceProblemContext:
 
     def to_dict(self) -> Dict[str, str | List[str]]:
         return {
-            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
             if self.problem.offender_span_ids
             else "",
         }
+
+    @property
+    def transaction(self) -> str:
+        if self.event and self.event.transaction:
+            return str(self.event.transaction)
+        return ""
 
     def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
         if not self.spans:
@@ -500,18 +511,18 @@ class PerformanceProblemContext:
         spans: Union[List[Dict[str, Union[str, float]]], None],
         event: Event | None = None,
     ) -> PerformanceProblemContext:
-        if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
-            return NPlusOneAPICallProblemContext(problem, spans)
-        if problem.type == GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES:
+        if problem.type == PerformanceNPlusOneAPICallsGroupType:
+            return NPlusOneAPICallProblemContext(problem, spans, event)
+        if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)
         else:
-            return cls(problem, spans)
+            return cls(problem, spans, event)
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
     def to_dict(self) -> Dict[str, str | List[str]]:
         return {
-            "transaction_name": self.problem.desc,
+            "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
@@ -554,15 +565,6 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
 
 class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
-    def __init__(
-        self,
-        problem: PerformanceProblem,
-        spans: Union[List[Dict[str, Union[str, float]]], None],
-        event: Event | None,
-    ):
-        PerformanceProblemContext.__init__(self, problem, spans)
-        self.event = event
-
     def to_dict(self) -> Dict[str, Any]:
         return {
             "span_evidence_key_value": [
@@ -575,12 +577,6 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
                 },
             ],
         }
-
-    @property
-    def transaction(self) -> str:
-        if self.event and self.event.transaction:
-            return str(self.event.transaction)
-        return ""
 
     @property
     def starting_span(self) -> str:
