@@ -56,7 +56,12 @@ export default function SuspectSpansTable(props: Props) {
     p75ExclusiveTime: suspectSpan.p75ExclusiveTime,
     p95ExclusiveTime: suspectSpan.p95ExclusiveTime,
     p99ExclusiveTime: suspectSpan.p99ExclusiveTime,
-    sumExclusiveTime: suspectSpan.sumExclusiveTime,
+    sumExclusiveTime:
+      totals &&
+      defined(totals?.['sum(transaction.duration)']) &&
+      defined(suspectSpan.sumExclusiveTime)
+        ? suspectSpan.sumExclusiveTime / totals['sum(transaction.duration)']
+        : null,
   }));
 
   return (
@@ -228,7 +233,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   sumExclusiveTime: {
     key: 'sumExclusiveTime',
-    name: t('Total Self Time'),
+    name: t('Total Self Time %'),
     width: COL_WIDTH_UNDEFINED,
   },
 };
@@ -242,5 +247,5 @@ const COLUMN_TYPE: Record<TableColumnKey, ColumnType> = {
   p75ExclusiveTime: 'duration',
   p95ExclusiveTime: 'duration',
   p99ExclusiveTime: 'duration',
-  sumExclusiveTime: 'duration',
+  sumExclusiveTime: 'percentage',
 };

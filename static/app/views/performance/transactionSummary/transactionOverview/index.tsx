@@ -268,6 +268,10 @@ function getTotalsEventView(
       kind: 'function',
       function: ['apdex', '', undefined, undefined],
     },
+    {
+      kind: 'function',
+      function: ['sum', 'transaction.duration', undefined, undefined],
+    },
   ];
 
   return eventView.withColumns([

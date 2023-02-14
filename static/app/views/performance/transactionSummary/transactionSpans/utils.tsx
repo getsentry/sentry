@@ -171,6 +171,7 @@ export function generateSpansEventView({
 export function getTotalsView(eventView: EventView): EventView {
   const totalsView = eventView.withColumns([
     {kind: 'function', function: ['count', '', undefined, undefined]},
+    {kind: 'function', function: ['sum', 'transaction.duration', undefined, undefined]},
   ]);
 
   const conditions = new MutableSearch(eventView.query);
