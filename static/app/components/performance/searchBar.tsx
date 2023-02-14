@@ -193,7 +193,7 @@ function SearchBar(props: SearchBarProps) {
   const handleSearch = (query: string) => {
     setSearchResults([]);
     setSearchString(query);
-    onSearch(query ? `transaction:${query}` : '');
+    onSearch(query ? `transaction:${wrapQueryInWildcards(query)}` : '');
     closeDropdown();
   };
 
@@ -255,7 +255,7 @@ interface DataItem {
 }
 
 const wrapQueryInWildcards = (query: string) => {
-  if (!query.startsWith('* ')) {
+  if (!query.startsWith('*')) {
     query = '*' + query;
   }
 
