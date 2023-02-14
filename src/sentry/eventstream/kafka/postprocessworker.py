@@ -4,11 +4,10 @@ import logging
 import random
 import time
 from collections import defaultdict
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
 from threading import Lock
-from typing import Any, Generator, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Generator, Mapping, MutableMapping, Optional, Tuple
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
@@ -18,7 +17,6 @@ from sentry.eventstream.kafka.protocol import (
 )
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
-from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.utils.cache import cache_key_for_event
 
 logger = logging.getLogger(__name__)
