@@ -4,6 +4,8 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
+from pydantic.fields import Field
+
 from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud import (
     ApiPaginationArgs,
@@ -25,12 +27,12 @@ if TYPE_CHECKING:
 
 
 class APIIntegration(SiloDataInterface):
-    id: int
-    provider: str
-    external_id: str
-    name: str
-    metadata: Dict[str, Any]
-    status: int
+    id: int = -1
+    provider: str = ""
+    external_id: str = ""
+    name: str = ""
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    status: int = -1
 
     def __hash__(self) -> int:
         return hash(self.id)
@@ -48,13 +50,13 @@ class APIIntegration(SiloDataInterface):
 
 
 class APIOrganizationIntegration(SiloDataInterface):
-    id: int
-    default_auth_id: int
-    organization_id: int
-    integration_id: int
-    config: Dict[str, Any]
-    status: int  # As ObjectStatus
-    grace_period_end: Optional[datetime]
+    id: int = -1
+    default_auth_id: int = -1
+    organization_id: int = -1
+    integration_id: int = -1
+    config: Dict[str, Any] = Field(default_factory=dict)
+    status: int = -1  # As ObjectStatus
+    grace_period_end: Optional[datetime] = None
 
     def __hash__(self) -> int:
         return hash(self.id)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional
 
 from pydantic import Field
@@ -241,7 +240,6 @@ class ApiOrganizationSummary(SiloDataInterface):
     email: str = ""
 
 
-@dataclass
 class ApiOrganization(ApiOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.

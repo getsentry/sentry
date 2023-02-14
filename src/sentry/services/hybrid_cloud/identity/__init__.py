@@ -16,16 +16,16 @@ if TYPE_CHECKING:
 
 
 class APIIdentityProvider(SiloDataInterface):
-    id: int
-    type: str
-    external_id: str
+    id: int = -1
+    type: str = ""
+    external_id: str = ""
 
 
 class APIIdentity(SiloDataInterface):
-    id: int
-    idp_id: int
-    user_id: int
-    external_id: str
+    id: int = -1
+    idp_id: int = -1
+    user_id: int = -1
+    external_id: str = ""
 
 
 class IdentityService(InterfaceWithLifecycle):

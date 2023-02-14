@@ -164,8 +164,8 @@ class ApiMemberSsoState(SiloDataInterface):
 
 
 class ApiAuthState(SiloDataInterface):
-    sso_state: ApiMemberSsoState
-    permissions: List[str]
+    sso_state: ApiMemberSsoState = Field(default_factory=lambda: ApiMemberSsoState())
+    permissions: List[str] = Field(default_factory=list)
 
 
 @dataclass

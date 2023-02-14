@@ -56,6 +56,12 @@ class SiloDataInterfaceTest(TestCase):
         ]
     )
 
+    INTERFACE_CONSTRUCTORS = {
+        organization.ApiUserOrganizationContext: (
+            lambda: organization.ApiUserOrganizationContext()
+        ),
+    }
+
     def test_schema_generation(self):
         for api_type in self.INTERFACE_CLASSES:
             # We're mostly interested in whether an error occurs
@@ -78,11 +84,7 @@ class SiloDataInterfaceTest(TestCase):
     def test_model_serialization(self):
         for api_type in self.INTERFACE_CLASSES:
             # All such model classes should have default values for all attributes
-            try:
-                obj = api_type()
-            except:
-                print(f"Can't instantiate: {api_type.__name__}")
-                continue
+            obj = api_type()
 
             model_dict = obj.dict()
             serial = json.dumps(model_dict)  # check json lib can serialize all elements
