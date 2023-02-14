@@ -108,7 +108,11 @@ describe('SourceMapDebug', () => {
     const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.PARTIAL_MATCH,
       message: '',
-      data: {absPath: 'insertPath', partialMatchPath: 'matchedSourcemapPath'},
+      data: {
+        absPath: 'insertPath',
+        partialMatchPath: 'matchedSourcemapPath',
+        urlPrefix: 'urlPrefix',
+      },
     };
     MockApiClient.addMockResponse({
       url,
@@ -126,10 +130,7 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(
-        'The abs_path of the stack frame is a partial match. The stack frame has the path insertPath which is a partial match to matchedSourcemapPath.',
-        {exact: false}
-      )
+      screen.getByText('Partial Absolute Path Match', {exact: false})
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
