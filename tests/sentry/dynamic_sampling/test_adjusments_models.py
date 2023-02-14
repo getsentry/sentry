@@ -1,3 +1,5 @@
+from operator import attrgetter
+
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.adjustment_models import Project as P
 
@@ -67,3 +69,22 @@ def test_adjust_sample_rates_org_with_same_counts_projects():
     ]
 
     assert p.adjust_sample_rates() == expected_projects
+
+
+def test_adjust_sample_rates_org_with_counts_projects():
+    projects = [
+        P(id=1, count_per_root=2.0, blended_sample_rate=0.04),
+        P(id=2, count_per_root=10.0, blended_sample_rate=0.04),
+        P(id=3, count_per_root=10.0, blended_sample_rate=0.04),
+        P(id=4, count_per_root=10.0, blended_sample_rate=0.04),
+    ]
+    p = AdjustedModel(projects=projects, fidelity_rate=0.25)
+
+    expected_projects = [
+        P(id=1, count_per_root=2.0, new_count_per_root=8.0, blended_sample_rate=0.04),
+        P(id=2, count_per_root=10.0, new_count_per_root=4.0, blended_sample_rate=0.04),
+        P(id=3, count_per_root=10.0, new_count_per_root=11.5, blended_sample_rate=0.04),
+        P(id=4, count_per_root=10.0, new_count_per_root=8.5, blended_sample_rate=0.04),
+    ]
+
+    assert sorted(p.adjust_sample_rates(), key=attrgetter("id")) == expected_projects

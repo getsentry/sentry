@@ -46,9 +46,12 @@ class AdjustedModel:
             # We can't increase sample rate more than 1.0, so we calculate upper bound count
             # based on project fidelity_rate
             # Find an absolute difference
+
+            # Max possible counter if sample rate would be 1.0
+            max_possible_count = left.count_per_root / self.fidelity_rate
             diff = coefficient * min(
                 (average - left.count_per_root),
-                ((left.count_per_root / self.fidelity_rate) - left.count_per_root),
+                (max_possible_count - left.count_per_root),
             )
             left.new_count_per_root = left.count_per_root + diff
             right.new_count_per_root = right.count_per_root - diff
