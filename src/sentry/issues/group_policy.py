@@ -98,40 +98,45 @@ def reduce_noise(
         else:
             noise_config = get_noise_config(group_policy, project.organization)
 
-        if not should_create_group(client, new_grouphash, group_type, noise_config, project):
+        ignore_limit, expiry_time = noise_config.ignore_limit, noise_config.expiry_time
+
+        if ignore_limit and not should_create_group(
+            client, new_grouphash, group_type, ignore_limit, expiry_time, project
+        ):
             groups_to_ignore.add(new_grouphash)
 
     new_grouphashes = new_grouphashes - groups_to_ignore
     return new_grouphashes
 
 
-@metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
+@metrics.wraps("group_policy.should_create_group", sample_rate=1.0)
 def should_create_group(
-    client: Any, grouphash: str, grouptype: GroupType, noise_config: NoiseConfig, project: Project
+    client: Any,
+    grouphash: str,
+    grouptype: GroupType,
+    ignore_limit: int,
+    expiry_time: int,
+    project: Project,
 ) -> bool:
     key = f"grouphash:{grouphash}:{project.id}"
     times_seen = client.incr(key)
 
+    over_threshold = times_seen >= ignore_limit
+
     metrics.incr(
-        "performance.performance_issue.grouphash_counted",
+        "group_policy.should_create_group.threshold",
         tags={
-            "times_seen": times_seen,
+            "over_threshold": over_threshold,
             "group_type": grouptype.slug,
         },
         sample_rate=1.0,
     )
 
-    if times_seen >= noise_config.ignore_limit:
+    if over_threshold:
         client.delete(grouphash)
-        metrics.incr(
-            "performance.performance_issue.issue_will_be_created",
-            tags={"group_type": grouptype.slug},
-            sample_rate=1.0,
-        )
-
         return True
     else:
-        client.expire(key, noise_config.expiry_time)  # 24 hour expiration from last seen
+        client.expire(key, expiry_time)
         return False
 
 
