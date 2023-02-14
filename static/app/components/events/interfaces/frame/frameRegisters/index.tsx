@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import {getSortedRegisters} from './utils';

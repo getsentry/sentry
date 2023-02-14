@@ -2,7 +2,7 @@ import {memo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';

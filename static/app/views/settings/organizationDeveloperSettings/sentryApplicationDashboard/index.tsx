@@ -8,7 +8,7 @@ import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';

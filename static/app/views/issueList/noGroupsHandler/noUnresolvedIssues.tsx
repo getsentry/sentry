@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import congratsRobotsPlaceholder from 'sentry-images/spot/congrats-robots-placeholder.jpg';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const Placeholder = () => (
   <PlaceholderImage

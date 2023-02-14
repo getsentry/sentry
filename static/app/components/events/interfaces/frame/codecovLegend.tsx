@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {IconCircle, IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Frame, Organization} from 'sentry/types';
 import {CodecovStatusCode} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
