@@ -87,6 +87,7 @@ default_manager.add("organizations:issue-alert-preview", OrganizationFeature, Tr
 default_manager.add("organizations:issue-alert-test-notifications", OrganizationFeature, True)
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-removal-action", OrganizationFeature, True)
+default_manager.add("organizations:issue-list-saved-searches-button-location", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
 default_manager.add("organizations:issue-platform", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, True)
