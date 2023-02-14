@@ -126,7 +126,11 @@ def handle_owner_assignment(job):
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import ProjectOwnership
+            from sentry.models import (
+                ISSUE_OWNERS_DEBOUNCE_DURATION,
+                ISSUE_OWNERS_DEBOUNCE_KEY,
+                ProjectOwnership,
+            )
 
             event = job["event"]
             project, group = event.project, event.group
@@ -167,7 +171,7 @@ def handle_owner_assignment(job):
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.debounce_issue_owners"
                 ):
-                    issue_owners_key = f"owner_exists:1:{group.id}"
+                    issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
                     debounce_issue_owners = cache.get(issue_owners_key)
 
                     if debounce_issue_owners:
@@ -199,7 +203,7 @@ def handle_owner_assignment(job):
                         cache.set(
                             issue_owners_key,
                             True,
-                            60 * 60 * 24,
+                            ISSUE_OWNERS_DEBOUNCE_DURATION,
                         )
 
                 with sentry_sdk.start_span(
