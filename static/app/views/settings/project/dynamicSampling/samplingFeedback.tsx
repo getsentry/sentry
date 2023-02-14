@@ -8,7 +8,7 @@ import Textarea from 'sentry/components/forms/controls/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 enum TracingCapturingPriorities {
   TRANSACTION_NAME = 'transaction_name',

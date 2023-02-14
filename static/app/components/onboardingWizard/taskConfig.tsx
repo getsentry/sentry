@@ -8,7 +8,7 @@ import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   OnboardingSupplementComponentProps,
   OnboardingTask,

@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import tocbot from 'tocbot';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const Container = styled('div')`
   height: 100%;

@@ -12,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Artifact, Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
@@ -247,15 +247,26 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
   });
 
   useEffect(() => {
-    if (
-      proguardErrors?.length &&
-      proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin'
-    ) {
-      trackAdvancedAnalyticsEvent('issue_error_banner.proguard_misconfigured.displayed', {
-        organization,
-        group: event?.groupID,
-        platform: project.platform,
-      });
+    if (proguardErrors?.length) {
+      if (proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_misconfigured.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      } else if (proguardErrors[0]?.type === 'proguard_missing_mapping') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_missing_mapping.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      }
     }
     // Just for analytics, only track this once per visit
     // eslint-disable-next-line react-hooks/exhaustive-deps

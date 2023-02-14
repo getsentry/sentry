@@ -26,7 +26,7 @@ import {IconRepeat} from 'sentry/icons/iconRepeat';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';

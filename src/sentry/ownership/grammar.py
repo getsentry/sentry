@@ -86,8 +86,8 @@ class Rule(namedtuple("Rule", "matcher owners")):
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any], experiment: bool = False) -> Union[bool, Any]:
-        return self.matcher.test(data, experiment)
+    def test(self, data: Mapping[str, Any]) -> Union[bool, Any]:
+        return self.matcher.test(data)
 
 
 class Matcher(namedtuple("Matcher", "type pattern")):
@@ -129,7 +129,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def test(self, data: PathSearchable, experiment: bool = False) -> bool:
+    def test(self, data: PathSearchable) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -139,19 +139,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
-            new_func = lambda val, pattern: bool(codeowners_match(val, pattern))
-            baseline_func = (
-                lambda val, pattern: bool(_path_to_regex(pattern).search(val))
-                if val is not None
-                else False
-            )
             return self.test_frames(
                 *self.munge_if_needed(data),
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-                match_frame_value_func=new_func if experiment else baseline_func,
+                match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
             )
         return False
 

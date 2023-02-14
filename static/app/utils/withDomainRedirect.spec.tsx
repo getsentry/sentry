@@ -1,5 +1,4 @@
 import {RouteComponentProps} from 'react-router';
-import * as Sentry from '@sentry/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -28,10 +27,7 @@ describe('withDomainRedirect', function () {
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   };
 
-  let spyWithScope;
-
   beforeEach(function () {
-    spyWithScope = jest.spyOn(Sentry, 'withScope').mockImplementation(() => {});
     Object.defineProperty(window, 'location', {
       writable: true,
       value: {
@@ -132,7 +128,6 @@ describe('withDomainRedirect', function () {
     expect(window.location.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
-    expect(spyWithScope).not.toHaveBeenCalled();
   });
 
   it('redirects to sentryUrl on missing customer domain feature', function () {
@@ -169,7 +164,6 @@ describe('withDomainRedirect', function () {
     expect(window.location.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
-    expect(spyWithScope).not.toHaveBeenCalled();
   });
 
   it('redirect when :orgId is present in the routes', function () {
@@ -209,7 +203,6 @@ describe('withDomainRedirect', function () {
     expect(container).toBeEmptyDOMElement();
     expect(router.replace).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');
-    expect(spyWithScope).toHaveBeenCalledTimes(1);
   });
 
   it('does not redirect when :orgId is not present in the routes', function () {
@@ -254,6 +247,5 @@ describe('withDomainRedirect', function () {
 
     expect(screen.getByText('Org slug: no org slug')).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
-    expect(spyWithScope).not.toHaveBeenCalled();
   });
 });

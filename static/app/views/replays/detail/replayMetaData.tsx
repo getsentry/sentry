@@ -9,7 +9,7 @@ import Tag, {Background} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock} from 'sentry/icons';
 import {tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';

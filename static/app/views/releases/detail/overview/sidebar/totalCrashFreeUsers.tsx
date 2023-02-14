@@ -9,7 +9,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CrashFreeTimeBreakdown, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 

@@ -7,7 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Activity, Organization} from 'sentry/types';
 import routeTitle from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';

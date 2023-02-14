@@ -13,12 +13,14 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import nodestore
+from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+from sentry.models import Organization, Project
 from sentry.utils import json, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
@@ -32,6 +34,9 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
+
+
+INGEST_ALLOWED_ISSUE_TYPES = frozenset([ProfileBlockedThreadGroupType.type_id])
 
 
 def get_occurrences_ingest_consumer(
@@ -216,7 +221,9 @@ def _validate_event_data(event_data: Mapping[str, Any]) -> None:
         raise InvalidEventPayloadError("Event payload does not match schema")
 
 
-def _process_message(message: Mapping[str, Any]) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+def _process_message(
+    message: Mapping[str, Any]
+) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
     """
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
@@ -225,6 +232,16 @@ def _process_message(message: Mapping[str, Any]) -> Tuple[IssueOccurrence, Optio
 
     try:
         kwargs = _get_kwargs(message)
+        occurrence_data = kwargs["occurrence_data"]
+        if occurrence_data["type"] not in INGEST_ALLOWED_ISSUE_TYPES:
+            return None
+
+        project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+        if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
+            return None
+
         if "event_data" in kwargs:
             return process_event_and_issue_occurrence(
                 kwargs["occurrence_data"], kwargs["event_data"]
