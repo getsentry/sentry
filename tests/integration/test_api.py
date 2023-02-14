@@ -65,6 +65,16 @@ class AuthenticationTest(AuthProviderTestCase):
         self.save_session()
         self._test_paths_with_status(401)
 
+    def test_sso_with_expiry_expired_boop(self):
+        sso_session_expired = SsoSession(
+            self.organization.id,
+            datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+        )
+        self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
+
+        self.save_session()
+        self._test_paths_with_status(401)
+
     def test_sso_redirect_url_internal(self):
         sso_session_expired = SsoSession(
             self.organization.id,

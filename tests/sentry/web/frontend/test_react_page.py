@@ -282,7 +282,7 @@ class ReactPageViewTest(TestCase):
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
             assert self.client.session["activeorg"] == org.slug
 
-            # Access another org as superuser on customer domain
+            # Access another org as inactive superuser on customer domain
             response = self.client.get("/", HTTP_HOST=f"{other_org.slug}.testserver", follow=True)
             assert response.status_code == 200
             assert response.redirect_chain == [
