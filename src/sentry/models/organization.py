@@ -134,7 +134,11 @@ class OrganizationManager(BaseManager):
         )
 
         # get owners from orgs
-        owner_role_orgs = orgs.filter(member_set__role=roles.get_top_dog().id)
+        owner_role_orgs = Organization.objects.filter(
+            member_set__user_id=user_id,
+            status=OrganizationStatus.VISIBLE,
+            member_set__role=roles.get_top_dog().id,
+        )
 
         # get owner teams
         owner_teams = Team.objects.filter(
