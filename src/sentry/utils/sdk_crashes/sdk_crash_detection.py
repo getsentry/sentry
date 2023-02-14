@@ -20,21 +20,21 @@ class SDKCrashDetector:
         self
         self.sdk_crash_reporter = sdk_crash_reporter
 
-    def detect_sdk_crash(self, data: Event) -> None:
-        if data.get("type") != "error" or data.get("platform") != "cocoa":
+    def detect_sdk_crash(self, event: Event) -> None:
+        if event.get("type") != "error" or event.get("platform") != "cocoa":
             return
 
-        is_unhandled = get_path(data, "exception", "values", -1, "mechanism", "handled") is False
+        is_unhandled = get_path(event, "exception", "values", -1, "mechanism", "handled") is False
 
         if is_unhandled is False:
             return
 
-        frames = get_path(data, "exception", "values", -1, "stacktrace", "frames")
+        frames = get_path(event, "exception", "values", -1, "stacktrace", "frames")
         if not frames:
             return
 
         if self.is_cocoa_sdk_crash(frames):
-            self.sdk_crash_reporter.report(data)
+            self.sdk_crash_reporter.report(event)
 
     def _strip_event_data(self, data: Event) -> Event:
         return data
