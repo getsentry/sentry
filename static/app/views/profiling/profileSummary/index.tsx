@@ -7,7 +7,6 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
@@ -141,57 +140,55 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         specificProjectSlugs={defined(project) ? [project.slug] : []}
       >
         <Layout.Page>
-          <NoProjectMessage organization={organization}>
-            {project && transaction && (
-              <Fragment>
-                <Layout.Header>
-                  <Layout.HeaderContent>
-                    <ProfilingBreadcrumbs
-                      organization={organization}
-                      trails={breadcrumbTrails}
-                    />
-                    <Layout.Title>
-                      {project ? (
-                        <IdBadge
-                          project={project}
-                          avatarSize={28}
-                          hideName
-                          avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                        />
-                      ) : null}
-                      {transaction}
-                    </Layout.Title>
-                  </Layout.HeaderContent>
-                </Layout.Header>
-                <Layout.Body>
-                  <Layout.Main fullWidth>
-                    <ActionBar>
-                      <PageFilterBar condensed>
-                        <EnvironmentPageFilter />
-                        <DatePageFilter alignDropdown="left" />
-                      </PageFilterBar>
-                      <SmartSearchBar
-                        organization={organization}
-                        hasRecentSearches
-                        searchSource="profile_summary"
-                        supportedTags={profileFilters}
-                        query={rawQuery}
-                        onSearch={handleSearch}
-                        maxQueryLength={MAX_QUERY_LENGTH}
+          {project && transaction && (
+            <Fragment>
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <ProfilingBreadcrumbs
+                    organization={organization}
+                    trails={breadcrumbTrails}
+                  />
+                  <Layout.Title>
+                    {project ? (
+                      <IdBadge
+                        project={project}
+                        avatarSize={28}
+                        hideName
+                        avatarProps={{hasTooltip: true, tooltip: project.slug}}
                       />
-                    </ActionBar>
-                    <ProfileSummaryContent
-                      location={props.location}
-                      project={project}
-                      selection={props.selection}
-                      transaction={transaction}
-                      query={query}
+                    ) : null}
+                    {transaction}
+                  </Layout.Title>
+                </Layout.HeaderContent>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  <ActionBar>
+                    <PageFilterBar condensed>
+                      <EnvironmentPageFilter />
+                      <DatePageFilter alignDropdown="left" />
+                    </PageFilterBar>
+                    <SmartSearchBar
+                      organization={organization}
+                      hasRecentSearches
+                      searchSource="profile_summary"
+                      supportedTags={profileFilters}
+                      query={rawQuery}
+                      onSearch={handleSearch}
+                      maxQueryLength={MAX_QUERY_LENGTH}
                     />
-                  </Layout.Main>
-                </Layout.Body>
-              </Fragment>
-            )}
-          </NoProjectMessage>
+                  </ActionBar>
+                  <ProfileSummaryContent
+                    location={props.location}
+                    project={project}
+                    selection={props.selection}
+                    transaction={transaction}
+                    query={query}
+                  />
+                </Layout.Main>
+              </Layout.Body>
+            </Fragment>
+          )}
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
