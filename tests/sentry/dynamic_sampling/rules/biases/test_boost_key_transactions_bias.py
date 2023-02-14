@@ -13,12 +13,12 @@ from sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias import (
 )
 def test_generate_bias_rules_v2(data_provider, default_project):
     rule_id = 1002
-    sample_rate = 0.5
+    factor = 1.5
     key_transactions = ["/foo", "/bar"]
 
     data_provider.get_bias_data.return_value = {
         "id": rule_id,
-        "sampleRate": sample_rate,
+        "factor": factor,
         "keyTransactions": key_transactions,
     }
 
@@ -38,7 +38,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "op": "or",
             },
             "id": rule_id,
-            "samplingValue": {"type": "sampleRate", "value": sample_rate},
+            "samplingValue": {"type": "factor", "value": factor},
             "type": "transaction",
         }
     ]
