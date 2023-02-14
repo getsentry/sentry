@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import Any, Callable, Generic, Mapping, MutableMapping, Type, TypeVar
 
 from sentry.silo import SiloMode
@@ -28,7 +29,8 @@ class RpcServiceEndpoint(Generic[_ServiceClass]):
 
 class RpcServiceMethod:
     def __init__(self, method: Callable[..., Any]) -> None:
-        pass
+        argspec = inspect.getfullargspec(method)
+        assert argspec
 
 
 _rpc_service_registry: MutableMapping[str, RpcServiceEndpoint[Any]] = {}
@@ -36,7 +38,13 @@ _rpc_service_registry: MutableMapping[str, RpcServiceEndpoint[Any]] = {}
 
 def rpc_service(silo_mode: SiloMode, name: str) -> Callable[..., Type[_ServiceClass]]:
     def decorator(service_class: Type[_ServiceClass]) -> Type[_ServiceClass]:
-        service_obj = service_class()
+        try:
+            service_obj = service_class()
+        except TypeError:
+            raise TypeError(
+                "Classes decorated with @rpc_service must be constructible with no arguments"
+            )
+
         endpoint = RpcServiceEndpoint(silo_mode, name, service_obj)
         _rpc_service_registry[name] = endpoint
         return service_class
