@@ -252,7 +252,7 @@ class IncidentActivity(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user = FlexibleForeignKey("sentry.User", null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     type = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)

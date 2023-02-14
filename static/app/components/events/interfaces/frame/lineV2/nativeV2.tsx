@@ -5,7 +5,7 @@ import scrollToElement from 'scroll-to-element';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 
 import DebugImage from '../../debugMeta/debugImage';

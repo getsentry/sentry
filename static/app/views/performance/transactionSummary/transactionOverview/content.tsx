@@ -13,11 +13,12 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import Tooltip from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -402,6 +403,12 @@ function SummaryContent({
           projects={projects}
           transactionName={transactionName}
           currentFilter={spanOperationBreakdownFilter}
+        />
+
+        <SuspectFunctionsTable
+          project={project}
+          transaction={transactionName}
+          analyticsPageSource="performance_transaction"
         />
         <RelatedIssues
           organization={organization}

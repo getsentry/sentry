@@ -9,7 +9,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import FallingError from 'sentry/views/onboarding/components/fallingError';

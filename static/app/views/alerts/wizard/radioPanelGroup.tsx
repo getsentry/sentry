@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Radio from 'sentry/components/radio';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type RadioPanelGroupProps<C extends string> = {
   /**

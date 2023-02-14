@@ -9,7 +9,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -242,6 +242,7 @@ export function SourceMapDebug({debugFrames, sdkName}: SourcemapDebugProps) {
 
   useRouteAnalyticsParams({
     show_fix_source_map_cta: errorMessages.length > 0,
+    source_map_debug_errors: errorMessages.map(error => error.type).join(','),
   });
 
   if (isLoading || !errorMessages.length) {

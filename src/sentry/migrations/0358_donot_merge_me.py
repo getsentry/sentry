@@ -152,7 +152,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0354_break_saved_search_foreign_key"),
+        ("sentry", "0357_add_region_scheduled_deletions"),
     ]
 
     operations = (

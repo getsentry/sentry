@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Panel} from 'sentry/components/panels';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';

@@ -21,7 +21,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
