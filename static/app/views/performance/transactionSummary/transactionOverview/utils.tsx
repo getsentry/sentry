@@ -18,24 +18,14 @@ export function canUseTransactionMetricsData(organization, location) {
     return false;
   }
 
-  const display = decodeScalar(
-    location.query.display,
-    DisplayModes.DURATION
-  ) as DisplayModes;
-  const breakdown = decodeScalar(location.query.breakdown, '');
-  const query = decodeScalar(location.query.query, '');
-
-  // certain charts aren't compatible with metrics
-  if (DISPLAY_MAP_DENY_LIST.includes(display)) {
-    return false;
-  }
-
   // span op breakdown filters aren't compatible with metrics
+  const breakdown = decodeScalar(location.query.breakdown, '');
   if (breakdown) {
     return false;
   }
 
   // in the short term, using any filter will force indexed event search
+  const query = decodeScalar(location.query.query, '');
   if (query) {
     return false;
   }
@@ -58,11 +48,4 @@ export function getTransactionMEPParamsIfApplicable(
   }
 
   return getMEPQueryParams(mepContext);
-}
-
-export function canUseMetricsInTransactionSummary(organization: Organization) {
-  return (
-    canUseMetricsData(organization) &&
-    organization.features.includes('performance-metrics-backed-transaction-summary')
-  );
 }

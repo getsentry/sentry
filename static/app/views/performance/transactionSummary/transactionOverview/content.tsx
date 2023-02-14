@@ -14,6 +14,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
+import {ActionBarItem} from 'sentry/components/smartSearchBar';
 import Tooltip from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
@@ -38,10 +39,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {
-  canUseMetricsInTransactionSummary,
-  canUseTransactionMetricsData,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -185,31 +183,33 @@ function SummaryContent({
   }
 
   function generateActionBarItems(_org: Organization, _location: Location) {
-    if (!canUseMetricsInTransactionSummary(_org)) {
-      return undefined;
+    let items: ActionBarItem[] | undefined = undefined;
+    if (
+      _org.features.includes('performance-metrics-backed-transaction-summary') &&
+      !canUseTransactionMetricsData(_org, _location)
+    ) {
+      items = [
+        {
+          key: 'alert',
+          makeAction: () => ({
+            Button: () => (
+              <Tooltip
+                title={t(
+                  'Based on your search criteria and sample rate, the events available may be limited.'
+                )}
+              >
+                <StyledIconWarning size="sm" color="warningText" />
+              </Tooltip>
+            ),
+            menuItem: {
+              key: 'alert',
+            },
+          }),
+        },
+      ];
     }
 
-    return !canUseTransactionMetricsData(_org, _location)
-      ? [
-          {
-            key: 'alert',
-            makeAction: () => ({
-              Button: () => (
-                <Tooltip
-                  title={t(
-                    'Based on your search criteria and sample rate, the events available may be limited.'
-                  )}
-                >
-                  <StyledIconWarning size="sm" color="warningText" />
-                </Tooltip>
-              ),
-              menuItem: {
-                key: 'alert',
-              },
-            }),
-          },
-        ]
-      : undefined;
+    return items;
   }
 
   const hasPerformanceChartInterpolation = organization.features.includes(

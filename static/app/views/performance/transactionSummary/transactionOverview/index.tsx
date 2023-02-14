@@ -21,10 +21,7 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {
-  canUseMetricsInTransactionSummary,
-  getTransactionMEPParamsIfApplicable,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -127,7 +124,11 @@ function OverviewContentWrapper(props: ChildProps) {
   });
 
   const {data: tableData, isLoading, error} = queryData;
-  const {data: unfilteredTableData} = additionalQueryData;
+  const {
+    data: unfilteredTableData,
+    isLoading: isAdditionalQueryLoading,
+    error: additionalQueryError,
+  } = additionalQueryData;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
@@ -155,8 +156,8 @@ function OverviewContentWrapper(props: ChildProps) {
   const totals: TotalValues | null =
     (tableData?.data?.[0] as {[k: string]: number}) ?? null;
 
-  const unfilteredTotals: TotalValues | null = canUseMetricsInTransactionSummary(
-    organization
+  const unfilteredTotals: TotalValues | null = organization.features.includes(
+    'performance-metrics-backed-transaction-summary'
   )
     ? (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null
     : null;
@@ -168,8 +169,8 @@ function OverviewContentWrapper(props: ChildProps) {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isLoading}
-      error={error}
+      isLoading={isLoading || isAdditionalQueryLoading}
+      error={error || additionalQueryError}
       totalValues={totals}
       onChangeFilter={onChangeFilter}
       spanOperationBreakdownFilter={spanOperationBreakdownFilter}
