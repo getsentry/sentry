@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 // eslint-disable-next-line no-restricted-imports
 import {darkColors, lightColors} from 'sentry/utils/theme';
 

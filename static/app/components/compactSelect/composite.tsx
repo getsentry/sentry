@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {Control, ControlProps} from './control';
 import {ListBox, MultipleListBoxProps, SingleListBoxProps} from './listBox';

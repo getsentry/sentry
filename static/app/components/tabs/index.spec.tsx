@@ -1,6 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 
 const TABS = [
   {key: 'details', label: 'Details', content: 'So by colonel hearted ferrars.'},
@@ -28,12 +28,12 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -59,12 +59,12 @@ describe('Tabs', () => {
       <Tabs disabled>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -91,12 +91,12 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -118,12 +118,12 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -149,12 +149,12 @@ describe('Tabs', () => {
       <Tabs orientation="vertical">
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -180,14 +180,14 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key} disabled>
+            <TabList.Item key={tab.key} disabled>
               {tab.label}
-            </Item>
+            </TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -207,14 +207,14 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key} to="/some-link">
+            <TabList.Item key={tab.key} to="/some-link">
               {tab.label}
-            </Item>
+            </TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>,

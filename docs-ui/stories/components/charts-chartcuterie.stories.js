@@ -5,7 +5,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import config from 'sentry/chartcuterie/config';
 import {ChartType} from 'sentry/chartcuterie/types';
 import {getDimensionValue} from 'sentry/components/charts/utils';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const {renderConfig} = config;
 

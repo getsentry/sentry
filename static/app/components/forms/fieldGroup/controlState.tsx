@@ -5,7 +5,7 @@ import Spinner from 'sentry/components/forms/spinner';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export interface ControlStateProps {
   /**

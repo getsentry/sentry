@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   keyName: React.ReactNode;

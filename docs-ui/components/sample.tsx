@@ -3,7 +3,7 @@ import {Theme, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconMoon} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 type ThemeName = 'dark' | 'light';

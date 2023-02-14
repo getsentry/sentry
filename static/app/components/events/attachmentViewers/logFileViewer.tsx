@@ -7,7 +7,7 @@ import {
   getAttachmentUrl,
   ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = ViewerProps & AsyncComponent['props'];
 
