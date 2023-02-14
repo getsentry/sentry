@@ -14,7 +14,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -180,7 +180,7 @@ export function PerformanceLanding(props: Props) {
 
             <TabList hideBorder>
               {LANDING_DISPLAYS.map(({label, field}) => (
-                <Item key={field}>{label}</Item>
+                <TabList.Item key={field}>{label}</TabList.Item>
               ))}
             </TabList>
           </Layout.Header>
@@ -188,7 +188,7 @@ export function PerformanceLanding(props: Props) {
           <Layout.Body data-test-id="performance-landing-body">
             <Layout.Main fullWidth>
               <TabPanels>
-                <Item key={landingDisplay.field}>
+                <TabPanels.Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
                     sendOutcomeAnalytics
                     organization={organization}
@@ -266,7 +266,7 @@ export function PerformanceLanding(props: Props) {
                       }}
                     </MetricsDataSwitcher>
                   </MetricsCardinalityProvider>
-                </Item>
+                </TabPanels.Item>
               </TabPanels>
             </Layout.Main>
           </Layout.Body>
