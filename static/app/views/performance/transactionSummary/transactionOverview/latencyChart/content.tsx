@@ -57,7 +57,9 @@ function Content({
   totalCount,
 }: Props) {
   const [zoomError, setZoomError] = useState(false);
-  const displayCountAsPercentage = !!totalCount;
+  const displayCountAsPercentage = organization.features.includes(
+    'performance-metrics-backed-transaction-summary'
+  );
 
   function handleMouseOver() {
     // Hide the zoom error tooltip on the next hover.
@@ -68,7 +70,7 @@ function Content({
 
   function parseHistogramData(data: HistogramData): HistogramData {
     // display each bin's count as a % of total count
-    if (totalCount) {
+    if (displayCountAsPercentage && totalCount) {
       return data.map(({bin, count}) => ({bin, count: count / totalCount}));
     }
     return data;

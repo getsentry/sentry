@@ -21,7 +21,10 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  getTransactionMEPParamsIfApplicable,
+  getUnfilteredTotalsEventView,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -114,7 +117,7 @@ function OverviewContentWrapper(props: ChildProps) {
   );
 
   const additionalQueryData = useDiscoverQuery({
-    eventView: getUnfilteredTotalsEventView(eventView, location),
+    eventView: getUnfilteredTotalsEventView(eventView, location, ['count']),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
@@ -156,11 +159,8 @@ function OverviewContentWrapper(props: ChildProps) {
   const totals: TotalValues | null =
     (tableData?.data?.[0] as {[k: string]: number}) ?? null;
 
-  const unfilteredTotals: TotalValues | null = organization.features.includes(
-    'performance-metrics-backed-transaction-summary'
-  )
-    ? (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null
-    : null;
+  const unfilteredTotals: TotalValues | null =
+    (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null;
 
   return (
     <SummaryContent
@@ -225,35 +225,6 @@ function generateEventView({
     },
     location
   );
-}
-
-function getUnfilteredTotalsEventView(
-  eventView: EventView,
-  location: Location
-): EventView {
-  const totalsColumns: QueryFieldValue[] = [
-    {
-      kind: 'function',
-      function: ['tpm', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['count', '', undefined, undefined],
-    },
-  ];
-
-  const transactionName = decodeScalar(location.query.transaction);
-  const conditions = new MutableSearch('');
-
-  conditions.setFilterValues('event.type', ['transaction']);
-  if (transactionName) {
-    conditions.setFilterValues('transaction', [transactionName]);
-  }
-
-  const unfilteredEventView = eventView.withColumns([...totalsColumns]);
-  unfilteredEventView.query = conditions.formatString();
-
-  return unfilteredEventView;
 }
 
 function getTotalsEventView(

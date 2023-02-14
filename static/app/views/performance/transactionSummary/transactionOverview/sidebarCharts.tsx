@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -37,7 +38,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  getTransactionMEPParamsIfApplicable,
+  getUnfilteredTotalsEventView,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {
   anomaliesRouteWithQuery,
@@ -92,6 +96,26 @@ function SidebarCharts({
   const router = useRouter();
   const theme = useTheme();
   const displayTPMAsPercentage = !!unfilteredTotals;
+  const mepSetting = useMEPSettingContext();
+
+  const unfilteredQueryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location,
+    true
+  );
+
+  const {data} = useDiscoverQuery({
+    eventView: getUnfilteredTotalsEventView(eventView, location, ['tpm']),
+    orgSlug: organization.slug,
+    location,
+    // transactionThreshold,
+    // transactionThresholdMetric
+    referrer: 'api.performance.transaction-summary.sidebar-chart',
+    queryExtras: unfilteredQueryExtras,
+  });
+
+  const _numerator_totals = (data?.data?.[0] as {[k: string]: number}) ?? null;
 
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
@@ -162,7 +186,7 @@ function SidebarCharts({
           data-test-id="tpm-summary-value"
           isLoading={isLoading}
           error={error}
-          value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
+          value={getValueFromTotals('tpm()', totals, _numerator_totals)}
         />
       </ChartLabel>
 
@@ -274,6 +298,9 @@ function SidebarChartsContainer({
     organization,
     location
   );
+  const showTPMAsPercentage = organization.features.includes(
+    'performance-metrics-backed-transaction-summary'
+  );
 
   const axisLineConfig = {
     scale: true,
@@ -348,7 +375,7 @@ function SidebarChartsContainer({
         splitNumber: 4,
         axisLabel: {
           formatter: value =>
-            unfilteredTotals
+            showTPMAsPercentage
               ? formatPercentage(value, 0)
               : formatAbbreviatedNumber(value),
           color: theme.chartLabel,
@@ -364,8 +391,7 @@ function SidebarChartsContainer({
       trigger: 'axis',
       truncate: 80,
       valueFormatter: (value, label) => {
-        const shouldUsePercentageForTPM = unfilteredTotals && label === 'epm()';
-        return shouldUsePercentageForTPM
+        return showTPMAsPercentage && label === 'epm()'
           ? tooltipFormatter(value, 'percentage')
           : tooltipFormatter(value, aggregateOutputType(label));
       },

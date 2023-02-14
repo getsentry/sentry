@@ -160,9 +160,6 @@ function TransactionSummaryCharts({
     organization,
     location
   );
-  const showTransactionCountAsPercentage = organization.features.includes(
-    'performance-metrics-backed-transaction-summary'
-  );
 
   return (
     <Panel>
@@ -179,7 +176,7 @@ function TransactionSummaryCharts({
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
             queryExtras={queryExtras}
-            totalCount={showTransactionCountAsPercentage ? totalValue : null}
+            totalCount={totalValue}
           />
         )}
         {display === DisplayModes.DURATION && (
