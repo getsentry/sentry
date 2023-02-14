@@ -1,9 +1,9 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
   makeColorBucketTheme,
-  makeColorMap,
   makeColorMapByLibrary,
   makeColorMapByRecursion,
+  makeColorMapBySymbolName,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
 import {LCH_LIGHT} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
@@ -63,7 +63,11 @@ describe('makeStackToColor', () => {
 
     const frames = [f(0, 'a')];
 
-    const {colorBuffer} = makeFn(frames, makeColorMap, makeColorBucketTheme(LCH_LIGHT));
+    const {colorBuffer} = makeFn(
+      frames,
+      makeColorMapBySymbolName,
+      makeColorBucketTheme(LCH_LIGHT)
+    );
     expect(colorBuffer.slice(0, 4)).toEqual([0.9625, 0.7125, 0.7125, 1]);
     expect(
       getDominantColor(colorBuffer.slice(0, 4) as [number, number, number, number])
@@ -101,14 +105,14 @@ describe('makeColorMap', () => {
 
     b.frame = a.frame;
 
-    const map = makeColorMap([a, b], makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapBySymbolName([a, b], makeColorBucketTheme(LCH_LIGHT));
     expect(map.get(a.key)).toEqual(map.get(b.key));
   });
   it('default colors by frame name', () => {
     // Reverse order to ensure we actually sort
     const frames = [f(1, 'c'), f(2, 'b'), f(3, 'a')];
 
-    const map = makeColorMap(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapBySymbolName(frames, makeColorBucketTheme(LCH_LIGHT));
 
     expect(getDominantColor(map.get(3))).toBe('red');
     expect(getDominantColor(map.get(2))).toBe('green');

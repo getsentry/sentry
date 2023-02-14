@@ -162,7 +162,7 @@ function Flamegraph(): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {sorting, view, type, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, sorting, view, type, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -665,9 +665,10 @@ function Flamegraph(): ReactElement {
     }
 
     return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
+      colorCoding,
       draw_border: true,
     });
-  }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
+  }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const getFrameColor = useCallback(
     (frame: FlamegraphFrame) => {

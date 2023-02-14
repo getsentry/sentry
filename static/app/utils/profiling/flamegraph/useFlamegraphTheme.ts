@@ -3,7 +3,7 @@ import {useContext} from 'react';
 import {FlamegraphTheme} from './flamegraphTheme';
 import {FlamegraphThemeContext} from './flamegraphThemeProvider';
 
-function useFlamegraphTheme(): FlamegraphTheme {
+export function useFlamegraphTheme(): FlamegraphTheme {
   const ctx = useContext(FlamegraphThemeContext);
 
   if (!ctx) {
@@ -12,5 +12,3 @@ function useFlamegraphTheme(): FlamegraphTheme {
 
   return ctx;
 }
-
-export {useFlamegraphTheme};
