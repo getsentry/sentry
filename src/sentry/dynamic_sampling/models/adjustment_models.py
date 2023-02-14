@@ -1,6 +1,5 @@
 import statistics
 from dataclasses import dataclass
-from operator import attrgetter
 from typing import List
 
 
@@ -20,35 +19,29 @@ class AdjustedModel:
     """
 
     projects: List[Project]
-    fidelity_rate: float
+    fidelity_rate: float = 0.4  # TODO: discuss this constant
 
-    @property
-    def adjust_sample_rates(self):
+    def adjust_sample_rates(self) -> List[Project]:
         if len(self.projects) < 2:
             return self.projects
 
         # Step 1: sort projects by count per root project
-        sorted_projects = list(sorted(self.projects, key=attrgetter("count_per_root")))
+        sorted_projects = list(sorted(self.projects, key=lambda x: (x.count_per_root, -x.id)))
 
         # Step 2: find average project
         average = statistics.mean([p.count_per_root for p in sorted_projects])
 
         # Step 3:
-        if len(sorted_projects) % 2 == 0:
-            left_split = sorted_projects[: len(sorted_projects) // 2]
-            right_split = reversed(
-                sorted_projects[len(sorted_projects) // 2 : len(sorted_projects)]
-            )
-        else:
-            left_split = sorted_projects[: len(sorted_projects) // 2]
-            # ignore middle element, since we don't have capacity to balance it
-            right_split = reversed(
-                sorted_projects[(len(sorted_projects) // 2) + 1 : len(sorted_projects)]
-            )
+        num_projects = len(sorted_projects)
+        half = num_projects // 2
+        odd_one = num_projects % 2
+        left_split = sorted_projects[:half]
+        # ignore middle element, since we don't have capacity to balance it
+        right_split = reversed(sorted_projects[half + odd_one : num_projects])
 
         new_left = []
         new_right = []
-        coefficient = 1
+        coefficient = 1.0
         for left, right in zip(left_split, right_split):
             # We can't increase sample rate more than 1.0, so we calculate upper bound count
             # based on project fidelity_rate
