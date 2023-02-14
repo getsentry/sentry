@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.models import ActorTuple
+from sentry.models import ActorTuple, Team, User
 from sentry.models.groupowner import OwnerRuleType
 from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
@@ -15,7 +15,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import ProjectCodeOwners, Team, User
+    from sentry.models import ProjectCodeOwners
     from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
