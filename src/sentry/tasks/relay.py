@@ -249,8 +249,17 @@ def schedule_invalidate_project_config(
     public_key=None,
     countdown=5,
 ):
-    # TODO: add docstrings
+    """Enqueues :func:`_schedule_invalidate_project_config` to run after the
+    ongoing database transaction is committed. See
+    :func:`_schedule_invalidate_project_config`'s docstrings to learn how to use
+    it.
 
+    You should use this function instead of
+    :func:`_schedule_invalidate_project_config`. If not, it's possible the
+    project config invalidation job finishes before the database transaction is
+    completed, resulting in producing an stale project config that may cause a
+    production issue.
+    """
     transaction.on_commit(
         lambda: _schedule_invalidate_project_config(
             trigger=trigger,
