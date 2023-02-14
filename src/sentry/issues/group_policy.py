@@ -27,7 +27,7 @@ class NoiseConfig:
 @dataclass(frozen=True)
 class GroupPolicy:
     group_type_id: int
-    organizations: Optional[Dict[str, NoiseConfig]] = None
+    limited_access: Optional[NoiseConfig] = None
     early_access: Optional[NoiseConfig] = None
     default: NoiseConfig = NoiseConfig()
 
@@ -46,30 +46,24 @@ class GroupPolicy:
     def __post_init__(self) -> None:
         # ensure that ignore limits only increase with rollouts
         prev_limit = 0
-        if self.organizations:
-            for organization, noise_config in self.organizations.items():
-                if noise_config.ignore_limit > prev_limit:
-                    prev_limit = noise_config.ignore_limit
+        if self.limited_access:
+            prev_limit = self.limited_access.ignore_limit
 
         if self.early_access:
             if self.early_access.ignore_limit < prev_limit:
                 raise ValueError(
-                    "Early Access ignore limit must be lower than Limited Access organizations"
+                    "Early Access ignore limit must be greater than Limited Access ignore limit"
                 )
             prev_limit = self.early_access.ignore_limit
 
         if self.default.ignore_limit < prev_limit:
             raise ValueError(
-                "Default ignore limit must be lower than Early Access and Limited Access organization limits"
+                "Default ignore limit must be greater than Early Access and Limited Access ignore limits"
             )
 
 
 def get_noise_config(group_policy: Type[GroupPolicy], organization: Organization) -> NoiseConfig:
-    if group_policy.organizations and organization.id in group_policy.organizations.keys():
-        return group_policy.organizations[organization.id]
-
-    if organization.flags.early_adopter.is_set and group_policy.early_access:
-        return group_policy.early_access
+    # TODO tie into limited access and early access org flags
 
     return group_policy.default
 
@@ -122,6 +116,8 @@ def should_create_group(
     times_seen = client.incr(key)
 
     over_threshold = times_seen >= ignore_limit
+
+    # TODO also log access level of org
 
     metrics.incr(
         "group_policy.should_create_group.threshold",
