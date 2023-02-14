@@ -18,6 +18,21 @@ async function bootWithHydration() {
   const response = await fetch(BOOTSTRAP_URL);
   const data: Config = await response.json();
 
+  // Shim up the initialData payload to quack like it came from
+  // a customer-domains initial request. Because our initial call to BOOTSTRAP_URL
+  // will not be on a customer domain, the response will not include this context.
+  if (data.customerDomain === null && window.__SENTRY_DEV_UI) {
+    const domainReg = /([^.]+).(?:dev\.getsentry\.net|localhost|.*?sentry.dev)/;
+    const matches = domainReg.exec(window.location.host);
+    if (matches) {
+      const slug = matches[1];
+      data.customerDomain = {
+        organizationUrl: `https://${slug}.sentry.io`,
+        sentryUrl: 'https://sentry.io',
+        subdomain: slug,
+      };
+    }
+  }
   window.__initialData = data;
 
   return bootApplication(data);

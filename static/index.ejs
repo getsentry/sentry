@@ -14,9 +14,24 @@
     </script>
     <script type="text/javascript">
     try {
-      var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');
-      var organization = window.location.pathname;
-      var slug = organization.match(reg)[1];
+      function extractSlug() {
+        var domainReg = /([^.]+).(?:dev\.getsentry\.net|localhost|.*sentry.dev)/;
+        var matches = domainReg.exec(window.location.host);
+        if (matches) {
+          return matches[1];
+        }
+
+        var pathReg = /\/organizations\/(.+?(?=(\/|$)))(\/|$)/i;
+        matches = pathReg.exec(window.location.pathname);
+        if (matches) {
+          return matches[1];
+        }
+        console.error(`Could not extract an organization slug from ${window.location}. Assuming 'sentry'`);
+
+        return 'sentry';
+      }
+
+      var slug = extractSlug();
       var preloadPromises = { orgSlug: slug };
 
       function promiseRequest(url) {
@@ -50,7 +65,9 @@
         preloadPromises.projects =  promiseRequest(makeUrl('/projects/?all_projects=1&collapse=latestDeploys'));
         preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
       }
-    } catch(_) {}
+    } catch(err) {
+      console.error(err)
+    }
     </script>
   </head>
 
