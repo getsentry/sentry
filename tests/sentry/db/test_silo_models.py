@@ -6,9 +6,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentActivity,
     IncidentSeen,
-    IncidentSnapshot,
     IncidentSubscription,
-    TimeSeriesSnapshot,
 )
 from sentry.models import (
     Activity,
@@ -140,11 +138,10 @@ fk_emeptions = {
     (SavedSearch, User),
     (ServiceHook, ApiApplication),
     (ProjectTransactionThresholdOverride, User),
-    (ProjectTransactionThreshold, User),
     (User, Actor),
-    (IncidentSeen, User),
-    (IncidentSnapshot, TimeSeriesSnapshot),
     #
+    (ProjectTransactionThreshold, User),
+    (IncidentSeen, User),
     (IncidentActivity, User),
     (IncidentSubscription, User),
     #

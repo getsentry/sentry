@@ -138,6 +138,103 @@ def incidentsubscription_user_migrations():
     ]
 
 
+def incidentactivity_user_migrations():
+    database_operations = [
+        migrations.AlterField(
+            model_name="incidentactivity",
+            name="user",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.User", db_constraint=False, db_index=True, null=True
+            ),
+        ),
+    ]
+
+    state_operations = [
+        migrations.AlterField(
+            model_name="incidentactivity",
+            name="user",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.User", db_index=True, on_delete="CASCADE", null=True
+            ),
+        ),
+        migrations.RenameField(
+            model_name="incidentactivity",
+            old_name="user",
+            new_name="user_id",
+        ),
+    ]
+
+    return database_operations + [
+        migrations.SeparateDatabaseAndState(state_operations=state_operations)
+    ]
+
+
+def incidentseen_user_migrations():
+    database_operations = [
+        migrations.AlterField(
+            model_name="incidentseen",
+            name="user",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.User", db_constraint=False, db_index=False
+            ),
+        ),
+        migrations.AlterUniqueTogether(
+            name="incidentseen",
+            unique_together={("user_id", "incident")},
+        ),
+    ]
+
+    state_operations = [
+        migrations.AlterField(
+            model_name="incidentseen",
+            name="user",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.User", db_index=False, on_delete="CASCADE"
+            ),
+        ),
+        migrations.RenameField(
+            model_name="incidentseen",
+            old_name="user",
+            new_name="user_id",
+        ),
+    ]
+
+    return database_operations + [
+        migrations.SeparateDatabaseAndState(state_operations=state_operations)
+    ]
+
+
+def project_transaction_threshold_user_migrations():
+    database_operations = [
+        migrations.AlterField(
+            model_name="projecttransactionthreshold",
+            name="edited_by",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.User", db_constraint=False, db_index=True
+            ),
+        ),
+    ]
+
+    state_operations = [
+        migrations.AlterField(
+            model_name="projecttransactionthreshold",
+            name="edited_by",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.User", null=True, on_delete="SET_NULL"
+            ),
+        ),
+        migrations.RenameField(
+            model_name="projecttransactionthreshold",
+            old_name="edited_by",
+            new_name="edited_by_id",
+        ),
+    ]
+
+    return database_operations + [
+        migrations.SeparateDatabaseAndState(state_operations=state_operations)
+    ]
+
+
 class Migration(CheckedMigration):
     # This flag is used to mark that a migration shouldn't be automatically run in production. For
     # the most part, this should only be used for operations where it's safe to run the migration
@@ -160,4 +257,7 @@ class Migration(CheckedMigration):
         + discover_saved_query_user_migrations()
         + alertruleactivity_user_migrations()
         + incidentsubscription_user_migrations()
+        + incidentactivity_user_migrations()
+        + incidentseen_user_migrations()
+        + project_transaction_threshold_user_migrations()
     )

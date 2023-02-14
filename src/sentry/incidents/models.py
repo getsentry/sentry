@@ -14,7 +14,6 @@ from sentry.db.models import (
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
-    control_silo_only_model,
     region_silo_only_model,
     sane_repr,
 )
@@ -44,13 +43,13 @@ class IncidentSeen(Model):
     __include_in_export__ = False
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, db_index=False)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
     last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentseen"
-        unique_together = (("user", "incident"),)
+        unique_together = (("user_id", "incident"),)
 
 
 class IncidentManager(BaseManager):
@@ -225,7 +224,7 @@ class IncidentSnapshot(Model):
         db_table = "sentry_incidentsnapshot"
 
 
-@control_silo_only_model
+@region_silo_only_model
 class TimeSeriesSnapshot(Model):
     __include_in_export__ = True
 
