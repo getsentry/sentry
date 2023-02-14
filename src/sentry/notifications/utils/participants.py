@@ -316,7 +316,7 @@ def should_use_issue_alert_fallback(org: Organization) -> Tuple[bool, str]:
     """
     if org.flags.early_adopter.is_set:
         return (True, "early")
-    org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) is not None
+    org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) == 1
     if org_exposed:
         return (True, "expt")
     return (False, "ctrl")
