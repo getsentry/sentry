@@ -5,7 +5,7 @@ import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   className?: string;

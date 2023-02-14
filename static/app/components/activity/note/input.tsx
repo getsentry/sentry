@@ -9,7 +9,7 @@ import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';

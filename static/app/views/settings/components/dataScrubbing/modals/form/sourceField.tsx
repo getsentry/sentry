@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import TextField from 'sentry/components/forms/fields/textField';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import {SourceSuggestion, SourceSuggestionType} from '../../types';

@@ -7,7 +7,7 @@ import Input from 'sentry/components/input';
 import NumberDragControl from 'sentry/components/numberDragControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,

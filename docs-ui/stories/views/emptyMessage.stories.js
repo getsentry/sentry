@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconTelescope, IconUser} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Views/Empty States/Empty Messages',

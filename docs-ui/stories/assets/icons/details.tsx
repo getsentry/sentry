@@ -4,7 +4,7 @@ import Code from 'docs-ui/components/code';
 
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {iconProps} from './data';
 import IconSample from './sample';

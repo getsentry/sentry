@@ -5,7 +5,7 @@ import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/uti
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarUser, Meta} from 'sentry/types';
 import {EventUser} from 'sentry/types/event';
 import {defined} from 'sentry/utils';

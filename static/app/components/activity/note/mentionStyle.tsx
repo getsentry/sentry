@@ -1,6 +1,6 @@
 import {Theme} from '@emotion/react';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Options = {
   theme: Theme;

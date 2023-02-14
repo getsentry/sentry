@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ProgressBar from 'sentry/components/progressBar';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Components/Data Visualization/Charts/Progress Bar',

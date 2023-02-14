@@ -10,7 +10,7 @@ import {Panel} from 'sentry/components/panels';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Project} from 'sentry/types';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from '../utils';

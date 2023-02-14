@@ -7,7 +7,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';

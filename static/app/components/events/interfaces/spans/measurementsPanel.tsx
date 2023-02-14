@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';

@@ -6,7 +6,7 @@ import FormField from 'sentry/components/forms/formField';
 import ListItem from 'sentry/components/list/listItem';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project, Team} from 'sentry/types';
 
 type Props = {

@@ -4,7 +4,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Meta} from 'sentry/types';
 import {defined} from 'sentry/utils';
 

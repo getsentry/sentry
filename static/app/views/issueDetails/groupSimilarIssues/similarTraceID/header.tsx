@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Clipboard from 'sentry/components/clipboard';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 
 type Props = {

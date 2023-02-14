@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;

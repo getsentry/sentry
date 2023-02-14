@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 
 import Input from 'sentry/components/input';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
 import IconEntry from './iconEntry';

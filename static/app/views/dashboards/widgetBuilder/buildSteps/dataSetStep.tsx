@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {DataSet} from '../utils';

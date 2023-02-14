@@ -6,7 +6,7 @@ import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 

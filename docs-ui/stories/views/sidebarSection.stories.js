@@ -6,7 +6,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Views/Sidebar Section',

@@ -5,7 +5,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useOverlay from 'sentry/utils/useOverlay';
 
 export default {

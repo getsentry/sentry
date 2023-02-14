@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {generateFieldAsString, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {FieldValueKind} from 'sentry/views/discover/table/types';

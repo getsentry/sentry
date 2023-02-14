@@ -6,7 +6,7 @@ import color from 'color';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type DefaultProps = {
   btnText?: string;

@@ -7,7 +7,7 @@ import {mergeProps} from '@react-aria/utils';
 import {ListProps, useListState} from '@react-stately/list';
 import {Selection} from '@react-types/shared';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 

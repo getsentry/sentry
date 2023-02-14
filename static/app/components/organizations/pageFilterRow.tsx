@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 
 const defaultRenderCheckbox = ({checkbox}) => checkbox;

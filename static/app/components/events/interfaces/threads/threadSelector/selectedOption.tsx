@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   details: ThreadInfo;

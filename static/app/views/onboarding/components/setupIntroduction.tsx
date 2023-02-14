@@ -3,7 +3,7 @@ import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import {PlatformKey} from 'sentry/data/platformCategories';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import StepHeading from './stepHeading';
 

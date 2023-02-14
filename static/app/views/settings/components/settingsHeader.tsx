@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 // This is required to offer components that sit between this settings header
 // and i.e. dropdowns, some zIndex layer room

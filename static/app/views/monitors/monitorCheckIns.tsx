@@ -5,7 +5,7 @@ import {PanelBody, PanelItem} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useApiRequests from 'sentry/utils/useApiRequests';
 import {CheckInStatus, Monitor} from 'sentry/views/monitors/types';

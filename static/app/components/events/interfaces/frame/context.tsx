@@ -7,7 +7,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
   Coverage,

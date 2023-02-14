@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/actions/button';
 import {ButtonProps} from 'sentry/components/button';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface FooterWithButtonsProps
   extends Partial<Pick<ButtonProps, 'disabled' | 'onClick' | 'href'>> {

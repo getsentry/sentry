@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {IconInfo} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const StyledNotificationBarIconInfo = styled(IconInfo)`
   margin-right: ${space(1)};

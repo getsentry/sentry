@@ -13,7 +13,7 @@ import {IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 

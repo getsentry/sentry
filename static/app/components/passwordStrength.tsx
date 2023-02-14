@@ -6,7 +6,7 @@ import throttle from 'lodash/throttle';
 import zxcvbn from 'zxcvbn';
 
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
 /**

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import ExternalLink from 'sentry/components/links/externalLink';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {analytics} from 'sentry/utils/analytics';
 
 type Props = {

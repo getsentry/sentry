@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 /**
  * Main container for a page.

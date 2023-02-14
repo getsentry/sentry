@@ -6,7 +6,7 @@ import {Indicator} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {

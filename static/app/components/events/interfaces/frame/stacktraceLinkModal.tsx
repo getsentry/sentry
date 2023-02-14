@@ -15,7 +15,7 @@ import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useQuery} from 'sentry/utils/queryClient';

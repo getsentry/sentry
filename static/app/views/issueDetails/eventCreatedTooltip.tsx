@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {

@@ -10,7 +10,7 @@ import Link from 'sentry/components/links/link';
 import PanelTable from 'sentry/components/panels/panelTable';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';

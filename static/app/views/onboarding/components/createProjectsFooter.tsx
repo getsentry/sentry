@@ -15,7 +15,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';

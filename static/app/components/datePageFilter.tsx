@@ -9,7 +9,7 @@ import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,

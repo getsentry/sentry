@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   PageFilters,

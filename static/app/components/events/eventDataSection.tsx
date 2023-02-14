@@ -5,7 +5,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import Anchor from 'sentry/components/links/anchor';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;

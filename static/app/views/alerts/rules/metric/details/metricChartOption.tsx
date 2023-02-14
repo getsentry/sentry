@@ -9,7 +9,7 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {SessionApiResponse} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';

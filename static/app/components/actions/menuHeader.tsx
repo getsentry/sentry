@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import MenuItem from 'sentry/components/menuItem';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const MenuHeader = styled(MenuItem)`
   text-transform: uppercase;

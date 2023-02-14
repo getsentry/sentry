@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {

@@ -9,7 +9,7 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';

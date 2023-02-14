@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ImageStatus} from 'sentry/types/debugImage';
 
 import ProcessingItem from '../processing/item';

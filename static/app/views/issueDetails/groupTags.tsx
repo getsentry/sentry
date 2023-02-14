@@ -15,7 +15,7 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';

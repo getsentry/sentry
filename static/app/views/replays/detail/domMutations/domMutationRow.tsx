@@ -8,7 +8,7 @@ import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';

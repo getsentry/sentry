@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   withChart: boolean;

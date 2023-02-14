@@ -8,7 +8,7 @@ import releasesImg from 'sentry-images/spot/releases.svg';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ResourceCard from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 

@@ -27,7 +27,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   EChartChartReadyHandler,
   EChartClickHandler,

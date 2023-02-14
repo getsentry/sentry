@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   IntegrationInstallationStatus,
   Organization,

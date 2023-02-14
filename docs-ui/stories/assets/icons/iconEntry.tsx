@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import Details from './details';
 import IconSample from './sample';

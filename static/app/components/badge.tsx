@@ -1,7 +1,7 @@
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   text?: string | number | null;

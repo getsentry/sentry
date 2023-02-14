@@ -7,7 +7,7 @@ import DropdownBubble from 'sentry/components/dropdownBubble';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';

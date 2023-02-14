@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import KeyValueList from '../interfaces/keyValueList';

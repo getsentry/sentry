@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import {Node} from '@react-types/shared';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {MenuItemProps} from './item';
 

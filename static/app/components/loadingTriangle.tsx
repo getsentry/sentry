@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import sentryLoader from 'sentry-images/sentry-loader.svg';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;

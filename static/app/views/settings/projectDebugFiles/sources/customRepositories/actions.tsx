@@ -10,7 +10,7 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

@@ -5,7 +5,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   'data-test-id': string;
