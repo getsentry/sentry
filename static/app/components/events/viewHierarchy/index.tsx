@@ -166,6 +166,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
               hierarchy={hierarchy}
               selectedNode={userHasSelected ? selectedNode : undefined}
               onNodeSelect={onWireframeNodeSelect}
+              project={project}
             />
           </Right>
         )}

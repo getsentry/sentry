@@ -14,6 +14,7 @@ import {
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {
   getCenterScaleMatrixFromConfigPosition,
   Rect,
@@ -29,10 +30,11 @@ export interface ViewNode {
 type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
+  project: Project;
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
+function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -45,7 +47,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
 
   const canvasSize = useResizeCanvasObserver(canvases);
 
-  const hierarchyData = useMemo(() => getHierarchyDimensions(hierarchy), [hierarchy]);
+  const hierarchyData = useMemo(
+    () => getHierarchyDimensions(hierarchy, project.platform === 'flutter'),
+    [hierarchy, project.platform]
+  );
   const nodeLookupMap = useMemo(() => {
     const map = new Map<ViewHierarchyWindow, ViewNode>();
     hierarchyData.nodes.forEach(node => {
