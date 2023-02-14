@@ -80,10 +80,13 @@ class SiloDataInterfaceTest(TestCase):
             # All such model classes should have default values for all attributes
             try:
                 obj = api_type()
-            except TypeError:
-                print(f"Needs default attributes: {api_type.__name__}")
+            except:
+                print(f"Can't instantiate: {api_type.__name__}")
                 continue
 
             model_dict = obj.dict()
-            serial = json.dumps(model_dict)
+            serial = json.dumps(model_dict)  # check json lib can serialize all elements
             assert serial
+
+            from_dict = api_type.parse_obj(model_dict)
+            assert obj == from_dict
