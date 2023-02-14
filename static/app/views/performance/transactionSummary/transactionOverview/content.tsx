@@ -228,7 +228,7 @@ function SummaryContent({
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
-          return Number.isFinite(totalValues[field]);
+          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
         })
       ));
 
