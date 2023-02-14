@@ -9,7 +9,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import Histogram from 'sentry/utils/performance/histogram';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -147,7 +147,10 @@ function Content({
             yAxis={{
               type: 'value',
               axisLabel: {
-                formatter: value => formatPercentage(value, 0),
+                formatter: value =>
+                  displayCountAsPercentage
+                    ? formatPercentage(value, 0)
+                    : formatAbbreviatedNumber(value),
               },
             }}
             series={[series]}
