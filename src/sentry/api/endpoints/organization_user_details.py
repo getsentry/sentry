@@ -12,6 +12,11 @@ class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization, user_id) -> Response:
+        try:
+            int(user_id)
+        except ValueError:
+            return Response({"detail": "user_id must be an integer"}, status=400)
+
         users = user_service.serialize_many(
             filter={"user_ids": [user_id], "organization_id": organization.id}, as_user=request.user
         )
