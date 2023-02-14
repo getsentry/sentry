@@ -15,7 +15,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import ProjectCodeOwners, Team, User
+    from sentry.models import ProjectCodeOwners, Team, User  # noqa
     from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
@@ -239,7 +239,14 @@ class ProjectOwnership(Model):
 
         """
         from sentry import analytics
-        from sentry.models import ActivityIntegration, GroupAssignee, GroupOwner, GroupOwnerType
+        from sentry.models import (  # noqa
+            ActivityIntegration,
+            GroupAssignee,
+            GroupOwner,
+            GroupOwnerType,
+            Team,
+            User,
+        )
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
