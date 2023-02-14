@@ -145,12 +145,12 @@ function SidebarCharts({
 
       <ChartLabel top="320px">
         <ChartTitle>
-          {displayTPMAsPercentage ? t('Total Events') : t('TPM')}
+          {displayTPMAsPercentage ? t('Total Transactions') : t('TPM')}
           <QuestionTooltip
             position="top"
             title={
               displayTPMAsPercentage
-                ? tct('[count] events', {
+                ? tct('[count] total transactions', {
                     count: unfilteredTotals['count()'].toLocaleString(),
                   })
                 : getTermHelp(organization, PERFORMANCE_TERM.TPM)
