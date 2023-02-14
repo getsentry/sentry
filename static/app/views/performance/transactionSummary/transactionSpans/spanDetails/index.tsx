@@ -2,7 +2,6 @@ import {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -56,16 +55,14 @@ export default function SpanDetails(props: Props) {
           specificProjectSlugs={defined(project) ? [project.slug] : []}
         >
           <Layout.Page>
-            <NoProjectMessage organization={organization}>
-              <SpanDetailsContent
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                project={project}
-                transactionName={transactionName}
-                spanSlug={spanSlug}
-              />
-            </NoProjectMessage>
+            <SpanDetailsContent
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              project={project}
+              transactionName={transactionName}
+              spanSlug={spanSlug}
+            />
           </Layout.Page>
         </PageFiltersContainer>
       </Feature>

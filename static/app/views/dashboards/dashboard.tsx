@@ -19,7 +19,7 @@ import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';

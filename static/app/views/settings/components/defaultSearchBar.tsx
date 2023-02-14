@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
 export type RenderSearch = React.ComponentProps<

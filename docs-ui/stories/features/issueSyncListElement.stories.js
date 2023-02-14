@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Features/Issues/Issue Sync List',

@@ -6,7 +6,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';

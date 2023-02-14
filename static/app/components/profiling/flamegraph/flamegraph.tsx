@@ -162,7 +162,7 @@ function Flamegraph(): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {sorting, view, type, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, sorting, view, type, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -555,7 +555,7 @@ function Flamegraph(): ReactElement {
         strategy,
         flamegraphView.configView,
         new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
-      );
+      ).transformRect(flamegraphView.configSpaceTransform);
 
       flamegraphView.setConfigView(newConfigView);
       if (spansView) {
@@ -570,15 +570,16 @@ function Flamegraph(): ReactElement {
     };
 
     const onZoomIntoSpan = (span: SpanChartNode, strategy: 'min' | 'exact') => {
+      if (!spansView) {
+        return;
+      }
       const newConfigView = computeConfigViewWithStrategy(
         strategy,
         flamegraphView.configView,
         new Rect(span.start, span.depth, span.end - span.start, 1)
-      );
+      ).transformRect(spansView.configSpaceTransform);
 
-      if (spansView) {
-        spansView.setConfigView(newConfigView);
-      }
+      spansView.setConfigView(newConfigView);
       if (uiFramesView) {
         uiFramesView.setConfigView(
           newConfigView.withHeight(uiFramesView.configView.height)
@@ -664,9 +665,10 @@ function Flamegraph(): ReactElement {
     }
 
     return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
+      colorCoding,
       draw_border: true,
     });
-  }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
+  }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const getFrameColor = useCallback(
     (frame: FlamegraphFrame) => {
