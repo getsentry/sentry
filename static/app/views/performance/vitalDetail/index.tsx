@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -121,16 +120,14 @@ class VitalDetail extends Component<Props, State> {
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
           <PageFiltersContainer>
             <Layout.Page>
-              <NoProjectMessage organization={organization}>
-                <VitalDetailContent
-                  location={location}
-                  organization={organization}
-                  eventView={eventView}
-                  router={router}
-                  vitalName={vitalName || WebVital.LCP}
-                  api={api}
-                />
-              </NoProjectMessage>
+              <VitalDetailContent
+                location={location}
+                organization={organization}
+                eventView={eventView}
+                router={router}
+                vitalName={vitalName || WebVital.LCP}
+                api={api}
+              />
             </Layout.Page>
           </PageFiltersContainer>
         </PerformanceEventViewProvider>

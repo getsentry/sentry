@@ -4,6 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -32,14 +33,17 @@ function ReplaysContainer({organization, children}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <Feature
-        features={['session-replay-beta-grace']}
-        organization={organization}
-        renderDisabled={false}
-      >
-        <BetaGracePeriodAlertHook organization={organization} />
-      </Feature>
-      {children}
+      <NoProjectMessage organization={organization}>
+        <Feature
+          features={['session-replay-beta-grace']}
+          organization={organization}
+          renderDisabled={false}
+        >
+          <BetaGracePeriodAlertHook organization={organization} />
+        </Feature>
+
+        {children}
+      </NoProjectMessage>
     </Feature>
   );
 }

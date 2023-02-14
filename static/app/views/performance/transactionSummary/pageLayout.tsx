@@ -6,7 +6,6 @@ import {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
@@ -187,41 +186,39 @@ function PageLayout(props: Props) {
           >
             <Tabs value={tab} onChange={onTabChange}>
               <Layout.Page>
-                <NoProjectMessage organization={organization}>
-                  <TransactionHeader
-                    eventView={eventView}
+                <TransactionHeader
+                  eventView={eventView}
+                  location={location}
+                  organization={organization}
+                  projects={projects}
+                  projectId={projectId}
+                  transactionName={transactionName}
+                  currentTab={tab}
+                  hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
+                  onChangeThreshold={(threshold, metric) => {
+                    setTransactionThreshold(threshold);
+                    setTransactionThresholdMetric(metric);
+                  }}
+                  metricsCardinality={metricsCardinality}
+                />
+                <Layout.Body>
+                  {defined(error) && (
+                    <StyledAlert type="error" showIcon>
+                      {error}
+                    </StyledAlert>
+                  )}
+                  <ChildComponent
                     location={location}
                     organization={organization}
                     projects={projects}
+                    eventView={eventView}
                     projectId={projectId}
                     transactionName={transactionName}
-                    currentTab={tab}
-                    hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                    onChangeThreshold={(threshold, metric) => {
-                      setTransactionThreshold(threshold);
-                      setTransactionThresholdMetric(metric);
-                    }}
-                    metricsCardinality={metricsCardinality}
+                    setError={setError}
+                    transactionThreshold={transactionThreshold}
+                    transactionThresholdMetric={transactionThresholdMetric}
                   />
-                  <Layout.Body>
-                    {defined(error) && (
-                      <StyledAlert type="error" showIcon>
-                        {error}
-                      </StyledAlert>
-                    )}
-                    <ChildComponent
-                      location={location}
-                      organization={organization}
-                      projects={projects}
-                      eventView={eventView}
-                      projectId={projectId}
-                      transactionName={transactionName}
-                      setError={setError}
-                      transactionThreshold={transactionThreshold}
-                      transactionThresholdMetric={transactionThresholdMetric}
-                    />
-                  </Layout.Body>
-                </NoProjectMessage>
+                </Layout.Body>
               </Layout.Page>
             </Tabs>
           </PageFiltersContainer>
