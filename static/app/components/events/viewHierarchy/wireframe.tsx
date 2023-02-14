@@ -48,7 +48,11 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
   const canvasSize = useResizeCanvasObserver(canvases);
 
   const hierarchyData = useMemo(
-    () => getHierarchyDimensions(hierarchy, project.platform === 'flutter'),
+    () =>
+      getHierarchyDimensions(
+        hierarchy,
+        ['flutter', 'dart-flutter'].includes(project?.platform ?? '')
+      ),
     [hierarchy, project.platform]
   );
   const nodeLookupMap = useMemo(() => {
