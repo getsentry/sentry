@@ -89,6 +89,24 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
+    def test_in_progress(self):
+        self.login_as(self.user)
+
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor)
+
+            resp = self.client.post(path, {"status": "in_progress"})
+            assert resp.status_code == 201, resp.content
+
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.IN_PROGRESS
+
+            monitor = Monitor.objects.get(id=monitor.id)
+            assert monitor.status == MonitorStatus.IN_PROGRESS
+            assert monitor.last_checkin == checkin.date_added
+            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
     def test_disabled(self):
         self.login_as(self.user)
 

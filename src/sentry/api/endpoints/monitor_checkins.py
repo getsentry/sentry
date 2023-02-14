@@ -113,6 +113,8 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
             return self.respond(status=404)
 
+        monitor_disabled = monitor.status == MonitorStatus.DISABLED
+
         serializer = MonitorCheckInValidator(
             data=request.data, context={"project": project, "request": request}
         )
@@ -139,7 +141,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                     project=project, monitor_id=str(monitor.guid), sender=Project
                 )
 
-            if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
+            if not monitor_disabled and checkin.status == CheckInStatus.ERROR:
                 if not monitor.mark_failed(last_checkin=checkin.date_added):
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
@@ -149,8 +151,12 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                     "last_checkin": checkin.date_added,
                     "next_checkin": monitor.get_next_scheduled_checkin(checkin.date_added),
                 }
-                if checkin.status == CheckInStatus.OK and monitor.status != MonitorStatus.DISABLED:
+
+                if not monitor_disabled and checkin.status == CheckInStatus.OK:
                     monitor_params["status"] = MonitorStatus.OK
+                if not monitor_disabled and checkin.status == CheckInStatus.IN_PROGRESS:
+                    monitor_params["status"] = MonitorStatus.IN_PROGRESS
+
                 Monitor.objects.filter(id=monitor.id).exclude(
                     last_checkin__gt=checkin.date_added
                 ).update(**monitor_params)

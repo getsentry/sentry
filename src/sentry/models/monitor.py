@@ -65,8 +65,16 @@ def get_monitor_context(monitor):
 
 class MonitorStatus(ObjectStatus):
     OK = 4
+    """Most recent checkin had no issues during exectuion"""
+
     ERROR = 5
+    """Most recent checkin failed or otherwise had some issues"""
+
     MISSED_CHECKIN = 6
+    """Monitor did not checkin on time"""
+
+    IN_PROGRESS = 7
+    """Monitor has a pending checkin that has not completed"""
 
     @classmethod
     def as_choices(cls):
@@ -78,6 +86,7 @@ class MonitorStatus(ObjectStatus):
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.MISSED_CHECKIN, "missed_checkin"),
+            (cls.MISSED_CHECKIN, "in_progress"),
         )
 
 
