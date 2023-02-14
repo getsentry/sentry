@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Tuple
+from typing import Any, Mapping, Sequence, Tuple
 from unittest.mock import Mock
 
 import pytest
@@ -28,7 +28,7 @@ def create_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any
     }
 
 
-def get_frames(function: str, sentry_frame_in_app: bool = False):
+def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Mapping[str, Any]]:
     return [
         create_sentry_frame(function, sentry_frame_in_app),
         {
@@ -71,7 +71,13 @@ def get_frames(function: str, sentry_frame_in_app: bool = False):
     ]
 
 
-def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
+def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> Sequence[Mapping[str, Any]]:
+    return get_crash_event_with_frames(get_frames(function), handled=handled, **kwargs)
+
+
+def get_crash_event_with_frames(
+    frames: Sequence[Mapping[str, Any]], handled=False, **kwargs
+) -> Sequence[Mapping[str, Any]]:
     result = {
         "event_id": "80e3496eff734ab0ac993167aaa0d1cd",
         "project": 5218188,
@@ -86,7 +92,7 @@ def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
             "values": [
                 {
                     "stacktrace": {
-                        "frames": get_frames(function),
+                        "frames": frames,
                     },
                     "type": "SIGABRT",
                     "mechanism": {"handled": handled},
@@ -230,27 +236,21 @@ def make_crash_event(handled=False, function="-[Sentry]", **kwargs):
     return result
 
 
-def givenCrashDetector() -> Tuple[SDKCrashDetector, SDKCrashReporter]:
-    crash_reporter = Mock()
-    crash_detection = SDKCrashDetector(crash_reporter)
-    return crash_detection, crash_reporter
-
-
 @pytest.mark.parametrize(
-    "data,expected",
+    "event,should_be_reported",
     [
         (
-            make_crash_event(),
+            get_crash_event(),
             True,
         ),
         (
-            make_crash_event(handled=True),
+            get_crash_event(handled=True),
             False,
         ),
-        (make_crash_event(function="Senry"), False),
-        (make_crash_event(platform="coco"), False),
-        (make_crash_event(type="erro"), False),
-        (make_crash_event(exception=[]), False),
+        (get_crash_event(function="Senry"), False),
+        (get_crash_event(platform="coco"), False),
+        (get_crash_event(type="erro"), False),
+        (get_crash_event(exception=[]), False),
     ],
     ids=[
         "unhandled_is_detected",
@@ -261,19 +261,12 @@ def givenCrashDetector() -> Tuple[SDKCrashDetector, SDKCrashReporter]:
         "no_exception_not_detected",
     ],
 )
-def test_detect_sdk_crash(data, expected):
-    crash_detector, crash_reporter = givenCrashDetector()
-
-    crash_detector.detect_sdk_crash(data)
-
-    if expected:
-        crash_reporter.report.assert_called_once_with(data)
-    else:
-        crash_reporter.report.assert_not_called()
+def test_detect_sdk_crash(event, should_be_reported):
+    _run_report_test_with_event(event, should_be_reported)
 
 
 @pytest.mark.parametrize(
-    "function,expected",
+    "function,should_be_reported",
     [
         ("-[SentryHub getScope]", True),
         ("sentrycrashdl_getBinaryImage", True),
@@ -286,149 +279,131 @@ def test_detect_sdk_crash(data, expected):
         ("+[SentrySDK crash]", False),
     ],
 )
-def test_cocoa_sdk_crash_detection(function, expected):
-    data = make_crash_event(function=function)
+def test_cocoa_sdk_crash_detection(function, should_be_reported):
+    event = get_crash_event(function=function)
 
-    crash_detector, crash_reporter = givenCrashDetector()
-
-    crash_detector.detect_sdk_crash(data)
-
-    if expected:
-        crash_reporter.report.assert_called_once_with(data)
-    else:
-        crash_reporter.report.assert_not_called()
-
-
-def test_is_cocoa_sdk_crash_only_non_inapp_after_sentry_frame():
-    frames = [
-        {
-            "function": "__handleUncaughtException",
-            "symbol": "__handleUncaughtException",
-            "package": "CoreFoundation",
-            "in_app": False,
-        },
-        {
-            "function": "_objc_terminate",
-            "symbol": "_ZL15_objc_terminatev",
-            "package": "libobjc.A.dylib",
-            "in_app": False,
-        },
-        create_sentry_frame("sentrycrashdl_getBinaryImage"),
-        {
-            "function": "std::__terminate",
-            "symbol": "_ZSt11__terminatePFvvE",
-            "package": "libc++abi.dylib",
-            "in_app": False,
-        },
-    ]
-
-    crash_detector, _ = givenCrashDetector()
-
-    assert crash_detector.is_cocoa_sdk_crash(frames) is True
-
-
-def test_is_cocoa_sdk_crash_only_inapp_after_sentry_frame():
-    frames = [
-        in_app_frame,
-        {
-            "function": "__handleUncaughtException",
-            "symbol": "__handleUncaughtException",
-            "package": "CoreFoundation",
-            "in_app": False,
-        },
-        {
-            "function": "_objc_terminate",
-            "symbol": "_ZL15_objc_terminatev",
-            "package": "libobjc.A.dylib",
-            "in_app": False,
-        },
-        create_sentry_frame("sentrycrashdl_getBinaryImage"),
-        {
-            "function": "std::__terminate",
-            "symbol": "_ZSt11__terminatePFvvE",
-            "package": "libc++abi.dylib",
-            "in_app": False,
-        },
-    ]
-
-    crash_detector, _ = givenCrashDetector()
-
-    assert crash_detector.is_cocoa_sdk_crash(frames) is False
+    _run_report_test_with_event(event, should_be_reported)
 
 
 @pytest.mark.parametrize(
-    "filename,expected",
+    "filename,should_be_reported",
     [
         ("SentryCrashMonitor_CPPException.cpp", True),
         ("SentryMonitor_CPPException.cpp", True),
         ("SentrMonitor_CPPException.cpp", False),
     ],
 )
-def test_is_cocoa_sdk_crash_filename(filename, expected):
-    frames = [
-        {
-            "function": "__handleUncaughtException",
-            "symbol": "__handleUncaughtException",
-            "package": "CoreFoundation",
-            "in_app": False,
-        },
-        {
-            "function": "_objc_terminate",
-            "symbol": "_ZL15_objc_terminatev",
-            "package": "libobjc.A.dylib",
-            "in_app": False,
-        },
-        {
-            "function": "CPPExceptionTerminate",
-            "raw_function": "CPPExceptionTerminate()",
-            "filename": filename,
-            "symbol": "_ZL21CPPExceptionTerminatev",
-            "package": "MainApp",
-            "in_app": False,
-        },
-        {
-            "function": "std::__terminate",
-            "symbol": "_ZSt11__terminatePFvvE",
-            "package": "libc++abi.dylib",
-            "in_app": False,
-        },
-    ]
-
-    crash_detector, _ = givenCrashDetector()
-
-    assert crash_detector.is_cocoa_sdk_crash(frames) is expected
-
-
-def test_is_cocoa_sdk_crash_no_frames():
-    crash_detector, _ = givenCrashDetector()
-
-    assert crash_detector.is_cocoa_sdk_crash([]) is False
-
-
-def test_is_cocoa_sdk_crash_empty_frames():
-    crash_detector, _ = givenCrashDetector()
-
-    assert crash_detector.is_cocoa_sdk_crash([{"empty": "frame"}]) is False
-
-
-def test_is_cocoa_sdk_crash_single_frame():
-    crash_detector, _ = givenCrashDetector()
-
-    assert crash_detector.is_cocoa_sdk_crash([create_sentry_frame("-[Sentry]")]) is True
-
-
-def test_is_cocoa_sdk_crash_single_in_app_frame():
-    crash_detector, _ = givenCrashDetector()
-
-    assert (
-        crash_detector.is_cocoa_sdk_crash([create_sentry_frame("-[Sentry]", in_app=True)]) is True
+def test_report_cocoa_sdk_crash_filename(filename, should_be_reported):
+    event = get_crash_event_with_frames(
+        frames=[
+            {
+                "function": "__handleUncaughtException",
+                "symbol": "__handleUncaughtException",
+                "package": "CoreFoundation",
+                "in_app": False,
+            },
+            {
+                "function": "_objc_terminate",
+                "symbol": "_ZL15_objc_terminatev",
+                "package": "libobjc.A.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "CPPExceptionTerminate",
+                "raw_function": "CPPExceptionTerminate()",
+                "filename": filename,
+                "symbol": "_ZL21CPPExceptionTerminatev",
+                "package": "MainApp",
+                "in_app": False,
+            },
+            {
+                "function": "std::__terminate",
+                "symbol": "_ZSt11__terminatePFvvE",
+                "package": "libc++abi.dylib",
+                "in_app": False,
+            },
+        ]
     )
+
+    _run_report_test_with_event(event, should_be_reported)
+
+
+@pytest.mark.parametrize(
+    "frames,should_be_reported",
+    [
+        ([], False),
+        ([{"empty": "frame"}], False),
+        ([create_sentry_frame("-[Sentry]")], True),
+        ([create_sentry_frame("-[Sentry]", in_app=True)], True),
+        (
+            [
+                {
+                    "function": "__handleUncaughtException",
+                    "symbol": "__handleUncaughtException",
+                    "package": "CoreFoundation",
+                    "in_app": False,
+                },
+                {
+                    "function": "_objc_terminate",
+                    "symbol": "_ZL15_objc_terminatev",
+                    "package": "libobjc.A.dylib",
+                    "in_app": False,
+                },
+                create_sentry_frame("sentrycrashdl_getBinaryImage"),
+                {
+                    "function": "std::__terminate",
+                    "symbol": "_ZSt11__terminatePFvvE",
+                    "package": "libc++abi.dylib",
+                    "in_app": False,
+                },
+            ],
+            True,
+        ),
+        (
+            [
+                in_app_frame,
+                {
+                    "function": "__handleUncaughtException",
+                    "symbol": "__handleUncaughtException",
+                    "package": "CoreFoundation",
+                    "in_app": False,
+                },
+                {
+                    "function": "_objc_terminate",
+                    "symbol": "_ZL15_objc_terminatev",
+                    "package": "libobjc.A.dylib",
+                    "in_app": False,
+                },
+                create_sentry_frame("sentrycrashdl_getBinaryImage"),
+                {
+                    "function": "std::__terminate",
+                    "symbol": "_ZSt11__terminatePFvvE",
+                    "package": "libc++abi.dylib",
+                    "in_app": False,
+                },
+            ],
+            False,
+        ),
+    ],
+    ids=[
+        "no_frames_not_detected",
+        "empty_frame_not_detected",
+        "single_frame_is_detected",
+        "single_in_app_frame_is_detected",
+        "only_non_inapp_after_sentry_frame_is_detected",
+        "only_inapp_after_sentry_frame_not_detected",
+    ],
+)
+def test_report_cocoa_sdk_crash_frames(frames, should_be_reported):
+    event = get_crash_event_with_frames(frames)
+
+    _run_report_test_with_event(event, should_be_reported)
 
 
 def test_strip_frames_removes_in_app():
     frames = get_frames("sentrycrashdl_getBinaryImage")
 
-    crash_detector, _ = givenCrashDetector()
+    crash_detector, _ = given_crash_detector()
 
     stripped_frames = crash_detector.strip_frames(frames)
     assert len(stripped_frames) == 6
@@ -450,7 +425,7 @@ def test_strip_frames_removes_in_app():
 def test_strip_frames(function, in_app):
     frames = get_frames(function, sentry_frame_in_app=in_app)
 
-    crash_detector, _ = givenCrashDetector()
+    crash_detector, _ = given_crash_detector()
 
     stripped_frames = crash_detector.strip_frames(frames)
 
@@ -459,3 +434,28 @@ def test_strip_frames(function, in_app):
         len([frame for frame in stripped_frames if frame["function"] == in_app_frame["function"]])
         == 0
     ), "in_app frame should be removed"
+
+
+def given_crash_detector() -> Tuple[SDKCrashDetector, SDKCrashReporter]:
+    crash_reporter = Mock()
+    crash_detection = SDKCrashDetector(crash_reporter)
+    return crash_detection, crash_reporter
+
+
+def assert_sdk_crash_reported(crash_reporter: SDKCrashReporter, expected_data: dict):
+    crash_reporter.report.assert_called_once_with(expected_data)
+
+
+def _run_report_test_with_event(event, should_be_reported):
+    crash_detector, crash_reporter = given_crash_detector()
+
+    crash_detector.detect_sdk_crash(event)
+
+    if should_be_reported:
+        assert_sdk_crash_reported(crash_reporter, event)
+    else:
+        assert_no_sdk_crash_reported(crash_reporter)
+
+
+def assert_no_sdk_crash_reported(crash_reporter: SDKCrashReporter):
+    crash_reporter.report.assert_not_called()

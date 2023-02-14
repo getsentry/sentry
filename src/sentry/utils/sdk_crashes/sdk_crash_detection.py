@@ -21,7 +21,7 @@ class SDKCrashDetector:
         self.sdk_crash_reporter = sdk_crash_reporter
 
     def detect_sdk_crash(self, event: Event) -> None:
-        if event.get("type") != "error" or event.get("platform") != "cocoa":
+        if event.get("type", None) != "error" or event.get("platform") != "cocoa":
             return
 
         is_unhandled = get_path(event, "exception", "values", -1, "mechanism", "handled") is False
@@ -33,7 +33,7 @@ class SDKCrashDetector:
         if not frames:
             return
 
-        if self.is_cocoa_sdk_crash(frames):
+        if self._is_cocoa_sdk_crash(frames):
             self.sdk_crash_reporter.report(event)
 
     def _strip_event_data(self, data: Event) -> Event:
@@ -46,7 +46,7 @@ class SDKCrashDetector:
             if self._is_cocoa_sdk_frame(frame) or frame.get("in_app", True) is False
         ]
 
-    def is_cocoa_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
+    def _is_cocoa_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
         Returns true if the stacktrace is a Cocoa SDK crash.
 
