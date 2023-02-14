@@ -9,6 +9,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
 )
 from sentry.dynamic_sampling.rules.helpers.key_transactions import get_key_transactions
 from sentry.dynamic_sampling.rules.utils import (
+    BOOST_KEY_TRANSACTIONS_FACTOR,
     RESERVED_IDS,
     PolymorphicRule,
     RuleType,
@@ -20,7 +21,9 @@ class BoostKeyTransactionsDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
-            "factor": eval_dynamic_factor(bias_params.base_sample_rate, 1.5),
+            "factor": eval_dynamic_factor(
+                bias_params.base_sample_rate, BOOST_KEY_TRANSACTIONS_FACTOR
+            ),
             "keyTransactions": get_key_transactions(bias_params.project),
         }
 

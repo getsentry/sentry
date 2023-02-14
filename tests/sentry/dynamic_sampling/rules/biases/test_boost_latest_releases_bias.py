@@ -23,6 +23,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
     now = timezone.now()
 
     factor = 1.5
+    decayed_factor = 1.0
     platform = "python"
 
     default_project.update(platform=platform)
@@ -49,6 +50,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
     data_provider.get_bias_data.return_value = {
         "id": 1000,
         "factor": factor,
+        "decayedFactor": decayed_factor,
         "boostedReleases": boosted_releases,
     }
 
@@ -69,7 +71,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
         },
         {
@@ -87,7 +89,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
         },
     ]

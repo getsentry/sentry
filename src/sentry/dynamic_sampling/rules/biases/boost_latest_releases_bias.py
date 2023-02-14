@@ -12,6 +12,8 @@ from sentry.dynamic_sampling.rules.biases.base import (
 )
 from sentry.dynamic_sampling.rules.helpers.latest_releases import ProjectBoostedReleases
 from sentry.dynamic_sampling.rules.utils import (
+    BOOST_LATEST_RELEASES_DECAYED_FACTOR,
+    BOOST_LATEST_RELEASES_FACTOR,
     RESERVED_IDS,
     PolymorphicRule,
     RuleType,
@@ -23,7 +25,10 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE],
-            "factor": eval_dynamic_factor(bias_params.base_sample_rate, 1.5),
+            "factor": eval_dynamic_factor(
+                bias_params.base_sample_rate, BOOST_LATEST_RELEASES_FACTOR
+            ),
+            "decayedFactor": BOOST_LATEST_RELEASES_DECAYED_FACTOR,
             "boostedReleases": ProjectBoostedReleases(
                 bias_params.project.id
             ).get_extended_boosted_releases(),
@@ -76,7 +81,7 @@ class BoostLatestReleasesRulesGeneratorV2(BiasRulesGenerator):
                     },
                     "decayingFn": {
                         "type": "linear",
-                        "decayedValue": 1.0,
+                        "decayedValue": bias_data["decayedFactor"],
                     },
                 }
                 for idx, boosted_release in enumerate(boosted_releases)

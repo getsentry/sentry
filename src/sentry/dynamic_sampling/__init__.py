@@ -1,13 +1,17 @@
 from .rules.base import generate_rules
+from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS
 from .rules.biases.boost_environments_bias import (
-    ENVIRONMENT_GLOBS,
-    BoostEnvironmentsRulesGeneratorV2,
+    BoostEnvironmentsRulesGeneratorV2 as BoostEnvironmentsRulesGenerator,
 )
-from .rules.biases.boost_key_transactions_bias import BoostKeyTransactionsRulesGeneratorV2
-from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesRulesGeneratorV2
+from .rules.biases.boost_key_transactions_bias import (
+    BoostKeyTransactionsRulesGeneratorV2 as BoostKeyTransactionsRulesGenerator,
+)
+from .rules.biases.boost_latest_releases_bias import (
+    BoostLatestReleasesRulesGeneratorV2 as BoostLatestReleasesRulesGenerator,
+)
+from .rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS
 from .rules.biases.ignore_health_checks_bias import (
-    HEALTH_CHECK_GLOBS,
-    IgnoreHealthChecksRulesGeneratorV2,
+    IgnoreHealthChecksRulesGeneratorV2 as IgnoreHealthChecksRulesGenerator,
 )
 from .rules.helpers.latest_releases import (
     ExtendedBoostedRelease,
@@ -43,10 +47,10 @@ __all__ = [
     "Platform",
     "LatestReleaseBias",
     "LatestReleaseParams",
-    "IgnoreHealthChecksRulesGeneratorV2",
-    "BoostKeyTransactionsRulesGeneratorV2",
-    "BoostEnvironmentsRulesGeneratorV2",
-    "BoostLatestReleasesRulesGeneratorV2",
+    "IgnoreHealthChecksRulesGenerator",
+    "BoostKeyTransactionsRulesGenerator",
+    "BoostEnvironmentsRulesGenerator",
+    "BoostLatestReleasesRulesGenerator",
     "LATEST_RELEASE_TTAS",
     "ENVIRONMENT_GLOBS",
     "BOOSTED_KEY_TRANSACTION_LIMIT",
