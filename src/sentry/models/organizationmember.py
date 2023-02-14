@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 from structlog import get_logger
 
 from bitfield import BitField
-from sentry import features
+from sentry import features, roles
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -526,21 +526,10 @@ class OrganizationMember(Model):
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():
             return False
 
-        from sentry.models import OrganizationMemberTeam
-
         # check if any other member has the owner role, including through a team
-        is_only_owner = (
-            not OrganizationMember.objects.filter(
-                organization=self.organization_id,
-                role=organization_roles.get_top_dog().id,
-                user__isnull=False,
-                user__is_active=True,
-            )
+        is_only_owner = not (
+            self.organization.get_members_with_org_roles(roles=[roles.get_top_dog().id])
             .exclude(id=self.id)
             .exists()
-        ) and not OrganizationMemberTeam.objects.filter(
-            team__in=self.organization.get_teams_with_org_role(organization_roles.get_top_dog().id)
-        ).exclude(
-            organizationmember_id=self.id
-        ).exists()
+        )
         return is_only_owner
