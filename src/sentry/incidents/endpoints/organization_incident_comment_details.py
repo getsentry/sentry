@@ -29,7 +29,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
 
         try:
             # Superusers may mutate any comment
-            user_filter = {} if request.user.is_superuser else {"user": request.user}
+            user_filter = {} if request.user.is_superuser else {"user_id": request.user.id}
 
             kwargs["activity"] = IncidentActivity.objects.get(
                 id=activity_id,

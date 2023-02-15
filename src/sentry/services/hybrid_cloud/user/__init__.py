@@ -94,6 +94,7 @@ class UserFilterArgs(TypedDict, total=False):
     team_ids: List[int]
     is_active_memberteam: bool
     emails: List[str]
+    actor_ids: List[int]
 
 
 class UserService(

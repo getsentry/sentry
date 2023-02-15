@@ -5,6 +5,7 @@ from sentry.mediators.external_requests.alert_rule_action_requester import (
     DEFAULT_ERROR_MESSAGE,
     DEFAULT_SUCCESS_MESSAGE,
 )
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -50,7 +51,7 @@ class TestAlertRuleActionRequester(TestCase):
         )
 
         result = AlertRuleActionRequester.run(
-            install=self.install,
+            install=app_service.get_many(filter={"id": self.install.id})[0],
             uri="/sentry/alert-rule",
             fields=self.fields,
         )
@@ -93,7 +94,7 @@ class TestAlertRuleActionRequester(TestCase):
         )
 
         result = AlertRuleActionRequester.run(
-            install=self.install,
+            install=app_service.get_many(filter={"id": self.install.id})[0],
             uri="/sentry/alert-rule",
             fields=self.fields,
         )
@@ -109,7 +110,7 @@ class TestAlertRuleActionRequester(TestCase):
             body=bytes(self.success_message, encoding="utf-8"),
         )
         result = AlertRuleActionRequester.run(
-            install=self.install,
+            install=app_service.get_many(filter={"id": self.install.id})[0],
             uri="/sentry/alert-rule",
             fields=self.fields,
         )
@@ -126,7 +127,7 @@ class TestAlertRuleActionRequester(TestCase):
         )
 
         result = AlertRuleActionRequester.run(
-            install=self.install,
+            install=app_service.get_many(filter={"id": self.install.id})[0],
             uri="/sentry/alert-rule",
             fields=self.fields,
         )
@@ -169,7 +170,7 @@ class TestAlertRuleActionRequester(TestCase):
         )
 
         result = AlertRuleActionRequester.run(
-            install=self.install,
+            install=app_service.get_many(filter={"id": self.install.id})[0],
             uri="/sentry/alert-rule",
             fields=self.fields,
         )
@@ -185,7 +186,7 @@ class TestAlertRuleActionRequester(TestCase):
             body=bytes(self.error_message, encoding="utf-8"),
         )
         result = AlertRuleActionRequester.run(
-            install=self.install,
+            install=app_service.get_many(filter={"id": self.install.id})[0],
             uri="/sentry/alert-rule",
             fields=self.fields,
         )
