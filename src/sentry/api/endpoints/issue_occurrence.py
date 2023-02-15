@@ -29,6 +29,7 @@ class BasicEventSerializer(serializers.Serializer):
 class IssueOccurrenceSerializer(serializers.Serializer):
     id = serializers.CharField()
     event_id = serializers.CharField()
+    project_id = serializers.IntegerField()
     fingerprint = serializers.ListField()
     issue_title = serializers.CharField()
     subtitle = serializers.CharField()
@@ -89,6 +90,7 @@ class IssueOccurrenceEndpoint(Endpoint):
         if request.query_params.get("dummyOccurrence") == "True":
             occurrence = {
                 "id": "55f1419e73884cd2b45c79918f4b6dc5",
+                "project_id": 1,
                 "fingerprint": ["some-fingerprint"],
                 "issue_title": "something bad happened",
                 "subtitle": "it was bad",
