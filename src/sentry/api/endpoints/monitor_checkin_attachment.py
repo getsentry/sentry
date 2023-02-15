@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,6 +18,23 @@ class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
     # TODO(davidenwang): Add documentation after uploading feature is complete
     private = True
     authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
+
+    def download(self, file_id):
+        file = File.objects.get(id=file_id)
+        fp = file.getfile()
+        response = FileResponse(
+            fp,
+            content_type=file.headers.get("Content-Type", "application/octet-stream"),
+        )
+        response["Content-Length"] = file.size
+        response["Content-Disposition"] = f"attachment; filename={file.name}"
+        return response
+
+    def get(self, request: Request, project, monitor, checkin) -> Response:
+        if checkin.attachment_id:
+            return self.download(checkin.attachment_id)
+        else:
+            return Response({"detail": "Check-in has no attachment"}, status=404)
 
     def post(self, request: Request, project, monitor, checkin) -> Response:
         """
