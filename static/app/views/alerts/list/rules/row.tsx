@@ -410,13 +410,13 @@ const FlexCenter = styled('div')`
 `;
 
 const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+  gap: ${space(2)};
   position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  margin-left: ${space(2)};
   line-height: 1.35;
 `;
 
