@@ -44,20 +44,14 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     return null;
   }
 
-  const items: MenuItemProps[] = projects.reduce((acc: MenuItemProps[], project) => {
+  const items: MenuItemProps[] = allProjects.reduce((acc: MenuItemProps[], project) => {
     const itemProps: MenuItemProps = {
       key: project.id,
       label: <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />,
-      onAction: function switchProject() {
-        setCurrentProject(project);
-      },
+      onAction: () => setCurrentProject(project),
     };
 
-    if (selectedProject.id === project.id) {
-      acc.unshift(itemProps);
-    } else {
-      acc.push(itemProps);
-    }
+    acc.push(itemProps);
 
     return acc;
   }, []);
