@@ -225,7 +225,7 @@ function NativeFrame({
             {status === 'error' ? (
               <Tooltip
                 title={t(
-                  'This frame has missing deminification files and could not be symbolicated'
+                  'This frame has missing debug files and could not be symbolicated'
                 )}
               >
                 <IconFileBroken size="sm" color="errorText" />
