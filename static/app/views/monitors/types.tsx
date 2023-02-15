@@ -1,22 +1,43 @@
 import {Project} from 'sentry/types';
 
-export type Status = 'ok' | 'error' | 'disabled' | 'active' | 'missed_checkin';
+export enum MonitorType {
+  CRON_JOB = 'cron_job',
+  // XXX(epurkhiser): There are 3 other types defined in the backend. But right
+  // now we've only implemented a frontend for the CRON_JOB type
+  HEALTH_CHECK = 'health_check',
+  HEARTBEAT = 'heartbeat',
+  UNKNOWN = 'unknown',
+}
 
-export type CheckInStatus = 'ok' | 'error' | 'missed';
+export enum ScheduleType {
+  CRONTAB = 'crontab',
+  INTERVAL = 'interval',
+}
 
-export type MonitorTypes = 'cron_job';
+export enum MonitorStatus {
+  OK = 'ok',
+  ERROR = 'error',
+  DISABLED = 'disabled',
+  ACTIVE = 'active',
+  MISSED_CHECKIN = 'missed_checkin',
+}
 
-export type ScheduleType = 'crontab' | 'interval';
+export enum CheckInStatus {
+  OK = 'ok',
+  ERROR = 'error',
+  IN_PROGRESS = 'in_progress',
+  MISSED = 'missed',
+}
 
-export type MonitorConfig = {
+export interface MonitorConfig {
   checkin_margin: number;
   max_runtime: number;
   schedule: unknown[];
   schedule_type: ScheduleType;
   timezone: string;
-};
+}
 
-export type Monitor = {
+export interface Monitor {
   config: MonitorConfig;
   dateCreated: string;
   id: string;
@@ -24,14 +45,14 @@ export type Monitor = {
   name: string;
   nextCheckIn: string;
   project: Project;
-  status: Status;
-  type: MonitorTypes;
-};
+  status: MonitorStatus;
+  type: MonitorType;
+}
 
-export type MonitorStat = {
+export interface MonitorStat {
   duration: number;
   error: number;
   missed: number;
   ok: number;
   ts: number;
-};
+}
