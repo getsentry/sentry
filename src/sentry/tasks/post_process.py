@@ -193,16 +193,15 @@ def handle_owner_assignment_task(
             # see ProjectOwnership.get_issue_owners
             issue_owners = []
         else:
-
             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
-        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.handle_group_owners"):
-            if issue_owners:
-                try:
-                    handle_group_owners(project, group, issue_owners)
-                except Exception:
-                    logger.exception("Failed to store group owners")
-        handle_auto_assignment(job)
+    with sentry_sdk.start_span(op="post_process.handle_owner_assignment.handle_group_owners"):
+        if issue_owners:
+            try:
+                handle_group_owners(project, group, issue_owners)
+            except Exception:
+                logger.exception("Failed to store group owners")
+    handle_auto_assignment(job)
 
 
 def handle_group_owners(project, group, issue_owners):
