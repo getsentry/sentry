@@ -84,6 +84,10 @@ class OrganizationMappingService(InterfaceWithLifecycle):
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         pass
 
+    @abstractmethod
+    def delete(self, organization_id: int) -> None:
+        pass
+
 
 def impl_with_db() -> OrganizationMappingService:
     from sentry.services.hybrid_cloud.organization_mapping.impl import (

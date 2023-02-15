@@ -131,7 +131,7 @@
               <div class="controls">
                 <label class="control-label">{% trans "Organization ID" %}</label>
                 <input type="text" class="form-control" name="organization" placeholder="acme" required>
-                <p class="help-block">Your ID is the slug after the hostname. e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code> is <code>acme</code>.</p>
+                <p class="help-block">Your ID is the slug either before or after the hostname. For example, <code><strong>acme</strong></code> is the slug in either <code>{{ server_hostname }}/<strong>acme</strong>/</code> or <code><strong>acme</strong>.{{ server_hostname }}/</code>.</p>
               </div>
             </div>
             <div class="auth-footer m-t-1">

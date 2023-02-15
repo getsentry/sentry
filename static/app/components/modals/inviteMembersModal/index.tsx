@@ -5,13 +5,14 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
@@ -388,47 +389,49 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           <FooterContent>
             <div>{this.statusMessage}</div>
 
-            {complete ? (
-              <Fragment>
-                <Button data-test-id="send-more" size="sm" onClick={this.reset}>
-                  {t('Send more invites')}
-                </Button>
-                <Button
-                  data-test-id="close"
-                  priority="primary"
-                  size="sm"
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent('invite_modal.closed', {
-                      organization: this.props.organization,
-                      modal_session: this.sessionId,
-                    });
-                    closeModal();
-                  }}
-                >
-                  {t('Close')}
-                </Button>
-              </Fragment>
-            ) : (
-              <Fragment>
-                <Button
-                  data-test-id="cancel"
-                  size="sm"
-                  onClick={closeModal}
-                  disabled={disableInputs}
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button
-                  size="sm"
-                  data-test-id="send-invites"
-                  priority="primary"
-                  disabled={!canSend || !this.isValidInvites || disableInputs}
-                  onClick={sendInvites}
-                >
-                  {this.inviteButtonLabel}
-                </Button>
-              </Fragment>
-            )}
+            <ButtonBar gap={1}>
+              {complete ? (
+                <Fragment>
+                  <Button data-test-id="send-more" size="sm" onClick={this.reset}>
+                    {t('Send more invites')}
+                  </Button>
+                  <Button
+                    data-test-id="close"
+                    priority="primary"
+                    size="sm"
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent('invite_modal.closed', {
+                        organization: this.props.organization,
+                        modal_session: this.sessionId,
+                      });
+                      closeModal();
+                    }}
+                  >
+                    {t('Close')}
+                  </Button>
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <Button
+                    data-test-id="cancel"
+                    size="sm"
+                    onClick={closeModal}
+                    disabled={disableInputs}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    data-test-id="send-invites"
+                    priority="primary"
+                    disabled={!canSend || !this.isValidInvites || disableInputs}
+                    onClick={sendInvites}
+                  >
+                    {this.inviteButtonLabel}
+                  </Button>
+                </Fragment>
+              )}
+            </ButtonBar>
           </FooterContent>
         </Footer>
       </Fragment>
@@ -494,15 +497,15 @@ const AddButton = styled(Button)`
 `;
 
 const FooterContent = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
+  display: flex;
   gap: ${space(1)};
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
 `;
 
 const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
-  display: grid;
-  grid-template-columns: max-content max-content;
+  display: flex;
   gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};

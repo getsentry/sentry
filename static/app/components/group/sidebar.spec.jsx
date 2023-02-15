@@ -136,6 +136,7 @@ describe('GroupSidebar', function () {
         />,
         {organization}
       );
+      expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(2);
       expect(tagsMock).toHaveBeenCalledWith(
         '/issues/1/tags/',
@@ -192,7 +193,6 @@ describe('GroupSidebar', function () {
         email: 'sohnjmith@example.com',
       }),
     ];
-    const org = {...organization, features: ['issue-actions-v2']};
     render(
       <GroupSidebar
         group={{
@@ -201,11 +201,11 @@ describe('GroupSidebar', function () {
           seenBy: users,
         }}
         project={project}
-        organization={org}
+        organization={organization}
         event={TestStubs.Event()}
         environments={[]}
       />,
-      {organization: org}
+      {organization}
     );
     await act(tick);
 

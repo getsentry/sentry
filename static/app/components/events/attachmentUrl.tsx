@@ -9,12 +9,18 @@ type Props = {
   children: (downloadUrl: string | null) => React.ReactElement | null;
   eventId: string;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
 };
 
-function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {
+function AttachmentUrl({
+  attachment,
+  organization,
+  eventId,
+  projectSlug,
+  children,
+}: Props) {
   function getDownloadUrl() {
-    return `/api/0/projects/${organization.slug}/${projectId}/events/${eventId}/attachments/${attachment.id}/`;
+    return `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${attachment.id}/`;
   }
 
   return (

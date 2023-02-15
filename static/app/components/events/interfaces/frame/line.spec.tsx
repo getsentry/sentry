@@ -148,5 +148,41 @@ describe('Frame - Line', function () {
         expect(utils.getByText(value)).toBeInTheDocument();
       }
     });
+
+    it('should render sourcemap debug', async () => {
+      const org = TestStubs.Organization();
+      const project = TestStubs.Project();
+      const filename = 'something.js';
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/events/event-id/source-map-debug/`,
+        body: {
+          errors: [{type: 'no_release_on_event', message: '', data: null}],
+        },
+      });
+      const {container} = render(
+        <Line
+          data={{...data, filename}}
+          registers={{}}
+          components={[]}
+          event={event}
+          isExpanded
+          debugFrames={[
+            {
+              filename,
+              query: {
+                eventId: 'event-id',
+                exceptionIdx: 0,
+                frameIdx: 0,
+                orgSlug: 'org-slug',
+                projectSlug: 'project-slug',
+              },
+            },
+          ]}
+        />,
+        {organization: org}
+      );
+      expect(await screen.findByLabelText('Missing source map')).toBeInTheDocument();
+      expect(container).toSnapshot();
+    });
   });
 });

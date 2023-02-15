@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
@@ -146,7 +145,7 @@ function ActionDropDown(props: Props) {
   }
 
   return (
-    <DropdownMenuControl
+    <DropdownMenu
       items={menuItems}
       trigger={triggerProps => (
         <StyledTrigger

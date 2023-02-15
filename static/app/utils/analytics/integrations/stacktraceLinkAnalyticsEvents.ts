@@ -13,6 +13,7 @@ export enum StacktraceLinkEvents {
   START_SETUP = 'integrations.stacktrace_start_setup',
   SUBMIT = 'integrations.stacktrace_submit_config',
   LINK_VIEWED = 'integrations.stacktrace_link_viewed',
+  CODECOV_LINK_CLICKED = 'integrations.stacktrace_codecov_link_clicked',
 }
 
 // This type allows analytics functions to use the string literal or enum.KEY
@@ -21,13 +22,14 @@ type StacktraceLinkEventsLiterals = `${StacktraceLinkEvents}`;
 export type StacktraceLinkEventParameters = {
   [key in StacktraceLinkEventsLiterals]: {
     error_reason?: StacktraceErrorMessage;
+    is_suggestion?: boolean;
     platform?: PlatformType;
     project_id?: string;
     provider?: string;
     setup_type?: 'automatic' | 'manual';
     state?: 'match' | 'no_match' | 'prompt' | 'empty';
   } & IntegrationView &
-    Partial<BaseEventAnalyticsParams>; // make optional
+    Partial<BaseEventAnalyticsParams & {group_id?: number}>; // make optional
 };
 
 export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string> = {
@@ -39,4 +41,6 @@ export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string
   [StacktraceLinkEvents.MANUAL_OPTION]: 'Integrations: Stacktrace Manual Option Clicked',
   [StacktraceLinkEvents.START_SETUP]: 'Integrations: Stacktrace Start Setup',
   [StacktraceLinkEvents.SUBMIT]: 'Integrations: Stacktrace Submit Config',
+  [StacktraceLinkEvents.CODECOV_LINK_CLICKED]:
+    'Integrations: Stacktrace Codecov Link Clicked',
 };

@@ -16,7 +16,7 @@ type Props = {
   data: ExceptionType;
   event: Event;
   hasHierarchicalGrouping: boolean;
-  projectId: string;
+  projectSlug: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -24,7 +24,7 @@ type Props = {
 export function Exception({
   event,
   data,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
@@ -89,7 +89,7 @@ export function Exception({
       wrapTitle={false}
     >
       <CrashContent
-        projectId={projectId}
+        projectSlug={projectSlug}
         event={event}
         stackType={stackType}
         stackView={stackView}

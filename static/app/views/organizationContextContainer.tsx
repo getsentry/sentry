@@ -17,7 +17,7 @@ import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -344,7 +344,7 @@ export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
 
-export {OrganizationContextContainer as OrganizationLegacyContext, OrganizationContext};
+export {OrganizationContextContainer as OrganizationLegacyContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};

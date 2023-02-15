@@ -47,6 +47,7 @@ type Props = Omit<
 
 function Line({
   frame,
+  debugFrames,
   nextFrame,
   prevFrame,
   timesRepeated,
@@ -157,6 +158,7 @@ function Line({
             onToggleContext={toggleContext}
             isUsedForGrouping={isUsedForGrouping}
             frameMeta={frameMeta}
+            debugFrames={debugFrames}
           />
         );
     }

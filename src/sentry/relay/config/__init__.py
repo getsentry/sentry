@@ -47,6 +47,7 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:session-replay-recording-scrubbing",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -161,7 +162,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization) and options.get(
         "dynamic-sampling:enabled-biases"
     ):
-        return {"rules": generate_rules(project)}
+        return {"rules": generate_rules(project), "rulesV2": generate_rules(project, True)}
     return None
 
 
@@ -545,11 +546,6 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
     )
 
 
-def _accept_transaction_names_strategy(project: Project) -> TransactionNameStrategy:
-    is_selected_org = sample_modulo("relay.transaction-names-client-based", project.organization_id)
-    return "clientBased" if is_selected_org else "strict"
-
-
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
 ) -> TransactionMetricsSettings:
@@ -593,5 +589,5 @@ def get_transaction_metrics_settings(
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
-        "acceptTransactionNames": _accept_transaction_names_strategy(project),
+        "acceptTransactionNames": "clientBased",
     }

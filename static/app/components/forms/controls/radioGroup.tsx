@@ -3,8 +3,8 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import Radio from 'sentry/components/radio';
-import Tooltip from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
+import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientInline?: boolean;

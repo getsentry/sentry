@@ -1,14 +1,17 @@
+import enum
 import logging
 from enum import Enum, unique
+from itertools import chain
 from typing import Optional
 
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
 @unique
-class Referrer(Enum):
+class ReferrerBase(Enum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
@@ -460,10 +463,13 @@ class Referrer(Enum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_error_seen_stats_query"
+        "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_PERF_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_perf_seen_stats_query"
+        "serializers.GroupSerializerSnuba._execute_perf_seen_stats_query"
+    )
+    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_GENERIC_SEEN_STATS_QUERY = (
+        "serializers.GroupSerializerSnuba._execute_generic_seen_stats_query"
     )
     SESSIONS_CRASH_FREE_BREAKDOWN = "sessions.crash-free-breakdown"
     SESSIONS_GET_ADOPTION = "sessions.get-adoption"
@@ -494,12 +500,14 @@ class Referrer(Enum):
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore._get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
-    TAGSTORE__GET_TAG_KEYS = "tagstore._get_tag_keys"
+    TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
     TAGSTORE_GET_PERF_GROUP_LIST_TAG_VALUE = "tagstore.get_perf_group_list_tag_value"
     TAGSTORE_GET_PERF_GROUPS_USER_COUNTS = "tagstore.get_perf_groups_user_counts"
+    TAGSTORE_GET_GENERIC_GROUP_LIST_TAG_VALUE = "tagstore.get_generic_group_list_tag_value"
+    TAGSTORE_GET_GENERIC_GROUPS_USER_COUNTS = "tagstore.get_generic_groups_user_counts"
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
     TAGSTORE_GET_TAG_VALUE_PAGINATOR_FOR_PROJECTS = "tagstore.get_tag_value_paginator_for_projects"
     TASKS_MONITOR_RELEASE_ADOPTION = "tasks.monitor_release_adoption"
@@ -507,28 +515,6 @@ class Referrer(Enum):
         "tasks.process_projects_with_sessions.session_count"
     )
     TRANSACTION_ANOMALY_DETECTION = "transaction-anomaly-detection"
-    TSDB_MODELID_1 = "tsdb-modelid:1"
-    TSDB_MODELID_10 = "tsdb-modelid:10"
-    TSDB_MODELID_100 = "tsdb-modelid:100"
-    TSDB_MODELID_101 = "tsdb-modelid:101"
-    TSDB_MODELID_104 = "tsdb-modelid:104"
-    TSDB_MODELID_200 = "tsdb-modelid:200"
-    TSDB_MODELID_201 = "tsdb-modelid:201"
-    TSDB_MODELID_202 = "tsdb-modelid:202"
-    TSDB_MODELID_300 = "tsdb-modelid:300"
-    TSDB_MODELID_302 = "tsdb-modelid:302"
-    TSDB_MODELID_4 = "tsdb-modelid:4"
-    TSDB_MODELID_407 = "tsdb-modelid:407"
-    TSDB_MODELID_601 = "tsdb-modelid:601"
-    TSDB_MODELID_602 = "tsdb-modelid:602"
-    TSDB_MODELID_603 = "tsdb-modelid:603"
-    TSDB_MODELID_604 = "tsdb-modelid:604"
-    TSDB_MODELID_605 = "tsdb-modelid:605"
-    TSDB_MODELID_606 = "tsdb-modelid:606"
-    TSDB_MODELID_607 = "tsdb-modelid:607"
-    TSDB_MODELID_608 = "tsdb-modelid:608"
-    TSDB_MODELID_609 = "tsdb-modelid:609"
-    TSDB_MODELID_610 = "tsdb-modelid:610"
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
     WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
@@ -541,6 +527,16 @@ class Referrer(Enum):
     TESTING_TEST = "testing.test"
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
+
+
+TSDBModelReferrer = enum.Enum(
+    "TSDBModelReferrer",
+    {f"TSDB_MODELID_{model.value}": f"tsdb-modelid:{model.value}" for model in TSDBModel},
+)
+
+Referrer = enum.Enum(
+    "Referrer", [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer)]
+)
 
 
 def validate_referrer(referrer: Optional[str]):

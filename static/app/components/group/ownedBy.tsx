@@ -11,7 +11,7 @@ import {IconAdd, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Actor, Group, Organization, Project} from 'sentry/types';
 import {buildTeamId} from 'sentry/utils';
 
@@ -105,7 +105,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
           <ActorName>
             {currentOwner?.type === 'team'
               ? `#${currentOwner?.name}`
-              : currentOwner?.name ?? t('No-one')}
+              : currentOwner?.name ?? t('No one')}
           </ActorName>
         </ActorWrapper>
       </SidebarSection.Content>

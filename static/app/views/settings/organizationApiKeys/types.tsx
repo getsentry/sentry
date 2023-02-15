@@ -1,6 +1,6 @@
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 
-type Scope = typeof API_ACCESS_SCOPES[number];
+type Scope = (typeof API_ACCESS_SCOPES)[number];
 
 export type DeprecatedApiKey = {
   allowed_origins: string;

@@ -11,7 +11,7 @@ import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {TagCollection} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldKind} from 'sentry/utils/fields';
@@ -292,11 +292,9 @@ const DropdownItem = ({
     children = (
       <Invalid>
         {tct("The field [field] isn't supported here. ", {
-          field: <strong>{item.desc}</strong>,
+          field: <code>{item.desc}</code>,
         })}
-        {tct('[highlight:See all searchable properties in the docs.]', {
-          highlight: <Highlight />,
-        })}
+        <Highlight>{t('See all searchable properties in the docs.')}</Highlight>
       </Invalid>
     );
   } else if (item.type === ItemType.LINK) {
@@ -598,12 +596,10 @@ const Invalid = styled(`span`)`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.gray400};
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
 
-  span {
-    white-space: pre;
+  code {
+    font-weight: bold;
+    padding: 0;
   }
 `;
 

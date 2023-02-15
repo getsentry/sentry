@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompactSelect from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compositeSelect';
-import Tooltip from 'sentry/components/tooltip';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
@@ -50,7 +50,7 @@ type Props = {
   hasNewestFirst: boolean;
   hasVerboseFunctionNames: boolean;
   platform: PlatformType;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
   stackType: STACK_TYPE;
@@ -73,7 +73,7 @@ export function TraceEventDataSection({
   children,
   platform,
   stackType,
-  projectId,
+  projectSlug,
   eventId,
   hasNewestFirst,
   hasMinified,
@@ -151,6 +151,22 @@ export function TraceEventDataSection({
       ];
     }
 
+    // This logic might be incomplete, but according to the SDK folks, this is 99.9% of the cases
+    if (platform.startsWith('javascript')) {
+      return [
+        {
+          label: t('Minified'),
+          value: 'minified',
+          disabled: !hasMinified,
+          tooltip: !hasMinified ? t('Minified version not available') : undefined,
+        },
+        {
+          label: displayOptions['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+      ];
+    }
+
     return [
       {
         label: displayOptions.minified,
@@ -169,7 +185,7 @@ export function TraceEventDataSection({
   const minified = stackType === STACK_TYPE.MINIFIED;
 
   // Apple crash report endpoint
-  const appleCrashEndpoint = `/projects/${organization.slug}/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
   const sortByTooltip = !hasNewestFirst
@@ -196,34 +212,19 @@ export function TraceEventDataSection({
                 title={t('Only full version available')}
                 disabled={hasAppOnlyFrames}
               >
-                <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
-                  <Button
-                    size="xs"
-                    barId="relevant"
-                    onClick={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: false,
-                      })
-                    }
-                    disabled={!hasAppOnlyFrames}
-                  >
+                <SegmentedControl
+                  size="xs"
+                  aria-label={t('Filter frames')}
+                  value={state.fullStackTrace ? 'full' : 'relevant'}
+                  onChange={val => setState({...state, fullStackTrace: val === 'full'})}
+                >
+                  <SegmentedControl.Item key="relevant" disabled={!hasAppOnlyFrames}>
                     {t('Most Relevant')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    barId="full"
-                    priority={!hasAppOnlyFrames ? 'primary' : undefined}
-                    onClick={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: true,
-                      })
-                    }
-                  >
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="full">
                     {t('Full Stack Trace')}
-                  </Button>
-                </ButtonBar>
+                  </SegmentedControl.Item>
+                </SegmentedControl>
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (
@@ -241,7 +242,7 @@ export function TraceEventDataSection({
                 size: 'xs',
                 title: sortByTooltip,
               }}
-              isDisabled={!!sortByTooltip}
+              disabled={!!sortByTooltip}
               position="bottom-end"
               onChange={selectedOption => {
                 setState({...state, sortBy: selectedOption.value});
@@ -252,28 +253,19 @@ export function TraceEventDataSection({
                 value: value as keyof typeof sortByOptions,
               }))}
             />
-            <CompositeSelect
+            <CompactSelect
               triggerProps={{
                 icon: <IconEllipsis size="xs" />,
                 size: 'xs',
                 showChevron: false,
                 'aria-label': t('Options'),
               }}
+              multiple
               triggerLabel=""
               position="bottom-end"
-              sections={[
-                {
-                  label: t('Display'),
-                  value: 'display',
-                  defaultValue: state.display,
-                  multiple: true,
-                  options: getDisplayOptions().map(option => ({
-                    ...option,
-                    value: String(option.value),
-                  })),
-                  onChange: display => setState({...state, display}),
-                },
-              ]}
+              value={state.display}
+              onChange={opts => setState({...state, display: opts.map(opt => opt.value)})}
+              options={[{label: t('Display'), options: getDisplayOptions()}]}
             />
           </ButtonBar>
         )

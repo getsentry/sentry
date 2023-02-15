@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Panel} from 'sentry/components/panels';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
@@ -16,7 +16,7 @@ import {
   PERCENTAGE_UNITS,
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
-import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
+import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum EventDetailPageSource {
@@ -216,6 +216,6 @@ const Value = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-const StyledDropdownMenuControl = styled(DropdownMenuControl)`
+const StyledDropdownMenuControl = styled(DropdownMenu)`
   margin-left: auto;
 `;

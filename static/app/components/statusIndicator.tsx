@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 
 type Props = {
   status: string;
-  tooltipTitle: string;
+  tooltipTitle: React.ReactNode;
 };
 
 /**

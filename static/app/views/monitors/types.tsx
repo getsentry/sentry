@@ -13,6 +13,7 @@ export type MonitorConfig = {
   max_runtime: number;
   schedule: unknown[];
   schedule_type: ScheduleType;
+  timezone: string;
 };
 
 export type Monitor = {

@@ -8,7 +8,6 @@ from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import Limit, Offset
 
-from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import MetricField
 from sentry.snuba.metrics.datasource import get_series
@@ -214,31 +213,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "totals": {"histogram_duration": hist},
             }
         ]
-
-    def test_query_private_metrics_raise_exception(self):
-        self.store_release_health_metric(
-            name=SessionMRI.SESSION.value,
-            tags={"session.status": "errored_preaggr"},
-            value=2,
-        )
-
-        with pytest.raises(
-            InvalidParams,
-            match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
-        ):
-            self.build_metrics_query(
-                before_now="1h",
-                granularity="1h",
-                select=[
-                    MetricField(
-                        op=None,
-                        metric_mri=str(SessionMRI.ERRORED_PREAGGREGATED.value),
-                        alias="errored_preaggregated_sessions_alias",
-                    ),
-                ],
-                limit=Limit(limit=51),
-                offset=Offset(offset=0),
-            )
 
     def test_anr_rate_operations(self):
         for tag_value, count_value, anr_mechanism in (

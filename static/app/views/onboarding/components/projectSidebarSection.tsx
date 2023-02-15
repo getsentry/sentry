@@ -8,7 +8,7 @@ import platforms from 'sentry/data/platforms';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -20,6 +20,7 @@ type Props = {
   // A map from selected platform keys to the projects created by onboarding.
   selectedPlatformToProjectIdMap: {[key in PlatformKey]?: string};
 };
+
 function ProjectSidebarSection({
   projects,
   activeProject,
@@ -63,7 +64,9 @@ function ProjectSidebarSection({
     <Fragment>
       <Title>{t('Projects to Setup')}</Title>
       {Object.entries(selectedPlatformToProjectIdMap).map(
-        ([platformOnCreate, projectSlug]) => oneProject(platformOnCreate, projectSlug)
+        ([platformOnCreate, projectSlug]) => {
+          return oneProject(platformOnCreate, projectSlug);
+        }
       )}
     </Fragment>
   );
@@ -103,6 +106,9 @@ const ProjectWrapper = styled('div')<{disabled: boolean; isActive: boolean}>`
     ${SubHeader} {
       color: ${p.theme.gray400};
     }
+    ${Beat} {
+      color: ${p.theme.gray400};
+    }
     ${NameWrapper} {
       text-decoration-line: line-through;
     }
@@ -140,4 +146,8 @@ const NameWrapper = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+`;
+
+const Beat = styled('div')<{color: string}>`
+  color: ${p => p.color};
 `;

@@ -1,0 +1,16 @@
+---
+created: '2023-01-17T00:14:25.361830Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+breakdownsV2:
+  span_ops:
+    matches:
+    - http
+    - db
+    - browser
+    - resource
+    - ui
+    type: spanOperations
+metricConditionalTagging: null
+transactionMetrics: null

@@ -32,7 +32,7 @@ import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
@@ -229,14 +229,16 @@ function Sidebar({location, organization}: Props) {
   );
 
   const monitors = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconTimer size="md" />}
-      label={t('Crons')}
-      to={`/organizations/${organization.slug}/crons/`}
-      id="crons"
-      isBeta
-    />
+    <Feature features={['monitors']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconTimer size="md" />}
+        label={t('Crons')}
+        to={`/organizations/${organization.slug}/crons/`}
+        id="crons"
+        isBeta
+      />
+    </Feature>
   );
 
   const replays = hasOrganization && (
@@ -247,7 +249,8 @@ function Sidebar({location, organization}: Props) {
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
-        isBeta
+        // TODO(replay): Remove this special-case for our internal demo org
+        isNew={organization.slug !== 'testorg-az'}
       />
     </Feature>
   );

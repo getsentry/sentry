@@ -3,7 +3,6 @@ import {css, Theme} from '@emotion/react';
 import styled, {Interpolation} from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconCheckmark, IconSubtract} from 'sentry/icons';
 import {FormSize} from 'sentry/utils/theme';
 
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
@@ -26,15 +25,13 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
 type CheckboxConfig = {
   borderRadius: string;
   box: string;
-  // TODO: We should use IconSize here, but the `xs` checkmark needs the
-  // smaller icon size right now, so we use legacySize
   icon: string;
 };
 
 const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   xs: {box: '12px', borderRadius: '2px', icon: '10px'},
   sm: {box: '16px', borderRadius: '4px', icon: '12px'},
-  md: {box: '22px', borderRadius: '6px', icon: '16px'},
+  md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
 const Checkbox = ({
@@ -63,10 +60,17 @@ const Checkbox = ({
         type="checkbox"
         {...props}
       />
+
       <StyledCheckbox aria-hidden checked={checked} size={size}>
-        {checked === true && <IconCheckmark legacySize={checkboxSizeMap[size].icon} />}
+        {checked === true && (
+          <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
+            <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
+          </VariableWeightIcon>
+        )}
         {checked === 'indeterminate' && (
-          <IconSubtract legacySize={checkboxSizeMap[size].icon} />
+          <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
+            <path d="M3 8H13" />
+          </VariableWeightIcon>
         )}
       </StyledCheckbox>
       {!props.disabled && (
@@ -99,7 +103,15 @@ const HiddenInput = styled('input')`
   cursor: pointer;
 
   &.focus-visible + * {
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 2px;
+    ${p =>
+      p.checked
+        ? `
+        box-shadow: ${p.theme.focus} 0 0 0 3px;
+      `
+        : `
+        border-color: ${p.theme.focusBorder};
+        box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
+      `}
   }
 
   &:disabled + * {
@@ -140,6 +152,17 @@ const StyledCheckbox = styled('div')<{
           background: ${p.theme.background};
           border: 1px solid ${p.theme.gray200};
         `}
+`;
+
+const VariableWeightIcon = styled('svg')<{size: string}>`
+  width: ${p => p.size};
+  height: ${p => p.size};
+
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke: ${p => p.theme.white};
+  stroke-width: calc(1.4px + ${p => p.size} * 0.04);
 `;
 
 export default Checkbox;

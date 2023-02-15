@@ -10,7 +10,7 @@ import {
   DashboardListItem,
   DashboardWidgetSource,
   DisplayType,
-} from 'sentry/views/dashboardsV2/types';
+} from 'sentry/views/dashboards/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

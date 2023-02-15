@@ -5,18 +5,18 @@ import pytest
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
+from sentry.utils.performance_issues.base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType
 from sentry.utils.performance_issues.performance_detection import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
-    DetectorType,
     EventPerformanceProblem,
     NPlusOneDBSpanDetector,
     PerformanceProblem,
     _detect_performance_problems,
+    detect_performance_problems,
     total_span_time,
 )
 
@@ -37,7 +37,7 @@ def assert_n_plus_one_db_problem(perf_problems):
             fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
             op="db",
             desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            type=PerformanceNPlusOneGroupType,
             parent_span_ids=["8dd7a5869a4f4583"],
             cause_span_ids=["9179e43ae844b174"],
             offender_span_ids=[
@@ -75,6 +75,19 @@ class PerformanceDetectionTest(TestCase):
 
         self.project = self.create_project()
 
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_disabled(self, mock):
+        event = {}
+        detect_performance_problems(event, self.project)
+        assert mock.call_count == 0
+
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_enabled(self, mock):
+        event = {}
+        with override_options({"performance.issues.all.problem-detection": 1.0}):
+            detect_performance_problems(event, self.project)
+        assert mock.call_count == 1
+
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
@@ -101,7 +114,7 @@ class PerformanceDetectionTest(TestCase):
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-25f4aa547724c350ef3abdaef2cf78e62399f96e",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["86d3f8a7e85d7324"],
                 cause_span_ids=["bc1f71fd71c8f594"],
                 offender_span_ids=[
@@ -325,7 +338,7 @@ class EventPerformanceProblemTest(TestCase):
             "test",
             "db",
             "something bad happened",
-            GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            PerformanceNPlusOneGroupType,
             ["1"],
             ["2", "3", "4"],
             ["4", "5", "6"],
@@ -341,7 +354,7 @@ class EventPerformanceProblemTest(TestCase):
                 "test",
                 "db",
                 "something bad happened",
-                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                PerformanceNPlusOneGroupType,
                 ["1"],
                 ["2", "3", "4"],
                 ["4", "5", "6"],
@@ -350,7 +363,7 @@ class EventPerformanceProblemTest(TestCase):
                 "test_2",
                 "db",
                 "something horrible happened",
-                GroupType.PERFORMANCE_SLOW_DB_QUERY,
+                PerformanceSlowDBQueryGroupType,
                 ["234"],
                 ["67", "87686", "786"],
                 ["4", "5", "6"],
@@ -362,7 +375,7 @@ class EventPerformanceProblemTest(TestCase):
                 "event_2_test",
                 "db",
                 "something happened",
-                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                PerformanceNPlusOneGroupType,
                 ["1"],
                 ["a", "b", "c"],
                 ["d", "e", "f"],
@@ -371,7 +384,7 @@ class EventPerformanceProblemTest(TestCase):
                 "event_2_test_2",
                 "db",
                 "hello",
-                GroupType.PERFORMANCE_SLOW_DB_QUERY,
+                PerformanceSlowDBQueryGroupType,
                 ["234"],
                 ["fdgh", "gdhgf", "gdgh"],
                 ["gdf", "yu", "kjl"],
@@ -389,7 +402,7 @@ class EventPerformanceProblemTest(TestCase):
             "fake_fingerprint",
             "db",
             "hello",
-            GroupType.PERFORMANCE_SLOW_DB_QUERY,
+            PerformanceSlowDBQueryGroupType,
             ["234"],
             ["fdgh", "gdhgf", "gdgh"],
             ["gdf", "yu", "kjl"],

@@ -146,7 +146,7 @@ class ActivityNotificationTest(APITestCase):
         """
         url = f"/api/0/issues/{self.group.id}/"
         GroupAssignee.objects.create(
-            group=self.group, project=self.project, user=self.user, date_added=timezone.now()
+            group=self.group, project=self.project, user_id=self.user.id, date_added=timezone.now()
         )
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": ""})
@@ -247,7 +247,7 @@ class ActivityNotificationTest(APITestCase):
         )
         assert (
             attachment["actions"][0]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/"
+            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy"
         )
         assert (
             attachment["footer"]

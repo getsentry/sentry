@@ -96,6 +96,16 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             "additionalProperties": False,
         },
         "server_name": {"type": ["string", "null"], "minLength": 1},
+        "stacktrace": {
+            "type": ["object", "null"],
+            "properties": {
+                "frames": {"type": ["array", "null"], "items": {"type": "object"}},
+                "lang": {"type": ["string", "null"], "minLength": 1},
+                "registers": {"type": ["object", "null"]},
+                "snapshot": {"type": ["boolean", "null"]},
+            },
+            "additionalProperties": False,
+        },
         "trace_id": {"type": ["string", "null"], "minLength": 1},
         "transaction": {"type": ["string", "null"], "minLength": 1},
         "user": {

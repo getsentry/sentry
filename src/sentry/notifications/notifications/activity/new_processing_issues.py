@@ -6,7 +6,6 @@ from sentry.models import Activity, Mapping, NotificationSetting, Team, User
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import summarize_issues
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
 
@@ -42,7 +41,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             "project": self.project,
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
-            "info_url": absolute_uri(
+            "info_url": self.organization.absolute_url(
                 f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
             ),
         }
@@ -57,7 +56,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        project_url = absolute_uri(
+        project_url = self.organization.absolute_url(
             f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
         )
         return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"

@@ -1,11 +1,11 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {t} from 'sentry/locale';
-import {Organization, PageFilters, Project, RequestState} from 'sentry/types';
+import {PageFilters, Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
+import {defined} from 'sentry/utils';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,16 +16,16 @@ type FunctionsResult = {
 };
 
 interface UseFunctionsOptions {
-  project: Project;
+  project: Project | undefined;
   query: string;
   sort: string;
   transaction: string | null;
   cursor?: string;
+  enabled?: boolean;
   functionType?: 'application' | 'system' | 'all';
   selection?: PageFilters;
 }
 
-// TODO: this needs to move to `useQuery` to take advantage of client-side caching and avoid refetch on mount
 function useFunctions({
   functionType,
   project,
@@ -34,103 +34,88 @@ function useFunctions({
   sort,
   cursor,
   selection,
-}: UseFunctionsOptions): RequestState<FunctionsResult> {
+  enabled = true,
+}: UseFunctionsOptions) {
   const api = useApi();
   const organization = useOrganization();
 
-  const [requestState, setRequestState] = useState<RequestState<FunctionsResult>>({
-    type: 'initial',
-  });
+  const path = `/projects/${organization.slug}/${project?.slug}/profiling/functions/`;
+  const fetchFunctionsOptions = {
+    functionType,
+    query,
+    selection,
+    sort,
+    transaction,
+    cursor,
+    enabled,
+  };
+  const queryKey = [path, fetchFunctionsOptions];
 
-  useEffect(() => {
-    if (selection === undefined || transaction === null) {
-      return undefined;
+  const queryFn = () => {
+    if (
+      !defined(fetchFunctionsOptions.selection) ||
+      !defined(fetchFunctionsOptions.transaction) ||
+      !defined(project)
+    ) {
+      throw Error(
+        'selection, transaction and project arguments required for fetchFunctions'
+      );
     }
 
-    setRequestState({type: 'loading'});
+    return fetchFunctions(
+      api,
+      path,
+      // tsc doesn't infer the new type from the assertion above??
+      fetchFunctionsOptions as FetchFunctionsOptions
+    );
+  };
 
-    fetchFunctions(api, organization, {
-      functionType,
-      projectSlug: project.slug,
-      query,
-      selection,
-      sort,
-      transaction,
-      cursor,
-    })
-      .then(([functions, , response]) => {
-        setRequestState({
-          type: 'resolved',
-          data: {
-            functions: functions.functions ?? [],
-            pageLinks: response?.getResponseHeader('Link') ?? null,
-          },
-        });
-      })
-      .catch(err => {
-        setRequestState({type: 'errored', error: t('Error: Unable to load functions')});
-        Sentry.captureException(err);
-      });
-
-    return () => api.clear();
-  }, [
-    api,
-    cursor,
-    functionType,
-    organization,
-    project.slug,
-    query,
-    selection,
-    sort,
-    transaction,
-  ]);
-
-  return requestState;
+  return useQuery<FetchFunctionsReturn, RequestError>({
+    queryKey,
+    queryFn,
+    refetchOnWindowFocus: false,
+    retry: false,
+    enabled,
+  });
 }
 
+interface FetchFunctionsOptions {
+  cursor: string | undefined;
+  enabled: boolean;
+  functionType: 'application' | 'system' | 'all' | undefined;
+  query: string;
+  selection: PageFilters;
+  sort: string;
+  transaction: string;
+}
+
+type FetchFunctionsReturn =
+  | [FunctionsResult, string | undefined, ResponseMeta | undefined]
+  | undefined;
 function fetchFunctions(
   api: Client,
-  organization: Organization,
-  {
-    cursor,
-    functionType,
-    projectSlug,
-    query,
-    selection,
-    sort,
-    transaction,
-  }: {
-    cursor: string | undefined;
-    functionType: 'application' | 'system' | 'all' | undefined;
-    projectSlug: Project['slug'];
-    query: string;
-    selection: PageFilters;
-    sort: string;
-    transaction: string;
-  }
-) {
+  path: string,
+  {cursor, functionType, query, selection, sort, transaction}: FetchFunctionsOptions
+): Promise<FetchFunctionsReturn> {
   const conditions = new MutableSearch(query);
   conditions.setFilterValues('transaction_name', [transaction]);
 
-  return api.requestPromise(
-    `/projects/${organization.slug}/${projectSlug}/profiling/functions/`,
-    {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {
-        cursor,
-        environment: selection.environments,
-        ...normalizeDateTimeParams(selection.datetime),
-        query: conditions.formatString(),
-        sort,
-        is_application:
-          functionType === 'application'
-            ? '1'
-            : functionType === 'system'
-            ? '0'
-            : undefined,
-      },
-    }
-  );
+  return api.requestPromise(path, {
+    method: 'GET',
+    includeAllArgs: true,
+    query: {
+      cursor,
+      environment: selection.environments,
+      ...normalizeDateTimeParams(selection.datetime),
+      query: conditions.formatString(),
+      sort,
+      is_application:
+        functionType === 'application'
+          ? '1'
+          : functionType === 'system'
+          ? '0'
+          : undefined,
+    },
+  });
 }
 export {useFunctions};

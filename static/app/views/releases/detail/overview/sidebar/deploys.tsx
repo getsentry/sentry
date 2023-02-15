@@ -5,7 +5,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Deploy} from 'sentry/types';
 
 type Props = {
@@ -22,7 +22,7 @@ const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
       <SidebarSection.Content>
         {deploys.map(deploy => (
           <Row key={deploy.id}>
-            <StyledDeployBadge
+            <DeployBadge
               deploy={deploy}
               orgSlug={orgSlug}
               version={version}
@@ -40,15 +40,12 @@ const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
 
 const Row = styled('div')`
   display: flex;
+  gap: ${space(1)};
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
-`;
-
-const StyledDeployBadge = styled(DeployBadge)`
-  margin-right: ${space(1)};
 `;
 
 export default Deploys;

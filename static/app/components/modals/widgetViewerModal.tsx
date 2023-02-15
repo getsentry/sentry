@@ -28,7 +28,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -50,7 +50,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getFieldsFromEquations,
@@ -58,21 +58,21 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-} from 'sentry/views/dashboardsV2/utils';
-import {SESSION_DURATION_ALERT} from 'sentry/views/dashboardsV2/widgetCard';
+} from 'sentry/views/dashboards/utils';
+import {SESSION_DURATION_ALERT} from 'sentry/views/dashboards/widgetCard';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
-} from 'sentry/views/dashboardsV2/widgetCard/chart';
+} from 'sentry/views/dashboards/widgetCard/chart';
 import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
-} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
-import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
-import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
-import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
-import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
-import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';

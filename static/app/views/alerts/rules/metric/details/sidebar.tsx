@@ -10,7 +10,7 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -304,7 +304,7 @@ const TriggerActions = styled('div')`
 
 const TriggerText = styled('span')`
   display: block;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};

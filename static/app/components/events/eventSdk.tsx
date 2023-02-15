@@ -1,16 +1,21 @@
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 
 import KeyValueList from './interfaces/keyValueList';
 import {AnnotatedText} from './meta/annotatedText';
 
 type Props = {
-  sdk: NonNullable<Event['sdk']>;
   meta?: Record<any, any>;
+  sdk?: Event['sdk'];
 };
 
 export function EventSdk({sdk, meta}: Props) {
+  if (!sdk || objectIsEmpty(sdk)) {
+    return null;
+  }
+
   return (
     <EventDataSection type="sdk" title={t('SDK')}>
       <KeyValueList

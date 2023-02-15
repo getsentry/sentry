@@ -1,23 +1,29 @@
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {ExceptionType} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {ExceptionType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {Mechanism} from './mechanism';
 import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
+import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
+import {debugFramesEnabled, getUniqueFilesFromException} from './useSourceMapDebug';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
   platform: StackTraceProps['platform'];
+  projectSlug: Project['slug'];
   type: STACK_TYPE;
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -35,15 +41,37 @@ export function Content({
   groupingCurrentLevel,
   hasHierarchicalGrouping,
   platform,
+  projectSlug,
   values,
   type,
   meta,
 }: Props) {
+  // Organization context may be unavailable for the shared event view, so we
+  // avoid using the `useOrganization` hook here and directly useContext
+  // instead.
+  const organization = useContext(OrganizationContext);
   if (!values) {
     return null;
   }
 
+  const shouldDebugFrames = debugFramesEnabled({
+    sdkName: event.sdk?.name,
+    organization,
+    eventId: event.id,
+    projectSlug,
+  });
+  const debugFrames = shouldDebugFrames
+    ? getUniqueFilesFromException(values, {
+        eventId: event.id,
+        projectSlug: projectSlug!,
+        orgSlug: organization!.slug,
+      })
+    : [];
+
   const children = values.map((exc, excIdx) => {
+    const hasSourcemapDebug = debugFrames.some(
+      ({query}) => query.exceptionIdx === excIdx
+    );
     return (
       <div key={excIdx} className="exception">
         {defined(exc?.module) ? (
@@ -63,7 +91,14 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
-        <SetupSourceMapsAlert event={event} />
+        <ErrorBoundary mini>
+          <Fragment>
+            {!shouldDebugFrames && excIdx === 0 && <SetupSourceMapsAlert event={event} />}
+            {hasSourcemapDebug && (
+              <SourceMapDebug debugFrames={debugFrames} event={event} />
+            )}
+          </Fragment>
+        </ErrorBoundary>
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL
@@ -80,6 +115,7 @@ export function Content({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
+          debugFrames={hasSourcemapDebug ? debugFrames : undefined}
         />
       </div>
     );

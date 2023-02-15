@@ -6,7 +6,7 @@ import Checkbox from 'sentry/components/checkbox';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -333,7 +333,7 @@ export const ProfilingDetailsFrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
-  background-color: ${props => props.theme.surface100};
+  background-color: ${props => props.theme.surface200};
   user-select: none;
   grid-area: tabs;
 `;

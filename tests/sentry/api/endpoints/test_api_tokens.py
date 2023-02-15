@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.models import ApiToken
 from sentry.testutils import APITestCase
@@ -71,3 +72,48 @@ class ApiTokensDeleteTest(APITestCase):
         response = self.client.delete(url, data={"token": token.token})
         assert response.status_code == 204
         assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
+
+
+@control_silo_test(stable=True)
+class ApiTokensSuperUserTest(APITestCase):
+    url = reverse("sentry-api-0-api-tokens")
+
+    def test_get_as_su(self):
+        super_user = self.create_user(is_superuser=True)
+        user_token = ApiToken.objects.create(user=self.user)
+        self.login_as(super_user, superuser=True)
+
+        response = self.client.get(self.url, {"userId": self.user.id})
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["token"] == user_token.token
+
+    def test_get_as_user(self):
+        super_user = self.create_user(is_superuser=True)
+        su_token = ApiToken.objects.create(user=super_user)
+        self.login_as(super_user)
+        # Ignores trying to fetch the user's token, since we're not an active superuser
+        response = self.client.get(self.url, {"userId": self.user.id})
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["token"] == su_token.token
+
+    def test_delete_as_su(self):
+        super_user = self.create_user(is_superuser=True)
+        user_token = ApiToken.objects.create(user=self.user)
+        self.login_as(super_user, superuser=True)
+
+        response = self.client.delete(self.url, {"userId": self.user.id, "token": user_token.token})
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not ApiToken.objects.filter(id=user_token.id).exists()
+
+    def test_delete_as_user(self):
+        super_user = self.create_user(is_superuser=True)
+        user_token = ApiToken.objects.create(user=self.user)
+        su_token = ApiToken.objects.create(user=super_user)
+        self.login_as(super_user)
+        # Fails trying to delete the user's token, since we're not an active superuser
+        response = self.client.delete(self.url, {"userId": self.user.id, "token": user_token.token})
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert ApiToken.objects.filter(id=user_token.id).exists()
+        assert ApiToken.objects.filter(id=su_token.id).exists()

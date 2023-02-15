@@ -6,7 +6,7 @@ import Clipboard from 'sentry/components/clipboard';
 import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {UserReport} from 'sentry/types';
 import {escape, nl2br} from 'sentry/utils';
 
@@ -28,7 +28,7 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
 
   return (
     <div className={className}>
-      <ActivityItem
+      <StyledActivityItem
         date={report.dateCreated}
         author={{type: 'user', user}}
         header={
@@ -55,10 +55,14 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
             __html: nl2br(escape(report.comments)),
           }}
         />
-      </ActivityItem>
+      </StyledActivityItem>
     </div>
   );
 }
+
+const StyledActivityItem = styled(ActivityItem)`
+  margin-bottom: 0;
+`;
 
 const Email = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};

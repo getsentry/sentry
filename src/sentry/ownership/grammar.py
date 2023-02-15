@@ -14,6 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
+from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
@@ -128,10 +129,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def test(
-        self,
-        data: PathSearchable,
-    ) -> bool:
+    def test(self, data: PathSearchable) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -147,11 +145,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-                match_frame_value_func=lambda val, pattern: bool(
-                    _path_to_regex(pattern).search(val)
-                )
-                if val is not None
-                else False,
+                match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
             )
         return False
 

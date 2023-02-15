@@ -53,7 +53,7 @@ interface FormData {
 type Props = {
   config: Config | SelectFieldConfig | AsyncSelectFieldConfig;
   formData: FormData;
-  formState: typeof FormState[keyof typeof FormState];
+  formState: (typeof FormState)[keyof typeof FormState];
   onChange: FormField['props']['onChange'];
   formErrors?: object;
 };

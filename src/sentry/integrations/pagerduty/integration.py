@@ -1,3 +1,5 @@
+import logging
+
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
@@ -18,6 +20,8 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .client import PagerDutyClient
+
+logger = logging.getLogger("sentry.integrations.pagerduty")
 
 DESCRIPTION = """
 Connect your Sentry organization with one or more PagerDuty accounts, and start getting
@@ -149,6 +153,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                 integration=integration, organization=organization
             )
         except OrganizationIntegration.DoesNotExist:
+            logger.exception("The PagerDuty post_install step failed.")
             return
 
         with transaction.atomic():

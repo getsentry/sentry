@@ -148,10 +148,6 @@ const keyDirectionMap: Record<string, Direction> = {
   ArrowRight: 'right',
   Tab: 'down',
   'Shift+Tab': 'up',
-  w: 'up',
-  s: 'down',
-  a: 'left',
-  d: 'right',
 } as const;
 
 export function handleFlamegraphKeyboardNavigation(

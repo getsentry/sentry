@@ -24,6 +24,7 @@ _DEV_METRICS_INDEXER_ARGS = [
     # Avoid Offset out of range errors.
     "--auto-offset-reset",
     "latest",
+    "--no-strict-offset-reset",
 ]
 
 _DEFAULT_DAEMONS = {
@@ -37,6 +38,7 @@ _DEFAULT_DAEMONS = {
         "--loglevel=debug",
         "--commit-batch-size=100",
         "--commit-batch-timeout-ms=1000",
+        "--no-strict-offset-reset",
     ],
     "post-process-forwarder-transactions": [
         "sentry",
@@ -48,10 +50,18 @@ _DEFAULT_DAEMONS = {
         "--commit-batch-timeout-ms=1000",
         "--commit-log-topic=snuba-transactions-commit-log",
         "--synchronize-commit-group=transactions_group",
+        "--no-strict-offset-reset",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
-    "occurrences": ["sentry", "run", "occurrences-ingest-consumer"],
-    "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
+    "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
+    "region_to_control": [
+        "sentry",
+        "run",
+        "region-to-control-consumer",
+        "--region-name",
+        "_local",
+        "--no-strict-offset-reset",
+    ],
     "server": ["sentry", "run", "web"],
     "storybook": ["yarn", "storybook"],
     "subscription-consumer": [
@@ -79,8 +89,8 @@ _DEFAULT_DAEMONS = {
         "performance",
         *_DEV_METRICS_INDEXER_ARGS,
     ],
-    "metrics-billing": ["sentry", "run", "billing-metrics-consumer"],
-    "profiles": ["sentry", "run", "ingest-profiles"],
+    "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
+    "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
 }
 
 

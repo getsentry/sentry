@@ -14,7 +14,7 @@ import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCate
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
@@ -27,7 +27,7 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
 
 interface PlatformPickerProps {
   setPlatform: (key: PlatformKey | null) => void;
@@ -67,9 +67,23 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       platform.name.toLowerCase().includes(filter) ||
       filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
 
-    const categoryMatch = (platform: PlatformIntegration) =>
-      category === 'all' ||
-      (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+    const categoryMatch = (platform: PlatformIntegration) => {
+      if (category === 'all') {
+        return true;
+      }
+
+      // Symfony was no appering under the server category
+      // because the php-symfony entry in src/sentry/integration-docs/_platforms.json
+      // does not contain the suffix 2.
+      // This is a temporary fix until we can update that file or completly remove the php-symfony2 occurrences
+      if (
+        (platform.id as any) === 'php-symfony' &&
+        (currentCategory?.platforms as undefined | string[])?.includes('php-symfony2')
+      ) {
+        return true;
+      }
+      return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+    };
 
     const filtered = platforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)

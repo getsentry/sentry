@@ -1,26 +1,31 @@
+import styled from '@emotion/styled';
+
 import AsyncComponent from 'sentry/components/asyncComponent';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   event: Event;
   orgId: Organization['id'];
-  projectId: Project['id'];
-  renderer?: Function;
+  projectSlug: Project['slug'];
 } & AsyncComponent['props'];
 
 type State = {
   attachmentList: Array<IssueAttachment> | null;
 } & AsyncComponent['state'];
 
-export class EventRRWebIntegration extends AsyncComponent<Props, State> {
+class EventRRWebIntegrationContent extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId, event} = this.props;
+    const {orgId, projectSlug, event} = this.props;
     return [
       [
         'attachmentList',
-        `/projects/${orgId}/${projectId}/events/${event.id}/attachments/`,
+        `/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/`,
 
         // This was changed from `rrweb.json`, so that we can instead
         // support incremental rrweb events as attachments. This is to avoid
@@ -44,23 +49,43 @@ export class EventRRWebIntegration extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {attachmentList} = this.state;
-    const renderer = this.props.renderer || (children => children);
 
     if (!attachmentList?.length) {
       return null;
     }
 
-    const {orgId, projectId, event} = this.props;
+    const {orgId, projectSlug, event} = this.props;
 
     function createAttachmentUrl(attachment: IssueAttachment) {
-      return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
+      return `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
     }
 
-    return renderer(
-      <LazyLoad
-        component={() => import('./rrwebReplayer')}
-        urls={attachmentList.map(createAttachmentUrl)}
-      />
+    return (
+      <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+        <LazyLoad
+          component={() => import('./rrwebReplayer')}
+          urls={attachmentList.map(createAttachmentUrl)}
+        />
+      </StyledReplayEventDataSection>
     );
   }
 }
+
+export const EventRRWebIntegration = (props: Props) => {
+  const organization = useOrganization();
+  const hasReplay = Boolean(
+    props.event?.tags?.find(({key}) => key === 'replayId')?.value
+  );
+  const hasEventAttachmentsFeature = organization.features.includes('event-attachments');
+
+  if (hasReplay || !hasEventAttachmentsFeature) {
+    return null;
+  }
+
+  return <EventRRWebIntegrationContent {...props} />;
+};
+
+const StyledReplayEventDataSection = styled(EventDataSection)`
+  overflow: hidden;
+  margin-bottom: ${space(3)};
+`;

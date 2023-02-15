@@ -13,7 +13,7 @@ import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/pane
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {DynamicSamplingBias, DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -40,7 +40,9 @@ export const knowDynamicSamplingBiases = {
   },
   [DynamicSamplingBiasType.BOOST_ENVIRONMENTS]: {
     label: t('Prioritize dev environments'),
-    help: t('Captures more traces from environments that contain “dev” and “test”'),
+    help: t(
+      'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
+    ),
   },
   [DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS]: {
     label: t('Prioritize key transactions'),

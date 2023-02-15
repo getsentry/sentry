@@ -19,5 +19,5 @@ class UnsubscribeIssueNotificationsView(UnsubscribeBaseView):
 
     def unsubscribe(self, instance, user):
         GroupSubscription.objects.create_or_update(
-            group=instance, project=instance.project, user=user, values={"is_active": False}
+            group=instance, project=instance.project, user_id=user.id, values={"is_active": False}
         )

@@ -8,9 +8,10 @@ import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import type {Actor, Commit, Group, Organization, Release} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Actor, Commit, Group, Organization, Release} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 type Owner = {
   actor: Actor;
@@ -43,13 +44,12 @@ const SuggestedAssignees = ({
       trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
         organization,
         project_id: parseInt(projectId!, 10),
-        group_id: parseInt(group.id, 10),
-        issue_category: group.issueCategory,
         action_type: 'assign',
         assigned_suggestion_reason: owner.source,
+        ...getAnalyticsDataForGroup(group),
       });
     },
-    [onAssign, group.id, group.issueCategory, projectId, organization]
+    [onAssign, organization, projectId, group]
   );
 
   if (loading) {

@@ -6,15 +6,14 @@ import orderBy from 'lodash/orderBy';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, ButtonLabel} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useMedia from 'sentry/utils/useMedia';
@@ -325,7 +324,7 @@ const StyledItemButton = styled(Button)`
   }
 `;
 
-const OverflowMenu = styled(DropdownMenuControl)`
+const OverflowMenu = styled(DropdownMenu)`
   position: absolute;
   top: 12px;
   right: ${space(1)};

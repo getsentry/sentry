@@ -27,6 +27,10 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return self.create_team(organization=self.org)
 
     @cached_property
+    def idp_team(self):
+        return self.create_team(organization=self.org, idp_provisioned=True)
+
+    @cached_property
     def owner(self):
         return OrganizationMember.objects.get(organization=self.org, user=self.user)
 
@@ -199,6 +203,21 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.admin
         ).exists()
 
+    def test_cannot_join_idp_team(self):
+        self.login_as(self.admin.user)
+        self.get_error_response(self.org.slug, self.admin.id, self.idp_team.slug, status_code=403)
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.admin
+        ).exists()
+
+        self.login_as(self.member.user)
+        self.get_error_response(self.org.slug, self.member.id, self.idp_team.slug, status_code=403)
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+
     def test_member_can_add_member_to_team(self):
         target_member = self.create_member(
             organization=self.org, user=self.create_user(), role="member"
@@ -220,6 +239,27 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         )
 
         assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+
+    def test_cannot_add_to_idp_team(self):
+        target_member = self.create_member(
+            organization=self.org, user=self.create_user(), role="member"
+        )
+
+        self.login_as(self.member.user)
+        self.get_error_response(
+            self.org.slug, target_member.id, self.idp_team.slug, status_code=403
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=target_member
+        ).exists()
+
+        self.login_as(self.admin.user)
+        self.get_error_response(self.org.slug, self.member.id, self.idp_team.slug, status_code=403)
+
+        assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
         ).exists()
 
@@ -474,6 +514,23 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not ax_after_leaving.has_project_access(project)
         assert not ax_after_leaving.has_project_membership(project)
 
+    def test_cannot_leave_idp_provisioned_team(self):
+        user = self.create_user()
+        organization = self.create_organization(flags=0)
+        idp_team = self.create_team(organization=organization, idp_provisioned=True)
+        member = self.create_member(organization=organization, user=user, teams=[idp_team])
+
+        self.login_as(user)
+        self.get_error_response(
+            organization.slug,
+            member.id,
+            idp_team.slug,
+            status_code=403,
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team=idp_team, organizationmember=member
+        ).exists()
+
 
 @region_silo_test(stable=True)
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
@@ -567,3 +624,24 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=other_member
         )
         assert target_omt.role is None
+
+    @with_feature("organizations:team-roles")
+    def test_member_on_owner_team_can_promote_member(self):
+        owner_team = self.create_team(org_role="owner")
+        member = self.create_member(
+            organization=self.org,
+            user=self.create_user(),
+            role="member",
+            teams=[owner_team],
+        )
+
+        self.login_as(member.user)
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"

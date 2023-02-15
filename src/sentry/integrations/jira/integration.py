@@ -19,6 +19,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -36,9 +37,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.tasks.integrations import migrate_issues
-from sentry.types.issues import GroupCategory
 from sentry.utils.decorators import classproperty
-from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
@@ -357,7 +356,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         output = [
             "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
+                group.get_absolute_url(params={"referrer": "jira_integration"}),
             )
         ]
 

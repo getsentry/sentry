@@ -16,7 +16,7 @@ from sentry.search.utils import (
     tokenize_query,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
 def test_get_numeric_field_value():
@@ -130,6 +130,7 @@ def test_get_numeric_field_value_invalid():
         get_numeric_field_value("foo", ">=1k")
 
 
+@region_silo_test(stable=True)
 class ParseQueryTest(TestCase):
     def parse_query(self, query):
         return parse_query([self.project], query, self.user, None)
@@ -622,6 +623,7 @@ class ParseQueryTest(TestCase):
         assert result["assigned_or_suggested"].id == 0
 
 
+@region_silo_test(stable=True)
 class GetLatestReleaseTest(TestCase):
     def test(self):
         with pytest.raises(Release.DoesNotExist):

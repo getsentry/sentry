@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-type Props = {
+export type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
@@ -25,7 +25,7 @@ function ScoreCard({
   trendStatus,
   className,
   renderOpenButton,
-}: Props) {
+}: ScoreCardProps) {
   return (
     <ScorePanel className={className}>
       <HeaderWrapper>
@@ -104,7 +104,7 @@ export const Score = styled('span')`
   white-space: nowrap;
 `;
 
-type TrendProps = {trendStatus: Props['trendStatus']};
+type TrendProps = {trendStatus: ScoreCardProps['trendStatus']};
 
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};

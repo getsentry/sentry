@@ -11,7 +11,7 @@ import {
   InputTrailingItems,
 } from 'sentry/components/inputGroup';
 import {IconCopy} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
 interface Props extends Omit<InputProps, 'onCopy'> {
@@ -115,11 +115,11 @@ function TextCopyInput({
 
 export default TextCopyInput;
 
-export const StyledInput = styled(Input)<{rtl?: boolean}>`
+const StyledInput = styled(Input)<{rtl?: boolean}>`
   direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
 `;
 
-export const StyledCopyButton = styled(Button)`
+const StyledCopyButton = styled(Button)`
   color: ${p => p.theme.subText};
   padding: ${space(0.5)};
   min-height: 0;

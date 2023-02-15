@@ -5,9 +5,11 @@ from django.urls import reverse
 import sentry.auth.idpmigration as idpmigration
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class IDPMigrationTests(TestCase):
     def setUp(self):
         super().setUp()
@@ -20,7 +22,8 @@ class IDPMigrationTests(TestCase):
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
     def test_send_one_time_account_confirm_link(self):
-        om = OrganizationMember.objects.create(organization=self.org, user=self.user)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.create(organization=self.org, user=self.user)
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )

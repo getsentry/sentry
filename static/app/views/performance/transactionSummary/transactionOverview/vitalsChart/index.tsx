@@ -25,6 +25,7 @@ type Props = ViewProps & {
   organization: OrganizationSummary;
   queryExtra: Query;
   withoutZerofill: boolean;
+  queryExtras?: Record<string, string>;
 };
 
 function VitalsChart({
@@ -37,6 +38,7 @@ function VitalsChart({
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
+  queryExtras,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -137,6 +139,7 @@ function VitalsChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.vitals-chart"
+        queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

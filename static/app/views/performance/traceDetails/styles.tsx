@@ -6,7 +6,7 @@ import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header'
 import {Panel} from 'sentry/components/panels';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -111,7 +111,7 @@ export function Tags({
               <EventTagsPill
                 key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
                 tag={tag}
-                projectId={transaction.project_slug}
+                projectSlug={transaction.project_slug}
                 organization={organization}
                 query={query}
                 streamPath={streamPath}

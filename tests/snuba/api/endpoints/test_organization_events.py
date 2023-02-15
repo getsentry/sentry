@@ -13,6 +13,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -24,7 +25,6 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
-from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
@@ -67,7 +67,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
     def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
         if timestamp is None:
-            timestamp = before_now(minutes=1)
+            timestamp = self.ten_mins_ago
+
+        min_age = before_now(minutes=10)
+        if timestamp > min_age:
+            # Sentry does some rounding of timestamps to improve cache hits in snuba.
+            # This can result in events not being returns if the timestamps
+            # are too recent.
+            raise Exception(
+                f"Please define a timestamp older than 10 minutes to avoid flakey tests. Want a timestamp before {min_age}, got: {timestamp} "
+            )
 
         start_timestamp = None
         if duration is not None:
@@ -586,7 +595,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             platform="transaction",
             timestamp=self.ten_mins_ago,
             start_timestamp=self.eleven_mins_ago,
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -609,9 +618,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         event, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
 
@@ -636,7 +645,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
     def test_has_performance_issue_ids(self):
         data = load_data(
             platform="transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         self.store_event(data=data, project_id=self.project.id)
 
@@ -682,7 +691,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         project = self.create_project(name="foo bar")
         data = load_data(
             "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         event = self.store_event(data=data, project_id=project.id)
 
@@ -699,13 +708,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         project = self.create_project(name="foo bar")
         data1 = load_data(
             "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         event1 = self.store_event(data=data1, project_id=project.id)
 
         data2 = load_data(
             "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group2"],
         )
         event2 = self.store_event(data=data2, project_id=project.id)
 
@@ -2135,7 +2144,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
         project2 = self.create_project()
 
-        data = self.load_data(timestamp=before_now(minutes=1))
+        data = self.load_data()
         data["transaction"] = "/count_miserable/horribilis/project2"
         data["user"] = {"email": "project2@example.com"}
         self.store_event(data, project_id=project2.id)
@@ -3020,7 +3029,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             1,
             ["group1-fingerprint"],
             None,
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=10),
+            before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
 
@@ -3485,6 +3494,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
                 "var(transaction.duration)",
                 "cov(transaction.duration, transaction.duration)",
                 "corr(transaction.duration, transaction.duration)",
+                "linear_regression(transaction.duration, transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -3503,6 +3513,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert data[0]["var(transaction.duration)"] == 0.0
         assert data[0]["cov(transaction.duration, transaction.duration)"] == 0.0
         assert data[0]["corr(transaction.duration, transaction.duration)"] == 0.0
+        assert data[0]["linear_regression(transaction.duration, transaction.duration)"] == [0, 0]
         assert data[0]["sum(transaction.duration)"] == 10000
 
     @requires_not_arm64
@@ -5449,9 +5460,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 400, response.content
 
     def test_tag_that_looks_like_aggregate(self):
-        data = self.load_data(
-            timestamp=before_now(minutes=1),
-        )
+        data = self.load_data()
         data["tags"] = {"p95": "<5k"}
         self.store_event(data, project_id=self.project.id)
 
@@ -5615,9 +5624,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert set(fields) == unit_keys
 
     def test_readable_device_name(self):
-        data = self.load_data(
-            timestamp=before_now(minutes=1),
-        )
+        data = self.load_data()
         data["tags"] = {"device": "iPhone14,3"}
         self.store_event(data, project_id=self.project.id)
 

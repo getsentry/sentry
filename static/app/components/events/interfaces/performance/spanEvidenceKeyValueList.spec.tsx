@@ -9,6 +9,7 @@ import {EntryType, IssueType} from 'sentry/types';
 
 import {
   extractQueryParameters,
+  extractSpanURLString,
   SpanEvidenceKeyValueList,
 } from './spanEvidenceKeyValueList';
 
@@ -135,7 +136,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
       expect(
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('46.154% (300ms/650ms)');
+      ).toHaveTextContent('46% (300ms/650ms)');
     });
   });
 
@@ -191,12 +192,55 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('/book/');
+      ).toHaveTextContent('/book/[Parameters]');
 
       expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parameters')
-      ).toHaveTextContent('book_id:{7,8} sort:{up,down}');
+
+      const parametersKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.parameters'
+      );
+
+      expect(parametersKeyValue).toHaveTextContent('book_id:{7,8}');
+      expect(parametersKeyValue).toHaveTextContent('sort:{up,down}');
+    });
+
+    describe('extractSpanURLString', () => {
+      it('Tries to pull a URL from the span data', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            data: {
+              url: 'http://service.io',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/');
+      });
+
+      it('Pulls out a relative URL if a base is provided', () => {
+        expect(
+          extractSpanURLString(
+            {
+              span_id: 'a',
+              data: {
+                url: '/item',
+              },
+            },
+            'http://service.io'
+          )?.toString()
+        ).toEqual('http://service.io/item');
+      });
+
+      it('Falls back to span description if URL is faulty', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            description: 'GET http://service.io/item',
+            data: {
+              url: '/item',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/item');
+      });
     });
 
     describe('extractQueryParameters', () => {
@@ -273,6 +317,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
     });
   });
 
@@ -352,7 +397,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('52.309% (487ms/931ms)');
+      ).toHaveTextContent('52% (487ms/931ms)');
     });
   });
 });

@@ -4,11 +4,9 @@ from datetime import datetime
 from functools import reduce
 from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
-from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
-from sentry import eventstore
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -16,7 +14,6 @@ from sentry.api.event_search import (
     SearchFilter,
     SearchKey,
     SearchValue,
-    parse_search_query,
 )
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
@@ -656,7 +653,7 @@ def convert_search_filter_to_snuba_query(
         # most field aliases are handled above but timestamp.to_{hour,day} are
         # handled here
         if name in FIELD_ALIASES:
-            name = FIELD_ALIASES[name].get_expression(params)
+            name = FIELD_ALIASES[name].get_field(params)
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -842,110 +839,6 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
     return condition, having, projects_to_filter, group_ids
 
 
-def get_filter(query=None, params=None, parser_config_overrides=None):
-    """
-    Returns an eventstore filter given the search text provided by the user and
-    URL params
-    """
-    # NOTE: this function assumes project permissions check already happened
-    parsed_terms = []
-    if query is not None:
-        try:
-            parsed_terms = parse_search_query(
-                query, params=params, config_overrides=parser_config_overrides
-            )
-        except ParseError as e:
-            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
-
-    kwargs = {
-        "start": None,
-        "end": None,
-        "conditions": [],
-        "having": [],
-        "user_id": None,
-        "organization_id": None,
-        "team_id": [],
-        "project_ids": [],
-        "group_ids": [],
-        "condition_aggregates": [],
-        "aliases": params.get("aliases", {}) if params is not None else {},
-    }
-
-    projects_to_filter = []
-    if any(
-        isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
-        for term in parsed_terms
-    ):
-        (
-            condition,
-            having,
-            found_projects_to_filter,
-            group_ids,
-        ) = convert_search_boolean_to_snuba_query(parsed_terms, params)
-
-        if condition:
-            and_conditions = flatten_condition_tree(condition, SNUBA_AND)
-            for func in and_conditions:
-                kwargs["conditions"].append(convert_function_to_condition(func))
-        if having:
-            kwargs["condition_aggregates"] = [
-                term.key.name for term in parsed_terms if isinstance(term, AggregateFilter)
-            ]
-            and_having = flatten_condition_tree(having, SNUBA_AND)
-            for func in and_having:
-                kwargs["having"].append(convert_function_to_condition(func))
-        if found_projects_to_filter:
-            projects_to_filter = list(set(found_projects_to_filter))
-        if group_ids is not None:
-            kwargs["group_ids"].extend(list(set(group_ids)))
-    else:
-        projects_to_filter = set()
-        for term in parsed_terms:
-            if isinstance(term, SearchFilter):
-                conditions, found_projects_to_filter, group_ids = format_search_filter(term, params)
-                if len(conditions) > 0:
-                    kwargs["conditions"].extend(conditions)
-                if found_projects_to_filter:
-                    projects_to_filter.update(found_projects_to_filter)
-                if group_ids is not None:
-                    kwargs["group_ids"].extend(group_ids)
-            elif isinstance(term, AggregateFilter):
-                converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
-                kwargs["condition_aggregates"].append(term.key.name)
-                if converted_filter:
-                    kwargs["having"].append(converted_filter)
-        projects_to_filter = list(projects_to_filter)
-
-    # Keys included as url params take precedent if same key is included in search
-    # They are also considered safe and to have had access rules applied unlike conditions
-    # from the query string.
-    if params:
-        for key in ("start", "end"):
-            kwargs[key] = params.get(key, None)
-        if "user_id" in params:
-            kwargs["user_id"] = params["user_id"]
-        if "organization_id" in params:
-            kwargs["organization_id"] = params["organization_id"]
-        if "team_id" in params:
-            kwargs["team_id"] = params["team_id"]
-        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
-        if "project_id" in params:
-            if projects_to_filter:
-                kwargs["project_ids"] = projects_to_filter
-            else:
-                kwargs["project_ids"] = params["project_id"]
-        if "environment" in params:
-            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
-            kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
-        if "group_ids" in params:
-            kwargs["group_ids"] = to_list(params["group_ids"])
-        # Deprecated alias, use `group_ids` instead
-        if ISSUE_ID_ALIAS in params:
-            kwargs["group_ids"] = to_list(params["issue.id"])
-
-    return eventstore.Filter(**kwargs)
-
-
 def format_search_filter(term, params):
     projects_to_filter = []  # Used to avoid doing multiple conditions on project ID
     conditions = []
@@ -961,10 +854,12 @@ def format_search_filter(term, params):
             for p in Project.objects.filter(id__in=params.get("project_id", []), slug__in=slugs)
         }
         missing = [slug for slug in slugs if slug not in projects]
-        if missing and term.operator in EQUALITY_OPERATORS:
-            raise InvalidSearchQuery(
-                f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
-            )
+        if missing:
+            if term.operator in EQUALITY_OPERATORS:
+                raise InvalidSearchQuery(
+                    f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
+                )
+
         project_ids = list(sorted(projects.values()))
         if project_ids:
             # Create a new search filter with the correct values
@@ -979,7 +874,7 @@ def format_search_filter(term, params):
                     projects_to_filter = project_ids
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
-        # A blank term value means that this is a has filter
+        # A blank term value means that this is a 'has' filter
         if term.operator in EQUALITY_OPERATORS:
             group_ids = to_list(value)
         else:

@@ -1,8 +1,16 @@
+import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+
 type IssueStream = {
   group_id: string;
   tab: string;
   was_shown_suggestion: boolean;
 };
+
+type SourceMapDebugParam = {
+  type: SourceMapProcessingIssueType;
+  group_id?: string;
+} & BaseEventAnalyticsParams;
 
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
@@ -23,6 +31,18 @@ export type IssueEventParameters = {
   'issue.shared_publicly': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_error_banner.proguard_misconfigured.clicked': {
+    group?: string;
+    platform?: string;
+  };
+  'issue_error_banner.proguard_misconfigured.displayed': {
+    group?: string;
+    platform?: string;
+  };
+  'issue_error_banner.proguard_missing_mapping.displayed': {
+    group?: string;
+    platform?: string;
+  };
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -96,6 +116,8 @@ export type IssueEventParameters = {
   };
   'issues_tab.viewed': {
     num_issues: number;
+    num_new_issues: number;
+    num_old_issues: number;
     num_perf_issues: number;
     page: number;
     query: string;
@@ -120,6 +142,8 @@ export type IssueEventParameters = {
     node_key: string;
   };
   resolve_issue: {release: string};
+  'source_map_debug.docs_link_clicked': SourceMapDebugParam;
+  'source_map_debug.expand_clicked': SourceMapDebugParam;
   'span_view.embedded_child.hide': {};
   'span_view.embedded_child.show': {};
   'tag.clicked': {
@@ -135,6 +159,12 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
+  'issue_error_banner.proguard_misconfigured.displayed':
+    'Proguard Potentially Misconfigured Issue Error Banner Displayed',
+  'issue_error_banner.proguard_missing_mapping.displayed':
+    'Proguard Missing Mapping Issue Error Banner Displayed',
+  'issue_error_banner.proguard_misconfigured.clicked':
+    'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
@@ -174,4 +204,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Autogrouped Siblings Toggled',
   'issue_details.performance.hidden_spans_expanded':
     'Performance Issue Details: Hidden Spans Expanded',
+  'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
+  'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
 };

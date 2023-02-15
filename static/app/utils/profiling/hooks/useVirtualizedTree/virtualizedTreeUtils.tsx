@@ -2,7 +2,7 @@ import {Theme} from '@emotion/react';
 
 import {
   TreeLike,
-  UseVirtualizedListProps,
+  UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
@@ -32,7 +32,7 @@ export function updateGhostRow({
   element.style.height = `${rowHeight}px`;
   element.style.position = 'absolute';
   element.style.backgroundColor =
-    interaction === 'clicked' ? theme.blue300 : theme.surface100;
+    interaction === 'clicked' ? theme.blue300 : theme.surface200;
   element.style.pointerEvents = 'none';
   element.style.willChange = 'transform, opacity';
   element.style.transform = `translateY(${rowHeight * selectedNodeIndex - scrollTop}px)`;
@@ -190,8 +190,8 @@ export function findRenderedItems<T extends TreeLike>({
   scrollTop,
 }: {
   items: VirtualizedTreeNode<T>[];
-  overscroll: NonNullable<UseVirtualizedListProps<T>['overscroll']>;
-  rowHeight: UseVirtualizedListProps<T>['rowHeight'];
+  overscroll: NonNullable<UseVirtualizedTreeProps<T>['overscroll']>;
+  rowHeight: UseVirtualizedTreeProps<T>['rowHeight'];
   scrollHeight: VirtualizedState<T>['scrollHeight'];
   scrollTop: number;
 }) {

@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import ContextData from 'sentry/components/contextData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -17,6 +17,7 @@ import {DeviceEventContext} from './device';
 import {GPUEventContext} from './gpu';
 import {MemoryInfoEventContext} from './memoryInfo';
 import {OperatingSystemEventContext} from './operatingSystem';
+import {ProfileEventContext} from './profile';
 import {ReduxContext} from './redux';
 import {RuntimeEventContext} from './runtime';
 import {StateEventContext} from './state';
@@ -39,6 +40,7 @@ const CONTEXT_TYPES = {
   trace: TraceEventContext,
   threadpool_info: ThreadPoolInfoEventContext,
   state: StateEventContext,
+  profile: ProfileEventContext,
 
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': ReduxContext,
@@ -97,7 +99,7 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-export function geKnownData<Data, DataType>({
+export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
   meta,

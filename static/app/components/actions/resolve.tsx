@@ -7,9 +7,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import Tooltip from 'sentry/components/tooltip';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
@@ -189,7 +188,7 @@ class ResolveActions extends Component<Props> {
     const isDisabled = !projectSlug ? disabled : disableDropdown;
 
     return (
-      <DropdownMenuControl
+      <DropdownMenu
         items={items}
         trigger={triggerProps => (
           <DropdownTrigger

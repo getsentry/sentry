@@ -1,14 +1,22 @@
+import uniq from 'lodash/uniq';
+
 import {
   BaseGroup,
   EntryException,
   EntryThreads,
   EventMetadata,
   EventOrGroupType,
+  Group,
+  GroupActivityAssigned,
+  GroupActivityType,
   GroupTombstone,
   IssueCategory,
+  IssueType,
   TreeLabelPart,
 } from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
+import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
@@ -192,7 +200,7 @@ export function getShortEventId(eventId: string) {
  * Returns a comma delineated list of errors
  */
 function getEventErrorString(event: Event) {
-  return event.errors?.map(error => error.type).join(',') || '';
+  return uniq(event.errors?.map(error => error.type)).join(',') || '';
 }
 
 function hasTrace(event: Event) {
@@ -263,7 +271,23 @@ function getNumberOfThreadsWithNames(event: Event) {
   return Math.max(...threadLengths);
 }
 
-export function getAnalyicsDataForEvent(event?: Event) {
+/**
+ * Return the integration type for the first assignment via integration
+ */
+function getAssignmentIntegration(group: Group) {
+  if (!group.activity) {
+    return '';
+  }
+  const assignmentAcitivies = group.activity.filter(
+    activity => activity.type === GroupActivityType.ASSIGNED
+  ) as GroupActivityAssigned[];
+  const integrationAssignments = assignmentAcitivies.find(
+    activity => !!activity.data.integration
+  );
+  return integrationAssignments?.data.integration || '';
+}
+
+export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParams {
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
@@ -280,5 +304,45 @@ export function getAnalyicsDataForEvent(event?: Event) {
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
+    error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+    has_otel: event?.contexts?.otel !== undefined,
+  };
+}
+
+export type CommonGroupAnalyticsData = {
+  error_count: number;
+  group_has_replay: boolean;
+  group_id: number;
+  has_external_issue: boolean;
+  has_owner: boolean;
+  integration_assignment_source: string;
+  issue_age: number;
+  issue_category: IssueCategory;
+  issue_id: number;
+  issue_type: IssueType;
+  num_comments: number;
+  is_assigned?: boolean;
+  issue_level?: string;
+  issue_status?: string;
+};
+
+export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
+  const groupId = group ? parseInt(group.id, 10) : -1;
+  return {
+    group_id: groupId,
+    // overload group_id with the issue_id
+    issue_id: groupId,
+    issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    issue_type: group?.issueType ?? IssueType.ERROR,
+    issue_status: group?.status,
+    issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
+    issue_level: group?.level,
+    is_assigned: !!group?.assignedTo,
+    error_count: Number(group?.count || -1),
+    group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
+    num_comments: group ? group.numComments : -1,
+    has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
+    has_owner: group?.owners ? group?.owners.length > 0 : false,
+    integration_assignment_source: group ? getAssignmentIntegration(group) : '',
   };
 }

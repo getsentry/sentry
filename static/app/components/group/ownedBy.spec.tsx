@@ -17,7 +17,7 @@ describe('Group > OwnedBy', () => {
         project={TestStubs.Project()}
       />
     );
-    expect(screen.getByText('No-one')).toBeInTheDocument();
+    expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
   it('renders team owner', () => {
@@ -82,7 +82,7 @@ describe('Group > OwnedBy', () => {
         project={TestStubs.Project()}
       />
     );
-    expect(screen.getByText('No-one')).toBeInTheDocument();
+    expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
   it('allows project:write to edit owners', () => {

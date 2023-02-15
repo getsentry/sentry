@@ -1,3 +1,4 @@
+import logging
 from typing import (
     Any,
     Callable,
@@ -111,8 +112,8 @@ class Serializer:
     ) -> Optional[MutableMapping[str, JSONData]]:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+        except Exception:
+            logging.exception("Failed to serialize", extra={"instance": obj})
             return None
 
     def serialize(

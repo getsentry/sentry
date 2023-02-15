@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,8 +13,13 @@ class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization, user_id) -> Response:
-        users = user_service.serialize_users(
-            user_ids=[user_id], organization_id=organization.id, as_user=request.user
+        try:
+            int(user_id)
+        except ValueError:
+            raise ValidationError(f"user_id({user_id}) must be an integer")
+
+        users = user_service.serialize_many(
+            filter={"user_ids": [user_id], "organization_id": organization.id}, as_user=request.user
         )
         if len(users) == 0:
             return Response(status=404)

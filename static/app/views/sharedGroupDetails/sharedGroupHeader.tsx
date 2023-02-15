@@ -5,12 +5,10 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, IssueCategory} from 'sentry/types';
 
-import UnhandledTag, {
-  TagAndMessageWrapper,
-} from '../organizationGroupDetails/unhandledTag';
+import UnhandledTag, {TagAndMessageWrapper} from '../issueDetails/unhandledTag';
 
 type Props = {
   group: Group;

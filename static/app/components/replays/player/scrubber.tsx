@@ -5,7 +5,7 @@ import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   className?: string;
@@ -121,7 +121,7 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${Meter} {
     border-radius: ${p => p.theme.borderRadius};
-    background: ${p => p.theme.surface400};
+    background: ${p => p.theme.translucentInnerBorder};
   }
 
   ${RangeWrapper} {
@@ -142,7 +142,7 @@ export const PlayerScrubber = styled(Scrubber)`
   }
 
   ${MouseTrackingValue} {
-    background: ${p => p.theme.gray200};
+    background: ${p => p.theme.translucentBorder};
     border-radius: ${p => p.theme.borderRadius};
   }
 
@@ -181,6 +181,6 @@ export const PlayerScrubber = styled(Scrubber)`
    *      MouseTrackingValue @ 10s
    */
   ${MouseTrackingValue}:after {
-    background: ${p => p.theme.gray200};
+    background: ${p => p.theme.gray300};
   }
 `;

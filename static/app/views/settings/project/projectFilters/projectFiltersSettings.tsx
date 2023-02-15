@@ -27,7 +27,7 @@ import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
 const LEGACY_BROWSER_SUBFILTERS = {
@@ -200,7 +200,7 @@ type Props = {
 };
 
 type State = {
-  hooksDisabled: ReturnType<typeof HookStore['get']>;
+  hooksDisabled: ReturnType<(typeof HookStore)['get']>;
 } & AsyncComponent['state'];
 
 class ProjectFiltersSettings extends AsyncComponent<Props, State> {

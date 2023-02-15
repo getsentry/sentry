@@ -1,6 +1,6 @@
 import {css, Global, Theme} from '@emotion/react';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const docsStyles = (theme: Theme) => css`
   html {
@@ -101,6 +101,7 @@ const docsStyles = (theme: Theme) => css`
   /** Code */
   .sbdocs.sbdocs-pre {
     overflow: visible;
+    font-family: ${theme.text.familyMono};
   }
   .sbdocs.sbdocs-wrapper *:not(pre) > code {
     font-family: ${theme.text.familyMono};

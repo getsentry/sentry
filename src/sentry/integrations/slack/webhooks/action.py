@@ -29,7 +29,6 @@ from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger
@@ -509,7 +508,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             invited_member_id=member_id,
         )
 
-        manage_url = absolute_uri(
+        manage_url = member.organization.absolute_url(
             reverse("sentry-organization-members", args=[member.organization.slug])
         )
 

@@ -8,7 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
@@ -76,6 +76,7 @@ const MonitorId = styled('div')`
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
   cursor: pointer;
+  width: max-content;
 `;
 
 const MonitorStats = styled('div')`

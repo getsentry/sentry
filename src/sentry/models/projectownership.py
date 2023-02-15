@@ -15,7 +15,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models import ProjectCodeOwners, Team
     from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
@@ -117,7 +117,7 @@ class ProjectOwnership(Model):
         codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
         ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
-        rules = cls._matching_ownership_rules(ownership, project_id, data)
+        rules = cls._matching_ownership_rules(ownership, data)
 
         if not rules:
             project = Project.objects.get(id=project_id)
@@ -190,10 +190,8 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, project_id, data)
-            codeowners_rules = (
-                cls._matching_ownership_rules(codeowners, project_id, data) if codeowners else []
-            )
+            ownership_rules = cls._matching_ownership_rules(ownership, data)
+            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
 
             if not (codeowners_rules or ownership_rules):
                 return []
@@ -241,7 +239,14 @@ class ProjectOwnership(Model):
 
         """
         from sentry import analytics
-        from sentry.models import ActivityIntegration, GroupAssignee, GroupOwner, GroupOwnerType
+        from sentry.models import (
+            ActivityIntegration,
+            GroupAssignee,
+            GroupOwner,
+            GroupOwnerType,
+            Team,
+            User,
+        )
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
@@ -260,6 +265,14 @@ class ProjectOwnership(Model):
                 return
 
             owner = issue_owner.owner()
+            if not owner:
+                return
+
+            try:
+                owner = owner.resolve()
+            except (User.DoesNotExist, Team.DoesNotExist):
+                return
+
             details = (
                 {"integration": ActivityIntegration.SUSPECT_COMMITTER.value}
                 if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value
@@ -273,29 +286,32 @@ class ProjectOwnership(Model):
                     "rule": (issue_owner.context or {}).get("rule", ""),
                 }
             )
-            if owner and owner.resolve():
-                assignment = GroupAssignee.objects.assign(
-                    event.group,
-                    owner.resolve(),
-                    create_only=True,
-                    extra=details,
-                )
 
-                if assignment["new_assignment"] or assignment["updated_assignment"]:
-                    analytics.record(
-                        "codeowners.assignment"
-                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
-                        else "issueowners.assignment",
-                        organization_id=ownership.project.organization_id,
-                        project_id=project_id,
-                        group_id=event.group.id,
-                    )
+            assignment = GroupAssignee.objects.assign(
+                event.group,
+                owner,
+                create_only=True,
+                extra=details,
+            )
+
+            if assignment["new_assignment"] or assignment["updated_assignment"]:
+                analytics.record(
+                    "codeowners.assignment"
+                    if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                    else "issueowners.assignment",
+                    organization_id=ownership.project.organization_id,
+                    project_id=project_id,
+                    group_id=event.group.id,
+                )
 
     @classmethod
     def _matching_ownership_rules(
-        cls, ownership: "ProjectOwnership", project_id: int, data: Mapping[str, Any]
+        cls,
+        ownership: Union["ProjectOwnership", "ProjectCodeOwners"],
+        data: Mapping[str, Any],
     ) -> Sequence["Rule"]:
         rules = []
+
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
                 if rule.test(data):

@@ -159,7 +159,7 @@ def update_incident_status(
             comment=comment,
         )
         if user:
-            subscribe_to_incident(incident, user)
+            subscribe_to_incident(incident, user.id)
 
         prev_status = incident.status
         kwargs = {"status": status.value, "status_method": status_method.value}
@@ -227,7 +227,7 @@ def create_incident_activity(
     date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
-        subscribe_to_incident(incident, user)
+        subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value
     previous_value = str(previous_value) if previous_value is not None else previous_value
     kwargs = {}
@@ -395,12 +395,12 @@ def get_incident_aggregates(
     return aggregated_result[0]
 
 
-def subscribe_to_incident(incident, user):
-    return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
+def subscribe_to_incident(incident, user_id):
+    return IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
 
 
-def unsubscribe_from_incident(incident, user):
-    return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+def unsubscribe_from_incident(incident, user_id):
+    return IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
 
 
 def get_incident_subscribers(incident):
@@ -521,6 +521,7 @@ def create_alert_rule(
         if user:
             create_audit_entry_from_user(
                 user,
+                ip_address=kwargs.get("ip_address") if kwargs else None,
                 organization_id=organization.id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
@@ -770,6 +771,7 @@ def update_alert_rule(
     if user:
         create_audit_entry_from_user(
             user,
+            ip_address=kwargs.get("ip_address") if kwargs else None,
             organization_id=alert_rule.organization_id,
             target_object=alert_rule.id,
             data=alert_rule.get_audit_log_data(),
@@ -805,7 +807,7 @@ def disable_alert_rule(alert_rule):
         bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
 
-def delete_alert_rule(alert_rule, user=None):
+def delete_alert_rule(alert_rule, user=None, ip_address=None):
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
@@ -817,6 +819,7 @@ def delete_alert_rule(alert_rule, user=None):
         if user:
             create_audit_entry_from_user(
                 user,
+                ip_address=ip_address,
                 organization_id=alert_rule.organization_id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),

@@ -176,3 +176,11 @@ class EVENT_PARAMS:
         type=int,
         description="Index of the frame that should be used for source map resolution.",
     )
+
+    EXCEPTION_IDX = OpenApiParameter(
+        name="exception_idx",
+        location="query",
+        required=True,
+        type=int,
+        description="Index of the exception that should be used for source map resolution.",
+    )

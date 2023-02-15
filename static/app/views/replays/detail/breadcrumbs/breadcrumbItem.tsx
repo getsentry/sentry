@@ -5,7 +5,7 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
@@ -128,13 +128,13 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   border: none;
   position: relative;
   ${p => p.isSelected && `background-color: ${p.theme.purple100};`}
-  ${p => p.isHovered && `background-color: ${p.theme.surface100};`}
+  ${p => p.isHovered && `background-color: ${p.theme.surface200};`}
   border-radius: ${p => p.theme.borderRadius};
 
   ${p =>
     p.allowHover &&
     ` &:hover {
-    background-color: ${p.theme.surface100};
+    background-color: ${p.theme.surface200};
   }`}
 
   /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */

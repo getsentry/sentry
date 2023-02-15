@@ -15,10 +15,10 @@ type Props = {
   event: Event;
   location: Location;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
 };
 
-export function EventTags({event, organization, projectId, location}: Props) {
+export function EventTags({event, organization, projectSlug, location}: Props) {
   const meta = event._meta?.tags;
 
   if (!!meta?.[''] && !event.tags) {
@@ -39,7 +39,7 @@ export function EventTags({event, organization, projectId, location}: Props) {
           <EventTagsPill
             key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
             tag={tag}
-            projectId={projectId}
+            projectSlug={projectSlug}
             organization={organization}
             query={generateQueryWithTag({...location.query, referrer: 'event-tags'}, tag)}
             streamPath={streamPath}

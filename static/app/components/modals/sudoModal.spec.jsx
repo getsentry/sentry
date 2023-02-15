@@ -55,7 +55,7 @@ describe('Sudo Modal', function () {
         params={{}}
         routeParams={router.params}
       >
-        {<div>placeholder content</div>}
+        <div>placeholder content</div>
       </App>
     );
 
@@ -133,7 +133,7 @@ describe('Sudo Modal', function () {
         params={{}}
         routeParams={router.params}
       >
-        {<div>placeholder content</div>}
+        <div>placeholder content</div>
       </App>
     );
 

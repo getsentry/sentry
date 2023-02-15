@@ -6,9 +6,9 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Card} from 'sentry/views/dashboardsV2/widgetBuilder/widgetLibrary/card';
-import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import {space} from 'sentry/styles/space';
+import {Card} from 'sentry/views/dashboards/widgetBuilder/widgetLibrary/card';
+import {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
 
 export type OverwriteWidgetModalProps = {
   iconColor: string;

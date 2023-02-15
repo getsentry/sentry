@@ -22,7 +22,7 @@ import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -137,7 +137,7 @@ export function getAssignedToDisplayName(group: Group) {
     return user?.name ?? group.assignedTo.name;
   }
 
-  return group.assignedTo?.name ?? t('No-one');
+  return group.assignedTo?.name ?? t('No one');
 }
 
 function AssignedTo({group, project, event, disableDropdown = false}: AssignedToProps) {

@@ -173,13 +173,6 @@ test-plugins:
 	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml"
 	@echo ""
 
-test-region-to-control-integration:
-	@echo "--> Running Region to Control consumer integration tests"
-	pytest \
-		tests/sentry/region_to_control/test_region_to_control_kafka.py \
-		-vv --cov . --cov-report="xml:.artifacts/region-to-control.coverage.xml"
-	@echo ""
-
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
 	pytest \

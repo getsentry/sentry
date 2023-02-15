@@ -2,8 +2,8 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'sentry/components/highlight';
-import Tooltip from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
+import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 

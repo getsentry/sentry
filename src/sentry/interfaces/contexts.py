@@ -27,9 +27,55 @@ def contexttype(cls):
     return cls
 
 
+# NOTE: Are you adding a new context? Make sure to also update the
+# documentation in the sentry develop docs [0]!
+#
+# [0]: https://develop.sentry.dev/sdk/event-payloads/contexts
+
+
 class ContextType:
-    indexed_fields = None
+    context_to_tag_mapping = None
+    """
+    This indicates which fields should be promoted into tags during event
+    normalization. (See EventManager)
+
+    The key for each entry is used as the name of the tag suffixed by the
+    "alias" of the context (this is the key of the context in the contexts
+    object, it is NOT the `type` of the context, though they are often the
+    same).
+
+    The value is a format string spec that uses python string.Formatter to
+    interpolate any value from the context object.
+
+    There is one special case:
+
+     - When the key of the mapping is an empty string the tag name will simply be
+       the alias.
+
+    For example if you have a context named "myContext" with the data:
+
+    ```json
+    "myContext": {
+        "some_value": "hello world",
+        "subkey": "whatever",
+        "type": "myContext"
+    }
+    ```
+
+    and you have a context_to_tag_mapping that looks like
+
+    ```python
+    context_to_tag_mapping = {"": "{some_value}", "subkey": "{subkey}"}
+    ```
+
+    Then normalization will result in two tags being promoted:
+
+     - myContext: "hello world"
+     - myContext.subkey: "whatever"
+    """
+
     type = None
+    """This should match the `type` key in context object"""
 
     def __init__(self, alias, data):
         self.alias = alias
@@ -68,8 +114,8 @@ class ContextType:
             return rv[0]
 
     def iter_tags(self):
-        if self.indexed_fields:
-            for field, f_string in self.indexed_fields.items():
+        if self.context_to_tag_mapping:
+            for field, f_string in self.context_to_tag_mapping.items():
                 try:
                     value = format_index_expr(f_string, self.data)
                 except KeyError:
@@ -90,52 +136,58 @@ class DefaultContextType(ContextType):
 @contexttype
 class AppContextType(ContextType):
     type = "app"
-    indexed_fields = {"device": "{device_app_hash}"}
+    context_to_tag_mapping = {"device": "{device_app_hash}"}
 
 
 @contexttype
 class DeviceContextType(ContextType):
     type = "device"
-    indexed_fields = {"": "{model}", "family": "{family}"}
+    context_to_tag_mapping = {"": "{model}", "family": "{family}"}
     # model_id, arch
 
 
 @contexttype
 class RuntimeContextType(ContextType):
     type = "runtime"
-    indexed_fields = {"": "{name} {version}", "name": "{name}"}
+    context_to_tag_mapping = {"": "{name} {version}", "name": "{name}"}
 
 
 @contexttype
 class BrowserContextType(ContextType):
     type = "browser"
-    indexed_fields = {"": "{name} {version}", "name": "{name}"}
+    context_to_tag_mapping = {"": "{name} {version}", "name": "{name}"}
     # viewport
 
 
 @contexttype
 class OsContextType(ContextType):
     type = "os"
-    indexed_fields = {"": "{name} {version}", "name": "{name}", "rooted": "{rooted}"}
+    context_to_tag_mapping = {"": "{name} {version}", "name": "{name}", "rooted": "{rooted}"}
     # build, rooted
 
 
 @contexttype
 class GpuContextType(ContextType):
     type = "gpu"
-    indexed_fields = {"name": "{name}", "vendor": "{vendor_name}"}
+    context_to_tag_mapping = {"name": "{name}", "vendor": "{vendor_name}"}
 
 
 @contexttype
 class MonitorContextType(ContextType):
     type = "monitor"
-    indexed_fields = {"id": "{id}"}
+    context_to_tag_mapping = {"id": "{id}"}
 
 
 @contexttype
 class TraceContextType(ContextType):
     type = "trace"
-    indexed_fields = {}
+    context_to_tag_mapping = {}
+
+
+@contexttype
+class OtelContextType(ContextType):
+    type = "otel"
+    context_to_tag_mapping = {}
 
 
 class Contexts(Interface):
@@ -149,6 +201,8 @@ class Contexts(Interface):
     @classmethod
     def to_python(cls, data, **kwargs):
         rv = {}
+
+        # Note the alias is the key of the context entry
         for alias, value in data.items():
             # XXX(markus): The `None`-case should be handled in the UI and
             # other consumers of this interface

@@ -4,11 +4,10 @@ import logging
 import random
 import time
 from collections import defaultdict
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
 from threading import Lock
-from typing import Any, Generator, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Generator, Mapping, MutableMapping, Optional, Tuple
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
@@ -18,7 +17,6 @@ from sentry.eventstream.kafka.protocol import (
 )
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
-from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.utils.cache import cache_key_for_event
 
 logger = logging.getLogger(__name__)
@@ -102,6 +100,7 @@ def dispatch_post_process_group_task(
     queue: str,
     skip_consume: bool = False,
     group_states: Optional[GroupStates] = None,
+    occurrence_id: Optional[str] = None,
 ) -> None:
     if skip_consume:
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -117,6 +116,7 @@ def dispatch_post_process_group_task(
                 "cache_key": cache_key,
                 "group_id": group_id,
                 "group_states": group_states,
+                "occurrence_id": occurrence_id,
             },
             queue=queue,
         )
@@ -129,40 +129,3 @@ def _get_task_kwargs_and_dispatch(message: Message) -> None:
 
     _record_metrics(message.partition(), task_kwargs)
     dispatch_post_process_group_task(**task_kwargs)
-
-
-class PostProcessForwarderWorker(AbstractBatchWorker):  # type: ignore
-    """
-    Implementation of the AbstractBatchWorker which would be used for post process forwarder.
-    The current implementation creates a thread pool worker based on the concurrency parameter
-    because we want to be able to change the concurrency during runtime. This should be replaced
-    by a thread pool executor once stress tests experiments are over and we start using the
-    CLI arguments to set concurrency.
-    """
-
-    def __init__(self, concurrency: Optional[int] = 1) -> None:
-        logger.info(f"Starting post process forwarder with {concurrency} threads")
-        self.__executor = ThreadPoolExecutor(max_workers=concurrency)
-
-    def process_message(self, message: Message) -> Optional[Future[None]]:
-        """
-        Process the message received by the consumer and return the Future associated with the message. The future
-        is stored in the batch of batching_kafka_consumer and provided as an argument to flush_batch. If None is
-        returned, the batching_kafka_consumer will not add the return value to the batch.
-        """
-        return self.__executor.submit(_get_task_kwargs_and_dispatch, message)
-
-    def flush_batch(self, batch: Optional[Sequence[Future[None]]]) -> None:
-        """
-        For all work which was submitted to the thread pool executor, we need to ensure that if an exception was
-        raised, then we raise it in the main thread. This is needed so that processing can be stopped in such
-        cases.
-        """
-        if batch:
-            for future in as_completed(batch):
-                exc = future.exception()
-                if exc is not None:
-                    raise exc
-
-    def shutdown(self) -> None:
-        self.__executor.shutdown()

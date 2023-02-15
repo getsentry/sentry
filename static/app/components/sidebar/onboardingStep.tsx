@@ -1,10 +1,8 @@
-import 'prism-sentry/index.css';
-
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -79,11 +77,6 @@ export const DocumentationWrapper = styled('div')`
   .alert {
     margin-bottom: ${space(3)};
     border-radius: ${p => p.theme.borderRadius};
-  }
-
-  pre {
-    word-break: break-all;
-    white-space: pre-wrap;
   }
 
   blockquote {

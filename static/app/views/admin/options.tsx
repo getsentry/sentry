@@ -311,6 +311,58 @@ const performanceOptionDefinitions: Field[] = [
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
+  {
+    key: 'performance.issues.render_blocking_assets.problem-creation',
+    label: t('Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the large render blocking asset detector.'
+    ),
+  },
+  {
+    key: 'performance.issues.render_blocking_assets.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the large render blocking asset detector for LA organizations.'
+    ),
+  },
+  {
+    key: 'performance.issues.render_blocking_assets.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the large render blocking asset detector for EA organizations.'
+    ),
+  },
+  {
+    key: 'performance.issues.render_blocking_assets.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the large render blocking asset detector for GA organizations.'
+    ),
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
 ];
 
 // This are ordered based on their display order visually

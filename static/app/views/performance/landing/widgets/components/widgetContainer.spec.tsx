@@ -888,7 +888,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
 
-    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
   it('Most slow frames widget - MEP', async function () {
@@ -929,7 +929,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
 
-    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
   it('Most frozen frames widget', async function () {
@@ -970,7 +970,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
 
-    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
   it('Able to change widget type from menu', async function () {
@@ -1029,7 +1029,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     // Check that the the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
-    const userMiseryOption = await screen.findByTestId('user_misery_area');
+    const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
     userEvent.click(userMiseryOption);
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'

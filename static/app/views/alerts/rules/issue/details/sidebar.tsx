@@ -8,7 +8,7 @@ import {PanelBody} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor, Member, Team} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 
@@ -234,7 +234,7 @@ const Badge = styled('span')`
 
 const ConditionsBadge = styled('span')`
   display: block;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};

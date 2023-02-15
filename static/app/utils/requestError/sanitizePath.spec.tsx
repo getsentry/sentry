@@ -4,8 +4,9 @@ describe('sanitizePath', function () {
   test.each([
     // /organizations/ endpoints
     ['/organizations/sentry-test/issues/', '/organizations/{orgSlug}/issues/'],
-
     ['/organizations/sentry-test/issues/123/', '/organizations/{orgSlug}/issues/123/'],
+    ['/issues/123/', '/issues/{issueId}/'],
+    ['/issues/3679937913/events/latest/', '/issues/{issueId}/events/latest/'],
 
     // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1004
     // r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -68,6 +69,11 @@ describe('sanitizePath', function () {
     ['/customers/sentry-test/', '/customers/{orgSlug}/'],
     ['/customers/sentry-test/issues/', '/customers/{orgSlug}/issues/'],
     ['/customers/sentry-test/issues/123/', '/customers/{orgSlug}/issues/123/'],
+
+    [
+      '/projects/sentry/javascript/replays/123/',
+      '/projects/{orgSlug}/{projectSlug}/replays/{replayId}/',
+    ],
   ])('sanitizes %s', (path, expected) => {
     expect(sanitizePath(path)).toBe(expected);
   });

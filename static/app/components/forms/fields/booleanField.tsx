@@ -3,7 +3,7 @@ import {Component} from 'react';
 import Confirm from 'sentry/components/confirm';
 import FormField from 'sentry/components/forms/formField';
 import Switch from 'sentry/components/switchButton';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import {InputFieldProps, OnEvent} from './inputField';

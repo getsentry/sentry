@@ -116,7 +116,6 @@ const MonitorStats = ({monitor, orgId}: Props) => {
             isGroupedByDate
             showTimeInTooltip
             useShortDate
-            utc
             series={[success, failed, missed]}
             stacked
             additionalSeries={additionalSeries}

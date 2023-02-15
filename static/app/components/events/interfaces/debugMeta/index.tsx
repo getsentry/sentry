@@ -11,12 +11,13 @@ import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
@@ -45,23 +46,19 @@ type DefaultProps = {
   };
 };
 
-type FilterOptions = NonNullable<
-  React.ComponentProps<typeof SearchBarAction>['filterOptions']
->;
-
 type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
 
 type Props = DefaultProps &
   WithRouterProps & {
     event: Event;
     organization: Organization;
-    projectId: Project['id'];
+    projectSlug: Project['slug'];
     groupId?: Group['id'];
   };
 
 type State = {
-  filterOptions: FilterOptions;
-  filterSelections: FilterOptions;
+  filterOptions: SelectSection<string>[];
+  filterSelections: SelectOption<string>[];
   filteredImages: Images;
   filteredImagesByFilter: Images;
   filteredImagesBySearch: Images;
@@ -223,7 +220,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       return;
     }
 
-    const {location, organization, projectId: projSlug, groupId, event} = this.props;
+    const {location, organization, projectSlug, groupId, event} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -251,7 +248,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
           {...deps}
           image={image}
           organization={organization}
-          projSlug={projSlug}
+          projSlug={projectSlug}
           event={event}
           onReprocessEvent={
             defined(groupId) ? this.handleReprocessEvent(groupId) : undefined
@@ -323,9 +320,9 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     const filteredImages = [...usedImages, ...unusedImages];
 
     const filterOptions = this.getFilterOptions(filteredImages);
-    const defaultFilterSelections = (filterOptions[0].options ?? []).filter(
-      opt => opt.value !== ImageStatus.UNUSED
-    );
+    const defaultFilterSelections = (
+      'options' in filterOptions[0] ? filterOptions[0].options : []
+    ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     this.setState({
       filteredImages,
@@ -339,20 +336,23 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     });
   }
 
-  getFilterOptions(images: Images): FilterOptions {
+  getFilterOptions(images: Images): SelectSection<string>[] {
     return [
       {
-        value: 'status',
         label: t('Status'),
         options: [...new Set(images.map(image => image.status))].map(status => ({
           value: status,
+          textValue: status,
           label: <Status status={status} />,
         })),
       },
     ];
   }
 
-  getFilteredImagesByFilter(filteredImages: Images, filterOptions: FilterOptions) {
+  getFilteredImagesByFilter(
+    filteredImages: Images,
+    filterOptions: SelectOption<string>[]
+  ) {
     const checkedOptions = new Set(filterOptions.map(option => option.value));
 
     if (![...checkedOptions].length) {
@@ -362,7 +362,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     return filteredImages.filter(image => checkedOptions.has(image.status));
   }
 
-  handleChangeFilter = (filterSelections: FilterOptions) => {
+  handleChangeFilter = (filterSelections: SelectOption<string>[]) => {
     const {filteredImagesBySearch} = this.state;
     const filteredImagesByFilter = this.getFilteredImagesByFilter(
       filteredImagesBySearch,
@@ -521,7 +521,9 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       return null;
     }
 
-    const showFilters = filterOptions.some(section => (section.options ?? []).length > 1);
+    const showFilters = filterOptions.some(
+      section => 'options' in section && section.options.length > 1
+    );
 
     const actions = (
       <ToggleButton onClick={this.toggleImagesLoaded} priority="link">

@@ -11,7 +11,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {User} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -182,10 +182,12 @@ class AdminUserEdit extends AsyncView<Props, State> {
           apiMethod="PUT"
           apiEndpoint={this.userEndpoint}
           requireChanges
-          onSubmitError={addErrorMessage}
+          onSubmitError={err => {
+            addErrorMessage(err?.responseJSON?.detail);
+          }}
           onSubmitSuccess={data => {
             this.setState({user: data});
-            addSuccessMessage('User account updated.');
+            addSuccessMessage(t('User account updated.'));
           }}
           extraButton={
             <Button

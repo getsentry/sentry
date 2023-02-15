@@ -419,6 +419,14 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             # preserve previously created subscription information
             integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
 
+            logger.info(
+                "vsts.build_integration",
+                extra={
+                    "organization_id": self.pipeline.organization.id,
+                    "user_id": user["id"],
+                    "account": account,
+                },
+            )
             assert OrganizationIntegration.objects.filter(
                 organization_id=self.pipeline.organization.id,
                 integration_id=integration_model.id,
@@ -483,6 +491,8 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             # Explicitly typing to satisfy mypy.
             location_url: str | None = response.json()["locationUrl"]
             return location_url
+
+        logger.info("vsts.get_base_url", extra={"responseCode": response.status_code})
         return None
 
     def setup(self) -> None:
