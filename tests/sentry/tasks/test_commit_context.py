@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
+from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
 from sentry.models import Repository
@@ -8,6 +10,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import process_commit_context
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.committers import get_frame_paths
@@ -335,3 +338,28 @@ class TestCommitContext(TestCase):
         assert owner.user_id is None
         assert owner.team is None
         assert owner.context == {"commitId": self.commit_2.id}
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        side_effect=ApiError(text="integration_failed"),
+    )
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @with_feature("organizations:commit-context-fallback")
+    def test_fallback_if_max_retries_exceeded(self, mock_suspect_commits, mock_get_commit_context):
+        def after_return(self, status, retval, task_id, args, kwargs, einfo):
+            raise MaxRetriesExceededError()
+
+        with self.tasks() and pytest.raises(MaxRetriesExceededError):
+            with patch("celery.app.task.Task.after_return", after_return):
+                process_commit_context.apply(
+                    kwargs={
+                        "event_id": self.event.event_id,
+                        "event_platform": self.event.platform,
+                        "event_frames": get_frame_paths(self.event),
+                        "group_id": self.event.group_id,
+                        "project_id": self.event.project_id,
+                    },
+                    retries=1,
+                )
+
+            assert mock_suspect_commits.called
