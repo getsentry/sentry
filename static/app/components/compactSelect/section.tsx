@@ -5,7 +5,7 @@ import {useSeparator} from '@react-aria/separator';
 import {ListState} from '@react-stately/list';
 import {Node} from '@react-types/shared';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from './control';

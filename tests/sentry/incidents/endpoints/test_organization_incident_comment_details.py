@@ -6,6 +6,7 @@ from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 class BaseIncidentCommentDetailsTest(APITestCase):
+    method = "put"
     endpoint = "sentry-api-0-organization-incident-comment-details"
 
     def setUp(self):

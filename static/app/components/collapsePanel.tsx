@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export const COLLAPSE_COUNT = 5;
 

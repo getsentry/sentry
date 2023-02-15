@@ -20,7 +20,7 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
