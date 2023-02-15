@@ -1,21 +1,48 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
-import space from 'sentry/styles/space';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
 
 function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
   return identifier ? `${type} - ${identifier}` : type;
+}
+
+function onScrollToNode(
+  node: VirtualizedTreeRenderedRow<ViewHierarchyWindow>,
+  scrollContainer: HTMLElement | null,
+  coordinates: {depth: number; top: number} | undefined
+) {
+  if (node) {
+    // When a user keyboard navigates to a node that's rendered in the "overscroll"
+    const lastCell = node.ref?.lastChild as HTMLElement | null | undefined;
+    if (lastCell) {
+      lastCell.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    }
+  } else if (coordinates) {
+    // When a user clicks on a wireframe node that's not rendered in the "overscroll"
+    // we need to scroll to where the node would be rendered
+    const left = coordinates.depth * 16;
+    scrollContainer?.scrollBy({
+      left,
+    });
+  }
 }
 
 export type ViewHierarchyWindow = {
@@ -64,9 +91,6 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     }
   ) => {
     const key = `view-hierarchy-node-${r.key}`;
-    const depthMarkers = Array(r.item.depth)
-      .fill('')
-      .map((_, i) => <DepthMarker key={`${key}-depth-${i}`} />);
     return (
       <TreeItem
         key={key}
@@ -86,7 +110,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
           setUserHasSelected(true);
         }}
       >
-        {depthMarkers}
+        {r.item.depth !== 0 && <DepthMarker depth={r.item.depth} />}
         <Node
           id={key}
           label={getNodeLabel(r.item.node)}
@@ -114,6 +138,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     expanded: true,
     overscroll: 10,
     initialSelectedNodeIndex: 0,
+    onScrollToNode,
   });
 
   // Scroll to the selected node when it changes
@@ -127,6 +152,16 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   );
 
   const showWireframe = project?.platform !== 'unity';
+
+  if (!hierarchy.length) {
+    return (
+      <EmptyStateContainer>
+        <EmptyStateWarning small>
+          {t('There is no view hierarchy data to visualize')}
+        </EmptyStateWarning>
+      </EmptyStateContainer>
+    );
+  }
 
   return (
     <Fragment>
@@ -154,6 +189,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
               hierarchy={hierarchy}
               selectedNode={userHasSelected ? selectedNode : undefined}
               onNodeSelect={onWireframeNodeSelect}
+              project={project}
             />
           </Right>
         )}
@@ -219,12 +255,24 @@ const TreeItem = styled('div')`
   }
 `;
 
-const DepthMarker = styled('div')`
-  margin-left: 5px;
-  min-width: ${space(2)};
-  border-left: 1px solid ${p => p.theme.gray200};
+// Draw a 1px wide gray marker every 15px
+const DepthMarker = styled('div')<{depth: number}>`
+  padding-left: calc(${space(2)} * ${p => p.depth});
+
+  background-image: repeating-linear-gradient(
+    90deg,
+    ${p => p.theme.gray200} 5px,
+    ${p => p.theme.gray200} 6px,
+    transparent 6px,
+    transparent 21px
+  );
 `;
 
 const GhostRow = styled('div')`
   top: ${space(1.5)};
+`;
+
+const EmptyStateContainer = styled('div')`
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
 `;

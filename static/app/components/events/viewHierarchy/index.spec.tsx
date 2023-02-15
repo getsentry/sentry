@@ -179,4 +179,25 @@ describe('View Hierarchy', function () {
     // The overlay should not have rendered anything before any interactions
     expect(context.fillRect).not.toHaveBeenCalled();
   });
+
+  it('renders an empty state if there is no data in windows to visualize', function () {
+    render(
+      <ViewHierarchy
+        viewHierarchy={{rendering_system: 'This can be anything', windows: []}}
+        project={project}
+      />
+    );
+
+    expect(
+      screen.getByText('There is no view hierarchy data to visualize')
+    ).toBeInTheDocument();
+  });
+
+  it('renders with depth markers', function () {
+    const {container} = render(
+      <ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />
+    );
+
+    expect(container).toSnapshot();
+  });
 });

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {SelectOption} from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -41,10 +41,10 @@ function FlamegraphOptionsMenu({
             ...opt,
             disabled: opt.value === 'transaction' && type === 'flamegraph',
           }))}
-          onChange={value =>
+          onChange={opt =>
             dispatch({
               type: 'set xAxis',
-              payload: value,
+              payload: opt.value,
             })
           }
         />
@@ -52,10 +52,10 @@ function FlamegraphOptionsMenu({
           label={t('Color Coding')}
           value={colorCoding}
           options={colorCodingOptions}
-          onChange={value =>
+          onChange={opt =>
             dispatch({
               type: 'set color coding',
-              payload: value,
+              payload: opt.value,
             })
           }
         />
@@ -65,8 +65,8 @@ function FlamegraphOptionsMenu({
 }
 
 const xAxisOptions: SelectOption<FlamegraphPreferences['xAxis']>[] = [
-  {value: 'profile', label: t('Profile')},
   {value: 'transaction', label: t('Transaction')},
+  {value: 'profile', label: t('Profile')},
 ];
 
 const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [

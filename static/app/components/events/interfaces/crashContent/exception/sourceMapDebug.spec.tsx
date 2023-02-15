@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ExceptionValue} from 'sentry/types';
+import {Event, ExceptionValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {SourceMapDebug} from './sourceMapDebug';
@@ -64,6 +64,13 @@ describe('SourceMapDebug', () => {
     projectSlug: project.slug,
     eventId,
   });
+  const event: Event = {
+    ...TestStubs.Event(),
+    id: eventId,
+    sdk: {
+      name: sdkName,
+    },
+  } as Event;
 
   it('should use unqiue in app frames', () => {
     expect(debugFrames).toHaveLength(1);
@@ -87,7 +94,7 @@ describe('SourceMapDebug', () => {
       match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
       organization,
     });
     expect(
@@ -108,7 +115,11 @@ describe('SourceMapDebug', () => {
     const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.PARTIAL_MATCH,
       message: '',
-      data: {absPath: 'insertPath', partialMatchPath: 'matchedSourcemapPath'},
+      data: {
+        absPath: 'insertPath',
+        partialMatchPath: 'matchedSourcemapPath',
+        urlPrefix: 'urlPrefix',
+      },
     };
     MockApiClient.addMockResponse({
       url,
@@ -116,7 +127,7 @@ describe('SourceMapDebug', () => {
       match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
       organization,
     });
     expect(
@@ -126,10 +137,7 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(
-        'The abs_path of the stack frame is a partial match. The stack frame has the path insertPath which is a partial match to matchedSourcemapPath.',
-        {exact: false}
-      )
+      screen.getByText('Partial Absolute Path Match', {exact: false})
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
@@ -148,7 +156,7 @@ describe('SourceMapDebug', () => {
       body: {errors: [error]},
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
       organization,
     });
     expect(

@@ -17,7 +17,7 @@ import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/u
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
@@ -342,6 +342,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
         label: t('Status'),
         options: [...new Set(images.map(image => image.status))].map(status => ({
           value: status,
+          textValue: status,
           label: <Status status={status} />,
         })),
       },

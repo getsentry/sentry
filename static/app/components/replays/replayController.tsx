@@ -4,7 +4,7 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -22,7 +22,7 @@ import {
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
@@ -127,7 +127,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
       <CompositeSelect.Region
         label={t('Playback Speed')}
         value={speed}
-        onChange={val => setSpeed(val)}
+        onChange={opt => setSpeed(opt.value)}
         options={speedOptions.map(option => ({
           label: `${option}x`,
           value: option,
@@ -137,8 +137,8 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
         aria-label={t('Fast-Forward Inactivity')}
         multiple
         value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
-        onChange={value => {
-          toggleSkipInactive(value.length > 0);
+        onChange={opts => {
+          toggleSkipInactive(opts.length > 0);
         }}
         options={[
           {

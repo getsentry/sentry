@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -12,7 +12,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

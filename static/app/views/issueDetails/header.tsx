@@ -21,11 +21,11 @@ import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import ShortId from 'sentry/components/shortId';
-import {Item, TabList} from 'sentry/components/tabs';
+import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -78,14 +78,14 @@ function GroupHeaderTabs({
 
   return (
     <StyledTabList hideBorder>
-      <Item
+      <TabList.Item
         key={Tab.DETAILS}
         disabled={disabledTabs.includes(Tab.DETAILS)}
         to={`${baseUrl}${location.search}`}
       >
         {t('Details')}
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.ACTIVITY}
         textValue={t('Activity')}
         disabled={disabledTabs.includes(Tab.ACTIVITY)}
@@ -96,8 +96,8 @@ function GroupHeaderTabs({
           {group.numComments}
           <IconChat size="xs" />
         </IconBadge>
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.USER_FEEDBACK}
         textValue={t('User Feedback')}
         hidden={!issueTypeConfig.userFeedback.enabled}
@@ -105,50 +105,54 @@ function GroupHeaderTabs({
         to={`${baseUrl}feedback/${location.search}`}
       >
         {t('User Feedback')} <Badge text={group.userReportCount} />
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.ATTACHMENTS}
         hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
         disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
         to={`${baseUrl}attachments/${location.search}`}
       >
         {t('Attachments')}
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.TAGS}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={`${baseUrl}tags/${location.search}`}
       >
         {t('Tags')}
-      </Item>
-      <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)} to={eventRoute}>
+      </TabList.Item>
+      <TabList.Item
+        key={Tab.EVENTS}
+        disabled={disabledTabs.includes(Tab.EVENTS)}
+        to={eventRoute}
+      >
         {t('All Events')}
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.MERGED}
         hidden={!issueTypeConfig.mergedIssues.enabled}
         disabled={disabledTabs.includes(Tab.MERGED)}
         to={`${baseUrl}merged/${location.search}`}
       >
         {t('Merged Issues')}
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.GROUPING}
         hidden={!hasGroupingTreeUI || !issueTypeConfig.grouping.enabled}
         disabled={disabledTabs.includes(Tab.GROUPING)}
         to={`${baseUrl}grouping/${location.search}`}
       >
         {t('Grouping')}
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
         to={`${baseUrl}similar/${location.search}`}
       >
         {t('Similar Issues')}
-      </Item>
-      <Item
+      </TabList.Item>
+      <TabList.Item
         key={Tab.REPLAYS}
         textValue={t('Replays')}
         hidden={!hasSessionReplay || !issueTypeConfig.replays.enabled}
@@ -157,7 +161,7 @@ function GroupHeaderTabs({
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
         <ReplaysFeatureBadge noTooltip />
-      </Item>
+      </TabList.Item>
     </StyledTabList>
   );
 }
@@ -271,14 +275,6 @@ function GroupHeader({
             type="alpha"
             title={t(
               'Large Render Blocking Asset Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_UNCOMPRESSED_ASSET && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Uncompressed Asset Performance Issues are in active development and may change'
             )}
           />
         )}

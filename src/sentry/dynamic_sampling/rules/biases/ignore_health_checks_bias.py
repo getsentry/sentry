@@ -10,7 +10,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
 from sentry.dynamic_sampling.rules.utils import (
     HEALTH_CHECK_DROPPING_FACTOR,
     RESERVED_IDS,
-    BaseRule,
+    PolymorphicRule,
     RuleType,
 )
 
@@ -37,7 +37,7 @@ class IgnoreHealthChecksDataProvider(BiasDataProvider):
 
 
 class IgnoreHealthChecksRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
                 "sampleRate": bias_data["sampleRate"],
@@ -59,6 +59,34 @@ class IgnoreHealthChecksRulesGenerator(BiasRulesGenerator):
         ]
 
 
+class IgnoreHealthChecksRulesGeneratorV2(BiasRulesGenerator):
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
+        return [
+            {
+                "samplingValue": {"type": "sampleRate", "value": bias_data["sampleRate"]},
+                "type": "transaction",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "event.transaction",
+                            "value": bias_data["healthCheckGlobs"],
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": bias_data["id"],
+            }
+        ]
+
+
 class IgnoreHealthChecksBias(Bias):
     def __init__(self) -> None:
         super().__init__(IgnoreHealthChecksDataProvider, IgnoreHealthChecksRulesGenerator)
+
+
+class IgnoreHealthChecksBiasV2(Bias):
+    def __init__(self) -> None:
+        super().__init__(IgnoreHealthChecksDataProvider, IgnoreHealthChecksRulesGeneratorV2)

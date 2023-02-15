@@ -1,4 +1,4 @@
-import CompactSelect, {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 
 type Props = {
   label: string;

@@ -14,7 +14,7 @@ import {
 } from 'sentry/data/debugFileSources';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;

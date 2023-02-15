@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
@@ -137,7 +137,7 @@ export function ProfileDetailsTable() {
           triggerProps={{
             prefix: t('View'),
           }}
-          placement="bottom right"
+          position="bottom-end"
           onChange={option => {
             setSearchQuery('');
             setPaginationCursor(undefined);
@@ -166,7 +166,7 @@ export function ProfileDetailsTable() {
           }}
           multiple
           onChange={columnFilters.type.onChange}
-          placement="bottom right"
+          position="bottom-end"
         />
         <CompactSelect
           options={columnFilters.image.values.map(value => ({value, label: value}))}
@@ -183,8 +183,8 @@ export function ProfileDetailsTable() {
           }}
           multiple
           onChange={columnFilters.image.onChange}
-          placement="bottom right"
-          isSearchable
+          position="bottom-end"
+          searchable
         />
       </ActionBar>
 

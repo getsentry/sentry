@@ -20,7 +20,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
@@ -315,7 +315,6 @@ function RuleListRow({
             <AlertBadge
               status={rule?.latestIncident?.status}
               isIssue={isIssueAlert(rule)}
-              hideText
             />
           </Tooltip>
         </FlexCenter>

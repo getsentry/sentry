@@ -57,7 +57,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
             args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
           },
         ],
-        ''
+        '',
+        {type: 'flamechart', transaction: undefined}
       ).profiles[0]
     ).toBeInstanceOf(ChromeTraceProfile);
   });
@@ -85,7 +86,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
             args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
           },
         ],
-        ''
+        '',
+        {type: 'flamechart', transaction: undefined}
       ).profiles[0].name
     ).toBe('Process Name (0): tid (0)');
   });
@@ -113,7 +115,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
             args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
           },
         ],
-        ''
+        '',
+        {type: 'flamechart', transaction: undefined}
       ).profiles[0].name
     ).toBe('pid (0): Thread Name (0)');
   });
@@ -140,7 +143,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
           args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
         },
       ],
-      ''
+      '',
+      {type: 'flamechart', transaction: undefined}
     );
 
     expect(trace.profiles[0].startedAt).toBe(1000);
@@ -180,7 +184,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
           args: {frame: '1'},
         },
       ],
-      ''
+      '',
+      {type: 'flamechart', transaction: undefined}
     );
 
     expect(trace.profiles[0].duration).toBe(2000);
@@ -229,7 +234,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
           args: {frame: '1'},
         },
       ],
-      ''
+      '',
+      {type: 'flamechart', transaction: undefined}
     );
 
     expect(trace.profiles[0].duration).toBe(2);
@@ -285,7 +291,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
           args: {frame: '1'},
         },
       ],
-      ''
+      '',
+      {type: 'flamechart', transaction: undefined}
     );
 
     expect(trace.profiles[0].duration).toBe(2);
@@ -315,7 +322,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
           args: {frame: '0'},
         },
       ],
-      ''
+      '',
+      {type: 'flamechart', transaction: undefined}
     );
 
     expect(trace.profiles[0].duration).toBe(100);
@@ -335,7 +343,8 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
           args: {frame: '0'},
         },
       ],
-      ''
+      '',
+      {type: 'flamechart', transaction: undefined}
     );
 
     expect(trace.profiles[0].duration).toBe(100);

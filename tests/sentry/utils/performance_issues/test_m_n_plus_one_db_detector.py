@@ -4,10 +4,10 @@ from unittest.mock import Mock, call
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import PerformanceMNPlusOneDBQueriesGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
     MNPlusOneDBSpanDetector,
     PerformanceProblem,
@@ -35,9 +35,9 @@ class MNPlusOneDBDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1011-de75036b0dce394e0b23aaabf553ad9f8156f22b",
+                fingerprint="1-1011-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
                 op="db",
-                type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceMNPlusOneDBQueriesGroupType,
                 desc="SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
                 parent_span_ids=[],
                 cause_span_ids=[],
@@ -79,6 +79,10 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("n-plus-one-in-django-index-view")
         assert self.find_problems(event) == []
 
+    def test_does_not_detect_when_parent_is_transaction(self):
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-transaction-parent")
+        assert self.find_problems(event) == []
+
     def test_m_n_plus_one_detector_enabled(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
@@ -90,7 +94,7 @@ class MNPlusOneDBDetectorTest(TestCase):
                 call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
                 call(
                     "_pi_m_n_plus_one_db_fp",
-                    "1-1011-de75036b0dce394e0b23aaabf553ad9f8156f22b",
+                    "1-1011-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
                 ),
                 call("_pi_m_n_plus_one_db", "9c5049407f37a364"),
             ]

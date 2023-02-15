@@ -129,6 +129,10 @@ describe('Transaction Summary Content', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/profiling/functions/`,
+      body: {functions: []},
+    });
   });
 
   afterEach(function () {

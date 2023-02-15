@@ -11,7 +11,7 @@ import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Incident, IncidentStatus} from 'sentry/views/alerts/types';
@@ -54,7 +54,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
 
       <NoWrapNumeric>
         {getDynamicText({
-          value: <TimeSince date={incident.dateStarted} extraShort />,
+          value: <TimeSince date={incident.dateStarted} unitStyle="extraShort" />,
           fixed: '1w ago',
         })}
       </NoWrapNumeric>

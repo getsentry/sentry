@@ -91,7 +91,7 @@ const InlineEventAttachment = ({
   );
 };
 
-export const EventAttachments = ({event, projectSlug}: EventAttachmentsProps) => {
+const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) => {
   const organization = useOrganization();
   const {
     data: attachments = [],
@@ -205,6 +205,16 @@ export const EventAttachments = ({event, projectSlug}: EventAttachmentsProps) =>
       )}
     </EventDataSection>
   );
+};
+
+export const EventAttachments = (props: EventAttachmentsProps) => {
+  const organization = useOrganization();
+
+  if (!organization.features.includes('event-attachments')) {
+    return null;
+  }
+
+  return <EventAttachmentsContent {...props} />;
 };
 
 const StyledPanelTable = styled(PanelTable)`

@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/profiling/functionsMiniGrid';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getShortEventId} from 'sentry/utils/events';
@@ -179,8 +179,9 @@ export function ProfilingTransactionHovercardBody({
       </Flex>
 
       <Flex column h={125}>
-        <FunctionsMiniGrid
-          functions={functions}
+        <ProfilingTransactionHovercardFunctions
+          isLoading={functionsQuery.isLoading}
+          functions={functions ?? []}
           organization={organization}
           project={project}
           onLinkClick={() =>
@@ -190,14 +191,26 @@ export function ProfilingTransactionHovercardBody({
             })
           }
         />
-        {functionsQuery.type === 'loading' && <FunctionsMiniGridLoading />}
-
-        {functionsQuery.type === 'resolved' && functions?.length === 0 && (
-          <FunctionsMiniGridEmptyState />
-        )}
       </Flex>
     </Flex>
   );
+}
+
+type ProfilingTransactionHovercardFunctionsProps = React.ComponentProps<
+  typeof FunctionsMiniGrid
+> & {isLoading: boolean};
+
+function ProfilingTransactionHovercardFunctions(
+  props: ProfilingTransactionHovercardFunctionsProps
+) {
+  if (props.isLoading) {
+    return <FunctionsMiniGridLoading />;
+  }
+
+  if (!props.functions || props.functions?.length === 0) {
+    return <FunctionsMiniGridEmptyState />;
+  }
+  return <FunctionsMiniGrid {...props} />;
 }
 
 interface ContextDetailProps {

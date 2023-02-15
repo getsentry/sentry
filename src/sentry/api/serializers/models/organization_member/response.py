@@ -63,6 +63,7 @@ class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerO
     name: SCIMName
     emails: List[SCIMEmail]
     meta: SCIMMeta
+    sentryOrgRole: str
 
 
 class OrganizationMemberResponse(OrganizationMemberResponseOptional):

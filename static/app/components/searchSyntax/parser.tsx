@@ -636,6 +636,14 @@ export class TokenConverter {
   ) => {
     // Text filter is the "fall through" filter that will match when other
     // filter predicates fail.
+    if (
+      this.config.validateKeys &&
+      this.config.supportedTags &&
+      !this.config.supportedTags[key.text]
+    ) {
+      return {reason: t('Invalid key. "%s" is not a supported search key.', key.text)};
+    }
+
     if (filter === FilterType.Text) {
       return this.checkInvalidTextFilter(
         key as TextFilter['key'],
@@ -658,14 +666,6 @@ export class TokenConverter {
    * Validates text filters which may have failed predication
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
-    if (
-      this.config.validateKeys &&
-      this.config.supportedTags &&
-      !this.config.supportedTags[key.text]
-    ) {
-      return {reason: t('Invalid key. "%s" is not a supported search key.', key.text)};
-    }
-
     // Explicit tag keys will always be treated as text filters
     if (key.type === Token.KeyExplicitTag) {
       return this.checkInvalidTextValue(value);

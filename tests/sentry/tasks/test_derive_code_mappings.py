@@ -56,13 +56,14 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         ):
             assert derive_code_mappings(self.project.id, self.event_data) is None
 
-    def test_raises_other_api_errors(self):
+    @patch("sentry.tasks.derive_code_mappings.logger")
+    def test_raises_other_api_errors(self, mock_logger):
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
             side_effect=ApiError("foo"),
         ):
-            with pytest.raises(ApiError):
-                derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, self.event_data)
+            assert mock_logger.exception.call_count == 1
 
     def test_unable_to_get_lock(self):
         with patch(

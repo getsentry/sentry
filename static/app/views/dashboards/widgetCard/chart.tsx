@@ -21,7 +21,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {

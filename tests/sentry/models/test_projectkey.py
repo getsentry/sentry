@@ -75,6 +75,20 @@ class ProjectKeyTest(TestCase):
         assert key.csp_endpoint == "http://testserver/api/1/csp-report/?sentry_key=abc"
         assert key.minidump_endpoint == "http://testserver/api/1/minidump/?sentry_key=abc"
         assert key.unreal_endpoint == "http://testserver/api/1/unreal/abc/"
+        assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
+        assert (
+            key.js_sdk_dynamic_loader_cdn_url
+            == "http://testserver/js-sdk-loader/dynamic/abc.min.js"
+        )
+
+    def test_get_js_sdk_dynamic_loader_cdn_url_from_settings(self):
+        key = self.model(project_id=1, public_key="abc", secret_key="xyz")
+
+        with self.settings(JS_SDK_LOADER_CDN_URL="https://sentry-best-cdn.com/"):
+            assert (
+                key.js_sdk_dynamic_loader_cdn_url
+                == "https://sentry-best-cdn.com/dynamic/abc.min.js"
+            )
 
     def test_get_dsn_org_subdomain(self):
         with self.feature("organizations:org-subdomains"):
