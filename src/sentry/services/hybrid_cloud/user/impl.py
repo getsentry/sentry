@@ -197,7 +197,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
     args["avatar"] = avatar
     if hasattr(user, "authenticators") and user.authenticators is not None:
         args["authenticators"] = {
-            APIAuthenticator(
+            RpcAuthenticator(
                 id=a["id"],
                 user_id=a["user_id"],
                 created_at=a["created_at"],
