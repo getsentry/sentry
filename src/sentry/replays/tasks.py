@@ -40,7 +40,7 @@ def delete_recording_segment(replay_id: str, segment_id: int) -> None:
 
     # Delete the remote storage object.
     driver = make_storage_driver_from_id(segment.driver)
-    driver.delete()
+    driver.delete(segment)
 
     # Delete the row.
     segment.delete()
