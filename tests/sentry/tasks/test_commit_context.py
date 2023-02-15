@@ -6,6 +6,7 @@ from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
 from sentry.models import Repository
+from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import process_commit_context
@@ -76,7 +77,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -138,7 +139,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfasdf",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -147,6 +148,7 @@ class TestCommitContext(TestCase):
     def test_no_matching_commit_in_db(self, mock_get_commit_context):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            assert not Commit.objects.filter(key="asdfasdf").exists()
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
@@ -155,13 +157,14 @@ class TestCommitContext(TestCase):
                 group_id=self.event.group_id,
                 project_id=self.event.project_id,
             )
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        assert Commit.objects.filter(key="asdfasdf").exists()
+        assert GroupOwner.objects.filter(group=self.event.group).exists()
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -244,7 +247,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -284,7 +287,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
