@@ -777,8 +777,8 @@ const commonTheme = {
   },
 
   text: {
-    family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
+    family: "'Rubik', 'Avenir Next', sans-serif",
+    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
     pageTitle: {
