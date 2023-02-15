@@ -292,7 +292,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @classmethod
     def _serialize_invite(cls, om: OrganizationMember) -> ApiOrganizationInvite:
-        return ApiOrganizationInvite(om.id, om.token, om.email)
+        return ApiOrganizationInvite(id=om.id, token=om.token, email=om.email)
 
     def get_all_org_roles(
         self,

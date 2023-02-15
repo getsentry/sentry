@@ -58,6 +58,22 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
     return user.roles | user.permissions
 
 
+def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
+    query = OrganizationMember.objects.filter(
+        user__is_active=True,
+        user=user_id,
+        organization_id=organization.id,
+    )
+    teams_with_org_role = organization.get_teams_with_org_roles([role])
+    return bool(
+        query.filter(role=role).exists()
+        or OrganizationMemberTeam.objects.filter(
+            team__in=teams_with_org_role,
+            organizationmember_id__in=list(query.values_list("id", flat=True)),
+        ).exists()
+    )
+
+
 class Access(abc.ABC):
     @property
     @abc.abstractmethod
@@ -139,6 +155,12 @@ class Access(abc.ABC):
         if self.roles is not None:
             return [cast(OrganizationRole, organization_roles.get(r)) for r in self.roles]
         return []
+
+    @abc.abstractmethod
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        pass
 
     @abc.abstractmethod
     def has_team_access(self, team: Team) -> bool:
@@ -293,6 +315,15 @@ class DbAccess(Access):
         """
         return self.project_ids_with_team_membership
 
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        if self._member:
+            return has_role_in_organization(
+                role=role, organization=organization, user_id=self._member.user_id
+            )
+        return False
+
     def has_team_scope(self, team: Team, scope: str) -> bool:
         """
         Return bool representing if a user should have access with the given scope to information
@@ -427,6 +458,16 @@ class ApiBackedAccess(Access):
         if self.api_user_organization_context.member is None:
             return None
         return organization_service.get_all_org_roles(self.api_user_organization_context.member)
+
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        member = self.api_user_organization_context.member
+        if member and member.user_id:
+            return has_role_in_organization(
+                role=role, organization=organization, user_id=member.user_id
+            )
+        return False
 
     @cached_property
     def team_ids_with_membership(self) -> FrozenSet[int]:
@@ -735,6 +776,13 @@ class OrganizationlessAccess(Access):
     def roles(self) -> Iterable[str] | None:
         return None
 
+    def has_role_in_organization(
+        self, role: str, organization: Organization, user_id: int | None
+    ) -> bool:
+        if user_id:
+            return has_role_in_organization(role=role, organization=organization, user_id=user_id)
+        return False
+
     @property
     def team_ids_with_membership(self) -> FrozenSet[int]:
         return frozenset()
@@ -768,7 +816,7 @@ class SystemAccess(OrganizationlessAccess):
     def __init__(self) -> None:
         super().__init__(
             auth_state=ApiAuthState(
-                sso_state=ApiMemberSsoState(False, False),
+                sso_state=ApiMemberSsoState(is_required=False, is_valid=False),
                 permissions=[],
             ),
         )

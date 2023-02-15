@@ -2,7 +2,7 @@ import {DOMAttributes, ReactNode, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import useSplitPanelTracking from 'sentry/utils/replays/hooks/useSplitPanelTracking';
 import useTimeout from 'sentry/utils/useTimeout';

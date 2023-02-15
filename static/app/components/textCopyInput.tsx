@@ -11,7 +11,7 @@ import {
   InputTrailingItems,
 } from 'sentry/components/inputGroup';
 import {IconCopy} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
 interface Props extends Omit<InputProps, 'onCopy'> {

@@ -234,10 +234,20 @@ class ApiOrganizationFlags(SiloDataInterface):
     require_email_verification: bool = False
 
 
-class ApiOrganizationSummary(SiloDataInterface):
+class ApiOrganizationInvite(SiloDataInterface):
     id: int = -1
     token: str = ""
     email: str = ""
+
+
+class ApiOrganizationSummary(SiloDataInterface):
+    """
+    The subset of organization metadata available from the control silo specifically.
+    """
+
+    slug: str = ""
+    id: int = -1
+    name: str = ""
 
 
 class ApiOrganization(ApiOrganizationSummary):

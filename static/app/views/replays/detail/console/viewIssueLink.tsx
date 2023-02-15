@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import ShortId from 'sentry/components/shortId';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
