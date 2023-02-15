@@ -91,10 +91,11 @@ def derive_code_mappings(
             return
 
         # Logging the exception and returning is better than re-raising the error
-        # Otherwise, the API errors would be grouped based on the HTTPError that the
-        # requests library raises and create more issues than necessary
+        # Otherwise, API errors would not group them since the HTTPError in the stack
+        # has unique URLs, thus, separating the errors
         logger.exception(
-            "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped."
+            "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
+            extra=extra,
         )
         return
     except UnableToAcquireLock as error:
