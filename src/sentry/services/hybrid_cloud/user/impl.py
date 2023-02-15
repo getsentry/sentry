@@ -208,7 +208,6 @@ def serialize_rpc_user(user: User) -> RpcUser:
             for a in user.authenticators
         }
 
-
     return RpcUser(**args)
 
 
