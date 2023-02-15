@@ -8,7 +8,7 @@ from django.db.models import QuerySet
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
     from sentry.services.hybrid_cloud.auth import AuthenticationContext
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 FILTER_ARGS = TypeVar("FILTER_ARGS")  # A typedict
@@ -31,7 +31,7 @@ OpaqueSerializedResponse = Any
 
 # This class should be inherited from to add this functionality to the public interface for a service.
 # E.g. class UserService(FilterQueryInterface[
-#        UserQueryArgs, APIUser, Union[UserSerializerResponse, UserSerializerResponseSelf]
+#        UserQueryArgs, RpcUser, Union[UserSerializerResponse, UserSerializerResponseSelf]
 #      ], InterfaceWithLifecycle):
 #         ...
 class FilterQueryInterface(Generic[FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], abc.ABC):
@@ -40,7 +40,7 @@ class FilterQueryInterface(Generic[FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], 
         self,
         *,
         filter: FILTER_ARGS,
-        as_user: Optional[APIUser] = None,
+        as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[SERIALIZER_ENUM] = None,
     ) -> List[OpaqueSerializedResponse]:
@@ -53,7 +53,7 @@ class FilterQueryInterface(Generic[FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], 
 
 # This class should be inherited from to add this functionality to the database implementation for a service.
 # E.g. class DatabaseBackedUserService(
-#         FilterQueryDatabaseImpl[User, UserFilterArgs, APIUser, UserSerializeType],
+#         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
 #         UserService,
 #      ):
 #       ...
@@ -118,7 +118,7 @@ class FilterQueryDatabaseImpl(
         self,
         *,
         filter: FILTER_ARGS,
-        as_user: Optional[APIUser] = None,
+        as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[SERIALIZER_ENUM] = None,
     ) -> List[OpaqueSerializedResponse]:

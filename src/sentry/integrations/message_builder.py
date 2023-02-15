@@ -9,7 +9,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project, Rule, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -18,13 +18,13 @@ class AbstractMessageBuilder(ABC):
     pass
 
 
-def format_actor_options(actors: Sequence[Team | APIUser]) -> Sequence[Mapping[str, str]]:
+def format_actor_options(actors: Sequence[Team | RpcUser]) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
     return sorted((format_actor_option(actor) for actor in actors), key=sort_func)
 
 
-def format_actor_option(actor: Team | APIUser) -> Mapping[str, str]:
-    if isinstance(actor, APIUser):
+def format_actor_option(actor: Team | RpcUser) -> Mapping[str, str]:
+    if isinstance(actor, RpcUser):
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
         return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}

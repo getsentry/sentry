@@ -3,7 +3,7 @@ from django.db import IntegrityError
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
-    ApiOrganizationMappingUpdate,
+    RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
 from sentry.testutils import TransactionTestCase
@@ -82,7 +82,7 @@ class OrganizationMappingTest(TransactionTestCase):
         assert api_org_mapping.customer_id is None
 
         organization_mapping_service.update(
-            ApiOrganizationMappingUpdate(
+            RpcOrganizationMappingUpdate(
                 organization_id=self.organization.id,
                 customer_id="test",
             )
@@ -91,14 +91,14 @@ class OrganizationMappingTest(TransactionTestCase):
         assert org_mapping.customer_id == "test"
 
         organization_mapping_service.update(
-            ApiOrganizationMappingUpdate(organization_id=self.organization.id, name="new name!")
+            RpcOrganizationMappingUpdate(organization_id=self.organization.id, name="new name!")
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
         assert org_mapping.name == "new name!"
 
         organization_mapping_service.update(
-            ApiOrganizationMappingUpdate(organization_id=self.organization.id)
+            RpcOrganizationMappingUpdate(organization_id=self.organization.id)
         )
         # Does not overwrite with empty value.
         assert org_mapping.name == "new name!"

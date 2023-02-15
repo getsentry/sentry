@@ -14,7 +14,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
@@ -144,7 +144,7 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 
 def get_installation(
     organization: Organization,
-) -> Tuple[IntegrationInstallation | None, APIOrganizationIntegration | None]:
+) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
     integration, organization_integration = integration_service.get_organization_context(
         organization_id=organization.id, provider="github"
     )

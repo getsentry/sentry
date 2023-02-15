@@ -202,7 +202,7 @@ def handle_group_owners(project, group, issue_owners):
     from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
@@ -214,7 +214,7 @@ def handle_group_owners(project, group, issue_owners):
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
             new_owners = {}
-            owners: Union[List[APIUser], List[Team]]
+            owners: Union[List[RpcUser], List[Team]]
             for rule, owners, source in issue_owners:
                 for owner in owners:
                     # Can potentially have multiple rules pointing to the same owner
@@ -260,7 +260,7 @@ def handle_group_owners(project, group, issue_owners):
                     )
                     user_id = None
                     team_id = None
-                    if owner_type is APIUser:
+                    if owner_type is RpcUser:
                         user_id = owner_id
                     if owner_type is Team:
                         team_id = owner_id

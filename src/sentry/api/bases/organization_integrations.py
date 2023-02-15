@@ -4,8 +4,8 @@ from rest_framework.request import Request
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.services.hybrid_cloud.integration import (
-    APIIntegration,
-    APIOrganizationIntegration,
+    RpcIntegration,
+    RpcOrganizationIntegration,
     integration_service,
 )
 
@@ -35,7 +35,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
             raise Http404
 
     @staticmethod
-    def get_organization_integration(organization, integration_id) -> APIOrganizationIntegration:
+    def get_organization_integration(organization, integration_id) -> RpcOrganizationIntegration:
         """
         Get just the cross table entry.
         Note: This will still return organization integrations that are pending deletion.
@@ -52,7 +52,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         return org_integration
 
     @staticmethod
-    def get_integration(organization, integration_id) -> APIIntegration:
+    def get_integration(organization, integration_id) -> RpcIntegration:
         """
         Note: The integration may still exist even when the
         OrganizationIntegration cross table entry has been deleted.

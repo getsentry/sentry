@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ class AutoSyncNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
-    def determine_recipients(self) -> Iterable[Team | APIUser]:
+    def determine_recipients(self) -> Iterable[Team | RpcUser]:
         return self.organization.get_owners()  # type: ignore
 
     @property

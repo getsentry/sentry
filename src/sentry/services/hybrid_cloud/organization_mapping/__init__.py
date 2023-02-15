@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True, eq=True)
-class APIOrganizationMapping:
+class RpcOrganizationMapping:
     organization_id: int = -1
     slug: str = ""
     name: str = ""
@@ -33,15 +33,21 @@ class APIOrganizationMapping:
     customer_id: Optional[str] = None
 
 
+APIOrganizationMapping = RpcOrganizationMapping
+
+
 @dataclass
-class ApiOrganizationMappingUpdate(PatchableMixin["Organization"]):
+class RpcOrganizationMappingUpdate(PatchableMixin["Organization"]):
     organization_id: int = -1
     name: Unset[str] = UnsetVal
     customer_id: Unset[str] = UnsetVal
 
     @classmethod
-    def from_instance(cls, inst: Organization) -> ApiOrganizationMappingUpdate:
+    def from_instance(cls, inst: Organization) -> RpcOrganizationMappingUpdate:
         return cls(**cls.params_from_instance(inst), organization_id=inst.id)
+
+
+ApiOrganizationMappingUpdate = RpcOrganizationMappingUpdate
 
 
 class OrganizationMappingService(InterfaceWithLifecycle):
@@ -56,7 +62,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
-    ) -> APIOrganizationMapping:
+    ) -> RpcOrganizationMapping:
         """
         This method returns a new or recreated OrganizationMapping object.
         If a record already exists with the same slug, the organization_id can only be
@@ -77,7 +83,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def update(self, update: ApiOrganizationMappingUpdate) -> None:
+    def update(self, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
     @abstractmethod

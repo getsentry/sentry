@@ -35,7 +35,7 @@ from sentry.models import (
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
-from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -118,7 +118,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.org_integration: APIOrganizationIntegration | None
+        self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: Identity | None = None
 
     def reinstall(self) -> None:

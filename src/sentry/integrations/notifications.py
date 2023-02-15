@@ -6,15 +6,15 @@ from typing import Any, Iterable, Mapping, MutableMapping
 from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.identity import APIIdentity, APIIdentityProvider, identity_service
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider, identity_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Team | APIUser,
+    recipient: Team | RpcUser,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -29,7 +29,7 @@ def get_channel_and_integration_by_user(
     user: User,
     organization: Organization,
     provider: ExternalProviders,
-) -> Mapping[str, APIIntegration]:
+) -> Mapping[str, RpcIntegration]:
 
     identities = identity_service.get_user_identities_by_provider_type(
         user_id=user.id,
@@ -43,7 +43,7 @@ def get_channel_and_integration_by_user(
         # recipients.
         return {}
 
-    identity_id_to_idp: Mapping[APIIdentity.id, APIIdentityProvider | None] = {
+    identity_id_to_idp: Mapping[RpcIdentity.id, RpcIdentityProvider | None] = {
         identity.id: identity_service.get_provider(provider_id=identity.idp_id)
         for identity in identities
     }
@@ -94,8 +94,8 @@ def get_channel_and_integration_by_team(
 
 def get_integrations_by_channel_by_recipient(
     organization: Organization, recipients: Iterable[Team | User], provider: ExternalProviders
-) -> MutableMapping[Team | User, Mapping[str, APIIntegration | Integration]]:
-    output: MutableMapping[Team | User, Mapping[str, APIIntegration | Integration]] = defaultdict(
+) -> MutableMapping[Team | User, Mapping[str, RpcIntegration | Integration]]:
+    output: MutableMapping[Team | User, Mapping[str, RpcIntegration | Integration]] = defaultdict(
         dict
     )
     for recipient in recipients:

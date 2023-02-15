@@ -8,14 +8,14 @@ from sentry.api.serializers import Serializer, register
 from sentry.models import AuthProvider, Organization, OrganizationMember
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.auth import ApiAuthProvider
+    from sentry.services.hybrid_cloud.auth import RpcAuthProvider
 
 
 @register(AuthProvider)
 class AuthProviderSerializer(Serializer):
     def serialize(
         self,
-        obj: AuthProvider | ApiAuthProvider,
+        obj: AuthProvider | RpcAuthProvider,
         attrs,
         user,
         organization: Organization | None = None,

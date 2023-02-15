@@ -11,7 +11,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Group, Project, ProjectOwnership, Rule, Team
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 
@@ -65,13 +65,13 @@ def get_digest_as_context(digest: Digest) -> Mapping[str, Any]:
 
 def get_events_by_participant(
     participants_by_provider_by_event: Mapping[
-        Event, Mapping[ExternalProviders, set[Team | APIUser]]
+        Event, Mapping[ExternalProviders, set[Team | RpcUser]]
     ]
-) -> Mapping[Team | APIUser, set[Event]]:
+) -> Mapping[Team | RpcUser, set[Event]]:
     """Invert a mapping of events to participants to a mapping of participants to events."""
     output = defaultdict(set)
     for event, participants_by_provider in participants_by_provider_by_event.items():
-        participants: set[Team | APIUser]
+        participants: set[Team | RpcUser]
         for participants in participants_by_provider.values():
             for participant in participants:
                 output[participant].add(event)
@@ -81,7 +81,7 @@ def get_events_by_participant(
 def get_personalized_digests(
     digest: Digest,
     participants_by_provider_by_event: Mapping[
-        Event, Mapping[ExternalProviders, set[Team | APIUser]]
+        Event, Mapping[ExternalProviders, set[Team | RpcUser]]
     ],
 ) -> Mapping[int, Digest]:
     events_by_participant = get_events_by_participant(participants_by_provider_by_event)
@@ -122,7 +122,7 @@ def get_participants_by_event(
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Mapping[Event, Mapping[ExternalProviders, set[Team | APIUser]]]:
+) -> Mapping[Event, Mapping[ExternalProviders, set[Team | RpcUser]]]:
     """
     This is probably the slowest part in sending digests because we do a lot of
     DB calls while we iterate over every event. It would be great if we could

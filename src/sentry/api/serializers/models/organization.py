@@ -51,7 +51,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import ApiOrganizationAuthConfig, auth_service
+from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
 
@@ -190,7 +190,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
 
-        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig] = {
+        configs_by_org_id: Mapping[int, RpcOrganizationAuthConfig] = {
             config.organization_id: config
             for config in auth_service.get_org_auth_config(
                 organization_ids=[o.id for o in item_list]
@@ -209,7 +209,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
 
     def _serialize_auth_providers(
         self,
-        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig],
+        configs_by_org_id: Mapping[int, RpcOrganizationAuthConfig],
         item_list: Sequence[Organization],
         user: User,
     ) -> Mapping[int, Any]:

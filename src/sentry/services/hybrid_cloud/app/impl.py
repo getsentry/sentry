@@ -11,11 +11,11 @@ from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.services.hybrid_cloud.app import (
-    ApiApiApplication,
-    ApiSentryApp,
-    ApiSentryAppComponent,
-    ApiSentryAppInstallation,
     AppService,
+    RpcApiApplication,
+    RpcSentryApp,
+    RpcSentryAppComponent,
+    RpcSentryAppInstallation,
     SentryAppInstallationFilterArgs,
 )
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
@@ -23,7 +23,7 @@ from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 
 class DatabaseBackedAppService(
     FilterQueryDatabaseImpl[
-        SentryAppInstallation, SentryAppInstallationFilterArgs, ApiSentryAppInstallation, None
+        SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
     ],
     AppService,
 ):
@@ -95,7 +95,7 @@ class DatabaseBackedAppService(
         *,
         organization_id: int,
         sentry_app_id: Optional[int] = None,
-    ) -> List[ApiSentryAppInstallation]:
+    ) -> List[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         )
@@ -108,7 +108,7 @@ class DatabaseBackedAppService(
 
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> RpcSentryAppInstallation | None:
         try:
             sentry_app = SentryApp.objects.get(proxy_user_id=proxy_user_id)
         except SentryApp.DoesNotExist:
@@ -123,8 +123,8 @@ class DatabaseBackedAppService(
 
         return self._serialize_rpc(installation)
 
-    def _serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
-        return ApiSentryApp(
+    def _serialize_sentry_app(self, app: SentryApp) -> RpcSentryApp:
+        return RpcSentryApp(
             id=app.id,
             scope_list=app.scope_list,
             application=self._serialize_api_application(app.application),
@@ -144,24 +144,24 @@ class DatabaseBackedAppService(
 
     def _serialize_sentry_app_component(
         self, component: SentryAppComponent
-    ) -> ApiSentryAppComponent:
-        return ApiSentryAppComponent(
+    ) -> RpcSentryAppComponent:
+        return RpcSentryAppComponent(
             uuid=component.uuid,
             type=component.type,
             schema=component.schema,
         )
 
-    def _serialize_api_application(self, api_app: ApiApplication) -> ApiApiApplication:
-        return ApiApiApplication(
+    def _serialize_api_application(self, api_app: ApiApplication) -> RpcApiApplication:
+        return RpcApiApplication(
             id=api_app.id,
             client_id=api_app.client_id,
             client_secret=api_app.client_secret,
         )
 
-    def _serialize_rpc(self, installation: SentryAppInstallation) -> ApiSentryAppInstallation:
+    def _serialize_rpc(self, installation: SentryAppInstallation) -> RpcSentryAppInstallation:
         app = installation.sentry_app
 
-        return ApiSentryAppInstallation(
+        return RpcSentryAppInstallation(
             id=installation.id,
             organization_id=installation.organization_id,
             status=installation.status,

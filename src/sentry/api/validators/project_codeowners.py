@@ -16,7 +16,7 @@ from sentry.ownership.grammar import parse_code_owners
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def validate_association(
@@ -61,7 +61,7 @@ def validate_codeowners_associations(
     for external_actor in external_actors:
         type = actor_type_to_string(external_actor.actor.type)
         if type == "user":
-            user: APIUser = external_actor.actor.resolve()
+            user: RpcUser = external_actor.actor.resolve()
             organization_members_ids = OrganizationMember.objects.filter(
                 user_id=user.id, organization_id=project.organization_id
             ).values_list("id", flat=True)
