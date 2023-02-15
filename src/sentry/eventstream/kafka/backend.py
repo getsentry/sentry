@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class PostProcessForwarderType(str, Enum):
     ERRORS = "errors"
     TRANSACTIONS = "transactions"
-    ISSUE_PLATFORM = "issue_platform"
+    ISSUE_PLATFORM = "search_issues"
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
