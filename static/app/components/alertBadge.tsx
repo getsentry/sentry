@@ -1,30 +1,44 @@
 import styled from '@emotion/styled';
 
-import {
-  IconCheckmark,
-  IconDiamond,
-  IconExclamation,
-  IconFire,
-  IconIssues,
-} from 'sentry/icons';
+import {DiamondStatus} from 'sentry/components/diamondStatus';
+import {IconCheckmark, IconExclamation, IconFire, IconIssues} from 'sentry/icons';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {
-  hideText?: boolean;
+  /**
+   * @deprecated use withText
+   */
+  hideText?: true;
+  /**
+   * There is no status for issue, this is to facilitate this custom usage.
+   */
   isIssue?: boolean;
+  /**
+   * The incident status
+   */
   status?: IncidentStatus;
+  /**
+   * Includes a label
+   */
+  withText?: boolean;
 };
 
-function AlertBadge({status, hideText = false, isIssue}: Props) {
+/**
+ * This badge is a composition of DiamondStatus specifically used for incident
+ * alerts.
+ */
+function AlertBadge({status, withText, isIssue}: Props) {
   let statusText = t('Resolved');
-  let Icon = IconCheckmark;
+  let Icon: React.ComponentType<SVGIconProps> = IconCheckmark;
   let color: ColorOrAlias = 'successText';
+
   if (isIssue) {
     statusText = t('Issue');
-    Icon = IconIssues;
+    Icon = SizedIconIssue;
     color = 'subText';
   } else if (status === IncidentStatus.CRITICAL) {
     statusText = t('Critical');
@@ -38,50 +52,27 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
 
   return (
     <Wrapper data-test-id="alert-badge">
-      <AlertIconWrapper
-        role="img"
-        aria-label={hideText ? statusText : undefined}
-        color={color}
+      <DiamondStatus
         icon={Icon}
-      >
-        <AlertIconBackground color={color} />
-        <Icon color="white" />
-      </AlertIconWrapper>
-
-      {!hideText && <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>}
+        color={color}
+        aria-label={!withText ? statusText : undefined}
+      />
+      {withText && <div>{statusText}</div>}
     </Wrapper>
   );
 }
 
 export default AlertBadge;
 
+/**
+ * The size of the issue icon needs to be marginally adjusted to fit into the diamond well
+ */
+const SizedIconIssue = styled(IconIssues)`
+  width: 13px;
+`;
+
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const AlertIconWrapper = styled('div')<{color: ColorOrAlias; icon: React.ReactNode}>`
-  width: 36px;
-  height: 36px;
-  position: relative;
-
-  svg:last-child {
-    width: ${p => (p.icon === IconIssues ? '13px' : '16px')};
-    z-index: 2;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
-  }
-`;
-
-const AlertIconBackground = styled(IconDiamond)<{color: ColorOrAlias}>`
-  width: 36px;
-  height: 36px;
-`;
-
-const IncidentStatusValue = styled('div')`
-  margin-left: ${space(1)};
+  gap: ${space(1)};
 `;
