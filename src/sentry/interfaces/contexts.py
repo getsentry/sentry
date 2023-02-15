@@ -184,6 +184,12 @@ class TraceContextType(ContextType):
     context_to_tag_mapping = {}
 
 
+@contexttype
+class OtelContextType(ContextType):
+    type = "otel"
+    context_to_tag_mapping = {}
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.
