@@ -28,6 +28,8 @@ from sentry.utils.services import build_instance_from_options
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
+    from sentry.models.group import Group
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +128,11 @@ def handle_owner_assignment(job):
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import GroupOwnerType, ProjectOwnership
+            from sentry.models import GroupOwnerType
 
-            event = job["event"]
-            project, group = event.project, event.group
+            event: GroupEvent = job["event"]
+            project: Project = event.project
+            group: Group = event.group
 
             with metrics.timer("post_process.handle_owner_assignment"):
                 with sentry_sdk.start_span(
@@ -166,31 +169,40 @@ def handle_owner_assignment(job):
                 if issue_owners_exists and assignees_exists:
                     return
 
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.get_issue_owners"
-                ):
-                    if killswitch_matches_context(
-                        "post_process.get-autoassign-owners",
-                        {
-                            "project_id": project.id,
-                        },
-                    ):
-                        # see ProjectOwnership.get_issue_owners
-                        issue_owners = []
-                    else:
-
-                        issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.handle_group_owners"
-                ):
-                    if issue_owners and not issue_owners_exists:
-                        try:
-                            handle_group_owners(project, group, issue_owners)
-                        except Exception:
-                            logger.exception("Failed to store group owners")
+                handle_owner_assignment_task(project, event, group, job)
         except Exception:
             logger.exception("Failed to handle owner assignments")
+
+
+@instrumented_task(
+    name="sentry.tasks.post_process_handle_owner_assignment",
+    queue="post_process_handle_owner_assignment",
+)
+def handle_owner_assignment_task(
+    project: Project, event: GroupEvent | Event, group: Group, job: any
+) -> None:
+    with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_issue_owners"):
+        from sentry.models import ProjectOwnership
+
+        if killswitch_matches_context(
+            "post_process.get-autoassign-owners",
+            {
+                "project_id": project.id,
+            },
+        ):
+            # see ProjectOwnership.get_issue_owners
+            issue_owners = []
+        else:
+
+            issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
+
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.handle_group_owners"):
+            if issue_owners:
+                try:
+                    handle_group_owners(project, group, issue_owners)
+                except Exception:
+                    logger.exception("Failed to store group owners")
+        handle_auto_assignment(job)
 
 
 def handle_group_owners(project, group, issue_owners):
@@ -902,7 +914,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_inbox_adds,
         process_commits,
         handle_owner_assignment,
-        handle_auto_assignment,
         process_rules,
         process_service_hooks,
         process_resource_change_bounds,
