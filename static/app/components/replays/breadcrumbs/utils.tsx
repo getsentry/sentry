@@ -4,7 +4,7 @@ import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
  * Generate breadcrumb descriptions based on type
  */
 export function getDescription(crumb: Crumb, startTimestampMs?: number) {
-  if (crumb.data && 'action' in crumb.data) {
+  if (typeof crumb.data === 'object' && crumb.data !== null && 'action' in crumb.data) {
     switch (crumb.data.action) {
       case 'largest-contentful-paint':
         if (crumb.timestamp && startTimestampMs) {
@@ -31,7 +31,12 @@ export function getDescription(crumb: Crumb, startTimestampMs?: number) {
  */
 export function getTitle(crumb: Crumb) {
   // Supports replay specific breadcrumbs
-  if (crumb.data && 'label' in crumb.data && crumb.data.label) {
+  if (
+    typeof crumb.data === 'object' &&
+    crumb.data !== null &&
+    'label' in crumb.data &&
+    crumb.data.label
+  ) {
     return crumb.data.label;
   }
 
