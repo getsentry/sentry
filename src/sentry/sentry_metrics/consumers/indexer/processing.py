@@ -1,12 +1,13 @@
 import logging
-from typing import Callable, Mapping
+from typing import Callable, Mapping, MutableSequence
 
-from arroyo.types import Message
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BaseValue, Message
 
 from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
-from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch
 from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpannerIndexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
@@ -44,16 +45,14 @@ class MessageProcessor:
 
     def process_messages(
         self,
-        outer_message: Message[MessageBatch],
+        outer_message: Message[MutableSequence[BaseValue[KafkaPayload]]],
     ) -> IndexerOutputMessageBatch:
         """
-        We have an outer_message Message() whose payload is a batch of Message() objects.
+        We have an outer message Message() whose payload is a batch of Value() objects.
 
             Message(
-                partition=...,
-                offset=...
-                timestamp=...
                 payload=[Message(...), Message(...), etc]
+                commitable=...
             )
 
         The inner messages payloads are KafkaPayload's that have:

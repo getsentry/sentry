@@ -6,6 +6,7 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
+    MutableSequence,
     NamedTuple,
     Optional,
     Sequence,
@@ -17,11 +18,11 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import BrokerValue, Message
+from arroyo.types import BaseValue, BrokerValue, Message
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
@@ -77,7 +78,7 @@ class IndexerBatch:
     def __init__(
         self,
         use_case_id: UseCaseKey,
-        outer_message: Message[MessageBatch],
+        outer_message: Message[MutableSequence[BaseValue[KafkaPayload]]],
         should_index_tag_values: bool,
         is_output_sliced: bool,
     ) -> None:
@@ -93,17 +94,19 @@ class IndexerBatch:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
 
-        for msg in self.outer_message.payload:
-            assert isinstance(msg.value, BrokerValue)
-            partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
+        for value in self.outer_message.payload:
+            assert isinstance(value, BrokerValue)
+            partition_offset = PartitionIdxOffset(value.partition.index, value.offset)
             try:
-                parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
+                parsed_payload = json.loads(
+                    value.payload.value.decode("utf-8"), use_rapid_json=True
+                )
                 self.parsed_payloads_by_offset[partition_offset] = parsed_payload
             except rapidjson.JSONDecodeError:
                 self.skipped_offsets.add(partition_offset)
                 logger.error(
                     "process_messages.invalid_json",
-                    extra={"payload_value": str(msg.payload.value)},
+                    extra={"payload_value": str(value.payload.value)},
                     exc_info=True,
                 )
                 continue
@@ -212,19 +215,17 @@ class IndexerBatch:
     ) -> IndexerOutputMessageBatch:
         new_messages: IndexerOutputMessageBatch = []
 
-        for message in self.outer_message.payload:
+        for value in self.outer_message.payload:
             used_tags: Set[str] = set()
             output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
-            assert isinstance(message.value, BrokerValue)
-            partition_offset = PartitionIdxOffset(
-                message.value.partition.index, message.value.offset
-            )
+            assert isinstance(value, BrokerValue)
+            partition_offset = PartitionIdxOffset(value.partition.index, value.offset)
             if partition_offset in self.skipped_offsets:
                 logger.info(
                     "process_message.offset_skipped",
                     extra={
-                        "offset": message.value.offset,
-                        "partition": message.value.partition.index,
+                        "offset": value.offset,
+                        "partition": value.partition.index,
                     },
                 )
                 continue
@@ -352,10 +353,10 @@ class IndexerBatch:
             del new_payload_value["name"]
 
             kafka_payload = KafkaPayload(
-                key=message.payload.key,
+                key=value.payload.key,
                 value=rapidjson.dumps(new_payload_value).encode(),
                 headers=[
-                    *message.payload.headers,
+                    *value.payload.headers,
                     ("mapping_sources", mapping_header_content),
                     ("metric_type", new_payload_value["type"]),
                 ],
@@ -365,9 +366,9 @@ class IndexerBatch:
                     routing_header={"org_id": org_id},
                     routing_message=kafka_payload,
                 )
-                new_messages.append(Message(message.value.replace(routing_payload)))
+                new_messages.append(Message(value.replace(routing_payload)))
             else:
-                new_messages.append(Message(message.value.replace(kafka_payload)))
+                new_messages.append(Message(value.replace(kafka_payload)))
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages
