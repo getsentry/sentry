@@ -3,7 +3,7 @@ from io import StringIO
 import click
 from django.apps import apps
 from django.core import management, serializers
-from django.db import connection
+from django.db import IntegrityError, connection
 
 from sentry.runner.decorators import configuration
 
@@ -18,7 +18,10 @@ def import_(src):
 
     for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
         if obj.object._meta.app_label not in EXCLUDED_APPS:
-            obj.save()
+            try:
+                obj.save()
+            except IntegrityError as e:
+                click.echo(e, err=True)
 
     sequence_reset_sql = StringIO()
 
