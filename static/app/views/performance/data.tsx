@@ -434,7 +434,6 @@ function generateGenericPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
-  // const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
