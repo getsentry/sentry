@@ -20,11 +20,11 @@ import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
-import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
+import {Monitor, MonitorConfig, MonitorType, ScheduleType} from './types';
 
 const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
-  {value: 'crontab', label: 'Crontab'},
-  {value: 'interval', label: 'Interval'},
+  {value: ScheduleType.CRONTAB, label: 'Crontab'},
+  {value: ScheduleType.INTERVAL, label: 'Interval'},
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
@@ -83,7 +83,7 @@ function transformData(_data: Record<string, any>, model: FormModel) {
 class MonitorForm extends Component<Props> {
   form = new FormModel({transformData});
 
-  formDataFromConfig(type: MonitorTypes, config: MonitorConfig) {
+  formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
     switch (type) {
       case 'cron_job':

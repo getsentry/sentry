@@ -15,7 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
-import {Monitor} from './types';
+import {Monitor, MonitorStatus} from './types';
 
 type Props = {
   monitor: Monitor;
@@ -61,7 +61,10 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
 
   const toggleStatus = () =>
     updateMonitor({
-      status: monitor.status === 'disabled' ? 'active' : 'disabled',
+      status:
+        monitor.status === MonitorStatus.DISABLED
+          ? MonitorStatus.ACTIVE
+          : MonitorStatus.DISABLED,
     });
 
   return (

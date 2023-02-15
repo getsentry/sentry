@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Status} from './types';
+import {MonitorStatus} from './types';
 
-export default styled('div')<{size: number; status: Status}>`
+export default styled('div')<{size: number; status: MonitorStatus}>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
