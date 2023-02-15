@@ -1,5 +1,7 @@
 import logging
-from typing import Any, Mapping, Optional
+import random
+from contextlib import contextmanager
+from typing import Any, Generator, Mapping, Optional
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
@@ -12,7 +14,6 @@ from arroyo.types import Commit, Message, Partition
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
-from sentry.eventstream.kafka.postprocessworker import _sampled_eventstream_timer
 from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
@@ -24,6 +25,16 @@ from sentry.utils.cache import cache_key_for_event
 _DURATION_METRIC = "eventstream.duration"
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _sampled_eventstream_timer(instance: str) -> Generator[None, None, None]:
+    record_metric = random.random() < 0.1
+    if record_metric is True:
+        with metrics.timer(_DURATION_METRIC, instance=instance):
+            yield
+    else:
+        yield
 
 
 def dispatch_post_process_group_task(
