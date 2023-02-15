@@ -123,10 +123,6 @@ def incidentsubscription_user_migrations():
                 to="sentry.User", db_constraint=False, db_index=True
             ),
         ),
-        migrations.AlterUniqueTogether(
-            name="incidentsubscription",
-            unique_together={("incident", "user_id")},
-        ),
     ]
 
     state_operations = [
@@ -141,6 +137,10 @@ def incidentsubscription_user_migrations():
             model_name="incidentsubscription",
             old_name="user",
             new_name="user_id",
+        ),
+        migrations.AlterUniqueTogether(
+            name="incidentsubscription",
+            unique_together={("incident", "user_id")},
         ),
     ]
 
@@ -189,10 +189,6 @@ def incidentseen_user_migrations():
                 to="sentry.User", db_constraint=False, db_index=False
             ),
         ),
-        migrations.AlterUniqueTogether(
-            name="incidentseen",
-            unique_together={("user_id", "incident")},
-        ),
     ]
 
     state_operations = [
@@ -207,6 +203,10 @@ def incidentseen_user_migrations():
             model_name="incidentseen",
             old_name="user",
             new_name="user_id",
+        ),
+        migrations.AlterUniqueTogether(
+            name="incidentseen",
+            unique_together={("user_id", "incident")},
         ),
     ]
 
@@ -302,4 +302,5 @@ class Migration(CheckedMigration):
         + incidentactivity_user_migrations()
         + incidentseen_user_migrations()
         + project_transaction_threshold_user_migrations()
+        + projecttransactionthresholdoverride_user_migrations()
     )
