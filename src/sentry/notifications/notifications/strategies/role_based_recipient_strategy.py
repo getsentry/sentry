@@ -5,17 +5,15 @@ from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
 
 from sentry import roles
 from sentry.models import OrganizationMember
-from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models import Organization
 
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
-    member_role_by_user_id: MutableMapping[int, str] = {}
     role: Optional[OrganizationRole] = None
     scope: Optional[str] = None
 
@@ -38,28 +36,6 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         """
         self.member_by_user_id[member.user_id] = member
 
-    def get_member_role(self, user: APIUser) -> str:
-        # cache the result
-        if user.class_name() != "User":
-            raise OrganizationMember.DoesNotExist()
-        if user.id not in self.member_role_by_user_id:
-            role = OrganizationMember.objects.get(
-                user_id=user.id, organization=self.organization
-            ).role
-            self.member_role_by_user_id[user.id] = organization_roles.get(role).name
-        return self.member_role_by_user_id[user.id]
-
-    def get_role_string(self, member: OrganizationMember) -> str:
-        role_name: str = member.get_all_org_roles_sorted()[0].name
-        return role_name
-
-    def set_members_roles_in_cache(self, members: Iterable[OrganizationMember]) -> None:
-        for member in members:
-            if self.role and not self.scope:
-                self.member_role_by_user_id[member.id] = self.role.name
-            elif self.scope:
-                self.member_role_by_user_id[member.id] = self.get_role_string(member)
-
     def determine_recipients(
         self,
     ) -> Iterable[RpcUser]:
@@ -75,6 +51,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         Depending on the type of request this might be all organization owners,
         a specific person, or something in between.
         """
+        # default strategy is OrgMembersRecipientStrategy
         members: Iterable[
             OrganizationMember
         ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id)
@@ -96,15 +73,15 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         # ignore type because of optional filtering
         members = members.filter(id__in=member_ids)  # type: ignore[attr-defined]
 
-        self.set_members_roles_in_cache(members)
-
         return members
 
-    def build_notification_footer_from_settings_url(
-        self, settings_url: str, recipient: User
-    ) -> str:
-        role = self.get_member_role(recipient)
+    def build_notification_footer_from_settings_url(self, settings_url: str) -> str:
+        if self.role and not self.scope:
+            return (
+                "You are receiving this notification because you're listed as an organization "
+                f"{self.role.name} | {settings_url}"
+            )
         return (
-            "You are receiving this notification because you're listed as an organization "
-            f"{role} | {settings_url}"
+            "You are receiving this notification because you have the scope "
+            f"{self.scope} | {settings_url}"
         )
