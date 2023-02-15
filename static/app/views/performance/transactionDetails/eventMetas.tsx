@@ -210,10 +210,6 @@ const BrowserCenter = styled('span')`
   display: flex;
   align-items: flex-start;
   gap: ${space(1)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    align-items: center;
-  }
 `;
 
 const IconContainer = styled('div')`
@@ -223,10 +219,7 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-top: ${space(0.5)};
-  }
+  margin-top: ${space(0.25)};
 `;
 
 const BrowserDisplay = ({event}: {event: Event}) => {
