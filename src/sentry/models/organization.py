@@ -316,11 +316,11 @@ class Organization(Model, SnowflakeIdMixin):
         }
 
     def get_owners(self) -> Sequence[APIUser]:
+        owners = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+            "user_id", flat=True
+        )
 
-        owner_memberships = OrganizationMember.objects.filter(
-            role=roles.get_top_dog().id, organization=self
-        ).values_list("user_id", flat=True)
-        return user_service.get_many(filter={"user_ids": owner_memberships})
+        return user_service.get_many(filter={"user_ids": owners})
 
     def get_default_owner(self) -> APIUser:
         if not hasattr(self, "_default_owner"):
