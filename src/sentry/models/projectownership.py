@@ -15,7 +15,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import ProjectCodeOwners, Team, User
+    from sentry.models import ProjectCodeOwners, Team
     from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
@@ -164,7 +164,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def get_issue_owners(
-        cls, project_id, data, limit=2, experiment=False
+        cls, project_id, data, limit=2
     ) -> Sequence[
         Tuple[
             "Rule",
@@ -190,10 +190,8 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, data, experiment)
-            codeowners_rules = (
-                cls._matching_ownership_rules(codeowners, data, experiment) if codeowners else []
-            )
+            ownership_rules = cls._matching_ownership_rules(ownership, data)
+            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
 
             if not (codeowners_rules or ownership_rules):
                 return []
@@ -241,7 +239,14 @@ class ProjectOwnership(Model):
 
         """
         from sentry import analytics
-        from sentry.models import ActivityIntegration, GroupAssignee, GroupOwner, GroupOwnerType
+        from sentry.models import (
+            ActivityIntegration,
+            GroupAssignee,
+            GroupOwner,
+            GroupOwnerType,
+            Team,
+            User,
+        )
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
@@ -304,13 +309,12 @@ class ProjectOwnership(Model):
         cls,
         ownership: Union["ProjectOwnership", "ProjectCodeOwners"],
         data: Mapping[str, Any],
-        experiment: bool = False,
     ) -> Sequence["Rule"]:
         rules = []
 
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
-                if rule.test(data, experiment):
+                if rule.test(data):
                     rules.append(rule)
 
         return rules

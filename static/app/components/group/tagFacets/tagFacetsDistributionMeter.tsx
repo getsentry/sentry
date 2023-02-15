@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -330,7 +330,10 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   padding: 1px ${space(0.5)} 0 0;
 `;
 
-const LegendAnimateContainer = styled(motion.div)<{expanded: boolean}>`
+const LegendAnimateContainer = styled(motion.div, {
+  shouldForwardProp: prop =>
+    prop === 'animate' || (prop !== 'expanded' && isPropValid(prop)),
+})<{expanded: boolean}>`
   height: 0;
   opacity: 0;
   ${p => (!p.expanded ? 'overflow: hidden;' : '')}

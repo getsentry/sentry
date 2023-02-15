@@ -19,7 +19,11 @@ import {
   Rect,
   resizeCanvasToDisplaySize,
 } from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {
+  DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
+  FlamegraphRenderer,
+  FlamegraphRendererOptions,
+} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {fragment, vertex} from './shaders';
 
@@ -78,7 +82,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     canvas: HTMLCanvasElement,
     flamegraph: Flamegraph,
     theme: FlamegraphTheme,
-    options: {draw_border: boolean} = {draw_border: false}
+    options: FlamegraphRendererOptions = DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS
   ) {
     super(canvas, flamegraph, theme, options);
 

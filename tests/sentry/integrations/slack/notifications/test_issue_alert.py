@@ -745,7 +745,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert attachment["title"] == "Hello world"
         assert attachment["text"] == ""
 
-    @mock.patch("sentry.experiments.manager.get", return_value=True)
+    @mock.patch("sentry.experiments.manager.get", return_value=1)
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_issue_alert_fallback_experiment(self, mock_func):
         """Test that the fallback experiment adds a query param"""
@@ -760,6 +760,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
         )
         context = notification.get_context()
-        assert "&ref_fallback=expt" in context["notification_settings_link"]
+        assert "&ref_fallback=expt" in context["link"]
         params = notification.get_log_params(self.user)
         assert params["fallback_experiment"] == "expt"

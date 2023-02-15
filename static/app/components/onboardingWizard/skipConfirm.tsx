@@ -6,7 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children: (opts: {skip: (e: React.MouseEvent) => void}) => React.ReactNode;

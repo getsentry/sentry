@@ -211,47 +211,6 @@ describe('Performance > VitalDetail', function () {
         }),
       ],
     });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurementRating({
-        field: 'count(sentry.transactions.measurements.lcp)',
-      }),
-      match: [
-        MockApiClient.matchQuery({
-          groupBy: ['measurement_rating'],
-          field: ['count(sentry.transactions.measurements.lcp)'],
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField({
-        field: 'p75(sentry.transactions.measurements.cls)',
-      }),
-      match: [
-        MockApiClient.matchQuery({
-          field: ['p75(sentry.transactions.measurements.cls)'],
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurementRating({
-        field: 'count(sentry.transactions.measurements.cls)',
-      }),
-      match: [
-        MockApiClient.matchQuery({
-          groupBy: ['measurement_rating'],
-          field: ['count(sentry.transactions.measurements.cls)'],
-        }),
-      ],
-    });
   });
 
   afterEach(function () {

@@ -73,7 +73,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
       }${window.location.hash}`;
 
       // This is really noisy, so collect a subset.
-      const referrer = decodeScalar(qs.parse(window.location.search).referrer ?? '');
+      const referrer = decodeScalar(qs.parse(window.location.search).referrer, '');
       if (Math.random() < 0.2 || referrer !== '') {
         const paramOrgId = (params as any).orgId ?? '';
 
