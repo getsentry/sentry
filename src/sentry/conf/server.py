@@ -851,8 +851,8 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
-    "dynamic-sampling-project-biases": {
-        "task": "sentry.dynamic_sampling.tasks.prioritize_by_project",
+    "dynamic-sampling-prioritize-projects": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
         # Run daily at 08:00
         "schedule": crontab(hour=8, minute=0),
         "options": {"expires": 3600},

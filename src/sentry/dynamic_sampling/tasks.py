@@ -1,4 +1,5 @@
 import logging
+from typing import Mapping, Sequence
 
 from sentry import features
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
     default_retry_delay=5,
     max_retries=5,
 )  # type: ignore
-def prioritise_projects(**kwargs) -> None:
+def prioritise_projects() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_projects", sample_rate=1.0):
         for org_id, project_id_with_count_per_root in fetch_projects_with_total_volumes().items():
@@ -33,7 +34,9 @@ def prioritise_projects(**kwargs) -> None:
     default_retry_delay=5,
     max_retries=5,
 )  # type: ignore
-def process_projects_sample_rates(organization_id, project_id_with_count_per_root) -> None:
+def process_projects_sample_rates(
+    organization_id: int, project_id_with_count_per_root: Sequence[Mapping[int, int]]
+) -> None:
     """
     Takes a single org id and a list of project ids
     """
@@ -44,7 +47,9 @@ def process_projects_sample_rates(organization_id, project_id_with_count_per_roo
             adjust_sample_rates(organization_id, project_id_with_count_per_root)
 
 
-def adjust_sample_rates(org_id, project_id_with_count_per_root):
+def adjust_sample_rates(
+    org_id: int, project_id_with_count_per_root: Sequence[Mapping[int, int]]
+) -> None:
     projects = []
     for project_id, count_per_root in project_id_with_count_per_root:
         projects.append(

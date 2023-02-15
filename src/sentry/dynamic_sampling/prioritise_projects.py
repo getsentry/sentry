@@ -27,7 +27,7 @@ MAX_SECONDS = 60
 CHUNK_SIZE = 1000
 
 
-def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
+def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[Mapping[int, int]]]:
     """
     This function fetch with pagination orgs and projects with count per root project
     """

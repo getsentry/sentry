@@ -63,6 +63,9 @@ class AdjustedModel:
         if len(sorted_projects) % 2 == 0:
             return [*new_right, *reversed(new_left)]
         else:
-            mid_element = sorted_projects[half] if odd_one else []
-            mid_element.new_count_per_root = mid_element.count_per_root
-            return [*new_right, mid_element, *reversed(new_left)]
+            if odd_one:
+                mid_elements = [sorted_projects[half]]
+                mid_elements[0].new_count_per_root = mid_elements[0].count_per_root
+            else:
+                mid_elements = []
+            return [*new_right, *mid_elements, *reversed(new_left)]

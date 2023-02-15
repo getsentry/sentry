@@ -921,6 +921,7 @@ transactionMetrics:
     limit: 10
   extractCustomTags: []
   extractMetrics:
+  - c:transactions/count_per_root_project@none
   - d:transactions/duration@millisecond
   - s:transactions/user@none
   - d:transactions/measurements.app_start_cold@millisecond
