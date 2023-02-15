@@ -33,8 +33,8 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
-import MonitorIcon from './monitorIcon';
-import {Monitor} from './types';
+import {MonitorBadge} from './monitorBadge';
+import {Monitor, MonitorStatus} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
@@ -138,30 +138,34 @@ class Monitors extends AsyncView<Props, State> {
             {monitorList?.length ? (
               <Fragment>
                 <StyledPanelTable
-                  headers={[t('Monitor Name'), t('Last Check-In'), t('Project')]}
+                  headers={[t('Monitor Name'), t('Next Checkin'), t('Project')]}
                 >
                   {monitorList?.map(monitor => (
                     <Fragment key={monitor.id}>
                       <MonitorName>
-                        <MonitorIcon status={monitor.status} size={16} />
-                        <StyledLink
+                        <MonitorBadge status={monitor.status} />
+                        <Link
                           to={`/organizations/${organization.slug}/crons/${monitor.id}/`}
                         >
                           {monitor.name}
-                        </StyledLink>
+                        </Link>
                       </MonitorName>
-                      <div>
-                        {monitor.nextCheckIn ? (
-                          <StyledTimeSince date={monitor.lastCheckIn} />
+                      <NextCheckin>
+                        {monitor.nextCheckIn &&
+                        monitor.status !== MonitorStatus.DISABLED &&
+                        monitor.status !== MonitorStatus.ACTIVE ? (
+                          <TimeSince date={monitor.nextCheckIn} />
                         ) : (
-                          t('n/a')
+                          '\u2014'
                         )}
-                      </div>
-                      <IdBadge
-                        project={monitor.project}
-                        avatarSize={18}
-                        avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-                      />
+                      </NextCheckin>
+                      <ProjectColumn>
+                        <IdBadge
+                          project={monitor.project}
+                          avatarSize={18}
+                          avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+                        />
+                      </ProjectColumn>
                     </Fragment>
                   ))}
                 </StyledPanelTable>
@@ -192,15 +196,6 @@ class Monitors extends AsyncView<Props, State> {
   }
 }
 
-const StyledLink = styled(Link)`
-  flex: 1;
-  margin-left: ${space(2)};
-`;
-
-const StyledTimeSince = styled(TimeSince)`
-  font-variant-numeric: tabular-nums;
-`;
-
 const Filters = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 300px) 1fr;
@@ -209,6 +204,18 @@ const Filters = styled('div')`
 `;
 
 const MonitorName = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(2)};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const NextCheckin = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const ProjectColumn = styled('div')`
   display: flex;
   align-items: center;
 `;
