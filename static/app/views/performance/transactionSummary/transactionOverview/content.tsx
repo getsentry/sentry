@@ -96,8 +96,8 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
-  unfilteredTotalValues,
-}: Props) {
+}: // unfilteredTotalValues,
+Props) {
   const routes = useRoutes();
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
@@ -421,6 +421,7 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
+        {/* <TransactionPercentage  /> */}
         <UserStats
           organization={organization}
           location={location}
@@ -446,7 +447,6 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           transactionName={transactionName}
-          unfilteredTotals={unfilteredTotalValues}
         />
         <SidebarSpacer />
         <Tags
