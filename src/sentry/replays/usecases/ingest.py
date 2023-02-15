@@ -3,18 +3,14 @@ from __future__ import annotations
 import dataclasses
 import logging
 from datetime import datetime, timezone
-from io import BytesIO
 from typing import TypedDict, Union
 
-from django.conf import settings
-from django.db.utils import IntegrityError
 from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
-from sentry.models.file import File, get_storage
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
-from sentry.replays.lib.segment_file import replays_storage_options
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
 from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -49,6 +45,7 @@ class RecordingSegmentMessage(TypedDict):
     project_id: int
     key_id: int | None
     received: int
+    retention_days: int
     replay_recording: ReplayRecordingSegment
 
 
@@ -58,6 +55,7 @@ class RecordingMessage(TypedDict):
     org_id: int
     project_id: int
     received: int
+    retention_days: int
     payload: bytes
 
 
@@ -72,6 +70,7 @@ class RecordingIngestMessage:
     org_id: int | None
     received: int
     project_id: int
+    retention_days: int
     payload_with_headers: bytes
 
 
@@ -103,9 +102,10 @@ def ingest_recording_chunked(
         message = RecordingIngestMessage(
             replay_id=message_dict["replay_id"],
             key_id=message_dict.get("key_id"),
-            org_id=message_dict.get("org_id"),
+            org_id=message_dict["org_id"],
             project_id=message_dict["project_id"],
             received=message_dict["received"],
+            retention_days=message_dict["retention_days"],
             payload_with_headers=recording_segment_with_headers,
         )
         ingest_recording(message, transaction)
@@ -125,9 +125,10 @@ def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Sp
         message = RecordingIngestMessage(
             replay_id=message_dict["replay_id"],
             key_id=message_dict.get("key_id"),
-            org_id=message_dict.get("org_id"),
+            org_id=message_dict["org_id"],
             project_id=message_dict["project_id"],
             received=message_dict["received"],
+            retention_days=message_dict["retention_days"],
             payload_with_headers=message_dict["payload"],
         )
         ingest_recording(message, transaction)
@@ -155,19 +156,24 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
         )
         return None
 
-    # create a File for our recording segment.
-    if message.org_id in settings.SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS:
-        store_replays_directly(message, headers, recording_segment)
-    else:
-        store_replays_with_filestore(message, headers, recording_segment)
+    # Normalize ingest data into a standardized ingest format.
+    segment_data = RecordingSegmentStorageMeta(
+        retention_days=message.retention_days,
+        org_id=message.org_id,
+        project_id=message.project_id,
+        replay_id=message.replay_id,
+        segment_id=headers["segment_id"],
+        size=len(recording_segment),
+    )
 
-    # TODO: how to handle failures in the above calls. what should happen?
-    # also: handling same message twice?
+    # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
+    # within this scope.
+    driver = make_storage_driver(segment_data.org_id)
+    driver.set(segment_data, recording_segment)
 
-    # TODO: in join wait for outcomes producer to flush possibly,
-    # or do this in a separate arroyo step
-    # also need to talk with other teams on only-once produce requirements
-    if headers["segment_id"] == 0 and message.org_id:
+    # The first segment records an accepted outcome. This is for billing purposes. Subsequent
+    # segments are not billed.
+    if headers["segment_id"] == 0:
         try:
             project = Project.objects.get_from_cache(id=message.project_id)
         except Project.DoesNotExist:
@@ -235,54 +241,3 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"
-
-
-def store_replays_with_filestore(
-    message: RecordingIngestMessage, headers: RecordingSegmentHeaders, recording_segment: bytes
-) -> None:
-    recording_segment_file_name = f"rr:{message.replay_id}:{headers['segment_id']}"
-    with metrics.timer("replays.store_recording.store_recording.create_file"):
-        file = File.objects.create(
-            name=recording_segment_file_name,
-            type="replay.recording",
-        )
-    with metrics.timer("replays.store_recording.store_recording.put_segment_file"):
-        file.putfile(
-            BytesIO(recording_segment),
-            blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
-        )
-
-    try:
-        # associate this file with an indexable replay_id via ReplayRecordingSegmentModel
-        with metrics.timer("replays.store_recording.store_recording.create_segment_row"):
-            ReplayRecordingSegmentModel.objects.create(
-                replay_id=message.replay_id,
-                project_id=message.project_id,
-                segment_id=headers["segment_id"],
-                file_id=file.id,
-                size=len(recording_segment),
-            )
-    except IntegrityError:
-        # Raised in the event of a concurrent write.  Reasonably space
-        logger.warning(
-            "Recording-segment has already been processed.",
-            extra={
-                "replay_id": message.replay_id,
-                "project_id": message.project_id,
-                "segment_id": headers["segment_id"],
-            },
-        )
-
-        # Cleanup the blob.
-        file.delete()
-
-
-def store_replays_directly(
-    message: RecordingIngestMessage, headers: RecordingSegmentHeaders, recording_segment: bytes
-) -> None:
-    storage = get_storage(replays_storage_options())
-    file_path = f"{message.project_id}/{message.replay_id}/{headers['segment_id']}"
-    storage.save(
-        file_path,
-        BytesIO(recording_segment),
-    )

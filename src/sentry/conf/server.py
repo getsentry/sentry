@@ -9,7 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, Mapping, Tuple
+from typing import Any, Dict, Iterable, Literal, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
@@ -3021,8 +3021,18 @@ SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
 # decorator.
 SINGLE_SERVER_SILO_MODE = False
 
-# Used by Replays to test Direct Writes to File Storage
-SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS = []
+# Replays storage driver configuration.
+#
+# Every organization within your Sentry application will ingest using the driver defined under
+# "SENTRY_REPLAYS_BLOB_DRIVER".  However, using the "SENTRY_REPLAYS_BLOB_DRIVER_ORGS" config
+# value allows the maintainer to force certain orgs to use different drivers.  This can be for
+# testing or scalability purposes.
+
+# One of "filestore" | "storage".  All other values default to "filestore".
+SENTRY_REPLAYS_BLOB_DRIVER: Literal["filestore", "storage"] = "filestore"
+
+# A dict containing `org_id: blob-driver` pairs.
+SENTRY_REPLAYS_BLOB_DRIVER_ORGS: Dict[int, Literal["filestore", "storage"]] = {}
 
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None
