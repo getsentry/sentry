@@ -17,7 +17,7 @@ import {CollapsibleTimeline} from './collapsibleTimeline';
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
 const MIN_FLAMEGRAPH_DRAWER_DIMENSIONS: [number, number] = [680, 30];
-const FLAMEGRAPH_DRAWER_INITIAL_HEIGHT = 180;
+const FLAMEGRAPH_DRAWER_INITIAL_HEIGHT = 190;
 
 interface FlamegraphLayoutProps {
   flamegraph: React.ReactElement;

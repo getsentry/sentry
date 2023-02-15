@@ -151,6 +151,22 @@ export function TraceEventDataSection({
       ];
     }
 
+    // This logic might be incomplete, but according to the SDK folks, this is 99.9% of the cases
+    if (platform.startsWith('javascript')) {
+      return [
+        {
+          label: t('Minified'),
+          value: 'minified',
+          disabled: !hasMinified,
+          tooltip: !hasMinified ? t('Minified version not available') : undefined,
+        },
+        {
+          label: displayOptions['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+      ];
+    }
+
     return [
       {
         label: displayOptions.minified,

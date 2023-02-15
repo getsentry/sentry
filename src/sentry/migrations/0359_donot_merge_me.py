@@ -291,7 +291,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0357_add_region_scheduled_deletions"),
+        ("sentry", "0358_break_group_related_user_fks"),
     ]
 
     operations = (

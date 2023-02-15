@@ -9,7 +9,10 @@ class IncidentSeenSerializer(Serializer):
         user_map = {
             d["id"]: d
             for d in user_service.serialize_many(
-                filter=dict(user_ids={i.user_id for i in item_list}), as_user=user
+                filter={
+                    "user_ids": [i.user_id for i in item_list],
+                },
+                as_user=user,
             )
         }
 
