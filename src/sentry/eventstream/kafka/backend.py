@@ -1,7 +1,20 @@
 import logging
+import random
 import signal
 import uuid
-from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from contextlib import contextmanager
+from enum import Enum
+from typing import (
+    Any,
+    Generator,
+    Literal,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -14,7 +27,6 @@ from django.conf import settings
 from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
-from sentry.eventstream.kafka.postprocessworker import PostProcessForwarderType
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
@@ -26,6 +38,24 @@ from sentry.utils.kafka_config import (
 )
 
 logger = logging.getLogger(__name__)
+
+_DURATION_METRIC = "eventstream.duration"
+
+
+class PostProcessForwarderType(str, Enum):
+    ERRORS = "errors"
+    TRANSACTIONS = "transactions"
+    ISSUE_PLATFORM = "issue_platform"
+
+
+@contextmanager
+def _sampled_eventstream_timer(instance: str) -> Generator[None, None, None]:
+    record_metric = random.random() < 0.1
+    if record_metric is True:
+        with metrics.timer(_DURATION_METRIC, instance=instance):
+            yield
+    else:
+        yield
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
