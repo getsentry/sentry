@@ -10,13 +10,21 @@ class RateLimitSerializer(serializers.Serializer):
     window = EmptyIntegerField(min_value=0, max_value=60 * 60 * 24, required=False, allow_null=True)
 
 
-class DynamicSdkLoaderOptionDictField(serializers.DictField):
-    """Validates dynamicSdkLoaderOptions to make sure it only contains valid keys"""
+class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
+    hasReplay = serializers.BooleanField(required=False)
+    hasPerformance = serializers.BooleanField(required=False)
+    hasDebug = serializers.BooleanField(required=False)
 
     def to_internal_value(self, data):
-        if set(data.keys()) != {o.value for o in DynamicSdkLoaderOption}:
-            raise serializers.ValidationError("Invalid keys for dynamic sdk loader options.")
-        return super().to_internal_value(data)
+        # Drop any fields that are not specified as a `DynamicSdkLoaderOption`.
+        allowed = {option.value for option in DynamicSdkLoaderOption}
+        existing = set(data)
+
+        new_data = {}
+        for field_name in existing.intersection(allowed):
+            new_data[field_name] = data[field_name]
+
+        return super().to_internal_value(new_data)
 
 
 class ProjectKeySerializer(serializers.Serializer):
@@ -28,4 +36,6 @@ class ProjectKeySerializer(serializers.Serializer):
     browserSdkVersion = serializers.ChoiceField(
         choices=get_browser_sdk_version_choices(), required=False
     )
-    dynamicSdkLoaderOptions = DynamicSdkLoaderOptionDictField(required=False, allow_null=True)
+    dynamicSdkLoaderOptions = DynamicSdkLoaderOptionSerializer(
+        required=False, allow_null=True, partial=True
+    )

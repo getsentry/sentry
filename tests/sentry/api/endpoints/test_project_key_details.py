@@ -182,11 +182,17 @@ class UpdateProjectKeyTest(APITestCase):
         )
         response = self.client.put(
             url,
+            {"dynamicSdkLoaderOptions": {}},
+        )
+        assert response.status_code == 200
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.data.get("dynamicSdkLoaderOptions") is None
+
+        response = self.client.put(
+            url,
             {
                 "dynamicSdkLoaderOptions": {
                     "hasReplay": True,
-                    "hasPerformance": False,
-                    "hasDebug": False,
                 }
             },
         )
@@ -194,24 +200,67 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.data.get("dynamicSdkLoaderOptions") == {
             "hasReplay": True,
-            "hasPerformance": False,
-            "hasDebug": False,
         }
 
-    def test_dynamic_sdk_loader_options_with_invalid_key(self):
-        project = self.create_project()
-        key = ProjectKey.objects.get_or_create(project=project)[0]
-        self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-project-key-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "key_id": key.public_key,
+        response = self.client.put(
+            url,
+            {
+                "dynamicSdkLoaderOptions": {
+                    "hasReplay": False,
+                    "hasPerformance": True,
+                }
             },
         )
-        response = self.client.put(url, {"dynamicSdkLoaderOptions": {"rando-key": True}})
+        assert response.status_code == 200
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.data.get("dynamicSdkLoaderOptions") == {
+            "hasReplay": False,
+            "hasPerformance": True,
+        }
+
+        response = self.client.put(
+            url,
+            {"dynamicSdkLoaderOptions": {"hasDebug": True, "invalid-key": "blah"}},
+        )
+        assert response.status_code == 200
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.data.get("dynamicSdkLoaderOptions") == {
+            "hasReplay": False,
+            "hasPerformance": True,
+            "hasDebug": True,
+        }
+
+        response = self.client.put(
+            url,
+            {
+                "dynamicSdkLoaderOptions": {
+                    "hasReplay": "invalid",
+                }
+            },
+        )
         assert response.status_code == 400
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.data.get("dynamicSdkLoaderOptions") == {
+            "hasReplay": False,
+            "hasPerformance": True,
+            "hasDebug": True,
+        }
+
+        response = self.client.put(
+            url,
+            {
+                "dynamicSdkLoaderOptions": {
+                    "invalid-key": "blah",
+                }
+            },
+        )
+        assert response.status_code == 200
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.data.get("dynamicSdkLoaderOptions") == {
+            "hasReplay": False,
+            "hasPerformance": True,
+            "hasDebug": True,
+        }
 
 
 @region_silo_test
