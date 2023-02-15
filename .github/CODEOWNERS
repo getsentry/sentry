@@ -24,6 +24,7 @@
 /src/sentry/search/snuba/                                @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/owners-ingest
