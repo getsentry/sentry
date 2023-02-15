@@ -77,7 +77,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
 
         valid_roles = []
         if self.scope:
-            valid_roles.extend([r.id for r in roles.get_all() if r.has_scope("member:write")])
+            valid_roles.extend([r.id for r in roles.get_all() if r.has_scope(self.scope)])
         if self.role:
             valid_roles.extend([self.role.id])
 
