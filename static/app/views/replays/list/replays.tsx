@@ -9,7 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -50,13 +50,13 @@ function ReplaysList() {
     organization,
   });
 
-  const {hasSentOneReplay} = useReplayOnboardingSidebarPanel();
+  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <ReplaysFilters />
-        {hasSentOneReplay ? (
+        {fetching ? null : hasSentOneReplay ? (
           <Fragment>
             <ReplayTable
               fetchError={fetchError}
