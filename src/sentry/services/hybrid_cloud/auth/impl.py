@@ -49,8 +49,8 @@ from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
 
-_SSO_BYPASS = ApiMemberSsoState(False, True)
-_SSO_NONMEMBER = ApiMemberSsoState(False, False)
+_SSO_BYPASS = ApiMemberSsoState(is_required=False, is_valid=True)
+_SSO_NONMEMBER = ApiMemberSsoState(is_required=False, is_valid=False)
 
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather

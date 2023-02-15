@@ -816,7 +816,7 @@ class SystemAccess(OrganizationlessAccess):
     def __init__(self) -> None:
         super().__init__(
             auth_state=ApiAuthState(
-                sso_state=ApiMemberSsoState(False, False),
+                sso_state=ApiMemberSsoState(is_required=False, is_valid=False),
                 permissions=[],
             ),
         )
