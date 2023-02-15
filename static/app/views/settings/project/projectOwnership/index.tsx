@@ -32,9 +32,17 @@ type State = {
 } & AsyncView['state'];
 
 class ProjectOwnership extends AsyncView<Props, State> {
+  // TODO: Remove with `streamline-targeting-context`
+  getOwnershipTitle() {
+    const {organization} = this.props;
+    return organization.features?.includes('streamline-targeting-context')
+      ? t('Ownership Rules')
+      : t('Issue Owners');
+  }
+
   getTitle() {
     const {project} = this.props;
-    return routeTitleGen(t('Issue Owners'), project.slug, false);
+    return routeTitleGen(this.getOwnershipTitle(), project.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -242,7 +250,7 @@ tags.sku_class:enterprise #enterprise`;
     return (
       <Fragment>
         <SettingsPageHeader
-          title={t('Issue Owners')}
+          title={this.getOwnershipTitle()}
           action={
             <Fragment>
               <Button
