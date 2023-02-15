@@ -1,4 +1,4 @@
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 
 export default {
   title: 'Components/Compact Select',

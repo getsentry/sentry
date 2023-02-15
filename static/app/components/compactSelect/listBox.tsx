@@ -1,9 +1,15 @@
-import {Fragment, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {useFocusManager} from '@react-aria/focus';
-import {useKeyboard} from '@react-aria/interactions';
 import {AriaListBoxOptions, useListBox} from '@react-aria/listbox';
-import {mergeProps} from '@react-aria/utils';
 import {ListProps, useListState} from '@react-stately/list';
 import {Selection} from '@react-types/shared';
 
@@ -218,10 +224,13 @@ function ListBox<Value extends React.Key>({
     }
     return lastKey;
   }, [listState.collection, listState.selectionManager]);
-  const {keyboardProps} = useKeyboard({
-    onKeyDown: e => {
-      // Continue propagation, otherwise the overlay won't close on Esc key press
-      e.continuePropagation();
+  const onKeyDown = useCallback(
+    e => {
+      // Don't call the `onKeyDown` callback (from `useListBox`) when the Escape key is
+      // pressed. Otherwise it will clear all selection value.
+      if (e.key !== 'Escape') {
+        listBoxProps.onKeyDown?.(e);
+      }
 
       // Don't handle ArrowDown/Up key presses if focus already wraps
       if (shouldFocusWrap) {
@@ -256,13 +265,21 @@ function ListBox<Value extends React.Key>({
         });
       }
     },
-  });
+    [
+      focusManager,
+      firstFocusableKey,
+      lastFocusableKey,
+      listState.selectionManager.focusedKey,
+      shouldFocusWrap,
+      listBoxProps,
+    ]
+  );
 
   return (
     <Fragment>
       {filteredItems.length !== 0 && <Separator role="separator" />}
       {filteredItems.length !== 0 && label && <Label {...labelProps}>{label}</Label>}
-      <SelectListBoxWrap {...mergeProps(listBoxProps, keyboardProps)} ref={ref}>
+      <SelectListBoxWrap {...listBoxProps} onKeyDown={onKeyDown} ref={ref}>
         {overlayIsOpen &&
           filteredItems.map(item => {
             if (item.type === 'section') {
