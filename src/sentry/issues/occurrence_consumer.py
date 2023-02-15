@@ -245,6 +245,7 @@ def _process_message(
         organization = Organization.objects.get_from_cache(id=project.organization_id)
 
         if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
+            metrics.incr("occurrence_ingest.dropped_feature_disabled", sample_rate=1.0)
             return None
 
         if "event_data" in kwargs:
