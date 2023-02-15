@@ -90,7 +90,7 @@ class IssueOccurrenceEndpoint(Endpoint):
         if request.query_params.get("dummyOccurrence") == "True":
             occurrence = {
                 "id": "55f1419e73884cd2b45c79918f4b6dc5",
-                "project_id": 1,
+                "project_id": event["project_id"],
                 "fingerprint": ["some-fingerprint"],
                 "issue_title": "something bad happened",
                 "subtitle": "it was bad",
