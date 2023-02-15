@@ -42,7 +42,6 @@ class RpcUser:
     useremails: FrozenSet[RpcUserEmail] = frozenset()
     authenticators: FrozenSet[RpcAuthenticator] = frozenset()
 
-
     def has_usable_password(self) -> bool:
         return self.password_usable
 
@@ -89,8 +88,9 @@ class RpcUserEmail:
     id: int = 0
     email: str = ""
     is_verified: bool = False
-APIUserEmail = RpcUserEmail
 
+
+APIUserEmail = RpcUserEmail
 
 
 @dataclass(frozen=True, eq=True)
