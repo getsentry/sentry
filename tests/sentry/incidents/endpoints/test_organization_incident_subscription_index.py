@@ -35,7 +35,7 @@ class BaseOrganizationSubscriptionEndpointTest:
             assert resp.status_code == 403
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentSubscribeEndpointTest(
     BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):
@@ -54,7 +54,7 @@ class OrganizationIncidentSubscribeEndpointTest(
         assert sub.user == self.user
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentUnsubscribeEndpointTest(
     BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):
@@ -66,7 +66,7 @@ class OrganizationIncidentUnsubscribeEndpointTest(
         )
         self.login_as(self.user)
         incident = self.create_incident()
-        subscribe_to_incident(incident, self.user)
+        subscribe_to_incident(incident, self.user.id)
         with self.feature("organizations:incidents"):
             self.get_success_response(self.organization.slug, incident.identifier, status_code=200)
         assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()

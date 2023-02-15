@@ -23,6 +23,7 @@ from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
+from sentry.web.frontend.js_sdk_dynamic_loader import JavaScriptSdkDynamicLoader
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.newest_performance_issue import NewestPerformanceIssueView
@@ -115,6 +116,12 @@ urlpatterns += [
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
+    ),
+    # JavaScript SDK Dynamic Loader
+    url(
+        r"^js-sdk-loader/dynamic/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
+        JavaScriptSdkDynamicLoader.as_view(),
+        name="sentry-js-sdk-dynamic-loader",
     ),
     # Versioned API
     url(r"^api/0/", include("sentry.api.urls")),
@@ -481,6 +488,16 @@ urlpatterns += [
                     name="sentry-customer-domain-developer-settings-settings",
                 ),
                 url(
+                    r"^document-integrations/",
+                    react_page_view,
+                    name="sentry-customer-domain-document-integrations-settings",
+                ),
+                url(
+                    r"^sentry-apps/",
+                    react_page_view,
+                    name="sentry-customer-domain-sentry-apps-settings",
+                ),
+                url(
                     r"^billing/",
                     react_page_view,
                     name="sentry-customer-domain-billing-settings",
@@ -535,6 +552,11 @@ urlpatterns += [
         name="integration-installation",
     ),
     # Issues
+    url(
+        r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        GroupTagExportView.as_view(),
+        name="sentry-customer-domain-sentry-group-tag-export",
+    ),
     url(r"^issues/", react_page_view, name="issues"),
     # Alerts
     url(r"^alerts/", react_page_view, name="alerts"),

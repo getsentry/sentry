@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const BODY_CLASSES = ['narrow'];
 

@@ -236,7 +236,7 @@ def test_concurrent_events_go_into_new_group(
     original_issue_id = event.group.id
 
     original_assignee = GroupAssignee.objects.create(
-        group_id=original_issue_id, project=default_project, user=default_user
+        group_id=original_issue_id, project=default_project, user_id=default_user.id
     )
 
     with burst_task_runner() as burst_reprocess:

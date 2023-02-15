@@ -8,7 +8,7 @@ import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary, Project} from 'sentry/types';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,

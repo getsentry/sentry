@@ -71,7 +71,8 @@ const InteractionStateLayer = styled(
         `
       : ''}
 
-  *:disabled > && {
+  *:disabled &&,
+  *[aria-disabled="true"] && {
     opacity: 0;
   }
 `;

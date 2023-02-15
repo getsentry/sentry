@@ -24,7 +24,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -738,7 +738,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
-    const eventView = generatePerformanceEventView(location, projects);
+    const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
     const isDashboardUsingTransaction = dashboard.widgets.some(
       isWidgetUsingTransactionName

@@ -50,8 +50,8 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
             [
                 monitor_error,
                 monitor_missed_checkin,
-                monitor_active,
                 monitor_ok,
+                monitor_active,
                 monitor_disabled,
             ],
         )

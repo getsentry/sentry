@@ -107,6 +107,11 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
         assert event.data["culprit"] == "main"
+
+        candidates = event.data["debug_meta"]["images"][0]["candidates"]
+        redact_location(candidates)
+        event.data["debug_meta"]["images"][0]["candidates"] = candidates
+
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_debug_id_resolving(self):
@@ -165,6 +170,11 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         event = self.post_and_retrieve_event(event_data)
         assert event.data["culprit"] == "main"
+
+        candidates = event.data["debug_meta"]["images"][0]["candidates"]
+        redact_location(candidates)
+        event.data["debug_meta"]["images"][0]["candidates"] = candidates
+
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):

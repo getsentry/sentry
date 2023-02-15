@@ -6,7 +6,7 @@ import Clipboard from 'sentry/components/clipboard';
 import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {UserReport} from 'sentry/types';
 import {escape, nl2br} from 'sentry/utils';
 

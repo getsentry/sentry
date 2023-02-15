@@ -5,6 +5,7 @@ export class CallTreeNode extends WeightedNode {
   readonly frame: Frame;
 
   private locked = false;
+  count: number = 0;
 
   parent: CallTreeNode | null;
   recursive: CallTreeNode | null;
@@ -23,6 +24,10 @@ export class CallTreeNode extends WeightedNode {
 
   setRecursiveThroughNode(node: CallTreeNode): void {
     this.recursive = node;
+  }
+
+  incrementCount(): void {
+    this.count++;
   }
 
   isRecursive(): boolean {

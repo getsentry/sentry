@@ -15,8 +15,13 @@ import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import space from 'sentry/styles/space';
-import {Integration, Organization, Repository} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {
+  Integration,
+  IntegrationRepository,
+  Organization,
+  Repository,
+} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] & {
@@ -28,7 +33,7 @@ type State = AsyncComponent['state'] & {
   adding: boolean;
   dropdownBusy: boolean;
   integrationRepos: {
-    repos: {identifier: string; name: string}[];
+    repos: IntegrationRepository[];
     searchable: boolean;
   };
   integrationReposErrorStatus: number | null;

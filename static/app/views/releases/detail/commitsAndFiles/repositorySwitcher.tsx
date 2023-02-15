@@ -3,9 +3,9 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Repository} from 'sentry/types';
 
 type Props = {
@@ -37,9 +37,10 @@ class RepositorySwitcher extends PureComponent<Props> {
         value={activeRepo}
         options={repositories.map(repo => ({
           value: repo.name,
+          textValue: repo.name,
           label: <RepoLabel>{repo.name}</RepoLabel>,
         }))}
-        onChange={opt => this.handleRepoFilterChange(opt?.value)}
+        onChange={opt => this.handleRepoFilterChange(String(opt?.value))}
       />
     );
   }

@@ -463,6 +463,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "release:[a,version@1.3]",
                 "duration:>15",
                 "user.id:123",
+                "user:username123",
                 "user.name:username123",
                 "user.email:username@example.com",
                 "user.email:*@example.com",

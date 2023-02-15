@@ -75,9 +75,7 @@ export function useProfilingTransactionQuickSummary(
     : 1;
 
   const latestProfile = latestProfileQuery?.data?.[0].data[0] ?? null;
-
-  const functions =
-    functionsQuery.type === 'resolved' ? functionsQuery.data.functions : null;
+  const functions = functionsQuery?.data?.[0]?.functions;
 
   return {
     // slowest
@@ -94,6 +92,6 @@ export function useProfilingTransactionQuickSummary(
     isLoading:
       slowestProfileQuery.isLoading ||
       latestProfileQuery.isLoading ||
-      functionsQuery.type === 'loading',
+      functionsQuery.isLoading,
   };
 }

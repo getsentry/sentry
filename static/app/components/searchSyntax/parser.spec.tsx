@@ -10,6 +10,10 @@ import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 
 type TestCase = {
   /**
+   * Additional parser configuration
+   */
+  additionalConfig: Parameters<typeof parseSearch>[1];
+  /**
    * The search query string under parsing test
    */
   query: string;
@@ -59,7 +63,7 @@ describe('searchSyntax/parser', function () {
 
   const registerTestCase = (testCase: TestCase) =>
     it(`handles ${testCase.query}`, () => {
-      const result = parseSearch(testCase.query);
+      const result = parseSearch(testCase.query, testCase.additionalConfig);
 
       // Handle errors
       if (testCase.raisesError) {

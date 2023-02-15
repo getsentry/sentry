@@ -11,7 +11,6 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -21,7 +20,7 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withRouteAnalytics, {
@@ -106,88 +105,88 @@ class Monitors extends AsyncView<Props, State> {
 
     return (
       <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Cron Monitors')}
-                <PageHeadingQuestionTooltip
-                  title={t(
-                    'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
-                  )}
-                  docsUrl="https://docs.sentry.io/product/crons/"
-                />
-                <FeatureBadge type="beta" />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
-                <CronsFeedbackButton />
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Filters>
-                <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                <SearchBar
-                  query={decodeScalar(qs.parse(location.search)?.query, '')}
-                  placeholder={t('Search for monitors.')}
-                  onSearch={this.handleSearch}
-                />
-              </Filters>
-              {monitorList?.length ? (
-                <Fragment>
-                  <StyledPanelTable
-                    headers={[t('Monitor Name'), t('Last Check-In'), t('Project')]}
-                  >
-                    {monitorList?.map(monitor => (
-                      <Fragment key={monitor.id}>
-                        <MonitorName>
-                          <MonitorIcon status={monitor.status} size={16} />
-                          <StyledLink
-                            to={`/organizations/${organization.slug}/crons/${monitor.id}/`}
-                          >
-                            {monitor.name}
-                          </StyledLink>
-                        </MonitorName>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Layout.Title>
+              {t('Cron Monitors')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+                )}
+                docsUrl="https://docs.sentry.io/product/crons/"
+              />
+              <FeatureBadge type="beta" />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
+              <CronsFeedbackButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <Filters>
+              <ProjectPageFilter resetParamsOnChange={['cursor']} />
+              <SearchBar
+                query={decodeScalar(qs.parse(location.search)?.query, '')}
+                placeholder={t('Search by name')}
+                onSearch={this.handleSearch}
+              />
+            </Filters>
+            {monitorList?.length ? (
+              <Fragment>
+                <StyledPanelTable
+                  headers={[t('Monitor Name'), t('Last Check-In'), t('Project')]}
+                >
+                  {monitorList?.map(monitor => (
+                    <Fragment key={monitor.id}>
+                      <MonitorName>
+                        <MonitorIcon status={monitor.status} size={16} />
+                        <StyledLink
+                          to={`/organizations/${organization.slug}/crons/${monitor.id}/`}
+                        >
+                          {monitor.name}
+                        </StyledLink>
+                      </MonitorName>
+                      <div>
                         {monitor.nextCheckIn ? (
                           <StyledTimeSince date={monitor.lastCheckIn} />
                         ) : (
-                          <div>{t('n/a')}</div>
+                          t('n/a')
                         )}
-                        <IdBadge
-                          project={monitor.project}
-                          avatarSize={18}
-                          avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-                        />
-                      </Fragment>
-                    ))}
-                  </StyledPanelTable>
-                  {monitorListPageLinks && (
-                    <Pagination pageLinks={monitorListPageLinks} {...this.props} />
+                      </div>
+                      <IdBadge
+                        project={monitor.project}
+                        avatarSize={18}
+                        avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+                      />
+                    </Fragment>
+                  ))}
+                </StyledPanelTable>
+                {monitorListPageLinks && (
+                  <Pagination pageLinks={monitorListPageLinks} {...this.props} />
+                )}
+              </Fragment>
+            ) : (
+              <OnboardingPanel image={<img src={onboardingImg} />}>
+                <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
+                <p>
+                  {t(
+                    "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
-                </Fragment>
-              ) : (
-                <OnboardingPanel image={<img src={onboardingImg} />}>
-                  <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
-                  <p>
-                    {t(
-                      "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
-                    )}
-                  </p>
-                  <ButtonList gap={1}>
-                    <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
-                    <Button href="https://docs.sentry.io/product/crons" external>
-                      {t('Read docs')}
-                    </Button>
-                  </ButtonList>
-                </OnboardingPanel>
-              )}
-            </Layout.Main>
-          </Layout.Body>
-        </NoProjectMessage>
+                </p>
+                <ButtonList gap={1}>
+                  <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
+                  <Button href="https://docs.sentry.io/product/crons" external>
+                    {t('Read docs')}
+                  </Button>
+                </ButtonList>
+              </OnboardingPanel>
+            )}
+          </Layout.Main>
+        </Layout.Body>
       </Layout.Page>
     );
   }

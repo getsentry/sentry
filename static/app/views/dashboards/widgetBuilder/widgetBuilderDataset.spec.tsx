@@ -290,13 +290,17 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      expect(screen.getByLabelText(/releases/i)).not.toBeChecked();
-      userEvent.click(screen.getByLabelText(/releases/i));
-      await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
+      expect(screen.getByRole('radio', {name: /Releases/i})).not.toBeChecked();
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
+      await waitFor(() =>
+        expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked()
+      );
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
-      await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
+      await waitFor(() =>
+        expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked()
+      );
     });
 
     it('displays releases tags', async function () {
@@ -306,7 +310,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       expect(screen.getByText('session')).toBeInTheDocument();
@@ -329,7 +333,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'count_unique(…)');
@@ -347,7 +351,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       expect(screen.getByText('High to low')).toBeEnabled();
       expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
@@ -367,7 +371,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       expect(screen.getByText('High to low')).toBeEnabled();
       expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
@@ -400,7 +404,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -430,7 +434,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -466,7 +470,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -500,7 +504,7 @@ describe('WidgetBuilder', function () {
       ).toBeInTheDocument();
 
       // change dataset to releases
-      userEvent.click(screen.getByLabelText(/releases/i));
+      userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -522,7 +526,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
 
       expect(metricsDataMock).toHaveBeenCalled();
-      expect(screen.getByLabelText(/Releases/i)).toBeChecked();
+      expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked();
     });
 
     it('does not display "add an equation" button', async function () {
@@ -572,7 +576,9 @@ describe('WidgetBuilder', function () {
       userEvent.click(await screen.findByText('Table'));
       userEvent.click(screen.getByText('World Map'));
 
-      await waitFor(() => expect(screen.getByLabelText(/Releases/)).toBeDisabled());
+      await waitFor(() =>
+        expect(screen.getByRole('radio', {name: /Releases/i})).toBeDisabled()
+      );
 
       expect(
         screen.getByRole('radio', {
