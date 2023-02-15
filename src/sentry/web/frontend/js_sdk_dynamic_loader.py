@@ -99,6 +99,7 @@ class JavaScriptSdkDynamicLoader(BaseView):
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
         response["Access-Control-Allow-Origin"] = "*"
+        response["Cross-Origin-Resource-Policy"] = "cross-origin"
         response["Cache-Control"] = CACHE_CONTROL
 
         return response
