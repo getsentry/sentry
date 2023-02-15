@@ -1,6 +1,7 @@
 import logging
 import signal
 import uuid
+from enum import Enum
 from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 from arroyo import Topic, configure_metrics
@@ -14,7 +15,6 @@ from django.conf import settings
 from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
-from sentry.eventstream.kafka.postprocessworker import PostProcessForwarderType
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
@@ -26,6 +26,12 @@ from sentry.utils.kafka_config import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class PostProcessForwarderType(str, Enum):
+    ERRORS = "errors"
+    TRANSACTIONS = "transactions"
+    ISSUE_PLATFORM = "issue_platform"
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
