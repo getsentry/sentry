@@ -34,11 +34,13 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.ReplaysOnboarding;
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const {projects, currentProject, setCurrentProject} = useCurrentProjectState({
-    currentPanel,
-  });
+  const {projects, allProjects, currentProject, setCurrentProject} =
+    useCurrentProjectState({
+      currentPanel,
+    });
 
-  if (!isActive || !hasProjectAccess || !currentProject) {
+  const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
+  if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
   }
 
@@ -51,7 +53,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
       },
     };
 
-    if (currentProject.id === project.id) {
+    if (selectedProject.id === project.id) {
       acc.unshift(itemProps);
     } else {
       acc.push(itemProps);
@@ -73,16 +75,16 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
           items={items}
           triggerLabel={
             <StyledIdBadge
-              project={currentProject}
+              project={selectedProject}
               avatarSize={16}
               hideOverflow
               disableLink
             />
           }
-          triggerProps={{'aria-label': currentProject.slug}}
+          triggerProps={{'aria-label': selectedProject.slug}}
           position="bottom-end"
         />
-        <OnboardingContent currentProject={currentProject} />
+        <OnboardingContent currentProject={selectedProject} />
       </TaskList>
     </TaskSidebarPanel>
   );
