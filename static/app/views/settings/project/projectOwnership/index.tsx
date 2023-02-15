@@ -238,6 +238,7 @@ tags.sku_class:enterprise #enterprise`;
     const {ownership, codeowners} = this.state;
 
     const disabled = !organization.access.includes('project:write');
+    const editOwnershipeRulesDisabled = !organization.access.includes('project:read');
 
     return (
       <Fragment>
@@ -275,7 +276,9 @@ tags.sku_class:enterprise #enterprise`;
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
 
-        <PermissionAlert />
+        <PermissionAlert
+          access={!editOwnershipeRulesDisabled ? ['project:read'] : ['project:write']}
+        />
         {this.renderCodeOwnerErrors()}
         {ownership && (
           <RulesPanel
@@ -296,13 +299,14 @@ tags.sku_class:enterprise #enterprise`;
                     onSave: this.handleOwnershipSave,
                   })
                 }
-                disabled={disabled}
+                disabled={editOwnershipeRulesDisabled}
               >
                 {t('Edit')}
               </Button>,
             ]}
           />
         )}
+        <PermissionAlert />
         <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
             codeowners={codeowners || []}
