@@ -40,7 +40,7 @@ const StatusWrapper = styled('div')<{color: ColorOrAlias}>`
   position: relative;
 
   svg:last-child {
-    width: '16px';
+    width: 16px;
     z-index: 2;
     position: absolute;
     top: 0;
