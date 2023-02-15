@@ -90,7 +90,14 @@ def derive_code_mappings(
             logger.warning("The org has uninstalled the Sentry App.", extra=extra)
             return
 
-        raise error  # Let's report the issue
+        # Logging the exception and returning is better than re-raising the error
+        # Otherwise, API errors would not group them since the HTTPError in the stack
+        # has unique URLs, thus, separating the errors
+        logger.exception(
+            "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
+            extra=extra,
+        )
+        return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
