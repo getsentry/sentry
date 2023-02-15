@@ -398,7 +398,7 @@ class AlertRule(Model):
             created_activity = AlertRuleActivity.objects.get(
                 alert_rule=self, type=AlertRuleActivityType.CREATED.value
             )
-            return created_activity.user
+            return user_service.get_user(user_id=created_activity.user_id)
         except AlertRuleActivity.DoesNotExist:
             pass
         return None

@@ -101,7 +101,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                     organization=project.organization,
                     threshold=data.get("threshold", 300),
                     metric=data.get("metric", TransactionMetric.DURATION.value),
-                    edited_by=request.user,
+                    edited_by_id=request.user.id,
                 )
 
                 created = True
