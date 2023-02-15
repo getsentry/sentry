@@ -23,6 +23,9 @@ class DatabaseBackedAppService(
     ],
     AppService,
 ):
+    def _serialize_rpc(self, object: SentryAppInstallation) -> RpcSentryAppInstallation:
+        return self.serialize_sentry_app_installation(object)
+
     def _base_query(self) -> QuerySet:
         return SentryAppInstallation.objects.select_related("sentry_app").prefetch_related(
             "sentry_app__components",

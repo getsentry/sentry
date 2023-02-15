@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
@@ -158,29 +157,39 @@ class AppService(
     ) -> List[ApiSentryAppInstallation]:
         pass
 
-    def serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
-        return ApiSentryApp(
+    def serialize_api_application(self, application: ApiApplication) -> RpcApiApplication:
+        return RpcApiApplication(
+            id=application.id,
+            client_id=application.client_id,
+            client_secret=application.client_secret,
+        )
+
+    def serialize_sentry_app(self, app: SentryApp) -> RpcSentryApp:
+        return RpcSentryApp(
             id=app.id,
             scope_list=app.scope_list,
-            application_id=app.application_id,
+            application=self.serialize_api_application(app.application),
             proxy_user_id=app.proxy_user_id,
             owner_id=app.owner_id,
             name=app.name,
             slug=app.slug,
             uuid=app.uuid,
             events=app.events,
+            is_alertable=app.is_alertable,
+            components=[],
         )
 
     def serialize_sentry_app_installation(
         self, installation: SentryAppInstallation, app: SentryApp | None = None
-    ) -> ApiSentryAppInstallation:
+    ) -> RpcSentryAppInstallation:
         if app is None:
             app = installation.sentry_app
 
-        return ApiSentryAppInstallation(
+        return RpcSentryAppInstallation(
             id=installation.id,
             organization_id=installation.organization_id,
             status=installation.status,
+            uuid=installation.uuid,
             sentry_app=self.serialize_sentry_app(app),
         )
 
@@ -219,3 +228,6 @@ class ApiSentryApp:
     slug: str = ""
     uuid: str = ""
     events: List[str] = field(default_factory=list)
+
+
+from sentry.models import ApiApplication, SentryApp, SentryAppInstallation
