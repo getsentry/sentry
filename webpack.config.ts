@@ -526,8 +526,8 @@ if (
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
     },
-    // Required for getsentry
-    allowedHosts: 'all',
+    // Cover the various environments we use (vercel, getsentry-dev, localhost)
+    allowedHosts: ['.sentry.dev', '.dev.getsentry.net', '.localhost', '127.0.0.1'],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
@@ -605,6 +605,7 @@ if (IS_UI_DEV_ONLY) {
         headers: {
           Referer: 'https://sentry.io/',
         },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
       },
     ],
     historyApiFallback: {
@@ -636,6 +637,9 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       mobile: true,
       excludeChunks: ['pipeline'],
       title: 'Sentry',
+      window: {
+        __SENTRY_DEV_UI: true,
+      },
     })
   );
 }
