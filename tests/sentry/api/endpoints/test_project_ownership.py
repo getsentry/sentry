@@ -20,6 +20,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             organization=self.organization, slug="tiger-team", members=[self.user]
         )
 
+        self.member_user = self.create_user("member@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+
         self.project = self.project = self.create_project(
             organization=self.organization, teams=[self.team], slug="bengal"
         )
@@ -161,3 +166,15 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
         ownership.refresh_from_db()
         assert ownership.raw == new_raw
+
+    def test_update_by_member(self):
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"raw": "*.js member@localhost #tiger-team"})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is True
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
+        assert resp.data["raw"] == "*.js member@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True
