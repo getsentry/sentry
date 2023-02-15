@@ -56,6 +56,9 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
+  'profile.issues.blocked_main_thread-ingest.la-rollout',
+  'profile.issues.blocked_main_thread-ingest.ea-rollout',
+  'profile.issues.blocked_main_thread-ingest.ga-rollout',
   ...manualDetectionOptions,
   ...autoRegisterDetectorOptions.flatMap(option => [
     `${option.namespace}.problem-creation`,
@@ -149,6 +152,13 @@ export default class AdminSettings extends AsyncView<{}, State> {
             <Panel>
               <PanelHeader>Performance Issues - File IO on Main Thread</PanelHeader>
               {fields['performance.issues.file_io_main_thread.problem-creation']}
+            </Panel>
+
+            <Panel>
+              <PanelHeader>Profiling Issues - Block Main Thread Detector</PanelHeader>
+              {fields['profile.issues.blocked_main_thread-ingest.la-rollout']}
+              {fields['profile.issues.blocked_main_thread-ingest.ea-rollout']}
+              {fields['profile.issues.blocked_main_thread-ingest.ga-rollout']}
             </Panel>
 
             {autoRegisterDetectorOptions.map(option => (

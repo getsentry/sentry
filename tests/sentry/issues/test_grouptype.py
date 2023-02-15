@@ -15,8 +15,8 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
-class GroupTypeTest(TestCase):
-    def test_get_types_by_category(self):
+class GroupTypeTest(TestCase):  # type: ignore
+    def test_get_types_by_category(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True), patch.dict(
             _category_lookup, defaultdict(set), clear=True
         ):
@@ -46,7 +46,7 @@ class GroupTypeTest(TestCase):
             assert get_group_types_by_category(GroupCategory.PERFORMANCE.value) == {2, 3}
             assert get_group_types_by_category(GroupCategory.ERROR.value) == {1}
 
-    def test_get_group_type_by_slug(self):
+    def test_get_group_type_by_slug(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):
 
             @dataclass(frozen=True)
@@ -65,7 +65,7 @@ class GroupTypeTest(TestCase):
             ):
                 get_group_type_by_slug(nonexistent_slug)
 
-    def test_category_validation(self):
+    def test_category_validation(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):
 
             @dataclass(frozen=True)

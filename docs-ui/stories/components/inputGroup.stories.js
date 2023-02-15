@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/inputGroup';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Components/Input Group',

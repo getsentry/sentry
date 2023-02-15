@@ -22,7 +22,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric} from 'sentry/utils/analytics';
@@ -103,6 +103,7 @@ type State = {
   dataset: Dataset;
   environment: string | null;
   eventTypes: EventTypes[];
+  isQueryValid: boolean;
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
@@ -172,6 +173,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       dataset,
       eventTypes: eventTypes ?? rule.eventTypes ?? [],
       query: rule.query ?? '',
+      isQueryValid: true, // Assume valid until input is changed
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
       triggerErrors: new Map(),
@@ -489,7 +491,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   // We handle the filter update outside of the fieldChange handler since we
   // don't want to update the filter on every input change, just on blurs and
   // searches.
-  handleFilterUpdate = (query: string) => {
+  handleFilterUpdate = (query: string, isQueryValid: boolean) => {
     const {organization, sessionId} = this.props;
 
     trackAdvancedAnalyticsEvent('alert_builder.filter', {
@@ -498,7 +500,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       query,
     });
 
-    this.setState({query});
+    this.setState({query, isQueryValid});
   };
 
   handleSubmit = async (
@@ -864,7 +866,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
-          const disabled = loading || !(isActiveSuperuser() || hasAccess);
+          const formDisabled = loading || !(isActiveSuperuser() || hasAccess);
+          const submitDisabled = formDisabled || !this.state.isQueryValid;
 
           return (
             <Fragment>
@@ -881,7 +884,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
                     ruleId ? `${ruleId}/` : ''
                   }`}
-                  submitDisabled={disabled}
+                  submitDisabled={submitDisabled}
                   initialData={{
                     name,
                     dataset,
@@ -902,7 +905,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   extraButton={
                     rule.id ? (
                       <Confirm
-                        disabled={disabled}
+                        disabled={formDisabled}
                         message={t('Are you sure you want to delete this alert rule?')}
                         header={t('Delete Alert Rule?')}
                         priority="danger"
@@ -921,7 +924,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       project={project}
                       organization={organization}
                       router={router}
-                      disabled={disabled}
+                      disabled={formDisabled}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={
@@ -942,9 +945,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       showMEPAlertBanner={showMEPAlertBanner}
                     />
                     <AlertListItem>{t('Set thresholds')}</AlertListItem>
-                    {thresholdTypeForm(disabled)}
-                    {triggerForm(disabled)}
-                    {ruleNameOwnerForm(disabled)}
+                    {thresholdTypeForm(formDisabled)}
+                    {triggerForm(formDisabled)}
+                    {ruleNameOwnerForm(formDisabled)}
                   </List>
                 </Form>
               </Main>

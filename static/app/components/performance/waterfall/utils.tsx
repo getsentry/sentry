@@ -2,7 +2,7 @@ import {Theme} from '@emotion/react';
 
 import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {getSpanBarColours, SpanBarType} from './constants';
 
@@ -177,6 +177,8 @@ export const getHumanDuration = (duration: number): string => {
 };
 
 export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
+
+export const toRoundedPercent = (value: number) => `${Math.round(value * 100)}%`;
 
 type Rect = {
   height: number;

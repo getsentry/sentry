@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -123,42 +122,6 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
   eventTypeDefault.query += ' event.type:default';
   const eventTypeErrorDefault = props.eventView.clone();
   eventTypeErrorDefault.query += ' event.type:error or event.type:default';
-  const pathname = `/organizations/${props.orgSlug}/discover/results/`;
-
-  const eventTypeLinks = {
-    error: (
-      <Link
-        to={{
-          pathname,
-          query: eventTypeError.generateQueryStringObject(),
-        }}
-      />
-    ),
-    default: (
-      <Link
-        to={{
-          pathname,
-          query: eventTypeDefault.generateQueryStringObject(),
-        }}
-      />
-    ),
-    transaction: (
-      <Link
-        to={{
-          pathname,
-          query: eventTypeTransaction.generateQueryStringObject(),
-        }}
-      />
-    ),
-    errorDefault: (
-      <Link
-        to={{
-          pathname,
-          query: eventTypeErrorDefault.generateQueryStringObject(),
-        }}
-      />
-    ),
-  };
 
   return (
     <StyledAlert
@@ -181,7 +144,14 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
           <li>{t('Too many environments were selected')}</li>
         )}
         {incompatibleQuery.hasEventTypeError && (
-          <li>{tct("An event type wasn't selected", eventTypeLinks)}</li>
+          <li>
+            {tct(
+              "An event type wasn't selected. [defaultSetting] has been set as the default",
+              {
+                defaultSetting: <StyledCode>event.type:error</StyledCode>,
+              }
+            )}
+          </li>
         )}
         {incompatibleQuery.hasYAxisError && (
           <li>

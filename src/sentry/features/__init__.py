@@ -95,7 +95,7 @@ default_manager.add("organizations:issue-search-use-cdc-secondary", Organization
 default_manager.add("organizations:js-sdk-dynamic-loader", OrganizationFeature, True)
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:mep-rollout-flag", OrganizationFeature, True)
-default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, True)
+default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature)
 default_manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, True)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
 default_manager.add("organizations:metrics-extraction", OrganizationFeature)
@@ -171,6 +171,8 @@ default_manager.add("organizations:transaction-metrics-extraction", Organization
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
+default_manager.add("organizations:commit-context-fallback", OrganizationFeature, True)
+
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 

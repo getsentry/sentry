@@ -19,7 +19,7 @@ import {backend, frontend} from 'sentry/data/platformCategories';
 import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AvatarUser,
   CurrentRelease,
