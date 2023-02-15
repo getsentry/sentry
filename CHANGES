@@ -1,3 +1,45 @@
+23.2.0
+------
+
+### Stacktrace Codecov MVP
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43819, #43667, #43675), @jangjodi (#43746)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44492, #44346, #44228)
+
+### Various fixes & improvements
+
+- perf(sentry): Add optional referrer to query.search for granularity (#44585) by @k-fish
+- bug(replay): Do not render the list page until project data has loaded (#44623) by @ryan953
+- fix(ui) Fix navigation between customer-domain accounts (#44625) by @markstory
+- feat(codeowners): [BE] Allow project members to edit project owner rules (#44508) by @jangjodi
+- ref(heartbeat): Update modal copy (#44658) by @priscilawebdev
+- Reverts for INC-307 (#44654) by @beezz
+- bump(dynamic-sampling): Bump sentry-relay to 0.8.18 (#44648) by @iambriccardo
+- feat(contexts): Add OpenTelemetry context (#44605) by @AbhiPrasad
+- fix: Avoid logging a `bad_report` for .NET events (#44291) by @Swatinem
+- chore(hybrid-cloud): Api* => Rpc* (#44646) by @corps
+- ref(hybrid-cloud): Isolate alert rules functionality by silo (#44644) by @mikejihbe
+- fix(api): Don't try and convert_args when http_method_not_allowed (#44635) by @evanpurkhiser
+- ref(api): Consistent relative endpoints import (#44640) by @evanpurkhiser
+- feat(profile-issues): Add profile category/type to search autocomplete (#44548) by @malwilley
+- fix(ui): Bring back Australia timezone (#44634) by @evanpurkhiser
+- feat: Deprecate legacy post process forwarder (#44631) by @lynnagara
+- fix(api): Remove inclusion of CHECKIN_ID in monitor check-in POST (#44630) by @evanpurkhiser
+- fix(source-maps): fixes too many values to unpack error in ArtifactSource (#44624) by @roggenkemper
+- ref(rules): Catch environment not existing (#44553) by @ceorourke
+- feat(analytics): improve analytics for soure map debugging (#44626) by @scefali
+- ref(tabs): Export `Item` as property of `TabList` & `TabPanels` (#44620) by @vuluongj20
+- feat(ui): Switch translate tct return type to react element (#44610) by @scttcper
+- feat: adds tracking for setup wizard (#44619) by @scefali
+- feat(team-roles): Amend PUT on OrganizationMemberDetailsEndpoint (#44599) by @leedongwei
+
+_Plus 637 more_
+
 23.1.1
 ------
 
