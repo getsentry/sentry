@@ -84,6 +84,7 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
 
   return {
     projects: projectWithReplaySupport,
+    allProjects: projects,
     currentProject,
     setCurrentProject,
   };
