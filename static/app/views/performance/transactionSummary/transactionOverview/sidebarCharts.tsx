@@ -138,7 +138,7 @@ function SidebarCharts({
 
               if (errored) {
                 return (
-                  <ErrorPanel height="580px">
+                  <ErrorPanel height="300px">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
@@ -186,7 +186,7 @@ function SidebarCharts({
                     value: (
                       <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                     ),
-                    fixed: <Placeholder height="480px" testId="skeleton-ui" />,
+                    fixed: <Placeholder height="300px" testId="skeleton-ui" />,
                   })}
                 </TransitionChart>
               );
@@ -211,7 +211,7 @@ function SidebarChartsContainer({
   const api = useApi();
   const theme = useTheme();
 
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(2);
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -241,7 +241,7 @@ function SidebarChartsContainer({
   };
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
-    height: 360,
+    height: 300,
     grid: [
       {
         top: '60px',
