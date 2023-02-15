@@ -23,26 +23,32 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
 
 
 @dataclass
-class ApiSentryAppInstallation:
+class RpcSentryAppInstallation:
     id: int = -1
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
     uuid: str = ""
-    sentry_app: ApiSentryApp = field(default_factory=lambda: ApiSentryApp())
+    sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
+
+
+ApiSentryAppInstallation = RpcSentryAppInstallation
 
 
 @dataclass
-class ApiApiApplication:
+class RpcApiApplication:
     id: int = -1
     client_id: str = ""
     client_secret: str = ""
 
 
+ApiApiApplication = RpcApiApplication
+
+
 @dataclass
-class ApiSentryApp:
+class RpcSentryApp:
     id: int = -1
     scope_list: List[str] = field(default_factory=list)
-    application: ApiApiApplication = field(default_factory=ApiApiApplication)
+    application: RpcApiApplication = field(default_factory=RpcApiApplication)
     proxy_user_id: int | None = None  # can be null on deletion.
     owner_id: int = -1  # relation to an organization
     name: str = ""
@@ -51,12 +57,12 @@ class ApiSentryApp:
     status: str = ""
     events: List[str] = field(default_factory=list)
     is_alertable: bool = False
-    components: List[ApiSentryAppComponent] = field(default_factory=list)
+    components: List[RpcSentryAppComponent] = field(default_factory=list)
     webhook_url: str = ""
     is_internal: bool = True
     is_unpublished: bool = True
 
-    def get_component(self, type: str) -> Optional[ApiSentryAppComponent]:
+    def get_component(self, type: str) -> Optional[RpcSentryAppComponent]:
         for c in self.components:
             if c.type == type:
                 return c
@@ -77,21 +83,27 @@ class ApiSentryApp:
         return self.slug
 
 
+ApiSentryApp = RpcSentryApp
+
+
 @dataclass
-class ApiSentryAppComponent:
+class RpcSentryAppComponent:
     uuid: str = ""
     type: str = ""
     schema: JSONField = None
 
 
+ApiSentryAppComponent = RpcSentryAppComponent
+
+
 class AppService(
-    FilterQueryInterface[SentryAppInstallationFilterArgs, ApiSentryAppInstallation, None],
+    FilterQueryInterface[SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None],
     InterfaceWithLifecycle,
 ):
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> RpcSentryAppInstallation | None:
         pass
 
     @abc.abstractmethod
@@ -112,7 +124,7 @@ class AppService(
         *,
         organization_id: int,
         sentry_app_id: Optional[int] = None,
-    ) -> List[ApiSentryAppInstallation]:
+    ) -> List[RpcSentryAppInstallation]:
         pass
 
 
