@@ -747,5 +747,5 @@ def test_generate_rules_with_old_format(get_blended_sample_rate, default_project
     ]
 
     assert generate_rules(default_project) == expected
-    config_str = json.dumps({"rules": generate_rules(default_project)})
+    config_str = json.dumps({"rules": generate_rules(default_project), "rulesV2": []})
     validate_sampling_configuration(config_str)
