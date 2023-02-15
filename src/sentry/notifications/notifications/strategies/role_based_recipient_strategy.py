@@ -49,9 +49,15 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
             self.member_role_by_user_id[user.id] = organization_roles.get(role).name
         return self.member_role_by_user_id[user.id]
 
-    def set_members_roles_in_cache(self, members: Iterable[OrganizationMember], role: str) -> None:
+    def get_role_string(self, member: OrganizationMember) -> str:
+        return member.get_all_org_roles_sorted()[0].name
+
+    def set_members_roles_in_cache(self, members: Iterable[OrganizationMember]) -> None:
         for member in members:
-            self.member_role_by_user_id[member.id] = role
+            if self.role and not self.scope:
+                self.member_role_by_user_id[member.id] = self.role.name
+            elif self.scope:
+                self.member_role_by_user_id[member.id] = self.get_role_string(member)
 
     def determine_recipients(
         self,
@@ -89,11 +95,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         # ignore type because of optional filtering
         members = members.filter(id__in=member_ids)  # type: ignore[attr-defined]
 
-        if self.role and not self.scope:
-            self.set_members_roles_in_cache(members, self.role.name)
-        elif self.scope:
-            for member in members:
-                self.member_role_by_user_id[member.id] = member.get_all_org_roles_sorted()[0].name
+        self.set_members_roles_in_cache(members)
 
         return members
 
