@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 
 import Input, {InputProps} from 'sentry/components/input';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Column,
   generateFieldAsString,

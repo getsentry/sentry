@@ -4,7 +4,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';

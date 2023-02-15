@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary, Project} from 'sentry/types';
 import {getParentKey} from 'sentry/views/settings/account/notifications/utils';
 

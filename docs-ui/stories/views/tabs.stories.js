@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import space from 'sentry/styles/space';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {space} from 'sentry/styles/space';
 
 export default {
   title: 'Views/Tabs',
@@ -43,14 +43,14 @@ export const Default = args => {
     <Tabs {...args}>
       <TabList>
         {TABS.map(tab => (
-          <Item key={tab.key} disabled={tab.disabled}>
+          <TabList.Item key={tab.key} disabled={tab.disabled}>
             {tab.label}
-          </Item>
+          </TabList.Item>
         ))}
       </TabList>
       <StyledTabPanels orientation={args.orientation}>
         {TABS.map(tab => (
-          <Item key={tab.key}>{tab.content}</Item>
+          <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
         ))}
       </StyledTabPanels>
     </Tabs>
@@ -102,14 +102,14 @@ export const TabLinks = ({selectedValue, ...args}) => {
     <Tabs {...args} value={selectedValue}>
       <TabList>
         {TABS_LINKS.map(tab => (
-          <Item key={tab.key} to={tab.to}>
+          <TabList.Item key={tab.key} to={tab.to}>
             {tab.label}
-          </Item>
+          </TabList.Item>
         ))}
       </TabList>
       <StyledTabPanels orientation={args.orientation}>
         {TABS_LINKS.map(tab => (
-          <Item key={tab.key}>{tab.content}</Item>
+          <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
         ))}
       </StyledTabPanels>
     </Tabs>

@@ -15,7 +15,7 @@ import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import ResolutionBox from 'sentry/components/resolutionBox';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   BaseGroupStatusReprocessing,
   Environment,

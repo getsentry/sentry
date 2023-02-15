@@ -20,10 +20,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface FunctionsTableProps {
+  analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
   error: string | null;
   functions: SuspectFunction[];
   isLoading: boolean;
-  project: Project;
+  project: Project | undefined;
   sort: string;
 }
 
@@ -51,6 +52,10 @@ function FunctionsTable(props: FunctionsTableProps) {
   }, [props.sort]);
 
   const functions: TableDataRow[] = useMemo(() => {
+    const project = props.project;
+    if (!project) {
+      return [];
+    }
     return props.functions.map(func => {
       const {worst, examples, ...rest} = func;
 
@@ -66,11 +71,11 @@ function FunctionsTable(props: FunctionsTableProps) {
             onClick: () =>
               trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
                 organization,
-                source: 'profiling_transaction.suspect_functions_table',
+                source: `${props.analyticsPageSource}.suspect_functions_table`,
               }),
             target: generateProfileFlamechartRouteWithQuery({
               orgSlug: organization.slug,
-              projectSlug: props.project.slug,
+              projectSlug: project.slug,
               profileId,
               query: {
                 // specify the frame to focus, the flamegraph will switch
@@ -83,7 +88,7 @@ function FunctionsTable(props: FunctionsTableProps) {
         }),
       };
     });
-  }, [organization, props.project.slug, props.functions]);
+  }, [organization, props.project, props.functions, props.analyticsPageSource]);
 
   const generateSortLink = useCallback(
     (column: TableColumnKey) => {

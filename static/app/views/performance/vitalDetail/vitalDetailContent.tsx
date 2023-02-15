@@ -22,7 +22,7 @@ import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKe
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
