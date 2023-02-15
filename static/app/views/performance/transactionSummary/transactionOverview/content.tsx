@@ -38,6 +38,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
+import {TransactionPercentage} from 'sentry/views/performance/transactionSummary/transactionOverview/transactionPercentage';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -96,8 +97,8 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
-}: // unfilteredTotalValues,
-Props) {
+  unfilteredTotalValues,
+}: Props) {
   const routes = useRoutes();
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
@@ -421,7 +422,13 @@ Props) {
         />
       </Layout.Main>
       <Layout.Side>
-        {/* <TransactionPercentage  /> */}
+        <TransactionPercentage
+          organization={organization}
+          isLoading={isLoading}
+          error={error}
+          totals={totalValues}
+          unfilteredTotals={unfilteredTotalValues}
+        />
         <UserStats
           organization={organization}
           location={location}
