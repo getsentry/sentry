@@ -1,6 +1,7 @@
 import logging
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
+from typing import Sequence
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -70,17 +71,15 @@ extracted_string_output = {
 }
 
 
-def _construct_messages(payloads):
+def _construct_messages(payloads) -> Sequence[BrokerValue]:
     message_batch = []
     for i, (payload, headers) in enumerate(payloads):
         message_batch.append(
-            Message(
-                BrokerValue(
-                    KafkaPayload(None, json.dumps(payload).encode("utf-8"), headers or []),
-                    Partition(Topic("topic"), 0),
-                    i,
-                    datetime.now(),
-                )
+            BrokerValue(
+                KafkaPayload(None, json.dumps(payload).encode("utf-8"), headers or []),
+                Partition(Topic("topic"), 0),
+                i,
+                datetime.now(),
             )
         )
 
