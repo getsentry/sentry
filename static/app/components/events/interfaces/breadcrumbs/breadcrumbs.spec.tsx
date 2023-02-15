@@ -50,9 +50,11 @@ describe('Breadcrumbs', () => {
     >;
 
   beforeEach(() => {
-    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
-    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       hasSentOneReplay: false,
+      fetching: false,
+    });
+    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
     props = {
@@ -201,9 +203,11 @@ describe('Breadcrumbs', () => {
 
   describe('replay', () => {
     it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
         hasSentOneReplay: false,
+        fetching: false,
+      });
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
         activateSidebar: jest.fn(),
       });
       const {container} = render(
@@ -225,9 +229,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should not render the replay inline onboarding component when the project is not JS', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
         hasSentOneReplay: false,
+        fetching: false,
+      });
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
         activateSidebar: jest.fn(),
       });
       const {container} = render(
@@ -251,9 +257,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should render a replay when there is a replayId', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(true);
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
         hasSentOneReplay: true,
+        fetching: false,
+      });
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
         activateSidebar: jest.fn(),
       });
       const {container} = render(

@@ -9,8 +9,7 @@ from sentry.integrations.slack.utils import (
     strip_channel_name,
 )
 from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule, RuleActivity, RuleActivityType
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.models import Integration, Project, Rule, RuleActivity, RuleActivityType, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 
@@ -39,7 +38,10 @@ def find_channel_id_for_rule(
 
     user = None
     if user_id:
-        user = user_service.get_user(user_id)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            pass
 
     organization = project.organization
     integration_id: Optional[int] = None
@@ -96,7 +98,7 @@ def find_channel_id_for_rule(
             rule = project_rules.Creator.run(pending_save=False, **kwargs)
             if user:
                 RuleActivity.objects.create(
-                    rule=rule, user_id=user.id, type=RuleActivityType.CREATED.value
+                    rule=rule, user=user, type=RuleActivityType.CREATED.value
                 )
 
         redis_rule_status.set_value("success", rule.id)

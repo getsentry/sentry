@@ -28,27 +28,27 @@ def silo_from_user(
     scopes=None,
     is_superuser=False,
 ) -> Access:
-    rpc_user_org_context = None
+    api_user_org_context = None
     if organization:
-        rpc_user_org_context = organization_service.get_organization_by_id(
+        api_user_org_context = organization_service.get_organization_by_id(
             id=organization.id, user_id=user.id
         )
-    return access.from_user_and_rpc_user_org_context(
+    return access.from_user_and_api_user_org_context(
         user=user,
-        rpc_user_org_context=rpc_user_org_context,
+        api_user_org_context=api_user_org_context,
         is_superuser=is_superuser,
         scopes=scopes,
     )
 
 
 def silo_from_request(request, organization: Organization = None, scopes=None) -> Access:
-    rpc_user_org_context = None
+    api_user_org_context = None
     if organization:
-        rpc_user_org_context = organization_service.get_organization_by_id(
+        api_user_org_context = organization_service.get_organization_by_id(
             id=organization.id, user_id=request.user.id
         )
     return access.from_request_org_and_scopes(
-        request=request, rpc_user_org_context=rpc_user_org_context, scopes=scopes
+        request=request, api_user_org_context=api_user_org_context, scopes=scopes
     )
 
 

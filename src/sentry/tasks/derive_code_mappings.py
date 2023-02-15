@@ -14,7 +14,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
@@ -90,7 +90,14 @@ def derive_code_mappings(
             logger.warning("The org has uninstalled the Sentry App.", extra=extra)
             return
 
-        raise error  # Let's report the issue
+        # Logging the exception and returning is better than re-raising the error
+        # Otherwise, API errors would not group them since the HTTPError in the stack
+        # has unique URLs, thus, separating the errors
+        logger.exception(
+            "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
+            extra=extra,
+        )
+        return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
@@ -144,7 +151,7 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 
 def get_installation(
     organization: Organization,
-) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
+) -> Tuple[IntegrationInstallation | None, APIOrganizationIntegration | None]:
     integration, organization_integration = integration_service.get_organization_context(
         organization_id=organization.id, provider="github"
     )

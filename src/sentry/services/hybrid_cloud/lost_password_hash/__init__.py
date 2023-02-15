@@ -15,25 +15,25 @@ class LostPasswordHashService(InterfaceWithLifecycle):
     def get_or_create(
         self,
         user_id: int,
-    ) -> "RpcLostPasswordHash":
+    ) -> "APILostPasswordHash":
         """
-        This method returns a valid RpcLostPasswordHash for a user
+        This method returns a valid APILostPasswordHash for a user
         :return:
         """
         pass
 
     @classmethod
-    def serialize_lostpasswordhash(cls, lph: LostPasswordHash) -> "RpcLostPasswordHash":
+    def serialize_lostpasswordhash(cls, lph: LostPasswordHash) -> "APILostPasswordHash":
         args = {
             field.name: getattr(lph, field.name)
-            for field in fields(RpcLostPasswordHash)
+            for field in fields(APILostPasswordHash)
             if hasattr(lph, field.name)
         }
-        return RpcLostPasswordHash(**args)
+        return APILostPasswordHash(**args)
 
 
 @dataclass(frozen=True)
-class RpcLostPasswordHash:
+class APILostPasswordHash:
     id: int = -1
     user_id: int = -1
     hash: str = ""
@@ -41,9 +41,6 @@ class RpcLostPasswordHash:
 
     def get_absolute_url(self, mode: str = "recover") -> str:
         return cast(str, LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode))
-
-
-APILostPasswordHash = RpcLostPasswordHash
 
 
 def impl_with_db() -> LostPasswordHashService:

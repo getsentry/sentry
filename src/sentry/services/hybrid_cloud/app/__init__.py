@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
@@ -33,9 +34,6 @@ class RpcSentryAppInstallation:
     status: int = SentryAppInstallationStatus.PENDING
     uuid: str = ""
     sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
-
-
-ApiSentryAppInstallation = RpcSentryAppInstallation
 
     # Overallow arguments, e.g. from full model initialization
     @classmethod
@@ -67,6 +65,9 @@ ApiSentryAppInstallation = RpcSentryAppInstallation
         except APIError:
             # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
             return None
+
+
+ApiSentryAppInstallation = RpcSentryAppInstallation
 
 
 @dataclass
@@ -146,19 +147,7 @@ class AppService(
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        pass
-
-    @abc.abstractmethod
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: List[int],
-        type: str,
-        sentry_app_ids: Optional[List[int]] = None,
-        sentry_app_uuids: Optional[List[str]] = None,
-        group_by: str = "sentry_app_id",
-    ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
+    ) -> ApiSentryAppInstallation | None:
         pass
 
     @abc.abstractmethod
@@ -166,9 +155,34 @@ class AppService(
         self,
         *,
         organization_id: int,
-        sentry_app_id: Optional[int] = None,
-    ) -> List[RpcSentryAppInstallation]:
+    ) -> List[ApiSentryAppInstallation]:
         pass
+
+    def serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
+        return ApiSentryApp(
+            id=app.id,
+            scope_list=app.scope_list,
+            application_id=app.application_id,
+            proxy_user_id=app.proxy_user_id,
+            owner_id=app.owner_id,
+            name=app.name,
+            slug=app.slug,
+            uuid=app.uuid,
+            events=app.events,
+        )
+
+    def serialize_sentry_app_installation(
+        self, installation: SentryAppInstallation, app: SentryApp | None = None
+    ) -> ApiSentryAppInstallation:
+        if app is None:
+            app = installation.sentry_app
+
+        return ApiSentryAppInstallation(
+            id=installation.id,
+            organization_id=installation.organization_id,
+            status=installation.status,
+            sentry_app=self.serialize_sentry_app(app),
+        )
 
 
 def impl_with_db() -> AppService:
@@ -184,3 +198,24 @@ app_service: AppService = silo_mode_delegation(
         SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
     }
 )
+
+
+@dataclass
+class ApiSentryAppInstallation:
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    sentry_app: ApiSentryApp = field(default_factory=lambda: ApiSentryApp())
+
+
+@dataclass
+class ApiSentryApp:
+    id: int = -1
+    scope_list: List[str] = field(default_factory=list)
+    application_id: int = -1
+    proxy_user_id: int | None = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    events: List[str] = field(default_factory=list)
