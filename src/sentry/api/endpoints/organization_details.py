@@ -40,7 +40,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.services.hybrid_cloud.organization_mapping import (
-    RpcOrganizationMappingUpdate,
+    ApiOrganizationMappingUpdate,
     organization_mapping_service,
 )
 from sentry.utils.cache import memoize
@@ -516,7 +516,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         )
                     elif "name" in changed_data:
                         organization_mapping_service.update(
-                            RpcOrganizationMappingUpdate(
+                            ApiOrganizationMappingUpdate(
                                 organization_id=organization.id,
                                 name=organization.name,
                             )

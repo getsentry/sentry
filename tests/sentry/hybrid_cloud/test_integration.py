@@ -10,8 +10,8 @@ from sentry.integrations.base import IntegrationFeatures
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
-    RpcIntegration,
-    RpcOrganizationIntegration,
+    APIIntegration,
+    APIOrganizationIntegration,
     integration_service,
 )
 from sentry.testutils import TestCase
@@ -62,7 +62,7 @@ class BaseIntegrationServiceTest(TestCase):
 
     def verify_result(
         self,
-        result: List[RpcIntegration | RpcOrganizationIntegration],
+        result: List[APIIntegration | APIOrganizationIntegration],
         expected: List[Integration | OrganizationIntegration],
     ):
         """Ensures APIModels in result, match the Models in expected"""
@@ -70,12 +70,12 @@ class BaseIntegrationServiceTest(TestCase):
         result_ids = [api_item.id for api_item in result]
         assert all([item.id in result_ids for item in expected])
 
-    def verify_integration_result(self, result: RpcIntegration, expected: Integration):
+    def verify_integration_result(self, result: APIIntegration, expected: Integration):
         serialized_fields = ["id", "provider", "external_id", "name", "metadata", "status"]
         for field in serialized_fields:
             assert getattr(result, field) == getattr(expected, field)
 
-    def verify_org_integration_result(self, result: RpcIntegration, expected: Integration):
+    def verify_org_integration_result(self, result: APIIntegration, expected: Integration):
         serialized_fields = [
             "id",
             "default_auth_id",

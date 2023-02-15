@@ -14,8 +14,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
-from sentry.models import Organization
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.models import Organization, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.tasks.base import instrumented_task
 
@@ -41,7 +40,10 @@ def find_channel_id_for_alert_rule(
 
     user = None
     if user_id:
-        user = user_service.get_user(user_id)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            pass
 
     alert_rule = None
     if alert_rule_id:

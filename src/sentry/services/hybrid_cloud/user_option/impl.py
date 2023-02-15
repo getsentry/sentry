@@ -8,14 +8,14 @@ from sentry.api.serializers.base import Serializer
 from sentry.models.options.user_option import UserOption
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.user_option import (
-    RpcUserOption,
+    ApiUserOption,
     UserOptionFilterArgs,
     UserOptionService,
 )
 
 
 class DatabaseBackedUserOptionService(
-    FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, RpcUserOption, None],
+    FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, ApiUserOption, None],
     UserOptionService,
 ):
     def delete_options(self, *, option_ids: List[int]) -> None:
@@ -74,8 +74,8 @@ class DatabaseBackedUserOptionService(
             )
         return query
 
-    def _serialize_rpc(self, op: UserOption) -> RpcUserOption:
-        return RpcUserOption(
+    def _serialize_rpc(self, op: UserOption) -> ApiUserOption:
+        return ApiUserOption(
             id=op.id,
             user_id=op.user_id,
             value=op.value,

@@ -10,7 +10,7 @@ from sentry.silo import SiloMode
 
 
 @dataclass
-class RpcUserOption:
+class ApiUserOption:
     id: int = -1
     user_id: int = -1
     value: Any = None
@@ -19,11 +19,8 @@ class RpcUserOption:
     organization_id: int | None = None
 
 
-ApiUserOption = RpcUserOption
-
-
 def get_option_from_list(
-    options: List[RpcUserOption],
+    options: List[ApiUserOption],
     *,
     key: str | None = None,
     user_id: int | None = None,
@@ -47,7 +44,7 @@ class UserOptionFilterArgs(TypedDict, total=False):
 
 
 class UserOptionService(
-    FilterQueryInterface[UserOptionFilterArgs, RpcUserOption, None], InterfaceWithLifecycle
+    FilterQueryInterface[UserOptionFilterArgs, ApiUserOption, None], InterfaceWithLifecycle
 ):
     @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
