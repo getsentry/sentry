@@ -50,7 +50,8 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         return self.member_role_by_user_id[user.id]
 
     def get_role_string(self, member: OrganizationMember) -> str:
-        return member.get_all_org_roles_sorted()[0].name
+        role_name: str = member.get_all_org_roles_sorted()[0].name
+        return role_name
 
     def set_members_roles_in_cache(self, members: Iterable[OrganizationMember]) -> None:
         for member in members:
