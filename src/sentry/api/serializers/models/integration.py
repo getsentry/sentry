@@ -7,8 +7,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, User
 from sentry.services.hybrid_cloud.integration import (
-    RpcIntegration,
-    RpcOrganizationIntegration,
+    APIIntegration,
+    APIOrganizationIntegration,
     integration_service,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -33,7 +33,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 @register(Integration)
 class IntegrationSerializer(Serializer):  # type: ignore
     def serialize(
-        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: APIIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {
@@ -57,7 +57,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self,
-        obj: RpcIntegration,
+        obj: APIIntegration,
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
@@ -101,21 +101,21 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
 
     def get_attrs(
         self,
-        item_list: Sequence[RpcOrganizationIntegration],
+        item_list: Sequence[APIOrganizationIntegration],
         user: User,
         **kwargs: Any,
-    ) -> MutableMapping[RpcOrganizationIntegration, MutableMapping[str, Any]]:
+    ) -> MutableMapping[APIOrganizationIntegration, MutableMapping[str, Any]]:
         integrations = integration_service.get_integrations(
             integration_ids=[item.integration_id for item in item_list]
         )
-        integrations_by_id: Dict[int, RpcIntegration] = {i.id: i for i in integrations}
+        integrations_by_id: Dict[int, APIIntegration] = {i.id: i for i in integrations}
         return {
             item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
         }
 
     def serialize(
         self,
-        obj: RpcOrganizationIntegration,
+        obj: APIOrganizationIntegration,
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
@@ -124,7 +124,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration: RpcIntegration = attrs.get("integration")  # type: ignore
+        integration: APIIntegration = attrs.get("integration")  # type: ignore
         serialized_integration: MutableMapping[str, Any] = serialize(
             objects=integration,
             user=user,

@@ -23,34 +23,34 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.auth import (
+    ApiAuthenticatorType,
+    ApiAuthIdentity,
+    ApiAuthProvider,
+    ApiAuthProviderFlags,
+    ApiAuthState,
+    ApiMemberSsoState,
+    ApiOrganizationAuthConfig,
     AuthenticatedToken,
     AuthenticationContext,
     AuthenticationRequest,
     AuthService,
     MiddlewareAuthenticationResponse,
-    RpcAuthenticatorType,
-    RpcAuthIdentity,
-    RpcAuthProvider,
-    RpcAuthProviderFlags,
-    RpcAuthState,
-    RpcMemberSsoState,
-    RpcOrganizationAuthConfig,
 )
 from sentry.services.hybrid_cloud.organization import (
-    RpcOrganization,
-    RpcOrganizationMember,
-    RpcOrganizationMemberFlags,
+    ApiOrganization,
+    ApiOrganizationMember,
+    ApiOrganizationMemberFlags,
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
 
-_SSO_BYPASS = RpcMemberSsoState(False, True)
-_SSO_NONMEMBER = RpcMemberSsoState(False, False)
+_SSO_BYPASS = ApiMemberSsoState(False, True)
+_SSO_NONMEMBER = ApiMemberSsoState(False, False)
 
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
@@ -58,9 +58,9 @@ _SSO_NONMEMBER = RpcMemberSsoState(False, False)
 def query_sso_state(
     organization_id: int | None,
     is_super_user: bool,
-    member: RpcOrganizationMember | OrganizationMember | None,
+    member: ApiOrganizationMember | OrganizationMember | None,
     org_member_class: Any = OrganizationMember,
-) -> RpcMemberSsoState:
+) -> ApiMemberSsoState:
     """
     Check whether SSO is required and valid for a given member.
     This should generally be accessed from the `request.access` object.
@@ -130,18 +130,18 @@ def query_sso_state(
         else:
             sso_is_valid = auth_identity.is_valid(member)
 
-    return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
+    return ApiMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
 
 
 class DatabaseBackedAuthService(AuthService):
-    def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
+    def _serialize_auth_provider_flags(self, ap: AuthProvider) -> ApiAuthProviderFlags:
         d: dict[str, bool] = {}
-        for f in dataclasses.fields(RpcAuthProviderFlags):
+        for f in dataclasses.fields(ApiAuthProviderFlags):
             d[f.name] = bool(ap.flags[f.name])
-        return RpcAuthProviderFlags(**d)
+        return ApiAuthProviderFlags(**d)
 
-    def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
-        return RpcAuthProvider(
+    def _serialize_auth_provider(self, ap: AuthProvider) -> ApiAuthProvider:
+        return ApiAuthProvider(
             id=ap.id,
             organization_id=ap.organization_id,
             provider=ap.provider,
@@ -150,7 +150,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def get_org_auth_config(
         self, *, organization_ids: List[int]
-    ) -> List[RpcOrganizationAuthConfig]:
+    ) -> List[ApiOrganizationAuthConfig]:
         aps: Mapping[int, AuthProvider] = {
             ap.organization_id: ap
             for ap in AuthProvider.objects.filter(organization_id__in=organization_ids)
@@ -162,7 +162,7 @@ class DatabaseBackedAuthService(AuthService):
             .annotate(Count("id"))
         }
         return [
-            RpcOrganizationAuthConfig(
+            ApiOrganizationAuthConfig(
                 organization_id=oid,
                 auth_provider=self._serialize_auth_provider(aps[oid]) if oid in aps else None,
                 has_api_key=qs.get(oid, 0) > 0,
@@ -171,7 +171,7 @@ class DatabaseBackedAuthService(AuthService):
         ]
 
     def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
+        self, *, request: AuthenticationRequest, authenticator_types: List[ApiAuthenticatorType]
     ) -> AuthenticationContext:
         fake_request = FakeAuthenticationRequest(request)
         user: User | None = None
@@ -229,8 +229,8 @@ class DatabaseBackedAuthService(AuthService):
         user_id: int,
         is_superuser: bool,
         organization_id: int | None,
-        org_member: RpcOrganizationMember | OrganizationMember | None,
-    ) -> RpcAuthState:
+        org_member: ApiOrganizationMember | OrganizationMember | None,
+    ) -> ApiAuthState:
         sso_state = query_sso_state(
             organization_id=organization_id,
             is_super_user=is_superuser,
@@ -243,7 +243,7 @@ class DatabaseBackedAuthService(AuthService):
         if is_superuser:
             permissions.extend(get_permissions_for_user(user_id))
 
-        return RpcAuthState(
+        return ApiAuthState(
             sso_state=sso_state,
             permissions=permissions,
         )
@@ -260,18 +260,18 @@ class DatabaseBackedAuthService(AuthService):
             ).values_list("organization_id", flat=True)
         )
 
-    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
+    def get_auth_providers(self, organization_id: int) -> List[ApiAuthProvider]:
         return list(AuthProvider.objects.filter(organization_id=organization_id))
 
     def handle_new_membership(
         self,
         request: Request,
-        organization: RpcOrganization,
-        auth_identity: RpcAuthIdentity,
-        auth_provider: RpcAuthProvider,
-    ) -> Tuple[RpcUser, RpcOrganizationMember]:
-        # TODO: Might be able to keep hold of the RpcUser object whose ID was
-        #  originally passed to construct the RpcAuthIdentity object
+        organization: ApiOrganization,
+        auth_identity: ApiAuthIdentity,
+        auth_provider: ApiAuthProvider,
+    ) -> Tuple[APIUser, ApiOrganizationMember]:
+        # TODO: Might be able to keep hold of the APIUser object whose ID was
+        #  originally passed to construct the ApiAuthIdentity object
         user = User.objects.get(id=auth_identity.user_id)
         serial_user = serialize_rpc_user(user)
 
@@ -298,7 +298,7 @@ class DatabaseBackedAuthService(AuthService):
             # In that case, delete the invite request and create a new membership.
             invite_helper.handle_invite_not_approved()
 
-        flags = RpcOrganizationMemberFlags(sso__linked=True)
+        flags = ApiOrganizationMemberFlags(sso__linked=True)
         # if the org doesn't have the ability to add members then anyone who got added
         # this way should be disabled until the org upgrades
         if not features.has("organizations:invite-members", orm_org):

@@ -17,9 +17,9 @@ from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.user import (
-    RpcAvatar,
-    RpcUser,
-    RpcUserEmail,
+    APIAvatar,
+    APIUser,
+    APIUserEmail,
     UserFilterArgs,
     UserSerializeType,
     UserService,
@@ -27,12 +27,12 @@ from sentry.services.hybrid_cloud.user import (
 
 
 class DatabaseBackedUserService(
-    FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
+    FilterQueryDatabaseImpl[User, UserFilterArgs, APIUser, UserSerializeType],
     UserService,
 ):
     def get_many_by_email(
         self, emails: List[str], is_active: bool = True, is_verified: bool = True
-    ) -> List[RpcUser]:
+    ) -> List[APIUser]:
         query = self._base_query()
         if is_verified:
             query = query.filter(emails__is_verified=is_verified)
@@ -44,7 +44,7 @@ class DatabaseBackedUserService(
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
-    ) -> List[RpcUser]:
+    ) -> List[APIUser]:
         qs = User.objects
 
         if is_active is not None:
@@ -99,7 +99,7 @@ class DatabaseBackedUserService(
 
         return list(query)
 
-    def get_from_group(self, group: Group) -> List[RpcUser]:
+    def get_from_group(self, group: Group) -> List[APIUser]:
         return [
             self._serialize_rpc(u)
             for u in self._base_query().filter(
@@ -109,7 +109,7 @@ class DatabaseBackedUserService(
             )
         ]
 
-    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         return [self._serialize_rpc(u) for u in self._base_query().filter(actor_id__in=actor_ids)]
 
     def close(self) -> None:
@@ -142,14 +142,14 @@ class DatabaseBackedUserService(
             serializer = DetailedSelfUserSerializer()
         return serializer
 
-    def _serialize_rpc(self, user: User) -> RpcUser:
+    def _serialize_rpc(self, user: User) -> APIUser:
         return serialize_rpc_user(user)
 
 
-def serialize_rpc_user(user: User) -> RpcUser:
+def serialize_rpc_user(user: User) -> APIUser:
     args = {
         field.name: getattr(user, field.name)
-        for field in fields(RpcUser)
+        for field in fields(APIUser)
         if hasattr(user, field.name)
     }
     args["pk"] = user.pk
@@ -171,11 +171,11 @@ def serialize_rpc_user(user: User) -> RpcUser:
         roles = frozenset(flatten(user.roles))
     args["roles"] = roles
 
-    useremails: FrozenSet[RpcUserEmail] = frozenset({})
+    useremails: FrozenSet[APIUserEmail] = frozenset({})
     if hasattr(user, "useremails") and user.useremails is not None:
         useremails = frozenset(
             {
-                RpcUserEmail(
+                APIUserEmail(
                     id=e["id"],
                     email=e["email"],
                     is_verified=e["is_verified"],
@@ -186,14 +186,14 @@ def serialize_rpc_user(user: User) -> RpcUser:
     args["useremails"] = useremails
     avatar = user.avatar.first()
     if avatar is not None:
-        avatar = RpcAvatar(
+        avatar = APIAvatar(
             id=avatar.id,
             file_id=avatar.file_id,
             ident=avatar.ident,
             avatar_type=avatar.avatar_type,
         )
     args["avatar"] = avatar
-    return RpcUser(**args)
+    return APIUser(**args)
 
 
 def flatten(iter: Iterable[Any]) -> List[Any]:

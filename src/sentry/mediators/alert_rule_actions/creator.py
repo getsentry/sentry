@@ -5,7 +5,7 @@ from sentry.utils.cache import memoize
 
 
 class AlertRuleActionCreator(Mediator):
-    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.ApiSentryAppInstallation")
     fields = Param(object, default=[])  # array of dicts
 
     def call(self) -> AlertRuleActionResult:

@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True, eq=True)
-class RpcIntegration:
+class APIIntegration:
     id: int
     provider: str
     external_id: str
@@ -48,11 +48,8 @@ class RpcIntegration:
         return "disabled"
 
 
-APIIntegration = RpcIntegration
-
-
 @dataclass(frozen=True, eq=True)
-class RpcOrganizationIntegration:
+class APIOrganizationIntegration:
     id: int
     default_auth_id: int
     organization_id: int
@@ -71,12 +68,9 @@ class RpcOrganizationIntegration:
         return "disabled"
 
 
-APIOrganizationIntegration = RpcOrganizationIntegration
-
-
 class IntegrationService(InterfaceWithLifecycle):
-    def _serialize_integration(self, integration: Integration) -> RpcIntegration:
-        return RpcIntegration(
+    def _serialize_integration(self, integration: Integration) -> APIIntegration:
+        return APIIntegration(
             id=integration.id,
             provider=integration.provider,
             external_id=integration.external_id,
@@ -87,8 +81,8 @@ class IntegrationService(InterfaceWithLifecycle):
 
     def _serialize_organization_integration(
         self, oi: OrganizationIntegration
-    ) -> RpcOrganizationIntegration:
-        return RpcOrganizationIntegration(
+    ) -> APIOrganizationIntegration:
+        return APIOrganizationIntegration(
             id=oi.id,
             default_auth_id=oi.default_auth_id,
             organization_id=oi.organization_id,
@@ -129,7 +123,7 @@ class IntegrationService(InterfaceWithLifecycle):
         providers: List[str] | None = None,
         org_integration_status: int | None = None,
         limit: int | None = None,
-    ) -> List[RpcIntegration]:
+    ) -> List[APIIntegration]:
         """
         Returns all APIIntegrations matching the provided kwargs.
         """
@@ -142,9 +136,9 @@ class IntegrationService(InterfaceWithLifecycle):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> RpcIntegration | None:
+    ) -> APIIntegration | None:
         """
-        Returns an RpcIntegration using either the id or a combination of the provider and external_id
+        Returns an APIIntegration using either the id or a combination of the provider and external_id
         """
         pass
 
@@ -159,7 +153,7 @@ class IntegrationService(InterfaceWithLifecycle):
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
         limit: int | None = None,
-    ) -> List[RpcOrganizationIntegration]:
+    ) -> List[APIOrganizationIntegration]:
         """
         Returns all APIOrganizationIntegrations from the matching kwargs.
         If providers is set, it will also be filtered by the integration providers set in the list.
@@ -169,9 +163,9 @@ class IntegrationService(InterfaceWithLifecycle):
 
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
-    ) -> RpcOrganizationIntegration | None:
+    ) -> APIOrganizationIntegration | None:
         """
-        Returns an RpcOrganizationIntegration from the integration and organization ids.
+        Returns an APIOrganizationIntegration from the integration and organization ids.
         """
         ois = self.get_organization_integrations(
             integration_id=integration_id, organization_id=organization_id, limit=1
@@ -186,9 +180,9 @@ class IntegrationService(InterfaceWithLifecycle):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> Tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
+    ) -> Tuple[APIIntegration | None, APIOrganizationIntegration | None]:
         """
-        Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
+        Returns a tuple of APIIntegration and APIOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
         """
         pass
@@ -201,7 +195,7 @@ class IntegrationService(InterfaceWithLifecycle):
         name: str | None = None,
         metadata: Dict[str, Any] | None = None,
         status: int | None = None,
-    ) -> List[RpcIntegration]:
+    ) -> List[APIIntegration]:
         """
         Returns a list of APIIntegrations after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
@@ -216,9 +210,9 @@ class IntegrationService(InterfaceWithLifecycle):
         name: str | None = None,
         metadata: Dict[str, Any] | None = None,
         status: int | None = None,
-    ) -> RpcIntegration | None:
+    ) -> APIIntegration | None:
         """
-        Returns an RpcIntegration after updating the fields provided.
+        Returns an APIIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
         pass
@@ -232,7 +226,7 @@ class IntegrationService(InterfaceWithLifecycle):
         status: int | None = None,
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
-    ) -> List[RpcOrganizationIntegration]:
+    ) -> List[APIOrganizationIntegration]:
         """
         Returns a list of APIOrganizationIntegrations after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
@@ -248,9 +242,9 @@ class IntegrationService(InterfaceWithLifecycle):
         status: int | None = None,
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
-    ) -> RpcOrganizationIntegration | None:
+    ) -> APIOrganizationIntegration | None:
         """
-        Returns an RpcOrganizationIntegration after updating the fields provided.
+        Returns an APIOrganizationIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
         pass
@@ -260,7 +254,7 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_installation(
         self,
         *,
-        integration: RpcIntegration | Integration,
+        integration: APIIntegration | Integration,
         organization_id: int,
     ) -> IntegrationInstallation:
         """
