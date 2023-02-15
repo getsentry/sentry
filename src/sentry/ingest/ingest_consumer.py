@@ -29,7 +29,6 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
-from sentry.lang.java.utils import deobfuscate_view_hierarchy, has_proguard_file
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_transaction
@@ -271,30 +270,10 @@ def _load_event(
     def dispatch_task(cache_key: str) -> None:
         if attachments:
             with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-                attachment_objects = []
-                for attachment in attachments:
-                    attachment_type = attachment.pop("attachment_type")
-                    if attachment_type == "event.view_hierarchy" and has_proguard_file(data):
-                        view_hierarchy = attachment_cache.get_from_chunks(
-                            key=cache_key, type=attachment_type, **attachment
-                        )
-                        view_hierarchy = json.loads(attachment_cache.get_data(view_hierarchy))
-                        deobfuscate_view_hierarchy(data, project, view_hierarchy)
-
-                        # Unset chunks
-                        attachment.pop("chunks")
-                        attachment_objects.append(
-                            CachedAttachment(
-                                type=attachment_type,
-                                data=json.dumps_htmlsafe(view_hierarchy).encode(),
-                                chunks=None,
-                                **attachment,
-                            )
-                        )
-                    else:
-                        attachment_objects.append(
-                            CachedAttachment(type=attachment_type, **attachment)
-                        )
+                attachment_objects = [
+                    CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                    for attachment in attachments
+                ]
 
                 attachment_cache.set(
                     cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT

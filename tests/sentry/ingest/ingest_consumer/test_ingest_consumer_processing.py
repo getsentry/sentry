@@ -15,6 +15,7 @@ from sentry.ingest.ingest_consumer import (
     process_userreport,
 )
 from sentry.models import EventAttachment, EventUser, File, UserReport, create_files_from_dif_zip
+from sentry.testutils.helpers import Feature
 from sentry.utils import json
 
 PROGUARD_UUID = "467ade76-6d0b-11ed-a1eb-0242ac120002"
@@ -248,7 +249,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
         projects={default_project.id: default_project},
     )
 
-    with task_runner():
+    with task_runner(), Feature({"organizations:view-hierarchy-deobfuscation": True}):
         process_event(
             {
                 "payload": json.dumps(payload),
