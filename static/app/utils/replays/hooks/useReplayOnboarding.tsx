@@ -25,7 +25,7 @@ function getSelectedProjectList(
 }
 
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
-  const {projects} = useProjects();
+  const {projects, fetching} = useProjects();
   const {selection} = usePageFilters();
 
   const orgSentOneOrMoreReplayEvent = useMemo(() => {
@@ -34,12 +34,14 @@ export function useHaveSelectedProjectsSentAnyReplayEvents() {
     return hasSentOneReplay;
   }, [selection.projects, projects]);
 
-  return orgSentOneOrMoreReplayEvent;
+  return {
+    hasSentOneReplay: orgSentOneOrMoreReplayEvent,
+    fetching,
+  };
 }
 
 export function useReplayOnboardingSidebarPanel() {
   const {location} = useRouteContext();
-  const hasSentOneReplay = useHaveSelectedProjectsSentAnyReplayEvents();
 
   useEffect(() => {
     if (location.hash === '#replay-sidequest') {
@@ -53,5 +55,5 @@ export function useReplayOnboardingSidebarPanel() {
     SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
   }, []);
 
-  return {hasSentOneReplay, activateSidebar};
+  return {activateSidebar};
 }
