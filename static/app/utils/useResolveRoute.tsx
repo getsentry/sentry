@@ -2,6 +2,7 @@ import {useContext} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
+import {extractSlug} from 'sentry/utils/extractSlug';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import shouldUseLegacyRoute from './shouldUseLegacyRoute';
@@ -17,15 +18,11 @@ function localizeDomain(domain?: string) {
   if (!window.__SENTRY_DEV_UI || !domain) {
     return domain;
   }
-  const host = window.location.host;
-  const validHostPattern =
-    /((?:localhost|[^.]+\.sentry\.dev|dev\.getsentry\.net)(?:\:\d*)?)/;
-
-  const hostMatch = validHostPattern.exec(host);
-  if (!hostMatch) {
+  const slugDomain = extractSlug(window.location.host);
+  if (!slugDomain) {
     return domain;
   }
-  return domain.replace('sentry.io', hostMatch[1]);
+  return domain.replace('sentry.io', slugDomain.domain);
 }
 
 /**

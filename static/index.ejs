@@ -15,14 +15,18 @@
     <script type="text/javascript">
     try {
       function extractSlug() {
-        var domainReg = /([^.]+).(?:dev\.getsentry\.net|localhost|.*sentry.dev)/;
-        var matches = domainReg.exec(window.location.host);
-        if (matches) {
-          return matches[1];
+        // XXX: If you change this also change its sibiling in static/app/utils/extractSlug.tsx
+        var knownDomains = /(?:localhost|dev\.getsentry.net|sentry.dev)(?:\:\d*)?$/;
+
+        var domainParts = window.location.host.split('.');
+        var slug = domainParts.shift();
+        var domain = domainParts.join('.');
+        if (domain.match(knownDomains)) {
+          return slug;
         }
 
         var pathReg = /\/organizations\/(.+?(?=(\/|$)))(\/|$)/i;
-        matches = pathReg.exec(window.location.pathname);
+        var matches = pathReg.exec(window.location.pathname);
         if (matches) {
           return matches[1];
         }

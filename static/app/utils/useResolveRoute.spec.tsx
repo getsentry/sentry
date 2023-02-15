@@ -39,7 +39,7 @@ describe('useResolveRoute', () => {
 
   it('should replace domains with dev-ui mode on localhost', () => {
     window.__SENTRY_DEV_UI = true;
-    window.location.host = 'localhost:7999';
+    window.location.host = 'acme.localhost:7999';
 
     const wrapper = ({children}) => (
       <OrganizationContext.Provider value={organization}>
@@ -54,7 +54,7 @@ describe('useResolveRoute', () => {
 
   it('should replace domains with dev-ui mode on dev.getsentry.net', () => {
     window.__SENTRY_DEV_UI = true;
-    window.location.host = 'dev.getsentry.net:7999';
+    window.location.host = 'acme.dev.getsentry.net:7999';
 
     const wrapper = ({children}) => (
       <OrganizationContext.Provider value={organization}>

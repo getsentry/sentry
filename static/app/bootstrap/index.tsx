@@ -1,4 +1,5 @@
 import {Config} from 'sentry/types';
+import {extractSlug} from 'sentry/utils/extractSlug';
 
 const BOOTSTRAP_URL = '/api/client-config/';
 
@@ -22,14 +23,12 @@ async function bootWithHydration() {
   // a customer-domains initial request. Because our initial call to BOOTSTRAP_URL
   // will not be on a customer domain, the response will not include this context.
   if (data.customerDomain === null && window.__SENTRY_DEV_UI) {
-    const domainReg = /([^.]+).(?:dev\.getsentry\.net|localhost|.*?sentry.dev)/;
-    const matches = domainReg.exec(window.location.host);
-    if (matches) {
-      const slug = matches[1];
+    const domain = extractSlug(window.location.host);
+    if (domain) {
       data.customerDomain = {
-        organizationUrl: `https://${slug}.sentry.io`,
+        organizationUrl: `https://${domain.slug}.sentry.io`,
         sentryUrl: 'https://sentry.io',
-        subdomain: slug,
+        subdomain: domain.slug,
       };
     }
   }
