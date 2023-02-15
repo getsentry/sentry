@@ -61,8 +61,24 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
           <MonitorStatLabel>{t('Last Check-in')}</MonitorStatLabel>
           <MonitorStatLabel>{t('Next Check-in')}</MonitorStatLabel>
           <MonitorStatLabel>{t('Status')}</MonitorStatLabel>
-          <div>{monitor.lastCheckIn && <TimeSince date={monitor.lastCheckIn} />}</div>
-          <div>{monitor.nextCheckIn && <TimeSince date={monitor.nextCheckIn} />}</div>
+          <div>
+            {monitor.lastCheckIn && (
+              <TimeSince
+                unitStyle="regular"
+                liveUpdateInterval="second"
+                date={monitor.lastCheckIn}
+              />
+            )}
+          </div>
+          <div>
+            {monitor.nextCheckIn && (
+              <TimeSince
+                unitStyle="regular"
+                liveUpdateInterval="second"
+                date={monitor.nextCheckIn}
+              />
+            )}
+          </div>
           <Status>
             <MonitorIcon status={monitor.status} size={16} />
             <MonitorStatusLabel>{statusToLabel[monitor.status]}</MonitorStatusLabel>
