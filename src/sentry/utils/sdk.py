@@ -254,6 +254,12 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+def before_send_transaction(event):
+    # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
+    event["tags"]["spans_over_limit"] = len(event["spans"]) >= 1000
+    return event
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -289,6 +295,7 @@ def configure_sdk():
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options["send_client_reports"] = True
+    sdk_options["before_send_transaction"] = before_send_transaction
 
     if upstream_dsn:
         transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
