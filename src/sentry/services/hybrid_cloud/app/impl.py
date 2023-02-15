@@ -34,7 +34,7 @@ class DatabaseBackedAppService(
         )
 
     def _filter_arg_validator(self) -> Callable[[SentryAppInstallationFilterArgs], Optional[str]]:
-        return self._filter_has_any_key_validator("organization_ids", "uuid", "id")
+        return self._filter_has_any_key_validator("organization_id", "uuid", "id")
 
     def _apply_filters(
         self,
