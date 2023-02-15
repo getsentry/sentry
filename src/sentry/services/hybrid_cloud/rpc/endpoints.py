@@ -68,7 +68,7 @@ class RpcResolutionError(Exception):
     pass
 
 
-def look_up_method(service_name: str, method_name: str) -> Callable[..., Any]:
+def look_up_method(service_name: str, method_name: str) -> RpcServiceMethod:
     try:
         service_obj = _rpc_service_registry[service_name]
     except KeyError:
