@@ -31,7 +31,7 @@ from sentry.utils.snuba import raw_query
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
@@ -100,7 +100,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
             save_issue_occurrence(occurrence.to_dict(), event)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
         data = self.build_occurrence_data(fingerprint=["hi", "bye"])
@@ -111,7 +111,7 @@ class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):  # type: ignore
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence()
@@ -191,6 +191,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
             metrics.incr.assert_called_once_with("issues.issue.dropped")
 
 
+@region_silo_test(stable=True)
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -209,6 +210,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
         }
 
 
+@region_silo_test(stable=True)
 class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -224,7 +226,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
         event_data = load_data("generic-event-profiling").data

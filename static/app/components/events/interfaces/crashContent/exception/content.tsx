@@ -68,8 +68,6 @@ export function Content({
       })
     : [];
 
-  const sdkName = event.sdk?.name;
-
   const children = values.map((exc, excIdx) => {
     const hasSourcemapDebug = debugFrames.some(
       ({query}) => query.exceptionIdx === excIdx
@@ -97,7 +95,7 @@ export function Content({
           <Fragment>
             {!shouldDebugFrames && excIdx === 0 && <SetupSourceMapsAlert event={event} />}
             {hasSourcemapDebug && (
-              <SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />
+              <SourceMapDebug debugFrames={debugFrames} event={event} />
             )}
           </Fragment>
         </ErrorBoundary>

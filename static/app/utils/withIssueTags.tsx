@@ -3,12 +3,17 @@ import {useCallback, useEffect, useState} from 'react';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {TagCollection, Team, User} from 'sentry/types';
+import {Organization, TagCollection, Team, User} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export interface WithIssueTagsProps {
+  organization: Organization;
   tags: TagCollection;
 }
+
+type HocProps = {
+  organization: Organization;
+};
 
 const uuidPattern = /[0-9a-f]{32}$/;
 const getUsername = ({isManaged, username, email}: User) => {
@@ -32,9 +37,9 @@ type WrappedComponentState = {
 function withIssueTags<Props extends WithIssueTagsProps>(
   WrappedComponent: React.ComponentType<Props>
 ) {
-  function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps>) {
+  function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps> & HocProps) {
     const [state, setState] = useState<WrappedComponentState>({
-      tags: TagStore.getIssueTags(),
+      tags: TagStore.getIssueTags(props.organization),
       users: MemberListStore.getAll(),
       teams: TeamStore.getAll(),
     });
@@ -90,11 +95,11 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     // Listen to tag store updates and cleanup listener on unmount
     useEffect(() => {
       const unsubscribeTags = TagStore.listen(() => {
-        setAssigned({tags: TagStore.getIssueTags()});
+        setAssigned({tags: TagStore.getIssueTags(props.organization)});
       }, undefined);
 
       return () => unsubscribeTags();
-    }, [setAssigned]);
+    }, [props.organization, setAssigned]);
 
     // Listen to member store updates and cleanup listener on unmount
     useEffect(() => {
