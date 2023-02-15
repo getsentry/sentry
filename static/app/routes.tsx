@@ -459,7 +459,7 @@ function buildRoutes() {
       />
       <Route
         path="ownership/"
-        name={t('Issue Owners')}
+        name={t('Ownership Rules')}
         component={make(() => import('sentry/views/settings/project/projectOwnership'))}
       />
       <Route

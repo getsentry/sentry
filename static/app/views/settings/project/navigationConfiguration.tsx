@@ -48,8 +48,10 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: t('Issue Owners'),
-          description: t('Manage issue ownership rules for a project'),
+          title: organization?.features?.includes('streamline-targeting-context')
+            ? t('Ownership Rules')
+            : t('Issue Owners'),
+          description: t('Manage ownership rules for a project'),
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
