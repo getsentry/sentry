@@ -315,7 +315,6 @@ function RuleListRow({
             <AlertBadge
               status={rule?.latestIncident?.status}
               isIssue={isIssueAlert(rule)}
-              hideText
             />
           </Tooltip>
         </FlexCenter>
