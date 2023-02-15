@@ -144,17 +144,15 @@ def test_process_messages() -> None:
 
     new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     expected_new_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    None,
-                    json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                    [("metric_type", message_payloads[i]["type"])],
-                ),
-                m.value.partition,
-                m.value.offset,
-                m.value.timestamp,
-            )
+        BrokerValue(
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                [("metric_type", message_payloads[i]["type"])],
+            ),
+            m.partition,
+            m.offset,
+            m.timestamp,
         )
         for i, m in enumerate(message_batch)
     ]
@@ -224,21 +222,17 @@ def test_process_messages_invalid_messages(
         json.dumps(invalid_payload).encode("utf-8") if format_payload else invalid_payload
     )
     message_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                0,
-                datetime.now(),
-            )
+        BrokerValue(
+            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+            Partition(Topic("topic"), 0),
+            0,
+            datetime.now(),
         ),
-        Message(
-            BrokerValue(
-                KafkaPayload(None, formatted_payload, []),
-                Partition(Topic("topic"), 0),
-                1,
-                datetime.now(),
-            )
+        BrokerValue(
+            KafkaPayload(None, formatted_payload, []),
+            Partition(Topic("topic"), 0),
+            1,
+            datetime.now(),
         ),
     ]
     # the outer message uses the last message's partition, offset, and timestamp
@@ -252,15 +246,13 @@ def test_process_messages_invalid_messages(
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
     expected_new_batch = [
-        Message(
-            Value(
-                KafkaPayload(
-                    None,
-                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
-                ),
-                expected_msg.committable,
-            )
+        Value(
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                [("metric_type", "c")],
+            ),
+            expected_msg.committable,
         )
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
@@ -280,29 +272,23 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     rate_limited_payload2["name"] = "rate_limited_test"
 
     message_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                0,
-                datetime.now(),
-            )
+        BrokerValue(
+            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+            Partition(Topic("topic"), 0),
+            0,
+            datetime.now(),
         ),
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                1,
-                datetime.now(),
-            )
+        BrokerValue(
+            KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
+            Partition(Topic("topic"), 0),
+            1,
+            datetime.now(),
         ),
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                2,
-                datetime.now(),
-            )
+        BrokerValue(
+            KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
+            Partition(Topic("topic"), 0),
+            2,
+            datetime.now(),
         ),
     ]
     # the outer message uses the last message's partition, offset, and timestamp
@@ -322,17 +308,15 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     # cause/depend on string writes that have been rate limited
     expected_msg = message_batch[0]
     expected_new_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    None,
-                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
-                ),
-                expected_msg.value.partition,
-                expected_msg.value.offset,
-                expected_msg.value.timestamp,
-            )
+        BrokerValue(
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                [("metric_type", "c")],
+            ),
+            expected_msg.partition,
+            expected_msg.offset,
+            expected_msg.timestamp,
         )
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
@@ -369,13 +353,11 @@ def test_process_messages_cardinality_limited(
 
         message_payloads = [counter_payload, distribution_payload, set_payload]
         message_batch = [
-            Message(
-                BrokerValue(
-                    KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-                    Partition(Topic("topic"), 0),
-                    i + 1,
-                    datetime.now(),
-                )
+            BrokerValue(
+                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                i + 1,
+                datetime.now(),
             )
             for i, payload in enumerate(message_payloads)
         ]
