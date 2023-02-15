@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True, eq=True)
-class RpcUser:
+class APIUser:
     id: int = -1
     pk: int = -1
     name: str = ""
@@ -38,8 +38,8 @@ class RpcUser:
 
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
-    avatar: Optional[RpcAvatar] = None
-    useremails: FrozenSet[RpcUserEmail] = frozenset()
+    avatar: Optional[APIAvatar] = None
+    useremails: FrozenSet[APIUserEmail] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -65,28 +65,19 @@ class RpcUser:
         return "User"
 
 
-APIUser = RpcUser
-
-
 @dataclass(frozen=True, eq=True)
-class RpcAvatar:
+class APIAvatar:
     id: int = 0
     file_id: int = 0
     ident: str = ""
     avatar_type: str = "letter_avatar"
 
 
-APIAvatar = RpcAvatar
-
-
 @dataclass(frozen=True, eq=True)
-class RpcUserEmail:
+class APIUserEmail:
     id: int = 0
     email: str = ""
     is_verified: bool = False
-
-
-APIUserEmail = RpcUserEmail
 
 
 class UserSerializeType(IntEnum):  # annoying
@@ -103,16 +94,15 @@ class UserFilterArgs(TypedDict, total=False):
     team_ids: List[int]
     is_active_memberteam: bool
     emails: List[str]
-    actor_ids: List[int]
 
 
 class UserService(
-    FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeType], InterfaceWithLifecycle
+    FilterQueryInterface[UserFilterArgs, APIUser, UserSerializeType], InterfaceWithLifecycle
 ):
     @abstractmethod
     def get_many_by_email(
         self, emails: List[str], is_active: bool = True, is_verified: bool = True
-    ) -> List[RpcUser]:
+    ) -> List[APIUser]:
         """
         Return a list of users matching the filters
         :param email:
@@ -124,7 +114,7 @@ class UserService(
     @abstractmethod
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
-    ) -> List[RpcUser]:
+    ) -> List[APIUser]:
         """
         Return a list of users that match a username and falling back to email
         :param username:
@@ -138,15 +128,15 @@ class UserService(
         pass
 
     @abstractmethod
-    def get_from_group(self, group: Group) -> List[RpcUser]:
+    def get_from_group(self, group: Group) -> List[APIUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @abstractmethod
-    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
 
-    def get_user(self, user_id: int) -> Optional[RpcUser]:
+    def get_user(self, user_id: int) -> Optional[APIUser]:
         """
         This method returns a User object given an ID
         :param user_id:

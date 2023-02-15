@@ -67,7 +67,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import ActorTuple, Integration, PagerDutyService
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -1588,18 +1587,14 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
     def test_registered(self):
         integration = Integration.objects.create(external_id="1", provider="slack")
         integration.add_organization(self.organization)
-        assert list(get_available_action_integrations_for_org(self.organization)) == [
-            integration_service.get_integration(integration_id=integration.id),
-        ]
+        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
 
     def test_mixed(self):
         integration = Integration.objects.create(external_id="1", provider="slack")
         integration.add_organization(self.organization)
         other_integration = Integration.objects.create(external_id="12345", provider="random")
         other_integration.add_organization(self.organization)
-        assert list(get_available_action_integrations_for_org(self.organization)) == [
-            integration_service.get_integration(integration_id=integration.id),
-        ]
+        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
 
     def test_disabled_integration(self):
         integration = Integration.objects.create(

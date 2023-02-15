@@ -430,7 +430,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER.value,
             target_identifier=str(self.user.id),
         )
-        assert trigger.target.id == self.user.id
+        assert trigger.target == self.user
 
     def test_invalid_user(self):
         trigger = AlertRuleTriggerAction(
