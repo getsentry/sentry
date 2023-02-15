@@ -211,7 +211,6 @@ class EventStream(Service):
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
-        use_streaming_consumer: bool,
     ) -> None:
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

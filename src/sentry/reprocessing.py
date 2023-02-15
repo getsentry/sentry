@@ -9,7 +9,8 @@ logger = logging.getLogger("sentry.events")
 
 def event_supports_reprocessing(data):
     """Only events of a certain format support reprocessing."""
-    from sentry.stacktraces.platform import JAVASCRIPT_PLATFORMS, NATIVE_PLATFORMS
+    from sentry.lang.native.utils import NATIVE_PLATFORMS
+    from sentry.stacktraces.platform import JAVASCRIPT_PLATFORMS
     from sentry.stacktraces.processing import find_stacktraces_in_data
 
     platform = data.get("platform")

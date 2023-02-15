@@ -10,8 +10,10 @@ import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -35,7 +37,7 @@ function getErrorMessage(
   /**
    * Expandable description
    */
-  desc?: string;
+  desc?: React.ReactNode;
   docsLink?: string;
 }> {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
@@ -231,10 +233,11 @@ interface SourcemapDebugProps {
    * A subset of the total error frames to validate sourcemaps
    */
   debugFrames: StacktraceFilenameQuery[];
-  sdkName?: string;
+  event: Event;
 }
 
-export function SourceMapDebug({debugFrames, sdkName}: SourcemapDebugProps) {
+export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
+  const sdkName = event.sdk?.name;
   const organization = useOrganization();
   const results = useSourceMapDebugQueries(debugFrames.map(debug => debug.query));
 
@@ -253,18 +256,23 @@ export function SourceMapDebug({debugFrames, sdkName}: SourcemapDebugProps) {
     return null;
   }
 
+  const analyticsParams = {
+    organization,
+    project_id: event.projectID,
+    group_id: event.groupID,
+    ...getAnalyticsDataForEvent(event),
+  };
+
   const handleDocsClick = (type: SourceMapProcessingIssueType) => {
     trackAdvancedAnalyticsEvent('source_map_debug.docs_link_clicked', {
-      organization,
-      sdkName,
+      ...analyticsParams,
       type,
     });
   };
 
   const handleExpandClick = (type: SourceMapProcessingIssueType) => {
     trackAdvancedAnalyticsEvent('source_map_debug.expand_clicked', {
-      organization,
-      sdkName,
+      ...analyticsParams,
       type,
     });
   };
