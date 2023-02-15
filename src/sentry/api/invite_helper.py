@@ -225,7 +225,7 @@ class ApiInviteHelper:
     def _needs_2fa(self) -> bool:
         org_requires_2fa = self.organization.flags.require_2fa.is_set
         return org_requires_2fa and (
-            not self.request.user.is_authenticated() or not self.request.user.has_2fa()
+            not self.request.user.is_authenticated or not self.request.user.has_2fa()
         )
 
     def _needs_email_verification(self) -> bool:
