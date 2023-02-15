@@ -14,6 +14,8 @@ MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 
 @region_silo_endpoint
 class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
+    # TODO(davidenwang): Add documentation after uploading feature is complete
+    private = True
     authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
 
     def post(self, request: Request, project, monitor, checkin) -> Response:
