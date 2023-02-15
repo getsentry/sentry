@@ -75,11 +75,13 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         if not self.scope and not self.role:
             return members
 
+        # you can either set the scope or the role for now
+        # if both are set we use the scope
         valid_roles = []
-        if self.scope:
-            valid_roles.extend([r.id for r in roles.get_all() if r.has_scope(self.scope)])
-        if self.role:
-            valid_roles.extend([self.role.id])
+        if self.role and not self.scope:
+            valid_roles = [self.role.id]
+        elif self.scope:
+            valid_roles = [r.id for r in roles.get_all() if r.has_scope(self.scope)]
 
         member_ids = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
             "id", flat=True
@@ -87,11 +89,11 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         # ignore type because of optional filtering
         members = members.filter(id__in=member_ids)  # type: ignore[attr-defined]
 
-        if self.scope:
+        if self.role and not self.scope:
+            self.set_members_roles_in_cache(members, self.role.name)
+        elif self.scope:
             for member in members:
                 self.member_role_by_user_id[member.id] = member.get_all_org_roles_sorted()[0].name
-        elif self.role:
-            self.set_members_roles_in_cache(members, self.role.name)
 
         return members
 
