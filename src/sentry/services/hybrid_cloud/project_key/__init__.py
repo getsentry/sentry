@@ -23,16 +23,13 @@ class ProjectKeyRole(Enum):
 
 
 @dataclass
-class RpcProjectKey:
+class ApiProjectKey:
     dsn_public: str = ""
-
-
-ApiProjectKey = RpcProjectKey
 
 
 class ProjectKeyService(InterfaceWithLifecycle):
     @abstractmethod
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
+    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
         pass
 
 

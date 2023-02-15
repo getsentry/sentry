@@ -16,7 +16,7 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -102,7 +102,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user_id,
+        user=user,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -110,7 +110,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user_id,
+            user=user,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
@@ -122,7 +122,7 @@ def record_raven_installed(project, user, **kwargs):
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
-        user_id=user.id,
+        user=user,
         project_id=project.id,
     )
 
@@ -149,7 +149,7 @@ def record_first_event(project, event, **kwargs):
     )
 
     try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -340,7 +340,7 @@ def record_release_received(project, event, **kwargs):
     )
     if success:
         try:
-            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
@@ -377,7 +377,7 @@ def record_user_context_received(project, event, **kwargs):
         )
         if success:
             try:
-                user: RpcUser = Organization.objects.get(
+                user: APIUser = Organization.objects.get(
                     id=project.organization_id
                 ).get_default_owner()
             except IndexError:
@@ -402,7 +402,7 @@ event_processed.connect(record_user_context_received, weak=False)
 @first_event_with_minified_stack_trace_received.connect(weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
     try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -450,7 +450,7 @@ def record_sourcemaps_received(project, event, **kwargs):
     )
     if success:
         try:
-            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
@@ -478,7 +478,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         organization_id=project.organization_id,
         task=task,
         status=status,
-        user_id=user.id,
+        user=user,
         project_id=project.id,
         data={"plugin": plugin.slug},
     )
@@ -502,7 +502,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         task=task,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id,
+            "user": user,
             "project_id": project.id,
             "date_completed": timezone.now(),
         },
@@ -520,7 +520,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id,
+            "user": user,
             "project_id": project.id,
             "date_completed": timezone.now(),
             "data": {"plugin": plugin.slug},
@@ -567,7 +567,7 @@ def record_integration_added(integration, organization, user, **kwargs):
         task.data["providers"] = providers
         if task.status != OnboardingTaskStatus.COMPLETE:
             task.status = OnboardingTaskStatus.COMPLETE
-            task.user_id = user.id
+            task.user = user
             task.date_completed = timezone.now()
         task.save()
     else:

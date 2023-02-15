@@ -2,9 +2,9 @@ import pytest
 
 from sentry.models import ApiKey, AuthProvider
 from sentry.services.hybrid_cloud.auth import (
-    RpcAuthProvider,
-    RpcAuthProviderFlags,
-    RpcOrganizationAuthConfig,
+    ApiAuthProvider,
+    ApiAuthProviderFlags,
+    ApiOrganizationAuthConfig,
     auth_service,
 )
 from sentry.testutils.factories import Factories
@@ -34,16 +34,16 @@ def test_get_org_auth_config():
     )
 
     assert sorted(result, key=lambda v: v.organization_id) == [
-        RpcOrganizationAuthConfig(
+        ApiOrganizationAuthConfig(
             organization_id=org_with_many_api_keys.id, auth_provider=None, has_api_key=True
         ),
-        RpcOrganizationAuthConfig(
+        ApiOrganizationAuthConfig(
             organization_id=org_without_api_keys.id,
-            auth_provider=RpcAuthProvider(
+            auth_provider=ApiAuthProvider(
                 id=ap.id,
                 organization_id=org_without_api_keys.id,
                 provider="dummy",
-                flags=RpcAuthProviderFlags(
+                flags=ApiAuthProviderFlags(
                     allow_unlinked=True,
                     scim_enabled=False,
                 ),

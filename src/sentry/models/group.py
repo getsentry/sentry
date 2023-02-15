@@ -42,8 +42,8 @@ from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Team
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.services.hybrid_cloud.integration import APIIntegration
+    from sentry.services.hybrid_cloud.user import APIUser
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +314,7 @@ class GroupManager(BaseManager):
 
     def get_groups_by_external_issue(
         self,
-        integration: RpcIntegration,
+        integration: APIIntegration,
         organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet:
@@ -644,7 +644,7 @@ class Group(Model):
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
-    def get_assignee(self) -> Team | RpcUser | None:
+    def get_assignee(self) -> Team | APIUser | None:
         from sentry.models import GroupAssignee
 
         try:
