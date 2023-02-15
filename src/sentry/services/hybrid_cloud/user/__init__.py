@@ -112,7 +112,7 @@ class UserService(
 
     @abstractmethod
     def get_by_username(
-        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
+        self, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
     ) -> List[APIUser]:
         """
         Return a list of users that match a username and falling back to email

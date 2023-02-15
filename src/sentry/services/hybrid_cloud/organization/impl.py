@@ -264,8 +264,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
         *,
         organization: ApiOrganization,
         user: APIUser,
-        flags: ApiOrganizationMemberFlags | None,
-        role: str | None,
+        flags: Optional[ApiOrganizationMemberFlags],
+        role: Optional[str],
     ) -> ApiOrganizationMember:
         member = OrganizationMember.objects.create(
             organization_id=organization.id,

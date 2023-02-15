@@ -1,6 +1,6 @@
 import base64
 import dataclasses
-from typing import List, Mapping, Tuple
+from typing import Dict, List, Mapping, Optional, Tuple, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -54,9 +54,9 @@ _SSO_NONMEMBER = ApiMemberSsoState(is_required=False, is_valid=False)
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
 # than the OrganizationMember type.
 def query_sso_state(
-    organization_id: int | None,
+    organization_id: Optional[int],
     is_super_user: bool,
-    member: ApiOrganizationMember | OrganizationMember | None,
+    member: Optional[Union[ApiOrganizationMember, OrganizationMember]],
     org_member_class: Any = OrganizationMember,
 ) -> ApiMemberSsoState:
     """
@@ -133,7 +133,7 @@ def query_sso_state(
 
 class DatabaseBackedAuthService(AuthService):
     def _serialize_auth_provider_flags(self, ap: AuthProvider) -> ApiAuthProviderFlags:
-        d: dict[str, bool] = {}
+        d: Dict[str, bool] = {}
         for f in dataclasses.fields(ApiAuthProviderFlags):
             d[f.name] = bool(ap.flags[f.name])
         return ApiAuthProviderFlags(**d)
@@ -172,7 +172,7 @@ class DatabaseBackedAuthService(AuthService):
         self, *, request: AuthenticationRequest, authenticator_types: List[ApiAuthenticatorType]
     ) -> AuthenticationContext:
         fake_request = FakeAuthenticationRequest(request)
-        user: User | None = None
+        user: Optional[User] = None
         token: Any = None
 
         for authenticator_type in authenticator_types:
@@ -189,7 +189,7 @@ class DatabaseBackedAuthService(AuthService):
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
         handler: Any = RequestAuthenticationMiddleware()
-        expired_user: User | None = None
+        expired_user: Optional[User] = None
         try:
             # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
             # called, from slightly different, middleware.
@@ -199,7 +199,7 @@ class DatabaseBackedAuthService(AuthService):
         except Exception as e:
             raise Exception("Unexpected error processing handler") from e
 
-        auth: AuthenticatedToken | None = None
+        auth: Optional[AuthenticatedToken] = None
         if fake_request.auth is not None:
             auth = AuthenticatedToken.from_token(fake_request.auth)
 
@@ -226,8 +226,8 @@ class DatabaseBackedAuthService(AuthService):
         *,
         user_id: int,
         is_superuser: bool,
-        organization_id: int | None,
-        org_member: ApiOrganizationMember | OrganizationMember | None,
+        organization_id: Optional[int],
+        org_member: Optional[Union[ApiOrganizationMember, OrganizationMember]],
     ) -> ApiAuthState:
         sso_state = query_sso_state(
             organization_id=organization_id,
@@ -321,12 +321,12 @@ class DatabaseBackedAuthService(AuthService):
 
 
 class FakeRequestDict:
-    d: Mapping[str, str | bytes | None]
+    d: Mapping[str, Optional[Union[str, bytes]]]
 
     def __init__(self, **d: Any):
         self.d = d
 
-    def __getitem__(self, item: str) -> str | bytes:
+    def __getitem__(self, item: str) -> Union[str, bytes]:
         result = self.d[item]
         if result is None:
             raise KeyError(f"Key '{item!r}' does not exist")
@@ -335,7 +335,9 @@ class FakeRequestDict:
     def __contains__(self, item: str) -> bool:
         return self.d.get(item, None) is not None
 
-    def get(self, key: str, default: str | bytes | None = None) -> str | bytes | None:
+    def get(
+        self, key: str, default: Optional[Union[str, bytes]] = None
+    ) -> Optional[Union[str, bytes]]:
         try:
             return self[key]
         except KeyError:
@@ -359,11 +361,11 @@ class FakeAuthenticationRequest:
 
     # These attributes are expected to be mutated when we call into the authentication middleware.  The result of those
     # mutations becomes, the result of authentication.
-    user: User | AnonymousUser | None
+    user: Optional[Union[User, AnonymousUser]]
     user_from_signed_request: bool = False
     auth: Any
 
-    def build_absolute_uri(self, path: str | None = None) -> str:
+    def build_absolute_uri(self, path: Optional[str] = None) -> str:
         if path is None:
             return self.req.absolute_url
         return self.req.absolute_url_root
@@ -395,7 +397,7 @@ class FakeAuthenticationRequest:
         return self.req.path
 
 
-def _unwrap_b64(input: str | None) -> bytes | None:
+def _unwrap_b64(input: Optional[str]) -> Optional[bytes]:
     if input is None:
         return None
 

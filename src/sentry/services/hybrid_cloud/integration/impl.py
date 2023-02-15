@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.models.integrations import Integration, OrganizationIntegration
@@ -43,7 +43,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         *,
         organization_id: int,
         statuses: List[int],
-        provider_key: str | None = None,
+        provider_key: Optional[str] = None,
         args: ApiPaginationArgs,
     ) -> ApiPaginationResult:
         queryset = OrganizationIntegration.objects.filter(
@@ -64,12 +64,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def get_integrations(
         self,
         *,
-        integration_ids: Iterable[int] | None = None,
-        organization_id: int | None = None,
-        status: int | None = None,
-        providers: List[str] | None = None,
-        org_integration_status: int | None = None,
-        limit: int | None = None,
+        integration_ids: Optional[Iterable[int]] = None,
+        organization_id: Optional[int] = None,
+        status: Optional[int] = None,
+        providers: Optional[List[str]] = None,
+        org_integration_status: Optional[int] = None,
+        limit: Optional[int] = None,
     ) -> List[APIIntegration]:
         integration_kwargs: Dict[str, Any] = {}
         if integration_ids is not None:
@@ -96,11 +96,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def get_integration(
         self,
         *,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-        organization_id: int | None = None,
-    ) -> APIIntegration | None:
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+        organization_id: Optional[int] = None,
+    ) -> Optional[APIIntegration]:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
             integration_kwargs["id"] = integration_id
@@ -120,13 +120,13 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def get_organization_integrations(
         self,
         *,
-        org_integration_ids: List[int] | None = None,
-        integration_id: int | None = None,
-        organization_id: int | None = None,
-        status: int | None = None,
-        providers: List[str] | None = None,
-        has_grace_period: bool | None = None,
-        limit: int | None = None,
+        org_integration_ids: Optional[List[int]] = None,
+        integration_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+        status: Optional[int] = None,
+        providers: Optional[List[str]] = None,
+        has_grace_period: Optional[bool] = None,
+        limit: Optional[int] = None,
     ) -> List[APIOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
 
@@ -155,7 +155,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
-    ) -> APIOrganizationIntegration | None:
+    ) -> Optional[APIOrganizationIntegration]:
         organization_integration = OrganizationIntegration.objects.filter(
             integration_id=integration_id, organization_id=organization_id
         ).first()
@@ -170,10 +170,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         self,
         *,
         organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> Tuple[APIIntegration | None, APIOrganizationIntegration | None]:
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Tuple[Optional[APIIntegration], Optional[APIOrganizationIntegration]]:
         integration = self.get_integration(
             organization_id=organization_id,
             integration_id=integration_id,
@@ -197,9 +197,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         self,
         *,
         integration_ids: List[int],
-        name: str | None = None,
-        metadata: Dict[str, Any] | None = None,
-        status: int | None = None,
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
     ) -> List[APIIntegration]:
         integrations = Integration.objects.filter(id__in=integration_ids)
         if not integrations.exists():
@@ -224,10 +224,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         self,
         *,
         integration_id: int,
-        name: str | None = None,
-        metadata: Dict[str, Any] | None = None,
-        status: int | None = None,
-    ) -> APIIntegration | None:
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+    ) -> Optional[APIIntegration]:
         integrations = self.update_integrations(
             integration_ids=[integration_id],
             name=name,
@@ -240,10 +240,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         self,
         *,
         org_integration_ids: List[int],
-        config: Dict[str, Any] | None = None,
-        status: int | None = None,
-        grace_period_end: datetime | None = None,
-        set_grace_period_end_null: bool | None = None,
+        config: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+        grace_period_end: Optional[datetime] = None,
+        set_grace_period_end_null: Optional[bool] = None,
     ) -> List[APIOrganizationIntegration]:
         ois = OrganizationIntegration.objects.filter(id__in=org_integration_ids)
         if not ois.exists():
@@ -270,11 +270,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
         self,
         *,
         org_integration_id: int,
-        config: Dict[str, Any] | None = None,
-        status: int | None = None,
-        grace_period_end: datetime | None = None,
-        set_grace_period_end_null: bool | None = None,
-    ) -> APIOrganizationIntegration | None:
+        config: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+        grace_period_end: Optional[datetime] = None,
+        set_grace_period_end_null: Optional[bool] = None,
+    ) -> Optional[APIOrganizationIntegration]:
         ois = self.update_organization_integrations(
             org_integration_ids=[org_integration_id],
             config=config,

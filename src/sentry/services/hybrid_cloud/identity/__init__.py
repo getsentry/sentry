@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
@@ -48,10 +48,10 @@ class IdentityService(InterfaceWithLifecycle):
     def get_provider(
         self,
         *,
-        provider_id: int | None = None,
-        provider_type: str | None = None,
-        provider_ext_id: str | None = None,
-    ) -> APIIdentityProvider | None:
+        provider_id: Optional[int] = None,
+        provider_type: Optional[str] = None,
+        provider_ext_id: Optional[str] = None,
+    ) -> Optional[APIIdentityProvider]:
         """
         Returns an APIIdentityProvider either by using the idp.id (provider_id), or a combination
         of idp.type (provider_type) and idp.external_id (provider_ext_id)
@@ -63,9 +63,9 @@ class IdentityService(InterfaceWithLifecycle):
         self,
         *,
         provider_id: int,
-        user_id: int | None = None,
-        identity_ext_id: str | None = None,
-    ) -> APIIdentity | None:
+        user_id: Optional[int] = None,
+        identity_ext_id: Optional[str] = None,
+    ) -> Optional[APIIdentity]:
         """
         Returns an APIIdentity using the idp.id (provider_id) and either the user.id (user_id)
         or identity.external_id (identity_ext_id)

@@ -3,7 +3,7 @@ import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
 
 from django.contrib.auth.models import AnonymousUser
 from pydantic.fields import Field
@@ -33,7 +33,7 @@ class ApiAuthenticatorType(IntEnum):
     SESSION_AUTHENTICATION = 2
 
     @classmethod
-    def from_authenticator(self, auth: Type[BaseAuthentication]) -> "ApiAuthenticatorType" | None:
+    def from_authenticator(cls, auth: Type[BaseAuthentication]) -> Optional["ApiAuthenticatorType"]:
         if auth == ApiKeyAuthentication:
             return ApiAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
@@ -49,7 +49,7 @@ class ApiAuthenticatorType(IntEnum):
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 
 
-def authentication_request_from(request: Request) -> AuthenticationRequest:
+def authentication_request_from(request: Request) -> "AuthenticationRequest":
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
@@ -66,7 +66,7 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
     )
 
 
-def _normalize_to_b64(input: str | bytes | None) -> str | None:
+def _normalize_to_b64(input: Optional[Union[str, bytes]]) -> Optional[str]:
     if input is None:
         return None
     if isinstance(input, str):
@@ -80,7 +80,7 @@ class ApiAuthentication(BaseAuthentication):  # type: ignore
     def __init__(self, types: List[ApiAuthenticatorType]):
         self.types = types
 
-    def authenticate(self, request: Request) -> Tuple[Any, Any] | None:
+    def authenticate(self, request: Request) -> Optional[Tuple[Any, Any]]:
         response = auth_service.authenticate_with(
             request=authentication_request_from(request), authenticator_types=self.types
         )
@@ -129,33 +129,33 @@ class ApiOrganizationAuthConfig(SiloDataInterface):
 @dataclass
 class AuthenticationRequest:
     # HTTP_X_SENTRY_RELAY_ID
-    sentry_relay_id: str | None = None
+    sentry_relay_id: Optional[str] = None
     # HTTP_X_SENTRY_RELAY_SIGNATURE
-    sentry_relay_signature: str | None = None
-    backend: str | None = None
-    user_id: str | None = None
-    user_hash: str | None = None
-    nonce: str | None = None
-    remote_addr: str | None = None
-    signature: str | None = None
+    sentry_relay_signature: Optional[str] = None
+    backend: Optional[str] = None
+    user_id: Optional[str] = None
+    user_hash: Optional[str] = None
+    nonce: Optional[str] = None
+    remote_addr: Optional[str] = None
+    signature: Optional[str] = None
     absolute_url: str = ""
     absolute_url_root: str = ""
     path: str = ""
-    authorization_b64: str | None = None
+    authorization_b64: Optional[str] = None
 
 
 @dataclass(eq=True)
 class AuthenticatedToken:
-    entity_id: int | None = None
+    entity_id: Optional[int] = None
     kind: str = "system"
-    user_id: int | None = None  # only relevant for ApiToken
-    organization_id: int | None = None
+    user_id: Optional[int] = None  # only relevant for ApiToken
+    organization_id: Optional[int] = None
     allowed_origins: List[str] = field(default_factory=list)
     audit_log_data: Dict[str, Any] = field(default_factory=dict)
     scopes: List[str] = field(default_factory=list)
 
     @classmethod
-    def from_token(cls, token: Any) -> "AuthenticatedToken" | None:
+    def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
         if token is None:
             return None
 
@@ -196,7 +196,7 @@ class AuthenticatedToken:
     def get_allowed_origins(self) -> List[str]:
         return self.allowed_origins
 
-    def get_scopes(self) -> list[str]:
+    def get_scopes(self) -> List[str]:
         return self.scopes
 
     def has_scope(self, scope: str) -> bool:
@@ -211,10 +211,10 @@ class AuthenticationContext:
     The default of all values should be a valid, non authenticated context.
     """
 
-    auth: AuthenticatedToken | None = None
-    user: APIUser | None = None
+    auth: Optional[AuthenticatedToken] = None
+    user: Optional[APIUser] = None
 
-    def _get_user(self) -> APIUser | AnonymousUser:
+    def _get_user(self) -> Union[APIUser, AnonymousUser]:
         """
         Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
         """
@@ -292,8 +292,8 @@ class AuthService(InterfaceWithLifecycle):
         *,
         user_id: int,
         is_superuser: bool,
-        organization_id: int | None,
-        org_member: ApiOrganizationMember | OrganizationMember | None,
+        organization_id: Optional[int],
+        org_member: Optional[Union[ApiOrganizationMember, OrganizationMember]],
     ) -> ApiAuthState:
         pass
 

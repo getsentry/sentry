@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pydantic.fields import Field
 
@@ -106,7 +106,7 @@ class IntegrationService(InterfaceWithLifecycle):
         *,
         organization_id: int,
         statuses: List[int],
-        provider_key: str | None = None,
+        provider_key: Optional[str] = None,
         args: ApiPaginationArgs,
     ) -> ApiPaginationResult:
         pass
@@ -115,12 +115,12 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_integrations(
         self,
         *,
-        integration_ids: Iterable[int] | None = None,
-        organization_id: int | None = None,
-        status: int | None = None,
-        providers: List[str] | None = None,
-        org_integration_status: int | None = None,
-        limit: int | None = None,
+        integration_ids: Optional[Iterable[int]] = None,
+        organization_id: Optional[int] = None,
+        status: Optional[int] = None,
+        providers: Optional[List[str]] = None,
+        org_integration_status: Optional[int] = None,
+        limit: Optional[int] = None,
     ) -> List[APIIntegration]:
         """
         Returns all APIIntegrations matching the provided kwargs.
@@ -131,10 +131,10 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_integration(
         self,
         *,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> APIIntegration | None:
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Optional[APIIntegration]:
         """
         Returns an APIIntegration using either the id or a combination of the provider and external_id
         """
@@ -144,13 +144,13 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_organization_integrations(
         self,
         *,
-        org_integration_ids: List[int] | None = None,
-        integration_id: int | None = None,
-        organization_id: int | None = None,
-        status: int | None = None,
-        providers: List[str] | None = None,
-        has_grace_period: bool | None = None,
-        limit: int | None = None,
+        org_integration_ids: Optional[List[int]] = None,
+        integration_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+        status: Optional[int] = None,
+        providers: Optional[List[str]] = None,
+        has_grace_period: Optional[bool] = None,
+        limit: Optional[int] = None,
     ) -> List[APIOrganizationIntegration]:
         """
         Returns all APIOrganizationIntegrations from the matching kwargs.
@@ -161,7 +161,7 @@ class IntegrationService(InterfaceWithLifecycle):
 
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
-    ) -> APIOrganizationIntegration | None:
+    ) -> Optional[APIOrganizationIntegration]:
         """
         Returns an APIOrganizationIntegration from the integration and organization ids.
         """
@@ -175,10 +175,10 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> Tuple[APIIntegration | None, APIOrganizationIntegration | None]:
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Tuple[Optional[APIIntegration], Optional[APIOrganizationIntegration]]:
         """
         Returns a tuple of APIIntegration and APIOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
@@ -190,9 +190,9 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         integration_ids: List[int],
-        name: str | None = None,
-        metadata: Dict[str, Any] | None = None,
-        status: int | None = None,
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
     ) -> List[APIIntegration]:
         """
         Returns a list of APIIntegrations after updating the fields provided.
@@ -205,10 +205,10 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         integration_id: int,
-        name: str | None = None,
-        metadata: Dict[str, Any] | None = None,
-        status: int | None = None,
-    ) -> APIIntegration | None:
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+    ) -> Optional[APIIntegration]:
         """
         Returns an APIIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
@@ -220,10 +220,10 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         org_integration_ids: List[int],
-        config: Dict[str, Any] | None = None,
-        status: int | None = None,
-        grace_period_end: datetime | None = None,
-        set_grace_period_end_null: bool | None = None,
+        config: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+        grace_period_end: Optional[datetime] = None,
+        set_grace_period_end_null: Optional[bool] = None,
     ) -> List[APIOrganizationIntegration]:
         """
         Returns a list of APIOrganizationIntegrations after updating the fields provided.
@@ -236,11 +236,11 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         org_integration_id: int,
-        config: Dict[str, Any] | None = None,
-        status: int | None = None,
-        grace_period_end: datetime | None = None,
-        set_grace_period_end_null: bool | None = None,
-    ) -> APIOrganizationIntegration | None:
+        config: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+        grace_period_end: Optional[datetime] = None,
+        set_grace_period_end_null: Optional[bool] = None,
+    ) -> Optional[APIOrganizationIntegration]:
         """
         Returns an APIOrganizationIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
@@ -252,7 +252,7 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_installation(
         self,
         *,
-        integration: APIIntegration | Integration,
+        integration: Union[APIIntegration, Integration],
         organization_id: int,
     ) -> IntegrationInstallation:
         """

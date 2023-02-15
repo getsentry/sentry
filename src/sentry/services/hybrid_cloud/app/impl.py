@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, AppService
@@ -15,7 +15,7 @@ class DatabaseBackedAppService(AppService):
 
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> Optional[ApiSentryAppInstallation]:
         try:
             sentry_app = SentryApp.objects.get(proxy_user_id=proxy_user_id)
         except SentryApp.DoesNotExist:

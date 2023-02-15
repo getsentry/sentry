@@ -242,8 +242,8 @@ class OrganizationService(InterfaceWithLifecycle):
         *,
         organization: ApiOrganization,
         user: APIUser,
-        flags: ApiOrganizationMemberFlags | None,
-        role: str | None,
+        flags: Optional[ApiOrganizationMemberFlags],
+        role: Optional[str],
     ) -> ApiOrganizationMember:
         pass
 

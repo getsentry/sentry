@@ -23,8 +23,8 @@ class ApiUserOption(SiloDataInterface):
 def get_option_from_list(
     options: List[ApiUserOption],
     *,
-    key: str | None = None,
-    user_id: int | None = None,
+    key: Optional[str] = None,
+    user_id: Optional[int] = None,
     default: Any = None,
 ) -> Any:
     for option in options:
@@ -58,8 +58,8 @@ class UserOptionService(
         user_id: int,
         value: Any,
         key: str,
-        project_id: int | None = None,
-        organization_id: int | None = None,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
     ) -> None:
         pass
 

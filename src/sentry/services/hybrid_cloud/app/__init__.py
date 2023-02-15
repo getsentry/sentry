@@ -39,7 +39,7 @@ class AppService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> Optional[ApiSentryAppInstallation]:
         pass
 
     @abc.abstractmethod
@@ -64,7 +64,7 @@ class AppService(InterfaceWithLifecycle):
         )
 
     def serialize_sentry_app_installation(
-        self, installation: SentryAppInstallation, app: SentryApp | None = None
+        self, installation: SentryAppInstallation, app: Optional[SentryApp] = None
     ) -> ApiSentryAppInstallation:
         if app is None:
             app = installation.sentry_app

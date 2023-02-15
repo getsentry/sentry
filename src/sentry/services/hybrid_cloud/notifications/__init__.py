@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Protocol, Sequence
+from typing import TYPE_CHECKING, List, Optional, Protocol, Sequence
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -35,7 +35,7 @@ class MayHaveActor(Protocol):
         pass
 
     @property
-    def actor_id(self) -> int | None:
+    def actor_id(self) -> Optional[int]:
         pass
 
     def class_name(self) -> str:

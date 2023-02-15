@@ -45,7 +45,7 @@ class DatabaseBackedUserService(
         ]
 
     def get_by_username(
-        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
+        self, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
     ) -> List[APIUser]:
         qs = User.objects
 

@@ -25,8 +25,8 @@ class DatabaseBackedUserOptionService(
         user_id: int,
         value: Any,
         key: str,
-        project_id: int | None = None,
-        organization_id: int | None = None,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
     ) -> None:
         UserOption.objects.set_value(  # type: ignore
             user=user_id,
