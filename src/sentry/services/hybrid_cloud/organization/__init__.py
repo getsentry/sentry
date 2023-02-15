@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional
 
@@ -18,126 +16,6 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.roles.manager import TeamRole
-
-
-class OrganizationService(InterfaceWithLifecycle):
-    @abstractmethod
-    def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
-    ) -> Optional[ApiUserOrganizationContext]:
-        """
-        Fetches the organization, team, and project data given by an organization id, regardless of its visibility
-        status.  When user_id is provided, membership data related to that user from the organization
-        is also given in the response.  See ApiUserOrganizationContext for more info.
-        """
-        pass
-
-    # TODO: This should return ApiOrganizationSummary objects, since we cannot realistically span out requests and
-    #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
-    @abstractmethod
-    def get_organizations(
-        self,
-        user_id: Optional[int],
-        scope: Optional[str],
-        only_visible: bool,
-        organization_ids: Optional[List[int]] = None,
-    ) -> List[ApiOrganizationSummary]:
-        """
-        When user_id is set, returns all organizations associated with that user id given
-        a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
-        set of organizations matching those ids, ignore scope and user_id.
-
-        When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
-        organization will be returned.
-
-        Because this endpoint fetches not from region silos, but the control silo organization membership table,
-        only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
-        for their full metadata is greatly discouraged for performance reasons.
-        """
-        pass
-
-    @abstractmethod
-    def check_membership_by_email(
-        self, organization_id: int, email: str
-    ) -> Optional[ApiOrganizationMember]:
-        """
-        Used to look up an organization membership by an email
-        """
-        pass
-
-    @abstractmethod
-    def check_membership_by_id(
-        self, organization_id: int, user_id: int
-    ) -> Optional[ApiOrganizationMember]:
-        """
-        Used to look up an organization membership by a user id
-        """
-        pass
-
-    @abstractmethod
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
-        """
-        If exists and matches the only_visible requirement, returns an organization's id by the slug.
-        """
-        pass
-
-    def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool
-    ) -> Optional[ApiUserOrganizationContext]:
-        """
-        Defers to check_organization_by_slug -> get_organization_by_id
-        """
-        org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
-        if org_id is None:
-            return None
-
-        return self.get_organization_by_id(id=org_id, user_id=user_id)
-
-    @abstractmethod
-    def add_organization_member(
-        self,
-        *,
-        organization: ApiOrganization,
-        user: APIUser,
-        flags: ApiOrganizationMemberFlags | None,
-        role: str | None,
-    ) -> ApiOrganizationMember:
-        pass
-
-    @abstractmethod
-    def add_team_member(self, *, team_id: int, organization_member: ApiOrganizationMember) -> None:
-        pass
-
-    @abstractmethod
-    def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
-        pass
-
-    @abstractmethod
-    def get_all_org_roles(
-        self,
-        organization_member: Optional[ApiOrganizationMember] = None,
-        member_id: Optional[int] = None,
-    ) -> List[str]:
-        pass
-
-    @abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
-        pass
-
-
-def impl_with_db() -> OrganizationService:
-    from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
-
-    return DatabaseBackedOrganizationService()
-
-
-organization_service: OrganizationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: impl_with_db,
-        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
-    }
-)
 
 
 def team_status_visible() -> int:
@@ -283,3 +161,123 @@ class ApiUserOrganizationContext(SiloDataInterface):
         # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
+
+
+class OrganizationService(InterfaceWithLifecycle):
+    @abstractmethod
+    def get_organization_by_id(
+        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
+    ) -> Optional[ApiUserOrganizationContext]:
+        """
+        Fetches the organization, team, and project data given by an organization id, regardless of its visibility
+        status.  When user_id is provided, membership data related to that user from the organization
+        is also given in the response.  See ApiUserOrganizationContext for more info.
+        """
+        pass
+
+    # TODO: This should return ApiOrganizationSummary objects, since we cannot realistically span out requests and
+    #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
+    @abstractmethod
+    def get_organizations(
+        self,
+        user_id: Optional[int],
+        scope: Optional[str],
+        only_visible: bool,
+        organization_ids: Optional[List[int]] = None,
+    ) -> List[ApiOrganizationSummary]:
+        """
+        When user_id is set, returns all organizations associated with that user id given
+        a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
+        set of organizations matching those ids, ignore scope and user_id.
+
+        When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
+        organization will be returned.
+
+        Because this endpoint fetches not from region silos, but the control silo organization membership table,
+        only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
+        for their full metadata is greatly discouraged for performance reasons.
+        """
+        pass
+
+    @abstractmethod
+    def check_membership_by_email(
+        self, organization_id: int, email: str
+    ) -> Optional[ApiOrganizationMember]:
+        """
+        Used to look up an organization membership by an email
+        """
+        pass
+
+    @abstractmethod
+    def check_membership_by_id(
+        self, organization_id: int, user_id: int
+    ) -> Optional[ApiOrganizationMember]:
+        """
+        Used to look up an organization membership by a user id
+        """
+        pass
+
+    @abstractmethod
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        """
+        If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
+
+    def get_organization_by_slug(
+        self, *, user_id: Optional[int], slug: str, only_visible: bool
+    ) -> Optional[ApiUserOrganizationContext]:
+        """
+        Defers to check_organization_by_slug -> get_organization_by_id
+        """
+        org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
+        if org_id is None:
+            return None
+
+        return self.get_organization_by_id(id=org_id, user_id=user_id)
+
+    @abstractmethod
+    def add_organization_member(
+        self,
+        *,
+        organization: ApiOrganization,
+        user: APIUser,
+        flags: ApiOrganizationMemberFlags | None,
+        role: str | None,
+    ) -> ApiOrganizationMember:
+        pass
+
+    @abstractmethod
+    def add_team_member(self, *, team_id: int, organization_member: ApiOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def get_all_org_roles(
+        self,
+        organization_member: Optional[ApiOrganizationMember] = None,
+        member_id: Optional[int] = None,
+    ) -> List[str]:
+        pass
+
+    @abstractmethod
+    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+        pass
+
+
+def impl_with_db() -> OrganizationService:
+    from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+
+    return DatabaseBackedOrganizationService()
+
+
+organization_service: OrganizationService = silo_mode_delegation(
+    {
+        SiloMode.MONOLITH: impl_with_db,
+        SiloMode.REGION: impl_with_db,
+        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
+    }
+)

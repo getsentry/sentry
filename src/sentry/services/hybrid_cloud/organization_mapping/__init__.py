@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
@@ -38,7 +36,7 @@ class ApiOrganizationMappingUpdate(SiloDataInterface, PatchableMixin["Organizati
     customer_id: Unset[str] = UnsetVal
 
     @classmethod
-    def from_instance(cls, inst: Organization) -> ApiOrganizationMappingUpdate:
+    def from_instance(cls, inst: Organization) -> "ApiOrganizationMappingUpdate":
         return cls(**cls.params_from_instance(inst), organization_id=inst.id)
 
 

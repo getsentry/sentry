@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import List, Sequence
 
 from django.db.models import Q

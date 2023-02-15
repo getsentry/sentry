@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import fields
 from typing import Any, Callable, FrozenSet, Iterable, List, Optional
 

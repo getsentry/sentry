@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import List
 
 from sentry.models import SentryApp, SentryAppInstallation

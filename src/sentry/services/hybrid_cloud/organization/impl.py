@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import dataclasses
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import inspect
 from typing import Any, Callable, Generic, Mapping, MutableMapping, Type, TypeVar
 
@@ -7,6 +5,12 @@ from sentry.silo import SiloMode
 
 _ServiceClass = TypeVar("_ServiceClass")
 _RPC_METHOD_LABEL = "__is_hc_rpc_method"
+
+
+class RpcServiceMethod:
+    def __init__(self, method: Callable[..., Any]) -> None:
+        argspec = inspect.getfullargspec(method)
+        assert argspec
 
 
 class RpcServiceEndpoint(Generic[_ServiceClass]):
@@ -25,12 +29,6 @@ class RpcServiceEndpoint(Generic[_ServiceClass]):
                 method_obj = RpcServiceMethod(attr)
                 table[attr_name] = method_obj
         return table
-
-
-class RpcServiceMethod:
-    def __init__(self, method: Callable[..., Any]) -> None:
-        argspec = inspect.getfullargspec(method)
-        assert argspec
 
 
 _rpc_service_registry: MutableMapping[str, RpcServiceEndpoint[Any]] = {}

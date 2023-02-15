@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import abc
 from typing import TYPE_CHECKING, List, Optional
 
@@ -16,6 +14,25 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import SentryApp, SentryAppInstallation
+
+
+class ApiSentryApp(SiloDataInterface):
+    id: int = -1
+    scope_list: List[str] = Field(default_factory=list)
+    application_id: int = -1
+    proxy_user_id: Optional[int] = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    events: List[str] = Field(default_factory=list)
+
+
+class ApiSentryAppInstallation(SiloDataInterface):
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    sentry_app: ApiSentryApp = Field(default_factory=lambda: ApiSentryApp())
 
 
 class AppService(InterfaceWithLifecycle):
@@ -73,22 +90,3 @@ app_service: AppService = silo_mode_delegation(
         SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
     }
 )
-
-
-class ApiSentryApp(SiloDataInterface):
-    id: int = -1
-    scope_list: List[str] = Field(default_factory=list)
-    application_id: int = -1
-    proxy_user_id: Optional[int] = None  # can be null on deletion.
-    owner_id: int = -1  # relation to an organization
-    name: str = ""
-    slug: str = ""
-    uuid: str = ""
-    events: List[str] = Field(default_factory=list)
-
-
-class ApiSentryAppInstallation(SiloDataInterface):
-    id: int = -1
-    organization_id: int = -1
-    status: int = SentryAppInstallationStatus.PENDING
-    sentry_app: ApiSentryApp = Field(default_factory=lambda: ApiSentryApp())

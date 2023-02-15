@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import abc
 import base64
 import contextlib
@@ -35,7 +33,7 @@ class ApiAuthenticatorType(IntEnum):
     SESSION_AUTHENTICATION = 2
 
     @classmethod
-    def from_authenticator(self, auth: Type[BaseAuthentication]) -> ApiAuthenticatorType | None:
+    def from_authenticator(self, auth: Type[BaseAuthentication]) -> "ApiAuthenticatorType" | None:
         if auth == ApiKeyAuthentication:
             return ApiAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
@@ -93,71 +91,6 @@ class ApiAuthentication(BaseAuthentication):  # type: ignore
         return None
 
 
-class AuthService(InterfaceWithLifecycle):
-    @abc.abstractmethod
-    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
-        pass
-
-    @abc.abstractmethod
-    def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[ApiAuthenticatorType]
-    ) -> AuthenticationContext:
-        pass
-
-    @abc.abstractmethod
-    def get_org_auth_config(
-        self, *, organization_ids: List[int]
-    ) -> List[ApiOrganizationAuthConfig]:
-        pass
-
-    @abc.abstractmethod
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: int | None,
-        org_member: ApiOrganizationMember | OrganizationMember | None,
-    ) -> ApiAuthState:
-        pass
-
-    # TODO: Denormalize this scim enabled flag onto organizations?
-    # This is potentially a large list
-    @abc.abstractmethod
-    def get_org_ids_with_scim(
-        self,
-    ) -> List[int]:
-        """
-        This method returns a list of org ids that have scim enabled
-        :return:
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_auth_providers(self, organization_id: int) -> List[ApiAuthProvider]:
-        """
-        This method returns a list of auth providers for an org
-        :return:
-        """
-        pass
-
-    @abc.abstractmethod
-    def handle_new_membership(
-        self,
-        request: Request,
-        organization: ApiOrganization,
-        auth_identity: ApiAuthIdentity,
-        auth_provider: ApiAuthProvider,
-    ) -> Tuple[APIUser, ApiOrganizationMember]:
-        pass
-
-
-def impl_with_db() -> AuthService:
-    from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
-
-    return DatabaseBackedAuthService()
-
-
 class ApiMemberSsoState(SiloDataInterface):
     is_required: bool = False
     is_valid: bool = False
@@ -166,6 +99,31 @@ class ApiMemberSsoState(SiloDataInterface):
 class ApiAuthState(SiloDataInterface):
     sso_state: ApiMemberSsoState = Field(default_factory=lambda: ApiMemberSsoState())
     permissions: List[str] = Field(default_factory=list)
+
+
+class ApiAuthProviderFlags(SiloDataInterface):
+    allow_unlinked: bool = False
+    scim_enabled: bool = False
+
+
+class ApiAuthProvider(SiloDataInterface):
+    id: int = -1
+    organization_id: int = -1
+    provider: str = ""
+    flags: ApiAuthProviderFlags = Field(default_factory=lambda: ApiAuthProviderFlags())
+
+
+class ApiAuthIdentity(SiloDataInterface):
+    id: int = -1
+    user_id: int = -1
+    provider_id: int = -1
+    ident: str = ""
+
+
+class ApiOrganizationAuthConfig(SiloDataInterface):
+    organization_id: int = -1
+    auth_provider: Optional[ApiAuthProvider] = None
+    has_api_key: bool = False
 
 
 @dataclass
@@ -197,7 +155,7 @@ class AuthenticatedToken:
     scopes: List[str] = field(default_factory=list)
 
     @classmethod
-    def from_token(cls, token: Any) -> AuthenticatedToken | None:
+    def from_token(cls, token: Any) -> "AuthenticatedToken" | None:
         if token is None:
             return None
 
@@ -311,29 +269,69 @@ class MiddlewareAuthenticationResponse(AuthenticationContext):
     user_from_signed_request: bool = False
 
 
-class ApiAuthProviderFlags(SiloDataInterface):
-    allow_unlinked: bool = False
-    scim_enabled: bool = False
+class AuthService(InterfaceWithLifecycle):
+    @abc.abstractmethod
+    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
+        pass
+
+    @abc.abstractmethod
+    def authenticate_with(
+        self, *, request: AuthenticationRequest, authenticator_types: List[ApiAuthenticatorType]
+    ) -> AuthenticationContext:
+        pass
+
+    @abc.abstractmethod
+    def get_org_auth_config(
+        self, *, organization_ids: List[int]
+    ) -> List[ApiOrganizationAuthConfig]:
+        pass
+
+    @abc.abstractmethod
+    def get_user_auth_state(
+        self,
+        *,
+        user_id: int,
+        is_superuser: bool,
+        organization_id: int | None,
+        org_member: ApiOrganizationMember | OrganizationMember | None,
+    ) -> ApiAuthState:
+        pass
+
+    # TODO: Denormalize this scim enabled flag onto organizations?
+    # This is potentially a large list
+    @abc.abstractmethod
+    def get_org_ids_with_scim(
+        self,
+    ) -> List[int]:
+        """
+        This method returns a list of org ids that have scim enabled
+        :return:
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_auth_providers(self, organization_id: int) -> List[ApiAuthProvider]:
+        """
+        This method returns a list of auth providers for an org
+        :return:
+        """
+        pass
+
+    @abc.abstractmethod
+    def handle_new_membership(
+        self,
+        request: Request,
+        organization: ApiOrganization,
+        auth_identity: ApiAuthIdentity,
+        auth_provider: ApiAuthProvider,
+    ) -> Tuple[APIUser, ApiOrganizationMember]:
+        pass
 
 
-class ApiAuthProvider(SiloDataInterface):
-    id: int = -1
-    organization_id: int = -1
-    provider: str = ""
-    flags: ApiAuthProviderFlags = Field(default_factory=lambda: ApiAuthProviderFlags())
+def impl_with_db() -> AuthService:
+    from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
 
-
-class ApiAuthIdentity(SiloDataInterface):
-    id: int = -1
-    user_id: int = -1
-    provider_id: int = -1
-    ident: str = ""
-
-
-class ApiOrganizationAuthConfig(SiloDataInterface):
-    organization_id: int = -1
-    auth_provider: Optional[ApiAuthProvider] = None
-    has_api_key: bool = False
+    return DatabaseBackedAuthService()
 
 
 auth_service: AuthService = silo_mode_delegation(

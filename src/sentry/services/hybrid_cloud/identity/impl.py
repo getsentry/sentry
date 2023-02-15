@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any, List
 
 from sentry.services.hybrid_cloud.identity import APIIdentity, APIIdentityProvider, IdentityService
