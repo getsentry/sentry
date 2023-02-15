@@ -14,8 +14,8 @@ from rest_framework.request import Request
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrganizationMember
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcOrganizationMember
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
 
@@ -23,17 +23,17 @@ if TYPE_CHECKING:
     from sentry.models import OrganizationMember
 
 
-class ApiAuthenticatorType(IntEnum):
+class RpcAuthenticatorType(IntEnum):
     API_KEY_AUTHENTICATION = 0
     TOKEN_AUTHENTICATION = 1
     SESSION_AUTHENTICATION = 2
 
     @classmethod
-    def from_authenticator(self, auth: Type[BaseAuthentication]) -> ApiAuthenticatorType | None:
+    def from_authenticator(self, auth: Type[BaseAuthentication]) -> RpcAuthenticatorType | None:
         if auth == ApiKeyAuthentication:
-            return ApiAuthenticatorType.API_KEY_AUTHENTICATION
+            return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
-            return ApiAuthenticatorType.TOKEN_AUTHENTICATION
+            return RpcAuthenticatorType.TOKEN_AUTHENTICATION
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
@@ -43,6 +43,9 @@ class ApiAuthenticatorType(IntEnum):
             return TokenAuthentication()
         else:
             raise ValueError(f"{self!r} has not authenticator associated with it.")
+
+
+ApiAuthenticatorType = RpcAuthenticatorType
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
@@ -70,10 +73,10 @@ def _normalize_to_b64(input: str | bytes | None) -> str | None:
     return base64.b64encode(input).decode("utf8")
 
 
-class ApiAuthentication(BaseAuthentication):  # type: ignore
-    types: List[ApiAuthenticatorType]
+class RpcAuthentication(BaseAuthentication):  # type: ignore
+    types: List[RpcAuthenticatorType]
 
-    def __init__(self, types: List[ApiAuthenticatorType]):
+    def __init__(self, types: List[RpcAuthenticatorType]):
         self.types = types
 
     def authenticate(self, request: Request) -> Tuple[Any, Any] | None:
@@ -87,6 +90,9 @@ class ApiAuthentication(BaseAuthentication):  # type: ignore
         return None
 
 
+ApiAuthentication = RpcAuthentication
+
+
 class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
@@ -94,14 +100,14 @@ class AuthService(InterfaceWithLifecycle):
 
     @abc.abstractmethod
     def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[ApiAuthenticatorType]
+        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
     ) -> AuthenticationContext:
         pass
 
     @abc.abstractmethod
     def get_org_auth_config(
         self, *, organization_ids: List[int]
-    ) -> List[ApiOrganizationAuthConfig]:
+    ) -> List[RpcOrganizationAuthConfig]:
         pass
 
     @abc.abstractmethod
@@ -111,8 +117,8 @@ class AuthService(InterfaceWithLifecycle):
         user_id: int,
         is_superuser: bool,
         organization_id: int | None,
-        org_member: ApiOrganizationMember | OrganizationMember | None,
-    ) -> ApiAuthState:
+        org_member: RpcOrganizationMember | OrganizationMember | None,
+    ) -> RpcAuthState:
         pass
 
     # TODO: Denormalize this scim enabled flag onto organizations?
@@ -128,7 +134,7 @@ class AuthService(InterfaceWithLifecycle):
         pass
 
     @abc.abstractmethod
-    def get_auth_providers(self, organization_id: int) -> List[ApiAuthProvider]:
+    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
         """
         This method returns a list of auth providers for an org
         :return:
@@ -139,10 +145,10 @@ class AuthService(InterfaceWithLifecycle):
     def handle_new_membership(
         self,
         request: Request,
-        organization: ApiOrganization,
-        auth_identity: ApiAuthIdentity,
-        auth_provider: ApiAuthProvider,
-    ) -> Tuple[APIUser, ApiOrganizationMember]:
+        organization: RpcOrganization,
+        auth_identity: RpcAuthIdentity,
+        auth_provider: RpcAuthProvider,
+    ) -> Tuple[RpcUser, RpcOrganizationMember]:
         pass
 
 
@@ -153,15 +159,21 @@ def impl_with_db() -> AuthService:
 
 
 @dataclass
-class ApiAuthState:
-    sso_state: ApiMemberSsoState
+class RpcAuthState:
+    sso_state: RpcMemberSsoState
     permissions: List[str]
 
 
+ApiAuthState = RpcAuthState
+
+
 @dataclass(eq=True)
-class ApiMemberSsoState:
+class RpcMemberSsoState:
     is_required: bool = False
     is_valid: bool = False
+
+
+ApiMemberSsoState = RpcMemberSsoState
 
 
 @dataclass
@@ -250,9 +262,9 @@ class AuthenticationContext:
     """
 
     auth: AuthenticatedToken | None = None
-    user: APIUser | None = None
+    user: RpcUser | None = None
 
-    def _get_user(self) -> APIUser | AnonymousUser:
+    def _get_user(self) -> RpcUser | AnonymousUser:
         """
         Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
         """
@@ -308,33 +320,44 @@ class MiddlewareAuthenticationResponse(AuthenticationContext):
 
 
 @dataclass(eq=True, frozen=True)
-class ApiAuthProviderFlags:
+class RpcAuthProviderFlags:
     allow_unlinked: bool = False
     scim_enabled: bool = False
 
 
+ApiAuthProviderFlags = RpcAuthProviderFlags
+
+
 @dataclass(eq=True, frozen=True)
-class ApiAuthProvider:
+class RpcAuthProvider:
     id: int = -1
     organization_id: int = -1
     provider: str = ""
-    flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
+    flags: RpcAuthProviderFlags = field(default_factory=lambda: RpcAuthProviderFlags())
+
+
+ApiAuthProvider = RpcAuthProvider
 
 
 @dataclass
-class ApiAuthIdentity:
+class RpcAuthIdentity:
     id: int = -1
     user_id: int = -1
     provider_id: int = -1
     ident: str = ""
 
 
+ApiAuthIdentity = RpcAuthIdentity
+
+
 @dataclass(eq=True)
-class ApiOrganizationAuthConfig:
+class RpcOrganizationAuthConfig:
     organization_id: int = -1
-    auth_provider: ApiAuthProvider | None = None
+    auth_provider: RpcAuthProvider | None = None
     has_api_key: bool = False
 
+
+ApiOrganizationAuthConfig = RpcOrganizationAuthConfig
 
 auth_service: AuthService = silo_mode_delegation(
     {

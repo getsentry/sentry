@@ -13,7 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {GroupTombstone} from 'sentry/types';
 
 type RowProps = {

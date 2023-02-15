@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 from structlog import get_logger
 
 from bitfield import BitField
-from sentry import features
+from sentry import features, roles
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -37,8 +37,8 @@ from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.integration import APIIntegration
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 INVITE_DAYS_VALID = 30
 
@@ -79,7 +79,7 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: APIIntegration, actor: APIUser) -> QuerySet:
+    def get_for_integration(self, integration: RpcIntegration, actor: RpcUser) -> QuerySet:
         return self.filter(
             user_id=actor.id,
             organization__organizationintegration__integration_id=integration.id,
@@ -526,21 +526,10 @@ class OrganizationMember(Model):
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():
             return False
 
-        from sentry.models import OrganizationMemberTeam
-
         # check if any other member has the owner role, including through a team
-        is_only_owner = (
-            not OrganizationMember.objects.filter(
-                organization=self.organization_id,
-                role=organization_roles.get_top_dog().id,
-                user__isnull=False,
-                user__is_active=True,
-            )
+        is_only_owner = not (
+            self.organization.get_members_with_org_roles(roles=[roles.get_top_dog().id])
             .exclude(id=self.id)
             .exists()
-        ) and not OrganizationMemberTeam.objects.filter(
-            team__in=self.organization.get_teams_with_org_role(organization_roles.get_top_dog().id)
-        ).exclude(
-            organizationmember_id=self.id
-        ).exists()
+        )
         return is_only_owner

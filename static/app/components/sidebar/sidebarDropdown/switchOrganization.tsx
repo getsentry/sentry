@@ -8,7 +8,7 @@ import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
 import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';

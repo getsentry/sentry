@@ -13,18 +13,13 @@ from django.conf import settings
 
 from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates
-from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
-from sentry.eventstream.kafka.postprocessworker import (
-    PostProcessForwarderType,
-    PostProcessForwarderWorker,
-)
+from sentry.eventstream.kafka.postprocessworker import PostProcessForwarderType
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json, metrics
 from sentry.utils.arroyo import MetricsWrapper
-from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 from sentry.utils.kafka_config import (
     get_kafka_consumer_cluster_options,
     get_kafka_producer_cluster_options,
@@ -216,39 +211,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return True
 
-    def _build_consumer(
-        self,
-        consumer_group: str,
-        topic: str,
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        commit_batch_size: int,
-        commit_batch_timeout_ms: int,
-        concurrency: int,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-    ):
-        worker = PostProcessForwarderWorker(concurrency=concurrency)
-
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-
-        synchronized_consumer = SynchronizedConsumer(
-            cluster_name=cluster_name,
-            consumer_group=consumer_group,
-            commit_log_topic=commit_log_topic,
-            synchronize_commit_group=synchronize_commit_group,
-            initial_offset_reset=initial_offset_reset,
-        )
-
-        consumer = BatchingKafkaConsumer(
-            topics=topic,
-            worker=worker,
-            max_batch_size=commit_batch_size,
-            max_batch_time=commit_batch_timeout_ms,
-            consumer=synchronized_consumer,
-            commit_on_shutdown=True,
-        )
-        return consumer
-
     def _build_streaming_consumer(
         self,
         consumer_group: str,
@@ -295,65 +257,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
         )
 
-    def run_consumer(
-        self,
-        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
-        consumer_group: str,
-        topic: Optional[str],
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        commit_batch_size: int,
-        commit_batch_timeout_ms: int,
-        concurrency: int,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-        strict_offset_reset: Optional[bool],
-        use_streaming_consumer: bool,
-    ) -> None:
-
-        logger.info(f"Starting post process forwarder to consume {entity} messages")
-        if entity == PostProcessForwarderType.TRANSACTIONS:
-            default_topic = self.transactions_topic
-        elif entity == PostProcessForwarderType.ERRORS:
-            default_topic = self.topic
-        elif entity == PostProcessForwarderType.ISSUE_PLATFORM:
-            default_topic = self.issue_platform_topic
-        else:
-            raise ValueError("Invalid entity")
-
-        if use_streaming_consumer:
-            consumer = self._build_streaming_consumer(
-                consumer_group,
-                topic or default_topic,
-                commit_log_topic,
-                synchronize_commit_group,
-                commit_batch_size,
-                commit_batch_timeout_ms,
-                concurrency,
-                initial_offset_reset,
-                strict_offset_reset,
-            )
-        else:
-            consumer = self._build_consumer(
-                consumer_group,
-                topic or default_topic,
-                commit_log_topic,
-                synchronize_commit_group,
-                commit_batch_size,
-                commit_batch_timeout_ms,
-                concurrency,
-                initial_offset_reset,
-            )
-
-        def handler(signum, frame):
-            consumer.signal_shutdown()
-            for producer in self.__producers.values():
-                producer.flush()
-
-        signal.signal(signal.SIGINT, handler)
-        signal.signal(signal.SIGTERM, handler)
-
-        consumer.run()
-
     def run_post_process_forwarder(
         self,
         entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
@@ -366,14 +269,20 @@ class KafkaEventStream(SnubaProtocolEventStream):
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
-        use_streaming_consumer: bool,
     ):
-        logger.debug("Starting post-process forwarder...")
+        logger.debug(f"Starting post process forwarder to consume {entity} messages")
+        if entity == PostProcessForwarderType.TRANSACTIONS:
+            default_topic = self.transactions_topic
+        elif entity == PostProcessForwarderType.ERRORS:
+            default_topic = self.topic
+        elif entity == PostProcessForwarderType.ISSUE_PLATFORM:
+            default_topic = self.issue_platform_topic
+        else:
+            raise ValueError("Invalid entity")
 
-        self.run_consumer(
-            entity,
+        consumer = self._build_streaming_consumer(
             consumer_group,
-            topic,
+            topic or default_topic,
             commit_log_topic,
             synchronize_commit_group,
             commit_batch_size,
@@ -381,5 +290,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
             concurrency,
             initial_offset_reset,
             strict_offset_reset,
-            use_streaming_consumer,
         )
+
+        def handler(signum, frame):
+            consumer.signal_shutdown()
+            for producer in self.__producers.values():
+                producer.flush()
+
+        signal.signal(signal.SIGINT, handler)
+        signal.signal(signal.SIGTERM, handler)
+
+        consumer.run()
