@@ -30,13 +30,17 @@ class SentryAppAlertRuleActionSerializer(Serializer):
         if not install:
             raise AssertionError("Requires install keyword argument of type SentryAppInstallation")
 
+        sentry_app = kwargs.get("sentry_app")
+        if not sentry_app:
+            raise AssertionError("Requires install keyword argument of type SentryApp")
+
         return {
             "id": f"{event_action.id}",
             "enabled": event_action.is_enabled(),
             "actionType": event_action.actionType,
-            "service": obj.sentry_app.slug,
+            "service": sentry_app.slug,
             "sentryAppInstallationUuid": f"{install.uuid}",
-            "prompt": f"{obj.sentry_app.name}",
-            "label": f"{obj.schema.get('title', obj.sentry_app.name)} with these ",
+            "prompt": f"{sentry_app.name}",
+            "label": f"{obj.schema.get('title', sentry_app.name)} with these ",
             "formFields": obj.schema.get("settings", {}),
         }

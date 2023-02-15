@@ -8,10 +8,11 @@ from sentry.utils import json
 
 
 class Preparer(Mediator):
-    component = Param("sentry.models.SentryAppComponent")
-    install = Param("sentry.models.SentryAppInstallation")
+    component = Param("sentry.services.hybrid_cloud.app.ApiSentryAppComponent")
+    install = Param("sentry.services.hybrid_cloud.app.ApiSentryAppInstallation")
+    sentry_app = Param("sentry.services.hybrid_cloud.app.ApiSentryApp")
     project = Param("sentry.models.Project", required=False, default=None)
-    values = Param(dict, required=False, default=[])
+    values = Param(dict, required=False, default={})
 
     def call(self):
         if self.component.type == "issue-link":
@@ -88,5 +89,9 @@ class Preparer(Mediator):
 
     def _request(self, uri, dependent_data=None):
         return SelectRequester.run(
-            install=self.install, project=self.project, uri=uri, dependent_data=dependent_data
+            install=self.install,
+            sentry_app=self.sentry_app,
+            project=self.project,
+            uri=uri,
+            dependent_data=dependent_data,
         )

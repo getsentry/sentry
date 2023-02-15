@@ -10,16 +10,9 @@ from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import (
-    RuleActivity,
-    RuleActivityType,
-    RuleStatus,
-    SentryAppComponent,
-    SentryAppInstallation,
-    Team,
-    User,
-)
+from sentry.models import RuleActivity, RuleActivityType, RuleStatus, Team, User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.services.hybrid_cloud.app import ApiSentryAppComponent, app_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -48,15 +41,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                component = installation.prepare_ui_component(
-                    SentryAppComponent(**action.get("_sentry_app_component")),
+                installation_id = action.get("_sentry_app_installation", {}).get("id", None)
+                # TODO(hybrid-cloud): We need to fetch the full sentry app. This _could_ probably be passed in.
+                installations = app_service.get_many(filter=dict(id=installation_id))
+                component = installations[0].prepare_ui_component(
+                    ApiSentryAppComponent.from_dict(**action.get("_sentry_app_component")),
                     project,
                     action.get("settings"),
                 )
                 if component is None:
                     errors.append(
-                        {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
+                        {
+                            "detail": f"Could not fetch details from {installations[0].sentry_app.name}"
+                        }
                     )
                     action["disabled"] = True
                     continue

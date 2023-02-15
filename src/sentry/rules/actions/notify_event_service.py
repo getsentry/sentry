@@ -24,6 +24,7 @@ from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
 from sentry.rules.base import CallbackFuture
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -220,9 +221,17 @@ class NotifyEventServiceAction(EventAction):
 
     def get_sentry_app_services(self) -> Sequence[SentryAppService]:
         # excludes Sentry Apps that have Alert Rule UI Component in their schema
+        alertable_app_installs = app_service.get_many(
+            filter=dict(
+                organization_id=self.project.organization_id,
+                app_is_alertable=True,
+                status=SentryAppInstallationStatus.INSTALLED,
+                date_deleted=None,
+            )
+        )
         return [
             SentryAppService(app)
-            for app in SentryApp.objects.get_alertable_sentry_apps(self.project.organization_id)
+            for app in alertable_app_installs
             if not SentryAppService(app).has_alert_rule_action()
         ]
 

@@ -170,18 +170,7 @@ class SentryAppInstallation(ParanoidModel):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
 
-    def prepare_sentry_app_components(self, component_type, project=None, values=None):
-        from sentry.models import SentryAppComponent
-
-        try:
-            component = SentryAppComponent.objects.get(
-                sentry_app_id=self.sentry_app_id, type=component_type
-            )
-        except SentryAppComponent.DoesNotExist:
-            return None
-
-        return self.prepare_ui_component(component, project, values)
-
+    # Currently duplicated onto ApiSentryAppComponent. Goal is to remove this instance
     def prepare_ui_component(self, component, project=None, values=None):
         from sentry.coreapi import APIError
         from sentry.mediators import sentry_app_components

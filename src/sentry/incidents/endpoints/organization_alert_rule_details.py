@@ -9,8 +9,9 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.models import OrganizationMemberTeam, SentryAppComponent, SentryAppInstallation
+from sentry.models import OrganizationMemberTeam, SentryAppInstallation
 from sentry.models.actor import ACTOR_TYPES
+from sentry.services.hybrid_cloud.app import ApiSentryAppComponent
 
 
 @region_silo_endpoint
@@ -36,7 +37,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                         **action.get("_sentry_app_installation", {})
                     )
                     component = installation.prepare_ui_component(
-                        SentryAppComponent(**action.get("_sentry_app_component")),
+                        ApiSentryAppComponent(**action.get("_sentry_app_component")),
                         None,
                         action.get("settings"),
                     )

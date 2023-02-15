@@ -1,5 +1,7 @@
 from typing import Any
 
+from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation
+
 
 class PluginService:
     def __init__(self, obj: Any) -> None:
@@ -31,7 +33,7 @@ class LegacyPluginService(PluginService):
 
 
 class SentryAppService(PluginService):
-    def __init__(self, obj: Any) -> None:
+    def __init__(self, obj: ApiSentryAppInstallation) -> None:
         super().__init__(obj)
         self.service = obj
 
@@ -45,9 +47,5 @@ class SentryAppService(PluginService):
         return "sentry_app"
 
     def has_alert_rule_action(self) -> bool:
-        from sentry.models import SentryAppComponent
-
-        exists: bool = SentryAppComponent.objects.filter(
-            sentry_app_id=self.service.id, type="alert-rule-action"
-        ).exists()
+        exists: bool = self.service.sentry_app.get_component("alert-rule-action") is not None
         return exists

@@ -3,15 +3,18 @@ from __future__ import annotations
 import abc
 import datetime
 import hmac
+import inspect
 from dataclasses import dataclass, field
 from hashlib import sha256
 from typing import Any, Dict, List, Optional, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
+from sentry.utils import json
 
 
 class SentryAppInstallationFilterArgs(TypedDict, total=False):
@@ -20,6 +23,7 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     uuid: str
     date_deleted: Optional[datetime.datetime]
     status: int  # SentryAppInstallationStatus
+    app_is_alertable: bool
 
 
 @dataclass
@@ -29,6 +33,37 @@ class ApiSentryAppInstallation:
     status: int = SentryAppInstallationStatus.PENDING
     uuid: str = ""
     sentry_app: ApiSentryApp = field(default_factory=lambda: ApiSentryApp())
+
+    # Overallow arguments, e.g. from full model initialization
+    @classmethod
+    def from_dict(cls, **kwargs) -> ApiSentryAppInstallation:  # type: ignore
+        return cls(**{k: v for k, v in kwargs.items() if k in inspect.signature(cls).parameters})
+
+    def prepare_ui_component(
+        self,
+        component: Optional[ApiSentryAppComponent],
+        project: Project = None,
+        values: Optional[Dict[str, Any]] = None,
+    ) -> Optional[ApiSentryAppComponent]:
+        from sentry.coreapi import APIError
+        from sentry.mediators import sentry_app_components
+
+        if component is None:
+            return None
+        if values is None:
+            values = {}
+        try:
+            sentry_app_components.Preparer.run(
+                component=component,
+                install=self,
+                sentry_app=self.sentry_app,
+                project=project,
+                values=values,
+            )
+            return component
+        except APIError:
+            # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
+            return None
 
 
 @dataclass
@@ -82,6 +117,14 @@ class ApiSentryAppComponent:
     uuid: str = ""
     type: str = ""
     schema: JSONField = None
+
+    # Overallow arguments, e.g. from full model initialization
+    @classmethod
+    def from_dict(cls, **kwargs) -> ApiSentryAppComponent:  # type: ignore
+        o = cls(**{k: v for k, v in kwargs.items() if k in inspect.signature(cls).parameters})
+        if isinstance(o.schema, str):
+            o.schema = json.loads(o.schema)
+        return o
 
 
 class AppService(

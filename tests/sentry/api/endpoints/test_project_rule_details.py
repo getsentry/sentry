@@ -96,7 +96,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(

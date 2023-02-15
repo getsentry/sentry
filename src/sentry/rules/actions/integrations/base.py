@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import abc
-from typing import Any
+from typing import Any, List
 
 from django import forms
-from django.db.models import QuerySet
 
+from sentry.constants import ObjectStatus
 from sentry.models import Integration
 from sentry.rules.actions import EventAction
+from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 
 INTEGRATION_KEY = "integration"
 
@@ -31,7 +32,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         pass
 
     def is_enabled(self) -> bool:
-        enabled: bool = self.get_integrations().exists()
+        enabled: bool = len(self.get_integrations()) > 0
         return enabled
 
     def get_integration_name(self) -> str:
@@ -44,19 +45,19 @@ class IntegrationEventAction(EventAction, abc.ABC):
         _name: str = integration.name
         return _name
 
-    def get_integrations(self) -> QuerySet[Integration]:
-        query: QuerySet[Integration] = Integration.objects.get_active_integrations(
-            self.project.organization.id
-        ).filter(
-            provider=self.provider,
+    def get_integrations(self) -> List[APIIntegration]:
+        return integration_service.get_integrations(
+            organization_id=self.project.organization_id,
+            status=ObjectStatus.ACTIVE,
+            org_integration_status=ObjectStatus.ACTIVE,
+            providers=[self.provider],
         )
-        return query
 
     def get_integration_id(self) -> str:
         integration_id: str = self.get_option(self.integration_key)
         return integration_id
 
-    def get_integration(self) -> Integration:
+    def get_integration(self) -> APIIntegration:
         """
         Uses the required class variables `provider` and `integration_key` with
         RuleBase.get_option to get the integration object from DB.
@@ -64,10 +65,12 @@ class IntegrationEventAction(EventAction, abc.ABC):
         :raises: Integration.DoesNotExist
         :return: Integration
         """
-        return Integration.objects.get_active_integrations(self.project.organization.id).get(
-            id=self.get_integration_id(),
-            provider=self.provider,
+        integration = integration_service.get_integration(
+            integration_id=int(self.get_integration_id()),
         )
+        if integration is None:
+            raise Integration.DoesNotExist
+        return integration
 
     def get_installation(self) -> Any:
         return self.get_integration().get_installation(self.project.organization.id)

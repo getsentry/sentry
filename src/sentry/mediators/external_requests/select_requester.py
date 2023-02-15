@@ -7,7 +7,6 @@ from sentry.http import safe_urlread
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
 from sentry.utils import json
-from sentry.utils.cache import memoize
 
 logger = logging.getLogger("sentry.mediators.external-requests")
 
@@ -22,7 +21,8 @@ class SelectRequester(Mediator):
     2. Validates and formats the response.
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.ApiSentryAppInstallation")
+    sentry_app = Param("sentry.services.hybrid_cloud.app.ApiSentryApp")
     project = Param("sentry.models.Project", required=False)
     uri = Param((str,))
     query = Param((str,), required=False)
@@ -106,7 +106,3 @@ class SelectRequester(Mediator):
             "Request-ID": request_uuid,
             "Sentry-App-Signature": self.sentry_app.build_signature(""),
         }
-
-    @memoize
-    def sentry_app(self):
-        return self.install.sentry_app

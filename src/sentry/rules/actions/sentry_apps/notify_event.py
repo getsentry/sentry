@@ -4,13 +4,13 @@ from typing import Any, Generator, Mapping, Sequence
 
 from rest_framework import serializers
 
-from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.models import Project, SentryApp
 from sentry.rules import EventState
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.services.hybrid_cloud.app import ApiSentryApp, app_service
 from sentry.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
@@ -49,8 +49,8 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             return None
 
         try:
-            return SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
-        except SentryApp.DoesNotExist:
+            return self.sentry_app_from_install_uuid(sentry_app_installation_uuid)
+        except ValidationError:
             self.logger.info("rules.fail.no_app", extra=extra)
 
         return None
@@ -68,53 +68,47 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             raise ValidationError("Missing attribute 'sentryAppInstallationUuid'")
         return sentry_app_installation_uuid
 
-    def _get_alert_rule_component(self, sentry_app_id: int, sentry_app_name: str) -> Any:
-        try:
-            alert_rule_component = SentryAppComponent.objects.get(
-                sentry_app_id=sentry_app_id, type="alert-rule-action"
-            )
-        except SentryAppComponent.DoesNotExist:
-            raise ValidationError(
-                f"Alert Rule Actions are not enabled for the {sentry_app_name} integration."
-            )
-        return alert_rule_component
-
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
         action_list = []
-        for install in SentryAppInstallation.objects.get_installed_for_organization(
-            project.organization_id
+        for install in app_service.get_installed_for_organization(
+            organization_id=project.organization_id
         ):
-            component = install.prepare_sentry_app_components("alert-rule-action", project)
+            component = install.prepare_ui_component(
+                install.sentry_app.get_component("alert-rule-action"), project
+            )
             if component:
                 kwargs = {
                     "install": install,
                     "event_action": self,
+                    "sentry_app": install.sentry_app,
                 }
-                action_details = serialize(
-                    component, None, SentryAppAlertRuleActionSerializer(), **kwargs
+                action_details = SentryAppAlertRuleActionSerializer().serialize(
+                    component, None, None, **kwargs
                 )
                 action_list.append(action_details)
 
         return action_list
 
-    def self_validate(self) -> None:
-        sentry_app_installation_uuid = self._get_sentry_app_installation_uuid()
-
-        try:
-            sentry_app = SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
-        except SentryApp.DoesNotExist:
-            raise ValidationError("Could not identify integration from the installation uuid.")
-
-        # Ensure the uuid does not match a deleted installation
-        try:
-            SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid, date_deleted=None)
-        except SentryAppInstallation.DoesNotExist:
+    def sentry_app_from_install_uuid(self, sentry_app_installation_uuid: str) -> ApiSentryApp:
+        installations = app_service.get_many(
+            filter=dict(uuid=sentry_app_installation_uuid, date_deleted=None)
+        )
+        if len(installations) == 0:
             raise ValidationError(
-                f"The installation provided is out of date, please reinstall the {sentry_app.name} integration."
+                "The installation provided couldn't be found or is out of date, please reinstall the integration."
             )
+        install = installations[0]
+        return install.sentry_app
 
-        alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
+    def self_validate(self) -> None:
+        # Ensure the uuid does not match a deleted installation
+        sentry_app = self.sentry_app_from_install_uuid(self._get_sentry_app_installation_uuid())
+        alert_rule_component = sentry_app.get_component("alert-rule-action")
 
+        if not alert_rule_component:
+            raise ValidationError(
+                f"{sentry_app.name} requires alert-rule-action to configure alert rules."
+            )
         incoming_settings = self.data.get("settings")
         if not incoming_settings:
             raise ValidationError(f"{sentry_app.name} requires settings to configure alert rules.")
@@ -156,13 +150,10 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
         )
 
     def render_label(self) -> str:
-        sentry_app_installation_uuid = self._get_sentry_app_installation_uuid()
-
-        try:
-            sentry_app = SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
-        except SentryApp.DoesNotExist:
-            raise ValidationError("Could not identify integration from the installation uuid.")
-
-        alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
-
+        sentry_app = self.sentry_app_from_install_uuid(self._get_sentry_app_installation_uuid())
+        alert_rule_component = sentry_app.get_component("alert-rule-action")
+        if not alert_rule_component:
+            raise Exception(
+                f"SentryApp {sentry_app.name} doesn't have alert-rule-action. Cannot render label."
+            )
         return str(alert_rule_component.schema.get("title"))

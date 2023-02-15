@@ -56,6 +56,8 @@ class DatabaseBackedAppService(
             query = query.filter(organization_id=filters["organization_id"])
         if "uuid" in filters:
             query = query.filter(uuid=filters["uuid"])
+        if "app_is_alertable" in filters:
+            query = query.filter(sentry_app__is_alertable=filters["app_is_alertable"])
 
         return list(query)
 
