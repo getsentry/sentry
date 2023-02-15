@@ -16,7 +16,7 @@ WINDOWS_PATH_RE = re.compile(r"^([a-z]:\\|\\\\)", re.IGNORECASE)
 # "csharp" events are also considered "native" as they are processed by symbolicator.
 # This includes il2cpp events that are symbolicated using native debug files,
 # as well as .NET with Portable PDB files which are handled by symbolicator.
-NATIVE_PLATFORMS = ("cocoa", "native", "csharp")
+NATIVE_PLATFORMS = ("objc", "cocoa", "swift", "native", "c", "csharp")
 
 # Debug image types that can be handled by the symbolicator
 NATIVE_IMAGE_TYPES = (
