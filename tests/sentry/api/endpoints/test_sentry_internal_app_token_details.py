@@ -78,6 +78,6 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.post(url, format="json")
+        response = self.client.delete(url, format="json")
 
         assert response.status_code == 404

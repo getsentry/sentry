@@ -285,9 +285,11 @@ class Endpoint(APIView):
                 self.initial(request, *args, **kwargs)
 
                 # Get the appropriate handler method
-                if request.method.lower() in self.http_method_names:
-                    handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+                method = request.method.lower()
+                if method in self.http_method_names and hasattr(self, method):
+                    handler = getattr(self, method)
 
+                    # Only convert args when using defined handlers
                     (args, kwargs) = self.convert_args(request, *args, **kwargs)
                     self.args = args
                     self.kwargs = kwargs
