@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
@@ -140,6 +140,8 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectOwnershipEndpoint(ProjectEndpoint):
+    permission_classes = [ProjectOwnershipPermission]
+
     def get_ownership(self, project):
         try:
             return ProjectOwnership.objects.get(project=project)
