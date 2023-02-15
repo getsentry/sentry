@@ -3,7 +3,6 @@ import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -83,11 +82,7 @@ class TrendsSummary extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <Layout.Page>
-          <NoProjectMessage organization={organization}>
-            {this.renderContent()}
-          </NoProjectMessage>
-        </Layout.Page>
+        <Layout.Page>{this.renderContent()}</Layout.Page>
       </SentryDocumentTitle>
     );
   }

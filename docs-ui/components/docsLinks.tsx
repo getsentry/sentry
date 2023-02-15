@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import LinkTo from '@storybook/addon-links/react';
 
 import {IconArrow} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Link = {
   /**

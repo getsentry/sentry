@@ -11,7 +11,7 @@ import {PanelItem} from 'sentry/components/panels';
 import {IconChat, IconMute, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {BaseGroup, Organization} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {Aliases} from 'sentry/utils/theme';

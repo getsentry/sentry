@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/button';
 import {InputStylesProps} from 'sentry/components/input';
 import {Input, InputGroup, InputTrailingItems} from 'sentry/components/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {FormSize} from 'sentry/utils/theme';
 
