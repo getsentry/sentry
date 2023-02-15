@@ -17,6 +17,7 @@ from django.db.utils import IntegrityError
 
 from sentry import options
 from sentry.models.file import File, get_storage
+from sentry.replays.cache import replay_cache
 from sentry.replays.models import ReplayRecordingSegment
 
 logger = logging.getLogger()
@@ -53,6 +54,26 @@ def decompressed(fn: Callable[[Any, SegmentType], bytes]):
         # compression from the SDK.  In the future we may swap this for zstd or any number of
         # compression algorithms.
         return zlib.decompress(buffer, zlib.MAX_WBITS | 32)
+
+    return decorator
+
+
+def cached(fn: Callable[[Any, SegmentType], bytes]):
+    """Return cached blob data."""
+
+    @functools.wraps(fn)
+    def decorator(self, segment: SegmentType) -> bytes:
+        cache_key = make_filename(segment)
+
+        # Fetch the recording-segment from cache if possible.
+        cache_value = replay_cache.get(cache_key, raw=True)
+        if cache_value:
+            return cache_value
+
+        # Fetch the recording-segment from storage and cache before returning a response.
+        value = fn(self, segment)
+        replay_cache.set(cache_key, value, timeout=3600, raw=True)
+        return value
 
     return decorator
 
@@ -142,6 +163,7 @@ class StorageBlob(Blob):
         storage = get_storage(self._make_storage_options())
         storage.delete(self.make_key(segment))
 
+    @cached
     @decompressed
     def get(self, segment: SegmentType) -> bytes:
         storage = get_storage(self._make_storage_options())
