@@ -90,6 +90,14 @@ def derive_code_mappings(
             logger.warning("The org has uninstalled the Sentry App.", extra=extra)
             return
 
+        if msg == "This installation has been suspended":
+            logger.warning("The org has suspended the Sentry App.", extra=extra)
+            return
+
+        if msg.startswith("Although you appear to have the correct authorization credentials"):
+            logger.warning("The org has suspended the Sentry App.", extra=extra)
+            return
+
         # Logging the exception and returning is better than re-raising the error
         # Otherwise, API errors would not group them since the HTTPError in the stack
         # has unique URLs, thus, separating the errors
