@@ -27,7 +27,7 @@ from sentry.db.postgres.roles import test_psql_role_override
 from sentry.models import LostPasswordHash
 from sentry.models.authenticator import Authenticator
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -449,7 +449,7 @@ def refresh_user_nonce(sender, request, user, **kwargs):
     user.save(update_fields=["session_nonce"])
 
 
-@receiver(user_logged_out, sender=APIUser)
+@receiver(user_logged_out, sender=RpcUser)
 def refresh_api_user_nonce(sender, request, user, **kwargs):
     if user is None:
         return

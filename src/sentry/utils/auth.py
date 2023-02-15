@@ -15,7 +15,8 @@ from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 
 from sentry.models import Organization, User
-from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -139,7 +140,7 @@ def initiate_login(request: HttpRequest, next_url: str | None = None) -> None:
         request.session["_next"] = next_url
 
 
-def get_org_redirect_url(request: HttpRequest, active_organization: ApiOrganization | None) -> str:
+def get_org_redirect_url(request: HttpRequest, active_organization: RpcOrganization | None) -> str:
     from sentry import features
 
     # TODO(dcramer): deal with case when the user cannot create orgs
