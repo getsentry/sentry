@@ -462,6 +462,8 @@ class ReferrerBase(Enum):
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
+    SEARCH_GROUP_INDEX = "search.group_index"
+    SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )

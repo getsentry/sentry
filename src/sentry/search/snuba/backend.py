@@ -361,6 +361,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
 
@@ -414,6 +415,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_from=date_from,
             date_to=date_to,
             max_hits=max_hits,
+            referrer=referrer,
         )
 
     def _build_group_queryset(

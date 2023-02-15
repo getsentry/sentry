@@ -141,6 +141,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -297,6 +298,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         offset: int = 0,
         get_sample: bool = False,
         search_filters: Optional[Sequence[SearchFilter]] = None,
+        referrer: Optional[str] = None,
     ) -> Tuple[List[Tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -315,7 +317,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 ).values_list("name", flat=True)
             )
 
-        referrer = "search_sample" if get_sample else "search"
+        referrer = referrer or "search"
+        referrer = f"{referrer}_sample" if get_sample else referrer
 
         snuba_search_filters = [
             sf
@@ -465,6 +468,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -641,6 +645,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 limit=chunk_limit,
                 offset=offset,
                 search_filters=search_filters,
+                referrer=referrer,
             )
             metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
@@ -927,6 +932,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
     ) -> CursorResult[Group]:
 
         if not validate_cdc_search_filters(search_filters):
