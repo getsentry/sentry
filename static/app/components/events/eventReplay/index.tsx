@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default function EventReplay({replayId, orgSlug, projectSlug, event}: Props) {
-  const hasSentOneReplay = useHaveSelectedProjectsSentAnyReplayEvents();
+  const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
   const replayPreview = useCallback(() => import('./replayPreview'), []);
