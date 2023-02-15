@@ -161,11 +161,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         trees: Dict[str, RepoTree] = {}
         extra = {"gh_org": gh_org}
         repositories = self._populate_repositories(gh_org, cache_seconds)
+        extra.update({"repos_num": str(len(repositories))})
         trees = self._populate_trees(repositories)
-
-        rate_limit = self.get_rate_limit()
-        extra.update({"remaining": str(rate_limit.remaining), "repos_num": str(len(repositories))})
         logger.info("Using cached trees for Github org.", extra=extra)
+
+        try:
+            rate_limit = self.get_rate_limit()
+            extra.update({"remaining": str(rate_limit.remaining)})
+        except ApiError:
+            logger.warning("Failed to get latest rate limit info. Let's keep going.")
 
         return trees
 
@@ -179,8 +183,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repositories(fetch_max_pages=True)
             ]
-            cache.set(cache_key, repositories, cache_seconds)
-            logger.info("Cached repositories.")
+            if not repositories:
+                logger.warning("Fetching repositories returned an empty list.")
+            else:
+                cache.set(cache_key, repositories, cache_seconds)
+                logger.info("Cached repositories.", extra={"repos_count": len(repositories)})
 
         return repositories
 
