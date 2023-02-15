@@ -1215,7 +1215,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             fingerprint=self._fingerprint(db_span["hash"], parent_span),
             op="db",
             desc=db_span["description"],
-            type=PerformanceMNPlusOneDBQueriesGroupType,
+            type=PerformanceNPlusOneGroupType,
             parent_span_ids=[parent_span["span_id"]],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
@@ -1270,6 +1270,16 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems = {}
         self.state = SearchingForMNPlusOne(self.settings, self.event())
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return features.has(
+            "organizations:performance-issues-m-n-plus-one-db-detector",
+            organization,
+            actor=None,
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
     def visit_span(self, span):
         self.state, performance_problem = self.state.next(span)
