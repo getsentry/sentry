@@ -215,13 +215,13 @@ def incidentseen_user_migrations():
     ]
 
 
-def project_transaction_threshold_user_migrations():
+def projecttransactionthresholdoverride_user_migrations():
     database_operations = [
         migrations.AlterField(
             model_name="projecttransactionthreshold",
             name="edited_by",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                to="sentry.User", db_constraint=False, db_index=True
+                to="sentry.User", db_constraint=False, db_index=True, null=True
             ),
         ),
     ]
@@ -236,6 +236,37 @@ def project_transaction_threshold_user_migrations():
         ),
         migrations.RenameField(
             model_name="projecttransactionthreshold",
+            old_name="edited_by",
+            new_name="edited_by_id",
+        ),
+    ]
+
+    return database_operations + [
+        migrations.SeparateDatabaseAndState(state_operations=state_operations)
+    ]
+
+
+def project_transaction_threshold_user_migrations():
+    database_operations = [
+        migrations.AlterField(
+            model_name="projecttransactionthresholdoverride",
+            name="edited_by",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.User", db_constraint=False, db_index=True, null=True
+            ),
+        ),
+    ]
+
+    state_operations = [
+        migrations.AlterField(
+            model_name="projecttransactionthresholdoverride",
+            name="edited_by",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.User", null=True, on_delete="SET_NULL"
+            ),
+        ),
+        migrations.RenameField(
+            model_name="projecttransactionthresholdoverride",
             old_name="edited_by",
             new_name="edited_by_id",
         ),

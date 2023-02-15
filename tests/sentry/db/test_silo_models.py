@@ -137,9 +137,9 @@ fk_emeptions = {
     (RuleActivity, User),
     (SavedSearch, User),
     (ServiceHook, ApiApplication),
-    (ProjectTransactionThresholdOverride, User),
     (User, Actor),
     #
+    (ProjectTransactionThresholdOverride, User),
     (ProjectTransactionThreshold, User),
     (IncidentSeen, User),
     (IncidentActivity, User),

@@ -542,7 +542,9 @@ def create_alert_rule(
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
         AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.CREATED.value
+            alert_rule=alert_rule,
+            user_id=user.id if user else None,
+            type=AlertRuleActivityType.CREATED.value,
         )
 
     return alert_rule
@@ -565,7 +567,7 @@ def snapshot_alert_rule(alert_rule, user=None):
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
             previous_alert_rule=alert_rule,
-            user=user,
+            user_id=user.id if user else None,
             type=AlertRuleActivityType.SNAPSHOT.value,
         )
 
@@ -685,7 +687,9 @@ def update_alert_rule(
             snapshot_alert_rule(alert_rule, user)
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.UPDATED.value
+            alert_rule=alert_rule,
+            user_id=user.id if user else None,
+            type=AlertRuleActivityType.UPDATED.value,
         )
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
@@ -831,7 +835,9 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
         if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
-                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value
+                alert_rule=alert_rule,
+                user_id=user.id if user else None,
+                type=AlertRuleActivityType.DELETED.value,
             )
         else:
             alert_rule.delete()

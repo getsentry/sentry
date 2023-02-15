@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -14,7 +14,7 @@ from sentry.discover.models import DiscoverSavedQuery
 from sentry.search.utils import tokenize_query
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverSavedQueryPermission,)
 
