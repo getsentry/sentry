@@ -129,13 +129,11 @@ def __translated_payload(
 def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                i + 1,
-                datetime.now(),
-            )
+        BrokerValue(
+            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            Partition(Topic("topic"), 0),
+            i + 1,
+            datetime.now(),
         )
         for i, payload in enumerate(message_payloads)
     ]
