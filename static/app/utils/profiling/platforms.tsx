@@ -14,8 +14,12 @@ export type SupportedProfilingPlatformSDK =
   (typeof supportedProfilingPlatformSDKs)[number];
 
 export function getDocsPlatformSDKForPlatform(
-  platform
+  platform: string | undefined
 ): SupportedProfilingPlatform | null {
+  if (!platform) {
+    return null;
+  }
+
   if (platform === 'android') {
     return 'android';
   }
@@ -48,7 +52,7 @@ export function isProfilingSupportedOrProjectHasProfiles(project: Project): bool
   );
 }
 
-export function getProfilingDocsForPlatform(platform: string): string | null {
+export function getProfilingDocsForPlatform(platform: string | undefined): string | null {
   const docsPlatform = getDocsPlatformSDKForPlatform(platform);
   if (!docsPlatform) {
     return null;

@@ -16,7 +16,7 @@ type FunctionsResult = {
 };
 
 interface UseFunctionsOptions {
-  project: Project;
+  project: Project | undefined;
   query: string;
   sort: string;
   transaction: string | null;
@@ -39,7 +39,7 @@ function useFunctions({
   const api = useApi();
   const organization = useOrganization();
 
-  const path = `/projects/${organization.slug}/${project.slug}/profiling/functions/`;
+  const path = `/projects/${organization.slug}/${project?.slug}/profiling/functions/`;
   const fetchFunctionsOptions = {
     functionType,
     query,
@@ -54,9 +54,12 @@ function useFunctions({
   const queryFn = () => {
     if (
       !defined(fetchFunctionsOptions.selection) ||
-      !defined(fetchFunctionsOptions.transaction)
+      !defined(fetchFunctionsOptions.transaction) ||
+      !defined(project)
     ) {
-      throw Error('selection and transaction arguments required for fetchFunctions');
+      throw Error(
+        'selection, transaction and project arguments required for fetchFunctions'
+      );
     }
 
     return fetchFunctions(

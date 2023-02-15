@@ -13,6 +13,7 @@ type ProfilingEventSource =
   | 'transaction_hovercard.suspect_function'
   | 'events.profile_event_context'
   | 'profiling_transaction.suspect_functions_table'
+  | 'performance_transaction.suspect_functions_table'
   | 'discover.table';
 
 interface EventPayloadWithProjectDetails {

@@ -6,7 +6,7 @@ import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 

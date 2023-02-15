@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -80,13 +81,14 @@ export function GapSpanDetails({
           organization={organization}
         />
         <FlamegraphContainer>
-          <FlamegraphPreview
-            flamegraph={flamegraph}
-            relativeStartTimestamp={relativeStartTimestamp}
-            relativeStopTimestamp={relativeStopTimestamp}
-            renderText={transactionHasProfile}
-            updateFlamegraphView={setCanvasView}
-          />
+          <FlamegraphThemeProvider>
+            <FlamegraphPreview
+              flamegraph={flamegraph}
+              relativeStartTimestamp={relativeStartTimestamp}
+              relativeStopTimestamp={relativeStopTimestamp}
+              updateFlamegraphView={setCanvasView}
+            />
+          </FlamegraphThemeProvider>
         </FlamegraphContainer>
       </Container>
     );
@@ -95,8 +97,8 @@ export function GapSpanDetails({
   // The event's platform is more accurate than the project
   // so use that first and fall back to the project's platform
   const docsLink =
-    getProfilingDocsForPlatform(event.platform || '') ??
-    getProfilingDocsForPlatform(project.platform || '');
+    getProfilingDocsForPlatform(event.platform) ??
+    getProfilingDocsForPlatform(project.platform);
 
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
@@ -117,13 +119,15 @@ export function GapSpanDetails({
     <Container>
       <SetupProfilingInstructions docsLink={docsLink} />
       <FlamegraphContainer>
-        <FlamegraphPreview
-          flamegraph={flamegraph}
-          relativeStartTimestamp={relativeStartTimestamp}
-          relativeStopTimestamp={relativeStopTimestamp}
-          renderText={transactionHasProfile}
-          updateFlamegraphView={setCanvasView}
-        />
+        <FlamegraphThemeProvider>
+          <FlamegraphPreview
+            flamegraph={flamegraph}
+            relativeStartTimestamp={relativeStartTimestamp}
+            relativeStopTimestamp={relativeStopTimestamp}
+            renderText={false}
+            updateFlamegraphView={setCanvasView}
+          />
+        </FlamegraphThemeProvider>
       </FlamegraphContainer>
     </Container>
   );

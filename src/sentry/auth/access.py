@@ -64,10 +64,11 @@ def has_role_in_organization(role: str, organization: Organization, user_id: int
         user=user_id,
         organization_id=organization.id,
     )
+    teams_with_org_role = organization.get_teams_with_org_roles([role])
     return bool(
         query.filter(role=role).exists()
         or OrganizationMemberTeam.objects.filter(
-            team__in=organization.get_teams_with_org_role(role),
+            team__in=teams_with_org_role,
             organizationmember_id__in=list(query.values_list("id", flat=True)),
         ).exists()
     )

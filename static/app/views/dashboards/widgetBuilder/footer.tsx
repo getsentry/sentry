@@ -5,7 +5,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface Props {
   goBackLocation: LinkProps['to'];

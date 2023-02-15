@@ -868,12 +868,12 @@ export function getPhysicalSpacePositionFromOffset(offsetX: number, offsetY: num
   return vec2.scale(vec2.create(), logicalMousePos, window.devicePixelRatio);
 }
 
-export function getCenterScaleMatrixFromConfigPosition(scale: number, center: vec2) {
+export function getCenterScaleMatrixFromConfigPosition(scale: vec2, center: vec2) {
   const invertedConfigCenter = vec2.fromValues(-center[0], -center[1]);
 
   const centerScaleMatrix = mat3.create();
   mat3.fromTranslation(centerScaleMatrix, center);
-  mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+  mat3.scale(centerScaleMatrix, centerScaleMatrix, scale);
   mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
   return centerScaleMatrix;
 }
@@ -889,7 +889,7 @@ export function getCenterScaleMatrixFromMousePosition(
   const configSpaceMouse = view.getConfigViewCursor(cursor, canvas);
 
   const configCenter = vec2.fromValues(configSpaceMouse[0], view.configView.y);
-  return getCenterScaleMatrixFromConfigPosition(scale, configCenter);
+  return getCenterScaleMatrixFromConfigPosition(vec2.fromValues(scale, 1), configCenter);
 }
 
 export function getTranslationMatrixFromConfigSpace(deltaX: number, deltaY: number) {

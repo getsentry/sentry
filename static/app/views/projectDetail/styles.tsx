@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export const SidebarSection = styled('section')`
   margin-bottom: ${space(2)};
