@@ -29,7 +29,7 @@ describe('withIssueTags HoC', function () {
 
   it('forwards loaded tags to the wrapped component', async function () {
     const Container = withIssueTags(MyComponent);
-    render(<Container forwardedValue="value" />);
+    render(<Container organization={TestStubs.Organization()} forwardedValue="value" />);
 
     // Should forward props.
     expect(await screen.findByText(/ForwardedValue: value/)).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('withIssueTags HoC', function () {
 
   it('updates the assigned tags with users and teams, and bookmark tags with users', function () {
     const Container = withIssueTags(MyComponent);
-    render(<Container forwardedValue="value" />);
+    render(<Container organization={TestStubs.Organization()} forwardedValue="value" />);
 
     act(() => {
       TagStore.loadTagsSuccess([
