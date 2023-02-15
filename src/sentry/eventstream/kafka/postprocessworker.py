@@ -84,12 +84,3 @@ def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
                 tags={"partition": partition, "type": event_type},
                 sample_rate=1,
             )
-
-
-def _get_task_kwargs_and_dispatch(message: Message) -> None:
-    task_kwargs = _get_task_kwargs(message)
-    if not task_kwargs:
-        return None
-
-    _record_metrics(message.partition(), task_kwargs)
-    dispatch_post_process_group_task(**task_kwargs)
