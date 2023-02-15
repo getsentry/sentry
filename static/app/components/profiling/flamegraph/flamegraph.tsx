@@ -851,6 +851,7 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
+        spansTreeDepth={spanChart?.depth}
         spans={
           spanChart && type === 'flamechart' ? (
             <FlamegraphSpans
