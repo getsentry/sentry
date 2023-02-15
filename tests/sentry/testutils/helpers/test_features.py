@@ -1,5 +1,5 @@
 from sentry import features
-from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -25,7 +25,7 @@ class TestTestUtilsFeatureHelper(TestCase):
             )
             assert org_context
             assert org_context.organization
-            assert isinstance(org_context.organization, ApiOrganization)
+            assert isinstance(org_context.organization, RpcOrganization)
 
             assert features.has("organizations:customer-domains", org_context.organization) is False
 
@@ -35,7 +35,7 @@ class TestTestUtilsFeatureHelper(TestCase):
             )
             assert org_context
             assert org_context.organization
-            assert isinstance(org_context.organization, ApiOrganization)
+            assert isinstance(org_context.organization, RpcOrganization)
 
             assert features.has("organizations:customer-domains", org_context.organization)
 
@@ -47,7 +47,7 @@ class TestTestUtilsFeatureHelper(TestCase):
             )
             assert org_context
             assert org_context.organization
-            assert isinstance(org_context.organization, ApiOrganization)
+            assert isinstance(org_context.organization, RpcOrganization)
 
             assert features.has("organizations:customer-domains", org_context.organization) is False
 
@@ -57,6 +57,6 @@ class TestTestUtilsFeatureHelper(TestCase):
             )
             assert org_context
             assert org_context.organization
-            assert isinstance(org_context.organization, ApiOrganization)
+            assert isinstance(org_context.organization, RpcOrganization)
 
             assert features.has("organizations:customer-domains", org_context.organization)
