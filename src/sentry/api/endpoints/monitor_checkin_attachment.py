@@ -27,6 +27,9 @@ class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
         if "file" not in request.data:
             return Response({"detail": "Missing uploaded file"}, status=400)
 
+        if checkin.attachment_id:
+            return Response({"detail": "Check-in already has an attachment"}, status=400)
+
         fileobj = request.data["file"]
         if fileobj.size > MAX_ATTACHMENT_SIZE:
             return Response({"detail": "Please keep uploads below 100kb"}, status=400)

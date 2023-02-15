@@ -12,8 +12,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class UploadMonitorCheckInAttachmentTest(APITestCase):
-    endpoint = "sentry-api-0-monitor-check-in-attachment"
-    endpoint_with_org = "sentry-api-0-monitor-check-in-attachment-with-org"
+    endpoint = "sentry-api-0-monitor-check-in-attachment-with-org"
 
     def setUp(self):
         super().setUp()
@@ -21,13 +20,8 @@ class UploadMonitorCheckInAttachmentTest(APITestCase):
         self.latest = lambda: None
         self.latest.guid = "latest"
 
-    def _get_path_functions(self):
-        return (
-            lambda monitor, checkin: reverse(self.endpoint, args=[monitor.guid, checkin.guid]),
-            lambda monitor, checkin: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor.guid, checkin.guid]
-            ),
-        )
+    def _path_func(self, monitor, checkin):
+        return reverse(self.endpoint, args=[self.organization.slug, monitor.guid, checkin.guid])
 
     def _create_monitor(self):
         return Monitor.objects.create(
@@ -40,76 +34,115 @@ class UploadMonitorCheckInAttachmentTest(APITestCase):
         )
 
     def test_upload(self):
-        for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
-                project_id=self.project.id,
-                date_added=monitor.date_added,
-                status=CheckInStatus.IN_PROGRESS,
-            )
+        monitor = self._create_monitor()
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+        )
 
-            path = path_func(monitor, checkin)
-            resp = self.client.post(
-                path,
-                {
-                    "file": SimpleUploadedFile(
-                        "log.txt", b"test log data", content_type="application/text"
-                    ),
-                },
-                format="multipart",
-            )
+        path = self._path_func(monitor, checkin)
+        resp = self.client.post(
+            path,
+            {
+                "file": SimpleUploadedFile(
+                    "log.txt", b"test log data", content_type="application/text"
+                ),
+            },
+            format="multipart",
+        )
 
-            assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, resp.content
 
-            checkin = MonitorCheckIn.objects.get(id=checkin.id)
+        checkin = MonitorCheckIn.objects.get(id=checkin.id)
 
-            assert checkin.status == CheckInStatus.IN_PROGRESS
-            file = File.objects.get(id=checkin.attachment_id)
-            assert file.name == "log.txt"
-            assert file.getfile().read() == b"test log data"
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        file = File.objects.get(id=checkin.attachment_id)
+        assert file.name == "log.txt"
+        assert file.getfile().read() == b"test log data"
 
     def test_upload_no_file(self):
-        for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
-                project_id=self.project.id,
-                date_added=monitor.date_added,
-                status=CheckInStatus.IN_PROGRESS,
-            )
+        monitor = self._create_monitor()
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+        )
 
-            path = path_func(monitor, checkin)
-            resp = self.client.post(
-                path,
-                {},
-                format="multipart",
-            )
+        path = self._path_func(monitor, checkin)
+        resp = self.client.post(
+            path,
+            {},
+            format="multipart",
+        )
 
-            assert resp.status_code == 400
-            assert resp.data["detail"] == "Missing uploaded file"
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Missing uploaded file"
 
     @mock.patch("sentry.api.endpoints.monitor_checkin_attachment.MAX_ATTACHMENT_SIZE", 1)
     def test_upload_file_too_big(self):
-        for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
-                project_id=self.project.id,
-                date_added=monitor.date_added,
-                status=CheckInStatus.IN_PROGRESS,
-            )
+        monitor = self._create_monitor()
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+        )
 
-            path = path_func(monitor, checkin)
-            resp = self.client.post(
-                path,
-                {
-                    "file": SimpleUploadedFile(
-                        "log.txt", b"test log data", content_type="application/text"
-                    ),
-                },
-                format="multipart",
-            )
+        path = self._path_func(monitor, checkin)
+        resp = self.client.post(
+            path,
+            {
+                "file": SimpleUploadedFile(
+                    "log.txt", b"test log data", content_type="application/text"
+                ),
+            },
+            format="multipart",
+        )
 
-            assert resp.status_code == 400
-            assert resp.data["detail"] == "Please keep uploads below 100kb"
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Please keep uploads below 100kb"
+
+    def test_duplicate_upload(self):
+        monitor = self._create_monitor()
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+        )
+
+        path = self._path_func(monitor, checkin)
+        resp = self.client.post(
+            path,
+            {
+                "file": SimpleUploadedFile(
+                    "log.txt", b"test log data", content_type="application/text"
+                ),
+            },
+            format="multipart",
+        )
+
+        assert resp.status_code == 200, resp.content
+
+        checkin = MonitorCheckIn.objects.get(id=checkin.id)
+
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        file = File.objects.get(id=checkin.attachment_id)
+        assert file.name == "log.txt"
+        assert file.getfile().read() == b"test log data"
+
+        resp = self.client.post(
+            path,
+            {
+                "file": SimpleUploadedFile(
+                    "log.txt", b"test log data", content_type="application/text"
+                ),
+            },
+            format="multipart",
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Check-in already has an attachment"

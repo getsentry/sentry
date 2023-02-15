@@ -686,11 +686,6 @@ urlpatterns = [
                     name="sentry-api-0-monitor-check-in-details",
                 ),
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
-                    MonitorCheckInAttachmentEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-attachment",
-                ),
-                url(
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
