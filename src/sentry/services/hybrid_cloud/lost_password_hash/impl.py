@@ -2,8 +2,8 @@ import datetime
 
 from sentry.models import LostPasswordHash
 from sentry.services.hybrid_cloud.lost_password_hash import (
-    APILostPasswordHash,
     LostPasswordHashService,
+    RpcLostPasswordHash,
 )
 
 
@@ -11,7 +11,7 @@ class DatabaseLostPasswordHashService(LostPasswordHashService):
     def get_or_create(
         self,
         user_id: int,
-    ) -> APILostPasswordHash:
+    ) -> RpcLostPasswordHash:
         # NOTE(mattrobenolt): Some security people suggest we invalidate
         # existing password hashes, but this opens up the possibility
         # of a DoS vector where then password resets are continually

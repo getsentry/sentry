@@ -14,7 +14,7 @@ from sentry.exceptions import InvalidIdentity
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -264,10 +264,10 @@ class IntegrationInstallation:
     def __init__(self, model: M, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
-        self._org_integration: APIOrganizationIntegration | None
+        self._org_integration: RpcOrganizationIntegration | None
 
     @property
-    def org_integration(self) -> APIOrganizationIntegration | None:
+    def org_integration(self) -> RpcOrganizationIntegration | None:
         if not hasattr(self, "_org_integration"):
             self._org_integration = integration_service.get_organization_integration(
                 integration_id=self.model.id,
@@ -276,7 +276,7 @@ class IntegrationInstallation:
         return self._org_integration
 
     @org_integration.setter
-    def org_integration(self, org_integration: APIOrganizationIntegration) -> None:
+    def org_integration(self, org_integration: RpcOrganizationIntegration) -> None:
         self._org_integration = org_integration
 
     def get_organization_config(self) -> Sequence[Any]:

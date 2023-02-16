@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry import roles
 from sentry.models import OrganizationMember
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
@@ -17,7 +17,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     def __init__(self, organization: Organization):
         self.organization = organization
 
-    def get_member(self, user: APIUser) -> OrganizationMember:
+    def get_member(self, user: RpcUser) -> OrganizationMember:
         # cache the result
         if user.class_name() != "User":
             raise OrganizationMember.DoesNotExist()
@@ -35,7 +35,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
 
     def determine_recipients(
         self,
-    ) -> Iterable[APIUser]:
+    ) -> Iterable[RpcUser]:
         members = self.determine_member_recipients()
         # store the members in our cache
         for member in members:

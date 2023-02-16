@@ -13,7 +13,7 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Activity, ExternalIssue, GroupLink
 from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
@@ -34,7 +34,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         self.config = config
 
     def serialize(
-        self, obj: APIIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
 
@@ -59,7 +59,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         return has_issue_sync or has_issue_basic
 
-    def _has_issue_feature_on_integration(self, integration: APIIntegration):
+    def _has_issue_feature_on_integration(self, integration: RpcIntegration):
         return integration_service.has_feature(
             provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
         ) or integration_service.has_feature(

@@ -18,7 +18,7 @@ from sentry.utils.linksign import generate_signed_link
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
@@ -71,14 +71,14 @@ def get_unsubscribe_link(
     return signed_link
 
 
-def log_message(notification: BaseNotification, recipient: Team | APIUser) -> None:
+def log_message(notification: BaseNotification, recipient: Team | RpcUser) -> None:
     extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra={**extra})
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Team | APIUser,
+    recipient: Team | RpcUser,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -106,7 +106,7 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[Team | APIUser],
+    recipients: Iterable[Team | RpcUser],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
@@ -136,7 +136,7 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: APIUser,
+    recipient: RpcUser,
     shared_context: Mapping[str, Any] | None = None,
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:

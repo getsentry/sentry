@@ -36,7 +36,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import Team
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
@@ -298,7 +298,7 @@ class Organization(Model, SnowflakeIdMixin):
 
         return self == type(self).get_default()
 
-    def has_access(self, user: APIUser, access=None):
+    def has_access(self, user: RpcUser, access=None):
         queryset = self.member_set.filter(user_id=user.id)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
@@ -315,14 +315,14 @@ class Organization(Model, SnowflakeIdMixin):
             "default_role": self.default_role,
         }
 
-    def get_owners(self) -> Sequence[APIUser]:
+    def get_owners(self) -> Sequence[RpcUser]:
         owners = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
             "user_id", flat=True
         )
 
         return user_service.get_many(filter={"user_ids": owners})
 
-    def get_default_owner(self) -> APIUser:
+    def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
             self._default_owner = self.get_owners()[0]
         return self._default_owner

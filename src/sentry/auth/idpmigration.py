@@ -9,7 +9,7 @@ from rb.clients import LocalClient
 
 from sentry import options
 from sentry.models import AuthProvider, User
-from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -22,7 +22,7 @@ SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 
 def send_one_time_account_confirm_link(
     user: User,
-    org: ApiOrganization,
+    org: RpcOrganization,
     provider: AuthProvider,
     email: str,
     identity_id: str,
@@ -53,7 +53,7 @@ def get_redis_cluster() -> LocalClient:
 @dataclass
 class AccountConfirmLink:
     user: User
-    organization: ApiOrganization
+    organization: RpcOrganization
     provider: AuthProvider
     email: str
     identity_id: str

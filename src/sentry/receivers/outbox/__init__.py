@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol, Type, TypeVar
 
-from sentry.services.hybrid_cloud.tombstone import ApiTombstone, tombstone_service
+from sentry.services.hybrid_cloud.tombstone import RpcTombstone, tombstone_service
 
 
 class ModelLike(Protocol):
@@ -17,6 +17,6 @@ def maybe_process_tombstone(model: Type[T], object_identifier: int) -> T | None:
         return instance
 
     tombstone_service.record_remote_tombstone(
-        ApiTombstone(table_name=model._meta.db_table, identifier=object_identifier)
+        RpcTombstone(table_name=model._meta.db_table, identifier=object_identifier)
     )
     return None

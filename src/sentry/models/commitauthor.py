@@ -4,7 +4,7 @@ from django.db import models
 
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 
 class CommitAuthorManager(BaseManager):
@@ -35,7 +35,7 @@ class CommitAuthor(Model):
 
     __repr__ = sane_repr("organization_id", "email", "name")
 
-    def find_users(self) -> List["APIUser"]:
+    def find_users(self) -> List["RpcUser"]:
         from sentry.models import OrganizationMember
 
         users = user_service.get_many_by_email([self.email])

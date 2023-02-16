@@ -26,9 +26,9 @@ from sentry.models import Authenticator, Organization, Project, ProjectStatus, T
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
-    ApiOrganization,
-    ApiOrganizationSummary,
-    ApiUserOrganizationContext,
+    RpcOrganization,
+    RpcOrganizationSummary,
+    RpcUserOrganizationContext,
     organization_service,
 )
 from sentry.utils import auth
@@ -44,7 +44,7 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class _HasRespond(Protocol):
-    active_organization: ApiUserOrganizationContext | None
+    active_organization: RpcUserOrganizationContext | None
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
@@ -55,7 +55,7 @@ class _HasRespond(Protocol):
 class OrganizationMixin:
     # This attribute will only be set once determine_active_organization is called.  Subclasses should likely invoke
     # that method, passing along the organization_slug context that might exist (or might not).
-    active_organization: ApiUserOrganizationContext | None
+    active_organization: RpcUserOrganizationContext | None
 
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
@@ -97,11 +97,11 @@ class OrganizationMixin:
 
     def _lookup_organizations(
         self, is_implicit: bool, organization_slug: str | None, request: Request
-    ) -> tuple[ApiUserOrganizationContext | None, ApiOrganizationSummary | None]:
-        active_organization: ApiUserOrganizationContext | None = self._try_superuser_org_lookup(
+    ) -> tuple[RpcUserOrganizationContext | None, RpcOrganizationSummary | None]:
+        active_organization: RpcUserOrganizationContext | None = self._try_superuser_org_lookup(
             organization_slug, request
         )
-        backup_organization: ApiOrganizationSummary | None = None
+        backup_organization: RpcOrganizationSummary | None = None
         if active_organization is None:
             organizations = organization_service.get_organizations(
                 user_id=request.user.id, scope=None, only_visible=True
@@ -119,11 +119,11 @@ class OrganizationMixin:
         self,
         is_implicit: bool,
         organization_slug: str,
-        organizations: list[ApiOrganizationSummary],
+        organizations: list[RpcOrganizationSummary],
         request: Request,
-    ) -> ApiUserOrganizationContext | None:
+    ) -> RpcUserOrganizationContext | None:
         try:
-            backup_org: ApiOrganizationSummary | None = next(
+            backup_org: RpcOrganizationSummary | None = next(
                 o for o in organizations if o.slug == organization_slug
             )
         except StopIteration:
@@ -142,8 +142,8 @@ class OrganizationMixin:
 
     def _try_superuser_org_lookup(
         self, organization_slug: str | None, request: Request
-    ) -> ApiUserOrganizationContext | None:
-        active_organization: ApiUserOrganizationContext | None = None
+    ) -> RpcUserOrganizationContext | None:
+        active_organization: RpcUserOrganizationContext | None = None
         if organization_slug is not None:
             if is_active_superuser(request):
                 active_organization = organization_service.get_organization_by_slug(
@@ -158,7 +158,7 @@ class OrganizationMixin:
             organization_slug = request.subdomain
         return organization_slug  # type: ignore[no-any-return]
 
-    def is_not_2fa_compliant(self, request: Request, organization: ApiOrganization) -> bool:
+    def is_not_2fa_compliant(self, request: Request, organization: RpcOrganization) -> bool:
         return (
             organization.flags.require_2fa
             and not Authenticator.objects.user_has_2fa(request.user)
@@ -166,12 +166,12 @@ class OrganizationMixin:
         )
 
     def is_member_disabled_from_limit(
-        self, request: Request, organization: ApiOrganization
+        self, request: Request, organization: RpcOrganization
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_team(
-        self, request: Request, organization: ApiOrganization, team_slug: str
+        self, request: Request, organization: RpcOrganization, team_slug: str
     ) -> Team | None:
         """
         Returns the currently selected team for the request or None
@@ -188,7 +188,7 @@ class OrganizationMixin:
         return team
 
     def get_active_project(
-        self, request: Request, organization: ApiOrganization, project_slug: str
+        self, request: Request, organization: RpcOrganization, project_slug: str
     ) -> Project | None:
         try:
             project = Project.objects.get(slug=project_slug, organization=organization)
@@ -422,7 +422,7 @@ class OrganizationView(BaseView):
     move out any ORM specific logic into the correct silo view.  This will likely become an ABC that shares some
     common logic.
     The 'organization' keyword argument is automatically injected into the resulting dispatch, but currently the
-    typing of 'organization' will vary based on the subclass.  It may either be an ApiOrganization or an orm
+    typing of 'organization' will vary based on the subclass.  It may either be an RpcOrganization or an orm
     Organization based on the subclass.  Be mindful during this transition of the typing.
     """
 
@@ -433,15 +433,15 @@ class OrganizationView(BaseView):
         if self.active_organization is None:
             return access.DEFAULT
         return access.from_request_org_and_scopes(
-            request=request, api_user_org_context=self.active_organization
+            request=request, rpc_user_org_context=self.active_organization
         )
 
-    def get_context_data(self, request: Request, organization: ApiOrganization | Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(self, request: Request, organization: RpcOrganization | Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
         context = super().get_context_data(request)
         context["organization"] = organization
         return context
 
-    def has_permission(self, request: Request, organization: ApiOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(self, request: Request, organization: RpcOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -487,7 +487,7 @@ class OrganizationView(BaseView):
 
         return False
 
-    def handle_permission_required(self, request: Request, organization: Organization | ApiOrganization, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+    def handle_permission_required(self, request: Request, organization: Organization | RpcOrganization, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
         if self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
@@ -509,7 +509,7 @@ class OrganizationView(BaseView):
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def needs_sso(self, request: Request, organization: Organization | ApiOrganization) -> bool:
+    def needs_sso(self, request: Request, organization: Organization | RpcOrganization) -> bool:
         if not organization:
             return False
         # XXX(dcramer): this branch should really never hit

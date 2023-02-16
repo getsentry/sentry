@@ -24,8 +24,8 @@ from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import (
     Access,
-    SingularApiAccessOrgOptimization,
-    maybe_singular_api_access_org_context,
+    SingularRpcAccessOrgOptimization,
+    maybe_singular_rpc_access_org_context,
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 def _get_team_memberships(
     team_list: Sequence[Team],
     user: User,
-    optimization: SingularApiAccessOrgOptimization | None = None,
+    optimization: SingularRpcAccessOrgOptimization | None = None,
 ) -> Mapping[int, str | None]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
@@ -94,7 +94,7 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 
 def get_org_roles(
-    org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
+    org_ids: Set[int], user: User, optimization: SingularRpcAccessOrgOptimization | None = None
 ) -> Mapping[int, Sequence[str]]:
     """
     Get the roles the user has in each org
@@ -106,7 +106,7 @@ def get_org_roles(
     if optimization:
         if optimization.access.roles is not None:
             return {
-                optimization.access.api_user_organization_context.organization.id: list(
+                optimization.access.rpc_user_organization_context.organization.id: list(
                     optimization.access.roles
                 )
             }
@@ -189,7 +189,7 @@ class TeamSerializer(Serializer):  # type: ignore
         request = env.request
         org_ids = {t.organization_id for t in item_list}
         optimization = (
-            maybe_singular_api_access_org_context(self.access, org_ids) if self.access else None
+            maybe_singular_rpc_access_org_context(self.access, org_ids) if self.access else None
         )
 
         all_org_roles = get_org_roles(org_ids, user, optimization=optimization)

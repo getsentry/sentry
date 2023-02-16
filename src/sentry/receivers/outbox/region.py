@@ -9,7 +9,7 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
 from sentry.services.hybrid_cloud.log.impl import DatabaseBackedLogService
 from sentry.services.hybrid_cloud.organization_mapping import (
-    ApiOrganizationMappingUpdate,
+    RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
 
@@ -48,5 +48,5 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
         return
 
-    update = ApiOrganizationMappingUpdate.from_instance(org)
+    update = RpcOrganizationMappingUpdate.from_instance(org)
     organization_mapping_service.update(update)

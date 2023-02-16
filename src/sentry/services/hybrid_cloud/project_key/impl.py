@@ -3,9 +3,9 @@ from typing import Optional
 from django.db.models import F
 
 from sentry.services.hybrid_cloud.project_key import (
-    ApiProjectKey,
     ProjectKeyRole,
     ProjectKeyService,
+    RpcProjectKey,
 )
 
 
@@ -13,7 +13,7 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
     def close(self) -> None:
         pass
 
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
+    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         from sentry.models import ProjectKey
 
         project_keys = ProjectKey.objects.filter(
@@ -21,6 +21,6 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         )
 
         if project_keys:
-            return ApiProjectKey(dsn_public=project_keys[0].dsn_public)
+            return RpcProjectKey(dsn_public=project_keys[0].dsn_public)
 
         return None

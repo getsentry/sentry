@@ -59,13 +59,13 @@ class AuthIdentityHandlerTest(TestCase):
 
     def _handler_with(self, identity):
         with exempt_from_silo_limits():
-            api_organization = DatabaseBackedOrganizationService.serialize_organization(
+            rpc_organization = DatabaseBackedOrganizationService.serialize_organization(
                 self.organization
             )
         return AuthIdentityHandler(
             self.auth_provider,
             DummyProvider(self.provider),
-            api_organization,
+            rpc_organization,
             self.request,
             identity,
         )
