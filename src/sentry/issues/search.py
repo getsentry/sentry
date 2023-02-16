@@ -233,6 +233,8 @@ def _update_profiling_search_filters(
     updated_filters = []
 
     for sf in search_filters:
+        # XXX: we replace queries on these keys to something that should return nothing since
+        # profiling issues doesn't support have stacktraces
         if sf.key.name in ("notHandled", "error.handled"):
             updated_filters.append(SearchFilter(SearchKey("1"), "=", SearchValue("2")))
         else:
