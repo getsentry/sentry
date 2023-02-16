@@ -30,7 +30,7 @@ from sentry.signals import first_cron_checkin_received, first_cron_monitor_creat
 from sentry.utils import metrics
 
 checkin_ratelimiter = RedisSlidingWindowRateLimiter(
-    cluster=settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
+    cluster=getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
 )
 CHECKIN_QUOTA = Quota(60, 60, 5)
 
