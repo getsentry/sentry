@@ -258,12 +258,10 @@ describe('Performance > TransactionSummary', function () {
         meta: {
           fields: {
             'tpm()': 'number',
-            'count()': 'number',
           },
         },
         data: [
           {
-            'count()': 2,
             'tpm()': 1,
           },
         ],
@@ -272,6 +270,30 @@ describe('Performance > TransactionSummary', function () {
         (_url, options) => {
           return (
             options.query?.field?.includes('tpm()') &&
+            !options.query?.field?.includes('p95()')
+          );
+        },
+      ],
+    });
+    // Events Mock count totals for histogram percentage calculations
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            'count()': 'number',
+          },
+        },
+        data: [
+          {
+            'count()': 2,
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return (
+            options.query?.field?.includes('count()') &&
             !options.query?.field?.includes('p95()')
           );
         },
