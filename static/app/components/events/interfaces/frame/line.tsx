@@ -11,7 +11,7 @@ import {
 import StrictClick from 'sentry/components/strictClick';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
+import {IconChevron, IconRepeat, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -274,7 +274,7 @@ export class Line extends Component<Props, State> {
           title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
         >
           <RepeatedContent>
-            <StyledIconRefresh />
+            <StyledIconRepeat />
             <span>{timesRepeated}</span>
           </RepeatedContent>
         </RepeatedFrames>
@@ -501,7 +501,7 @@ const DefaultLine = styled('div')`
   align-items: center;
 `;
 
-const StyledIconRefresh = styled(IconRefresh)`
+const StyledIconRepeat = styled(IconRepeat)`
   margin-right: ${space(0.25)};
 `;
 
