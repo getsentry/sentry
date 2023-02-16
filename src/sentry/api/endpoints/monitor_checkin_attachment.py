@@ -37,6 +37,23 @@ class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
         else:
             return Response({"detail": "Check-in has no attachment"}, status=404)
 
+    def download(self, file_id):
+        file = File.objects.get(id=file_id)
+        fp = file.getfile()
+        response = FileResponse(
+            fp,
+            content_type=file.headers.get("Content-Type", "application/octet-stream"),
+        )
+        response["Content-Length"] = file.size
+        response["Content-Disposition"] = f"attachment; filename={file.name}"
+        return response
+
+    def get(self, request: Request, project, monitor, checkin) -> Response:
+        if checkin.attachment_id:
+            return self.download(checkin.attachment_id)
+        else:
+            return Response({"detail": "Check-in has no attachment"}, status=404)
+
     def post(self, request: Request, project, monitor, checkin) -> Response:
         """
         Uploads a check-in attachment file.
