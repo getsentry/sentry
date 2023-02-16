@@ -8,11 +8,17 @@ from sentry import options
 LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 REF_TYPE = Literal["branch", "sha"]
-CODECOV_TIMEOUT = 60
+CODECOV_TIMEOUT = 1
 
 
 def get_codecov_data(
-    repo: str, service: str, ref: str, ref_type: REF_TYPE, path: str, has_error_commit: bool
+    repo: str,
+    service: str,
+    ref: str,
+    ref_type: REF_TYPE,
+    path: str,
+    has_error_commit: bool,
+    set_timeout: bool,
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
@@ -31,7 +37,7 @@ def get_codecov_data(
                 url,
                 params=params,
                 headers={"Authorization": f"Bearer {codecov_token}"},
-                timeout=CODECOV_TIMEOUT,
+                timeout=CODECOV_TIMEOUT if set_timeout else None,
             )
             tags = {
                 "codecov.request_url": url,

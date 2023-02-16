@@ -268,6 +268,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 ref_type="sha" if ref else "branch",
                 path=path,
                 has_error_commit=has_error_commit,
+                set_timeout=features.has("organizations:codecov-stacktrace-integration-v2", org),
             )
             if lineCoverage and codecovUrl:
                 codecov_data = {
