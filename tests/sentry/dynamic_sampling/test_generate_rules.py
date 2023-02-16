@@ -13,6 +13,11 @@ from sentry.dynamic_sampling import (
     generate_rules,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules.utils import (
+    KEY_TRANSACTIONS_BOOST_FACTOR,
+    LATEST_RELEASES_BOOST_DECAYED_FACTOR,
+    LATEST_RELEASES_BOOST_FACTOR,
+)
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.utils import json
@@ -172,7 +177,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
     get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -205,7 +210,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
                 "op": "or",
             },
             "id": 1003,
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
         {
@@ -229,7 +234,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
     get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -271,7 +276,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
                 "op": "or",
             },
             "id": 1003,
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
         {
@@ -295,7 +300,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
     get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -331,7 +336,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
                 "op": "or",
             },
             "id": 1003,
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
         {
@@ -395,7 +400,7 @@ def test_generate_rules_with_different_project_platforms(
     latest_release_only,
 ):
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -411,7 +416,7 @@ def test_generate_rules_with_different_project_platforms(
 
     assert generate_rules(default_project) == [
         {
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -430,7 +435,7 @@ def test_generate_rules_with_different_project_platforms(
                 "start": "2022-10-21 18:50:25+00:00",
                 "end": end,
             },
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "active": True,
@@ -453,7 +458,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -473,7 +478,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
     assert generate_rules(default_project) == [
         {
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -485,10 +490,10 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -500,10 +505,10 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1501,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -515,7 +520,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1502,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "active": True,
@@ -538,7 +543,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
     get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -561,7 +566,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 
     assert generate_rules(default_project) == [
         {
-            "samplingValue": {"type": "factor", "value": 1.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -573,7 +578,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "active": True,
