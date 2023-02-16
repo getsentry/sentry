@@ -17,7 +17,6 @@ type NotifyOptions = {
 };
 
 type Props = {
-  hasHierarchicalGrouping: boolean;
   exception?: ExceptionType;
   onChange?: (notifyOptions: NotifyOptions) => void;
   platform?: string;
@@ -28,7 +27,6 @@ type Props = {
 };
 
 const CrashActions = ({
-  hasHierarchicalGrouping,
   stackView,
   stackType,
   stacktrace,
@@ -63,16 +61,8 @@ const CrashActions = ({
         {[
           ...(hasSystemFrames
             ? [
-                <SegmentedControl.Item
-                  key={STACK_VIEW.APP}
-                  tooltip={
-                    hasHierarchicalGrouping &&
-                    t(
-                      'The stack trace only shows application frames and frames responsible for grouping this issue'
-                    )
-                  }
-                >
-                  {hasHierarchicalGrouping ? t('Most Relevant') : t('App Only')}
+                <SegmentedControl.Item key={STACK_VIEW.APP}>
+                  {t('App Only')}
                 </SegmentedControl.Item>,
               ]
             : []),

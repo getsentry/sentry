@@ -47,14 +47,7 @@ describe('Threads', () => {
       ],
     };
 
-    render(
-      <Threads
-        data={data}
-        hasHierarchicalGrouping={false}
-        projectSlug="project-id"
-        event={newEvent}
-      />
-    );
+    render(<Threads data={data} projectSlug="project-id" event={newEvent} />);
 
     // Total frames passed
     const totalFramesPasses =
@@ -68,7 +61,6 @@ describe('Threads', () => {
     render(
       <Threads
         data={{...data, values: [{...data.values[0], stacktrace: null}]}}
-        hasHierarchicalGrouping={false}
         projectSlug="project-id"
         event={{
           ...event,
@@ -94,14 +86,7 @@ describe('Threads', () => {
     const threadsEntry = entries[1];
 
     it('Displays the exception stacktrace', () => {
-      render(
-        <Threads
-          data={threadsEntry.data}
-          projectSlug="project-id"
-          event={event}
-          hasHierarchicalGrouping={false}
-        />
-      );
+      render(<Threads data={threadsEntry.data} projectSlug="project-id" event={event} />);
 
       // envent.entries[0].data.values[0].stacktrace is defined
       expect(screen.getByTestId('line')).toBeInTheDocument();
@@ -111,7 +96,6 @@ describe('Threads', () => {
       render(
         <Threads
           data={threadsEntry.data}
-          hasHierarchicalGrouping={false}
           projectSlug="project-id"
           event={{
             ...event,

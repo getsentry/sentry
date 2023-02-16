@@ -12,10 +12,7 @@ import {isStacktraceNewestFirst} from './utils';
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
-type Props = Pick<
-  CrashContentProps,
-  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-> & {
+type Props = Pick<CrashContentProps, 'groupingCurrentLevel'> & {
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
   projectSlug: Project['slug'];
@@ -23,13 +20,7 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-export function StackTraceV2({
-  projectSlug,
-  event,
-  data,
-  hasHierarchicalGrouping,
-  groupingCurrentLevel,
-}: Props) {
+export function StackTraceV2({projectSlug, event, data, groupingCurrentLevel}: Props) {
   const entryIndex = event.entries.findIndex(
     eventEntry => eventEntry.type === EntryType.STACKTRACE
   );
@@ -88,7 +79,6 @@ export function StackTraceV2({
             newestFirst={recentFirst}
             stacktrace={data}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
             nativeV2
           />
         )

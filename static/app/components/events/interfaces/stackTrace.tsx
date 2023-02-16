@@ -14,10 +14,7 @@ import {isStacktraceNewestFirst} from './utils';
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
-type Props = Pick<
-  CrashContentProps,
-  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-> & {
+type Props = Pick<CrashContentProps, 'groupingCurrentLevel'> & {
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
   projectSlug: Project['slug'];
@@ -30,7 +27,6 @@ export function StackTrace({
   projectSlug,
   event,
   data,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
   const [stackView, setStackView] = useState<STACK_VIEW>(
@@ -59,7 +55,6 @@ export function StackTrace({
             stackView={stackView}
             platform={event.platform}
             stacktrace={data}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
             onChange={value => setStackView(value.stackView ?? stackView)}
           />
         )
@@ -77,7 +72,6 @@ export function StackTrace({
           stacktrace={data}
           stackType={STACK_TYPE.ORIGINAL}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       )}
     </EventDataSection>

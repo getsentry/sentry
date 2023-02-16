@@ -28,7 +28,7 @@ import {isStacktraceNewestFirst} from './utils';
 
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 
-type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGrouping'> & {
+type Props = Pick<ExceptionProps, 'groupingCurrentLevel'> & {
   data: {
     values?: Array<Thread>;
   };
@@ -55,13 +55,7 @@ function getIntendedStackView(
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-export function ThreadsV2({
-  data,
-  event,
-  projectSlug,
-  hasHierarchicalGrouping,
-  groupingCurrentLevel,
-}: Props) {
+export function ThreadsV2({data, event, projectSlug, groupingCurrentLevel}: Props) {
   const threads = data.values ?? [];
 
   const [state, setState] = useState<State>(() => {
@@ -158,7 +152,6 @@ export function ThreadsV2({
           platform={platform}
           values={exception.values}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           meta={meta}
         />
       );
@@ -184,7 +177,6 @@ export function ThreadsV2({
           event={event}
           platform={platform}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           meta={meta}
           nativeV2
         />

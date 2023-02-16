@@ -43,10 +43,6 @@ function EventEntryContent({
   group,
   isShare,
 }: Props) {
-  const hasHierarchicalGrouping =
-    !!organization.features?.includes('grouping-stacktrace-ui') &&
-    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
-
   const hasNativeStackTraceV2 = !!organization.features?.includes(
     'native-stack-trace-v2'
   );
@@ -61,7 +57,6 @@ function EventEntryContent({
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
         <Exception
@@ -69,7 +64,6 @@ function EventEntryContent({
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
 
@@ -86,7 +80,6 @@ function EventEntryContent({
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
         <StackTrace
@@ -94,7 +87,6 @@ function EventEntryContent({
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
 
@@ -127,21 +119,9 @@ function EventEntryContent({
 
     case EntryType.THREADS:
       return hasNativeStackTraceV2 ? (
-        <ThreadsV2
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
+        <ThreadsV2 event={event} data={entry.data} projectSlug={projectSlug} />
       ) : (
-        <Threads
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
+        <Threads event={event} data={entry.data} projectSlug={projectSlug} />
       );
 
     case EntryType.DEBUGMETA:

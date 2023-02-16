@@ -1,20 +1,19 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {PlatformType} from 'sentry/types';
+import type {Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_VIEW, StacktraceType} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
-import ContentV2 from './contentV2';
 import ContentV3 from './contentV3';
 import rawStacktraceContent from './rawContent';
 
-type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'> & {
+type Props = {
   event: Event;
-  hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   platform: PlatformType;
   stacktrace: StacktraceType;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   nativeV2?: boolean;
   stackView?: STACK_VIEW;
@@ -26,7 +25,6 @@ function StackTrace({
   event,
   newestFirst,
   platform,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   nativeV2,
   meta,
@@ -46,23 +44,6 @@ function StackTrace({
       <ErrorBoundary mini>
         <ContentV3
           data={stacktrace}
-          includeSystemFrames={stackView === STACK_VIEW.FULL}
-          platform={platform}
-          event={event}
-          newestFirst={newestFirst}
-          groupingCurrentLevel={groupingCurrentLevel}
-          meta={meta}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  if (hasHierarchicalGrouping) {
-    return (
-      <ErrorBoundary mini>
-        <ContentV2
-          data={stacktrace}
-          className="no-exception"
           includeSystemFrames={stackView === STACK_VIEW.FULL}
           platform={platform}
           event={event}

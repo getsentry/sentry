@@ -1,9 +1,7 @@
 import {useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
 import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
@@ -84,12 +82,6 @@ export function StackTracePreviewContent({
   if (orgFeatures.includes('native-stack-trace-v2') && isNativePlatform(platform)) {
     return (
       <StackTraceContentV3 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
-    );
-  }
-
-  if (orgFeatures.includes('grouping-stacktrace-ui')) {
-    return (
-      <StackTraceContentV2 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
     );
   }
 
@@ -180,19 +172,11 @@ function StackTracePreviewBody({
 }
 
 function StackTracePreview({children, ...props}: StackTracePreviewProps) {
-  const organization = useOrganization();
   const {shouldShowLoadingState, onRequestBegin, onRequestEnd, reset} =
     useDelayedLoadingState();
 
-  const hasGroupingStacktraceUI = organization.features.includes(
-    'grouping-stacktrace-ui'
-  );
-
   return (
-    <Wrapper
-      data-testid="stacktrace-preview"
-      hasGroupingStacktraceUI={hasGroupingStacktraceUI}
-    >
+    <span data-testid="stacktrace-preview">
       <GroupPreviewHovercard
         hide={!shouldShowLoadingState}
         body={
@@ -206,26 +190,11 @@ function StackTracePreview({children, ...props}: StackTracePreviewProps) {
       >
         {children}
       </GroupPreviewHovercard>
-    </Wrapper>
+    </span>
   );
 }
 
 export {StackTracePreview};
-
-const Wrapper = styled('span')<{
-  hasGroupingStacktraceUI: boolean;
-}>`
-  ${p =>
-    p.hasGroupingStacktraceUI &&
-    css`
-      display: inline-flex;
-      overflow: hidden;
-      height: 100%;
-      > span:first-child {
-        ${p.theme.overflowEllipsis}
-      }
-    `}
-`;
 
 const StackTracePreviewWrapper = styled('div')`
   width: 700px;

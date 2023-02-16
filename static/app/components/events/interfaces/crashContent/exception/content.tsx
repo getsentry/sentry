@@ -29,17 +29,13 @@ type Props = {
   newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
 } & Pick<ExceptionType, 'values'> &
-  Pick<
-    React.ComponentProps<typeof StackTrace>,
-    'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-  >;
+  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
 export function Content({
   newestFirst,
   event,
   stackView,
   groupingCurrentLevel,
-  hasHierarchicalGrouping,
   platform,
   projectSlug,
   values,
@@ -112,7 +108,6 @@ export function Content({
           newestFirst={newestFirst}
           event={event}
           chainedException={values.length > 1}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           debugFrames={hasSourcemapDebug ? debugFrames : undefined}

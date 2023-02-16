@@ -107,7 +107,6 @@ describe('Exception Content', function () {
       <Content
         type={STACK_TYPE.ORIGINAL}
         groupingCurrentLevel={0}
-        hasHierarchicalGrouping
         newestFirst
         platform="python"
         stackView={STACK_VIEW.APP}

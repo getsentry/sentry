@@ -15,7 +15,6 @@ import {isStacktraceNewestFirst} from './utils';
 type Props = {
   data: ExceptionType;
   event: Event;
-  hasHierarchicalGrouping: boolean;
   projectSlug: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
@@ -25,7 +24,6 @@ export function Exception({
   event,
   data,
   projectSlug,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
 }: Props) {
@@ -82,7 +80,6 @@ export function Exception({
           stackView={stackView}
           platform={event.platform}
           exception={data}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           {...commonCrashHeaderProps}
         />
       }
@@ -96,7 +93,6 @@ export function Exception({
         newestFirst={newestFirst}
         exception={data}
         groupingCurrentLevel={groupingCurrentLevel}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     </EventDataSection>
   );

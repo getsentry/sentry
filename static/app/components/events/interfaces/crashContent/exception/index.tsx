@@ -8,7 +8,6 @@ import RawContent from './rawContent';
 
 type Props = {
   event: Event;
-  hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   platform: PlatformType;
   projectSlug: Project['slug'];
@@ -25,7 +24,6 @@ function Exception({
   values,
   event,
   newestFirst,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   platform = 'other',
   meta,
@@ -49,7 +47,6 @@ function Exception({
           projectSlug={projectSlug}
           newestFirst={newestFirst}
           event={event}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
         />

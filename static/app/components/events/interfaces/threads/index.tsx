@@ -16,10 +16,7 @@ import getThreadStacktrace from './threadSelector/getThreadStacktrace';
 import Content from './content';
 import ThreadSelector from './threadSelector';
 
-type Props = Pick<
-  React.ComponentProps<typeof Content>,
-  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-> & {
+type Props = Pick<React.ComponentProps<typeof Content>, 'groupingCurrentLevel'> & {
   data: {
     values?: Array<Thread>;
   };
@@ -52,7 +49,6 @@ export function Threads({
   data,
   event,
   projectSlug,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
 }: Props) {
@@ -152,7 +148,6 @@ export function Threads({
             thread={hasMoreThanOneThread ? activeThread : undefined}
             exception={exception}
             onChange={handleChangeStackView}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         )
       }
@@ -169,7 +164,6 @@ export function Threads({
         projectSlug={projectSlug}
         groupingCurrentLevel={groupingCurrentLevel}
         stackTraceNotFound={stackTraceNotFound}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     </EventDataSection>
   );
