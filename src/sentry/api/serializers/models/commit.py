@@ -55,7 +55,7 @@ class CommitSerializer(Serializer):
                 "repository": repository_objs.get(str(item.repository_id), {}),
                 "user": users_by_author.get(str(item.author_id), {}) if item.author_id else {},
                 "pull_request": pull_request_by_commit.get(item.key, None),
-                "type": self.type,
+                "suspect_commit_type": self.type,
             }
 
         return result
@@ -66,7 +66,7 @@ class CommitSerializer(Serializer):
             "message": obj.message,
             "dateCreated": obj.date_added,
             "pullRequest": attrs["pull_request"],
-            "type": attrs["type"],
+            "suspectCommitType": attrs["suspect_commit_type"],
         }
         if "repository" not in self.exclude:
             d["repository"] = attrs["repository"]
