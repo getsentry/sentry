@@ -213,6 +213,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(f"The repository is empty. {msg}", extra=extra)
             elif txt == "Not Found":
                 logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
+            elif txt == "Repository access blocked":
+                logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+                logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+                # Raising the error will be handled at the task level
+                raise error
             else:
                 # We do not raise the exception so we can keep iterating through the repos.
                 # Nevertheless, investigate the error to determine if we should abort the processing
