@@ -1,5 +1,4 @@
 import copy
-import functools
 import inspect
 import random
 
@@ -462,16 +461,27 @@ def set_measurement(measurement_name, value, unit=None):
         pass
 
 
+class FunctionWrapper:
+    # this is a separate class so it can be pickled
+    __slots__ = ("f", "sentry_args", "sentry_kwargs", "sampled_cb")
+
+    def __init__(self, f, sentry_args, sampled_cb, sentry_kwargs):
+        self.f = f
+        self.sentry_args = sentry_args
+        self.sentry_kwargs = sentry_kwargs
+        self.sampled_cb = sampled_cb
+
+    def __call__(self, *args, **kwargs):
+        kwargs = dict(self.sentry_kwargs)
+        if self.sampled_cb is not None:
+            kwargs["sampled"] = self.sampled_cb()
+
+        with sentry_sdk.start_transaction(*self.sentry_args, **kwargs):
+            return self.f(*args, **kwargs)
+
+
 def with_transaction(*sentry_args, sampled_cb=None, **sentry_kwargs):
     def wrapper(f):
-        @functools.wraps
-        def inner(*args, **kwargs):
-            if sampled_cb is not None:
-                sentry_kwargs["sampled"] = sampled_cb()
-
-            with sentry_sdk.start_transaction(*sentry_args, sampled_cb=sampled_cb, **sentry_kwargs):
-                return f(*args, **kwargs)
-
-        return inner
+        return FunctionWrapper(f, sentry_args, sampled_cb, sentry_kwargs)
 
     return wrapper
