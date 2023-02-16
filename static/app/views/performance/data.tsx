@@ -392,6 +392,30 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
+function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
+  const conditions = new MutableSearch(searchQuery);
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.freeText.length > 0) {
+    const parsedFreeText = conditions.freeText.join(' ');
+
+    // the query here is a user entered condition, no need to escape it
+    conditions.setFilterValues(
+      'transaction',
+      [wrapQueryInWildcards(parsedFreeText)],
+      false
+    );
+    conditions.freeText = [];
+  }
+  if (withStaticFilters) {
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
+    );
+  }
+  return conditions.formatString();
+}
+
 function generateGenericPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
@@ -433,28 +457,7 @@ function generateGenericPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = conditions.freeText.join(' ');
-
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [wrapQueryInWildcards(parsedFreeText)],
-      false
-    );
-    conditions.freeText = [];
-  }
-
-  if (withStaticFilters) {
-    conditions.tokens = conditions.tokens.filter(
-      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
-    );
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
@@ -514,27 +517,7 @@ function generateBackendPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = conditions.freeText.join(' ');
-
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [wrapQueryInWildcards(parsedFreeText)],
-      false
-    );
-    conditions.freeText = [];
-  }
-  if (withStaticFilters) {
-    conditions.tokens = conditions.tokens.filter(
-      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
-    );
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -598,27 +581,7 @@ function generateMobilePerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = conditions.freeText.join(' ');
-
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [wrapQueryInWildcards(parsedFreeText)],
-      false
-    );
-    conditions.freeText = [];
-  }
-  if (withStaticFilters) {
-    conditions.tokens = conditions.tokens.filter(
-      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
-    );
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -668,27 +631,7 @@ function generateFrontendPageloadPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = conditions.freeText.join(' ');
-
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [wrapQueryInWildcards(parsedFreeText)],
-      false
-    );
-    conditions.freeText = [];
-  }
-  if (withStaticFilters) {
-    conditions.tokens = conditions.tokens.filter(
-      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
-    );
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -739,27 +682,7 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = conditions.freeText.join(' ');
-
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [wrapQueryInWildcards(parsedFreeText)],
-      false
-    );
-    conditions.freeText = [];
-  }
-  if (withStaticFilters) {
-    conditions.tokens = conditions.tokens.filter(
-      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
-    );
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -852,21 +775,7 @@ export function generatePerformanceVitalDetailView(
   savedQuery.orderby = decodeScalar(query.sort, '-count');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [wrapQueryInWildcards(conditions.freeText.join(' '))],
-      false
-    );
-    conditions.freeText = [];
-  }
-  conditions.setFilterValues('event.type', ['transaction']);
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, false);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
