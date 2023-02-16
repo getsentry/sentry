@@ -27,7 +27,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstream.base import EventStreamEventType, GroupStates
+from sentry.eventstream.base import EventStreamEventType, GroupStates, PostProcessForwarderType
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
@@ -276,7 +276,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
+        entity: PostProcessForwarderType,
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -288,11 +288,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
         strict_offset_reset: bool,
     ) -> None:
         logger.debug(f"Starting post process forwarder to consume {entity} messages")
-        if entity == "transactions":
+        if entity == PostProcessForwarderType.TRANSACTIONS:
             default_topic = self.transactions_topic
-        elif entity == "errors":
+        elif entity == PostProcessForwarderType.ERRORS:
             default_topic = self.topic
-        elif entity == "search_issues":
+        elif entity == PostProcessForwarderType.ISSUE_PLATFORM:
             default_topic = self.issue_platform_topic
         else:
             raise ValueError("Invalid entity")
