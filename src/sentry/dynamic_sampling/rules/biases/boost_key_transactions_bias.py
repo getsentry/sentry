@@ -32,32 +32,6 @@ class BoostKeyTransactionsRulesGenerator(BiasRulesGenerator):
 
         return [
             {
-                "sampleRate": bias_data["sampleRate"],
-                "type": "transaction",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "eq",
-                            "name": "event.transaction",
-                            "value": bias_data["keyTransactions"],
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": bias_data["id"],
-            }
-        ]
-
-
-class BoostKeyTransactionsRulesGeneratorV2(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
-        if len(bias_data["keyTransactions"]) == 0:
-            return []
-
-        return [
-            {
                 "samplingValue": {
                     "type": "sampleRate",
                     "value": bias_data["sampleRate"],
@@ -83,8 +57,3 @@ class BoostKeyTransactionsRulesGeneratorV2(BiasRulesGenerator):
 class BoostKeyTransactionsBias(Bias):
     def __init__(self) -> None:
         super().__init__(BoostKeyTransactionsDataProvider, BoostKeyTransactionsRulesGenerator)
-
-
-class BoostKeyTransactionsBiasV2(Bias):
-    def __init__(self) -> None:
-        super().__init__(BoostKeyTransactionsDataProvider, BoostKeyTransactionsRulesGeneratorV2)
