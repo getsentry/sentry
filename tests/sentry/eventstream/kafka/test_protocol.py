@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from sentry.eventstream.kafka.protocol import (
