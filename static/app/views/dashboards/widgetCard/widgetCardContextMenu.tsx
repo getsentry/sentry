@@ -288,9 +288,11 @@ const ContextWrapper = styled('div')`
   align-items: center;
   height: ${space(3)};
   margin-left: ${space(1)};
+  gap: ${space(0.25)};
 `;
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`
+  display: flex;
   & > button {
     z-index: auto;
   }
