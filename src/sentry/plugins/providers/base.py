@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from social_auth.models import UserSocialAuth
 
 
@@ -87,7 +87,7 @@ class ProviderMixin:
 
         return not UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).exists()
 
-    def get_auth(self, user: APIUser, **kwargs):
+    def get_auth(self, user: RpcUser, **kwargs):
         if self.auth_provider is None:
             return None
 
