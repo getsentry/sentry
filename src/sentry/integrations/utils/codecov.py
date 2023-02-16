@@ -8,6 +8,7 @@ from sentry import options
 LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 REF_TYPE = Literal["branch", "sha"]
+CODECOV_TIMEOUT = 60
 
 
 def get_codecov_data(
@@ -27,7 +28,10 @@ def get_codecov_data(
         with configure_scope() as scope:
             params = {ref_type: ref, "path": path}
             response = requests.get(
-                url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
+                url,
+                params=params,
+                headers={"Authorization": f"Bearer {codecov_token}"},
+                timeout=CODECOV_TIMEOUT,
             )
             tags = {
                 "codecov.request_url": url,

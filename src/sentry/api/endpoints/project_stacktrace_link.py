@@ -397,6 +397,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             logger.exception(
                                 "Failed to get expected data from Codecov, pending investigation. Continuing execution."
                             )
+                    except requests.Timeout:
+                        scope.set_tag("codecov.timeout", True)
+                        logger.exception("Codecov request timed out. Continuing execution.")
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
                     # We don't expect coverage data if the integration does not exist (404)
