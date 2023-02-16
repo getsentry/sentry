@@ -16,7 +16,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import ApiPaginationArgs
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.utils.json import JSONData
 
 
@@ -25,8 +25,8 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         self.group = group
 
     def get_attrs(
-        self, item_list: List[APIIntegration], user: User, **kwargs: Any
-    ) -> MutableMapping[APIIntegration, MutableMapping[str, Any]]:
+        self, item_list: List[RpcIntegration], user: User, **kwargs: Any
+    ) -> MutableMapping[RpcIntegration, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
             id__in=GroupLink.objects.get_group_issues(self.group).values_list(
                 "linked_id", flat=True
@@ -62,7 +62,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         }
 
     def serialize(
-        self, obj: APIIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])

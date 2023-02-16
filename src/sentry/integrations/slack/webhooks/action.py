@@ -25,7 +25,7 @@ from sentry.models import Group, InviteStatus, NotificationSetting, Organization
 from sentry.models.activity import ActivityIntegration
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -69,7 +69,7 @@ RESOLVE_SELECTOR = {
 
 def update_group(
     group: Group,
-    user: APIUser,
+    user: RpcUser,
     data: Mapping[str, str],
     request: Request,
 ) -> Response:
@@ -130,7 +130,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         self,
         slack_request: SlackActionRequest,
         group: Group,
-        user: APIUser,
+        user: RpcUser,
         error: ApiClient.ApiError,
         action_type: str,
     ) -> Response:
@@ -179,7 +179,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self.respond_ephemeral(text)
 
     def on_assign(
-        self, request: Request, user: APIUser, group: Group, action: MessageAction
+        self, request: Request, user: RpcUser, group: Group, action: MessageAction
     ) -> None:
         if not (action.selected_options and len(action.selected_options)):
             # Short-circuit if action is invalid
@@ -202,7 +202,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     def on_status(
         self,
         request: Request,
-        user: APIUser,
+        user: RpcUser,
         group: Group,
         action: MessageAction,
     ) -> None:

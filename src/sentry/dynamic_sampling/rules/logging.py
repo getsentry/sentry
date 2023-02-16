@@ -4,8 +4,7 @@ from typing import Dict, List, Union
 import sentry_sdk
 
 from sentry.dynamic_sampling.rules.utils import (
-    DecayingFnV1,
-    DecayingFnV2,
+    DecayingFn,
     PolymorphicRule,
     RuleType,
     get_rule_hash,
@@ -99,7 +98,7 @@ def _format_rules(
 
 def _extract_info_from_rule(
     rule_type: RuleType, rule: PolymorphicRule
-) -> Dict[str, Union[DecayingFnV1, DecayingFnV2, List[str], str, None]]:
+) -> Dict[str, Union[DecayingFn, List[str], str, None]]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
         return {"environments": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
