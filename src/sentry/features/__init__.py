@@ -116,6 +116,7 @@ default_manager.add("organizations:performance-consecutive-db-issue", Organizati
 default_manager.add("organizations:performance-n-plus-one-api-calls-detector", OrganizationFeature)
 default_manager.add("organizations:performance-issues-compressed-assets-detector", OrganizationFeature)
 default_manager.add("organizations:performance-issues-render-blocking-assets-detector", OrganizationFeature)
+default_manager.add("organizations:performance-issues-m-n-plus-one-db-detector", OrganizationFeature)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-search", OrganizationFeature)
