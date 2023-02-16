@@ -112,7 +112,7 @@ def derive_code_mappings(
             # This method is specific to the GithubIntegration
             trees = installation.get_trees_for_org()  # type: ignore
     except ApiError as error:
-        process_error(error)
+        process_error(error, extra)
         return
     except UnableToAcquireLock as error:
         extra["error"] = error
