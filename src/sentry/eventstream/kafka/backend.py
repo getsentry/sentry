@@ -1,19 +1,33 @@
+from __future__ import annotations
+
 import logging
 import signal
 import uuid
-from enum import Enum
-from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
+from confluent_kafka import KafkaError
+from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstream.base import EventStreamEventType, GroupStates
+from sentry.eventstream.base import EventStreamEventType, GroupStates, PostProcessForwarderType
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
@@ -27,11 +41,8 @@ from sentry.utils.kafka_config import (
 
 logger = logging.getLogger(__name__)
 
-
-class PostProcessForwarderType(str, Enum):
-    ERRORS = "errors"
-    TRANSACTIONS = "transactions"
-    ISSUE_PLATFORM = "search_issues"
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event, GroupEvent
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
@@ -40,10 +51,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
         self.assign_transaction_partitions_randomly = True
-        self.__producers = {}
+        self.__producers: MutableMapping[str, Producer] = {}
 
     def get_transactions_topic(self, project_id: int) -> str:
-        return self.transactions_topic
+        return cast(str, self.transactions_topic)
 
     def get_producer(self, topic: str) -> Producer:
         if topic not in self.__producers:
@@ -53,21 +64,21 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         return self.__producers[topic]
 
-    def delivery_callback(self, error, message):
+    def delivery_callback(self, error: Optional[KafkaError], message: KafkaMessage) -> None:
         if error is not None:
             logger.warning("Could not publish message (error: %s): %r", error, message)
 
     def _get_headers_for_insert(
         self,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
+        event: Event,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: Optional[str],
         received_timestamp: float,
-        skip_consume,
+        skip_consume: bool,
         group_states: Optional[GroupStates] = None,
-    ) -> Mapping[str, str]:
+    ) -> MutableMapping[str, str]:
 
         # HACK: We are putting all this extra information that is required by the
         # post process forwarder into the headers so we can skip parsing entire json
@@ -84,7 +95,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         # we strip `None` values here so later in the pipeline they can be
         # cleanly encoded without nullability checks
-        def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
+        def strip_none_values(value: Mapping[str, Optional[str]]) -> MutableMapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
         send_new_headers = options.get("eventstream:kafka-headers")
@@ -121,16 +132,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
+        event: Union[Event, GroupEvent],
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: Optional[str],
         received_timestamp: float,
-        skip_consume=False,
+        skip_consume: bool = False,
         group_states: Optional[GroupStates] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         event_type = self._get_event_type(event)
 
         assign_partitions_randomly = (
@@ -148,7 +159,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
 
-        return super().insert(
+        super().insert(
             event,
             is_new,
             is_regression,
@@ -214,7 +225,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             # flush() is a convenience method that calls poll() until len() is zero
             producer.flush()
 
-    def requires_post_process_forwarder(self):
+    def requires_post_process_forwarder(self) -> bool:
         return True
 
     def _build_streaming_consumer(
@@ -265,7 +276,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
+        entity: PostProcessForwarderType,
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -275,7 +286,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
-    ):
+    ) -> None:
         logger.debug(f"Starting post process forwarder to consume {entity} messages")
         if entity == PostProcessForwarderType.TRANSACTIONS:
             default_topic = self.transactions_topic
@@ -298,7 +309,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             strict_offset_reset,
         )
 
-        def handler(signum, frame):
+        def handler(signum: int, frame: Any) -> None:
             consumer.signal_shutdown()
             for producer in self.__producers.values():
                 producer.flush()
