@@ -4,7 +4,7 @@ from unittest.mock import Mock, call
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import PerformanceMNPlusOneDBQueriesGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
@@ -37,7 +37,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint="1-1011-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
                 op="db",
-                type=PerformanceMNPlusOneDBQueriesGroupType,
+                type=PerformanceNPlusOneGroupType,
                 desc="SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
                 parent_span_ids=[],
                 cause_span_ids=[],
@@ -69,7 +69,7 @@ class MNPlusOneDBDetectorTest(TestCase):
                 ],
             )
         ]
-        assert problems[0].title == "MN+1 Query"
+        assert problems[0].title == "N+1 Query"
 
     def test_does_not_detect_truncated_m_n_plus_one(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")
