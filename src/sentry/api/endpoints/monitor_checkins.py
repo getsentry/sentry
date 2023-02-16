@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import List
 
-from django.conf import settings
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
@@ -26,13 +25,9 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey
-from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics
 
-checkin_ratelimiter = RedisSlidingWindowRateLimiter(
-    cluster=getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
-)
 CHECKIN_QUOTA_LIMIT = 5
 CHECKING_QUOTA_WINDOW = 60
 
