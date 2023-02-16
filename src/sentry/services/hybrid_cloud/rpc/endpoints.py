@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Callable, Generic, Mapping, MutableMapping, Type, TypeVar
+from typing import Any, Callable, Generic, Iterable, Mapping, MutableMapping, Type, TypeVar
 
 from sentry.silo import SiloMode
 
@@ -8,7 +8,8 @@ _RPC_METHOD_LABEL = "__is_hc_rpc_method"
 
 
 class RpcServiceParameter:
-    def __init__(self, parameter: inspect.Parameter) -> None:
+    def __init__(self, parent_method: "RpcServiceMethod", parameter: inspect.Parameter) -> None:
+        self.parent_method = parent_method
         self.name = parameter.name
         self.annotation = self._check_annotation(parameter.annotation)
 
@@ -30,16 +31,29 @@ class RpcServiceParameter:
             # where it is used).
             raise TypeError(f"String annotation on {self.name!r}")
 
+        # Types such as List, Mapping, etc., are hitting here.
+        # TODO: Handle them somehow; fall through otherwise
+        return None
+
         raise TypeError(f"Unexpected annotation type on {self.name!r}: {type(annotation)}")
+
+    def __str__(self) -> str:
+        return f"{self.parent_method}.{self.name}"
 
 
 class RpcServiceMethod:
-    def __init__(self, method: Callable[..., Any]) -> None:
+    def __init__(
+        self, parent_endpoint: "RpcServiceEndpoint", method_body: Callable[..., Any]
+    ) -> None:
+        self.parent_endpoint = parent_endpoint
+        self.name = method_body.__name__
         self.parameters = tuple(
-            RpcServiceParameter(parameter)
-            for parameter in inspect.signature(method).parameters.values()
+            RpcServiceParameter(self, parameter)
+            for parameter in inspect.signature(method_body).parameters.values()
         )
-        assert self.parameters
+
+    def __str__(self) -> str:
+        return f"{self.parent_endpoint}.{self.name}"
 
 
 class RpcServiceEndpoint(Generic[_ServiceClass]):
@@ -47,17 +61,16 @@ class RpcServiceEndpoint(Generic[_ServiceClass]):
         self.silo_mode = silo_mode
         self.name = name
         self.service_obj = service_obj
-        self.method_table = self._build_method_table(service_obj)
+        self.method_table = {m.name: m for m in self._build_method_objs()}
 
-    @staticmethod
-    def _build_method_table(service_obj: _ServiceClass) -> Mapping[str, RpcServiceMethod]:
-        table = {}
-        for attr_name in dir(service_obj):
-            attr = getattr(service_obj, attr_name)
+    def _build_method_objs(self) -> Iterable[RpcServiceMethod]:
+        for attr_name in dir(self.service_obj):
+            attr = getattr(self.service_obj, attr_name)
             if callable(attr) and getattr(attr, _RPC_METHOD_LABEL, False):
-                method_obj = RpcServiceMethod(attr)
-                table[attr_name] = method_obj
-        return table
+                yield RpcServiceMethod(self, attr)
+
+    def __str__(self) -> str:
+        return self.name
 
 
 _rpc_service_registry: MutableMapping[str, RpcServiceEndpoint[Any]] = {}
