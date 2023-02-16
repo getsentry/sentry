@@ -20,9 +20,10 @@ def get_users_for_commits(item_list, user=None) -> Mapping[str, Author]:
 
 @register(Commit)
 class CommitSerializer(Serializer):
-    def __init__(self, exclude=None, include=None, *args, **kwargs):
+    def __init__(self, exclude=None, include=None, type=None, *args, **kwargs):
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
+        self.type = type or ""
 
     def get_attrs(self, item_list, user):
         if "author" not in self.exclude:
@@ -54,6 +55,7 @@ class CommitSerializer(Serializer):
                 "repository": repository_objs.get(str(item.repository_id), {}),
                 "user": users_by_author.get(str(item.author_id), {}) if item.author_id else {},
                 "pull_request": pull_request_by_commit.get(item.key, None),
+                "type": self.type,
             }
 
         return result
@@ -64,6 +66,7 @@ class CommitSerializer(Serializer):
             "message": obj.message,
             "dateCreated": obj.date_added,
             "pullRequest": attrs["pull_request"],
+            "type": attrs["type"],
         }
         if "repository" not in self.exclude:
             d["repository"] = attrs["repository"]

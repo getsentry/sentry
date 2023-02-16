@@ -322,7 +322,12 @@ def get_serialized_event_file_committers(
         return [
             {
                 "author": author,
-                "commits": [serialize(commit, serializer=CommitSerializer(exclude=["author"]))],
+                "commits": [
+                    serialize(
+                        commit,
+                        serializer=CommitSerializer(exclude=["author"], type="via SCM integration"),
+                    )
+                ],
             }
         ]
 
@@ -340,7 +345,8 @@ def get_serialized_event_file_committers(
         )
         commits = [commit for committer in committers for commit in committer["commits"]]
         serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
-            [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
+            [c for (c, score) in commits],
+            serializer=CommitSerializer(exclude=["author"], type="via commit in release"),
         )
 
         serialized_commits_by_id = {}
