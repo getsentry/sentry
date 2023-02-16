@@ -557,7 +557,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Renders TPM widget
       expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
+      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
     it('fetches transaction threshold', function () {
@@ -968,7 +968,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Renders TPM widget
       expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
+      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
     it('fetches transaction threshold', function () {
