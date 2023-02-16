@@ -56,17 +56,18 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
     if len(proguard_uuids) == 0:
         return
 
-    for proguard_uuid in proguard_uuids:
-        mapper = get_proguard_mapper(proguard_uuid, project)
-        if mapper is None:
-            return
+    with sentry_sdk.start_span(op="proguard.deobfuscate_view_hierarchy_data"):
+        for proguard_uuid in proguard_uuids:
+            mapper = get_proguard_mapper(proguard_uuid, project)
+            if mapper is None:
+                return
 
-        windows_to_deobfuscate = [*view_hierarchy.get("windows")]
-        while windows_to_deobfuscate:
-            window = windows_to_deobfuscate.pop()
-            window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
-            if children := window.get("children"):
-                windows_to_deobfuscate.extend(children)
+            windows_to_deobfuscate = [*view_hierarchy.get("windows")]
+            while windows_to_deobfuscate:
+                window = windows_to_deobfuscate.pop()
+                window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
+                if children := window.get("children"):
+                    windows_to_deobfuscate.extend(children)
 
 
 def deobfuscate_view_hierarchy(data):
@@ -77,7 +78,7 @@ def deobfuscate_view_hierarchy(data):
     ):
         return
 
-    with sentry_sdk.start_span(op="proguard.deobfuscate_view_hierarchy"):
+    with sentry_sdk.start_transaction(name="proguard.deobfuscate_view_hierarchy", sampled=True):
         cache_key = cache_key_for_event(data)
         attachments = [*attachment_cache.get(cache_key)]
 
