@@ -1,6 +1,18 @@
 import inspect
-from typing import Any, Callable, Generic, Iterable, Mapping, MutableMapping, Type, TypeVar
+from functools import cached_property
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Generic,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Type,
+    TypeVar,
+)
 
+from sentry.services.hybrid_cloud import SiloDataInterface
 from sentry.silo import SiloMode
 
 _ServiceClass = TypeVar("_ServiceClass")
@@ -11,7 +23,7 @@ class RpcServiceParameter:
     def __init__(self, parent_method: "RpcServiceMethod", parameter: inspect.Parameter) -> None:
         self.parent_method = parent_method
         self.name = parameter.name
-        self.annotation = self._check_annotation(parameter.annotation)
+        self.type_hint = self._check_annotation(parameter.annotation)
 
     def _check_annotation(self, annotation: Any) -> Type[Any]:
         if isinstance(annotation, type):
@@ -37,6 +49,14 @@ class RpcServiceParameter:
 
         raise TypeError(f"Unexpected annotation type on {self.name!r}: {type(annotation)}")
 
+    def deserialize(self, value: Any) -> Any:
+        if issubclass(self.type_hint, SiloDataInterface):
+            return self.type_hint.parse_obj(value)
+
+        # Else, assume it's a primitive
+        # TODO: Handle lists and stuff
+        return value
+
     def __str__(self) -> str:
         return f"{self.parent_method}.{self.name}"
 
@@ -46,11 +66,27 @@ class RpcServiceMethod:
         self, parent_endpoint: "RpcServiceEndpoint", method_body: Callable[..., Any]
     ) -> None:
         self.parent_endpoint = parent_endpoint
-        self.name = method_body.__name__
+        self.method_body = method_body
         self.parameters = tuple(
             RpcServiceParameter(self, parameter)
             for parameter in inspect.signature(method_body).parameters.values()
         )
+
+    @property
+    def name(self) -> str:
+        return self.method_body.__name__
+
+    @cached_property
+    def parameter_names(self) -> FrozenSet[str]:
+        return frozenset(p.name for p in self.parameters)
+
+    def execute(self, serial_arguments: Mapping[str, Any]) -> Any:
+        # TODO: Handle defaults for missing arguments; error on bogus arg names.
+        arguments = {
+            name: self.parameters[name].deserialize(value)
+            for (name, value) in serial_arguments.items()
+        }
+        return self.method_body(**arguments)
 
     def __str__(self) -> str:
         return f"{self.parent_endpoint}.{self.name}"
@@ -123,4 +159,5 @@ def look_up_method(service_name: str, method_name: str) -> RpcServiceMethod:
 
 
 def dispatch(service_name: str, method_name: str, serial_arguments: Mapping[str, Any]) -> Any:
-    pass
+    method = look_up_method(service_name, method_name)
+    return method.execute(serial_arguments)

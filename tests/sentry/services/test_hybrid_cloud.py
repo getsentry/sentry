@@ -39,6 +39,7 @@ class SiloDataInterfaceTest(TestCase):
             notifications.ApiNotificationSetting,
             organization.ApiOrganization,
             organization.ApiOrganizationFlags,
+            organization.ApiOrganizationInvite,
             organization.ApiOrganizationMember,
             organization.ApiOrganizationMemberFlags,
             organization.ApiOrganizationSummary,
