@@ -1460,7 +1460,7 @@ SENTRY_BUFFER_OPTIONS = {}
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
 SENTRY_CACHE = None
-SENTRY_CACHE_OPTIONS = {}
+SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
