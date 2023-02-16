@@ -12,6 +12,10 @@ from sentry.utils.safe import get_path
 CACHE_TIMEOUT = 3600
 
 
+def is_valid_image(image):
+    return bool(image) and image.get("type") == "proguard" and image.get("uuid") is not None
+
+
 def has_proguard_file(data):
     """
     Checks whether an event contains a proguard file
@@ -20,20 +24,11 @@ def has_proguard_file(data):
     return get_path(images, 0, "type") == "proguard"
 
 
-def get_proguard_uuid(event: Event):
-    uuid = None
-    if "debug_meta" in event:
-        images = event["debug_meta"].get("images", [])
-        if not isinstance(images, list):
-            return
-        if event.get("project") is None:
-            return
-
-        for image in images:
-            if image.get("type") == "proguard":
-                uuid = image.get("uuid")
-
-    return uuid
+def get_proguard_images(event: Event):
+    images = set()
+    for image in get_path(event, "debug_meta", "images", filter=is_valid_image, default=()):
+        images.add(str(image["uuid"]).lower())
+    return images
 
 
 def get_proguard_mapper(uuid: str, project: Project):
@@ -57,20 +52,21 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
     If we're unable to fetch a ProGuard uuid or unable to init the mapper,
     then the view hierarchy remains unmodified.
     """
-    proguard_uuid = get_proguard_uuid(event_data)
-    if proguard_uuid is None:
+    proguard_uuids = get_proguard_images(event_data)
+    if len(proguard_uuids) == 0:
         return
 
-    mapper = get_proguard_mapper(proguard_uuid, project)
-    if mapper is None:
-        return
+    for proguard_uuid in proguard_uuids:
+        mapper = get_proguard_mapper(proguard_uuid, project)
+        if mapper is None:
+            return
 
-    windows_to_deobfuscate = [*view_hierarchy.get("windows")]
-    while windows_to_deobfuscate:
-        window = windows_to_deobfuscate.pop()
-        window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
-        if window.get("children"):
-            windows_to_deobfuscate.extend(window.get("children"))
+        windows_to_deobfuscate = [*view_hierarchy.get("windows")]
+        while windows_to_deobfuscate:
+            window = windows_to_deobfuscate.pop()
+            window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
+            if children := window.get("children"):
+                windows_to_deobfuscate.extend(children)
 
 
 def deobfuscate_view_hierarchy(data):
