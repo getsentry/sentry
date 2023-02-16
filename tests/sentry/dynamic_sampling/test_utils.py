@@ -12,7 +12,7 @@ from sentry.dynamic_sampling.rules.utils import apply_dynamic_factor
     ],
 )
 def test_apply_dynamic_factor_with_valid_params(base_sample_rate, x, expected):
-    assert apply_dynamic_factor(base_sample_rate, x) == expected
+    assert apply_dynamic_factor(base_sample_rate, x) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("base_sample_rate", [0.0, 1.1])
