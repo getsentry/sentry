@@ -15,7 +15,6 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.notifications import ApiNotificationSetting
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
@@ -26,6 +25,7 @@ from sentry.types.integrations import (
 
 if TYPE_CHECKING:
     from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
+    from sentry.services.hybrid_cloud.notifications import ApiNotificationSetting
     from sentry.services.hybrid_cloud.user import APIUser
 
 

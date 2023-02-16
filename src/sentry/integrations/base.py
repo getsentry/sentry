@@ -5,7 +5,7 @@ import logging
 import sys
 from collections import namedtuple
 from enum import Enum
-from typing import Any, Dict, FrozenSet, Mapping, MutableMapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Mapping, MutableMapping, Optional, Sequence
 from urllib.request import Request
 
 from sentry import audit_log
@@ -14,7 +14,6 @@ from sentry.exceptions import InvalidIdentity
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -29,6 +28,10 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.utils.audit import create_audit_entry
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration
+
 
 FeatureDescription = namedtuple(
     "FeatureDescription",
@@ -268,6 +271,8 @@ class IntegrationInstallation:
 
     @property
     def org_integration(self) -> APIOrganizationIntegration | None:
+        from sentry.services.hybrid_cloud.integration import integration_service
+
         if not hasattr(self, "_org_integration"):
             self._org_integration = integration_service.get_organization_integration(
                 integration_id=self.model.id,
@@ -293,6 +298,8 @@ class IntegrationInstallation:
         """
         Update the configuration field for an organization integration.
         """
+        from sentry.services.hybrid_cloud.integration import integration_service
+
         if not self.org_integration:
             return
 

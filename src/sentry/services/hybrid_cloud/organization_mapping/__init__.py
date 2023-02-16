@@ -1,9 +1,10 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from django.utils import timezone
 
+from sentry.models import Organization
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
@@ -15,9 +16,6 @@ from sentry.services.hybrid_cloud import (
     stubbed,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models import Organization
 
 
 class APIOrganizationMapping(SiloDataInterface):

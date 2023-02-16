@@ -1,6 +1,7 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Protocol, Sequence
+from typing import List, Optional, Protocol, Sequence
 
+from sentry.models import NotificationSetting
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -15,9 +16,6 @@ from sentry.services.hybrid_cloud import (
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviders
-
-if TYPE_CHECKING:
-    from sentry.models import NotificationSetting
 
 
 class ApiNotificationSetting(SiloDataInterface):

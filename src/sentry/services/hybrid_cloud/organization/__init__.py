@@ -1,10 +1,11 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 from pydantic import Field
 
 from sentry.models.organization import OrganizationStatus
 from sentry.roles import team_roles
+from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     SiloDataInterface,
@@ -13,9 +14,6 @@ from sentry.services.hybrid_cloud import (
 )
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.roles.manager import TeamRole
 
 
 def team_status_visible() -> int:

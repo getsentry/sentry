@@ -1,9 +1,10 @@
 import abc
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 from pydantic.fields import Field
 
 from sentry.constants import SentryAppInstallationStatus
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     SiloDataInterface,
@@ -11,9 +12,6 @@ from sentry.services.hybrid_cloud import (
     stubbed,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models import SentryApp, SentryAppInstallation
 
 
 class ApiSentryApp(SiloDataInterface):

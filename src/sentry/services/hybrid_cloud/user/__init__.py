@@ -1,8 +1,9 @@
 import datetime
 from abc import abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, FrozenSet, List, Optional, TypedDict
+from typing import FrozenSet, List, Optional, TypedDict
 
+from sentry.models import Group
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     SiloDataInterface,
@@ -11,9 +12,6 @@ from sentry.services.hybrid_cloud import (
 )
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models import Group
 
 
 class APIAvatar(SiloDataInterface):

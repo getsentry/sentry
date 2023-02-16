@@ -9,8 +9,9 @@ _RPC_METHOD_LABEL = "__is_hc_rpc_method"
 
 class RpcServiceMethod:
     def __init__(self, method: Callable[..., Any]) -> None:
-        argspec = inspect.getfullargspec(method)
-        assert argspec
+        signature = inspect.signature(method)
+        parameters = list(signature.parameters.values())
+        assert parameters
 
 
 class RpcServiceEndpoint(Generic[_ServiceClass]):

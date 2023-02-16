@@ -1,6 +1,7 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     SiloDataInterface,
@@ -8,9 +9,6 @@ from sentry.services.hybrid_cloud import (
     stubbed,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models.identity import Identity, IdentityProvider
 
 
 class APIIdentityProvider(SiloDataInterface):

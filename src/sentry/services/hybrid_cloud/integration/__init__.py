@@ -1,10 +1,16 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pydantic.fields import Field
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import (
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationProvider,
+)
+from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud import (
     ApiPaginationArgs,
     ApiPaginationResult,
@@ -14,14 +20,6 @@ from sentry.services.hybrid_cloud import (
     stubbed,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.integrations.base import (
-        IntegrationFeatures,
-        IntegrationInstallation,
-        IntegrationProvider,
-    )
-    from sentry.models.integrations import Integration, OrganizationIntegration
 
 
 class APIIntegration(SiloDataInterface):

@@ -3,7 +3,7 @@ import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
 
 from django.contrib.auth.models import AnonymousUser
 from pydantic.fields import Field
@@ -11,6 +11,7 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+from sentry.models import OrganizationMember
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
@@ -22,9 +23,6 @@ from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrgani
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
-
-if TYPE_CHECKING:
-    from sentry.models import OrganizationMember
 
 
 class ApiAuthenticatorType(IntEnum):
