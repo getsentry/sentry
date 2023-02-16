@@ -115,7 +115,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format="json",
         )
 
-        assert json.loads(response.content) == {
+        data = json.loads(response.content)
+        data["featureData"] = sorted(data["featureData"], key=lambda a: a["featureId"])
+
+        assert data == {
             "name": self.published_app.name,
             "author": "A Company",
             "slug": self.published_app.slug,
@@ -173,7 +176,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data["events"] == {"issue"}
         assert response.data["uuid"] == self.unpublished_app.uuid
         assert response.data["webhookUrl"] == "https://newurl.com"
-        assert response.data["featureData"] == [
+        assert sorted(response.data["featureData"], key=lambda a: a["featureId"]) == [
             {
                 "featureId": 1,
                 "featureGate": "integrations-issue-link",
