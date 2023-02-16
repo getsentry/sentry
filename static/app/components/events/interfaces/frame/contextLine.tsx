@@ -57,11 +57,15 @@ const StyledLi = styled('li')`
 
   .lineNo {
     display: flex;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    height: 100%;
     text-align: right;
-    padding-left: ${space(3)};
-    padding-right: ${space(1.5)};
+    padding-left: ${space(2)};
+    padding-right: ${space(2)};
     margin-right: ${space(1.5)};
-    height: 24px;
     background: transparent;
     z-index: 1;
     min-width: 58px;
@@ -107,5 +111,6 @@ const StyledLi = styled('li')`
 `;
 
 const LineContent = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 58px 1fr;
 `;
