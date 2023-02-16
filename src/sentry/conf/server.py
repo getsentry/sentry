@@ -1230,6 +1230,8 @@ SENTRY_FEATURES = {
     "organizations:ds-prioritise-by-project-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable View Hierarchies deobfuscation for proguard obfuscated files
+    "organizations:view-hierarchy-deobfuscation": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Disables multiselect platform in the onboarding flow
