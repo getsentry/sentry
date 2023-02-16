@@ -194,7 +194,7 @@ export const icons: IconData[] = [
   {
     id: 'refresh',
     groups: ['action'],
-    keywords: ['reload', 'restart'],
+    keywords: ['reload', 'restart', 'repeat'],
   },
   {
     id: 'bookmark',
@@ -694,11 +694,6 @@ export const icons: IconData[] = [
     id: 'slow',
     groups: ['status'],
     keywords: ['frame', 'mobile'],
-  },
-  {
-    id: 'repeat',
-    groups: ['status', 'action'],
-    keywords: ['frame', 'mobile', 'cycle'],
   },
   {
     id: 'teamwork',
