@@ -227,6 +227,22 @@ SEARCH_STRATEGIES: Mapping[int, GroupSearchStrategy] = {
 }
 
 
+def _update_profiling_search_filters(
+    search_filters: Sequence[SearchFilter],
+) -> Sequence[SearchFilter]:
+    updated_filters = []
+
+    for sf in search_filters:
+        # XXX: we replace queries on these keys to something that should return nothing since
+        # profiling issues doesn't support have stacktraces
+        if sf.key.name in ("notHandled", "error.handled"):
+            updated_filters.append(SearchFilter(SearchKey("1"), "=", SearchValue("2")))
+        else:
+            updated_filters.append(sf)
+
+    return updated_filters
+
+
 SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
     GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
@@ -234,6 +250,7 @@ SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
         for sf in search_filters
         if sf.key.name != "message"
     ],
+    GroupCategory.PROFILE.value: _update_profiling_search_filters,
 }
 
 

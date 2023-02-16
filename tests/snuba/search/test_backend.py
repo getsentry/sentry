@@ -2491,6 +2491,18 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         assert list(results) == []
         assert results.hits == 2
 
+    def test_not_handled_function(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.handled:0",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            assert list(results) == []
+
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):
     @property
