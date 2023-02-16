@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -191,6 +191,14 @@ function Onboarding(props: Props) {
     );
   };
 
+  const jumpToSetupProject = useCallback(() => {
+    const nextStep = onboardingSteps.find(({id}) => id === 'setup-docs');
+    if (!nextStep) {
+      return;
+    }
+    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+  }, [onboardingSteps, organization]);
+
   if (!stepObj || stepIndex === -1) {
     return (
       <Redirect
@@ -234,6 +242,7 @@ function Onboarding(props: Props) {
                 route={props.route}
                 router={props.router}
                 location={props.location}
+                jumpToSetupProject={jumpToSetupProject}
                 {...{
                   genSkipOnboardingLink,
                 }}
