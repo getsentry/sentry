@@ -7,11 +7,39 @@ _ServiceClass = TypeVar("_ServiceClass")
 _RPC_METHOD_LABEL = "__is_hc_rpc_method"
 
 
+class RpcServiceParameter:
+    def __init__(self, parameter: inspect.Parameter) -> None:
+        self.name = parameter.name
+        self.annotation = self._check_annotation(parameter.annotation)
+
+    def _check_annotation(self, annotation: Any) -> Type[Any]:
+        if isinstance(annotation, type):
+            return annotation
+
+        if isinstance(annotation, str):
+            # Type hints on RPC service methods must have visibility to actual type
+            # objects. If you see this error, ensure that:
+            #   1. The method's type hints are not declared as strings.
+            #   2. The types are not imported in an `if TYPE_CHECKING` block.
+            #   3. There is no `from __future__ import annotations` on the module where
+            #      the service is defined.
+            # Fulfilling the above conditions may cause a circular import. The
+            # solution usually is to find where the RPC service is being imported and
+            # make it narrower (that is: move the *other* import statement to an `if
+            # TYPE_CHECKING` block, or import the service locally in the function
+            # where it is used).
+            raise TypeError(f"String annotation on {self.name!r}")
+
+        raise TypeError(f"Unexpected annotation type on {self.name!r}: {type(annotation)}")
+
+
 class RpcServiceMethod:
     def __init__(self, method: Callable[..., Any]) -> None:
-        signature = inspect.signature(method)
-        parameters = list(signature.parameters.values())
-        assert parameters
+        self.parameters = tuple(
+            RpcServiceParameter(parameter)
+            for parameter in inspect.signature(method).parameters.values()
+        )
+        assert self.parameters
 
 
 class RpcServiceEndpoint(Generic[_ServiceClass]):
