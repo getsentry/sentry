@@ -119,9 +119,19 @@ function EventEntryContent({
 
     case EntryType.THREADS:
       return hasNativeStackTraceV2 ? (
-        <ThreadsV2 event={event} data={entry.data} projectSlug={projectSlug} />
+        <ThreadsV2
+          event={event}
+          data={entry.data}
+          projectSlug={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
       ) : (
-        <Threads event={event} data={entry.data} projectSlug={projectSlug} />
+        <Threads
+          event={event}
+          data={entry.data}
+          projectSlug={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
       );
 
     case EntryType.DEBUGMETA:
