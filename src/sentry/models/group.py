@@ -224,7 +224,7 @@ def get_oldest_or_latest_event_for_environments(
             if group_event.occurrence is None:
                 logger.error(
                     "Failed to fetch occurrence for event",
-                    extra={"group_id", group.id, "occurrence_id", occurrence_id},
+                    extra={"group_id": group.id, "occurrence_id": occurrence_id},
                 )
         return group_event
 
