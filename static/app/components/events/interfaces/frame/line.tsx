@@ -452,20 +452,12 @@ const PackageInfo = styled('div')`
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
-  border-radius: 50px;
-  padding: 1px 3px;
-  margin-left: ${space(1)};
-  border-width: thin;
-  border-style: solid;
-  border-color: ${p => p.theme.pink200};
-  color: ${p => p.theme.pink400};
-  background-color: ${p => p.theme.backgroundSecondary};
-  white-space: nowrap;
 `;
 
 const VertCenterWrapper = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: space-between;
 `;
 
 const RepeatedContent = styled(VertCenterWrapper)`
