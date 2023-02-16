@@ -260,12 +260,13 @@ def _process_message(
                 return None
 
             if "event_data" in kwargs:
+                sentry_sdk.set_tag("result", "success")
                 return process_event_and_issue_occurrence(
                     kwargs["occurrence_data"], kwargs["event_data"]
                 )
             else:
+                sentry_sdk.set_tag("result", "success")
                 return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
-            sentry_sdk.set_tag("result", "success")
         except (ValueError, KeyError) as e:
             sentry_sdk.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
