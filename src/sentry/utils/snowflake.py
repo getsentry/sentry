@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Tuple
@@ -92,6 +93,10 @@ def generate_snowflake_id(redis_key: str) -> int:
         segment_values[TIME_DIFFERENCE],
         segment_values[REGION_SEQUENCE],
     ) = get_sequence_value_from_redis(redis_key, segment_values[TIME_DIFFERENCE])
+
+    if os.getenv("PYTEST_CURRENT_TEST") is not None:
+        segment_values[REGION_SEQUENCE] += abs(hash(os.getenv("PYTEST_CURRENT_TEST")))
+        segment_values[REGION_SEQUENCE] %= 0b1111
 
     for segment in BIT_SEGMENT_SCHEMA:
         segment.validate(segment_values[segment])

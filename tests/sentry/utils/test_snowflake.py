@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 import pytest
@@ -26,6 +27,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self):
+        del os.environ["PYTEST_CURRENT_TEST"]
         snowflake_id = generate_snowflake_id("test_redis_key")
         expected_value = (16 << 48) + (
             int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
@@ -52,6 +54,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_sequence(self):
+        del os.environ["PYTEST_CURRENT_TEST"]
         # next id in the same timestamp, should be 1 greater than last id up to 16 timestamps
         # the 17th will be at the previous timestamp
         snowflake_id = generate_snowflake_id("test_redis_key")
