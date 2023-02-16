@@ -155,7 +155,7 @@ function Onboarding(props: Props) {
       return;
     }
 
-    // Users is going backto select a new platform,
+    // The user is going back to select a new platform,
     // so we silently delete the last created project
     if (stepIndex === onboardingSteps.length - 1) {
       const selectedPlatforms = clientState?.selectedPlatforms || [];
