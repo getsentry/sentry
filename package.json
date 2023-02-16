@@ -87,6 +87,7 @@
     "cbor-web": "^8.1.0",
     "classnames": "2.3.1",
     "color": "^4.2.3",
+    "colors": "1.4.0",
     "compression-webpack-plugin": "10.0.0",
     "copy-text-to-clipboard": "3.0.1",
     "copy-webpack-plugin": "^11.0.0",
