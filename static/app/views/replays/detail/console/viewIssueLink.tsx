@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
 import ShortId from 'sentry/components/shortId';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
@@ -23,11 +22,9 @@ function ViewIssueLink({breadcrumb}: Props) {
     pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/?referrer=replay-console`,
   };
   return (
-    <Link to={to}>
-      <ShortIdBreadrcumb>
-        <ShortId to={to} shortId={groupShortId} />
-      </ShortIdBreadrcumb>
-    </Link>
+    <ShortIdBreadrcumb>
+      <ShortId to={to} shortId={groupShortId} />
+    </ShortIdBreadrcumb>
   );
 }
 
