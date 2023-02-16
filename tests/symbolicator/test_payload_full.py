@@ -1,4 +1,3 @@
-import re
 import zipfile
 from io import BytesIO
 from unittest.mock import patch
@@ -12,7 +11,7 @@ from sentry.models import File, ProjectDebugFile
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.symbolicator import insta_snapshot_stacktrace_data
+from tests.symbolicator import insta_snapshot_stacktrace_data, redact_location
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -251,19 +250,3 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         candidates = event.data["debug_meta"]["images"][0]["candidates"]
         redact_location(candidates)
         self.insta_snapshot(candidates)
-
-
-def redact_location(candidates):
-    """Redacts the sentry location URI to be independent of the specific ID.
-
-    This modifies the data passed in, returns None.
-    """
-    location_re = re.compile("^sentry://project_debug_file/[0-9]+$")
-    for candidate in candidates:
-        try:
-            location = candidate["location"]
-        except KeyError:
-            continue
-        else:
-            if location_re.search(location):
-                candidate["location"] = "sentry://project_debug_file/x"
