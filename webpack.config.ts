@@ -39,7 +39,6 @@ const {env} = process;
 env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
-const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
@@ -476,7 +475,7 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
-if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
+if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
     'fixtures/integration-docs/_platforms.json'
