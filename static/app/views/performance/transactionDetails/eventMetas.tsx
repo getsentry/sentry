@@ -171,14 +171,17 @@ class EventMetas extends Component<Props, State> {
                   subtext={httpStatus}
                 />
               )}
-              {isTransaction(event) && event.contexts.browser && (
-                <MetaData
-                  headingText={t('Browser')}
-                  tooltipText={t('The browser used in this transaction.')}
-                  bodyText={<BrowserDisplay event={event} />}
-                  subtext={event.contexts.browser?.version}
-                />
-              )}
+              {isTransaction(event) &&
+                (event.contexts.browser ? (
+                  <MetaData
+                    headingText={t('Browser')}
+                    tooltipText={t('The browser used in this transaction.')}
+                    bodyText={<BrowserDisplay event={event} />}
+                    subtext={event.contexts.browser?.version}
+                  />
+                ) : (
+                  <span />
+                ))}
               {hasReplay && (
                 <ReplayButtonContainer>
                   <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
