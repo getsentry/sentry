@@ -4,12 +4,10 @@ from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 
 
-@region_silo_test(stable=True)
 class DatasetTest(SnubaTestCase, TestCase):  # type: ignore[misc]
     def test_query_dataset_returns_empty(self) -> None:
         # make a random query just to verify the table exists

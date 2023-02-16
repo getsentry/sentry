@@ -731,12 +731,10 @@ class AuthHelper(Pipeline):
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         # This is a temporary step to keep test_helper integrated
         # TODO: Move this conversion further upstream
-        api_organization = DatabaseBackedOrganizationService.serialize_organization(
-            self.organization
-        )
+        rpc_org = DatabaseBackedOrganizationService.serialize_organization(self.organization)
 
         return AuthIdentityHandler(
-            self.provider_model, self.provider, api_organization, self.request, identity
+            self.provider_model, self.provider, rpc_org, self.request, identity
         )
 
     @transaction.atomic  # type: ignore

@@ -257,7 +257,7 @@ def test_scrubbing_after_processing(
         def get_event_preprocessors(self, data):
             # Right now we do not scrub data from event preprocessors
             def more_extra(data):
-                data["extra"]["aaa2"] = "event preprocessor"
+                data["extra"]["ooo2"] = "event preprocessor"
                 return data
 
             return [more_extra]
@@ -268,11 +268,11 @@ def test_scrubbing_after_processing(
     register_plugin(globals(), TestPlugin)
 
     if setting_method == "datascrubbers":
-        options_model.update_option("sentry:sensitive_fields", ["a"])
+        options_model.update_option("sentry:sensitive_fields", ["o"])
         options_model.update_option("sentry:scrub_data", True)
     elif setting_method == "piiconfig":
         options_model.update_option(
-            "sentry:relay_pii_config", '{"applications": {"extra.aaa": ["@anything:replace"]}}'
+            "sentry:relay_pii_config", '{"applications": {"extra.ooo": ["@anything:replace"]}}'
         )
     else:
         raise ValueError(setting_method)
@@ -282,7 +282,7 @@ def test_scrubbing_after_processing(
         "platform": "python",
         "logentry": {"formatted": "test"},
         "event_id": EVENT_ID,
-        "extra": {"aaa": "remove me"},
+        "extra": {"ooo": "remove me"},
     }
 
     mock_event_processing_store.get.return_value = data
@@ -293,7 +293,7 @@ def test_scrubbing_after_processing(
     process_event(cache_key="e:1", start_time=1, data_has_changed=True)
 
     ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
-    assert event["extra"] == {"aaa": "[Filtered]", "aaa2": "event preprocessor"}
+    assert event["extra"] == {"ooo": "[Filtered]", "ooo2": "event preprocessor"}
 
     mock_save_event.delay.assert_called_once_with(
         cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id

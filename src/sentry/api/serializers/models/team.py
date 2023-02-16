@@ -24,7 +24,7 @@ from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import (
     Access,
-    SingularApiAccessOrgOptimization,
+    SingularRpcAccessOrgOptimization,
     maybe_singular_rpc_access_org_context,
 )
 from sentry.auth.superuser import is_active_superuser
@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 def _get_team_memberships(
     team_list: Sequence[Team],
     user: User,
-    optimization: SingularApiAccessOrgOptimization | None = None,
+    optimization: SingularRpcAccessOrgOptimization | None = None,
 ) -> Mapping[int, str | None]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
@@ -94,7 +94,7 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 
 def get_org_roles(
-    org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
+    org_ids: Set[int], user: User, optimization: SingularRpcAccessOrgOptimization | None = None
 ) -> Mapping[int, Sequence[str]]:
     """
     Get the roles the user has in each org

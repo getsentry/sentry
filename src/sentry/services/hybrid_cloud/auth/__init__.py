@@ -5,7 +5,7 @@ import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
+from typing import Any, Dict, Generator, List, Mapping, Tuple, Type
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import BaseAuthentication
@@ -18,9 +18,6 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcOrgani
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
-
-if TYPE_CHECKING:
-    from sentry.models import OrganizationMember
 
 
 class RpcAuthenticatorType(IntEnum):
@@ -325,7 +322,7 @@ class RpcAuthProviderFlags:
     scim_enabled: bool = False
 
 
-ApiAuthProviderFlags = RpcAuthProviderFlags
+RpcAuthProviderFlags
 
 
 @dataclass(eq=True, frozen=True)
@@ -359,6 +356,7 @@ class RpcOrganizationAuthConfig:
 
 ApiOrganizationAuthConfig = RpcOrganizationAuthConfig
 
+
 auth_service: AuthService = silo_mode_delegation(
     {
         SiloMode.MONOLITH: impl_with_db,
@@ -368,3 +366,5 @@ auth_service: AuthService = silo_mode_delegation(
         ),  # this must eventually be purely RPC
     }
 )
+
+from sentry.models import OrganizationMember
