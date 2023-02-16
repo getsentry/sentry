@@ -20,6 +20,10 @@ def import_(src):
         if obj.object._meta.app_label not in EXCLUDED_APPS:
             try:
                 obj.save()
+            # There are two integrity error exceptions we handle here.
+            # 1. Foreign key check failure
+            # 2. Duplicate key violation
+            # For both, it seems reasonable to continue importing and just display a warning message
             except IntegrityError as e:
                 click.echo(e, err=True)
 
