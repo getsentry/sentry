@@ -76,12 +76,17 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         return members
 
     def build_notification_footer_from_settings_url(self, settings_url: str) -> str:
-        if self.role and not self.scope:
+        if self.scope and not self.role:
             return (
-                "You are receiving this notification because you're listed as an organization "
-                f"{self.role.name} | {settings_url}"
+                "You are receiving this notification because you have the scope "
+                f"{self.scope} | {settings_url}"
             )
+
+        role_name = "Member"
+        if self.role:
+            role_name = self.role.name
+
         return (
-            "You are receiving this notification because you have the scope "
-            f"{self.scope} | {settings_url}"
+            "You are receiving this notification because you're listed as an organization "
+            f"{role_name} | {settings_url}"
         )
