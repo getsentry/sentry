@@ -34,6 +34,9 @@ class GithubRateLimitInfo:
     def next_window(self) -> str:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
+    def __repr__(self) -> str:
+        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
+
 
 class GitHubClientMixin(ApiClient):  # type: ignore
     allow_redirects = True
