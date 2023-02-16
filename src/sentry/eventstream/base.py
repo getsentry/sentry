@@ -29,6 +29,12 @@ if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
 
 
+class PostProcessForwarderType(str, Enum):
+    ERRORS = "errors"
+    TRANSACTIONS = "transactions"
+    ISSUE_PLATFORM = "search_issues"
+
+
 class ForwarderNotRequired(NotImplementedError):
     """
     Exception raised if this backend does not require a forwarder process to
@@ -201,7 +207,7 @@ class EventStream(Service):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
+        entity: PostProcessForwarderType,
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
