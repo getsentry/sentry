@@ -1,5 +1,11 @@
 import {DiamondStatus} from 'sentry/components/diamondStatus';
-import {IconCheckmark, IconExclamation, IconFire, IconTimer} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconExclamation,
+  IconFire,
+  IconPause,
+  IconTimer,
+} from 'sentry/icons';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
@@ -39,7 +45,7 @@ const statusMap: Record<MonitorStatus, StatusData> = {
     color: 'subText',
   },
   disabled: {
-    Icon: IconTimer,
+    Icon: (p: SVGIconProps) => <IconPause {...p} size="xs" />,
     color: 'subText',
   },
 };
