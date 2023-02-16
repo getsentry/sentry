@@ -186,7 +186,7 @@ const Context = ({
           const showStacktraceLink = hasStacktraceLink && isActive;
 
           return (
-            <StyledContextLine
+            <ContextLine
               key={index}
               line={line}
               isActive={isActive}
@@ -212,7 +212,7 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-            </StyledContextLine>
+            </ContextLine>
           );
         })}
 
@@ -245,67 +245,6 @@ const StyledClippedBox = styled(ClippedBox)`
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${space(1)};
-`;
-
-const StyledContextLine = styled(ContextLine)`
-  background: inherit;
-  z-index: 1000;
-  list-style: none;
-
-  &::marker {
-    content: none;
-  }
-
-  &:before {
-    content: counter(frame);
-    counter-increment: frame;
-    text-align: center;
-    padding-left: ${space(3)};
-    padding-right: ${space(1.5)};
-    margin-right: ${space(1.5)};
-    display: inline-block;
-    height: 24px;
-    background: transparent;
-    z-index: 1;
-    min-width: 58px;
-    border-right-style: solid;
-    border-right-color: transparent;
-  }
-
-  &.covered:before {
-    background: ${p => p.theme.green100};
-    border-right-color: ${p => p.theme.green300};
-  }
-
-  &.uncovered:before {
-    background: ${p => p.theme.red100};
-  }
-
-  &.partial:before {
-    background: ${p => p.theme.yellow100};
-    border-right-style: dashed;
-    border-right-color: ${p => p.theme.yellow300};
-  }
-
-  &.active {
-    background: ${p => p.theme.stacktraceActiveBackground};
-    color: ${p => p.theme.stacktraceActiveText};
-  }
-
-  &.active.partial:before {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.yellow200};
-  }
-
-  &.active.covered:before {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.green200};
-  }
-
-  &.active.uncovered:before {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.red200};
-  }
 `;
 
 const Wrapper = styled('ol')<{startLineNo: number}>`

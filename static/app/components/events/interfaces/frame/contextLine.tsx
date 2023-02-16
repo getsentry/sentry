@@ -1,26 +1,26 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+
+import {space} from 'sentry/styles/space';
 
 interface Props {
   colorClass: string;
   isActive: boolean;
-  line: [number, string];
+  line: [lineNo: number, content: string];
   children?: React.ReactNode;
   className?: string;
 }
 
-const ContextLine = function ({line, isActive, children, className, colorClass}: Props) {
+function ContextLine({line, isActive, children, className, colorClass}: Props) {
   let lineWs = '';
   let lineCode = '';
   if (typeof line[1] === 'string') {
     [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m)!;
   }
-  const Component = !children ? Fragment : Context;
   const hasCoverage = colorClass !== '';
 
   return (
-    <li
+    <StyledLi
       className={classNames(
         className,
         'expandable',
@@ -28,17 +28,80 @@ const ContextLine = function ({line, isActive, children, className, colorClass}:
       )}
       key={line[0]}
     >
-      <Component>
-        <span className="ws">{lineWs}</span>
-        <span className="contextline">{lineCode}</span>
-      </Component>
+      <LineContent>
+        <div className="lineNo">{line[0]}</div>
+        <div style={{flexGrow: 1}}>
+          <span className="ws">{lineWs}</span>
+          <span className="contextline">{lineCode}</span>
+        </div>
+      </LineContent>
       {children}
-    </li>
+    </StyledLi>
   );
-};
+}
 
 export default ContextLine;
 
-const Context = styled('div')`
-  display: inline;
+const StyledLi = styled('li')`
+  background: inherit;
+  z-index: 1000;
+  list-style: none;
+
+  &::marker {
+    content: none;
+  }
+
+  .lineNo {
+    display: flex;
+    text-align: right;
+    padding-left: ${space(3)};
+    padding-right: ${space(1.5)};
+    margin-right: ${space(1.5)};
+    height: 24px;
+    background: transparent;
+    z-index: 1;
+    min-width: 58px;
+    border-right-style: solid;
+    border-right-color: transparent;
+    user-select: none;
+  }
+
+  &.covered .lineNo {
+    background: ${p => p.theme.green100};
+  }
+
+  &.uncovered .lineNo {
+    background: ${p => p.theme.red100};
+    border-right-color: ${p => p.theme.red300};
+  }
+
+  &.partial .lineNo {
+    background: ${p => p.theme.yellow100};
+    border-right-style: dashed;
+    border-right-color: ${p => p.theme.yellow300};
+  }
+
+  &.active {
+    background: ${p => p.theme.stacktraceActiveBackground};
+    color: ${p => p.theme.stacktraceActiveText};
+  }
+
+  &.active.partial .lineNo {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.yellow200};
+  }
+
+  &.active.covered .lineNo {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.green200};
+  }
+
+  &.active.uncovered .lineNo {
+    mix-blend-mode: screen;
+    background: ${p => p.theme.red200};
+  }
+`;
+
+const LineContent = styled('div')`
+  display: flex;
 `;
