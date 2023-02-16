@@ -119,6 +119,11 @@ export function PerformanceLanding(props: Props) {
     if (transactionValues.length) {
       return transactionValues[0];
     }
+    if (conditions.freeText.length > 0) {
+      // raw text query will be wrapped in wildcards in generatePerformanceEventView
+      // so no need to wrap it here
+      return conditions.freeText.join(' ');
+    }
     return '';
   };
 
