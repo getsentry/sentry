@@ -32,6 +32,7 @@ class IssueOccurrenceTest(APITestCase):
         }
         self.data = {
             "id": "55f1419e73884cd2b45c79918f4b6dc5",
+            "project_id": project.id,
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",
             "subtitle": "it was bad",

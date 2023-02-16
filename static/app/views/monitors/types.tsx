@@ -1,22 +1,76 @@
 import {Project} from 'sentry/types';
 
-export type Status = 'ok' | 'error' | 'disabled' | 'active' | 'missed_checkin';
+export enum MonitorType {
+  CRON_JOB = 'cron_job',
+  // XXX(epurkhiser): There are 3 other types defined in the backend. But right
+  // now we've only implemented a frontend for the CRON_JOB type
+  HEALTH_CHECK = 'health_check',
+  HEARTBEAT = 'heartbeat',
+  UNKNOWN = 'unknown',
+}
 
-export type CheckInStatus = 'ok' | 'error' | 'missed';
+/**
+ * Some old monitor configuratiosn do NOT have a schedule_type
+ *
+ * TODO: This should be removed once we've cleaned up our old data and can
+ *       verify we don't have any config objects missing schedule_type
+ */
+type LegacyDefaultSchedule = undefined;
 
-export type MonitorTypes = 'cron_job';
+export enum ScheduleType {
+  CRONTAB = 'crontab',
+  INTERVAL = 'interval',
+}
 
-export type ScheduleType = 'crontab' | 'interval';
+export enum MonitorStatus {
+  OK = 'ok',
+  ERROR = 'error',
+  DISABLED = 'disabled',
+  ACTIVE = 'active',
+  MISSED_CHECKIN = 'missed_checkin',
+}
 
-export type MonitorConfig = {
+export enum CheckInStatus {
+  OK = 'ok',
+  ERROR = 'error',
+  IN_PROGRESS = 'in_progress',
+  MISSED = 'missed',
+}
+
+interface BaseConfig {
   checkin_margin: number;
   max_runtime: number;
-  schedule: unknown[];
-  schedule_type: ScheduleType;
   timezone: string;
-};
+}
 
-export type Monitor = {
+/**
+ * The configuration object used when the schedule is a CRONTAB
+ */
+export interface CrontabConfig extends BaseConfig {
+  /**
+   * The crontab schedule
+   */
+  schedule: string;
+  schedule_type: ScheduleType.CRONTAB | LegacyDefaultSchedule;
+}
+
+/**
+ * The configuration object used when the schedule is an INTERVAL
+ */
+export interface IntervalConfig extends BaseConfig {
+  /**
+   * The interval style schedule
+   */
+  schedule: [
+    value: number,
+    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute'
+  ];
+  schedule_type: ScheduleType.INTERVAL;
+}
+
+export type MonitorConfig = CrontabConfig | IntervalConfig;
+
+export interface Monitor {
   config: MonitorConfig;
   dateCreated: string;
   id: string;
@@ -24,14 +78,14 @@ export type Monitor = {
   name: string;
   nextCheckIn: string;
   project: Project;
-  status: Status;
-  type: MonitorTypes;
-};
+  status: MonitorStatus;
+  type: MonitorType;
+}
 
-export type MonitorStat = {
+export interface MonitorStat {
   duration: number;
   error: number;
   missed: number;
   ok: number;
   ts: number;
-};
+}

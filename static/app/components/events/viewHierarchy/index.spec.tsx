@@ -192,4 +192,12 @@ describe('View Hierarchy', function () {
       screen.getByText('There is no view hierarchy data to visualize')
     ).toBeInTheDocument();
   });
+
+  it('renders with depth markers', function () {
+    const {container} = render(
+      <ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />
+    );
+
+    expect(container).toSnapshot();
+  });
 });
