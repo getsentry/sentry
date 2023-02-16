@@ -1,32 +1,21 @@
 import logging
-from typing import Any, Mapping, Sequence
-
-from django.conf import settings
+from typing import Mapping, Sequence
 
 from sentry import features
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.adjustment_models import Project as DSProject
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
+from sentry.dynamic_sampling.rules.helpers.utils import get_redis_client_for_ds
 from sentry.models import Organization
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils import metrics, redis
+from sentry.utils import metrics
 
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
 
 logger = logging.getLogger(__name__)
-
-REDIS_KEY_TEMPLATE = "ds::b:o:{org_id}:p:{project_id}:"
-
-
-def get_redis_client_for_ds() -> Any:
-    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
-    return redis.redis_clusters.get(cluster_key)
-
-
-def _generate_cache_key_for_prioritise_projects_bias(org_id, project_id) -> str:
-    return f"ds::o:{org_id}:p:{project_id}:prioritise_projects"
 
 
 @instrumented_task(
@@ -82,9 +71,7 @@ def adjust_sample_rates(
         # TODO: Check that sample rate between 0 < sample_rate < 1.0
         # hash, key, value
         redis_client.set(
-            _generate_cache_key_for_prioritise_projects_bias(
-                project_id=ds_project.id, org_id=org_id
-            ),
+            _generate_cache_key(project_id=ds_project.id, org_id=org_id),
             ds_project.new_sample_rate,  # redis stores is as string
             60 * 60 * 24,
         )

@@ -7,6 +7,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasParams,
     BiasRulesGenerator,
 )
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import get_cached_sample_rate
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 
 
@@ -14,7 +15,9 @@ class UniformDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.UNIFORM_RULE],
-            "sampleRate": bias_params.base_sample_rate,
+            "sampleRate": get_cached_sample_rate(
+                bias_params.project, default_samplerate=bias_params.base_sample_rate
+            ),
         }
 
 
