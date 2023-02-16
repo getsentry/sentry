@@ -221,8 +221,8 @@ def test_project_config_exposed_features_raise_exc(default_project):
 
 @pytest.mark.django_db
 @region_silo_test(stable=True)
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.eval_dynamic_factor")
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_all_biases_enabled(
     eval_dynamic_factor_tk, eval_dynamic_factor_lr, default_project, default_team

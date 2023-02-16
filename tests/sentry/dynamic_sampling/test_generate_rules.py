@@ -166,13 +166,13 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
-    get_blended_sample_rate, eval_dynamic_factor, default_project, default_team
+    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    eval_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = 1.5
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -223,13 +223,13 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
-    get_blended_sample_rate, eval_dynamic_factor, default_project, default_team
+    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    eval_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = 1.5
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -289,13 +289,13 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_records(
-    get_blended_sample_rate, eval_dynamic_factor, default_project, default_team
+    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    eval_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = 1.5
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -372,7 +372,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 
 
 @freeze_time("2022-10-21 18:50:25+00:00")
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
@@ -387,7 +387,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 )
 def test_generate_rules_with_different_project_platforms(
     get_blended_sample_rate,
-    eval_dynamic_factor,
+    apply_dynamic_factor,
     version,
     platform,
     end,
@@ -395,7 +395,7 @@ def test_generate_rules_with_different_project_platforms(
     latest_release_only,
 ):
     get_blended_sample_rate.return_value = 0.1
-    eval_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = 1.5
 
     redis_client = get_redis_client_for_ds()
 
@@ -447,13 +447,13 @@ def test_generate_rules_with_different_project_platforms(
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
-    get_blended_sample_rate, eval_dynamic_factor, default_project, latest_release_only
+    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
-    eval_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = 1.5
 
     redis_client = get_redis_client_for_ds()
 
@@ -532,13 +532,13 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.eval_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_does_not_return_rule_with_deleted_release(
-    get_blended_sample_rate, eval_dynamic_factor, default_project, latest_release_only
+    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
-    eval_dynamic_factor.return_value = 1.5
+    apply_dynamic_factor.return_value = 1.5
 
     redis_client = get_redis_client_for_ds()
 
