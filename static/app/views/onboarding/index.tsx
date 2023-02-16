@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
+import {removeProject} from 'sentry/actionCreators/projects';
 import {Button, ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
@@ -15,6 +16,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -73,6 +75,8 @@ function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDesc
 }
 
 function Onboarding(props: Props) {
+  const api = useApi();
+
   const {
     organization,
     params: {step: stepId},
@@ -149,6 +153,19 @@ function Onboarding(props: Props) {
 
     if (!previousStep) {
       return;
+    }
+
+    // Users is going backto select a new platform,
+    // so we silently delete the last created project
+    if (stepIndex === onboardingSteps.length - 1) {
+      const selectedPlatforms = clientState?.selectedPlatforms || [];
+      const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
+
+      const selectedProjectSlugs = selectedPlatforms
+        .map(platform => platformToProjectIdMap[platform])
+        .filter((slug): slug is string => slug !== undefined);
+
+      removeProject(api, organization.slug, selectedProjectSlugs[0]);
     }
 
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
