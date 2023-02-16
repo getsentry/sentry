@@ -8,7 +8,6 @@ from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
-from sentry.ratelimits.sliding_windows import Quota
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -208,9 +207,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
             path = path_func(monitor)
 
-            with mock.patch(
-                "sentry.api.endpoints.monitor_checkins.CHECKIN_QUOTA", Quota(60, 60, 1)
-            ):
+            with mock.patch("sentry.api.endpoints.monitor_checkins.CHECKIN_QUOTA_LIMIT", 1):
                 resp = self.client.post(path, {"status": "ok"})
                 assert resp.status_code == 201, resp.content
                 resp = self.client.post(path, {"status": "ok"})

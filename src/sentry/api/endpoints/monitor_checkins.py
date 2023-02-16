@@ -9,6 +9,7 @@ from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import ratelimits
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
@@ -25,14 +26,15 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics
 
 checkin_ratelimiter = RedisSlidingWindowRateLimiter(
     cluster=getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
 )
-CHECKIN_QUOTA = Quota(60, 60, 5)
+CHECKIN_QUOTA_LIMIT = 5
+CHECKING_QUOTA_WINDOW = 60
 
 
 @region_silo_endpoint
@@ -127,11 +129,11 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
-        granted_quota = checkin_ratelimiter.check_and_use_quotas(
-            [RequestedQuota(f"monitor-checkins:{monitor.id}", 1, [CHECKIN_QUOTA])]
-        )[0]
-
-        if not granted_quota.granted:
+        if ratelimits.is_limited(
+            f"monitor-checkins:{monitor.id}",
+            limit=CHECKIN_QUOTA_LIMIT,
+            window=CHECKING_QUOTA_WINDOW,
+        ):
             metrics.incr("monitors.checkin.dropped.ratelimited")
             raise Throttled(
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
