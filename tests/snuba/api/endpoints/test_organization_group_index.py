@@ -1561,6 +1561,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
             release_2_g_1,
         ]
 
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:[124]")
+        assert response.status_code == 400, response.content
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
