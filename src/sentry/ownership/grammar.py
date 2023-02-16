@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import operator
 import re
 from collections import namedtuple
-from functools import reduce
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Pattern, Sequence, Tuple, Union
 
-from django.db.models import Q
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
@@ -14,6 +11,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -538,20 +536,23 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
     actors = {}
     if users:
+        rpc_users = user_service.get_many(
+            filter=dict(
+                emails=[o.identifier for o in users], is_active=True, project_ids=[project_id]
+            )
+        )
+        user_id_email_tuples = set()
+        for user in rpc_users:
+            user_id_email_tuples.add((user.id, user.email))
+            for useremail in user.useremails:
+                user_id_email_tuples.add((user.id, useremail.email))
+
         actors.update(
             {
                 ("user", email.lower()): ActorTuple(u_id, User)
                 # This will need to be broken in hybrid cloud world, querying users from region silo won't be possible
                 # without an explicit service call.
-                for u_id, email in User.objects.filter(
-                    reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
-                    # We don't require verified emails
-                    # emails__is_verified=True,
-                    is_active=True,
-                    sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
-                )
-                .distinct()
-                .values_list("id", "emails__email")
+                for u_id, email in user_id_email_tuples
             }
         )
 
