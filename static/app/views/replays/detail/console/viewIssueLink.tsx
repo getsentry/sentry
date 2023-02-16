@@ -1,7 +1,4 @@
-import styled from '@emotion/styled';
-
 import ShortId from 'sentry/components/shortId';
-import {space} from 'sentry/styles/space';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
@@ -21,17 +18,7 @@ function ViewIssueLink({breadcrumb}: Props) {
   const to = {
     pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/?referrer=replay-console`,
   };
-  return (
-    <ShortIdBreadrcumb>
-      <ShortId to={to} shortId={groupShortId} />
-    </ShortIdBreadrcumb>
-  );
+  return <ShortId to={to} shortId={groupShortId} />;
 }
-
-const ShortIdBreadrcumb = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 export default ViewIssueLink;
