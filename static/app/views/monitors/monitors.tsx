@@ -8,9 +8,7 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -18,7 +16,6 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
-import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -33,8 +30,8 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
-import {MonitorBadge} from './monitorBadge';
-import {Monitor, MonitorStatus} from './types';
+import {MonitorRow} from './row';
+import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
@@ -138,35 +135,20 @@ class Monitors extends AsyncView<Props, State> {
             {monitorList?.length ? (
               <Fragment>
                 <StyledPanelTable
-                  headers={[t('Monitor Name'), t('Next Checkin'), t('Project')]}
+                  headers={[
+                    t('Monitor Name'),
+                    t('Status'),
+                    t('Schedule'),
+                    t('Next Checkin'),
+                    t('Project'),
+                  ]}
                 >
                   {monitorList?.map(monitor => (
-                    <Fragment key={monitor.id}>
-                      <MonitorName>
-                        <MonitorBadge status={monitor.status} />
-                        <Link
-                          to={`/organizations/${organization.slug}/crons/${monitor.id}/`}
-                        >
-                          {monitor.name}
-                        </Link>
-                      </MonitorName>
-                      <NextCheckin>
-                        {monitor.nextCheckIn &&
-                        monitor.status !== MonitorStatus.DISABLED &&
-                        monitor.status !== MonitorStatus.ACTIVE ? (
-                          <TimeSince date={monitor.nextCheckIn} />
-                        ) : (
-                          '\u2014'
-                        )}
-                      </NextCheckin>
-                      <ProjectColumn>
-                        <IdBadge
-                          project={monitor.project}
-                          avatarSize={18}
-                          avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-                        />
-                      </ProjectColumn>
-                    </Fragment>
+                    <MonitorRow
+                      key={monitor.id}
+                      monitor={monitor}
+                      organization={organization}
+                    />
                   ))}
                 </StyledPanelTable>
                 {monitorListPageLinks && (
@@ -203,25 +185,8 @@ const Filters = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const MonitorName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const NextCheckin = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const ProjectColumn = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr max-content max-content max-content max-content;
 `;
 
 const ButtonList = styled(ButtonBar)`
