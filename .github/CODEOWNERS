@@ -89,7 +89,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
-/docs-ui/components/                                     @getsentry/design @getsentry/core-ui
 
 ## Core UI
 /static/app/components                                       @getsentry/core-ui
