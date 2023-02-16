@@ -165,6 +165,7 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
       new_organization: !!newOrg,
     });
   }, [firstTransactionReceived, loading, newOrg, organization]);
+
   useEffect(() => {
     if (loading || !firstErrorReceived) {
       return;

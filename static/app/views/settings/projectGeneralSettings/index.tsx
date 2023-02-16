@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   changeProjectSlug,
   removeProject,
@@ -69,10 +70,22 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       return;
     }
 
-    removeProject(this.api, organization.slug, project).then(() => {
-      // Need to hard reload because lots of components do not listen to Projects Store
-      window.location.assign('/');
-    }, handleXhrErrorResponse('Unable to remove project'));
+    removeProject(this.api, organization.slug, project.slug)
+      .then(
+        () => {
+          addSuccessMessage(
+            tct('[project] was successfully removed', {project: project.slug})
+          );
+        },
+        err => {
+          addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+          throw err;
+        }
+      )
+      .then(() => {
+        // Need to hard reload because lots of components do not listen to Projects Store
+        window.location.assign('/');
+      }, handleXhrErrorResponse('Unable to remove project'));
   };
 
   handleTransferProject = async () => {
