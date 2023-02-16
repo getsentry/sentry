@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 
 def process_error(error: ApiError, extra: Dict[str, str]) -> None:
+    """Log known issues and report unknown ones"""
     msg = error.text
     if error.json:
         json_data: JSONData = error.json
@@ -41,6 +42,9 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
         return
     elif msg == "This installation has been suspended":
         logger.warning("The org has suspended the Sentry App.", extra=extra)
+        return
+    elif msg == "Server Error":
+        logger.warning("Github failed to respond.", extra=extra)
         return
     elif msg.startswith("Although you appear to have the correct authorization credentials"):
         # Although you appear to have the correct authorization credentials, the
