@@ -98,6 +98,10 @@ function Onboarding(props: Props) {
     'onboarding-remove-multiselect-platform'
   );
 
+  const projectDeletionOnBackClick = !!props.organization?.features.includes(
+    'onboarding-project-deletion-on-back-click'
+  );
+
   const onboardingSteps = getOrganizationOnboardingSteps(singleSelectPlatform);
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -157,7 +161,7 @@ function Onboarding(props: Props) {
 
     // The user is going back to select a new platform,
     // so we silently delete the last created project
-    if (stepIndex === onboardingSteps.length - 1) {
+    if (projectDeletionOnBackClick && stepIndex === onboardingSteps.length - 1) {
       const selectedPlatforms = clientState?.selectedPlatforms || [];
       const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
 
