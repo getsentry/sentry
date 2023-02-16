@@ -9,16 +9,16 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
 
-SCHEDULE_TYPES = {
-    "crontab": ScheduleType.CRONTAB,
-    "interval": ScheduleType.INTERVAL,
-}
-
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
     "active": MonitorStatus.ACTIVE,
     "disabled": MonitorStatus.DISABLED,
+}
+
+SCHEDULE_TYPES = {
+    "crontab": ScheduleType.CRONTAB,
+    "interval": ScheduleType.INTERVAL,
 }
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")

@@ -1,12 +1,8 @@
 import {Project} from 'sentry/types';
 
 export enum MonitorType {
-  CRON_JOB = 'cron_job',
-  // XXX(epurkhiser): There are 3 other types defined in the backend. But right
-  // now we've only implemented a frontend for the CRON_JOB type
-  HEALTH_CHECK = 'health_check',
-  HEARTBEAT = 'heartbeat',
   UNKNOWN = 'unknown',
+  CRON_JOB = 'cron_job',
 }
 
 /**
