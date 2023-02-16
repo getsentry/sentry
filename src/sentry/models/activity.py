@@ -22,7 +22,7 @@ from sentry.types.activity import CHOICES, ActivityType
 
 if TYPE_CHECKING:
     from sentry.models import Group, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class ActivityManager(BaseManager):
@@ -60,7 +60,7 @@ class ActivityManager(BaseManager):
         self,
         group: Group,
         type: ActivityType,
-        user: Optional[User | APIUser] = None,
+        user: Optional[User | RpcUser] = None,
         data: Optional[Mapping[str, Any]] = None,
         send_notification: bool = True,
     ) -> Activity:
