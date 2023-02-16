@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from confluent_kafka import Producer
@@ -28,25 +29,34 @@ class IssueOccurrenceEndpoint(Endpoint):
         :pparam: string dummyEvent: pass 'True' to load a dummy event instead of providing one in the request
         :pparam: string dummyOccurrence: pass 'True' to load a dummy occurrence instead of providing one in the request
         """
-        if request.query_params.get("dummyData") == "True":
+        if request.query_params.get("dummyOccurrence") == "True":
             dummy_occurrence = dict(load_data("generic-event-profiling"))
             dummy_occurrence["event"]["received"] = datetime.utcnow().isoformat()
             dummy_occurrence["event"]["timestamp"] = datetime.utcnow().isoformat()
-            user = user_service.get_user(request.user.id)
-            projects = Project.objects.get_for_user_ids({user.id})
-            if not projects:
-                return Response(
-                    "Requesting user must belong to at least one project.",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            dummy_occurrence["project_id"] = projects[0].id
-            dummy_occurrence["event"]["project_id"] = projects[0].id
+            project_id = request.query_params.get("project_id")
+            if project_id:
+                project = Project.objects.get(id=project_id)
+            else:
+                user = user_service.get_user(request.user.id)
+                projects = Project.objects.get_for_user_ids({user.id})
+                if not projects:
+                    return Response(
+                        "Requesting user must belong to at least one project.",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                project = projects[0]
+            dummy_occurrence["id"] = uuid.uuid4().hex
+            dummy_occurrence["event"]["event_id"] = uuid.uuid4().hex
+            dummy_occurrence["project_id"] = project.id
+            dummy_occurrence["event"]["project_id"] = project.id
+            if "fingerprint" in request.query_params:
+                dummy_occurrence["fingerprint"] = [request.query_params["fingerprint"]]
         else:
             dummy_occurrence = request.data
 
         if not dummy_occurrence:
             return Response(
-                "Must pass an occurrence or query param of dummyData=True",
+                "Must pass an occurrence or query param of dummyOccurrence=True",
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

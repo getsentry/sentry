@@ -65,7 +65,7 @@ class IssueOccurrenceTest(APITestCase):
         assert response.status_code == 201, response.content
 
     def test_load_fake_data(self, mock_func):
-        url = self.url + "?dummyData=True"
+        url = self.url + "?dummyOccurrence=True"
         data = dict(self.data)
         data.pop("event", None)
         response = self.client.post(url, data=data, format="json")
@@ -78,7 +78,7 @@ class IssueOccurrenceTest(APITestCase):
     def test_no_projects(self, mock_func):
         """Test that we raise a 400 if the user belongs to no project teams and passes the dummyEvent query param"""
         OrganizationMemberTeam.objects.all().delete()
-        url = self.url + "?dummyData=True"
+        url = self.url + "?dummyOccurrence=True"
         data = dict(self.data)
         data.pop("event", None)
         response = self.client.post(url, data=data, format="json")
