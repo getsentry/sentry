@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 
 interface Props {
@@ -29,7 +30,10 @@ function ContextLine({line, isActive, children, className, colorClass}: Props) {
       key={line[0]}
     >
       <LineContent>
-        <div className="lineNo">{line[0]}</div>
+        {/* TODO: not use classname as title */}
+        <Tooltip skipWrapper title={colorClass} delay={200}>
+          <div className="lineNo">{line[0]}</div>
+        </Tooltip>
         <div style={{flexGrow: 1}}>
           <span className="ws">{lineWs}</span>
           <span className="contextline">{lineCode}</span>
