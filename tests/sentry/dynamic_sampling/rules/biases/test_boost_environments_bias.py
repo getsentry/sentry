@@ -4,7 +4,7 @@ import pytest
 
 from sentry.dynamic_sampling import ENVIRONMENT_GLOBS
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import (
-    BoostEnvironmentsRulesGeneratorV2,
+    BoostEnvironmentsRulesGenerator,
 )
 
 
@@ -17,7 +17,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
         "id": rule_id,
     }
 
-    rules = BoostEnvironmentsRulesGeneratorV2(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostEnvironmentsRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
             "active": True,

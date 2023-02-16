@@ -30,7 +30,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -261,7 +260,10 @@ function SummaryContent({
   if (
     organization.features.includes('profiling') &&
     project &&
-    isProfilingSupportedOrProjectHasProfiles(project)
+    // only show for projects that already sent a profile
+    // once we have a more compact design we will show this for
+    // projects that support profiling as well
+    project.hasProfiles
   ) {
     transactionsListTitles.push(t('profile'));
     fields.push({field: 'profile.id'});

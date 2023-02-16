@@ -22,7 +22,7 @@ class BoostEnvironmentsDataProvider(BiasDataProvider):
         return {"id": RESERVED_IDS[RuleType.BOOST_ENVIRONMENTS_RULE]}
 
 
-class BoostEnvironmentsRulesGeneratorV2(BiasRulesGenerator):
+class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
@@ -48,6 +48,6 @@ class BoostEnvironmentsRulesGeneratorV2(BiasRulesGenerator):
         ]
 
 
-class BoostEnvironmentsBiasV2(Bias):
+class BoostEnvironmentsBias(Bias):
     def __init__(self) -> None:
-        super().__init__(BoostEnvironmentsDataProvider, BoostEnvironmentsRulesGeneratorV2)
+        super().__init__(BoostEnvironmentsDataProvider, BoostEnvironmentsRulesGenerator)

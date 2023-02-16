@@ -90,7 +90,25 @@ def derive_code_mappings(
             logger.warning("The org has uninstalled the Sentry App.", extra=extra)
             return
 
-        raise error  # Let's report the issue
+        if msg == "This installation has been suspended":
+            logger.warning("The org has suspended the Sentry App.", extra=extra)
+            return
+
+        if msg.startswith("Although you appear to have the correct authorization credentials"):
+            # Although you appear to have the correct authorization credentials, the
+            # <github_org_here> organization has an IP allow list enabled, and
+            # <ip_address_here> is not permitted to access this resource.
+            logger.warning("The org has suspended the Sentry App. See code comment.", extra=extra)
+            return
+
+        # Logging the exception and returning is better than re-raising the error
+        # Otherwise, API errors would not group them since the HTTPError in the stack
+        # has unique URLs, thus, separating the errors
+        logger.exception(
+            "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
+            extra=extra,
+        )
+        return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)

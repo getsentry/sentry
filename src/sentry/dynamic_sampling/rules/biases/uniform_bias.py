@@ -18,7 +18,7 @@ class UniformDataProvider(BiasDataProvider):
         }
 
 
-class UniformRulesGeneratorV2(BiasRulesGenerator):
+class UniformRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
@@ -37,6 +37,6 @@ class UniformRulesGeneratorV2(BiasRulesGenerator):
         ]
 
 
-class UniformBiasV2(Bias):
+class UniformBias(Bias):
     def __init__(self) -> None:
-        super().__init__(UniformDataProvider, UniformRulesGeneratorV2)
+        super().__init__(UniformDataProvider, UniformRulesGenerator)

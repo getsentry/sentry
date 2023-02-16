@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import (
-    IgnoreHealthChecksRulesGeneratorV2,
+    IgnoreHealthChecksRulesGenerator,
 )
 
 
@@ -22,7 +22,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
         "healthCheckGlobs": health_check_globs,
     }
 
-    rules = IgnoreHealthChecksRulesGeneratorV2(data_provider).generate_bias_rules(MagicMock())
+    rules = IgnoreHealthChecksRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
             "active": True,

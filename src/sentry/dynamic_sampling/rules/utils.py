@@ -77,7 +77,7 @@ class Condition(TypedDict):
     inner: List[Inner]
 
 
-class RuleV2(TypedDict):
+class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
     active: bool
@@ -85,21 +85,21 @@ class RuleV2(TypedDict):
     id: int
 
 
-class DecayingFnV2(TypedDict):
+class DecayingFn(TypedDict):
     type: str
     decayedValue: Optional[str]
 
 
-class DecayingRuleV2V2(RuleV2):
+class DecayingRule(Rule):
     timeRange: TimeRange
-    decayingFn: DecayingFnV2
+    decayingFn: DecayingFn
 
 
 # Type defining the all the possible rules types that can exist.
-PolymorphicRule = Union[RuleV2, DecayingRuleV2V2]
+PolymorphicRule = Union[Rule, DecayingRule]
 
 
-def get_rule_type(rule: RuleV2) -> Optional[RuleType]:
+def get_rule_type(rule: Rule) -> Optional[RuleType]:
     # Edge case handled naively in which we check if the ID is within the possible bounds. This is done because the
     # latest release rules have ids from 1500 to 1500 + (limit - 1). For example if the limit is 2, we will only have
     # ids: 1500, 1501.
@@ -131,8 +131,8 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
 
 
 def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
-    sampling_value = rule["samplingValue"]
-    return sampling_value["type"], float(sampling_value["value"])
+    sampling = rule["samplingValue"]
+    return sampling["type"], float(sampling["value"])
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:

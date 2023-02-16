@@ -4,7 +4,7 @@ import sentry_sdk
 
 from sentry import quotas
 from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
-from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator_v2
+from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
@@ -55,7 +55,7 @@ def generate_rules(project: Project) -> List[PolymorphicRule]:
             # * Rules generator
             # * Bias
             # check in the dynamic_sampling/rules/biases module how existing biases are implemented.
-            get_relay_biases_combinator_v2().get_combined_biases(),
+            get_relay_biases_combinator().get_combined_biases(),
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)

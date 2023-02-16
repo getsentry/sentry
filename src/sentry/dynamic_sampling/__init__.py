@@ -1,17 +1,10 @@
 from .rules.base import generate_rules
-from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS
-from .rules.biases.boost_environments_bias import (
-    BoostEnvironmentsRulesGeneratorV2 as BoostEnvironmentsRulesGenerator,
-)
-from .rules.biases.boost_key_transactions_bias import (
-    BoostKeyTransactionsRulesGeneratorV2 as BoostKeyTransactionsRulesGenerator,
-)
-from .rules.biases.boost_latest_releases_bias import (
-    BoostLatestReleasesRulesGeneratorV2 as BoostLatestReleasesRulesGenerator,
-)
-from .rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS
+from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsRulesGenerator
+from .rules.biases.boost_key_transactions_bias import BoostKeyTransactionsRulesGenerator
+from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesRulesGenerator
 from .rules.biases.ignore_health_checks_bias import (
-    IgnoreHealthChecksRulesGeneratorV2 as IgnoreHealthChecksRulesGenerator,
+    HEALTH_CHECK_GLOBS,
+    IgnoreHealthChecksRulesGenerator,
 )
 from .rules.helpers.latest_releases import (
     ExtendedBoostedRelease,

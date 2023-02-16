@@ -36,7 +36,7 @@ class IgnoreHealthChecksDataProvider(BiasDataProvider):
         }
 
 
-class IgnoreHealthChecksRulesGeneratorV2(BiasRulesGenerator):
+class IgnoreHealthChecksRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
@@ -59,6 +59,6 @@ class IgnoreHealthChecksRulesGeneratorV2(BiasRulesGenerator):
         ]
 
 
-class IgnoreHealthChecksBiasV2(Bias):
+class IgnoreHealthChecksBias(Bias):
     def __init__(self) -> None:
-        super().__init__(IgnoreHealthChecksDataProvider, IgnoreHealthChecksRulesGeneratorV2)
+        super().__init__(IgnoreHealthChecksDataProvider, IgnoreHealthChecksRulesGenerator)

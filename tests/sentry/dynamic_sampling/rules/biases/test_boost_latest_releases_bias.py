@@ -7,7 +7,7 @@ from freezegun import freeze_time
 
 from sentry.dynamic_sampling import LATEST_RELEASE_TTAS, ExtendedBoostedRelease, Platform
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import (
-    BoostLatestReleasesRulesGeneratorV2,
+    BoostLatestReleasesRulesGenerator,
 )
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
@@ -54,7 +54,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
         "boostedReleases": boosted_releases,
     }
 
-    rules = BoostLatestReleasesRulesGeneratorV2(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostLatestReleasesRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
             "active": True,
@@ -108,5 +108,5 @@ def test_generate_bias_rules_with_no_boosted_releases(data_provider, default_pro
         "boostedReleases": [],
     }
 
-    rules = BoostLatestReleasesRulesGeneratorV2(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostLatestReleasesRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == []

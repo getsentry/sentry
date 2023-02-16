@@ -28,7 +28,7 @@ class BoostKeyTransactionsDataProvider(BiasDataProvider):
         }
 
 
-class BoostKeyTransactionsRulesGeneratorV2(BiasRulesGenerator):
+class BoostKeyTransactionsRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         if len(bias_data["keyTransactions"]) == 0:
             return []
@@ -57,6 +57,6 @@ class BoostKeyTransactionsRulesGeneratorV2(BiasRulesGenerator):
         ]
 
 
-class BoostKeyTransactionsBiasV2(Bias):
+class BoostKeyTransactionsBias(Bias):
     def __init__(self) -> None:
-        super().__init__(BoostKeyTransactionsDataProvider, BoostKeyTransactionsRulesGeneratorV2)
+        super().__init__(BoostKeyTransactionsDataProvider, BoostKeyTransactionsRulesGenerator)

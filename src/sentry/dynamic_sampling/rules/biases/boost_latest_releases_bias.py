@@ -35,7 +35,7 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
         }
 
 
-class BoostLatestReleasesRulesGeneratorV2(BiasRulesGenerator):
+class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         boosted_releases = bias_data["boostedReleases"]
 
@@ -89,6 +89,6 @@ class BoostLatestReleasesRulesGeneratorV2(BiasRulesGenerator):
         )
 
 
-class BoostLatestReleasesBiasV2(Bias):
+class BoostLatestReleasesBias(Bias):
     def __init__(self) -> None:
-        super().__init__(BoostLatestReleasesDataProvider, BoostLatestReleasesRulesGeneratorV2)
+        super().__init__(BoostLatestReleasesDataProvider, BoostLatestReleasesRulesGenerator)
