@@ -29,7 +29,7 @@ from sentry.signals import first_cron_checkin_received, first_cron_monitor_creat
 from sentry.utils import metrics
 
 CHECKIN_QUOTA_LIMIT = 5
-CHECKING_QUOTA_WINDOW = 60
+CHECKIN_QUOTA_WINDOW = 60
 
 
 @region_silo_endpoint
@@ -127,7 +127,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if ratelimits.is_limited(
             f"monitor-checkins:{monitor.id}",
             limit=CHECKIN_QUOTA_LIMIT,
-            window=CHECKING_QUOTA_WINDOW,
+            window=CHECKIN_QUOTA_WINDOW,
         ):
             metrics.incr("monitors.checkin.dropped.ratelimited")
             raise Throttled(
