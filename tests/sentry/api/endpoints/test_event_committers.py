@@ -189,7 +189,7 @@ class EventCommittersTest(APITestCase):
             commits = response.data["committers"][0]["commits"]
             assert len(commits) == 1
             assert commits[0]["message"] == "placeholder commit message"
-            assert commits[0]["type"] == "scm"
+            assert commits[0]["suspectCommitType"] == "via SCM integration"
 
     def test_with_commit_context_pull_request(self):
         with self.feature({"organizations:commit-context": True}):
@@ -250,4 +250,4 @@ class EventCommittersTest(APITestCase):
             assert len(commits) == 1
             assert "pullRequest" in commits[0]
             assert commits[0]["pullRequest"]["id"] == pull_request.key
-            assert commits[0]["type"] == "scm"
+            assert commits[0]["suspectCommitType"] == "via SCM integration"

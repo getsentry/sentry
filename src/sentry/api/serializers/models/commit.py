@@ -77,9 +77,10 @@ class CommitSerializer(Serializer):
 
 @register(Commit)
 class CommitWithReleaseSerializer(CommitSerializer):
-    def __init__(self, exclude=None, include=None, *args, **kwargs):
+    def __init__(self, exclude=None, include=None, type=None, *args, **kwargs):
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
+        self.type = type or ""
 
     def get_attrs(self, item_list, user):
         from sentry.models import ReleaseCommit
