@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 from uuid import UUID
 
@@ -197,3 +198,17 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 400
+
+    def test_rate_limit(self):
+        self.login_as(self.user)
+
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+
+            path = path_func(monitor)
+
+            with mock.patch("sentry.api.endpoints.monitor_checkins.CHECKIN_QUOTA_LIMIT", 1):
+                resp = self.client.post(path, {"status": "ok"})
+                assert resp.status_code == 201, resp.content
+                resp = self.client.post(path, {"status": "ok"})
+                assert resp.status_code == 429, resp.content
