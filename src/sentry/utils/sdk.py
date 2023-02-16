@@ -1,4 +1,5 @@
 import copy
+import functools
 import inspect
 import random
 
@@ -459,3 +460,18 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def with_transaction(*sentry_args, sampled_cb=None, **sentry_kwargs):
+    def wrapper(f):
+        @functools.wraps
+        def inner(*args, **kwargs):
+            if sampled_cb is not None:
+                sentry_kwargs["sampled"] = sampled_cb()
+
+            with sentry_sdk.start_transaction(*sentry_args, sampled_cb=sampled_cb, **sentry_kwargs):
+                return f(*args, **kwargs)
+
+        return inner
+
+    return wrapper
