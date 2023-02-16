@@ -10,7 +10,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
 from sentry.utils.cache import cache
@@ -391,7 +391,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Should the token have expired, a new token will be generated and
         automatically persisted into the integration.
         """
-        self.integration: APIIntegration
+        self.integration: RpcIntegration
 
         token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")

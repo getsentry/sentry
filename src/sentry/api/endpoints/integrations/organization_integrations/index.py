@@ -11,7 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.models import ObjectStatus, Organization, OrganizationIntegration
 from sentry.services.hybrid_cloud import ApiPaginationArgs
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 
 def prepare_feature_filters(features_raw: Sequence[str]) -> set[str]:
@@ -20,7 +20,7 @@ def prepare_feature_filters(features_raw: Sequence[str]) -> set[str]:
 
 
 def prepare_features(
-    integration: APIIntegration,
+    integration: RpcIntegration,
 ) -> set[str]:
     """Normalize feature names Integration provider feature lists."""
 
