@@ -45,6 +45,7 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
         return
     elif msg == "Server Error":
         logger.warning("Github failed to respond.", extra=extra)
+        return
     elif msg.startswith("Although you appear to have the correct authorization credentials"):
         # Although you appear to have the correct authorization credentials, the
         # <github_org_here> organization has an IP allow list enabled, and
