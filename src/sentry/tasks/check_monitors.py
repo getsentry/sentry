@@ -38,7 +38,7 @@ def check_monitors(current_datetime=None):
         current_datetime = timezone.now()
 
     qs = Monitor.objects.filter(
-        type__in=[MonitorType.HEARTBEAT, MonitorType.CRON_JOB], next_checkin__lt=current_datetime
+        type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
     ).exclude(
         status__in=[
             MonitorStatus.DISABLED,
