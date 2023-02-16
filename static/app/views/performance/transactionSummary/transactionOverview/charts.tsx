@@ -174,7 +174,6 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
-            queryExtras={queryExtras}
             totalCount={totalValue}
           />
         )}
