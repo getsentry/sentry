@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.monitor import MonitorCheckInEndpoint
+from sentry.api.bases.monitor import MonitorCheckInAttachmentPermission, MonitorCheckInEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
 
@@ -18,6 +18,7 @@ class MonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
     # TODO(davidenwang): Add documentation after uploading feature is complete
     private = True
     authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
+    permission_classes = (MonitorCheckInAttachmentPermission,)
 
     def download(self, file_id):
         file = File.objects.get(id=file_id)
