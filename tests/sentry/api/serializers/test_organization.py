@@ -39,7 +39,7 @@ mock_options_as_features = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -125,7 +125,7 @@ class OrganizationSerializerTest(TestCase):
             assert feature not in features
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DetailedOrganizationSerializerTest(TestCase):
     def test_detailed(self):
         user = self.create_user()
@@ -143,7 +143,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert isinstance(result["teamRoleList"], list)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self):
         # access the test fixtures so they're initialized

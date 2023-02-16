@@ -1,7 +1,9 @@
 from sentry.api.serializers import serialize
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class DebugFileSerializerTest(TestCase):
     def test_simple(self):
         file = self.create_file(

@@ -5,8 +5,10 @@ from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import CommitAuthor, PullRequest, Release, Repository
 from sentry.plugins.base import bindings
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class PullRequestSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()

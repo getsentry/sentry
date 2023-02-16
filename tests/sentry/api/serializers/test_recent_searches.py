@@ -2,8 +2,10 @@ from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class RecentSearchSerializerTest(TestCase):
     def test_simple(self):
         search = RecentSearch.objects.create(

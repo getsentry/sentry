@@ -1,8 +1,10 @@
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class SavedSearchSerializerTest(TestCase):
     def test_simple(self):
         search = SavedSearch.objects.create(name="Something", query="some query")
