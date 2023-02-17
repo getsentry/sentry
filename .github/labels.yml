@@ -16,7 +16,7 @@
   description: 'add to a merged PR to revert it (skips CI)'
 
 # Unito - notion.so/52d10dbfad474328850319e48b057a5b
-- name: "Sync: Jira"
+- name: 'Sync: Jira'
   color: 'A0CABD'
   description: 'apply to auto-create a Jira shadow ticket'
 
@@ -257,6 +257,9 @@
 - name: 'Team: Search & Storage'
   color: '8D5494'
   description: sns
+- name: 'Team: Security'
+  color: '8D5494'
+  description: ''
 - name: 'Team: Stacktrace'
   color: '8D5494'
   description: owners-stacktrace
