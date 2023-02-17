@@ -69,8 +69,6 @@
 - name: 'Type: Design'
   color: '584774'
   description: ''
-- name: 'Type: Epic'
-  color: '584774'
 - name: 'Type: Feature Request'
   color: '584774'
   description: ''
