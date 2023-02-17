@@ -82,17 +82,15 @@ class MonitorStatus(ObjectStatus):
 
 
 class MonitorType:
+    # In the future we may have other types of monitors such as health check
+    # monitors. But for now we just have CRON_JOB style moniotors.
     UNKNOWN = 0
-    HEALTH_CHECK = 1
-    HEARTBEAT = 2
     CRON_JOB = 3
 
     @classmethod
     def as_choices(cls):
         return (
             (cls.UNKNOWN, "unknown"),
-            (cls.HEALTH_CHECK, "health_check"),
-            (cls.HEARTBEAT, "heartbeat"),
             (cls.CRON_JOB, "cron_job"),
         )
 

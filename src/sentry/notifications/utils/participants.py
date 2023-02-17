@@ -33,7 +33,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -54,8 +54,8 @@ FALLTHROUGH_NOTIFICATION_LIMIT_EA = 20
 
 
 def get_providers_from_which_to_remove_user(
-    user: APIUser,
-    participants_by_provider: Mapping[ExternalProviders, Mapping[APIUser, int]],
+    user: RpcUser,
+    participants_by_provider: Mapping[ExternalProviders, Mapping[RpcUser, int]],
 ) -> set[ExternalProviders]:
     """
     Given a mapping of provider to mappings of users to why they should receive
@@ -84,10 +84,10 @@ def get_providers_from_which_to_remove_user(
 
 
 def get_participants_for_group(
-    group: Group, user: APIUser | None = None
+    group: Group, user: RpcUser | None = None
 ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
     participants_by_provider: MutableMapping[
-        ExternalProviders, MutableMapping[Team | APIUser, int]
+        ExternalProviders, MutableMapping[Team | RpcUser, int]
     ] = GroupSubscription.objects.get_participants(group)
     if user:
         # Optionally remove the actor that created the activity from the recipients list.
@@ -149,8 +149,8 @@ def get_participants_for_release(
 
 
 def split_participants_and_context(
-    participants_with_reasons: Mapping[Team | APIUser, int]
-) -> tuple[Iterable[Team | APIUser], Mapping[int, Mapping[str, Any]]]:
+    participants_with_reasons: Mapping[Team | RpcUser, int]
+) -> tuple[Iterable[Team | RpcUser], Mapping[int, Mapping[str, Any]]]:
     return participants_with_reasons.keys(), {
         participant.actor_id: {"reason": reason}
         for participant, reason in participants_with_reasons.items()
@@ -161,7 +161,7 @@ def get_owners(
     project: Project,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> List[Team | APIUser]:
+) -> List[Team | RpcUser]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -176,7 +176,7 @@ def get_owners(
 
     if not owners:
         outcome = "empty"
-        recipients: List[APIUser] = list()
+        recipients: List[RpcUser] = list()
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
@@ -262,7 +262,7 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     return output
 
 
-def get_suspect_commit_users(project: Project, event: Event) -> List[APIUser]:
+def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
     """
     Returns a list of users that are suspect committers for the given event.
 
@@ -280,7 +280,7 @@ def get_suspect_commit_users(project: Project, event: Event) -> List[APIUser]:
     return suspect_committers
 
 
-def dedupe_suggested_assignees(suggested_assignees: Iterable[APIUser]) -> Iterable[APIUser]:
+def dedupe_suggested_assignees(suggested_assignees: Iterable[RpcUser]) -> Iterable[RpcUser]:
     return list({assignee.id: assignee for assignee in suggested_assignees}.values())
 
 
@@ -290,7 +290,7 @@ def determine_eligible_recipients(
     target_identifier: int | None = None,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Iterable[Team | APIUser]:
+) -> Iterable[Team | RpcUser]:
     """
     Either get the individual recipient from the target type/id or the
     owners as determined by rules for this project and event.
@@ -330,7 +330,7 @@ def get_send_to(
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Mapping[ExternalProviders, set[Team | APIUser]]:
+) -> Mapping[ExternalProviders, set[Team | RpcUser]]:
     recipients = determine_eligible_recipients(
         project, target_type, target_identifier, event, fallthrough_choice
     )
@@ -352,7 +352,7 @@ def should_use_issue_alert_fallback(org: Organization) -> Tuple[bool, str]:
 
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
-) -> Iterable[APIUser]:
+) -> Iterable[RpcUser]:
     if not features.has(
         "organizations:issue-alert-fallback-targeting",
         project.organization,
@@ -427,8 +427,8 @@ def get_team_from_identifier(project: Project, target_identifier: str | int | No
 
 
 def partition_recipients(
-    recipients: Iterable[Team | APIUser],
-) -> tuple[Iterable[Team], Iterable[APIUser]]:
+    recipients: Iterable[Team | RpcUser],
+) -> tuple[Iterable[Team], Iterable[RpcUser]]:
     teams, users = set(), set()
     for recipient in recipients:
         if recipient.class_name() == "User":
@@ -441,7 +441,7 @@ def partition_recipients(
 def get_users_from_team_fall_back(
     teams: Iterable[Team],
     recipients_by_provider: Mapping[ExternalProviders, Iterable[Team | User]],
-) -> Iterable[APIUser]:
+) -> Iterable[RpcUser]:
     teams_to_fall_back = set(teams)
     for recipients in recipients_by_provider.values():
         for recipient in recipients:
@@ -456,9 +456,9 @@ def get_users_from_team_fall_back(
 
 
 def combine_recipients_by_provider(
-    teams_by_provider: Mapping[ExternalProviders, set[Team | APIUser]],
-    users_by_provider: Mapping[ExternalProviders, set[Team | APIUser]],
-) -> Mapping[ExternalProviders, set[Team | APIUser]]:
+    teams_by_provider: Mapping[ExternalProviders, set[Team | RpcUser]],
+    users_by_provider: Mapping[ExternalProviders, set[Team | RpcUser]],
+) -> Mapping[ExternalProviders, set[Team | RpcUser]]:
     """TODO(mgaeta): Make this more generic and move it to utils."""
     recipients_by_provider = defaultdict(set)
     for provider, teams in teams_by_provider.items():
@@ -472,9 +472,9 @@ def combine_recipients_by_provider(
 
 def get_recipients_by_provider(
     project: Project,
-    recipients: Iterable[Team | APIUser],
+    recipients: Iterable[Team | RpcUser],
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-) -> Mapping[ExternalProviders, set[Team | APIUser]]:
+) -> Mapping[ExternalProviders, set[Team | RpcUser]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     teams, users = partition_recipients(recipients)
 
