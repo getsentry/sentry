@@ -911,6 +911,7 @@ LOGGING = {
             "propagate": False,
         },
         "celery.worker.job": {"handlers": ["console"], "propagate": False},
+        "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",
