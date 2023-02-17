@@ -790,7 +790,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         // 1 in the table header, 1 in the column selector, 1 in the sort field
         const countFields = screen.getAllByText('count()');
@@ -994,7 +994,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
         userEvent.click(screen.getByText('transaction.duration'));
