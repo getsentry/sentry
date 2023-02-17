@@ -332,6 +332,8 @@ def process_resource_change(instance, change, **kwargs):
     if len(autoassignment_types) > 0:
         GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
 
+    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+
 
 # Signals update the cached reads used in post_processing
 post_save.connect(

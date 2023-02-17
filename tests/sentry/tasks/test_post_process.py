@@ -33,6 +33,7 @@ from sentry.models import (
     ProjectTeam,
 )
 from sentry.models.activity import ActivityIntegration
+from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, ISSUE_OWNERS_DEBOUNCE_KEY
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user import user_service
@@ -953,6 +954,35 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_regression=False,
             is_new_group_environment=False,
             event=event,
+        )
+
+    @patch("sentry.tasks.post_process.logger")
+    def test_debounces_handle_owner_assignments(self, logger):
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), True, ISSUE_OWNERS_DEBOUNCE_DURATION)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        logger.info.assert_any_call(
+            "handle_owner_assignment.issue_owners_exist",
+            extra={
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+                "reason": "issue_owners_exist",
+            },
         )
 
 
