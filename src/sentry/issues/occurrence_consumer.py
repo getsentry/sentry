@@ -239,7 +239,7 @@ def _process_message(
         op="_process_message",
         name="issues.occurrence_consumer",
         sampled=True,
-    ):
+    ) as txn:
         try:
             kwargs = _get_kwargs(message)
             occurrence_data = kwargs["occurrence_data"]
@@ -249,26 +249,26 @@ def _process_message(
             project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
             organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-            sentry_sdk.set_tag("organization_id", organization.id)
-            sentry_sdk.set_tag("organization_slug", organization.slug)
-            sentry_sdk.set_tag("project_id", project.id)
-            sentry_sdk.set_tag("project_slug", project.slug)
+            txn.set_tag("organization_id", organization.id)
+            txn.set_tag("organization_slug", organization.slug)
+            txn.set_tag("project_id", project.id)
+            txn.set_tag("project_slug", project.slug)
 
             if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
                 metrics.incr("occurrence_ingest.dropped_feature_disabled", sample_rate=1.0)
-                sentry_sdk.set_tag("result", "dropped_feature_disabled")
+                txn.set_tag("result", "dropped_feature_disabled")
                 return None
 
             if "event_data" in kwargs:
-                sentry_sdk.set_tag("result", "success")
+                txn.set_tag("result", "success")
                 return process_event_and_issue_occurrence(
                     kwargs["occurrence_data"], kwargs["event_data"]
                 )
             else:
-                sentry_sdk.set_tag("result", "success")
+                txn.set_tag("result", "success")
                 return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
         except (ValueError, KeyError) as e:
-            sentry_sdk.set_tag("result", "error")
+            txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
 
 
