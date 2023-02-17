@@ -215,12 +215,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
             elif txt == "Repository access blocked":
                 logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            elif txt.startswith("Unable to reach host:"):
+                logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
             elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
                 logger.warning("Github has blocked this org. We will not continue.", extra=extra)
                 # Raising the error will be handled at the task level
                 raise error
-            elif txt.startswith("Unable to reach host:"):
-                logger.warning("Unable to reach host at the moment. Continue.", extra=extra)
             else:
                 # We do not raise the exception so we can keep iterating through the repos.
                 # Nevertheless, investigate the error to determine if we should abort the processing
