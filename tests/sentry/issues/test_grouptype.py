@@ -93,7 +93,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
         super().setUp()
         self.org = self.create_organization()
 
-    def test_get_noise_config(self) -> None:
+    def test_get_noise_config_basic(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):
 
             @dataclass(frozen=True)
@@ -103,7 +103,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 description = "Test-1"
                 category = GroupCategory.ERROR.value
                 group_policy = GroupPolicy(
-                    feature="organizations:test-detector-1",
+                    feature="organizations:performance-slow-db-issue",
                     general_access=NoiseConfig(
                         ignore_limit=100,
                         expiry_time=60,
@@ -117,7 +117,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 description = "Test-2"
                 category = GroupCategory.PERFORMANCE.value
                 group_policy = GroupPolicy(
-                    feature="organizations:test-detector-2",
+                    feature="organizations:performance-file-io-main-thread-detector",
                     general_access=NoiseConfig(
                         ignore_limit=10,
                         expiry_time=600,
@@ -142,12 +142,45 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 description = "Test-1"
                 category = GroupCategory.ERROR.value
                 group_policy = GroupPolicy(
-                    feature="organizations:test-detector-1",
+                    feature="organizations:performance-slow-db-issue",
                 )
 
             noise_config = get_noise_config(TestGroupType1, self.org)
             assert noise_config.ignore_limit == DEFAULT_IGNORE_LIMIT
             assert noise_config.expiry_time == DEFAULT_EXPIRY_TIME
+
+    def test_get_noise_config(self):
+        with patch.dict(_group_type_registry, {}, clear=True):
+            self.org2 = self.create_organization()
+            self.org2.flags.early_adopter = True
+            self.org2.save()
+
+            @dataclass(frozen=True)
+            class TestGroupType1(GroupType):
+                type_id = 1
+                slug = "test-1"
+                description = "Test-1"
+                category = GroupCategory.ERROR.value
+                group_policy = GroupPolicy(
+                    feature="organizations:performance-slow-db-issue",
+                    limited_access=NoiseConfig(ignore_limit=10),
+                    early_access=NoiseConfig(
+                        ignore_limit=20,
+                    ),
+                    general_access=NoiseConfig(
+                        ignore_limit=30,
+                    ),
+                )
+
+            with self.feature({"organizations:performance-slow-db-issue": True}):
+                noise_config = get_noise_config(TestGroupType1, self.org)
+                assert noise_config.ignore_limit == 10
+
+            noise_config = get_noise_config(TestGroupType1, self.org2)
+            assert noise_config.ignore_limit == 20
+
+            noise_config = get_noise_config(TestGroupType1, self.org)
+            assert noise_config.ignore_limit == 30
 
     def test_noise_config_validation(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):
@@ -159,7 +192,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 description = "Test-1"
                 category = GroupCategory.ERROR.value
                 group_policy = GroupPolicy(
-                    feature="organizations:test-detector-1",
+                    feature="organizations:performance-slow-db-issue",
                     limited_access=NoiseConfig(ignore_limit=100),
                     early_access=NoiseConfig(
                         ignore_limit=50,
@@ -177,7 +210,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                     GroupCategory.ERROR.value,
                     0,
                     GroupPolicy(
-                        feature="organizations:test-detector-1",
+                        feature="organizations:performance-slow-db-issue",
                         limited_access=NoiseConfig(ignore_limit=100),
                         early_access=NoiseConfig(
                             ignore_limit=50,
@@ -192,7 +225,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 description = "Test-2"
                 category = GroupCategory.PERFORMANCE.value
                 group_policy = GroupPolicy(
-                    feature="organizations:test-detector-2",
+                    feature="organizations:performance-file-io-main-thread-detector",
                     early_access=NoiseConfig(
                         ignore_limit=50,
                     ),
@@ -212,7 +245,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                     GroupCategory.PERFORMANCE.value,
                     0,
                     GroupPolicy(
-                        feature="organizations:test-detector-2",
+                        feature="organizations:performance-file-io-main-thread-detector",
                         early_access=NoiseConfig(ignore_limit=100),
                         general_access=NoiseConfig(
                             ignore_limit=50,
@@ -227,7 +260,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 description = "Test-3"
                 category = GroupCategory.PERFORMANCE.value
                 group_policy = GroupPolicy(
-                    feature="organizations:test-detector-3",
+                    feature="organizations:performance-issues-compressed-assets-detector",
                     early_access=NoiseConfig(
                         ignore_limit=10,
                         expiry_time=60,
@@ -249,7 +282,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                     GroupCategory.PERFORMANCE.value,
                     0,
                     GroupPolicy(
-                        feature="organizations:test-detector-2",
+                        feature="organizations:performance-issues-compressed-assets-detector",
                         early_access=NoiseConfig(
                             ignore_limit=10,
                             expiry_time=60,
@@ -260,8 +293,3 @@ class GroupPolicyTest(TestCase):  # type: ignore
                         ),
                     ),
                 )
-
-
-# TODO add test to check for LA/EA/GA
-# with self.feature({"organizations:performance-issues-compressed-assets-detector": True}):
-#     assert detector.is_creation_allowed_for_organization(project.organization)

@@ -174,7 +174,7 @@ class PerformanceNPlusOneGroupType(GroupType):
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
-    group_policy = GroupPolicy(feature="organizations:performance-issues-m-n-plus-one-db-detector")
+    group_policy = GroupPolicy(feature="performance.issues.n_plus_one_db")
 
 
 @dataclass(frozen=True)
