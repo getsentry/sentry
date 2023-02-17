@@ -526,7 +526,13 @@ if (
       'Access-Control-Allow-Credentials': 'true',
     },
     // Cover the various environments we use (vercel, getsentry-dev, localhost)
-    allowedHosts: ['.sentry.dev', '.dev.getsentry.net', '.localhost', '127.0.0.1'],
+    allowedHosts: [
+      '.sentry.dev',
+      '.dev.getsentry.net',
+      '.localhost',
+      '127.0.0.1',
+      '.docker.internal',
+    ],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
