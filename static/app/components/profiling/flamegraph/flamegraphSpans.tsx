@@ -386,7 +386,7 @@ export function FlamegraphSpans({
         <CollapsibleTimelineMessage>
           {t('No associated transaction found')}
         </CollapsibleTimelineMessage>
-      ) : profiledTransaction.type === 'resolved' && spanChart.spans.length <= 1 ? (
+      ) : profiledTransaction.type === 'resolved' && spanChart.spans.length < 1 ? (
         <CollapsibleTimelineMessage>
           {t('Transaction has no spans')}
         </CollapsibleTimelineMessage>
