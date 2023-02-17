@@ -51,7 +51,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> 
   newOrg?: boolean;
 };
 
-export function HeartbeatFooter({projectSlug, router, newOrg}: Props) {
+export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
 
@@ -119,23 +119,35 @@ export function HeartbeatFooter({projectSlug, router, newOrg}: Props) {
   }, [firstErrorReceived, loading, newOrg, organization]);
 
   useEffect(() => {
-    if (location.pathname.startsWith('onboarding')) {
-      return;
-    }
+    const onUnload = (nextLocation?: Location) => {
+      if (location.pathname.startsWith('onboarding')) {
+        return true;
+      }
 
-    if (!serverConnected) {
-      return;
-    }
+      if (!serverConnected) {
+        return true;
+      }
 
-    // If users are in the onboarding of existing orgs &&
-    // have started the SDK instrumentation &&
-    // clicks elsewhere else to change the route,
-    // then we display the 'are you sure?' dialog.
-    openChangeRouteModal(router, {
-      ...router.location,
-      pathname: `/organizations/${organization.slug}/issues/`,
-    });
-  }, [router, organization, firstErrorReceived, serverConnected]);
+      // Next Location is always available when user clicks on a item with a new route
+      if (!nextLocation) {
+        return true;
+      }
+
+      if (nextLocation.query.setUpRemainingOnboardingTasksLater) {
+        return true;
+      }
+
+      // If users are in the onboarding of existing orgs &&
+      // have started the SDK instrumentation &&
+      // clicks elsewhere else to change the route,
+      // then we display the 'are you sure?' dialog.
+      openChangeRouteModal(router, nextLocation);
+
+      return false;
+    };
+
+    router.setRouteLeaveHook(route, onUnload);
+  }, [router, route, organization, firstErrorReceived, serverConnected]);
 
   // The explore button is only showed if Sentry has not yet received any errors.
   const handleExploreSentry = useCallback(() => {
