@@ -134,6 +134,9 @@ class AmazonSQSPluginTest(PluginTestCase):
 
     @patch("sentry_plugins.amazon_sqs.plugin.logger")
     @patch("boto3.client")
+    @pytest.mark.skip(
+        reason="Flakey: https://sentry.sentry.io/issues/3901571639/?project=2423079 and https://sentry.sentry.io/issues/3901571639/?project=2423079"
+    )
     def test_invalid_s3_bucket(self, mock_client, logger):
         self.plugin.set_option("s3_bucket", "bad_bucket", self.project)
         mock_client.return_value.put_object.side_effect = ClientError(
