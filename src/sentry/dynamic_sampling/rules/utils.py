@@ -6,9 +6,12 @@ from sentry.utils import json
 BOOSTED_RELEASES_LIMIT = 10
 BOOSTED_KEY_TRANSACTION_LIMIT = 10
 
-RELEASE_BOOST_FACTOR = 5
-KEY_TRANSACTION_BOOST_FACTOR = 5
-HEALTH_CHECK_DROPPING_FACTOR = 5
+KEY_TRANSACTIONS_BOOST_FACTOR = 1.5
+
+LATEST_RELEASES_BOOST_FACTOR = 1.5
+LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
+
+IGNORE_HEALTH_CHECKS_FACTOR = 5
 
 
 class ActivatableBias(TypedDict):
@@ -161,3 +164,19 @@ def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) ->
 
 def get_supported_biases_ids() -> Set[str]:
     return {bias["id"] for bias in DEFAULT_BIASES}
+
+
+def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
+    """
+    This function known as dynamic factor function is used during the rules generation in order to determine the factor
+    for each rule based on the base_sample_rate of the project.
+
+    The high-level idea is that we want to reduce the factor the bigger the base_sample_rate becomes, this is done
+    because multiplication will exceed 1 very quickly in case we don't reduce the factor.
+    """
+    if base_sample_rate <= 0.0 or base_sample_rate > 1.0:
+        raise Exception(
+            "The dynamic factor function requires a sample rate in the interval [0.x, 1.0] with x > 0."
+        )
+
+    return float(x / x**base_sample_rate)

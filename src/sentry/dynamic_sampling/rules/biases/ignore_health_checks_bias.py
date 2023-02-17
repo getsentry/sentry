@@ -8,7 +8,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasRulesGenerator,
 )
 from sentry.dynamic_sampling.rules.utils import (
-    HEALTH_CHECK_DROPPING_FACTOR,
+    IGNORE_HEALTH_CHECKS_FACTOR,
     RESERVED_IDS,
     PolymorphicRule,
     RuleType,
@@ -31,7 +31,7 @@ class IgnoreHealthChecksDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
-            "sampleRate": bias_params.base_sample_rate / HEALTH_CHECK_DROPPING_FACTOR,
+            "sampleRate": bias_params.base_sample_rate / IGNORE_HEALTH_CHECKS_FACTOR,
             "healthCheckGlobs": HEALTH_CHECK_GLOBS,
         }
 
