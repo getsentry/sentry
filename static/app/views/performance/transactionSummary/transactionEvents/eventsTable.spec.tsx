@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -302,7 +302,7 @@ describe('Performance GridEditable Table', function () {
     );
   });
 
-  it('renders replay id', function () {
+  it('renders replay id', async function () {
     const initialData = initializeData();
 
     fields = [...fields, 'replayId'];
@@ -336,11 +336,12 @@ describe('Performance GridEditable Table', function () {
       {context: initialData.routerContext}
     );
 
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
     expect(container).toSnapshot();
   });
 
-  it('renders profile id', function () {
+  it('renders profile id', async function () {
     const initialData = initializeData();
 
     fields = [...fields, 'profile.id'];
@@ -374,6 +375,7 @@ describe('Performance GridEditable Table', function () {
       {context: initialData.routerContext}
     );
 
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
     expect(container).toSnapshot();
   });
