@@ -704,7 +704,7 @@ export function parseArguments(functionText: string, columnText: string): string
   let i: number = 0;
   let j: number = 0;
 
-  while (j < columnText.length) {
+  while (j < columnText?.length) {
     if (i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string

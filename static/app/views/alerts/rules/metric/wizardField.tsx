@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';

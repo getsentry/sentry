@@ -383,7 +383,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
             if include_rules and is_active_superuser(request):
-                data["dynamicSamplingRules"] = generate_rules(project)
+                data["dynamicSamplingRules"] = {
+                    "rules": [],
+                    "rulesV2": generate_rules(project),
+                }
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None

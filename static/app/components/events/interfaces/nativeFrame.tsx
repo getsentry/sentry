@@ -22,11 +22,11 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
-import {IconRepeat} from 'sentry/icons/iconRepeat';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -225,7 +225,7 @@ function NativeFrame({
             {status === 'error' ? (
               <Tooltip
                 title={t(
-                  'This frame has missing deminification files and could not be symbolicated'
+                  'This frame has missing debug files and could not be symbolicated'
                 )}
               >
                 <IconFileBroken size="sm" color="errorText" />
@@ -298,7 +298,7 @@ function NativeFrame({
           <GroupingCell>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
-                <IconRepeat size="sm" color="textColor" />
+                <IconRefresh size="sm" color="textColor" />
               </Tooltip>
             )}
           </GroupingCell>
