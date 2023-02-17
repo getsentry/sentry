@@ -1,8 +1,5 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
-const process = require('process');
-
 const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
 const isCi = !!process.env.CI;
 

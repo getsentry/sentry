@@ -1,7 +1,6 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 no-console:0 */
 import {spawn} from 'child_process';
-import {stderr, stdout} from 'process';
 
 import sane from 'sane';
 
@@ -22,11 +21,11 @@ const makeApiDocsCommand = function () {
   const buildCommand = spawn('make', ['build-api-docs']);
 
   buildCommand.stdout.on('data', function (data) {
-    stdout.write(data.toString());
+    process.stdout.write(data.toString());
   });
 
   buildCommand.stderr.on('data', function (data) {
-    stderr.write('stderr: ' + data.toString());
+    process.stderr.write('stderr: ' + data.toString());
   });
 
   buildCommand.on('exit', function () {
