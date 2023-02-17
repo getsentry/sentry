@@ -14,7 +14,7 @@ interface Props {
   coverage?: CoverageStatus | '';
 }
 
-const coverageText = {
+const coverageText: Record<CoverageStatus, string> = {
   uncovered: t('Uncovered'),
   covered: t('Covered'),
   partial: t('Partially Covered'),
