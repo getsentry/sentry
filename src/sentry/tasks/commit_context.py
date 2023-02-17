@@ -230,7 +230,7 @@ def process_commit_context(
             group_owner, created = GroupOwner.objects.update_or_create(
                 group_id=group_id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user_id=author_to_user.get(str(commit.author_id)).get("id"),
+                user_id=author_to_user.get(str(commit.author_id), {}).get("id"),
                 project=project,
                 organization_id=project.organization_id,
                 context={"commitId": commit.id},

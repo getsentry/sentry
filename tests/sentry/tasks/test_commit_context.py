@@ -283,6 +283,48 @@ class TestCommitContext(TestCase):
         assert owner.team is None
         assert owner.context == {"commitId": self.commit_2.id}
 
+    @patch("sentry.tasks.commit_context.get_users_for_authors", return_value={})
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value={
+            "commitId": "somekey",
+            "committedDate": "2023-02-14T11:11Z",
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "randomuser@sentry.io",
+        },
+    )
+    def test_commit_author_no_user(self, mock_get_commit_context, mock_get_users_for_author):
+        self.commit_author_2 = self.create_commit_author(
+            project=self.project,
+        )
+        self.commit_2 = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.commit_author_2,
+            key="somekey",
+            message="placeholder commit message",
+        )
+
+        with self.tasks(), patch(
+            "sentry.tasks.commit_context.get_users_for_authors", return_value={}
+        ):
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+        assert GroupOwner.objects.filter(group=self.event.group).exists()
+        assert len(GroupOwner.objects.filter(group=self.event.group)) == 1
+        owner = GroupOwner.objects.get(group=self.event.group)
+        assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
+        assert owner.user_id is None
+        assert owner.team is None
+        assert owner.context == {"commitId": self.commit_2.id}
+
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
