@@ -195,30 +195,3 @@ app_service: AppService = silo_mode_delegation(
         SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
     }
 )
-
-
-@dataclass
-class RpcSentryAppInstallation:
-    id: int = -1
-    organization_id: int = -1
-    status: int = SentryAppInstallationStatus.PENDING
-    sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
-
-
-ApiSentryAppInstallation = RpcSentryAppInstallation
-
-
-@dataclass
-class RpcSentryApp:
-    id: int = -1
-    scope_list: List[str] = field(default_factory=list)
-    application_id: int = -1
-    proxy_user_id: int | None = None  # can be null on deletion.
-    owner_id: int = -1  # relation to an organization
-    name: str = ""
-    slug: str = ""
-    uuid: str = ""
-    events: List[str] = field(default_factory=list)
-
-
-ApiSentryApp = RpcSentryApp
