@@ -131,6 +131,7 @@
     "prettier": "2.8.3",
     "prismjs": "^1.27.0",
     "prop-types": "^15.8.1",
+    "process": "^0.11.10",
     "pyright": "1.1.255",
     "qrcode.react": "^3.1.0",
     "query-string": "7.0.1",
