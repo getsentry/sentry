@@ -5,6 +5,7 @@ from sentry_sdk import configure_scope
 
 from sentry import options
 from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
 
 LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
@@ -15,7 +16,7 @@ REF_TYPE = Literal["branch", "sha"]
 CODECOV_TIMEOUT = 2
 
 
-def has_codecov_integration(organization) -> bool:
+def has_codecov_integration(organization: Organization) -> bool:
     codecov_token = options.get("codecov.client-secret")
     if not codecov_token:
         return False
