@@ -4,20 +4,26 @@ import classNames from 'classnames';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-export type CoverageStatus = 'uncovered' | 'covered' | 'partial';
+import {Coverage} from 'sentry/types';
 
 interface Props {
   isActive: boolean;
   line: [lineNo: number, content: string];
   children?: React.ReactNode;
-  coverage?: CoverageStatus | '';
+  coverage?: Coverage | '';
 }
 
-const coverageText: Record<CoverageStatus, string> = {
-  uncovered: t('Uncovered'),
-  covered: t('Covered'),
-  partial: t('Partially Covered'),
+const coverageText: Record<Coverage, string | undefined> = {
+  [Coverage.NOT_COVERED]: t('Uncovered'),
+  [Coverage.COVERED]: t('Covered'),
+  [Coverage.PARTIAL]: t('Partially Covered'),
+  [Coverage.NOT_APPLICABLE]: undefined,
+};
+const coverageClass: Record<Coverage, string | undefined> = {
+  [Coverage.NOT_COVERED]: 'uncovered',
+  [Coverage.COVERED]: 'covered',
+  [Coverage.PARTIAL]: 'partial',
+  [Coverage.NOT_APPLICABLE]: undefined,
 };
 
 function ContextLine({line, isActive, children, coverage = ''}: Props) {
@@ -28,7 +34,13 @@ function ContextLine({line, isActive, children, coverage = ''}: Props) {
   }
 
   return (
-    <StyledLi className={classNames('expandable', coverage, isActive ? 'active' : '')}>
+    <StyledLi
+      className={classNames(
+        'expandable',
+        coverageClass[coverage],
+        isActive ? 'active' : ''
+      )}
+    >
       <LineContent>
         <Tooltip skipWrapper title={coverageText[coverage]} delay={200}>
           <div className="line-number">{line[0]}</div>

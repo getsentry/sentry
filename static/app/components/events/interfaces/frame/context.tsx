@@ -25,7 +25,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {parseAssembly} from '../utils';
 
 import {Assembly} from './assembly';
-import ContextLine, {CoverageStatus} from './contextLine';
+import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
@@ -52,37 +52,16 @@ type Props = {
 export function getCoverageColorClass(
   lines: [number, string][],
   lineCov: LineCoverage[]
-): [Array<CoverageStatus | undefined>, boolean] {
-  const lineCoverage = keyBy(lineCov, 0);
-  let hasCoverage = false;
-  const lineColors = lines.map(([lineNo]) => {
-    const coverage = lineCoverage[lineNo]?.[1] ?? Coverage.NOT_APPLICABLE;
+): [Array<Coverage | undefined>, boolean] {
+  const keyedCoverage = keyBy(lineCov, 0);
+  const lineCoverage = lines.map<Coverage | undefined>(
+    ([lineNo]) => keyedCoverage[lineNo]?.[1]
+  );
+  const hasCoverage = lineCoverage.some(
+    coverage => coverage !== Coverage.NOT_APPLICABLE && coverage !== undefined
+  );
 
-    let color: CoverageStatus | undefined;
-    switch (coverage) {
-      case Coverage.COVERED:
-        color = 'covered';
-        break;
-      case Coverage.NOT_COVERED:
-        color = 'uncovered';
-        break;
-      case Coverage.PARTIAL:
-        color = 'partial';
-        break;
-      case Coverage.NOT_APPLICABLE:
-      // fallthrough
-      default:
-        break;
-    }
-
-    if (color) {
-      hasCoverage = true;
-    }
-
-    return color;
-  });
-
-  return [lineColors, hasCoverage];
+  return [lineCoverage, hasCoverage];
 }
 
 const Context = ({
