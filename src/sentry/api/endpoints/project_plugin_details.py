@@ -18,6 +18,7 @@ from sentry.api.serializers.models.plugin import (
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.plugins.base import plugins
 from sentry.signals import plugin_enabled
+from sentry.utils.http import absolute_uri
 
 ERR_ALWAYS_ENABLED = "This plugin is always enabled."
 ERR_FIELD_REQUIRED = "This field is required."
@@ -41,7 +42,8 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
             context["config_error"] = str(e)
-            context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
+            # Use an absolute URI so that oauth redirects work.
+            context["auth_url"] = absolute_uri(reverse("socialauth_associate", args=[plugin.slug]))
 
         if context["isDeprecated"]:
             raise Http404
