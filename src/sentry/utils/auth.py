@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, Collection, Container, Dict, Mapping, Sequence, cast
+from typing import Any, Collection, Dict, Iterable, Mapping, Sequence, cast
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
@@ -187,7 +187,7 @@ def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     return login_redirect
 
 
-def is_valid_redirect(url: str, allowed_hosts: Container[str] | None = None) -> bool:
+def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
