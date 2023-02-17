@@ -183,7 +183,7 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
     router.push(nextLocation);
   }, [router, organization, project, firstErrorReceived]);
 
-  // It's the same idea as the explorer button and this wil go away in the next iteration.
+  // It's the same idea as the explore button and this will go away in the next iteration.
   const handleGoToIssues = useCallback(() => {
     trackAdvancedAnalyticsEvent('heartbeat.onboarding_go_to_issues_button_clicked', {
       organization,
