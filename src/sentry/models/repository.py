@@ -14,6 +14,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
 
 
@@ -93,7 +94,7 @@ class Repository(Model, PendingDeletionMixin):
         return super().reset_pending_deletion_field_names(["config"])
 
 
-def on_delete(instance, actor=None, **kwargs):
+def on_delete(instance, actor: RpcUser | None = None, **kwargs):
     """
     Remove webhooks for repository providers that use repository level webhooks.
     This is called from sentry.tasks.deletion.run_deletion()

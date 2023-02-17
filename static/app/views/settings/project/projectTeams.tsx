@@ -7,8 +7,9 @@ import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/projects';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
@@ -72,10 +73,18 @@ class ProjectTeams extends AsyncView<Props, State> {
     }));
   };
 
-  handleAdd = (team: Team) => {
+  handleAdd = (teamSlug: string) => {
     if (this.state.loading) {
       return;
     }
+
+    const team = TeamStore.getBySlug(teamSlug);
+    if (!team) {
+      addErrorMessage(tct('Unable to find "[teamSlug]"', {teamSlug}));
+      this.setState({error: true});
+      return;
+    }
+
     const {organization, project} = this.props;
 
     addTeamToProject(this.api, organization.slug, project.slug, team).then(
@@ -145,16 +154,16 @@ class ProjectTeams extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title={t('%s Teams', project.slug)} />
+        <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
         <TeamSelect
+          disabled={!hasAccess}
+          enforceIdpProvisioned={false}
           organization={organization}
+          menuHeader={menuHeader}
           selectedTeams={projectTeams ?? []}
           onAddTeam={this.handleAdd}
           onRemoveTeam={this.handleRemove}
-          menuHeader={menuHeader}
           confirmLastTeamRemoveMessage={confirmRemove}
-          disabled={!hasAccess}
-          enforceIdpProvisioned={false}
         />
       </div>
     );

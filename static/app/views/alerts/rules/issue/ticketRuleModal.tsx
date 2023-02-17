@@ -7,7 +7,7 @@ import AbstractExternalIssueForm, {
 import {FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Choices, IssueConfigField, Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import AsyncView from 'sentry/views/asyncView';

@@ -29,8 +29,8 @@ from rest_framework.response import Response
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
     MonitorStatus.MISSED_CHECKIN,
-    MonitorStatus.ACTIVE,
     MonitorStatus.OK,
+    MonitorStatus.ACTIVE,
     MonitorStatus.DISABLED,
 ]
 
@@ -97,7 +97,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("status_order", "-name"),
+            order_by=("status_order", "-last_checkin"),
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

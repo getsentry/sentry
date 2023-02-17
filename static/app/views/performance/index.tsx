@@ -4,6 +4,7 @@ import {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -34,11 +35,13 @@ function PerformanceContainer({organization, location, children}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <QueryClientProvider client={queryClient}>
-        <MetricsCardinalityProvider location={location} organization={organization}>
-          <MEPSettingProvider>{children}</MEPSettingProvider>
-        </MetricsCardinalityProvider>
-      </QueryClientProvider>
+      <NoProjectMessage organization={organization}>
+        <QueryClientProvider client={queryClient}>
+          <MetricsCardinalityProvider location={location} organization={organization}>
+            <MEPSettingProvider>{children}</MEPSettingProvider>
+          </MetricsCardinalityProvider>
+        </QueryClientProvider>
+      </NoProjectMessage>
     </Feature>
   );
 }

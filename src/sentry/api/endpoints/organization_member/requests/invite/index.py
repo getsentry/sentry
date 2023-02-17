@@ -9,11 +9,9 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.locks import locks
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.utils.retries import TimedRetryPolicy
 
 from ... import save_team_assignments
 from ...index import OrganizationMemberSerializer
@@ -60,7 +58,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
         :param string role: the suggested role of the new member
-        :param array teams: the suggested slugs of the teams the member should belong to.
+        :param string orgRole: the suggested org-role of the new member
+        :param array teams: the teams which the member should belong to.
+        :param array teamRoles: the teams and team-roles assigned to the member
 
         :auth: required
         """
@@ -83,10 +83,12 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
-            if result["teams"]:
-                lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member_invite")
-                with TimedRetryPolicy(10)(lock.acquire):
-                    save_team_assignments(om, result["teams"])
+            # Do not set team-roles when inviting a member
+            if "teams" in result or "teamRoles" in result:
+                teams = result.get("teams") or [
+                    item["teamSlug"] for item in result.get("teamRoles", [])
+                ]
+                save_team_assignments(om, teams)
 
             self.create_audit_entry(
                 request=request,

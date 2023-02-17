@@ -7,6 +7,7 @@ import {TabListState} from '@react-stately/tabs';
 import {CollectionBase, Node, Orientation} from '@react-types/shared';
 
 import {TabsContext} from './index';
+import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
@@ -48,6 +49,8 @@ export function TabPanels(props: TabPanelsProps) {
     </TabPanel>
   );
 }
+
+TabPanels.Item = Item;
 
 interface TabPanelProps extends AriaTabPanelProps {
   orientation: Orientation;

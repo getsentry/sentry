@@ -16,7 +16,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';

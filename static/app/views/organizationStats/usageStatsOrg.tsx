@@ -13,7 +13,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import ScoreCard, {ScoreCardProps} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 

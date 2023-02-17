@@ -8,7 +8,7 @@ import {ApiForm} from 'sentry/components/forms';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';

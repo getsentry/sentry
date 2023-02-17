@@ -20,7 +20,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis, IconMail, IconOpen, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';

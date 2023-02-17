@@ -30,15 +30,15 @@ logger = logging.getLogger(__name__)
 
 def get_before_event_condition(event):
     return [
-        [TIMESTAMP, "<=", event.timestamp],
-        [[TIMESTAMP, "<", event.timestamp], [EVENT_ID, "<", event.event_id]],
+        [TIMESTAMP, "<=", event.datetime],
+        [[TIMESTAMP, "<", event.datetime], [EVENT_ID, "<", event.event_id]],
     ]
 
 
 def get_after_event_condition(event):
     return [
-        [TIMESTAMP, ">=", event.timestamp],
-        [[TIMESTAMP, ">", event.timestamp], [EVENT_ID, ">", event.event_id]],
+        [TIMESTAMP, ">=", event.datetime],
+        [[TIMESTAMP, ">", event.datetime], [EVENT_ID, ">", event.event_id]],
     ]
 
 
@@ -254,6 +254,14 @@ class SnubaEventStorage(EventStorage):
 
         return event
 
+    def _get_dataset_for_event(self, event):
+        if event.get_event_type() == "transaction":
+            return snuba.Dataset.Transactions
+        elif event.get_event_type() == "generic":
+            return snuba.Dataset.IssuePlatform
+        else:
+            return snuba.Dataset.Discover
+
     def get_next_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a next event given a current event
@@ -268,13 +276,7 @@ class SnubaEventStorage(EventStorage):
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
-
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
-        )
-
+        dataset = self._get_dataset_for_event(event)
         return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
 
     def get_prev_event_id(self, event, filter):
@@ -293,13 +295,7 @@ class SnubaEventStorage(EventStorage):
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         filter.end = event.datetime + timedelta(seconds=1)
-
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
-        )
-
+        dataset = self._get_dataset_for_event(event)
         return self.__get_event_id_from_filter(
             filter=filter, orderby=DESC_ORDERING, dataset=dataset
         )
