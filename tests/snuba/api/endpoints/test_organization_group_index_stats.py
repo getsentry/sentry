@@ -1,3 +1,4 @@
+from sentry.issues.grouptype import ProfileBlockedThreadGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -71,6 +72,8 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         event_group = event.for_group(event.group)
         event_group.occurrence = self.build_occurrence()
+        event.group.type = ProfileBlockedThreadGroupType.type_id
+
         self.login_as(user=self.user)
         response = self.get_response(
             query=f"issue:{event.group.qualified_short_id}", groups=[event.group.id]
