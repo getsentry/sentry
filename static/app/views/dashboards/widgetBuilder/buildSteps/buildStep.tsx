@@ -5,8 +5,8 @@ import {space} from 'sentry/styles/space';
 
 interface Props {
   children: React.ReactNode;
-  description: React.ReactNode;
   title: string;
+  description?: React.ReactNode;
   required?: boolean;
 }
 
