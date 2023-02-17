@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
 from django.conf import settings
 
 from sentry import features
-from sentry.models import Organization, Project
 from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
+    from sentry.models import Organization, Project
     from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
 
@@ -243,6 +243,7 @@ def reduce_noise(
     performance_problems_by_hash: Dict[str, PerformanceProblem],
     project: Project,
 ) -> Set[str]:
+
     groups_to_ignore = set()
     cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get("cluster", "default")
     client = redis.redis_clusters.get(cluster_key)
