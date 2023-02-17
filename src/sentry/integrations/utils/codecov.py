@@ -12,6 +12,7 @@ CODECOV_REPORT_URL = (
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 REF_TYPE = Literal["branch", "sha"]
+CODECOV_TIMEOUT = 2
 
 
 def has_codecov_integration(organization) -> bool:
@@ -47,7 +48,7 @@ def get_codecov_data(
     ref: str,
     ref_type: REF_TYPE,
     path: str,
-    has_error_commit: bool,
+    set_timeout: bool,
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
@@ -63,14 +64,16 @@ def get_codecov_data(
         with configure_scope() as scope:
             params = {ref_type: ref, "path": path}
             response = requests.get(
-                url, params=params, headers={"Authorization": f"Bearer {codecov_token}"}
+                url,
+                params=params,
+                headers={"Authorization": f"Bearer {codecov_token}"},
+                timeout=CODECOV_TIMEOUT if set_timeout else None,
             )
             tags = {
                 "codecov.request_url": url,
                 "codecov.request_path": path,
                 "codecov.request_ref": ref,
                 "codecov.http_code": response.status_code,
-                "codecov.ref_source": "from_release" if has_error_commit else "from_git_blame",
             }
 
             response_json = response.json()
