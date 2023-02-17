@@ -51,7 +51,8 @@ class GroupType:
     slug: str
     description: str
     category: int
-    group_policy: Optional[Type[GroupPolicy]] = None
+    ignore_limit: int
+    group_policy: Optional[GroupPolicy] = None
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -71,7 +72,7 @@ class GroupType:
         # ensure that noise config ignore limits only increase with rollouts
         # use a ratio of ignore limit to expiry time to allow for greater flexibility
         if self.group_policy:
-            prev_ignore_limit_ratio = 0
+            prev_ignore_limit_ratio = 0.0
             group_policy = self.group_policy
             if group_policy.limited_access:
                 prev_ignore_limit_ratio = (
@@ -81,7 +82,7 @@ class GroupType:
 
             if group_policy.early_access:
                 early_access_ratio = (
-                    group_policy.early_access.ignore_limit / group_policy.limited_access.expiry_time
+                    group_policy.early_access.ignore_limit / group_policy.early_access.expiry_time
                 )
                 if early_access_ratio < prev_ignore_limit_ratio:
                     raise ValueError(
@@ -140,6 +141,7 @@ class ErrorGroupType(GroupType):
     slug = "error"
     description = "Error"
     category = GroupCategory.ERROR.value
+    ignore_limit = 0
 
 
 @dataclass(frozen=True)
@@ -148,6 +150,7 @@ class PerformanceSlowDBQueryGroupType(GroupType):
     slug = "performance_slow_db_query"
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 100
     group_policy = GroupPolicy(
         feature="organizations:performance-slow-db-issue",
         general_access=NoiseConfig(ignore_limit=100),
@@ -180,6 +183,7 @@ class PerformanceConsecutiveDBQueriesGroupType(GroupType):
     slug = "performance_consecutive_db_queries"
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 15
     group_policy = GroupPolicy(
         feature="organizations:performance-consecutive-db-issue",
         general_access=NoiseConfig(ignore_limit=15),
@@ -219,6 +223,7 @@ class PerformanceUncompressedAssetsGroupType(GroupType):
     slug = "performance_uncompressed_assets"
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 100
     group_policy = GroupPolicy(
         feature="organizations:performance-issues-compressed-assets-detector",
         general_access=NoiseConfig(ignore_limit=100),
