@@ -161,7 +161,7 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
     });
   }, [router, organization]);
 
-  // This button will go way in the next iteration, but
+  // This button will go away in the next iteration, but
   // basically now it will display the 'are you sure?' dialog only
   // if Sentry has not yet received any errors.
   const handleGoToPerformance = useCallback(() => {
