@@ -8,7 +8,7 @@ from sentry import options
 LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 REF_TYPE = Literal["branch", "sha"]
-CODECOV_TIMEOUT = 1
+CODECOV_TIMEOUT = 2
 
 
 def get_codecov_data(
