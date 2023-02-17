@@ -979,7 +979,7 @@ function WidgetBuilder({
                               <BuildStep title={t('Name your widget')}>
                                 <TitleInput
                                   name="title"
-                                  aria-label={t('title')}
+                                  aria-label={t('Widget title')}
                                   placeholder={t('Widget Title')}
                                   error={state.errors?.title}
                                   onChange={newTitle => {

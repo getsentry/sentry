@@ -8,7 +8,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 from fixtures.page_objects.dashboard_detail import (
     EDIT_WIDGET_BUTTON,
     WIDGET_DRAG_HANDLE,
-    WIDGET_EDITABLE_TEXT_LABEL,
     WIDGET_RESIZE_HANDLE,
     WIDGET_TITLE_FIELD,
     DashboardDetailPage,
@@ -159,7 +158,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             # Edit the existing widget
             button = self.browser.element(EDIT_WIDGET_BUTTON)
             button.click()
-            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(Keys.END, "Existing WidgetUPDATED!!")
@@ -178,7 +176,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             # Edit the new widget
             button = self.browser.element(f".react-grid-item:nth-of-type(2) {EDIT_WIDGET_BUTTON}")
             button.click()
-            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(Keys.END, "New WidgetUPDATED!!")
@@ -195,7 +192,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         def add_issue_widget(widget_title):
             self.browser.wait_until_clickable('[data-test-id="widget-add"]')
             self.page.click_dashboard_add_widget_button()
-            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(widget_title)
@@ -432,7 +428,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             self.page.click_dashboard_header_add_widget_button()
-            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys("New custom widget")
             button = self.browser.element('[aria-label="Add Widget"]')

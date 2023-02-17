@@ -467,9 +467,8 @@ describe('WidgetBuilder', function () {
     // EditableText and chart title
     expect(customWidgetLabels).toBeInTheDocument();
 
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'title'}), 'Unique Users');
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'Unique Users');
     userEvent.keyboard('{enter}');
 
     expect(screen.queryByText('Custom Widget')).not.toBeInTheDocument();
@@ -657,8 +656,7 @@ describe('WidgetBuilder', function () {
     // EditableText and chart title
     expect(customWidgetLabels).toBeInTheDocument();
 
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'title'}));
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
 
     userEvent.keyboard('{enter}');
     expect(indicators.addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
@@ -780,10 +778,9 @@ describe('WidgetBuilder', function () {
     const customWidgetLabels = screen.getByText(widget.title);
     // EditableText and chart title
     expect(customWidgetLabels).toBeInTheDocument();
-    userEvent.click(customWidgetLabels[0]);
 
-    userEvent.clear(screen.getByRole('textbox', {name: 'title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'title'}), 'New Title');
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'New Title');
 
     userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
 
@@ -1343,9 +1340,8 @@ describe('WidgetBuilder', function () {
     expect(customWidgetLabels).toBeInTheDocument();
 
     // Change title text
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'title'}), 'Unique Users');
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'Unique Users');
     userEvent.keyboard('{enter}');
 
     // Click Cancel
