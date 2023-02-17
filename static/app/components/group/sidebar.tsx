@@ -70,13 +70,14 @@ class BaseGroupSidebar extends Component<Props, State> {
     this.fetchCurrentRelease();
   }
 
-  trackAssign: OnAssignCallback = (_type, _assignee, suggestedAssignee) => {
+  trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {group, project, organization, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: 'assign',
+      assigned_type: type,
       assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
