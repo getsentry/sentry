@@ -139,7 +139,7 @@ describe('SearchBar', () => {
     expect(onSearch).toHaveBeenCalledWith('transaction:clients.fetch');
   });
 
-  it('Submits wildcard searches', async () => {
+  it('Submits wildcard searches as raw text searches', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -163,7 +163,7 @@ describe('SearchBar', () => {
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
-    expect(onSearch).toHaveBeenCalledWith('transaction:client*');
+    expect(onSearch).toHaveBeenCalledWith('client*');
   });
 
   it('closes the search dropdown when clicked outside of', () => {
