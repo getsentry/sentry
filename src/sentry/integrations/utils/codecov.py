@@ -17,7 +17,6 @@ def get_codecov_data(
     ref: str,
     ref_type: REF_TYPE,
     path: str,
-    has_error_commit: bool,
     set_timeout: bool,
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
@@ -44,7 +43,6 @@ def get_codecov_data(
                 "codecov.request_path": path,
                 "codecov.request_ref": ref,
                 "codecov.http_code": response.status_code,
-                "codecov.ref_source": "from_release" if has_error_commit else "from_git_blame",
             }
 
             response_json = response.json()
