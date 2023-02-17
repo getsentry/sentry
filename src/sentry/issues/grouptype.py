@@ -244,12 +244,9 @@ def reduce_noise(
 
     for new_grouphash in new_grouphashes:
         group_type = performance_problems_by_hash[new_grouphash].type
-        # group_policy = get_group_policy_by_type_id(group_type.type_id)
-        # # use default policy if none exists
-        # if not group_policy:
-        #     noise_config = NoiseConfig()
-        # else:
         noise_config = get_noise_config(group_type, project.organization)
+        if not noise_config:
+            continue
 
         ignore_limit, expiry_time = noise_config.ignore_limit, noise_config.expiry_time
 
