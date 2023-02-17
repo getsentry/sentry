@@ -974,7 +974,7 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
-    # Enables codecov integration for stacktrace highlighting.
+    # Enables V2 for codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration-v2": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
