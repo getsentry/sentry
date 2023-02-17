@@ -26,7 +26,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "ok"})
             assert resp.status_code == 201, resp.content
@@ -48,7 +48,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             if not first_monitor_id:
                 first_monitor_id = str(monitor.guid)
 
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "ok"})
             assert resp.status_code == 201, resp.content
@@ -77,7 +77,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 201, resp.content
@@ -102,7 +102,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
                 status=MonitorStatus.DISABLED,
                 config={"schedule": "* * * * *"},
             )
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 201, resp.content
@@ -128,7 +128,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         )
 
         for path_func in self._get_path_functions():
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 404
@@ -146,7 +146,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         )
 
         for path_func in self._get_path_functions():
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 404
@@ -156,7 +156,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(
                 path, {"status": "ok"}, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}"
@@ -180,7 +180,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         )
 
         for path_func in self._get_path_functions():
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(
                 path,
@@ -205,7 +205,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
 
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             with mock.patch("sentry.api.endpoints.monitor_checkins.CHECKIN_QUOTA_LIMIT", 1):
                 resp = self.client.post(path, {"status": "ok"})

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,7 +10,7 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, Project, ProjectStatus
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -46,7 +48,12 @@ class MonitorEndpoint(Endpoint):
     def respond_invalid() -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
 
-    def convert_args(self, request: Request, monitor_id, *args, **kwargs):
+    def convert_args(self, request: Request, monitor_id: str, *args, **kwargs):
+        try:
+            UUID(monitor_id)
+        except ValueError:
+            raise ParameterValidationError("Invalid monitor UUID")
+
         try:
             monitor = Monitor.objects.get(guid=monitor_id)
         except Monitor.DoesNotExist:
@@ -83,8 +90,8 @@ class MonitorCheckInEndpoint(MonitorEndpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_id,
-        checkin_id,
+        monitor_id: str,
+        checkin_id: str,
         organization_slug: str | None = None,
         *args,
         **kwargs,
@@ -104,6 +111,11 @@ class MonitorCheckInEndpoint(MonitorEndpoint):
             if not checkin:
                 raise ResourceDoesNotExist
         else:
+            try:
+                UUID(checkin_id)
+            except ValueError:
+                raise ParameterValidationError("Invalid check-in UUID")
+
             try:
                 checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
             except MonitorCheckIn.DoesNotExist:
