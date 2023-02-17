@@ -6,13 +6,13 @@ from rest_framework import serializers
 from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 ValidationError = serializers.ValidationError
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class NotifyEventSentryAppActionTest(RuleTestCase):
     rule_cls = NotifyEventSentryAppAction
     schema_data = [
@@ -118,7 +118,8 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         test_install = self.create_sentry_app_installation(
             organization=self.organization, slug="test-application"
         )
-        test_install.delete()
+        with exempt_from_silo_limits():
+            test_install.delete()
         rule = self.get_rule(
             data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": test_install.uuid}
         )

@@ -21,7 +21,7 @@ class TestPreparerIssueLink(TestCase):
         self.project = self.install.organization.project_set.first()
 
         self.preparer = Preparer(
-            component=self.component, install=self.install, project=self.project
+            component=self.component, install=self.install, project_slug=self.project.slug
         )
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
@@ -90,7 +90,7 @@ class TestPreparerStacktraceLink(TestCase):
         self.project = self.install.organization.project_set.first()
 
         self.preparer = Preparer(
-            component=self.component, install=self.install, project=self.project
+            component=self.component, install=self.install, project_slug=self.project.slug
         )
 
     def test_prepares_components_url(self):
@@ -161,7 +161,7 @@ class TestPreparerAlertRuleAction(TestCase):
         self.preparer = Preparer(
             component=self.component,
             install=self.install,
-            project=self.project,
+            project_slug=self.project.slug,
             values=[
                 {"name": "teamId", "value": "Ecosystem"},
                 {"name": "assigneeId", "value": "3"},

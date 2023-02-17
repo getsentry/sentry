@@ -39,9 +39,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
     def after(self, event, state):
         channel = self.get_option("channel_id")
 
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
+        integration = self.get_integration()
+        if not integration:
             return
 
         def send_notification(event, futures):

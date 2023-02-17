@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models import QuerySet
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, control_silo_only_model
 from sentry.models import ApiToken
 
 if TYPE_CHECKING:
@@ -50,7 +50,7 @@ class SentryAppInstallationTokenManager(BaseManager):
         return install_token.sentry_app_installation.organization_id == organization_id
 
 
-@region_silo_only_model
+@control_silo_only_model
 class SentryAppInstallationToken(Model):
     __include_in_export__ = False
 
