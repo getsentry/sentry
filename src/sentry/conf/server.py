@@ -1262,6 +1262,8 @@ SENTRY_FEATURES = {
     "organizations:scim-orgmember-roles": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
+    # Enable the setting of org roles for team
+    "organizations:org-roles-for-teams": False,
     # Enable the in-app source map debugging feature
     "organizations:fix-source-map-cta": False,
     # Enable new JS SDK Dynamic Loader
