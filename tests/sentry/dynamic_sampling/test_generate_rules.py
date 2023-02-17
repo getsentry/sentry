@@ -13,6 +13,11 @@ from sentry.dynamic_sampling import (
     generate_rules,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules.utils import (
+    KEY_TRANSACTIONS_BOOST_FACTOR,
+    LATEST_RELEASES_BOOST_DECAYED_FACTOR,
+    LATEST_RELEASES_BOOST_FACTOR,
+)
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.utils import json
@@ -166,13 +171,13 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
 
 
 @pytest.mark.django_db
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
-    get_blended_sample_rate, default_project, default_team
+    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    # since we mock get_blended_sample_rate function
-    # no need to create real project in DB
+    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -205,7 +210,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
                 "op": "or",
             },
             "id": 1003,
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
         {
@@ -223,13 +228,13 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
 
 
 @pytest.mark.django_db
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
-    get_blended_sample_rate, default_project, default_team
+    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    # since we mock get_blended_sample_rate function
-    # no need to create real project in DB
+    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -271,7 +276,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
                 "op": "or",
             },
             "id": 1003,
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
         {
@@ -289,13 +294,13 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
 
 
 @pytest.mark.django_db
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_records(
-    get_blended_sample_rate, default_project, default_team
+    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    # since we mock get_blended_sample_rate function
-    # no need to create real project in DB
+    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -331,7 +336,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
                 "op": "or",
             },
             "id": 1003,
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
         {
@@ -372,6 +377,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 
 
 @freeze_time("2022-10-21 18:50:25+00:00")
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
@@ -386,6 +392,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 )
 def test_generate_rules_with_different_project_platforms(
     get_blended_sample_rate,
+    apply_dynamic_factor,
     version,
     platform,
     end,
@@ -393,6 +400,7 @@ def test_generate_rules_with_different_project_platforms(
     latest_release_only,
 ):
     get_blended_sample_rate.return_value = 0.1
+    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -408,7 +416,7 @@ def test_generate_rules_with_different_project_platforms(
 
     assert generate_rules(default_project) == [
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -427,7 +435,7 @@ def test_generate_rules_with_different_project_platforms(
                 "start": "2022-10-21 18:50:25+00:00",
                 "end": end,
             },
-            "decayingFn": {"type": "linear", "decayedValue": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "active": True,
@@ -444,11 +452,13 @@ def test_generate_rules_with_different_project_platforms(
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
-    get_blended_sample_rate, default_project, latest_release_only
+    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
+    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -468,7 +478,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
     assert generate_rules(default_project) == [
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -480,10 +490,10 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -495,10 +505,10 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1501,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -510,7 +520,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1502,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "active": True,
@@ -527,11 +537,13 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_does_not_return_rule_with_deleted_release(
-    get_blended_sample_rate, default_project, latest_release_only
+    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 0.1
+    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -554,7 +566,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 
     assert generate_rules(default_project) == [
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
             "active": True,
             "condition": {
@@ -566,7 +578,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"type": "linear", "decayedValue": 0.1},
+            "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "active": True,
