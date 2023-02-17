@@ -38,6 +38,7 @@ SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory,
             settings.SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI,
         ),
     },
+    "INTERNAL": {category: DEFAULT_RATELIMIT for category in RateLimitCategory},
 }
 
 
