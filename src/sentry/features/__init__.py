@@ -216,6 +216,7 @@ default_manager.add("organizations:onboarding-project-deletion-on-back-click", O
 default_manager.add("organizations:onboarding-remove-multiselect-platform", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:profile-blocked-main-thread-ingest", OrganizationFeature)
+default_manager.add("organizations:profile-blocked-main-thread-ppg", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:sso-basic", OrganizationFeature)
 default_manager.add("organizations:sso-saml2", OrganizationFeature)
