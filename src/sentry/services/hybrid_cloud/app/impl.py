@@ -60,7 +60,7 @@ class DatabaseBackedAppService(
                 continue
             result.append(
                 RpcSentryAppService(
-                    title=app.title,
+                    title=app.name,
                     slug=app.slug,
                 )
             )

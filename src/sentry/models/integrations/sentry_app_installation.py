@@ -206,7 +206,7 @@ def prepare_ui_component(
     component: SentryAppComponent,
     project_slug: str | None = None,
     values: Any = None,
-) -> SentryAppComponent:
+) -> SentryAppComponent | None:
     from sentry.coreapi import APIError
     from sentry.mediators import sentry_app_components
 
