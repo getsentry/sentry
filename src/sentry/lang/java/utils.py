@@ -1,3 +1,5 @@
+import os
+
 import sentry_sdk
 from symbolic import ProguardMapper
 
@@ -32,12 +34,14 @@ def get_proguard_images(event: Event):
 
 
 def get_proguard_mapper(uuid: str, project: Project):
-    with sentry_sdk.start_span(op="proguard.get_proguard_mapper"):
+    with sentry_sdk.start_span(op="proguard.get_proguard_mapper") as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
         debug_file_path = dif_paths.get(uuid)
         if debug_file_path is None:
             return
 
+        proguard_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
+        span.set_tag("proguard_file_size_in_mb", proguard_file_size_in_mb)
         mapper = ProguardMapper.open(debug_file_path)
     if not mapper.has_line_info:
         return
