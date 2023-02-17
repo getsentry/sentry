@@ -20,7 +20,7 @@ OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 @region_silo_only_model
 class EnvironmentProject(Model):
-    __include_in_export__ = False
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project")
     environment = FlexibleForeignKey("sentry.Environment")
