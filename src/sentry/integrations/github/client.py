@@ -340,14 +340,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         ):
             output = []
 
-            resp = self.get(path, params={"per_page": self.page_size})
-            output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
+            logger.info(f"Page {page_number}: {path}?per_page={self.page_size}")
+            resp = self.get(path, params={"per_page": self.page_size})
+            logger.info(resp)
+            output.extend(resp) if not response_key else output.extend(resp[response_key])
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while get_next_link(resp) and page_number < page_number_limit:
-                resp = self.get(get_next_link(resp))
+                new_path = get_next_link(resp)
+                logger.info(f"Page {page_number}: {path}")
+                resp = self.get(new_path)
+                logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 page_number += 1
             return output
