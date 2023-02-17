@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import List
 
 from sentry.models import SentryApp, SentryAppInstallation
-from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, AppService
+from sentry.services.hybrid_cloud.app import AppService, RpcSentryAppInstallation
 
 
 class DatabaseBackedAppService(AppService):
     def get_installed_for_organization(
         self, *, organization_id: int
-    ) -> List[ApiSentryAppInstallation]:
+    ) -> List[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ).select_related("sentry_app")
@@ -17,7 +17,7 @@ class DatabaseBackedAppService(AppService):
 
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> RpcSentryAppInstallation | None:
         try:
             sentry_app = SentryApp.objects.get(proxy_user_id=proxy_user_id)
         except SentryApp.DoesNotExist:

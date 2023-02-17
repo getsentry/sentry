@@ -22,14 +22,14 @@ from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import ActorTuple, Group, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class GroupAssigneeManager(BaseManager):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | APIUser,
+        assigned_to: Team | RpcUser,
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,
@@ -99,7 +99,7 @@ class GroupAssigneeManager(BaseManager):
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
-    def deassign(self, group: Group, acting_user: User | APIUser | None = None) -> None:
+    def deassign(self, group: Group, acting_user: User | RpcUser | None = None) -> None:
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models import Activity

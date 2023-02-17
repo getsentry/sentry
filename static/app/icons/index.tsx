@@ -80,7 +80,6 @@ export {IconProject} from './iconProject';
 export {IconQuestion} from './iconQuestion';
 export {IconRefresh} from './iconRefresh';
 export {IconReleases} from './iconReleases';
-export {IconRepeat} from './iconRepeat';
 export {IconResize} from './iconResize';
 export {IconReturn} from './iconReturn';
 export {IconRewind10} from './iconRewind10';
