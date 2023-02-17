@@ -112,6 +112,54 @@ class UncompressedAssetsDetectorTest(TestCase):
             )
         ]
 
+    def test_does_not_detect_woff_asset(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
+            "spans": [
+                create_asset_span(
+                    op="resource.link",
+                    desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
+                    duration=1000.0,
+                    data={
+                        "Transfer Size": 1_000_000,
+                        "Encoded Body Size": 1_000_000,
+                        "Decoded Body Size": 1_000_000,
+                    },
+                ),
+                create_compressed_asset_span(),
+            ],
+        }
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1012-7f5aaccd4a1347f512fc3d04068b9621baff2783",
+                op="resource.script",
+                desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
+                type=PerformanceUncompressedAssetsGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+            )
+        ]
+
+        event["spans"] = [
+            create_asset_span(
+                op="resource.css",
+                desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.woff2",
+                duration=1000.0,
+                data={
+                    "Transfer Size": 1_000_000,
+                    "Encoded Body Size": 1_000_000,
+                    "Decoded Body Size": 1_000_000,
+                },
+            ),
+            create_compressed_asset_span(),
+        ]
+
+        assert self.find_problems(event) == []
+
     def test_does_not_detect_mobile_uncompressed_asset(self):
         event = {
             "event_id": "a" * 16,
