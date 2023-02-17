@@ -116,5 +116,5 @@ def send_workflow_webhooks(
 
 
 def installations_to_notify(organization, event) -> List[RpcSentryAppInstallation]:
-    installations = app_service.get_many(filter=dict(organization_id=organization.id))
+    installations = app_service.get_installed_for_organization(organization_id=organization.id)
     return [i for i in installations if event in i.sentry_app.events]
