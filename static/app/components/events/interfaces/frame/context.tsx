@@ -25,7 +25,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {parseAssembly} from '../utils';
 
 import {Assembly} from './assembly';
-import ContextLine from './contextLine';
+import ContextLine, {CoverageStatus} from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
@@ -51,17 +51,14 @@ type Props = {
 
 export function getCoverageColorClass(
   lines: [number, string][],
-  lineCov: LineCoverage[],
-  activeLineNo: number
-): [Array<string>, boolean] {
+  lineCov: LineCoverage[]
+): [Array<CoverageStatus | undefined>, boolean] {
   const lineCoverage = keyBy(lineCov, 0);
   let hasCoverage = false;
   const lineColors = lines.map(([lineNo]) => {
-    const coverage = lineCoverage[lineNo]
-      ? lineCoverage[lineNo][1]
-      : Coverage.NOT_APPLICABLE;
+    const coverage = lineCoverage[lineNo]?.[1] ?? Coverage.NOT_APPLICABLE;
 
-    let color = '';
+    let color: CoverageStatus | undefined;
     switch (coverage) {
       case Coverage.COVERED:
         color = 'covered';
@@ -78,14 +75,11 @@ export function getCoverageColorClass(
         break;
     }
 
-    if (color !== '') {
+    if (color) {
       hasCoverage = true;
     }
 
-    if (activeLineNo !== lineNo) {
-      return color;
-    }
-    return color === '' ? 'active' : `active ${color}`;
+    return color;
   });
 
   return [lineColors, hasCoverage];
@@ -131,16 +125,20 @@ const Context = ({
     }
   );
 
+  /**
+   * frame.lineNo is the highlighted frame in the middle of the context
+   */
+  const activeLineNumber = frame.lineNo;
   const contextLines = isExpanded
     ? frame?.context
-    : frame?.context?.filter(l => l[0] === frame.lineNo);
+    : frame?.context?.filter(l => l[0] === activeLineNumber);
 
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
   const [lineColors = [], hasCoverage] =
-    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo! && contextLines
-      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
+    hasCoverageData && data!.codecov?.lineCoverage && !!activeLineNumber! && contextLines
+      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage)
       : [];
 
   useRouteAnalyticsParams(
@@ -181,7 +179,7 @@ const Context = ({
 
       {frame.context &&
         contextLines.map((line, index) => {
-          const isActive = frame.lineNo === line[0];
+          const isActive = activeLineNumber === line[0];
           const hasComponents = isActive && components.length > 0;
           const showStacktraceLink = hasStacktraceLink && isActive;
 
@@ -190,7 +188,7 @@ const Context = ({
               key={index}
               line={line}
               isActive={isActive}
-              colorClass={lineColors[index] ?? ''}
+              coverage={lineColors[index]}
             >
               {hasComponents && (
                 <ErrorBoundary mini>

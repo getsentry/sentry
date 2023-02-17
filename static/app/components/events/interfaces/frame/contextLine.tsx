@@ -2,39 +2,38 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+export type CoverageStatus = 'uncovered' | 'covered' | 'partial';
+
 interface Props {
-  colorClass: string;
   isActive: boolean;
   line: [lineNo: number, content: string];
   children?: React.ReactNode;
-  className?: string;
+  coverage?: CoverageStatus | '';
 }
 
-function ContextLine({line, isActive, children, className, colorClass}: Props) {
+const coverageText = {
+  uncovered: t('Uncovered'),
+  covered: t('Covered'),
+  partial: t('Partially Covered'),
+};
+
+function ContextLine({line, isActive, children, coverage = ''}: Props) {
   let lineWs = '';
   let lineCode = '';
   if (typeof line[1] === 'string') {
     [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m)!;
   }
-  const hasCoverage = colorClass !== '';
 
   return (
-    <StyledLi
-      className={classNames(
-        className,
-        'expandable',
-        hasCoverage ? colorClass : {active: isActive}
-      )}
-      key={line[0]}
-    >
+    <StyledLi className={classNames('expandable', coverage, isActive ? 'active' : '')}>
       <LineContent>
-        {/* TODO: not use classname as title */}
-        <Tooltip skipWrapper title={colorClass} delay={200}>
-          <div className="lineNo">{line[0]}</div>
+        <Tooltip skipWrapper title={coverageText[coverage]} delay={200}>
+          <div className="line-number">{line[0]}</div>
         </Tooltip>
-        <div style={{flexGrow: 1}}>
+        <div>
           <span className="ws">{lineWs}</span>
           <span className="contextline">{lineCode}</span>
         </div>
@@ -55,12 +54,12 @@ const StyledLi = styled('li')`
     content: none;
   }
 
-  .lineNo {
+  .line-number {
     display: flex;
     align-items: center;
     flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: end;
     height: 100%;
     text-align: right;
     padding-left: ${space(2)};
@@ -74,16 +73,16 @@ const StyledLi = styled('li')`
     user-select: none;
   }
 
-  &.covered .lineNo {
+  &.covered .line-number {
     background: ${p => p.theme.green100};
   }
 
-  &.uncovered .lineNo {
+  &.uncovered .line-number {
     background: ${p => p.theme.red100};
     border-right-color: ${p => p.theme.red300};
   }
 
-  &.partial .lineNo {
+  &.partial .line-number {
     background: ${p => p.theme.yellow100};
     border-right-style: dashed;
     border-right-color: ${p => p.theme.yellow300};
@@ -94,22 +93,23 @@ const StyledLi = styled('li')`
     color: ${p => p.theme.stacktraceActiveText};
   }
 
-  &.active.partial .lineNo {
+  &.active.partial .line-number {
     mix-blend-mode: screen;
     background: ${p => p.theme.yellow200};
   }
 
-  &.active.covered .lineNo {
+  &.active.covered .line-number {
     mix-blend-mode: screen;
     background: ${p => p.theme.green200};
   }
 
-  &.active.uncovered .lineNo {
+  &.active.uncovered .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.red200};
+    background: ${p => p.theme.red300};
   }
 `;
 
+// TODO(scttcper): The parent component should be a grid, currently has too many other children
 const LineContent = styled('div')`
   display: grid;
   grid-template-columns: 58px 1fr;
