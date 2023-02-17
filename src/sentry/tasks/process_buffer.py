@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from django.apps import apps
 
 from sentry.tasks.base import instrumented_task
@@ -39,6 +40,8 @@ def process_incr(**kwargs):
     """
     from sentry import buffer
 
+    sentry_sdk.set_tag("model", kwargs.get("model", "Unknown"))
+
     buffer.process(**kwargs)
 
 
@@ -62,5 +65,7 @@ def buffer_incr_task(app_label, model_name, args, kwargs):
     Call `buffer.incr`, resolving the model first.
     """
     from sentry import buffer
+
+    sentry_sdk.set_tag("model", model_name)
 
     buffer.incr(apps.get_model(app_label=app_label, model_name=model_name), *args, **kwargs)
