@@ -34,7 +34,7 @@ class EnvironmentProject(Model):
 
 @region_silo_only_model
 class Environment(Model):
-    __include_in_export__ = False
+    __include_in_export__ = True
 
     organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
