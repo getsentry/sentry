@@ -1302,7 +1302,8 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
     from sentry.services.hybrid_cloud.app import app_service
 
     for installation in app_service.get_installed_for_organization(organization_id=organization.id):
-        return sentry_app_id, installation.sentry_app.name
+        if installation.sentry_app.id == sentry_app_id:
+            return sentry_app_id, installation.sentry_app.name
 
     raise InvalidTriggerActionError("No SentryApp found.")
 
