@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
-import {Input} from 'sentry/components/inputGroup';
+import Input from 'sentry/components/input';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconUpload} from 'sentry/icons';

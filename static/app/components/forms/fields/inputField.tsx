@@ -1,12 +1,7 @@
 import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import FormModel from 'sentry/components/forms/model';
-import {
-  Input,
-  InputGroup,
-  InputProps,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import {InputGroup, InputProps} from 'sentry/components/inputGroup';
 
 export interface InputFieldProps
   extends Omit<FormFieldProps, 'children'>,
@@ -49,7 +44,7 @@ function defaultField({
 }) {
   return (
     <InputGroup>
-      <Input
+      <InputGroup.Input
         onBlur={e => onBlur(e.target.value, e)}
         onKeyDown={e => onKeyDown((e.target as any).value, e)}
         onChange={e => onChange(e.target.value, e)}
@@ -57,9 +52,9 @@ function defaultField({
         {...rest}
       />
       {!hideControlState && (
-        <InputTrailingItems>
+        <InputGroup.TrailingItems>
           <FormFieldControlState model={model} name={name} />
-        </InputTrailingItems>
+        </InputGroup.TrailingItems>
       )}
     </InputGroup>
   );

@@ -4,12 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
-import {
-  Input,
-  InputGroup,
-  InputProps,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import {InputGroup, InputProps} from 'sentry/components/inputGroup';
 import {IconCopy} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
@@ -102,20 +97,20 @@ function TextCopyInput({
         rtl={rtl}
         {...inputProps}
       />
-      <InputTrailingItems>
+      <InputGroup.TrailingItems>
         <Clipboard hideUnsupported value={children}>
           <StyledCopyButton borderless disabled={disabled} onClick={handleCopyClick}>
             <IconCopy size={size === 'xs' ? 'xs' : 'sm'} />
           </StyledCopyButton>
         </Clipboard>
-      </InputTrailingItems>
+      </InputGroup.TrailingItems>
     </InputGroup>
   );
 }
 
 export default TextCopyInput;
 
-const StyledInput = styled(Input)<{rtl?: boolean}>`
+const StyledInput = styled(InputGroup.Input)<{rtl?: boolean}>`
   direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
 `;
 
