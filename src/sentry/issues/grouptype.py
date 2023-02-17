@@ -51,7 +51,7 @@ class GroupType:
     slug: str
     description: str
     category: int
-    ignore_limit: int
+    ignore_limit: int = DEFAULT_IGNORE_LIMIT
     group_policy: Optional[GroupPolicy] = None
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
@@ -95,7 +95,7 @@ class GroupType:
             )
             if general_access_ratio < prev_ignore_limit_ratio:
                 raise ValueError(
-                    "General Access ignore limit must be greater than Early Access and Limited Access ignore limit ratios"
+                    "General Access ignore limit ratio must be greater than Early Access and Limited Access ignore limit ratios"
                 )
 
 

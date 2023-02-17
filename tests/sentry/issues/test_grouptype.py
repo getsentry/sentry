@@ -112,10 +112,10 @@ class GroupPolicyTest(TestCase):  # type: ignore
 
             @dataclass(frozen=True)
             class TestGroupType2(GroupType):
-                type_id = 1
+                type_id = 2
                 slug = "test-2"
                 description = "Test-2"
-                category = GroupCategory.ERROR.value
+                category = GroupCategory.PERFORMANCE.value
                 group_policy = GroupPolicy(
                     feature="organizations:test-detector-2",
                     general_access=NoiseConfig(
@@ -131,9 +131,6 @@ class GroupPolicyTest(TestCase):  # type: ignore
             noise_config_2 = get_noise_config(TestGroupType2, self.org)
             assert noise_config_2.ignore_limit == 10
             assert noise_config_2.expiry_time == 600
-
-        # with self.feature({"organizations:performance-issues-compressed-assets-detector": True}):
-        #     assert detector.is_creation_allowed_for_organization(project.organization)
 
     def test_default_noise_config(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):
@@ -156,38 +153,115 @@ class GroupPolicyTest(TestCase):  # type: ignore
         with patch.dict(_group_type_registry, {}, clear=True):
 
             @dataclass(frozen=True)
-            class TestGroupPolicy1(GroupPolicy):
-                group_type_id = next(self.next_group_type)
-                limited_access = NoiseConfig(
-                    ignore_limit=100,
+            class TestGroupType1(GroupType):
+                type_id = 1
+                slug = "test-1"
+                description = "Test-1"
+                category = GroupCategory.ERROR.value
+                group_policy = GroupPolicy(
+                    feature="organizations:test-detector-1",
+                    limited_access=NoiseConfig(ignore_limit=100),
+                    early_access=NoiseConfig(
+                        ignore_limit=50,
+                    ),
                 )
-                early_access = NoiseConfig(ignore_limit=50)
+
+            with self.assertRaisesMessage(
+                ValueError,
+                "Early Access ignore limit ratio must be greater than Limited Access ignore limit ratio",
+            ):
+                TestGroupType1(
+                    1,
+                    "test-1",
+                    "Test-1",
+                    GroupCategory.ERROR.value,
+                    0,
+                    GroupPolicy(
+                        feature="organizations:test-detector-1",
+                        limited_access=NoiseConfig(ignore_limit=100),
+                        early_access=NoiseConfig(
+                            ignore_limit=50,
+                        ),
+                    ),
+                )
 
             @dataclass(frozen=True)
-            class TestGroupPolicy2(GroupPolicy):
-                group_type_id = next(self.next_group_type)
-                early_access = NoiseConfig(ignore_limit=50)
-                default = NoiseConfig(ignore_limit=10)
+            class TestGroupType2(GroupType):
+                type_id = 2
+                slug = "test-2"
+                description = "Test-2"
+                category = GroupCategory.PERFORMANCE.value
+                group_policy = GroupPolicy(
+                    feature="organizations:test-detector-2",
+                    early_access=NoiseConfig(
+                        ignore_limit=50,
+                    ),
+                    general_access=NoiseConfig(
+                        ignore_limit=10,
+                    ),
+                )
 
-        with self.assertRaisesMessage(
-            ValueError,
-            "Early Access ignore limit must be greater than Limited Access ignore limit",
-        ):
-            TestGroupPolicy1(
-                1,
-                limited_access=NoiseConfig(
-                    ignore_limit=100,
-                ),
-                early_access=NoiseConfig(ignore_limit=50),
-            )
+            with self.assertRaisesMessage(
+                ValueError,
+                "General Access ignore limit ratio must be greater than Early Access and Limited Access ignore limit ratios",
+            ):
+                TestGroupType2(
+                    2,
+                    "test-2",
+                    "Test-2",
+                    GroupCategory.PERFORMANCE.value,
+                    0,
+                    GroupPolicy(
+                        feature="organizations:test-detector-2",
+                        early_access=NoiseConfig(ignore_limit=100),
+                        general_access=NoiseConfig(
+                            ignore_limit=50,
+                        ),
+                    ),
+                )
 
-        with self.assertRaisesMessage(
-            ValueError,
-            "Default ignore limit must be greater than Early Access and Limited Access ignore limits",
-        ):
-            TestGroupPolicy2(
-                1,
-                limited_access=None,
-                early_access=NoiseConfig(ignore_limit=50),
-                general_access=NoiseConfig(ignore_limit=10),
-            )
+            @dataclass(frozen=True)
+            class TestGroupType3(GroupType):
+                type_id = 3
+                slug = "test-3"
+                description = "Test-3"
+                category = GroupCategory.PERFORMANCE.value
+                group_policy = GroupPolicy(
+                    feature="organizations:test-detector-3",
+                    early_access=NoiseConfig(
+                        ignore_limit=10,
+                        expiry_time=60,
+                    ),
+                    general_access=NoiseConfig(
+                        ignore_limit=10,
+                        expiry_time=600,
+                    ),
+                )
+
+            with self.assertRaisesMessage(
+                ValueError,
+                "General Access ignore limit ratio must be greater than Early Access and Limited Access ignore limit ratios",
+            ):
+                TestGroupType2(
+                    3,
+                    "test-3",
+                    "Test-3",
+                    GroupCategory.PERFORMANCE.value,
+                    0,
+                    GroupPolicy(
+                        feature="organizations:test-detector-2",
+                        early_access=NoiseConfig(
+                            ignore_limit=10,
+                            expiry_time=60,
+                        ),
+                        general_access=NoiseConfig(
+                            ignore_limit=10,
+                            expiry_time=600,
+                        ),
+                    ),
+                )
+
+
+# TODO add test to check for LA/EA/GA
+# with self.feature({"organizations:performance-issues-compressed-assets-detector": True}):
+#     assert detector.is_creation_allowed_for_organization(project.organization)
