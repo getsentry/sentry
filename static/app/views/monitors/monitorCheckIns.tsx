@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import Duration from 'sentry/components/duration';
 import {PanelBody, PanelItem} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconDownload} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -17,6 +19,7 @@ type CheckIn = {
   duration: number;
   id: string;
   status: CheckInStatus;
+  attachmentId?: number;
 };
 
 type Props = {
@@ -39,6 +42,9 @@ const MonitorCheckIns = ({monitor, orgId}: Props) => {
     ],
   });
 
+  const generateDownloadUrl = (checkin: CheckIn) =>
+    `/api/0/organizations/${orgId}/monitors/${monitor.id}/checkins/${checkin.id}/attachment/`;
+
   const renderedComponent = renderComponent(
     <PanelBody>
       {data.checkInList?.map(checkIn => (
@@ -58,6 +64,17 @@ const MonitorCheckIns = ({monitor, orgId}: Props) => {
           <DurationWrapper>
             {defined(checkIn.duration) && <Duration seconds={checkIn.duration / 1000} />}
           </DurationWrapper>
+          <AttachmentWrapper>
+            {checkIn.attachmentId && (
+              <Button
+                size="xs"
+                icon={<IconDownload size="xs" />}
+                href={generateDownloadUrl(checkIn)}
+              >
+                Attachment
+              </Button>
+            )}
+          </AttachmentWrapper>
         </PanelItem>
       ))}
     </PanelBody>
@@ -87,4 +104,8 @@ const DurationWrapper = styled('div')`
 
 const ErrorWrapper = styled('div')`
   margin: ${space(3)} ${space(3)} 0;
+`;
+
+const AttachmentWrapper = styled('div')`
+  margin-left: auto;
 `;

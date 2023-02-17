@@ -10,7 +10,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
 from sentry.utils.cache import cache
@@ -33,6 +33,9 @@ class GithubRateLimitInfo:
 
     def next_window(self) -> str:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+
+    def __repr__(self) -> str:
+        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
 class GitHubClientMixin(ApiClient):  # type: ignore
@@ -161,11 +164,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         trees: Dict[str, RepoTree] = {}
         extra = {"gh_org": gh_org}
         repositories = self._populate_repositories(gh_org, cache_seconds)
+        extra.update({"repos_num": str(len(repositories))})
         trees = self._populate_trees(repositories)
-
-        rate_limit = self.get_rate_limit()
-        extra.update({"remaining": str(rate_limit.remaining), "repos_num": str(len(repositories))})
         logger.info("Using cached trees for Github org.", extra=extra)
+
+        try:
+            rate_limit = self.get_rate_limit()
+            extra.update({"remaining": str(rate_limit.remaining)})
+        except ApiError:
+            logger.warning("Failed to get latest rate limit info. Let's keep going.")
 
         return trees
 
@@ -179,8 +186,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repositories(fetch_max_pages=True)
             ]
-            cache.set(cache_key, repositories, cache_seconds)
-            logger.info("Cached repositories.")
+            if not repositories:
+                logger.warning("Fetching repositories returned an empty list.")
+            else:
+                cache.set(cache_key, repositories, cache_seconds)
+                logger.info("Cached repositories.", extra={"repos_count": len(repositories)})
 
         return repositories
 
@@ -203,6 +213,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(f"The repository is empty. {msg}", extra=extra)
             elif txt == "Not Found":
                 logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
+            elif txt == "Repository access blocked":
+                logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+                logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+                # Raising the error will be handled at the task level
+                raise error
             else:
                 # We do not raise the exception so we can keep iterating through the repos.
                 # Nevertheless, investigate the error to determine if we should abort the processing
@@ -384,7 +400,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Should the token have expired, a new token will be generated and
         automatically persisted into the integration.
         """
-        self.integration: APIIntegration
+        self.integration: RpcIntegration
 
         token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
