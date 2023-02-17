@@ -6,11 +6,11 @@ from zipfile import ZipFile
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.models import create_files_from_dif_zip
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
     FileIOMainThreadDetector,
     PerformanceProblem,
@@ -55,10 +55,10 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint=f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-153198dd61706844cf3d9a922f6f82543df8125f",
+                fingerprint=f"1-{PerformanceFileIOMainThreadGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
                 op="file.write",
                 desc="1669031858711_file.txt (4.0 kB)",
-                type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+                type=PerformanceFileIOMainThreadGroupType,
                 parent_span_ids=["b93d2be92cd64fd5"],
                 cause_span_ids=[],
                 offender_span_ids=["054ba3a374d543eb"],
@@ -68,6 +68,12 @@ class NPlusOneAPICallsDetectorTest(TestCase):
     def test_does_not_detect_file_io_main_thread(self):
         event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = False
+
+        assert self.find_problems(event) == []
+
+    def test_ignores_nib_files(self):
+        event = get_event("file-io-on-main-thread")
+        event["spans"][0]["data"]["file.path"] = "something/stuff.txt/blah/yup/ios.nib"
 
         assert self.find_problems(event) == []
 
@@ -89,7 +95,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         assert (
             problem.fingerprint
-            == f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-{hashed_stack}"
+            == f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
         )
         assert problem.title == "File IO on Main Thread"
 

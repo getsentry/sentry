@@ -419,11 +419,6 @@ register("relay.drop-transaction-metrics", default=[])
 # [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
-# Sample rate for opting in orgs into the new transaction name handling.
-# old behavior: Treat transactions from old SDKs as high-cardinality.
-# new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
-register("relay.transaction-names-client-based", default=0.0)
-
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True)
 
@@ -588,6 +583,10 @@ register("performance.issues.render_blocking_assets.problem-creation", default=0
 register("performance.issues.render_blocking_assets.la-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ea-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ga-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.problem-creation", default=0.0)
+register("performance.issues.m_n_plus_one_db.la-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ea-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ga-rollout", default=0.0)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.

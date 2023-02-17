@@ -251,6 +251,14 @@ class Columns(Enum):
         issue_platform_name="sdk_version",
         alias="sdk.version",
     )
+    UNREAL_CRASH_TYPE = Column(
+        group_name="events.contexts[unreal.crash_type]",
+        event_name="contexts[unreal.crash_type]",
+        transaction_name=None,
+        discover_name="contexts[unreal.crash_type]",
+        issue_platform_name="contexts[unreal.crash_type]",
+        alias="unreal.crash_type",
+    )
 
     HTTP_METHOD = Column(
         group_name="events.http_method",
@@ -558,6 +566,14 @@ class Columns(Enum):
         discover_name=None,
         issue_platform_name="contexts.value",
         alias="contexts.value",
+    )
+    APP_IN_FOREGROUND = Column(
+        group_name="events.contexts[app.in_foreground]",
+        event_name="contexts[app.in_foreground]",
+        transaction_name="contexts[app.in_foreground]",
+        discover_name="contexts[app.in_foreground]",
+        issue_platform_name="contexts[app.in_foreground]",
+        alias="app.in_foreground",
     )
     # Transactions specific columns
     TRANSACTION_OP = Column(

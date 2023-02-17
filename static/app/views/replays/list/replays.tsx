@@ -2,16 +2,14 @@ import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -52,13 +50,13 @@ function ReplaysList() {
     organization,
   });
 
-  const {hasSentOneReplay, activateSidebar} = useReplayOnboardingSidebarPanel();
+  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <ReplaysFilters />
-        {hasSentOneReplay ? (
+        {fetching ? null : hasSentOneReplay ? (
           <Fragment>
             <ReplayTable
               fetchError={fetchError}
@@ -90,17 +88,7 @@ function ReplaysList() {
             />
           </Fragment>
         ) : (
-          <ReplayOnboardingPanel>
-            <Button onClick={activateSidebar} priority="primary">
-              {t('Set Up Replays')}
-            </Button>
-            <Button
-              href="https://docs.sentry.io/platforms/javascript/session-replay/"
-              external
-            >
-              {t('Read Docs')}
-            </Button>
-          </ReplayOnboardingPanel>
+          <ReplayOnboardingPanel />
         )}
       </Layout.Main>
     </Layout.Body>

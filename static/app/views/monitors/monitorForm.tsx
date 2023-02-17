@@ -13,18 +13,18 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TimeSince from 'sentry/components/timeSince';
-import timezones from 'sentry/data/timezones';
+import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
-import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
+import {IntervalConfig, Monitor, MonitorConfig, MonitorType, ScheduleType} from './types';
 
 const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
-  {value: 'crontab', label: 'Crontab'},
-  {value: 'interval', label: 'Interval'},
+  {value: ScheduleType.CRONTAB, label: 'Crontab'},
+  {value: ScheduleType.INTERVAL, label: 'Interval'},
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
@@ -54,28 +54,32 @@ type TransformedData = {
 
 function transformData(_data: Record<string, any>, model: FormModel) {
   return model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
-    if (k.indexOf('config.') !== 0) {
+    // We're only concerned with transforming the config
+    if (!k.startsWith('config.')) {
       data[k] = v;
       return data;
     }
 
-    if (!data.config) {
-      data.config = {};
-    }
+    // Default to empty object
+    data.config ??= {};
+
     if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
       if (!Array.isArray(data.config.schedule)) {
-        data.config.schedule = [null, null];
+        data.config.schedule = [1, 'hour'];
       }
     }
 
-    if (k === 'config.schedule.frequency') {
-      data.config!.schedule![0] = parseInt(v as string, 10);
-    } else if (k === 'config.schedule.interval') {
-      data.config!.schedule![1] = v;
-    } else {
-      data.config[k.substr(7)] = v;
+    if (Array.isArray(data.config.schedule) && k === 'config.schedule.frequency') {
+      data.config.schedule![0] = parseInt(v as string, 10);
+      return data;
     }
 
+    if (Array.isArray(data.config.schedule) && k === 'config.schedule.interval') {
+      data.config.schedule![1] = v as IntervalConfig['schedule'][1];
+      return data;
+    }
+
+    data.config[k.substr(7)] = v;
     return data;
   }, {});
 }
@@ -83,7 +87,7 @@ function transformData(_data: Record<string, any>, model: FormModel) {
 class MonitorForm extends Component<Props> {
   form = new FormModel({transformData});
 
-  formDataFromConfig(type: MonitorTypes, config: MonitorConfig) {
+  formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
     switch (type) {
       case 'cron_job':
@@ -222,7 +226,7 @@ class MonitorForm extends Component<Props> {
                           name="config.timezone"
                           label={t('Timezone')}
                           defaultValue="UTC"
-                          options={timezones.map(([value, label]) => ({value, label}))}
+                          options={timezoneOptions}
                           help={tct(
                             "The timezone of your execution environment. Be sure to set this correctly, otherwise the schedule may be mismatched and check-ins will be marked as missed! Use [code:timedatectl] or similar to determine your machine's timezone.",
                             {code: <code />}

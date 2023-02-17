@@ -27,7 +27,7 @@ from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, ge
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import (
+from sentry.lang.native.sources import (
     InvalidSourcesError,
     parse_backfill_sources,
     parse_sources,
@@ -383,7 +383,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
             if include_rules and is_active_superuser(request):
-                data["dynamicSamplingRules"] = generate_rules(project)
+                data["dynamicSamplingRules"] = {
+                    "rules": [],
+                    "rulesV2": generate_rules(project),
+                }
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
@@ -545,7 +548,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
-        if "storeCrashReports" in result is not None:
+        if result.get("storeCrashReports") is not None:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
                 if result["storeCrashReports"] is None:

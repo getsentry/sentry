@@ -37,7 +37,6 @@ const accountNotifications = [
   'alerts',
   'deploy',
   'workflow',
-  'activeRelease',
   'approval',
   'quota',
   'spikeProtection',

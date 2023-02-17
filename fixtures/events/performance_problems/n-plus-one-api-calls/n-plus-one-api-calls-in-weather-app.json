@@ -62,127 +62,181 @@
       "timestamp": 1668545349.728,
       "start_timestamp": 1668545349.596,
       "exclusive_time": 131.999969,
-      "description": "GET /1001/weather.json",
+      "description": "GET /country/canada/weather?city_id=1001",
       "op": "http.client",
       "span_id": "a96cd1a09beaf517",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1001/weather.json"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1001"
+      },
       "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.732,
       "start_timestamp": 1668545349.597,
       "exclusive_time": 135.000229,
-      "description": "GET /1002/weather.json",
+      "description": "GET /country/canada/weather?city_id=1002",
       "op": "http.client",
       "span_id": "92d4d11d67bd7b11",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1002/weather.json"},
-      "hash": "d8fee0ab2e868c86"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1002"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.732,
       "start_timestamp": 1668545349.597,
       "exclusive_time": 135.000229,
-      "description": "GET /1003/weather.json",
+      "description": "GET /country/canada/weather?city_id=1003",
       "op": "http.client",
       "span_id": "87860b9710086321",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1003/weather.json"},
-      "hash": "c5e299c2ac92635c"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1003"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.748,
       "start_timestamp": 1668545349.598,
       "exclusive_time": 149.999857,
-      "description": "GET /1004/weather.json",
+      "description": "GET /country/canada/weather?city_id=1004",
       "op": "http.client",
       "span_id": "bd1bdd517a14e373",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1004/weather.json"},
-      "hash": "02005e7f3d43645e"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1004"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.742,
       "start_timestamp": 1668545349.598,
       "exclusive_time": 144.000053,
-      "description": "GET /1005/weather.json",
+      "description": "GET /country/canada/weather?city_id=1005",
       "op": "http.client",
       "span_id": "b49820cc40d4b3f3",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1005/weather.json"},
-      "hash": "7f0d40c5e1a6008a"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1005"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.748,
       "start_timestamp": 1668545349.599,
       "exclusive_time": 148.999929,
-      "description": "GET /1006/weather.json",
+      "description": "GET /country/canada/weather?city_id=1006",
       "op": "http.client",
       "span_id": "bcf1978a5c3d5e85",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1006/weather.json"},
-      "hash": "9940a1669b7b340d"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1006"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.819,
       "start_timestamp": 1668545349.599,
       "exclusive_time": 220.000028,
-      "description": "GET /1007/weather.json",
+      "description": "GET /country/canada/weather?city_id=1007",
       "op": "http.client",
       "span_id": "9ae3037832ae9087",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1007/weather.json"},
-      "hash": "dbdd01c7a2317d09"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1007"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.748,
       "start_timestamp": 1668545349.599,
       "exclusive_time": 148.999929,
-      "description": "GET /1008/weather.json",
+      "description": "GET /country/canada/weather?city_id=1008",
       "op": "http.client",
       "span_id": "b318d62b647b48eb",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1008/weather.json"},
-      "hash": "78f8c7e5d77b6884"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1008"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545349.766,
       "start_timestamp": 1668545349.599,
       "exclusive_time": 167.000055,
-      "description": "GET /1009/weather.json",
+      "description": "GET /country/canada/weather?city_id=1009",
       "op": "http.client",
       "span_id": "8fe40e9ce9a29d8d",
       "parent_span_id": "829b196a0d42cb39",
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/1009/weather.json"},
-      "hash": "3e228a5dc2af00ba"
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1009"
+      },
+      "hash": "19024ee371da3e81"
+    },
+    {
+      "timestamp": 1668545349.601,
+      "start_timestamp": 1668545349.601,
+      "exclusive_time": 158.000055,
+      "description": "GET /country/canada/weather?city_id=1010",
+      "op": "http.client",
+      "span_id": "40e9ce9a29d8d8fe",
+      "parent_span_id": "829b196a0d42cb39",
+      "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/country/canada/weather?city_id=1010"
+      },
+      "hash": "19024ee371da3e81"
     },
     {
       "timestamp": 1668545348.856,

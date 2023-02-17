@@ -1,10 +1,11 @@
 import logging
 from datetime import timedelta
 
+from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
@@ -12,6 +13,7 @@ from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathCo
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -165,6 +167,7 @@ def process_commit_context(
                 return
 
             commit = None
+            new_commit = None
             for commit_context, selected_code_mapping in found_contexts:
                 try:
                     # Find commit and break
@@ -174,6 +177,13 @@ def process_commit_context(
                     )
                     break
                 except Commit.DoesNotExist:
+                    # If the commit has no date, we will not add it to avoid breaking other commit ordered-based logic.
+                    if not new_commit and commit_context.get("committedDate"):
+                        new_commit = {
+                            "context": commit_context,
+                            "repository_id": selected_code_mapping.repository_id,
+                            "code_mapping_id": selected_code_mapping.id,
+                        }
 
                     logger.info(
                         "process_commit_context.no_commit_in_sentry",
@@ -186,27 +196,33 @@ def process_commit_context(
                         },
                     )
 
-            if not commit:
-                # None of the commits found from the integrations' contexts exist in sentry_commit.
-
-                # We couldn't find the commit in Sentry, so we will debounce the task for 1 day.
-                # TODO(nisanthan): We will not get the commit history for new customers, only the commits going forward from when they installed the source-code integration. We need a long-term fix.
-                cache.set(cache_key, True, timedelta(days=1).total_seconds())
-
-                metrics.incr(
-                    "sentry.tasks.process_commit_context.aborted",
-                    tags={
-                        "detail": "commit_sha_does_not_exist_in_sentry",
-                    },
+            if not commit and new_commit:
+                context = new_commit["context"]
+                # If none of the commits exist in sentry_commit, we add the first commit we found
+                commit_author, _ = CommitAuthor.objects.get_or_create(
+                    organization_id=project.organization_id,
+                    email=context.get("commitAuthorEmail"),
+                    defaults={"name": context.get("commitAuthorName")},
                 )
+                commit = Commit.objects.create(
+                    organization_id=project.organization_id,
+                    repository_id=new_commit["repository_id"],
+                    key=context.get("commitId"),
+                    date_added=context.get("committedDate"),
+                    author=commit_author,
+                    message=context.get("message"),
+                )
+
                 logger.info(
-                    "process_commit_context.aborted.no_commit_in_sentry",
+                    "process_commit_context.added_commit_to_sentry_commit",
                     extra={
                         **basic_logging_details,
+                        "sha": new_commit.get("commitId"),
+                        "repository_id": new_commit["repository_id"],
+                        "code_mapping_id": new_commit["code_mapping_id"],
                         "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
                     },
                 )
-                return
 
             authors = list(CommitAuthor.objects.get_many_from_cache([commit.author_id]))
             author_to_user = get_users_for_authors(commit.organization_id, authors)
@@ -258,3 +274,21 @@ def process_commit_context(
             )
     except UnableToAcquireLock:
         pass
+    except MaxRetriesExceededError:
+        if features.has("organizations:commit-context-fallback", project.organization):
+            logger.info(
+                "process_commit_context.max_retries_exceeded",
+                extra={
+                    **basic_logging_details,
+                    "reason": "max_retries_exceeded",
+                },
+            )
+
+            process_suspect_commits.delay(
+                event_id=event_id,
+                event_platform=event_platform,
+                event_frames=event_frames,
+                group_id=group_id,
+                project_id=project_id,
+                sdk_name=sdk_name,
+            )

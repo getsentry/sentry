@@ -22,10 +22,10 @@ from django.db.models import Q
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
-from sentry.api.serializers.models.release import Author, ReleaseSerializer
+from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
-from sentry.models.groupowner import GroupOwner, GroupOwnerType, get_release_committers_for_group
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
@@ -311,11 +311,13 @@ def get_serialized_event_file_committers(
         if not owner:
             return []
         commit = Commit.objects.get(id=owner.context.get("commitId"))
-        author = (
-            user_service.serialize_users(user_ids=[owner.user_id])[0]
-            if owner.user
-            else {"email": commit.author.email, "name": commit.author.name}
-        )
+
+        author = {"email": commit.author.email, "name": commit.author.name}
+        if owner.user_id is not None:
+            serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
+            # No guarantee that just because the user_id is set that the value exists, so we still have to check
+            if serialized_owners:
+                author = serialized_owners[0]
 
         return [
             {
@@ -367,26 +369,6 @@ def dedupe_commits(
     commits: Sequence[MutableMapping[str, Any]]
 ) -> Sequence[MutableMapping[str, Any]]:
     return list({c["id"]: c for c in commits}.values())
-
-
-# Get all serialized committers for the first releases for a group.
-def get_serialized_release_committers_for_group(
-    group: Group,
-) -> List[AuthorCommitsWithReleaseSerialized]:
-    release_committers = get_release_committers_for_group(group, include_commits=True)
-    serialized_committers: List[AuthorCommitsWithReleaseSerialized] = []
-    for committer in release_committers:
-        serialized_committers.append(
-            {
-                "author": committer["author"],
-                "commits": serialize(
-                    committer["commits"], serializer=CommitSerializer(exclude=["author"])
-                ),
-                "release": serialize(committer["release"], serializer=ReleaseSerializer()),
-            }
-        )
-
-    return serialized_committers
 
 
 def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]) -> str | None:

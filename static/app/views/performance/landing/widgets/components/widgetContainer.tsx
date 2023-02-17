@@ -5,12 +5,12 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import CompactSelect from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compositeSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -32,7 +32,7 @@ import {
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
-import {StackedBarsChartListWidget} from '../widgets/stackedBarsChartListWidget';
+import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 
@@ -196,8 +196,8 @@ const _WidgetContainer = (props: Props) => {
       return (
         <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.stacked_bars:
-      return <StackedBarsChartListWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.stacked_area:
+      return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
@@ -211,9 +211,7 @@ export const WidgetInteractiveTitle = ({
   rowChartSettings,
 }) => {
   const organization = useOrganization();
-  const menuOptions: React.ComponentProps<
-    typeof CompositeSelect
-  >['sections'][number]['options'] = [];
+  const menuOptions: SelectOption<string>[] = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
@@ -277,9 +275,7 @@ export const WidgetContainerActions = ({
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) => {
   const organization = useOrganization();
-  const menuOptions: React.ComponentProps<
-    typeof CompositeSelect
-  >['sections'][number]['options'] = [];
+  const menuOptions: SelectOption<PerformanceWidgetSetting>[] = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
@@ -303,24 +299,6 @@ export const WidgetContainerActions = ({
 
   return (
     <CompositeSelect
-      sections={
-        [
-          {
-            label: t('Display'),
-            options: menuOptions,
-            value: chartSetting,
-            onChange: setChartSetting,
-          },
-          chartDefinition.allowsOpenInDiscover
-            ? {
-                label: t('Other'),
-                options: [{label: t('Open in Discover'), value: 'open_in_discover'}],
-                value: '',
-                onChange: handleWidgetActionChange,
-              }
-            : null,
-        ].filter(Boolean) as React.ComponentProps<typeof CompositeSelect>['sections']
-      }
       trigger={triggerProps => (
         <DropdownButton
           {...triggerProps}
@@ -331,7 +309,22 @@ export const WidgetContainerActions = ({
         />
       )}
       position="bottom-end"
-    />
+    >
+      <CompositeSelect.Region
+        label={t('Display')}
+        options={menuOptions}
+        value={chartSetting}
+        onChange={opt => setChartSetting(opt.value)}
+      />
+      {chartDefinition.allowsOpenInDiscover && (
+        <CompositeSelect.Region
+          label={t('Other')}
+          options={[{label: t('Open in Discover'), value: 'open_in_discover'}]}
+          value=""
+          onChange={opt => handleWidgetActionChange(opt.value)}
+        />
+      )}
+    </CompositeSelect>
   );
 };
 

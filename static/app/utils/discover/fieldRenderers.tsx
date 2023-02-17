@@ -6,7 +6,7 @@ import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
-import DropdownMenu, {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -20,7 +20,7 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

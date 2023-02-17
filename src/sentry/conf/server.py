@@ -580,6 +580,9 @@ CELERY_IMPORTS = (
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
+    "sentry.tasks.deletion.scheduled",
+    "sentry.tasks.deletion.groups",
+    "sentry.tasks.deletion.hybrid_cloud",
     "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -805,6 +808,10 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25},
     },
+    "schedule-hybrid-cloud-foreign-key-jobs": {
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        "schedule": timedelta(minutes=15),
+    },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
         "schedule": crontab(minute=0),
@@ -827,7 +834,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
-        "schedule": timedelta(hours=1),
+        "schedule": crontab(minute=17),
         "options": {"expires": 3600},
     },
     "hybrid-cloud-repair-mappings": {
@@ -963,10 +970,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
-    # Workflow 2.0 Alpha Functionality for sentry users only
-    "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Active Release Notifications
-    "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
@@ -1011,8 +1014,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable quick context in discover
-    "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1027,6 +1028,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
+    # Enable the profiling previews
+    "organizations:profiling-previews": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
@@ -1131,8 +1134,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable new issue actions on issue details
-    "organizations:issue-actions-v2": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable removing issue from issue list if action taken.
@@ -1158,6 +1159,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enables a longer stats period for the performance landing page
+    "organizations:performance-landing-page-stats-period": False,
     # Enable internal view for bannerless MEP view
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
@@ -1174,10 +1177,10 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-compressed-assets-detector": False,
     # Enable render blocking assets performance issue type
     "organizations:performance-issues-render-blocking-assets-detector": False,
+    # Enable MN+1 DB performance issue type
+    "organizations:performance-issues-m-n-plus-one-db-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
-    # Enable populating suggested assignees with release committers
-    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1185,6 +1188,10 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enabled for those orgs who participated in the Replay Beta program
+    "organizations:session-replay-beta-grace": False,
+    # Enable replay GA messaging (update paths from AM1 to AM2)
+    "organizations:session-replay-ga": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
@@ -1204,6 +1211,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
+    # Temporary flag to test search performance that's running slow in S4S
+    "organizations:performance-issues-search": True,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1221,10 +1230,17 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable new DS bias: prioritise by project
     "organizations:ds-prioritise-by-project-bias": False,
+    # Enable new DS bias: prioritise by transaction
+    "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable View Hierarchies deobfuscation for proguard obfuscated files
+    "organizations:view-hierarchy-deobfuscation": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
+    # Enable a new behavior for deleting the freshly created project,
+    # if the user clicks on the back button in the onboarding for new orgs
+    "organizations:onboarding-project-deletion-on-back-click": False,
     # Disables multiselect platform in the onboarding flow
     "organizations:onboarding-remove-multiselect-platform": False,
     # Enable ANR rates in project details page
@@ -1245,6 +1261,8 @@ SENTRY_FEATURES = {
     "organizations:scim-team-roles": False,
     # Enable the in-app source map debugging feature
     "organizations:fix-source-map-cta": False,
+    # Enable new JS SDK Dynamic Loader
+    "organizations:js-sdk-dynamic-loader": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1446,7 +1464,7 @@ SENTRY_BUFFER_OPTIONS = {}
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
 SENTRY_CACHE = None
-SENTRY_CACHE_OPTIONS = {}
+SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
@@ -1563,6 +1581,7 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
@@ -2520,6 +2539,8 @@ GEOIP_PATH_MMDB = None
 JS_SDK_LOADER_CDN_URL = ""
 # Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
 JS_SDK_LOADER_SDK_VERSION = ""
+# Version of the Dynamic Loader - Used in header Surrogate-Key sdk/JS_SDK_DYNAMIC_LOADER_SDK_VERSION
+JS_SDK_DYNAMIC_LOADER_SDK_VERSION = ""
 # This should be the url pointing to the JS SDK. It may contain up to two "%s".
 # The first "%s" will be replaced with the SDK version, the second one is used
 # to inject a bundle modifier in the JS SDK CDN loader. e.g:

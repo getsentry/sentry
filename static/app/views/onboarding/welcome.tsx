@@ -9,7 +9,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
@@ -47,9 +47,14 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
+function TargetedOnboardingWelcome({
+  organization,
+  jumpToSetupProject,
+  ...props
+}: StepProps) {
   const source = 'targeted_onboarding';
   const [clientState, setClientState] = usePersistedOnboardingState();
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
@@ -72,6 +77,14 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
 
     props.onComplete();
   };
+
+  // jump to setup project if the backend set this state for us
+  useEffect(() => {
+    if (clientState?.state === 'projects_selected') {
+      jumpToSetupProject();
+    }
+  }, [clientState, jumpToSetupProject]);
+
   return (
     <FallingError>
       {({fallingError, fallCount, isFalling}) => (

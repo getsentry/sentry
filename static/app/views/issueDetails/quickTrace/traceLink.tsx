@@ -1,10 +1,10 @@
 import {useCallback, useContext} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -34,7 +34,6 @@ export function TraceLink({event}: TraceLinkProps) {
   ) {
     return null;
   }
-
   return (
     <LinkContainer>
       <Link to={generateTraceTarget(event, organization)} onClick={handleTraceLink}>

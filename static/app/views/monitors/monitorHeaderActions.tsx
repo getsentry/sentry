@@ -8,14 +8,14 @@ import {
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import {IconDelete, IconEdit} from 'sentry/icons';
+import {IconDelete, IconEdit, IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
-import {Monitor} from './types';
+import {Monitor, MonitorStatus} from './types';
 
 type Props = {
   monitor: Monitor;
@@ -61,31 +61,40 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
 
   const toggleStatus = () =>
     updateMonitor({
-      status: monitor.status === 'disabled' ? 'active' : 'disabled',
+      status:
+        monitor.status === MonitorStatus.DISABLED
+          ? MonitorStatus.ACTIVE
+          : MonitorStatus.DISABLED,
     });
 
   return (
     <ButtonBar gap={1}>
-      <Button
-        size="sm"
-        icon={<IconEdit size="xs" />}
-        to={`/organizations/${orgId}/crons/${monitor.id}/edit/`}
-      >
-        {t('Edit')}
-      </Button>
-      <Button size="sm" onClick={toggleStatus}>
-        {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
-      </Button>
+      <CronsFeedbackButton />
       <Confirm
         onConfirm={handleDelete}
-        priority="danger"
         message={t('Are you sure you want to permanently delete this cron monitor?')}
       >
         <Button size="sm" icon={<IconDelete size="xs" />}>
           {t('Delete')}
         </Button>
       </Confirm>
-      <CronsFeedbackButton />
+      <Button
+        size="sm"
+        icon={
+          monitor.status !== 'disabled' ? <IconPause size="xs" /> : <IconPlay size="xs" />
+        }
+        onClick={toggleStatus}
+      >
+        {monitor.status !== 'disabled' ? t('Pause') : t('Resume')}
+      </Button>
+      <Button
+        priority="primary"
+        size="sm"
+        icon={<IconEdit size="xs" />}
+        to={`/organizations/${orgId}/crons/${monitor.id}/edit/`}
+      >
+        {t('Edit')}
+      </Button>
     </ButtonBar>
   );
 };

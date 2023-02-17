@@ -4,7 +4,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Plugin} from 'sentry/types';
 
 type Props = {

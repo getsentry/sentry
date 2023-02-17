@@ -23,9 +23,14 @@ import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 const searchHandlerMock = jest.fn();
 
 const WrappedComponent = ({data, withStaticFilters = false}) => {
-  const eventView = generatePerformanceEventView(data.router.location, data.projects, {
-    withStaticFilters,
-  });
+  const eventView = generatePerformanceEventView(
+    data.router.location,
+    data.projects,
+    {
+      withStaticFilters,
+    },
+    data.organization
+  );
 
   const client = new QueryClient();
 
@@ -134,11 +139,8 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
-
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();

@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import ContextData from 'sentry/components/contextData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 

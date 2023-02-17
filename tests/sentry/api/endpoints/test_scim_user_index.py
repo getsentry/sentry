@@ -50,6 +50,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "active": True,
             "name": {"familyName": "N/A", "givenName": "N/A"},
             "meta": {"resourceType": "User"},
+            "sentryOrgRole": self.organization.default_role,
         }
 
         assert AuditLogEntry.objects.filter(
@@ -59,6 +60,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
         assert member.email == "test.user@okta.local"
         assert member.flags["idp:provisioned"]
         assert not member.flags["idp:role-restricted"]
+        assert member.role == self.organization.default_role
 
     def test_post_users_already_exists(self):
         # test that response 409s if member already exists (by email)
@@ -93,6 +95,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
                 "active": True,
                 "name": {"familyName": "N/A", "givenName": "N/A"},
                 "meta": {"resourceType": "User"},
+                "sentryOrgRole": "manager",
             }
             assert correct_post_data == resp.data
             assert member.role == "manager"
@@ -102,12 +105,15 @@ class SCIMMemberIndexTests(SCIMTestCase):
 
             # check role is case insensitive
             CREATE_USER_POST_DATA["sentryOrgRole"] = "mAnaGer"
-            self.get_success_response(
+            resp = self.get_success_response(
                 self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
             )
             member = OrganizationMember.objects.get(
                 organization=self.organization, email="test.user@okta.local"
             )
+
+            correct_post_data["id"] = str(member.id)
+            unittest.TestCase().assertDictEqual(correct_post_data, resp.data)
             assert member.role == "manager"
             assert member.flags["idp:provisioned"]
             assert member.flags["idp:role-restricted"]
@@ -115,12 +121,15 @@ class SCIMMemberIndexTests(SCIMTestCase):
 
             # Empty org role -> default
             CREATE_USER_POST_DATA["sentryOrgRole"] = ""
-            self.get_success_response(
+            resp = self.get_success_response(
                 self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
             )
             member = OrganizationMember.objects.get(
                 organization=self.organization, email="test.user@okta.local"
             )
+            correct_post_data["sentryOrgRole"] = self.organization.default_role
+            correct_post_data["id"] = str(member.id)
+            unittest.TestCase().assertDictEqual(correct_post_data, resp.data)
             assert member.role == self.organization.default_role
             assert member.flags["idp:provisioned"]
             assert not member.flags["idp:role-restricted"]
@@ -128,12 +137,14 @@ class SCIMMemberIndexTests(SCIMTestCase):
 
             # no sentry org role -> default
             del CREATE_USER_POST_DATA["sentryOrgRole"]
-            self.get_success_response(
+            resp = self.get_success_response(
                 self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
             )
             member = OrganizationMember.objects.get(
                 organization=self.organization, email="test.user@okta.local"
             )
+            correct_post_data["id"] = str(member.id)
+            unittest.TestCase().assertDictEqual(correct_post_data, resp.data)
             assert member.role == self.organization.default_role
             member.delete()
 
@@ -179,6 +190,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "active": True,
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": self.organization.default_role,
                 }
             ],
         }
@@ -205,6 +217,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "active": True,
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": self.organization.default_role,
                 }
             ],
         }
@@ -263,6 +276,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
                     "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": self.organization.default_role,
                 }
             ],
         }

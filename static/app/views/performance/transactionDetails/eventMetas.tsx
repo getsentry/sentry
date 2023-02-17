@@ -5,13 +5,15 @@ import {Location} from 'history';
 import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
+import ContextIcon from 'sentry/components/events/contextSummary/contextIcon';
+import {generateIconName} from 'sentry/components/events/contextSummary/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {frontend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarProject, OrganizationSummary} from 'sentry/types';
 import {Event, EventTransaction} from 'sentry/types/event';
 import {getShortEventId} from 'sentry/utils/events';
@@ -169,6 +171,17 @@ class EventMetas extends Component<Props, State> {
                   subtext={httpStatus}
                 />
               )}
+              {isTransaction(event) &&
+                (event.contexts.browser ? (
+                  <MetaData
+                    headingText={t('Browser')}
+                    tooltipText={t('The browser used in this transaction.')}
+                    bodyText={<BrowserDisplay event={event} />}
+                    subtext={event.contexts.browser?.version}
+                  />
+                ) : (
+                  <span />
+                ))}
               {hasReplay && (
                 <ReplayButtonContainer>
                   <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
@@ -196,6 +209,37 @@ class EventMetas extends Component<Props, State> {
   }
 }
 
+const BrowserCenter = styled('span')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${space(1)};
+`;
+
+const IconContainer = styled('div')`
+  width: 20px;
+  height: 20px;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-top: ${space(0.25)};
+`;
+
+const BrowserDisplay = ({event}: {event: Event}) => {
+  const icon = generateIconName(
+    event.contexts.browser?.name,
+    event.contexts.browser?.version
+  );
+  return (
+    <BrowserCenter>
+      <IconContainer>
+        <ContextIcon name={icon} />
+      </IconContainer>
+      <span>{event.contexts.browser?.name}</span>
+    </BrowserCenter>
+  );
+};
+
 type EventDetailHeaderProps = {
   hasReplay: boolean;
   type?: 'transaction' | 'event';
@@ -204,8 +248,8 @@ type EventDetailHeaderProps = {
 function getEventDetailHeaderCols({hasReplay, type}: EventDetailHeaderProps): string {
   if (type === 'transaction') {
     return hasReplay
-      ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 5fr minmax(325px, 1fr);'
-      : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;';
+      ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  5fr minmax(325px, 1fr);'
+      : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  6fr;';
   }
   return hasReplay
     ? 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 5fr minmax(325px, 1fr);'

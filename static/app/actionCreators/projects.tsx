@@ -127,26 +127,6 @@ export function setActiveProject(project: Project | null) {
   LatestContextStore.onSetActiveProject(project);
 }
 
-export function removeProject(api: Client, orgId: string, project: Project) {
-  const endpoint = `/projects/${orgId}/${project.slug}/`;
-
-  return api
-    .requestPromise(endpoint, {
-      method: 'DELETE',
-    })
-    .then(
-      () => {
-        addSuccessMessage(
-          tct('[project] was successfully removed', {project: project.slug})
-        );
-      },
-      err => {
-        addErrorMessage(tct('Error removing [project]', {project: project.slug}));
-        throw err;
-      }
-    );
-}
-
 export function transferProject(
   api: Client,
   orgId: string,
@@ -337,6 +317,23 @@ export function createProject(
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
     data: {name, platform, default_rules: options.defaultRules},
+  });
+}
+
+/**
+ * Deletes a project
+ *
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param projectSlug Project Slug
+ */
+export function removeProject(
+  api: Client,
+  orgSlug: string,
+  projectSlug: Project['slug']
+) {
+  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+    method: 'DELETE',
   });
 }
 

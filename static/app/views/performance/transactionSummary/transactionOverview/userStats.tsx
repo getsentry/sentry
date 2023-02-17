@@ -14,8 +14,10 @@ import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
@@ -44,9 +46,11 @@ function UserStats({
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
-    const threshold: number | undefined = totals.project_threshold_config[1];
+    const threshold: number | undefined = totals.project_threshold_config
+      ? totals.project_threshold_config[1]
+      : undefined;
     const miserableUsers: number | undefined = totals['count_miserable_user()'];
-    const userMiseryScore: number = totals['user_misery()'];
+    const userMiseryScore: number = totals['user_misery()'] || 0;
     const totalUsers = totals['count_unique_user()'];
     userMisery = (
       <UserMisery
@@ -68,6 +72,13 @@ function UserStats({
     projectID: decodeScalar(location.query.project),
     query: location.query,
   });
+
+  const mepSetting = useMEPSettingContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location
+  );
 
   return (
     <Fragment>
@@ -99,6 +110,7 @@ function UserStats({
             project={eventView.project}
             hideVitalThresholds
             hideDurationDetail
+            queryExtras={queryExtras}
           />
           <SidebarSpacer />
         </Fragment>

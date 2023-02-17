@@ -76,9 +76,10 @@ export const makeFlamegraph = (
   return new Flamegraph(
     EventedProfile.FromProfile(
       trace ? {...base, ...trace} : base,
-      createFrameIndex('mobile', frames ?? [{name: 'f0'}])
+      createFrameIndex('mobile', frames ?? [{name: 'f0'}]),
+      {type: 'flamechart'}
     ),
     0,
-    {inverted: false, leftHeavy: false}
+    {inverted: false, sort: 'call order'}
   );
 };

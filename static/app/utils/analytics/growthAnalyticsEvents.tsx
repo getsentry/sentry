@@ -1,6 +1,4 @@
-import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import type {PlatformType} from 'sentry/types';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -48,9 +46,8 @@ type SampleEvent = {
   source: string;
 };
 
-type SourceMapDebugParam = {
-  platform: PlatformType;
-  type: SourceMapProcessingIssueType;
+type SetupWizard = {
+  project_platform?: string;
 };
 
 // define the event key to payload mappings
@@ -117,8 +114,6 @@ export type GrowthEventParameters = {
     project_id: string;
   };
   'growth.select_platform': PlatformPickerParam;
-  'growth.sourcemap_docs_clicked': SourceMapDebugParam;
-  'growth.sourcemap_expand_clicked': SourceMapDebugParam;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
@@ -149,6 +144,10 @@ export type GrowthEventParameters = {
   'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
+  'setup_wizard.clicked_viewed_docs': SetupWizard;
+  'setup_wizard.clicked_viewed_issues': SetupWizard;
+  'setup_wizard.complete': SetupWizard;
+  'setup_wizard.viewed': SetupWizard;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -199,8 +198,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.sample_error_onboarding_link_clicked':
     'Growth: Sample Error Onboarding Link Clicked',
   'member_settings_page.loaded': 'Member Settings Page Loaded',
-  'growth.sourcemap_docs_clicked': 'SourceMap Debug: Docs Clicked',
-  'growth.sourcemap_expand_clicked': 'SourceMap Debug: Expand Clicked',
   'invite_modal.opened': 'Invite Modal: Opened',
   'invite_modal.closed': 'Invite Modal: Closed',
   'invite_modal.add_more': 'Invite Modal: Add More',
@@ -219,4 +216,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.end_modal_restart_tours': 'Growth: End Modal Restart Tours',
   'growth.end_modal_close': 'Growth: End Modal Close',
   'growth.end_modal_signup': 'Growth: End Modal Signup',
+  'setup_wizard.viewed': 'Setup Wizard: Viewed',
+  'setup_wizard.complete': 'Setup Wizard: Complete',
+  'setup_wizard.clicked_viewed_issues': 'Setup Wizard: Clicked Viewed Issues',
+  'setup_wizard.clicked_viewed_docs': 'SetupW izard: Clicked Viewed Docs',
 };

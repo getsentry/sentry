@@ -73,7 +73,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
       <LayoutGroup id={radioGroupProps.id}>
-        {[...collectionList].map(option => (
+        {collectionList.map(option => (
           <Segment
             {...option.props}
             key={option.key}
@@ -123,7 +123,7 @@ function Segment<Value extends string>({
 }: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
 
-  const {inputProps} = useRadio({...props}, state, ref);
+  const {inputProps} = useRadio(props, state, ref);
 
   const prevOptionIsSelected = defined(prevKey) && state.selectedValue === prevKey;
   const nextOptionIsSelected = defined(nextKey) && state.selectedValue === nextKey;
@@ -133,7 +133,12 @@ function Segment<Value extends string>({
 
   const {isDisabled} = props;
   const content = (
-    <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
+    <SegmentWrap
+      size={size}
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      data-test-id={props.value}
+    >
       <SegmentInput {...inputProps} ref={ref} />
       {!isDisabled && (
         <SegmentInteractionStateLayer
@@ -272,32 +277,31 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
   bottom: 0;
   left: 0;
   right: 0;
-  background: ${p =>
-    p.priority === 'primary' ? p.theme.active : p.theme.backgroundElevated};
-  border-radius: ${p =>
-    p.priority === 'primary'
-      ? p.theme.borderRadius
-      : `calc(${p.theme.borderRadius} - 1px)`};
-  box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-
-  input.focus-visible ~ & {
-    box-shadow: ${p =>
-      p.priority === 'primary'
-        ? `0 0 0 3px ${p.theme.focus}`
-        : `0 0 0 2px ${p.theme.focusBorder}`};
-  }
 
   ${p =>
-    p.priority === 'primary' &&
-    `
+    p.priority === 'primary'
+      ? `
+    background: ${p.theme.active};
+    border-radius: ${p.theme.borderRadius};
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 3px ${p.theme.focus};
+    }
+
     top: -1px;
     bottom: -1px;
-
     label:first-child > & {
       left: -1px;
     }
     label:last-child > & {
       right: -1px;
+    }
+  `
+      : `
+    background: ${p.theme.backgroundElevated};
+    border-radius: calc(${p.theme.borderRadius} - 1px);
+    box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 2px ${p.theme.focusBorder};
     }
   `}
 `;
@@ -306,6 +310,7 @@ const LabelWrap = styled('span')`
   position: relative;
   display: flex;
   line-height: 1;
+  min-width: 0;
 `;
 
 const HiddenLabel = styled('span')`
