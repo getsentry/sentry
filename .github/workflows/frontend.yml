@@ -119,29 +119,6 @@ jobs:
         if: steps.dependencies.outcome == 'success'
         run: yarn tsc -p config/tsconfig.ci.json
 
-  webpack:
-    if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
-    needs: files-changed
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - uses: getsentry/size-limit-action@7be9865310d295ad211da9a8464332288d60d837 # v5
-        env:
-          SENTRY_INSTRUMENTATION: 1
-          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
-        with:
-          main_branch: master
-          skip_step: install
-          build_script: build
-          windows_verbatim_arguments: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
   frontend-browser-tests:
     if: needs.files-changed.outputs.frontend == 'true'
     needs: files-changed
