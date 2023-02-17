@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, SentryAppInstallationStatus
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -1301,14 +1301,8 @@ def get_alert_rule_trigger_action_pagerduty_service(
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
     from sentry.services.hybrid_cloud.app import app_service
 
-    for installation in app_service.get_many(
-        filter=dict(organization_id=organization.id, app_ids=[sentry_app_id])
-    ):
-        if (
-            installation.status == SentryAppInstallationStatus.INSTALLED
-            and installation.date_deleted is None
-        ):
-            return sentry_app_id, installation.sentry_app.name
+    for installation in app_service.get_installed_for_organization(organization_id=organization.id):
+        return sentry_app_id, installation.sentry_app.name
 
     raise InvalidTriggerActionError("No SentryApp found.")
 

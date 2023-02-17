@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
+from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, Project, ProjectStatus
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -32,6 +33,10 @@ class ProjectMonitorPermission(ProjectPermission):
         "PUT": ["project:read", "project:write", "project:admin"],
         "DELETE": ["project:read", "project:write", "project:admin"],
     }
+
+
+class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
+    scope_map = ProjectMonitorPermission.scope_map
 
 
 class MonitorEndpoint(Endpoint):

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
@@ -114,6 +115,14 @@ class AppService(
         pass
 
     @abc.abstractmethod
+    def get_installed_for_organization(
+        self,
+        *,
+        organization_id: int,
+    ) -> List[RpcSentryAppInstallation]:
+        pass
+
+    @abc.abstractmethod
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 
@@ -188,4 +197,28 @@ app_service: AppService = silo_mode_delegation(
 )
 
 
-from sentry.models import SentryApp, SentryAppInstallation
+@dataclass
+class RpcSentryAppInstallation:
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
+
+
+ApiSentryAppInstallation = RpcSentryAppInstallation
+
+
+@dataclass
+class RpcSentryApp:
+    id: int = -1
+    scope_list: List[str] = field(default_factory=list)
+    application_id: int = -1
+    proxy_user_id: int | None = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    events: List[str] = field(default_factory=list)
+
+
+ApiSentryApp = RpcSentryApp

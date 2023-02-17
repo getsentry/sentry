@@ -38,6 +38,14 @@ class DatabaseBackedAppService(
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]
 
+    def get_installed_for_organization(
+        self, *, organization_id: int
+    ) -> List[RpcSentryAppInstallation]:
+        installations = SentryAppInstallation.objects.get_installed_for_organization(
+            organization_id
+        ).select_related("sentry_app")
+        return [self._serialize_rpc(i) for i in installations]
+
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         result: List[RpcSentryAppService] = []
         for app in SentryApp.objects.filter(
