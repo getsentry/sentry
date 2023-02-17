@@ -982,7 +982,6 @@ function WidgetBuilder({
                                   aria-label={t('title')}
                                   placeholder={t('Widget Title')}
                                   error={state.errors?.title}
-                                  errorMessage={t('Widget title is required')}
                                   onChange={newTitle => {
                                     handleDisplayTypeOrTitleChange('title', newTitle);
                                   }}
