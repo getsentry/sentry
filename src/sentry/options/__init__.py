@@ -13,6 +13,11 @@ from .manager import (  # NOQA
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
     FLAG_STOREONLY,
+    FLAG_LIVE_MODIFIABLE,
+    FLAG_RATE,
+    FLAG_BOOL,
+    FLAG_MODIFIABLE_RATE,
+    FLAG_MODIFIABLE_BOOL,
     OptionsManager,
     UnknownOption,
 )

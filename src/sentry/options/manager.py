@@ -35,6 +35,15 @@ FLAG_PRIORITIZE_DISK = 1 << 5
 FLAG_ALLOW_EMPTY = 1 << 6
 # Values that are credentials should not show up in web UI.
 FLAG_CREDENTIAL = 1 << 7
+# Values that are meant to be modified live, eg. for rollout etc.
+FLAG_LIVE_MODIFIABLE = 1 << 8
+# Values that are rates, between [0,1]
+FLAG_RATE = 1 << 9
+# Values that are bools
+FLAG_BOOL = 1 << 10
+
+FLAG_MODIFIABLE_RATE = FLAG_LIVE_MODIFIABLE | FLAG_RATE
+FLAG_MODIFIABLE_BOOL = FLAG_LIVE_MODIFIABLE | FLAG_BOOL
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
