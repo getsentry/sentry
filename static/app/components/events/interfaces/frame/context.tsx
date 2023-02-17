@@ -49,7 +49,7 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
-export function getCoverageColorClass(
+export function getLineCoverage(
   lines: [number, string][],
   lineCov: LineCoverage[]
 ): [Array<Coverage | undefined>, boolean] {
@@ -115,9 +115,9 @@ const Context = ({
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
-  const [lineColors = [], hasCoverage] =
+  const [lineCoverage = [], hasCoverage] =
     hasCoverageData && data!.codecov?.lineCoverage && !!activeLineNumber! && contextLines
-      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage)
+      ? getLineCoverage(contextLines, data!.codecov?.lineCoverage)
       : [];
 
   useRouteAnalyticsParams(
@@ -167,7 +167,7 @@ const Context = ({
               key={index}
               line={line}
               isActive={isActive}
-              coverage={lineColors[index]}
+              coverage={lineCoverage[index]}
             >
               {hasComponents && (
                 <ErrorBoundary mini>
