@@ -114,6 +114,7 @@ describe('Performance GridEditable Table', function () {
       body: [],
     });
 
+    fields = EVENTS_TABLE_RESPONSE_FIELDS;
     data = MOCK_EVENTS_TABLE_DATA;
 
     // Total events count response
@@ -198,7 +199,6 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -252,7 +252,6 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -288,7 +287,6 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -305,9 +303,9 @@ describe('Performance GridEditable Table', function () {
   });
 
   it('renders replay id', function () {
-    const initialData = initializeData({features: ['session-replay-ui']});
+    const initialData = initializeData();
 
-    fields.push('replayId');
+    fields = [...fields, 'replayId'];
     data.forEach(result => {
       result.replayId = 'mock_replay_id';
     });
@@ -334,7 +332,44 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol
+      />,
+      {context: initialData.routerContext}
+    );
+
+    expect(screen.getAllByRole('columnheader')).toHaveLength(7);
+    expect(container).toSnapshot();
+  });
+
+  it('renders profile id', function () {
+    const initialData = initializeData();
+
+    fields = [...fields, 'profile.id'];
+    data.forEach(result => {
+      result['profile.id'] = 'mock_profile_id';
+    });
+
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    const {container} = render(
+      <EventsTable
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
       />,
       {context: initialData.routerContext}
     );
