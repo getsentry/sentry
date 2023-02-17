@@ -17,12 +17,12 @@ from sentry.db.models import (
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import APIIntegration
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
 class ExternalIssueManager(BaseManager):
     def get_for_integration(
-        self, integration: APIIntegration, external_issue_key: str | None = None
+        self, integration: RpcIntegration, external_issue_key: str | None = None
     ) -> QuerySet:
         kwargs = dict(
             integration_id=integration.id,
@@ -35,7 +35,7 @@ class ExternalIssueManager(BaseManager):
         return self.filter(**kwargs)
 
     def get_linked_issues(
-        self, event: Event, integration: APIIntegration
+        self, event: Event, integration: RpcIntegration
     ) -> QuerySet[ExternalIssue]:
         from sentry.models import GroupLink
 
@@ -48,10 +48,10 @@ class ExternalIssueManager(BaseManager):
             integration_id=integration.id,
         )
 
-    def get_linked_issue_ids(self, event: Event, integration: APIIntegration) -> Sequence[str]:
+    def get_linked_issue_ids(self, event: Event, integration: RpcIntegration) -> Sequence[str]:
         return self.get_linked_issues(event, integration).values_list("key", flat=True)
 
-    def has_linked_issue(self, event: Event, integration: APIIntegration) -> bool:
+    def has_linked_issue(self, event: Event, integration: RpcIntegration) -> bool:
         return self.get_linked_issues(event, integration).exists()
 
 
