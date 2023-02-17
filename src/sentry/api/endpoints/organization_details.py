@@ -502,7 +502,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             if not has_integration:
                 return self.respond(
                     {"codecovAccess": [error]},
-                    status=status.HTTP_412_PRECONDITION_FAILED,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
         serializer = serializer_cls(

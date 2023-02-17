@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Literal, Optional, Sequence, Tuple
 
@@ -25,7 +27,7 @@ class CodecovIntegrationError(Enum):
     )
 
 
-def has_codecov_integration(organization: Organization) -> Tuple[bool, str]:
+def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
     """
     Checks if the organization has a Codecov integration.
 
