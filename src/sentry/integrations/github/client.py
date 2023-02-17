@@ -215,6 +215,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
             elif txt == "Repository access blocked":
                 logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            elif txt == "Server Error":
+                logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+            elif txt == "Bad credentials":
+                logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
             elif txt.startswith("Unable to reach host:"):
                 logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
             elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
