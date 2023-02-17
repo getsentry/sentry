@@ -22,7 +22,8 @@ describe('CreateSampleEventButton', function () {
         project={{...project, platform: 'javascript'}}
       >
         {createSampleText}
-      </CreateSampleEventButton>
+      </CreateSampleEventButton>,
+      {organization: org}
     );
   }
 
