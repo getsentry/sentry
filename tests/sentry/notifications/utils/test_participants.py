@@ -23,7 +23,7 @@ from sentry.notifications.utils.participants import (
 )
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -601,7 +601,7 @@ class GetOwnersCase(TestCase):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, APIUser]]
+        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, RpcUser]]
     ) -> None:
         assert len(expected) == len(received)
         for recipient in expected:

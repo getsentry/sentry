@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 from pydantic.fields import Field
 
@@ -14,15 +14,12 @@ from sentry.services.hybrid_cloud import (
 )
 from sentry.silo import SiloMode
 
-if TYPE_CHECKING:
-    from sentry.models import SentryApp, SentryAppInstallation
-
 
 class AppService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> RpcSentryAppInstallation | None:
         pass
 
     @abc.abstractmethod
@@ -30,11 +27,11 @@ class AppService(InterfaceWithLifecycle):
         self,
         *,
         organization_id: int,
-    ) -> List[ApiSentryAppInstallation]:
+    ) -> List[RpcSentryAppInstallation]:
         pass
 
-    def serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
-        return ApiSentryApp(
+    def serialize_sentry_app(self, app: SentryApp) -> RpcSentryApp:
+        return RpcSentryApp(
             id=app.id,
             scope_list=app.scope_list,
             application_id=app.application_id,
@@ -48,11 +45,11 @@ class AppService(InterfaceWithLifecycle):
 
     def serialize_sentry_app_installation(
         self, installation: SentryAppInstallation, app: SentryApp | None = None
-    ) -> ApiSentryAppInstallation:
+    ) -> RpcSentryAppInstallation:
         if app is None:
             app = installation.sentry_app
 
-        return ApiSentryAppInstallation(
+        return RpcSentryAppInstallation(
             id=installation.id,
             organization_id=installation.organization_id,
             status=installation.status,
@@ -75,7 +72,17 @@ app_service: AppService = silo_mode_delegation(
 )
 
 
-class ApiSentryApp(SiloDataInterface):
+class RpcSentryAppInstallation(SiloDataInterface):
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
+
+
+ApiSentryAppInstallation = RpcSentryAppInstallation
+
+
+class RpcSentryApp(SiloDataInterface):
     id: int = -1
     scope_list: List[str] = Field(default_factory=list)
     application_id: int = -1
@@ -87,8 +94,6 @@ class ApiSentryApp(SiloDataInterface):
     events: List[str] = Field(default_factory=list)
 
 
-class ApiSentryAppInstallation(SiloDataInterface):
-    id: int = -1
-    organization_id: int = -1
-    status: int = SentryAppInstallationStatus.PENDING
-    sentry_app: ApiSentryApp = Field(default_factory=lambda: ApiSentryApp())
+ApiSentryApp = RpcSentryApp
+
+from sentry.models import SentryApp, SentryAppInstallation

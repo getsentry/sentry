@@ -26,13 +26,16 @@ class ProjectKeyRole(Enum):
             raise ValueError("Unexpected project key role enum")
 
 
-class ApiProjectKey(SiloDataInterface):
+class RpcProjectKey(SiloDataInterface):
     dsn_public: str = ""
+
+
+ApiProjectKey = RpcProjectKey
 
 
 class ProjectKeyService(InterfaceWithLifecycle):
     @abstractmethod
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
+    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         pass
 
 

@@ -30,15 +30,15 @@ logger = logging.getLogger(__name__)
 
 def get_before_event_condition(event):
     return [
-        [TIMESTAMP, "<=", event.timestamp],
-        [[TIMESTAMP, "<", event.timestamp], [EVENT_ID, "<", event.event_id]],
+        [TIMESTAMP, "<=", event.datetime],
+        [[TIMESTAMP, "<", event.datetime], [EVENT_ID, "<", event.event_id]],
     ]
 
 
 def get_after_event_condition(event):
     return [
-        [TIMESTAMP, ">=", event.timestamp],
-        [[TIMESTAMP, ">", event.timestamp], [EVENT_ID, ">", event.event_id]],
+        [TIMESTAMP, ">=", event.datetime],
+        [[TIMESTAMP, ">", event.datetime], [EVENT_ID, ">", event.event_id]],
     ]
 
 

@@ -181,11 +181,11 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
 
     const handleMouseDown = (e: MouseEvent) => {
       start = vec2.fromValues(e.offsetX, e.offsetY);
-      overlayRef.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (start) {
+        overlayRef.style.cursor = 'grabbing';
         isDragging = true;
         hoveredRect = null;
         const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
@@ -219,7 +219,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
         mat3.copy(transformationMatrix, currTransformationMatrix);
       }
       start = null;
-      overlayRef.style.cursor = 'grab';
+      overlayRef.style.cursor = 'pointer';
     };
 
     const handleMouseClick = (e: MouseEvent) => {
@@ -351,6 +351,7 @@ const InteractionContainer = styled('div')`
   left: 0;
   height: 100%;
   width: 100%;
+  cursor: pointer;
 `;
 
 const Controls = styled('div')`
@@ -369,7 +370,6 @@ const InteractionOverlayCanvas = styled('canvas')`
 
 const WireframeCanvas = styled('canvas')`
   background-color: ${p => p.theme.surface100};
-  cursor: grab;
   width: 100%;
   height: 100%;
 `;

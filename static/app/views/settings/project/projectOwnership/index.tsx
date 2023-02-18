@@ -32,9 +32,17 @@ type State = {
 } & AsyncView['state'];
 
 class ProjectOwnership extends AsyncView<Props, State> {
+  // TODO: Remove with `streamline-targeting-context`
+  getOwnershipTitle() {
+    const {organization} = this.props;
+    return organization.features?.includes('streamline-targeting-context')
+      ? t('Ownership Rules')
+      : t('Issue Owners');
+  }
+
   getTitle() {
     const {project} = this.props;
-    return routeTitleGen(t('Issue Owners'), project.slug, false);
+    return routeTitleGen(this.getOwnershipTitle(), project.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -238,11 +246,12 @@ tags.sku_class:enterprise #enterprise`;
     const {ownership, codeowners} = this.state;
 
     const disabled = !organization.access.includes('project:write');
+    const editOwnershipeRulesDisabled = !organization.access.includes('project:read');
 
     return (
       <Fragment>
         <SettingsPageHeader
-          title={t('Issue Owners')}
+          title={this.getOwnershipTitle()}
           action={
             <Fragment>
               <Button
@@ -275,7 +284,9 @@ tags.sku_class:enterprise #enterprise`;
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
 
-        <PermissionAlert />
+        <PermissionAlert
+          access={!editOwnershipeRulesDisabled ? ['project:read'] : ['project:write']}
+        />
         {this.renderCodeOwnerErrors()}
         {ownership && (
           <RulesPanel
@@ -296,13 +307,14 @@ tags.sku_class:enterprise #enterprise`;
                     onSave: this.handleOwnershipSave,
                   })
                 }
-                disabled={disabled}
+                disabled={editOwnershipeRulesDisabled}
               >
                 {t('Edit')}
               </Button>,
             ]}
           />
         )}
+        <PermissionAlert />
         <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
             codeowners={codeowners || []}

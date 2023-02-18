@@ -131,8 +131,8 @@ function ShareIssueModal({
                 borderless
                 size="sm"
                 onClick={() => {
-                  copy(shareUrl);
                   urlRef.current?.selectText();
+                  copy(shareUrl);
                 }}
                 icon={<IconCopy />}
                 aria-label={t('Copy to clipboard')}
@@ -155,6 +155,7 @@ function ShareIssueModal({
           <Button
             priority="primary"
             onClick={() => {
+              urlRef.current?.selectText();
               copy(shareUrl);
               closeModal();
             }}
