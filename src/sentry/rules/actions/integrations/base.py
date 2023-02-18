@@ -51,8 +51,8 @@ class IntegrationEventAction(EventAction, abc.ABC):
             providers=[self.provider],
         )
 
-    def get_integration_id(self) -> str:
-        integration_id: str = self.get_option(self.integration_key)
+    def get_integration_id(self) -> int:
+        integration_id: int = int(self.get_option(self.integration_key))
         return integration_id
 
     def get_integration(self) -> RpcIntegration | None:
@@ -66,7 +66,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
             org_integration_status=OrganizationStatus.ACTIVE,
             providers=[self.provider],
         ):
-            if str(integration.id) == self.get_integration_id():
+            if integration.id == self.get_integration_id():
                 return integration
         return None
 
