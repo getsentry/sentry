@@ -18,7 +18,7 @@ def trigger_sentry_app_action_creators_for_issues(
             continue
 
         result = app_service.trigger_sentry_app_action_creators(
-            fields=action.get("settings"), install_uuid=action.get("sentryAppInstallationUuid")
+            fields=action["settings"], install_uuid=action.get("sentryAppInstallationUuid")
         )
         # Bubble up errors from Sentry App to the UI
         if not result["success"]:
