@@ -180,7 +180,9 @@ class SentryAppInstallation(ParanoidModel):
         return self.prepare_ui_component(component, project, values)
 
     def prepare_ui_component(self, component, project=None, values=None):
-        return prepare_ui_component(self, component, project_slug=project.slug, values=values)
+        return prepare_ui_component(
+            self, component, project_slug=project.slug if project else None, values=values
+        )
 
 
 def prepare_sentry_app_components(

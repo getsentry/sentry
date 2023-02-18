@@ -24,7 +24,14 @@ class SentryAppInstallationTokenManager(BaseManager):
         return sentry_app_installation_tokens[0].api_token.token
 
     def _get_token(self, token: ApiToken | AuthenticatedToken) -> SentryAppInstallationToken | None:
-        id = token.id if isinstance(token, ApiToken) else token.entity_id
+        id: int
+        if isinstance(token, ApiToken):
+            id = token.id
+        elif token.kind == "api_token":
+            id = token.entity_id
+        else:
+            return None
+
         try:
             return self.select_related("sentry_app_installation").get(api_token_id=id)
         except SentryAppInstallationToken.DoesNotExist:
@@ -42,7 +49,9 @@ class SentryAppInstallationTokenManager(BaseManager):
             organization_id=install_token.sentry_app_installation.organization_id
         )
 
-    def has_organization_access(self, token: ApiToken, organization_id: int) -> bool:
+    def has_organization_access(
+        self, token: ApiToken | AuthenticatedToken, organization_id: int
+    ) -> bool:
         install_token = self._get_token(token)
         if not install_token:
             return False

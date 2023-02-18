@@ -66,7 +66,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
             org_integration_status=OrganizationStatus.ACTIVE,
             providers=[self.provider],
         ):
-            if integration.id == self.get_integration_id():
+            if str(integration.id) == self.get_integration_id():
                 return integration
         return None
 
