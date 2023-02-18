@@ -91,10 +91,16 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
+        start_join = time.time()
+
         with metrics.timer("simple_produce_step.join_duration"):
             if not timeout:
-                timeout = 5.0
+                timeout = 2.0
             self.__producer.flush(timeout)
 
         self.__commit_function(self.__produced_message_offsets, force=True)
         self.__produced_message_offsets = {}
+
+        join_duration = time.time() - start_join()
+
+        logger.info("SimpleProduceStep.join: %s", join_duration)
