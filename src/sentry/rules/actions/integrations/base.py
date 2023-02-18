@@ -52,8 +52,10 @@ class IntegrationEventAction(EventAction, abc.ABC):
         )
 
     def get_integration_id(self) -> int:
-        integration_id: int = int(self.get_option(self.integration_key))
-        return integration_id
+        integration_id: str | None = self.get_option(self.integration_key)
+        if integration_id:
+            return int(integration_id)
+        return 0
 
     def get_integration(self) -> RpcIntegration | None:
         """
