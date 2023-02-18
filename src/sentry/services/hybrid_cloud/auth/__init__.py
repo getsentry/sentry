@@ -8,6 +8,7 @@ from enum import IntEnum
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Type
 
 from django.contrib.auth.models import AnonymousUser
+from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
@@ -160,20 +161,20 @@ def impl_with_db() -> AuthService:
     return DatabaseBackedAuthService()
 
 
-class RpcAuthState(SiloDataInterface):
-    sso_state: RpcMemberSsoState
-    permissions: List[str]
-
-
-ApiAuthState = RpcAuthState
-
-
 class RpcMemberSsoState(SiloDataInterface):
     is_required: bool = False
     is_valid: bool = False
 
 
 ApiMemberSsoState = RpcMemberSsoState
+
+
+class RpcAuthState(SiloDataInterface):
+    sso_state: RpcMemberSsoState
+    permissions: List[str]
+
+
+ApiAuthState = RpcAuthState
 
 
 @dataclass
@@ -327,12 +328,11 @@ class RpcAuthProviderFlags(SiloDataInterface):
 RpcAuthProviderFlags
 
 
-@dataclass(eq=True, frozen=True)
-class RpcAuthProvider:
+class RpcAuthProvider(SiloDataInterface):
     id: int = -1
     organization_id: int = -1
     provider: str = ""
-    flags: RpcAuthProviderFlags = field(default_factory=lambda: RpcAuthProviderFlags())
+    flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
 
 
 ApiAuthProvider = RpcAuthProvider

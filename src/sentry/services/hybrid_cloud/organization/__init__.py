@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass
 from typing import Any, List, Mapping, Optional
 
 from pydantic import Field
@@ -250,7 +249,6 @@ class RpcOrganizationFlags(SiloDataInterface):
 ApiOrganizationFlags = RpcOrganizationFlags
 
 
-@dataclass
 class RpcOrganizationInvite(SiloDataInterface):
     id: int = -1
     token: str = ""
@@ -260,7 +258,6 @@ class RpcOrganizationInvite(SiloDataInterface):
 ApiOrganizationInvite = RpcOrganizationInvite
 
 
-@dataclass
 class RpcOrganizationSummary(SiloDataInterface):
     """
     The subset of organization metadata available from the control silo specifically.
@@ -274,7 +271,6 @@ class RpcOrganizationSummary(SiloDataInterface):
 ApiOrganizationSummary = RpcOrganizationSummary
 
 
-@dataclass
 class RpcOrganization(RpcOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
