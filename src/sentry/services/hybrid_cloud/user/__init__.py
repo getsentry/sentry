@@ -18,6 +18,25 @@ if TYPE_CHECKING:
     from sentry.models import Group
 
 
+class RpcAvatar(SiloDataInterface):
+    id: int = 0
+    file_id: int = 0
+    ident: str = ""
+    avatar_type: str = "letter_avatar"
+
+
+APIAvatar = RpcAvatar
+
+
+class RpcUserEmail(SiloDataInterface):
+    id: int = 0
+    email: str = ""
+    is_verified: bool = False
+
+
+APIUserEmail = RpcUserEmail
+
+
 class RpcUser(SiloDataInterface):
     id: int = -1
     pk: int = -1
@@ -69,25 +88,6 @@ class RpcUser(SiloDataInterface):
 
 
 APIUser = RpcUser
-
-
-class RpcAvatar(SiloDataInterface):
-    id: int = 0
-    file_id: int = 0
-    ident: str = ""
-    avatar_type: str = "letter_avatar"
-
-
-APIAvatar = RpcAvatar
-
-
-class RpcUserEmail(SiloDataInterface):
-    id: int = 0
-    email: str = ""
-    is_verified: bool = False
-
-
-APIUserEmail = RpcUserEmail
 
 
 class UserSerializeType(IntEnum):  # annoying

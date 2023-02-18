@@ -72,16 +72,6 @@ app_service: AppService = silo_mode_delegation(
 )
 
 
-class RpcSentryAppInstallation(SiloDataInterface):
-    id: int = -1
-    organization_id: int = -1
-    status: int = SentryAppInstallationStatus.PENDING
-    sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
-
-
-ApiSentryAppInstallation = RpcSentryAppInstallation
-
-
 class RpcSentryApp(SiloDataInterface):
     id: int = -1
     scope_list: List[str] = Field(default_factory=list)
@@ -95,5 +85,16 @@ class RpcSentryApp(SiloDataInterface):
 
 
 ApiSentryApp = RpcSentryApp
+
+
+class RpcSentryAppInstallation(SiloDataInterface):
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
+
+
+ApiSentryAppInstallation = RpcSentryAppInstallation
+
 
 from sentry.models import SentryApp, SentryAppInstallation
