@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 
 @dataclass
 class RpcSentryAppService:
+    """
+    A `SentryAppService` (a notification service) wrapped up and serializable via the
+    rpc interface.
+    """
+
     title: str = ""
     slug: str = ""
     service_type: str = "sentry_app"
@@ -60,7 +65,10 @@ ApiSentryApp = RpcSentryApp
 
 
 class SentryAppEventDataInterface(Protocol):
-    """Protocol representing"""
+    """
+    Protocol making RpcSentryAppEvents capable of consuming from various sources, keeping only
+    the minimum required properties.
+    """
 
     id: str
     label: str

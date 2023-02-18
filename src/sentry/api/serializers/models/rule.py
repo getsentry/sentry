@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List
 
-from django.db.models import Max
+from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
@@ -43,6 +43,8 @@ class RuleSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         from sentry.services.hybrid_cloud.app import app_service
+
+        prefetch_related_objects(item_list, "project")
 
         environments = Environment.objects.in_bulk(
             [_f for _f in [i.environment_id for i in item_list] if _f]

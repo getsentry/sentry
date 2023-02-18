@@ -54,7 +54,7 @@ class DatabaseBackedAppService(
             installations__status=SentryAppInstallationStatus.INSTALLED,
             installations__date_deleted=None,
         ).distinct():
-            if not SentryAppComponent.objects.filter(
+            if SentryAppComponent.objects.filter(
                 sentry_app_id=app.id, type="alert-rule-action"
             ).exists():
                 continue
