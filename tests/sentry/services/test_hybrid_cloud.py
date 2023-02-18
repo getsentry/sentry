@@ -1,7 +1,7 @@
 from collections import deque
 
 from sentry.services.hybrid_cloud import (
-    SiloDataInterface,
+    RpcModel,
     UnsetType,
     app,
     auth,
@@ -18,7 +18,7 @@ from sentry.services.hybrid_cloud import (
 from sentry.testutils import TestCase
 
 
-class SiloDataInterfaceTest(TestCase):
+class RpcModelTest(TestCase):
     INTERFACE_CLASSES = frozenset(
         [
             app.RpcSentryApp,
@@ -64,13 +64,13 @@ class SiloDataInterfaceTest(TestCase):
 
     def test_interface_class_coverage(self):
         subclasses = set()
-        stack = deque([SiloDataInterface])
+        stack = deque([RpcModel])
         while stack:
             next_class = stack.pop()
             if next_class not in subclasses:
                 subclasses.add(next_class)
                 stack += next_class.__subclasses__()
 
-        subclasses.difference_update({SiloDataInterface, UnsetType})
+        subclasses.difference_update({RpcModel, UnsetType})
         uncovered = subclasses.difference(self.INTERFACE_CLASSES)
-        assert uncovered == set(), "SiloDataInterface subclasses exist that are not tested"
+        assert uncovered == set(), "RpcModel subclasses exist that are not tested"

@@ -9,14 +9,14 @@ from sentry.services.hybrid_cloud import (
     ApiPaginationArgs,
     ApiPaginationResult,
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
 from sentry.silo import SiloMode
 
 
-class RpcIntegration(SiloDataInterface):
+class RpcIntegration(RpcModel):
     id: int
     provider: str
     external_id: str
@@ -42,7 +42,7 @@ class RpcIntegration(SiloDataInterface):
 APIIntegration = RpcIntegration
 
 
-class RpcOrganizationIntegration(SiloDataInterface):
+class RpcOrganizationIntegration(RpcModel):
     id: int
     default_auth_id: int
     organization_id: int

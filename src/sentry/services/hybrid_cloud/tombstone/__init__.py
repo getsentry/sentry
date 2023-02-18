@@ -1,14 +1,10 @@
 from abc import abstractmethod
 
-from sentry.services.hybrid_cloud import (
-    InterfaceWithLifecycle,
-    SiloDataInterface,
-    silo_mode_delegation,
-)
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, RpcModel, silo_mode_delegation
 from sentry.silo import SiloMode
 
 
-class RpcTombstone(SiloDataInterface):
+class RpcTombstone(RpcModel):
     table_name: str = ""
     identifier: int = -1
 

@@ -10,7 +10,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     PatchableMixin,
-    SiloDataInterface,
+    RpcModel,
     Unset,
     UnsetVal,
     silo_mode_delegation,
@@ -19,7 +19,7 @@ from sentry.services.hybrid_cloud import (
 from sentry.silo import SiloMode
 
 
-class RpcOrganizationMapping(SiloDataInterface):
+class RpcOrganizationMapping(RpcModel):
     organization_id: int = -1
     slug: str = ""
     name: str = ""
@@ -32,7 +32,7 @@ class RpcOrganizationMapping(SiloDataInterface):
 APIOrganizationMapping = RpcOrganizationMapping
 
 
-class RpcOrganizationMappingUpdate(SiloDataInterface, PatchableMixin["Organization"]):
+class RpcOrganizationMappingUpdate(RpcModel, PatchableMixin["Organization"]):
     organization_id: int = -1
     name: Unset[str] = UnsetVal
     customer_id: Unset[str] = UnsetVal

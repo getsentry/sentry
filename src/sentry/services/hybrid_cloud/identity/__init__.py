@@ -5,14 +5,14 @@ from typing import List
 
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
 from sentry.silo import SiloMode
 
 
-class RpcIdentityProvider(SiloDataInterface):
+class RpcIdentityProvider(RpcModel):
     id: int
     type: str
     external_id: str
@@ -21,7 +21,7 @@ class RpcIdentityProvider(SiloDataInterface):
 APIIdentityProvider = RpcIdentityProvider
 
 
-class RpcIdentity(SiloDataInterface):
+class RpcIdentity(RpcModel):
     id: int
     idp_id: int
     user_id: int

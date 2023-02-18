@@ -9,7 +9,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.roles import team_roles
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -143,7 +143,7 @@ def team_status_visible() -> int:
     return int(TeamStatus.VISIBLE)
 
 
-class RpcTeam(SiloDataInterface):
+class RpcTeam(RpcModel):
     id: int = -1
     status: int = Field(default_factory=team_status_visible)
     organization_id: int = -1
@@ -158,7 +158,7 @@ class RpcTeam(SiloDataInterface):
 ApiTeam = RpcTeam
 
 
-class RpcTeamMember(SiloDataInterface):
+class RpcTeamMember(RpcModel):
     id: int = -1
     is_active: bool = False
     role_id: str = ""
@@ -180,7 +180,7 @@ def project_status_visible() -> int:
     return int(ProjectStatus.VISIBLE)
 
 
-class RpcProject(SiloDataInterface):
+class RpcProject(RpcModel):
     id: int = -1
     slug: str = ""
     name: str = ""
@@ -191,7 +191,7 @@ class RpcProject(SiloDataInterface):
 ApiProject = RpcProject
 
 
-class RpcOrganizationMemberFlags(SiloDataInterface):
+class RpcOrganizationMemberFlags(RpcModel):
     sso__linked: bool = False
     sso__invalid: bool = False
     member_limit__restricted: bool = False
@@ -209,7 +209,7 @@ class RpcOrganizationMemberFlags(SiloDataInterface):
 ApiOrganizationMemberFlags = RpcOrganizationMemberFlags
 
 
-class RpcOrganizationMember(SiloDataInterface):
+class RpcOrganizationMember(RpcModel):
     id: int = -1
     organization_id: int = -1
     # This can be null when the user is deleted.
@@ -236,7 +236,7 @@ class RpcOrganizationMember(SiloDataInterface):
 ApiOrganizationMember = RpcOrganizationMember
 
 
-class RpcOrganizationFlags(SiloDataInterface):
+class RpcOrganizationFlags(RpcModel):
     allow_joinleave: bool = False
     enhanced_privacy: bool = False
     disable_shared_issues: bool = False
@@ -249,7 +249,7 @@ class RpcOrganizationFlags(SiloDataInterface):
 ApiOrganizationFlags = RpcOrganizationFlags
 
 
-class RpcOrganizationInvite(SiloDataInterface):
+class RpcOrganizationInvite(RpcModel):
     id: int = -1
     token: str = ""
     email: str = ""
@@ -258,7 +258,7 @@ class RpcOrganizationInvite(SiloDataInterface):
 ApiOrganizationInvite = RpcOrganizationInvite
 
 
-class RpcOrganizationSummary(SiloDataInterface):
+class RpcOrganizationSummary(RpcModel):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -286,7 +286,7 @@ class RpcOrganization(RpcOrganizationSummary):
 ApiOrganization = RpcOrganization
 
 
-class RpcUserOrganizationContext(SiloDataInterface):
+class RpcUserOrganizationContext(RpcModel):
     """
     This object wraps an organization result inside of its membership context in terms of an (optional) user id.
     This is due to the large number of callsites that require an organization and a user's membership at the

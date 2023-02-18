@@ -6,7 +6,7 @@ from typing import cast
 from sentry.models import LostPasswordHash
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -37,7 +37,7 @@ class LostPasswordHashService(InterfaceWithLifecycle):
         return RpcLostPasswordHash(**args)
 
 
-class RpcLostPasswordHash(SiloDataInterface):
+class RpcLostPasswordHash(RpcModel):
     id: int = -1
     user_id: int = -1
     hash: str = ""

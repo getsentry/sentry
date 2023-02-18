@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -26,7 +26,7 @@ class ProjectKeyRole(Enum):
             raise ValueError("Unexpected project key role enum")
 
 
-class RpcProjectKey(SiloDataInterface):
+class RpcProjectKey(RpcModel):
     dsn_public: str = ""
 
 

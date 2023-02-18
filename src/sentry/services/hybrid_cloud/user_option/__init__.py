@@ -5,7 +5,7 @@ from typing import Any, Iterable, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -13,7 +13,7 @@ from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 
-class RpcUserOption(SiloDataInterface):
+class RpcUserOption(RpcModel):
     id: int = -1
     user_id: int = -1
     value: Any = None

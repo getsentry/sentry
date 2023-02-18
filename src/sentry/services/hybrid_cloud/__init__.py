@@ -50,7 +50,7 @@ class InterfaceWithLifecycle(ABC):
         pass
 
 
-class SiloDataInterface(pydantic.BaseModel):
+class RpcModel(pydantic.BaseModel):
     pass
 
 
@@ -273,7 +273,7 @@ class ApiPaginationResult:
 # Need a non-null default value so that we can
 # detect attributes being set to null. We're using
 # a class for this to get a reasonable repr in debugging.
-class UnsetType(SiloDataInterface):
+class UnsetType(RpcModel):
     def __repr__(self) -> str:
         return "Unset"
 

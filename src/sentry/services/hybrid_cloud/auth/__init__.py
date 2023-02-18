@@ -16,7 +16,7 @@ from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -161,7 +161,7 @@ def impl_with_db() -> AuthService:
     return DatabaseBackedAuthService()
 
 
-class RpcMemberSsoState(SiloDataInterface):
+class RpcMemberSsoState(RpcModel):
     is_required: bool = False
     is_valid: bool = False
 
@@ -169,7 +169,7 @@ class RpcMemberSsoState(SiloDataInterface):
 ApiMemberSsoState = RpcMemberSsoState
 
 
-class RpcAuthState(SiloDataInterface):
+class RpcAuthState(RpcModel):
     sso_state: RpcMemberSsoState
     permissions: List[str]
 
@@ -320,7 +320,7 @@ class MiddlewareAuthenticationResponse(AuthenticationContext):
     user_from_signed_request: bool = False
 
 
-class RpcAuthProviderFlags(SiloDataInterface):
+class RpcAuthProviderFlags(RpcModel):
     allow_unlinked: bool = False
     scim_enabled: bool = False
 
@@ -328,7 +328,7 @@ class RpcAuthProviderFlags(SiloDataInterface):
 RpcAuthProviderFlags
 
 
-class RpcAuthProvider(SiloDataInterface):
+class RpcAuthProvider(RpcModel):
     id: int = -1
     organization_id: int = -1
     provider: str = ""
@@ -338,7 +338,7 @@ class RpcAuthProvider(SiloDataInterface):
 ApiAuthProvider = RpcAuthProvider
 
 
-class RpcAuthIdentity(SiloDataInterface):
+class RpcAuthIdentity(RpcModel):
     id: int = -1
     user_id: int = -1
     provider_id: int = -1
@@ -348,7 +348,7 @@ class RpcAuthIdentity(SiloDataInterface):
 ApiAuthIdentity = RpcAuthIdentity
 
 
-class RpcOrganizationAuthConfig(SiloDataInterface):
+class RpcOrganizationAuthConfig(RpcModel):
     organization_id: int = -1
     auth_provider: Optional[RpcAuthProvider] = None
     has_api_key: bool = False

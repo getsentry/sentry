@@ -10,7 +10,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from sentry.models import NotificationSetting
 
 
-class RpcNotificationSetting(SiloDataInterface):
+class RpcNotificationSetting(RpcModel):
     scope_type: NotificationScopeType = NotificationScopeType.USER
     scope_identifier: int = -1
     target_id: int = -1

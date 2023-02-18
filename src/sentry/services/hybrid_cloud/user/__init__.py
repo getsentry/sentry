@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, FrozenSet, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from sentry.models import Group
 
 
-class RpcAvatar(SiloDataInterface):
+class RpcAvatar(RpcModel):
     id: int = 0
     file_id: int = 0
     ident: str = ""
@@ -28,7 +28,7 @@ class RpcAvatar(SiloDataInterface):
 APIAvatar = RpcAvatar
 
 
-class RpcUserEmail(SiloDataInterface):
+class RpcUserEmail(RpcModel):
     id: int = 0
     email: str = ""
     is_verified: bool = False
@@ -37,7 +37,7 @@ class RpcUserEmail(SiloDataInterface):
 APIUserEmail = RpcUserEmail
 
 
-class RpcUser(SiloDataInterface):
+class RpcUser(RpcModel):
     id: int = -1
     pk: int = -1
     name: str = ""

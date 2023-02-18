@@ -8,7 +8,7 @@ from pydantic.fields import Field
 from sentry.constants import SentryAppInstallationStatus
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
-    SiloDataInterface,
+    RpcModel,
     silo_mode_delegation,
     stubbed,
 )
@@ -72,7 +72,7 @@ app_service: AppService = silo_mode_delegation(
 )
 
 
-class RpcSentryApp(SiloDataInterface):
+class RpcSentryApp(RpcModel):
     id: int = -1
     scope_list: List[str] = Field(default_factory=list)
     application_id: int = -1
@@ -87,7 +87,7 @@ class RpcSentryApp(SiloDataInterface):
 ApiSentryApp = RpcSentryApp
 
 
-class RpcSentryAppInstallation(SiloDataInterface):
+class RpcSentryAppInstallation(RpcModel):
     id: int = -1
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
