@@ -19,6 +19,7 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.log import log_service
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def create_audit_entry(
@@ -36,7 +37,7 @@ def create_audit_entry(
 
 
 def create_audit_entry_from_user(
-    user: User | None,
+    user: User | RpcUser | None,
     api_key: ApiKey | None = None,
     ip_address: str | None = None,
     transaction_id: int | str | None = None,

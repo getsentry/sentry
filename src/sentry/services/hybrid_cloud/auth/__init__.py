@@ -148,6 +148,10 @@ class AuthService(InterfaceWithLifecycle):
     ) -> Tuple[RpcUser, RpcOrganizationMember]:
         pass
 
+    @abc.abstractmethod
+    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
+        pass
+
 
 def impl_with_db() -> AuthService:
     from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService

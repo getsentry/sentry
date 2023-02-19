@@ -1,6 +1,7 @@
 from collections import defaultdict
+from typing import List
 
-from django.db.models import Max
+from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
@@ -10,9 +11,9 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleFireHistory,
-    SentryAppInstallation,
     actor_type_to_class,
     actor_type_to_string,
+    fetch_actors_by_actor_ids,
 )
 
 
@@ -41,6 +42,10 @@ class RuleSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
+        from sentry.services.hybrid_cloud.app import app_service
+
+        prefetch_related_objects(item_list, "project")
+
         environments = Environment.objects.in_bulk(
             [_f for _f in [i.environment_id for i in item_list] if _f]
         )
@@ -64,25 +69,20 @@ class RuleSerializer(Serializer):
         resolved_actors = {}
         owners_by_type = defaultdict(list)
 
-        sentry_app_uuids = {
+        sentry_app_uuids = [
             action.get("sentryAppInstallationUuid")
             for rule in rules.values()
             for action in rule.data.get("actions", [])
-        }
+        ]
 
-        sentry_app_ids = (
-            SentryAppInstallation.objects.filter(uuid__in=sentry_app_uuids)
-            .distinct("sentry_app_id")
-            .values_list("sentry_app_id", flat=True)
-        )
-
-        sentry_app_installations_by_uuid = (
-            SentryAppInstallation.objects.get_related_sentry_app_components(
-                organization_ids={rule.project.organization_id for rule in rules.values()},
-                sentry_app_ids=sentry_app_ids,
-                type="alert-rule-action",
-                group_by="uuid",
-            )
+        sentry_app_ids: List[int] = [
+            i.sentry_app.id for i in app_service.get_many(filter=dict(uuids=sentry_app_uuids))
+        ]
+        sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
+            organization_ids=[rule.project.organization_id for rule in rules.values()],
+            sentry_app_ids=sentry_app_ids,
+            type="alert-rule-action",
+            group_by="uuid",
         )
 
         for item in item_list:
@@ -92,8 +92,9 @@ class RuleSerializer(Serializer):
         for k, v in ACTOR_TYPES.items():
             resolved_actors[k] = {
                 a.actor_id: a.id
-                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
+                for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
             }
+
         for rule in rules.values():
             if rule.owner_id:
                 type = actor_type_to_string(rule.owner.type)

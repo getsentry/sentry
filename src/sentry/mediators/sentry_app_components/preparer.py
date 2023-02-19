@@ -10,7 +10,7 @@ from sentry.utils import json
 class Preparer(Mediator):
     component = Param("sentry.models.SentryAppComponent")
     install = Param("sentry.models.SentryAppInstallation")
-    project = Param("sentry.models.Project", required=False, default=None)
+    project_slug = Param(str, required=False, default=None)
     values = Param(dict, required=False, default=[])
 
     def call(self):
@@ -30,8 +30,8 @@ class Preparer(Mediator):
 
         query = {"installationId": self.install.uuid}
 
-        if self.project:
-            query["projectSlug"] = self.project.slug
+        if self.project_slug:
+            query["projectSlug"] = self.project_slug
 
         urlparts[4] = urlencode(query)
         schema.update({"url": urlunparse(urlparts)})
@@ -88,5 +88,8 @@ class Preparer(Mediator):
 
     def _request(self, uri, dependent_data=None):
         return SelectRequester.run(
-            install=self.install, project=self.project, uri=uri, dependent_data=dependent_data
+            install=self.install,
+            project_slug=self.project_slug,
+            uri=uri,
+            dependent_data=dependent_data,
         )

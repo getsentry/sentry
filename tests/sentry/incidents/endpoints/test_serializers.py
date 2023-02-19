@@ -25,14 +25,17 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerSerializer,
 )
 from sentry.models import ACTOR_TYPES, Environment, Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test(stable=True)
 class TestAlertRuleSerializer(TestCase):
     @cached_property
     def valid_params(self):
@@ -89,6 +92,7 @@ class TestAlertRuleSerializer(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == errors
 
+    @exempt_from_silo_limits()
     def setup_slack_integration(self):
         self.integration = Integration.objects.create(
             external_id="1",
@@ -435,12 +439,13 @@ class TestAlertRuleSerializer(TestCase):
         # and that the rule is not created.
         base_params = self.valid_params.copy()
         base_params["name"] = "Aun1qu3n4m3"
-        integration = Integration.objects.create(
-            external_id="1",
-            provider="slack",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        integration.add_organization(self.organization, self.user)
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(
+                external_id="1",
+                provider="slack",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            integration.add_organization(self.organization, self.user)
         base_params["triggers"][0]["actions"].append(
             {
                 "type": AlertRuleTriggerAction.get_registered_type(
@@ -562,7 +567,9 @@ class TestAlertRuleSerializer(TestCase):
         with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
         assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
-        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
+        mock_get_channel_id.assert_called_with(
+            integration_service._serialize_integration(self.integration), "my-channel", 10
+        )
 
     def test_event_types(self):
         invalid_values = [
