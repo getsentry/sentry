@@ -13,8 +13,8 @@ from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models import AlertRule, Incident, User
-from sentry.models import ApiKey, Organization
+from sentry.incidents.models import AlertRule, Incident
+from sentry.models import ApiKey, Organization, User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery
