@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {

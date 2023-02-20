@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import NotAvailable from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Image} from 'sentry/types/debugImage';
 
 import Processings from '../debugImage/processings';

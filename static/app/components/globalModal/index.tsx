@@ -10,7 +10,7 @@ import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
 

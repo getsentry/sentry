@@ -15,7 +15,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import Tag from 'sentry/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 

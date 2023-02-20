@@ -911,6 +911,7 @@ LOGGING = {
             "propagate": False,
         },
         "celery.worker.job": {"handlers": ["console"], "propagate": False},
+        "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",
@@ -974,6 +975,8 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
+    # Enables V2 for codecov integration for stacktrace highlighting.
+    "organizations:codecov-stacktrace-integration-v2": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
@@ -1177,6 +1180,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-compressed-assets-detector": False,
     # Enable render blocking assets performance issue type
     "organizations:performance-issues-render-blocking-assets-detector": False,
+    # Enable MN+1 DB performance issue type
+    "organizations:performance-issues-m-n-plus-one-db-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1228,10 +1233,17 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable new DS bias: prioritise by project
     "organizations:ds-prioritise-by-project-bias": False,
+    # Enable new DS bias: prioritise by transaction
+    "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable View Hierarchies deobfuscation for proguard obfuscated files
+    "organizations:view-hierarchy-deobfuscation": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
+    # Enable a new behavior for deleting the freshly created project,
+    # if the user clicks on the back button in the onboarding for new orgs
+    "organizations:onboarding-project-deletion-on-back-click": False,
     # Disables multiselect platform in the onboarding flow
     "organizations:onboarding-remove-multiselect-platform": False,
     # Enable ANR rates in project details page
@@ -1455,7 +1467,7 @@ SENTRY_BUFFER_OPTIONS = {}
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
 SENTRY_CACHE = None
-SENTRY_CACHE_OPTIONS = {}
+SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
@@ -1572,6 +1584,7 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"

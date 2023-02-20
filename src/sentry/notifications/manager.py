@@ -29,7 +29,7 @@ from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
@@ -249,7 +249,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         type_: NotificationSettingTypes,
         parent: Organization | Project,
-        recipients: Iterable[Team | User | APIUser],
+        recipients: Iterable[Team | User | RpcUser],
     ) -> QuerySet:
         from sentry.models import Team
 
@@ -294,9 +294,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],
-        recipients: Iterable[Team | APIUser],
+        recipients: Iterable[Team | RpcUser],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-    ) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
+    ) -> Mapping[ExternalProviders, Iterable[Team | RpcUser]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and

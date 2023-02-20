@@ -13,13 +13,14 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.helpers import (
     transform_to_notification_settings_by_recipient,
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -30,7 +31,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     def subscribe(
         self,
         group: "Group",
-        user: "APIUser",
+        user: "RpcUser",
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
@@ -53,12 +54,12 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     def subscribe_actor(
         self,
         group: "Group",
-        actor: Union["Team", "User", "APIUser"],
+        actor: Union["Team", "User", "RpcUser"],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry.models import Team, User
 
-        if isinstance(actor, APIUser) or isinstance(actor, User):
+        if isinstance(actor, RpcUser) or isinstance(actor, User):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
@@ -113,7 +114,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
 
     def get_participants(
         self, group: "Group"
-    ) -> Mapping[ExternalProviders, Mapping["APIUser", int]]:
+    ) -> Mapping[ExternalProviders, Mapping["RpcUser", int]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
@@ -136,7 +137,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             notification_settings, all_possible_users
         )
 
-        result: MutableMapping[ExternalProviders, MutableMapping["APIUser", int]] = defaultdict(
+        result: MutableMapping[ExternalProviders, MutableMapping["RpcUser", int]] = defaultdict(
             dict
         )
         for user in all_possible_users:
@@ -176,8 +177,7 @@ class GroupSubscription(Model):  # type: ignore
 
     project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")
     group = FlexibleForeignKey("sentry.Group", related_name="subscription_set")
-    # namespace related_name on User since we don't own the model
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     is_active = models.BooleanField(default=True)
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -187,6 +187,6 @@ class GroupSubscription(Model):  # type: ignore
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsubscription"
-        unique_together = (("group", "user"),)
+        unique_together = (("group", "user_id"),)
 
     __repr__ = sane_repr("project_id", "group_id", "user_id")

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import operator
 import re
 from collections import namedtuple
-from functools import reduce
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Pattern, Sequence, Tuple, Union
 
-from django.db.models import Q
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
@@ -14,6 +11,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -86,8 +84,8 @@ class Rule(namedtuple("Rule", "matcher owners")):
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any], experiment: bool = False) -> Union[bool, Any]:
-        return self.matcher.test(data, experiment)
+    def test(self, data: Mapping[str, Any]) -> Union[bool, Any]:
+        return self.matcher.test(data)
 
 
 class Matcher(namedtuple("Matcher", "type pattern")):
@@ -129,7 +127,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def test(self, data: PathSearchable, experiment: bool = False) -> bool:
+    def test(self, data: PathSearchable) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -139,19 +137,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
-            new_func = lambda val, pattern: bool(codeowners_match(val, pattern))
-            baseline_func = (
-                lambda val, pattern: bool(_path_to_regex(pattern).search(val))
-                if val is not None
-                else False
-            )
             return self.test_frames(
                 *self.munge_if_needed(data),
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-                match_frame_value_func=new_func if experiment else baseline_func,
+                match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
             )
         return False
 
@@ -544,20 +536,23 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
     actors = {}
     if users:
+        rpc_users = user_service.get_many(
+            filter=dict(
+                emails=[o.identifier for o in users], is_active=True, project_ids=[project_id]
+            )
+        )
+        user_id_email_tuples = set()
+        for user in rpc_users:
+            user_id_email_tuples.add((user.id, user.email))
+            for useremail in user.useremails:
+                user_id_email_tuples.add((user.id, useremail.email))
+
         actors.update(
             {
                 ("user", email.lower()): ActorTuple(u_id, User)
                 # This will need to be broken in hybrid cloud world, querying users from region silo won't be possible
                 # without an explicit service call.
-                for u_id, email in User.objects.filter(
-                    reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
-                    # We don't require verified emails
-                    # emails__is_verified=True,
-                    is_active=True,
-                    sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
-                )
-                .distinct()
-                .values_list("id", "emails__email")
+                for u_id, email in user_id_email_tuples
             }
         )
 

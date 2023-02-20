@@ -4,7 +4,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 

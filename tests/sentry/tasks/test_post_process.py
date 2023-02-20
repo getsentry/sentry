@@ -28,10 +28,12 @@ from sentry.models import (
     GroupOwnerType,
     GroupSnooze,
     GroupStatus,
+    Integration,
     ProjectOwnership,
     ProjectTeam,
 )
 from sentry.models.activity import ActivityIntegration
+from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, ISSUE_OWNERS_DEBOUNCE_KEY
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user import user_service
@@ -795,6 +797,34 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee is None
 
+    def test_suspect_committer_affect_cache_debouncing_issue_owners_calculations(self):
+        self.make_ownership()
+        committer = GroupOwner(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+        committer.save()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        event.group.assignee_set.create(team=self.team, project=self.project)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user_id is None
+        assert assignee.team == self.team
+
     def test_owner_assignment_when_owners_have_been_unassigned(self):
         """
         Test that ensures that if certain assignees get unassigned, and project rules are changed
@@ -926,6 +956,35 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
+    @patch("sentry.tasks.post_process.logger")
+    def test_debounces_handle_owner_assignments(self, logger):
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), True, ISSUE_OWNERS_DEBOUNCE_DURATION)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        logger.info.assert_any_call(
+            "handle_owner_assignment.issue_owners_exist",
+            extra={
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+                "reason": "issue_owners_exist",
+            },
+        )
+
 
 class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
     github_blame_return_value = {
@@ -1003,6 +1062,25 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
         assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+    @with_feature("organizations:commit-context")
+    @with_feature("organizations:commit-context-fallback")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value=github_blame_return_value,
+    )
+    def test_logic_fallback_no_scm(self, mock_get_commit_context):
+        Integration.objects.all().delete()
+        integration = Integration.objects.create(provider="bitbucket")
+        integration.add_organization(self.organization)
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
