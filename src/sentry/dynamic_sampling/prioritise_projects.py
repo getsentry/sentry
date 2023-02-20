@@ -27,7 +27,7 @@ MAX_SECONDS = 60
 CHUNK_SIZE = 1000
 
 
-def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[Mapping[int, int]]]:
+def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[Sequence[int]]]:
     """
     This function fetch with pagination orgs and projects with count per root project
     """
@@ -77,7 +77,7 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[Mapping[int, in
             data = data[:-1]
 
         for row in data:
-            aggregated_projects[row["org_id"]].append({row["project_id"]: row["root_count_value"]})
+            aggregated_projects[row["org_id"]].append((row["project_id"], row["root_count_value"]))
 
         if not more_results:
             break

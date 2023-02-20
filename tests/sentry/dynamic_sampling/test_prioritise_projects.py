@@ -29,4 +29,4 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         )
 
         results = fetch_projects_with_total_volumes()
-        assert results[org1.id] == [{p1.id: 1.0}]
+        assert results[org1.id] == [(p1.id, 1.0)]

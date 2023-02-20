@@ -4,7 +4,7 @@ from typing import List
 
 
 @dataclass
-class Project:
+class DSProject:
     id: int
     count_per_root: float
     blended_sample_rate: float
@@ -18,11 +18,15 @@ class AdjustedModel:
     Model which can adjust sample rate per project inside ORG based on this new counter metric from Relay.
     """
 
-    projects: List[Project]
+    projects: List[DSProject]
+    # Right now we are not using this constant
     fidelity_rate: float = 0.4  # TODO: discuss this constant
 
-    def adjust_sample_rates(self) -> List[Project]:
+    def adjust_sample_rates(self) -> List[DSProject]:
         if len(self.projects) < 2:
+            # When we have one project we just remind sample rates
+            if len(self.projects) == 1:
+                self.projects[0].new_sample_rate = self.projects[0].blended_sample_rate
             return self.projects
 
         # Step 1: sort projects by count per root project
@@ -48,13 +52,19 @@ class AdjustedModel:
             # Find an absolute difference
 
             # Max possible counter if sample rate would be 1.0
-            max_possible_count = left.count_per_root / self.fidelity_rate
+            max_possible_count = left.count_per_root / left.blended_sample_rate
             diff = coefficient * min(
                 (average - left.count_per_root),
                 (max_possible_count - left.count_per_root),
             )
             left.new_count_per_root = left.count_per_root + diff
+            left.new_sample_rate = left.blended_sample_rate * (
+                left.new_count_per_root / left.count_per_root
+            )
             right.new_count_per_root = right.count_per_root - diff
+            right.new_sample_rate = right.blended_sample_rate * (
+                right.new_count_per_root / right.count_per_root
+            )
             new_left.append(left)
             new_right.append(right)
             # This opinionated `coefficient` reduces adjustment on every step
