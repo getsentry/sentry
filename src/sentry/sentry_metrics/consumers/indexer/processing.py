@@ -45,12 +45,14 @@ class MessageProcessor:
         # yes I can, watch me.
         self.__init__(config)  # type: ignore
 
-    @sdk.with_transaction(
-        "sentry.sentry_metrics.consumers.indexer.processing.process_messages",
-        sampled_cb=lambda: random.random()
-        < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,
-    )
-    def process_messages(
+    def process_messages(self, outer_message: Message[MessageBatch]):
+        with sentry_sdk.start_transaction(
+            "sentry.sentry_metrics.consumers.indexer.processing.process_messages",
+            sampled=random.random() < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,
+        ):
+            return self._process_messages_impl(outer_message)
+
+    def _process_messages_impl(
         self,
         outer_message: Message[MessageBatch],
     ) -> IndexerOutputMessageBatch:
