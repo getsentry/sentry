@@ -237,17 +237,6 @@ class ProjectKey(Model):
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
 
-    @property
-    def js_sdk_dynamic_loader_cdn_url(self) -> str:
-        if settings.JS_SDK_LOADER_CDN_URL:
-            return f"{settings.JS_SDK_LOADER_CDN_URL}dynamic/{self.public_key}.min.js"
-        else:
-            endpoint = self.get_endpoint()
-            return "{}{}".format(
-                endpoint,
-                reverse("sentry-js-sdk-dynamic-loader", args=[self.public_key, ".min"]),
-            )
-
     def get_endpoint(self, public=True):
         if public:
             endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
