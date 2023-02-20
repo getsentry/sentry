@@ -143,6 +143,8 @@ class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
             "path": f"/organizations/{project.organization.id}/projects/{project.id}/flamegraph",
             "params": self.get_profiling_params(request, project),
         }
+        if "Accept-Encoding" in request.headers:
+            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
         return proxy_profiling_service(**kwargs)
 
 
