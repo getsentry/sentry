@@ -63,12 +63,6 @@ class OrganizationOptionManager(OptionManager["Organization"]):
 
     def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Value]:
         if update_reason != "organizationoption.get_all_values":
-            # this hook may be called from model hooks during an
-            # open transaction. In that case, wait until the current transaction has
-            # been committed or rolled back to ensure we don't read stale data in the
-            # task.
-            #
-            # If there is no transaction open, on_commit should run immediately.
             schedule_invalidate_project_config(
                 organization_id=organization_id, trigger=update_reason
             )

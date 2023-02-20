@@ -34,23 +34,11 @@ class ProjectKeyStatus:
 
 class ProjectKeyManager(BaseManager):
     def post_save(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
