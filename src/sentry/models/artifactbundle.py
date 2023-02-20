@@ -24,7 +24,7 @@ class ArtifactBundle(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_artifactbundlefile"
+        db_table = "sentry_artifactbundle"
 
         unique_together = (
             ("organization_id", "bundle_id"),
