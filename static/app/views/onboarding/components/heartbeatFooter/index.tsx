@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,7 +10,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IdBadge from 'sentry/components/idBadge';
 import Placeholder from 'sentry/components/placeholder';
-import {usingCustomerDomain} from 'sentry/constants';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
@@ -39,6 +38,7 @@ async function openChangeRouteModal(
   const mod = await import(
     'sentry/views/onboarding/components/heartbeatFooter/changeRouteModal'
   );
+
   const {ChangeRouteModal} = mod;
 
   openModal(deps => (
@@ -51,7 +51,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> 
   newOrg?: boolean;
 };
 
-export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: Props) {
+export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
 
@@ -74,67 +74,6 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
     sessionReceived,
     serverConnected,
   } = useHeartbeat(project?.slug, project?.id);
-
-  useEffect(() => {
-    const onUnload = (nextLocation?: Location) => {
-      const {orgId, platform, projectId} = router.params;
-
-      let isSetupDocsForNewOrg =
-        location.pathname === `/onboarding/setup-docs/` &&
-        nextLocation?.pathname !== `/onboarding/setup-docs/`;
-
-      let isGettingStartedForExistingOrg =
-        location.pathname === `/projects/${projectId}/getting-started/${platform}/` ||
-        location.pathname === `/getting-started/${projectId}/${platform}/`;
-
-      let isSetupDocsForNewOrgBackButton = `/onboarding/select-platform/`;
-      let isWelcomeForNewOrgBackButton = `/onboarding/welcome/`;
-
-      if (!usingCustomerDomain) {
-        isSetupDocsForNewOrg =
-          location.pathname === `/onboarding/${organization.slug}/setup-docs/` &&
-          nextLocation?.pathname !== `/onboarding/${organization.slug}/setup-docs/`;
-
-        isGettingStartedForExistingOrg =
-          location.pathname === `/${orgId}/${projectId}/getting-started/${platform}/` ||
-          location.pathname === `/organizations/${orgId}/${projectId}/getting-started/`;
-
-        isSetupDocsForNewOrgBackButton = `/onboarding/${organization.slug}/select-platform/`;
-        isWelcomeForNewOrgBackButton = `/onboarding/${organization.slug}/welcome/`;
-      }
-
-      if (isSetupDocsForNewOrg || isGettingStartedForExistingOrg) {
-        // TODO(Priscila): I have to adjust this to check for all selected projects in the onboarding of new orgs
-        if (serverConnected && firstErrorReceived) {
-          return true;
-        }
-
-        // Next Location is always available when user clicks on a item with a new route
-        if (nextLocation) {
-          // Back button in the onboarding of new orgs
-          if (
-            nextLocation.pathname === isSetupDocsForNewOrgBackButton ||
-            nextLocation.pathname === isWelcomeForNewOrgBackButton
-          ) {
-            return true;
-          }
-
-          if (nextLocation.query.setUpRemainingOnboardingTasksLater) {
-            return true;
-          }
-
-          openChangeRouteModal(router, nextLocation);
-          return false;
-        }
-
-        return true;
-      }
-
-      return true;
-    };
-
-    router.setRouteLeaveHook(route, onUnload);
-  }, [serverConnected, firstErrorReceived, route, router, organization.slug, location]);
 
   useEffect(() => {
     if (loading || !serverConnected) {
@@ -165,6 +104,7 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
       new_organization: !!newOrg,
     });
   }, [firstTransactionReceived, loading, newOrg, organization]);
+
   useEffect(() => {
     if (loading || !firstErrorReceived) {
       return;
@@ -177,6 +117,85 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
 
     addSuccessMessage(t('First error received'));
   }, [firstErrorReceived, loading, newOrg, organization]);
+
+  useEffect(() => {
+    const onUnload = (nextLocation?: Location) => {
+      if (location.pathname.startsWith('onboarding')) {
+        return true;
+      }
+
+      if (!serverConnected) {
+        return true;
+      }
+
+      // Next Location is always available when user clicks on a item with a new route
+      if (!nextLocation) {
+        return true;
+      }
+
+      if (nextLocation.query.setUpRemainingOnboardingTasksLater) {
+        return true;
+      }
+
+      // If users are in the onboarding of existing orgs &&
+      // have started the SDK instrumentation &&
+      // clicks elsewhere else to change the route,
+      // then we display the 'are you sure?' dialog.
+      openChangeRouteModal(router, nextLocation);
+
+      return false;
+    };
+
+    router.setRouteLeaveHook(route, onUnload);
+  }, [router, route, organization, firstErrorReceived, serverConnected]);
+
+  // The explore button is only showed if Sentry has not yet received any errors.
+  const handleExploreSentry = useCallback(() => {
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_explore_sentry_button_clicked', {
+      organization,
+    });
+
+    openChangeRouteModal(router, {
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/issues/`,
+    });
+  }, [router, organization]);
+
+  // This button will go away in the next iteration, but
+  // basically now it will display the 'are you sure?' dialog only
+  // if Sentry has not yet received any errors.
+  const handleGoToPerformance = useCallback(() => {
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_go_to_performance_button_clicked', {
+      organization,
+    });
+
+    const nextLocation: Location = {
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/performance/`,
+      query: {project: project?.id},
+    };
+
+    if (!firstErrorReceived) {
+      openChangeRouteModal(router, nextLocation);
+      return;
+    }
+
+    router.push(nextLocation);
+  }, [router, organization, project, firstErrorReceived]);
+
+  // It's the same idea as the explore button and this will go away in the next iteration.
+  const handleGoToIssues = useCallback(() => {
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_go_to_issues_button_clicked', {
+      organization,
+    });
+
+    openChangeRouteModal(router, {
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/issues/`,
+      query: {project: project?.id},
+      hash: '#welcome',
+    });
+  }, [router, organization, project]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
@@ -267,13 +286,7 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
                 <Button
                   priority="primary"
                   busy={projectsLoading}
-                  to={`/organizations/${organization.slug}/issues/`} // TODO(Priscila): See what Jesse meant with 'explore sentry'. What should be the expected action?
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'heartbeat.onboarding_explore_sentry_button_clicked',
-                      {organization}
-                    );
-                  }}
+                  onClick={handleExploreSentry}
                 >
                   {t('Explore Sentry')}
                 </Button>
@@ -281,19 +294,7 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
             </Fragment>
           ) : (
             <Fragment>
-              <Button
-                busy={projectsLoading}
-                to={{
-                  pathname: `/organizations/${organization.slug}/performance/`,
-                  query: {project: project?.id},
-                }}
-                onClick={() => {
-                  trackAdvancedAnalyticsEvent(
-                    'heartbeat.onboarding_go_to_performance_button_clicked',
-                    {organization}
-                  );
-                }}
-              >
+              <Button busy={projectsLoading} onClick={handleGoToPerformance}>
                 {t('Go to Performance')}
               </Button>
               {firstErrorReceived ? (
@@ -323,17 +324,7 @@ export function HeartbeatFooter({projectSlug, router, route, location, newOrg}: 
                 <Button
                   priority="primary"
                   busy={projectsLoading}
-                  to={{
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query: {project: project?.id},
-                    hash: '#welcome',
-                  }}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'heartbeat.onboarding_go_to_issues_button_clicked',
-                      {organization}
-                    );
-                  }}
+                  onClick={handleGoToIssues}
                 >
                   {t('Go to Issues')}
                 </Button>

@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+import base64
+import copy
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
+from fido2.ctap2 import AuthenticatorData
 
 from sentry.auth.authenticators import (
     AUTHENTICATOR_CHOICES,
@@ -112,6 +119,35 @@ class AuthenticatorManager(BaseManager):
         return {id: id in authenticators for id in user_ids}
 
 
+class AuthenticatorConfig(PickledObjectField):
+    def __init__(self, *args, **kwargs):
+        # we have special logic to handle pickle compat
+        kwargs.setdefault("disable_pickle_validation", True)
+        super().__init__(*args, **kwargs)
+
+    def _is_devices_config(self, value: Any) -> bool:
+        return isinstance(value, dict) and "devices" in value
+
+    def get_db_prep_value(self, value, *args, **kwargs):
+        if self.write_json and self._is_devices_config(value):
+            # avoid mutating the original object
+            value = copy.deepcopy(value)
+            for device in value["devices"]:
+                # AuthenticatorData is a non-json-serializable bytes subclass
+                if isinstance(device["binding"], AuthenticatorData):
+                    device["binding"] = base64.b64encode(device["binding"]).decode()
+
+        return super().get_db_prep_value(value, *args, **kwargs)
+
+    def to_python(self, value):
+        ret = super().to_python(value)
+        if self._is_devices_config(ret):
+            for device in ret["devices"]:
+                if isinstance(device["binding"], str):
+                    device["binding"] = AuthenticatorData(base64.b64decode(device["binding"]))
+        return ret
+
+
 @control_silo_only_model
 class Authenticator(BaseModel):
     __include_in_export__ = True
@@ -122,11 +158,7 @@ class Authenticator(BaseModel):
     last_used_at = models.DateTimeField(_("last used at"), null=True)
     type = BoundedPositiveIntegerField(choices=AUTHENTICATOR_CHOICES)
 
-    # This field stores bytes and as such cannot currently
-    # be serialized by our JSON serializer.  This would require
-    # further changes.  As such this validation is currently
-    # disabled to make tests pass.
-    config = PickledObjectField(disable_pickle_validation=True)
+    config = AuthenticatorConfig()
 
     objects = AuthenticatorManager()
 

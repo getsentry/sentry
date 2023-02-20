@@ -583,6 +583,10 @@ register("performance.issues.render_blocking_assets.problem-creation", default=0
 register("performance.issues.render_blocking_assets.la-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ea-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ga-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.problem-creation", default=0.0)
+register("performance.issues.m_n_plus_one_db.la-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ea-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ga-rollout", default=0.0)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.

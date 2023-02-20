@@ -12,11 +12,11 @@ import {space} from 'sentry/styles/space';
 
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
-import {Status} from './types';
+import {MonitorStatus} from './types';
 
 type Props = React.ComponentProps<typeof MonitorHeaderActions>;
 
-const statusToLabel: Record<Status, string> = {
+const statusToLabel: Record<MonitorStatus, string> = {
   ok: t('Ok'),
   error: t('Failed'),
   disabled: t('Disabled'),
@@ -62,10 +62,10 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
           <MonitorStatLabel>{t('Status')}</MonitorStatLabel>
           <div>{monitor.lastCheckIn && <TimeSince date={monitor.lastCheckIn} />}</div>
           <div>{monitor.nextCheckIn && <TimeSince date={monitor.nextCheckIn} />}</div>
-          <MonitorStatus>
+          <Status>
             <MonitorIcon status={monitor.status} size={16} />
             <MonitorStatusLabel>{statusToLabel[monitor.status]}</MonitorStatusLabel>
-          </MonitorStatus>
+          </Status>
         </MonitorStats>
       </Layout.HeaderActions>
     </Layout.Header>
@@ -95,7 +95,7 @@ const MonitorStatLabel = styled(SectionHeading)`
   text-align: center;
 `;
 
-const MonitorStatus = styled('div')`
+const Status = styled('div')`
   display: flex;
   align-items: center;
 `;

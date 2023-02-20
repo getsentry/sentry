@@ -47,7 +47,11 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
+function TargetedOnboardingWelcome({
+  organization,
+  jumpToSetupProject,
+  ...props
+}: StepProps) {
   const source = 'targeted_onboarding';
   const [clientState, setClientState] = usePersistedOnboardingState();
 
@@ -73,6 +77,14 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
 
     props.onComplete();
   };
+
+  // jump to setup project if the backend set this state for us
+  useEffect(() => {
+    if (clientState?.state === 'projects_selected') {
+      jumpToSetupProject();
+    }
+  }, [clientState, jumpToSetupProject]);
+
   return (
     <FallingError>
       {({fallingError, fallCount, isFalling}) => (
