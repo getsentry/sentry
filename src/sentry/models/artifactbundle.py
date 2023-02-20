@@ -38,7 +38,8 @@ class DebugIdArtifactBundle(Model):
 
     debug_id = models.UUIDField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    upload_date = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+    date_last_accessed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
