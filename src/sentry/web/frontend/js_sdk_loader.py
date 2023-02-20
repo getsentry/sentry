@@ -26,6 +26,7 @@ class LoaderContext(TypedDict):
     config: SdkConfig
     jsSdkUrl: Optional[str]
     publicKey: Optional[str]
+    isLazy: bool
 
 
 class JavaScriptSdkLoader(BaseView):
@@ -37,8 +38,12 @@ class JavaScriptSdkLoader(BaseView):
     def determine_active_organization(self, request: Request, organization_slug=None) -> None:
         pass
 
-    def _get_bundle_kind_modifier(self, key: ProjectKey, sdk_version: str) -> str:
+    def _get_bundle_kind_modifier(self, key: ProjectKey, sdk_version: str) -> Tuple[str, bool]:
         """Returns a string that is used to modify the bundle name"""
+
+        # If we load a performance/replay bundle, set this to be false, as we do not want to
+        # load the default bundle.
+        isLazy = True
         bundle_kind_modifier = ""
 
         # The order in which these modifiers are added is important, as the
@@ -47,11 +52,13 @@ class JavaScriptSdkLoader(BaseView):
 
         if get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE):
             bundle_kind_modifier += ".tracing"
+            isLazy = False
 
         has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
 
         if has_replay:
             bundle_kind_modifier += ".replay"
+            isLazy = False
 
         # From JavaScript SDK version 7 onwards, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
@@ -64,18 +71,24 @@ class JavaScriptSdkLoader(BaseView):
         if get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG):
             bundle_kind_modifier += ".debug"
 
-        return bundle_kind_modifier
+        return bundle_kind_modifier, isLazy
 
     def _get_context(
         self, key: Optional[ProjectKey]
     ) -> Tuple[LoaderContext, Optional[str], Optional[str]]:
         """Sets context information needed to render the loader"""
         if not key:
-            return ({}, None, None)
+            return (
+                {
+                    "isLazy": True,
+                },
+                None,
+                None,
+            )
 
         sdk_version = get_browser_sdk_version(key)
 
-        bundle_kind_modifier = self._get_bundle_kind_modifier(key, sdk_version)
+        bundle_kind_modifier, is_lazy = self._get_bundle_kind_modifier(key, sdk_version)
 
         js_sdk_loader_default_sdk_url_template_slot_count = (
             settings.JS_SDK_LOADER_DEFAULT_SDK_URL.count("%s")
@@ -99,6 +112,7 @@ class JavaScriptSdkLoader(BaseView):
                 "config": {"dsn": key.dsn_public},
                 "jsSdkUrl": sdk_url,
                 "publicKey": key.public_key,
+                "isLazy": is_lazy,
             },
             sdk_version,
             sdk_url,

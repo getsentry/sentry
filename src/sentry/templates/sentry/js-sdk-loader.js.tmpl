@@ -7,9 +7,10 @@
   _namespace,
   _publicKey,
   _sdkBundleUrl,
-  _config
+  _config,
+  _lazy
 ) {
-  var lazy = true;
+  var lazy = _lazy;
   var forceLoad = false;
 
   for (var i = 0; i < document.scripts.length; i++) {
@@ -213,4 +214,4 @@
       injectSdk(onLoadCallbacks);
     });
   }
-})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }});
+})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe }});
