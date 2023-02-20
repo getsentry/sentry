@@ -47,7 +47,7 @@ class MessageProcessor:
 
     def process_messages(self, outer_message: Message[MessageBatch]):
         with sentry_sdk.start_transaction(
-            "sentry.sentry_metrics.consumers.indexer.processing.process_messages",
+            name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
             sampled=random.random() < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,
         ):
             return self._process_messages_impl(outer_message)
