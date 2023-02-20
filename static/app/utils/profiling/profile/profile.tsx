@@ -123,15 +123,15 @@ export class Profile {
       let node: CallTreeNode | null = stackTop;
 
       while (node && !node.isRoot() && node !== top) {
-        toOpen.unshift(node);
+        toOpen.push(node);
         node = node.parent;
       }
 
-      for (const toOpenNode of toOpen) {
-        openFrame(toOpenNode, value);
+      for (let i = toOpen.length - 1; i >= 0; i--) {
+        openFrame(toOpen[i], value);
       }
 
-      prevStack = prevStack.concat(toOpen);
+      prevStack = prevStack.concat(toOpen.reverse());
       value += this.weights[sampleIndex++];
     }
 
