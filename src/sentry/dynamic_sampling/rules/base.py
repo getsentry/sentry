@@ -39,7 +39,6 @@ def _get_rules_of_enabled_biases(
         ):
             rules += bias.get_rules(BiasParams(project, base_sample_rate))
 
-    # We want to log only rules v2, to avoid confusion and duplication.
     log_rules(project.organization.id, project.id, rules)
 
     return rules

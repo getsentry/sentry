@@ -126,45 +126,63 @@ def handle_owner_assignment(job):
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import GroupOwnerType, ProjectOwnership
+            from sentry.models import (
+                ISSUE_OWNERS_DEBOUNCE_DURATION,
+                ISSUE_OWNERS_DEBOUNCE_KEY,
+                ProjectOwnership,
+            )
 
             event = job["event"]
             project, group = event.project, event.group
-
+            basic_logging_details = {
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+            }
+            # We want to debounce owner assignment when:
+            # - GroupOwner of type Ownership Rule || CodeOwner exist with TTL 1 day
+            # - we tried to calculate and could not find issue owners with TTL 1 day
+            # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.cache_set_owner"
-                ):
-                    issue_owner_key = f"owner_exists:1:{group.id}"
-                    issue_owners_exists = cache.get(issue_owner_key)
-                    if issue_owners_exists is None:
-                        # We don't care if a Suspect Commit groupowner exists
-                        issue_owners_exists = group.groupowner_set.filter(
-                            type__in=[
-                                GroupOwnerType.OWNERSHIP_RULE.value,
-                                GroupOwnerType.CODEOWNERS.value,
-                            ],
-                        ).exists()
-                        # Cache for an hour if it's assigned. We don't need to move that fast.
-                        cache.set(
-                            issue_owner_key,
-                            issue_owners_exists,
-                            3600 if issue_owners_exists else 60,
-                        )
-
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
                     # Is the issue already assigned to a team or user?
-                    assignee_key = "assignee_exists:1:%s" % group.id
+                    assignee_key = f"assignee_exists:1:{group.id}"
                     assignees_exists = cache.get(assignee_key)
                     if assignees_exists is None:
                         assignees_exists = group.assignee_set.exists()
-                        # Cache for an hour if it's assigned. We don't need to move that fast.
-                        cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+                        # Cache for 1 day if it's assigned. We don't need to move that fast.
+                        cache.set(
+                            assignee_key, assignees_exists, 60 * 60 * 24 if assignees_exists else 60
+                        )
 
-                if issue_owners_exists and assignees_exists:
-                    return
+                    if assignees_exists:
+                        logger.info(
+                            "handle_owner_assignment.assignee_exists",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "assignee_exists",
+                            },
+                        )
+                        return
+
+                with sentry_sdk.start_span(
+                    op="post_process.handle_owner_assignment.debounce_issue_owners"
+                ):
+                    issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
+                    debounce_issue_owners = cache.get(issue_owners_key)
+
+                    if debounce_issue_owners:
+                        logger.info(
+                            "handle_owner_assignment.issue_owners_exist",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "issue_owners_exist",
+                            },
+                        )
+                        return
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.get_issue_owners"
@@ -181,10 +199,17 @@ def handle_owner_assignment(job):
 
                         issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
+                        # Cache for 1 day after we calculated. We don't need to move that fast.
+                        cache.set(
+                            issue_owners_key,
+                            True,
+                            ISSUE_OWNERS_DEBOUNCE_DURATION,
+                        )
+
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.handle_group_owners"
                 ):
-                    if issue_owners and not issue_owners_exists:
+                    if issue_owners:
                         try:
                             handle_group_owners(project, group, issue_owners)
                         except Exception:
@@ -202,7 +227,7 @@ def handle_group_owners(project, group, issue_owners):
     from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
@@ -214,7 +239,7 @@ def handle_group_owners(project, group, issue_owners):
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
             new_owners = {}
-            owners: Union[List[APIUser], List[Team]]
+            owners: Union[List[RpcUser], List[Team]]
             for rule, owners, source in issue_owners:
                 for owner in owners:
                     # Can potentially have multiple rules pointing to the same owner
@@ -260,7 +285,7 @@ def handle_group_owners(project, group, issue_owners):
                     )
                     user_id = None
                     team_id = None
-                    if owner_type is APIUser:
+                    if owner_type is RpcUser:
                         user_id = owner_id
                     if owner_type is Team:
                         team_id = owner_id

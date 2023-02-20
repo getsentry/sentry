@@ -22,8 +22,8 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 def test_generate_bias_rules_v2(data_provider, default_project):
     now = timezone.now()
 
-    base_sample_rate = 0.1
-    sample_rate = 0.5
+    factor = 1.5
+    decayed_factor = 1.0
     platform = "python"
 
     default_project.update(platform=platform)
@@ -49,8 +49,8 @@ def test_generate_bias_rules_v2(data_provider, default_project):
 
     data_provider.get_bias_data.return_value = {
         "id": 1000,
-        "baseSampleRate": base_sample_rate,
-        "sampleRate": sample_rate,
+        "factor": factor,
+        "decayedFactor": decayed_factor,
         "boostedReleases": boosted_releases,
     }
 
@@ -66,12 +66,12 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "op": "and",
             },
             "id": 1000,
-            "samplingValue": {"type": "sampleRate", "value": sample_rate},
+            "samplingValue": {"type": "factor", "value": factor},
             "timeRange": {
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"type": "linear", "decayedValue": base_sample_rate},
+            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
         },
         {
@@ -84,12 +84,12 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 "op": "and",
             },
             "id": 1001,
-            "samplingValue": {"type": "sampleRate", "value": sample_rate},
+            "samplingValue": {"type": "factor", "value": factor},
             "timeRange": {
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"type": "linear", "decayedValue": base_sample_rate},
+            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
         },
     ]
