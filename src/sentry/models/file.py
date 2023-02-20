@@ -349,6 +349,10 @@ class File(Model):
             delete=delete,
         )
 
+    def get_normalized_headers(self):
+        """Normalizes the headers to be lowecase due to HTTP/2."""
+        return {k.lower(): v for k, v in self.headers.items()}
+
     def getfile(self, mode=None, prefetch=False):
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched

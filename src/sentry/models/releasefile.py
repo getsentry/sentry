@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, Optional, Tuple
+from typing import IO, Dict, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -207,6 +207,11 @@ class ReleaseArchive:
         manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
+    @staticmethod
+    def _normalize_headers(headers: Dict[str, str]) -> Dict[str, str]:
+        """Normalizes the headers to be lowecase due to HTTP/2."""
+        return {k.lower(): v for k, v in headers.items()}
+
     def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
         """Return file-like object and headers.
 
@@ -215,7 +220,9 @@ class ReleaseArchive:
         May raise ``KeyError``
         """
         filename, entry = self._entries_by_url[url]
-        return self._zip_file.open(filename), entry.get("headers", {})
+        headers = entry.get("headers", {})
+
+        return self._zipfile.open(filename), self._normalize_headers(headers)
 
     def extract(self) -> TemporaryDirectory:
         """Extract contents to a temporary directory.

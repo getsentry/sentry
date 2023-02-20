@@ -236,7 +236,6 @@ def fetch_and_cache_artifact(filename, fetch_fn, cache_key, cache_key_meta, head
         logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
         result = None
     else:
-        headers = {k.lower(): v for k, v in headers.items()}
         encoding = get_encoding_from_headers(headers)
         result = http.UrlResult(filename, headers, body, 200, encoding)
 
@@ -351,7 +350,7 @@ def fetch_release_file(filename, release, dist=None):
                     lambda: ReleaseFile.cache.getfile(releasefile),
                     cache_key,
                     cache_key_meta,
-                    releasefile.file.headers,
+                    releasefile.file.get_normalized_headers(),
                     compress_file,
                 )
 
