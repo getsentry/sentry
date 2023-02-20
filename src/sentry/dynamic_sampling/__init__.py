@@ -11,9 +11,9 @@ from .rules.helpers.latest_releases import (
     LatestReleaseBias,
     LatestReleaseParams,
     ProjectBoostedReleases,
-    get_redis_client_for_ds,
 )
 from .rules.helpers.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
+from .rules.helpers.utils import get_redis_client_for_ds
 from .rules.logging import should_log_rules_change
 from .rules.utils import (
     BOOSTED_KEY_TRANSACTION_LIMIT,

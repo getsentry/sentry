@@ -16,7 +16,7 @@ class UniformDataProvider(BiasDataProvider):
         return {
             "id": RESERVED_IDS[RuleType.UNIFORM_RULE],
             "sampleRate": get_cached_sample_rate(
-                bias_params.project, default_samplerate=bias_params.base_sample_rate
+                bias_params.project, default_sample_rate=bias_params.base_sample_rate
             ),
         }
 
