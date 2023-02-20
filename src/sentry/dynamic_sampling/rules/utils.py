@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
-from sentry.utils import json
+from django.conf import settings
+
+from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10
 BOOSTED_KEY_TRANSACTION_LIMIT = 10
@@ -180,3 +182,8 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
         )
 
     return float(x / x**base_sample_rate)
+
+
+def get_redis_client_for_ds() -> Any:
+    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)

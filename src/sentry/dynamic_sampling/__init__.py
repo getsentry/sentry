@@ -13,7 +13,6 @@ from .rules.helpers.latest_releases import (
     ProjectBoostedReleases,
 )
 from .rules.helpers.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
-from .rules.helpers.utils import get_redis_client_for_ds
 from .rules.logging import should_log_rules_change
 from .rules.utils import (
     BOOSTED_KEY_TRANSACTION_LIMIT,
@@ -21,6 +20,7 @@ from .rules.utils import (
     RESERVED_IDS,
     RuleType,
     get_enabled_user_biases,
+    get_redis_client_for_ds,
     get_rule_hash,
     get_supported_biases_ids,
     get_user_biases,

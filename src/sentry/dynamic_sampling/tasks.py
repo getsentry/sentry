@@ -6,7 +6,7 @@ from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.adjustment_models import DSProject as DSProject
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
-from sentry.dynamic_sampling.rules.helpers.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.models import Organization, Project
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config

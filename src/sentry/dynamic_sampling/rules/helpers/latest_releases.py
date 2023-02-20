@@ -7,8 +7,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 from pytz import UTC
 
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
-from sentry.dynamic_sampling.rules.helpers.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT
+from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
 from sentry.models import Project, Release
 
 ENVIRONMENT_SEPARATOR = ":e:"

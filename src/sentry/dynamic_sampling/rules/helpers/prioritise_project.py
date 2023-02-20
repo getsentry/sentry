@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sentry.dynamic_sampling.rules.helpers.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 if TYPE_CHECKING:
     from sentry.models import Project
