@@ -109,7 +109,7 @@ function CommitRow({
         </Message>
         <Meta>
           {formatCommitMessage(commit.message)} &bull;{' '}
-          <TimeSince date={commit.dateCreated} />
+          <TimeSince tooltipSuffix={commit.suspectCommitType} date={commit.dateCreated} />
         </Meta>
       </CommitMessage>
 

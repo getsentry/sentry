@@ -101,6 +101,7 @@ export type Commit = {
   author?: User;
   pullRequest?: PullRequest | null;
   repository?: Repository;
+  suspectCommitType?: string;
 };
 
 export type Committer = {

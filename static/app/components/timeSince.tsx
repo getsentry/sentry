@@ -65,6 +65,11 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   tooltipShowSeconds?: boolean;
   /**
+   * Suffix content to add to the tooltip. Useful to indicate what the relative
+   * time is for
+   */
+  tooltipSuffix?: React.ReactNode;
+  /**
    * Change the color of the underline
    */
   tooltipUnderlineColor?: ColorOrAlias;
@@ -97,6 +102,7 @@ function TimeSince({
   tooltipShowSeconds,
   tooltipPrefix: tooltipTitle,
   tooltipBody,
+  tooltipSuffix,
   tooltipUnderlineColor,
   unitStyle,
   prefix = t('in'),
@@ -160,6 +166,7 @@ function TimeSince({
         <Fragment>
           {tooltipTitle && <div>{tooltipTitle}</div>}
           {tooltipBody ?? tooltip}
+          {tooltipSuffix && <div>{tooltipSuffix}</div>}
         </Fragment>
       }
     >
