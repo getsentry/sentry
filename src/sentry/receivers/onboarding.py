@@ -502,7 +502,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         task=task,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user": user,
+            "user_id": user.id if user else None,
             "project_id": project.id,
             "date_completed": timezone.now(),
         },
