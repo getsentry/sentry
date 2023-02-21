@@ -123,8 +123,12 @@ def _capture_group_stats(job: PostProcessJob) -> None:
 
 
 def should_issue_owners_ratelimit(
-    cache_key,
+    project_id,
 ):
+    """
+    Make sure that we do not make more requests than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
+    """
+    cache_key = f"issue_owner_assignment_ratelimit:{project_id}"
     data = cache.get(cache_key)
     if data is None:
         requests = 1
@@ -168,9 +172,7 @@ def handle_owner_assignment(job):
 
                 with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
 
-                    ratelimit_key = f"issue_owner_assignment_ratelimit:{project.id}"
-
-                    if should_issue_owners_ratelimit(ratelimit_key):
+                    if should_issue_owners_ratelimit(project.id):
                         logger.info(
                             "handle_owner_assignment.ratelimited",
                             extra={
