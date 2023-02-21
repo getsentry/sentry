@@ -17,7 +17,7 @@
 
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
-/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/visibility
+/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
@@ -89,7 +89,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
-/docs-ui/components/                                     @getsentry/design @getsentry/core-ui
 
 ## Core UI
 /static/app/components                                       @getsentry/core-ui
@@ -160,18 +159,29 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Visibility
-/src/sentry/api/endpoints/organization_tags.py               @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_histogram.py   @getsentry/visibility
-/tests/snuba/api/endpoints/                                  @getsentry/visibility
-/src/sentry/api/serializers/snuba.py                         @getsentry/visibility
-/src/sentry/snuba/discover.py                                @getsentry/visibility
-/src/sentry/snuba/metrics_performance.py                     @getsentry/visibility
-/src/sentry/snuba/metrics_enhanced_performance.py            @getsentry/visibility
+/src/sentry/api/endpoints/organization_tags.py                              @getsentry/performance
+/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/performance
 
-/src/sentry/search/events/                                   @getsentry/visibility
-/tests/snuba/search/test_backend.py                          @getsentry/visibility
-/static/app/utils/discover/                                  @getsentry/visibility
-/static/app/components/charts/                               @getsentry/visibility
+/tests/snuba/api/endpoints/*                                                @getsentry/discover-n-dashboards
+/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
+
+/src/sentry/api/serializers/snuba.py                                        @getsentry/discover-n-dashboards
+/src/sentry/snuba/discover.py                                               @getsentry/discover-n-dashboards
+/src/sentry/snuba/metrics_performance.py                                    @getsentry/discover-n-dashboards
+/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/discover-n-dashboards
+
+/src/sentry/search/events/                                                  @getsentry/discover-n-dashboards
+/tests/snuba/search/test_backend.py                                         @getsentry/discover-n-dashboards
+/static/app/utils/discover/                                                 @getsentry/discover-n-dashboards
+/static/app/components/charts/                                              @getsentry/discover-n-dashboards
 ## Endof Visibility
 
 

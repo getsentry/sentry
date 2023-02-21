@@ -911,6 +911,7 @@ LOGGING = {
             "propagate": False,
         },
         "celery.worker.job": {"handlers": ["console"], "propagate": False},
+        "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",
@@ -974,6 +975,8 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
+    # Enables V2 for codecov integration for stacktrace highlighting.
+    "organizations:codecov-stacktrace-integration-v2": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
@@ -1587,6 +1590,7 @@ SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
+SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS = {}
 
@@ -2800,8 +2804,11 @@ SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
 # for synchronization/progress report.
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
-# How long can reprocessing take before we start deleting its Redis keys?
-SENTRY_REPROCESSING_SYNC_TTL = 3600 * 24
+# How long tombstones from reprocessing will live.
+SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
+
+# How long reprocessing counters are kept in Redis before they expire.
+SENTRY_REPROCESSING_SYNC_TTL = 30 * 24 * 3600  # 30 days
 
 # How many events to query for at once while paginating through an entire
 # issue. Note that this needs to be kept in sync with the time-limits on

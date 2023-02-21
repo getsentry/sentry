@@ -199,6 +199,7 @@ class MonitorForm extends Component<Props> {
               name="config.schedule_type"
               label={t('Schedule Type')}
               options={SCHEDULE_TYPES}
+              defaultValue={ScheduleType.CRONTAB}
               required
             />
             <Observer>

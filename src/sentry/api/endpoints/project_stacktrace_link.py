@@ -206,7 +206,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             git_blame_list.sort(key=lambda blame: blame["commit"]["committedDate"])
             commit_sha = git_blame_list[-1]["commit"]["oid"]
         if not commit_sha:
-            logger.warning(
+            # Report to Sentry so we can investigate
+            logger.error(
                 "Failed to get commit from git blame.",
                 extra={
                     "git_blame_response": git_blame_list,
@@ -219,7 +220,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
     def fetch_codecov_data(
         self,
-        has_error_commit: bool,
         ref: Optional[str],
         integrations: BaseQuerySet,
         org: Organization,
@@ -238,8 +238,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         )
         # Get commit sha from Git blame if valid
         gh_integrations = integrations.filter(provider="github")
-        should_get_commit_sha = fetch_commit_sha and gh_integrations and not has_error_commit
+        should_get_commit_sha = fetch_commit_sha and gh_integrations
 
+        ref_source = "from_release"
         if should_get_commit_sha:
             try:
                 integration_installation = gh_integrations[0].get_installation(
@@ -252,10 +253,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     repo,
                     branch,
                 )
+                ref_source = "from_git_blame"
             except Exception:
                 logger.exception(
                     "Failed to get commit sha from git blame, pending investigation. Continuing execution."
                 )
+
+        with configure_scope() as scope:
+            scope.set_tag("codecov.ref_source", ref_source)
 
         # Call codecov API if codecov-commit-sha-from-git-blame flag is not enabled
         # or getting ref from git blame was successful
@@ -267,7 +272,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 ref=ref if ref else branch,
                 ref_type="sha" if ref else "branch",
                 path=path,
-                has_error_commit=has_error_commit,
+                set_timeout=features.has("organizations:codecov-stacktrace-integration-v2", org),
             )
             if lineCoverage and codecovUrl:
                 codecov_data = {
@@ -374,8 +379,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     try:
                         line_no = ctx.get("line_no")
                         codecov_data = self.fetch_codecov_data(
-                            has_error_commit := bool(ctx.get("commit_id")),
-                            ref=ctx["commit_id"] if has_error_commit else None,
+                            ref=ctx.get("commit_id"),
                             integrations=integrations,
                             org=project.organization,
                             user=request.user,
@@ -397,6 +401,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             logger.exception(
                                 "Failed to get expected data from Codecov, pending investigation. Continuing execution."
                             )
+                    except requests.Timeout:
+                        scope.set_tag("codecov.timeout", True)
+                        logger.exception("Codecov request timed out. Continuing execution.")
                     except Exception:
                         logger.exception("Something unexpected happen. Continuing execution.")
                     # We don't expect coverage data if the integration does not exist (404)
