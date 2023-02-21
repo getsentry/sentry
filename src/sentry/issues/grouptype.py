@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
 from django.conf import settings
 
 from sentry import features
+from sentry.features.exceptions import FeatureNotRegistered
 from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
@@ -39,7 +40,7 @@ class NoiseConfig:
 
 @dataclass(frozen=True)
 class GroupPolicy:
-    feature: str  # should be in the format "organizations:name-of-feature"
+    feature: Optional[str] = None  # should be in the format "organizations:name-of-feature"
     limited_access: Optional[NoiseConfig] = None
     early_access: Optional[NoiseConfig] = None
     general_access: NoiseConfig = NoiseConfig()
@@ -72,8 +73,15 @@ class GroupType:
         # ensure that noise config ignore limits only increase with rollouts
         # use a ratio of ignore limit to expiry time to allow for greater flexibility
         if self.group_policy:
-            prev_ignore_limit_ratio = 0.0
             group_policy = self.group_policy
+
+            if group_policy.feature:
+                try:
+                    features.get(group_policy.feature, None)
+                except FeatureNotRegistered:
+                    raise ValueError(f"Feature {group_policy.feature} is not registered")
+
+            prev_ignore_limit_ratio = 0.0
             if group_policy.limited_access:
                 prev_ignore_limit_ratio = (
                     group_policy.limited_access.ignore_limit

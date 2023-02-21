@@ -141,9 +141,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 slug = "test-1"
                 description = "Test-1"
                 category = GroupCategory.ERROR.value
-                group_policy = GroupPolicy(
-                    feature="organizations:performance-slow-db-issue",
-                )
+                group_policy = GroupPolicy()
 
             noise_config = get_noise_config(TestGroupType1, self.org)
             assert noise_config.ignore_limit == DEFAULT_IGNORE_LIMIT
@@ -275,7 +273,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 ValueError,
                 "General Access ignore limit ratio must be greater than Early Access and Limited Access ignore limit ratios",
             ):
-                TestGroupType2(
+                TestGroupType3(
                     3,
                     "test-3",
                     "Test-3",
@@ -291,5 +289,30 @@ class GroupPolicyTest(TestCase):  # type: ignore
                             ignore_limit=10,
                             expiry_time=600,
                         ),
+                    ),
+                )
+
+            @dataclass(frozen=True)
+            class TestGroupType4(GroupType):
+                type_id = 4
+                slug = "test-4"
+                description = "Test-4"
+                category = GroupCategory.PERFORMANCE.value
+                group_policy = GroupPolicy(
+                    feature="organizations:corrupted-mainframe-detector",
+                )
+
+            with self.assertRaisesMessage(
+                ValueError,
+                "Feature organizations:corrupted-mainframe-detector is not registered",
+            ):
+                TestGroupType4(
+                    4,
+                    "test-4",
+                    "Test-4",
+                    GroupCategory.PERFORMANCE.value,
+                    0,
+                    GroupPolicy(
+                        feature="organizations:corrupted-mainframe-detector",
                     ),
                 )
