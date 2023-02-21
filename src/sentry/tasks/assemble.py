@@ -253,7 +253,7 @@ def _extract_information_from_manifest(manifest: dict) -> Tuple[Optional[int], S
         if (debug_id := headers.get("debug-id", None)) is not None:
             debug_ids.add(debug_id)
 
-    return manifest.get("project", None), debug_ids
+    return manifest.get("project"), debug_ids
 
 
 def _update_debug_id_artifact_bundle(
@@ -334,43 +334,49 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 raise AssembleArtifactsError("organization does not match uploaded bundle")
 
             release_name = manifest.get("release")
-            if release_name != version:
+            if release_name is not None and release_name != version:
                 raise AssembleArtifactsError("release does not match uploaded bundle")
 
             try:
                 release = Release.objects.get(organization_id=organization.id, version=release_name)
             except Release.DoesNotExist:
-                raise AssembleArtifactsError("release does not exist")
+                release = None
 
             dist_name = manifest.get("dist")
             dist = None
-            if dist_name:
+            if release and dist_name:
                 dist = release.add_dist(dist_name)
 
             artifact_count = len(manifest.get("files", {}))
-
-            meta = {  # Required for release file creation
-                "organization_id": organization.id,
-                "release_id": release.id,
-                "dist_id": dist.id if dist else dist,
-            }
-
-            saved_as_archive = False
             min_artifact_count = options.get("processing.release-archive-min-files")
+            saved_as_archive = False
+
             if artifact_count >= min_artifact_count:
                 # For V0 we just avoid the creation of ReleaseFile if we don't have debug ids in the manifest. In the
                 # future we want to just create ArtifactBundles and index them by release name aka release.version.
-                if not _update_debug_id_artifact_bundle(
+                used_debug_ids = _update_debug_id_artifact_bundle(
                     release, dist, org_id, bundle, artifact_count
-                ):
+                )
+                if not used_debug_ids:
+                    # After we tried the debug id approach, we can try the new approach, which will require a release.
+                    if release is None:
+                        raise AssembleArtifactsError("release does not exist")
+
                     try:
                         update_artifact_index(release, dist, bundle)
                         saved_as_archive = True
                     except Exception as exc:
                         logger.error("Unable to update artifact index", exc_info=exc)
+                else:
+                    saved_as_archive = True
 
-                    if not saved_as_archive:
-                        _store_single_files(archive, meta, True)
+            if not saved_as_archive:
+                meta = {
+                    "organization_id": organization.id,
+                    "release_id": release.id,
+                    "dist_id": dist.id if dist else dist,
+                }
+                _store_single_files(archive, meta, True)
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
