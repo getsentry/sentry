@@ -177,6 +177,7 @@ def record_first_event(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
+            project_platform=project.platform,
         )
         return
 
