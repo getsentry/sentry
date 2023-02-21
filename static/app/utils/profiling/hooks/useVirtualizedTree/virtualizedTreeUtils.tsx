@@ -270,9 +270,11 @@ export function computeVirtualizedTreeNodeScrollTop(
     rowHeight,
     scrollHeight,
     currentScrollTop,
+    maxScrollableHeight,
   }: {
     currentScrollTop: number;
     index: number;
+    maxScrollableHeight: number;
     rowHeight: number;
     scrollHeight: number;
   },
@@ -285,7 +287,13 @@ export function computeVirtualizedTreeNodeScrollTop(
   }
 
   if (block === 'center') {
-    return newPosition - scrollHeight / 2 + rowHeight;
+    return Math.max(
+      Math.min(
+        newPosition - scrollHeight / 2 + rowHeight,
+        maxScrollableHeight - scrollHeight - rowHeight
+      ),
+      0
+    );
   }
 
   if (block === 'end') {
