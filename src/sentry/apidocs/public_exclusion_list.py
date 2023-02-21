@@ -133,6 +133,9 @@ from sentry.api.endpoints.organization_access_request_details import (
 from sentry.api.endpoints.organization_activity import OrganizationActivityEndpoint
 from sentry.api.endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from sentry.api.endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from sentry.api.endpoints.organization_artifactbundle_assemble import (
+    OrganizationArtifactBundleAssembleEndpoint,
+)
 from sentry.api.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from sentry.api.endpoints.organization_auth_provider_details import (
     OrganizationAuthProviderDetailsEndpoint,
@@ -745,6 +748,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationMemberIndexEndpoint,
     ExternalUserEndpoint,
     ExternalUserDetailsEndpoint,
+    OrganizationArtifactBundleAssembleEndpoint,
     OrganizationIntegrationRequestEndpoint,
     OrganizationInviteRequestIndexEndpoint,
     OrganizationInviteRequestDetailsEndpoint,
