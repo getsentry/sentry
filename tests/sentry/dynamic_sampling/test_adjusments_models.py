@@ -6,7 +6,7 @@ from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.adjustment_models import DSProject as P
 
 
-def test_adjust_sample_rates_org_wo_projects():
+def test_adjust_sample_rates_org_with_no_projects():
     p = AdjustedModel(projects=[])
     assert p.adjust_sample_rates() == []
 

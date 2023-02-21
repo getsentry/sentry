@@ -70,12 +70,11 @@ def adjust_sample_rates(org_id: int, projects_with_tx_count: Sequence[Sequence[i
 
     redis_client = get_redis_client_for_ds()
     for ds_project in ds_projects:
-        # TODO: Check that sample rate between 0 < sample_rate < 1.0
         # hash, key, value
-        redis_client.set(
-            _generate_cache_key(project_id=ds_project.id, org_id=org_id),
+        redis_client.hset(
+            _generate_cache_key(org_id=org_id),
+            ds_project.id,
             ds_project.new_sample_rate,  # redis stores is as string
-            60 * 60 * 24,
         )
         schedule_invalidate_project_config(
             project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"

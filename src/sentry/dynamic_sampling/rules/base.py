@@ -5,7 +5,9 @@ import sentry_sdk
 from sentry import quotas
 from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import get_cached_sample_rate
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
+    get_prioritise_by_project_sample_rate,
+)
 from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
@@ -19,7 +21,7 @@ def get_guarded_blended_sample_rate(project: Project) -> float:
     if sample_rate is None:
         raise Exception("get_blended_sample_rate returns none")
 
-    return get_cached_sample_rate(project, default_sample_rate=float(sample_rate))
+    return get_prioritise_by_project_sample_rate(project, default_sample_rate=float(sample_rate))
 
 
 def _get_rules_of_enabled_biases(
