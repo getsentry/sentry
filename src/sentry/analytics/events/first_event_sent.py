@@ -19,9 +19,11 @@ class FirstEventSentEvent(analytics.Event):
 class FirstEventSentEventForProject(FirstEventSentEvent):
     type = "first_event_for_project.sent"
 
+    attributes = FirstEventSentEvent.attributes + (analytics.Attribute("project_platform"),)
+
 
 # first error with minified stack trace for a project
-class FirstEventSentEventWithMinifiedStackTraceForProject(FirstEventSentEvent):
+class FirstEventSentEventWithMinifiedStackTraceForProject(FirstEventSentEventForProject):
     type = "first_event_with_minified_stack_trace_for_project.sent"
 
 
