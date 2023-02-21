@@ -91,7 +91,7 @@ describe('SpanEvidenceKeyValueList', () => {
     parentSpan.addChild({
       startTimestamp: 2.1,
       endTimestamp: 4.0,
-      op: 'db',
+      op: 'db.sql.active_record',
       description: 'SELECT * FROM books WHERE id = %s',
       problemSpan: ProblemSpan.OFFENDER,
     });
@@ -116,7 +116,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
       ).toHaveTextContent('db - SELECT * FROM books');
       expect(screen.getByTestId('span-evidence-key-value-list.')).toHaveTextContent(
-        'db - SELECT * FROM books WHERE id = %s'
+        'db.sql.active_record - SELECT * FROM books WHERE id = %s'
       );
 
       expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
