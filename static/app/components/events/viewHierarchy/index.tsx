@@ -165,7 +165,10 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
 
   return (
     <Fragment>
-      <RenderingSystem system={viewHierarchy.rendering_system} />
+      <RenderingSystem
+        platform={project?.platform}
+        system={viewHierarchy.rendering_system}
+      />
       <Content>
         <Left hasRight={showWireframe}>
           <TreeContainer>
@@ -228,6 +231,7 @@ const TreeContainer = styled('div')`
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
+  border-top-left-radius: 0;
 `;
 
 const DetailsContainer = styled('div')`
@@ -238,7 +242,7 @@ const DetailsContainer = styled('div')`
 `;
 
 const ScrollContainer = styled('div')`
-  padding: ${space(1.5)};
+  padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
 `;
 
 const RenderedItemsContainer = styled('div')`
@@ -269,7 +273,7 @@ const DepthMarker = styled('div')<{depth: number}>`
 `;
 
 const GhostRow = styled('div')`
-  top: ${space(1.5)};
+  top: 0;
 `;
 
 const EmptyStateContainer = styled('div')`

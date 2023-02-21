@@ -250,6 +250,30 @@ class ProfileBlockedThreadGroupType(GroupType):
     category = GroupCategory.PROFILE.value
 
 
+@dataclass(frozen=True)
+class ProfileFileIOGroupType(GroupType):
+    type_id = 2001
+    slug = "profile_file_io_main_thread"
+    description = "File I/O on Main Thread"
+    category = GroupCategory.PROFILE.value
+
+
+@dataclass(frozen=True)
+class ProfileImageDecodeGroupType(GroupType):
+    type_id = 2002
+    slug = "profile_image_decode_main_thread"
+    description = "Image Decoding on Main Thread"
+    category = GroupCategory.PROFILE.value
+
+
+@dataclass(frozen=True)
+class ProfileJSONDecodeType(GroupType):
+    type_id = 2003
+    slug = "profile_json_decode_main_thread"
+    description = "JSON Decoding on Main Thread"
+    category = GroupCategory.PROFILE.value
+
+
 def reduce_noise(
     new_grouphashes: Set[str],
     performance_problems_by_hash: Dict[str, PerformanceProblem],

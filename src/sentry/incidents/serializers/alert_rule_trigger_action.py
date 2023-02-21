@@ -15,7 +15,9 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TYPE,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
+from sentry.models import OrganizationMember, Team
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
@@ -104,13 +106,11 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 if not access.has_team_access(team):
                     raise serializers.ValidationError("Team does not exist")
             elif target_type == AlertRuleTriggerAction.TargetType.USER:
-                try:
-                    user = User.objects.get(id=identifier)
-                except User.DoesNotExist:
+                if user_service.get_user(user_id=identifier) is None:
                     raise serializers.ValidationError("User does not exist")
 
                 if not OrganizationMember.objects.filter(
-                    organization=self.context["organization"], user=user
+                    organization=self.context["organization"], user_id=identifier
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
@@ -132,9 +132,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         {"sentry_app": "Missing parameter: sentry_app_installation_uuid"}
                     )
 
-                try:
-                    SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid)
-                except SentryAppInstallation.DoesNotExist:
+                installations = app_service.get_many(
+                    filter=dict(uuids=[sentry_app_installation_uuid])
+                )
+                if not installations:
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
                     )
