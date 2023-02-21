@@ -28,7 +28,7 @@ def prioritise_projects() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_projects", sample_rate=1.0):
         for org_id, projects_with_tx_count in fetch_projects_with_total_volumes().items():
-            process_projects_sample_rates(org_id, projects_with_tx_count)
+            process_projects_sample_rates.delay(org_id, projects_with_tx_count)
 
 
 @instrumented_task(
