@@ -248,7 +248,9 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data = dict(commit)
                     commit_data["shortId"] = commit_data["id"][:7]
                     commit_data["author"] = committer["author"]
-                    commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
+                    commit_data["subject"] = (
+                        commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
+                    )
                     commits[commit["id"]] = commit_data
 
     # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
