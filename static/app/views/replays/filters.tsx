@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -5,6 +6,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -16,6 +18,18 @@ function ReplaysFilters() {
   const {selection} = usePageFilters();
   const {pathname, query} = useLocation();
   const organization = useOrganization();
+
+  useEffect(() => {
+    if (query[URL_PARAM.PERIOD] === undefined) {
+      browserHistory.replace({
+        pathname,
+        query: {
+          ...query,
+          [URL_PARAM.PERIOD]: '7d',
+        },
+      });
+    }
+  }, [pathname, query]);
 
   return (
     <FilterContainer>
