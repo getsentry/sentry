@@ -235,7 +235,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         trees: Dict[str, RepoTree] = {}
         only_use_cache = False
 
-        rate_limit = self.get_rate_limit()
+        try:
+            rate_limit = self.get_rate_limit()
+        except ApiError as e:
+            # The derivation task will catch this
+            logger.warning("Rate limit protection failed. We cannot continue.")
+            raise e
+
         remaining_requests = rate_limit.remaining
         logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
 
