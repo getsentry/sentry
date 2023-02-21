@@ -415,13 +415,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
+        now = datetime.utcnow()
 
         if (
             not token
             or not expires_at
-            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < datetime.utcnow())
+            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < now)
             or force_refresh
         ):
+            logger.info(f"Token to be refreshed (expires: {expires_at}, now: {now}).")
             from copy import deepcopy
 
             res = self.create_token()
@@ -432,6 +434,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             self.integration = integration_service.update_integration(  # type: ignore
                 integration_id=self.integration.id, metadata=new_metadata
             )
+            logger.info("The token has been refreshed.")
+
+        if expires_at:
+            logger.info(f"The token will expire at {expires_at} (now: {now}).")
 
         return token or ""
 
