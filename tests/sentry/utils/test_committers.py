@@ -306,6 +306,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_kotlin_java_sdk_path_mangling(self):
         event = self.store_event(
@@ -481,6 +482,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] > 1
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_cocoa_swift_repo_relative_path(self):
         event = self.store_event(
@@ -541,6 +543,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] > 1
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_react_native_unchanged_frames(self):
         event = self.store_event(
@@ -610,6 +613,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] == 3
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_flutter_munged_frames(self):
         event = self.store_event(
@@ -663,6 +667,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] == 3
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_matching(self):
         event = self.store_event(
@@ -715,6 +720,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_matching_case_insensitive(self):
         event = self.store_event(
@@ -758,6 +764,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_not_matching(self):
         event = self.store_event(
