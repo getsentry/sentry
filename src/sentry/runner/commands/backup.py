@@ -3,7 +3,7 @@ from io import StringIO
 import click
 from django.apps import apps
 from django.core import management, serializers
-from django.db import IntegrityError, connection
+from django.db import IntegrityError, connection, transaction
 
 from sentry.runner.decorators import configuration
 
@@ -16,16 +16,21 @@ EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
 def import_(src):
     "Imports data from a Sentry export."
 
-    for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
-        if obj.object._meta.app_label not in EXCLUDED_APPS:
-            try:
-                obj.save()
-            # There are two integrity error exceptions we handle here.
-            # 1. Foreign key check failure
-            # 2. Duplicate key violation
-            # For both, it seems reasonable to continue importing and just display a warning message
-            except IntegrityError as e:
-                click.echo(e, err=True)
+    try:
+        with transaction.atomic():
+            for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
+                if obj.object._meta.app_label not in EXCLUDED_APPS:
+                    obj.save()
+    # There are two integrity error exceptions we handle here.
+    # 1. Foreign key check failure
+    # 2. Duplicate key violation
+    # For both, it seems reasonable to continue importing and just display a warning message
+    except IntegrityError as e:
+        click.echo(
+            ">> Are you restoring from a clean database? If not, we highly recommend doing so.",
+            err=True,
+        )
+        raise (e)
 
     sequence_reset_sql = StringIO()
 
