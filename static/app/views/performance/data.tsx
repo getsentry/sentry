@@ -38,7 +38,7 @@ const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
   if (organization?.features?.includes('performance-landing-page-stats-period')) {
-    return '7d';
+    return '14d';
   }
   return DEFAULT_STATS_PERIOD;
 };
