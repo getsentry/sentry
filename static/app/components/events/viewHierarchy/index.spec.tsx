@@ -200,4 +200,12 @@ describe('View Hierarchy', function () {
 
     expect(container).toSnapshot();
   });
+
+  it('renders an icon with a tooltip for the rendering system', async function () {
+    MOCK_DATA.rendering_system = 'flutter';
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+
+    userEvent.hover(screen.getByTestId('rendering-system-icon'));
+    expect(await screen.findByText('Rendering System: flutter')).toBeInTheDocument();
+  });
 });
