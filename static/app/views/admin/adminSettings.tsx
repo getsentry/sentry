@@ -43,6 +43,10 @@ const optionsAvailable = [
   'performance.issues.render_blocking_assets.la-rollout',
   'performance.issues.render_blocking_assets.ea-rollout',
   'performance.issues.render_blocking_assets.ga-rollout',
+  'performance.issues.m_n_plus_one_db.problem-creation',
+  'performance.issues.m_n_plus_one_db.la-rollout',
+  'performance.issues.m_n_plus_one_db.ea-rollout',
+  'performance.issues.m_n_plus_one_db.ga-rollout',
   'profile.issues.blocked_main_thread-ingest.la-rollout',
   'profile.issues.blocked_main_thread-ingest.ea-rollout',
   'profile.issues.blocked_main_thread-ingest.ga-rollout',
@@ -170,6 +174,13 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.render_blocking_assets.la-rollout']}
               {fields['performance.issues.render_blocking_assets.ea-rollout']}
               {fields['performance.issues.render_blocking_assets.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - MN+1 DB Detector</PanelHeader>
+              {fields['performance.issues.m_n_plus_one_db.problem-creation']}
+              {fields['performance.issues.m_n_plus_one_db.la-rollout']}
+              {fields['performance.issues.m_n_plus_one_db.ea-rollout']}
+              {fields['performance.issues.m_n_plus_one_db.ga-rollout']}
             </Panel>
             <Panel>
               <PanelHeader>Profiling Issues - Block Main Thread Detector</PanelHeader>

@@ -312,6 +312,38 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
+    key: 'performance.issues.m_n_plus_one_db.problem-creation',
+    label: t('Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the MN+1 DB detector.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.render_blocking_assets.problem-creation',
     label: t('Problem Creation Rate'),
     help: t(
