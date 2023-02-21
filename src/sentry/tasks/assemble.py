@@ -1,6 +1,7 @@
 import hashlib
 import logging
 from os import path
+from typing import Optional, Set
 
 from django.db import IntegrityError, router
 
@@ -8,7 +9,8 @@ from sentry import options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.db.models.fields import uuid
-from sentry.models import File, Organization, Release, ReleaseFile
+from sentry.models import Distribution, File, Organization, Release, ReleaseFile
+from sentry.models.artifactbundle import ArtifactBundle, DebugIdArtifactBundle
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -153,7 +155,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         )
     finally:
         if delete_file:
-            file.delete()
+            file.delete()  # type:ignore
 
 
 class AssembleArtifactsError(Exception):
@@ -231,6 +233,45 @@ def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts:
             _upsert_release_file(file, None, _simple_update, kwargs, extra_fields)
 
 
+def _extract_debug_ids_from_manifest(manifest: dict) -> Set[str]:
+    debug_ids = set()
+
+    files = manifest.get("files", {})
+    for filename, info in files.items():
+        if (debug_id := info.get("headers", {}).get("debug-id", None)) is not None:
+            debug_ids.add(debug_id)
+
+    return debug_ids
+
+
+def _update_debug_id_artifact_bundle(
+    release: Optional[Release],
+    dist: Optional[Distribution],
+    org_id: int,
+    archive_file: File,
+    artifact_count: int,
+):
+    with ReleaseArchive(archive_file.getfile()) as archive:
+        debug_ids = _extract_debug_ids_from_manifest(archive.manifest)
+
+        if len(debug_ids) > 0:
+            artifact_bundle = ArtifactBundle.objects.create(
+                bundle_id=uuid.uuid4().hex,
+                organization_id=org_id,
+                release_name=release.version if release else None,
+                dist_id=dist.id if dist else None,
+                file=archive_file,
+                artifact_count=artifact_count,
+            )
+
+            # TODO: do we want to also create a ProjectArtifactBundle entry?
+
+            for debug_id in debug_ids:
+                DebugIdArtifactBundle.objects.create(
+                    debug_id=debug_id, artifact_bundle=artifact_bundle
+                )
+
+
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     """
@@ -288,7 +329,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if dist_name:
                 dist = release.add_dist(dist_name)
 
-            num_files = len(manifest.get("files", {}))
+            artifact_count = len(manifest.get("files", {}))
 
             meta = {  # Required for release file creation
                 "organization_id": organization.id,
@@ -297,8 +338,11 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             }
 
             saved_as_archive = False
-            min_size = options.get("processing.release-archive-min-files")
-            if num_files >= min_size:
+            min_artifact_count = options.get("processing.release-archive-min-files")
+            if artifact_count >= min_artifact_count:
+                _update_debug_id_artifact_bundle(release, dist, org_id, bundle, artifact_count)
+
+                # TODO: do we want to still create a release file in case debug ids are present?
                 try:
                     update_artifact_index(release, dist, bundle)
                     saved_as_archive = True
@@ -309,7 +353,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 _store_single_files(archive, meta, True)
 
             # Count files extracted, to compare them to release files endpoint
-            metrics.incr("tasks.assemble.extracted_files", amount=num_files)
+            metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
 
     except AssembleArtifactsError as e:
         set_assemble_status(
