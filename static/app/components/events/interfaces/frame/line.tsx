@@ -290,7 +290,7 @@ export class Line extends Component<Props, State> {
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title" data-test-id="title">
           <DefaultLineTitleWrapper>
-            <VertCenterWrapper>
+            <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
                 {this.renderLeadHint()}
@@ -301,7 +301,7 @@ export class Line extends Component<Props, State> {
                   meta={this.props.frameMeta}
                 />
               </div>
-            </VertCenterWrapper>
+            </LeftLineTitle>
             {this.renderRepeats()}
           </DefaultLineTitleWrapper>
           {this.renderExpander()}
@@ -448,12 +448,12 @@ const DefaultLineTitleWrapper = styled('div')`
   justify-content: space-between;
 `;
 
-const VertCenterWrapper = styled('div')`
+const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-const RepeatedContent = styled(VertCenterWrapper)`
+const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
 `;
 
