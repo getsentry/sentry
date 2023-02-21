@@ -72,6 +72,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         mock_assemble_artifacts.apply_async.assert_called_once_with(
             kwargs={
                 "org_id": self.organization.id,
+                "project_id": None,
                 "version": self.release.version,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
@@ -85,6 +86,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assemble_artifacts(
             org_id=self.organization.id,
+            project_id=None,
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -106,6 +108,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assemble_artifacts(
             org_id=self.organization.id,
+            project_id=None,
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],

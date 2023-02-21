@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 import sentry_sdk
 from django.core.cache import cache
@@ -448,7 +448,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         )
 
     def has_release_permission(
-        self, request: Request, organization: Organization, release: Release
+        self, request: Request, organization: Organization, release: Optional[Release]
     ) -> bool:
         """
         Does the given request have permission to access this release, based

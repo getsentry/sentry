@@ -31,6 +31,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
+    "artifact_bundles",  # Artifact bundles containing source maps.
 )
 
 

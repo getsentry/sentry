@@ -291,7 +291,7 @@ def _update_debug_id_artifact_bundle(
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
-def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
+def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
     """
     Creates release files from an uploaded artifact bundle.
     """
