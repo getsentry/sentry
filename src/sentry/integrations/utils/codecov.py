@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from enum import Enum
 from typing import Literal, Optional, Sequence, Tuple
 
 import requests
@@ -16,12 +19,28 @@ REF_TYPE = Literal["branch", "sha"]
 CODECOV_TIMEOUT = 2
 
 
-def has_codecov_integration(organization: Organization) -> bool:
+class CodecovIntegrationError(Enum):
+    MISSING_TOKEN = "Internal Error"
+    MISSING_GH = "Codecov access can only be enabled if the organization has a GitHub integration."
+    MISSING_CODECOV = (
+        "Codecov access can only be enabled if the organization has a Codecov integration."
+    )
+
+
+def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
+    """
+    Checks if the organization has a Codecov integration.
+
+    Returns a tuple of (has_codecov_integration, error_message)
+    """
     codecov_token = options.get("codecov.client-secret")
     if not codecov_token:
-        return False
+        return False, CodecovIntegrationError.MISSING_TOKEN.value
 
     integrations = Integration.objects.filter(organizations=organization.id, provider="github")
+    if not integrations.exists():
+        return False, CodecovIntegrationError.MISSING_GH.value
+
     for integration in integrations:
         integration_installation = integration.get_installation(organization.id)
         if not integration_installation:
@@ -38,9 +57,13 @@ def has_codecov_integration(organization: Organization) -> bool:
             continue
         response.raise_for_status()
 
-        return True  # We found a codecov integration, so we can stop looking
+        return True, None  # We found a codecov integration, so we can stop looking
 
-    return False  # None of the Github Integrations had a Codecov integration
+    # None of the Github Integrations had a Codecov integration
+    return (
+        False,
+        CodecovIntegrationError.MISSING_CODECOV.value,
+    )
 
 
 def get_codecov_data(

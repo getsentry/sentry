@@ -3,7 +3,8 @@ from unittest.mock import patch
 import responses
 
 from sentry import options
-from sentry.integrations.utils.codecov import has_codecov_integration
+from sentry.integrations.utils.codecov import CodecovIntegrationError, has_codecov_integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
 
 
@@ -15,6 +16,13 @@ class TestCodecovIntegration(APITestCase):
             external_id="extid",
         )
         options.set("codecov.client-secret", "supersecrettoken")
+
+    def test_no_github_integration(self):
+        Integration.objects.all().delete()
+
+        has_integration, error = has_codecov_integration(self.organization)
+        assert not has_integration
+        assert error == CodecovIntegrationError.MISSING_GH.value
 
     @responses.activate
     @patch(
@@ -28,7 +36,9 @@ class TestCodecovIntegration(APITestCase):
             status=404,
         )
 
-        assert not has_codecov_integration(self.organization)
+        has_integration, error = has_codecov_integration(self.organization)
+        assert not has_integration
+        assert error == CodecovIntegrationError.MISSING_CODECOV.value
 
     @responses.activate
     @patch(
@@ -42,4 +52,5 @@ class TestCodecovIntegration(APITestCase):
             status=200,
         )
 
-        assert has_codecov_integration(self.organization)
+        has_integration, _ = has_codecov_integration(self.organization)
+        assert has_integration
