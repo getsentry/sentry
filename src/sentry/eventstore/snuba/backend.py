@@ -220,7 +220,7 @@ class SnubaEventStorage(EventStorage):
             try:
                 result = snuba.raw_query(
                     dataset=dataset,
-                    selected_columns=["group_id"],
+                    selected_columns=self.__get_columns(dataset),
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys={"project_id": [project_id], "event_id": [event_id]},

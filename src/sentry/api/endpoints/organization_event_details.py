@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -6,6 +8,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.models.project import Project, ProjectStatus
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -35,7 +39,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
-        data = serialize(event)
+        data = serialize(event.for_group(event.group))
         data["projectSlug"] = project_slug
 
         return Response(data)
