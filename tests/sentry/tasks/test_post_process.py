@@ -993,7 +993,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
     def test_issue_owners_should_ratelimit(self, logger):
         cache.set(
             f"issue_owner_assignment_ratelimit:{self.project.id}",
-            (ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT + 1, datetime.now()),
+            (ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT, datetime.now()),
         )
         event = self.create_event(
             data={
