@@ -182,7 +182,7 @@ def handle_owner_assignment(job):
                             },
                         )
                         return
-                handle_owner_assignment_task(project, event, group, job, issue_owners_key)
+                process_owner_assignments.delay(project, event, group, job, issue_owners_key)
         except Exception:
             logger.exception("Failed to handle owner assignments")
 
@@ -191,7 +191,7 @@ def handle_owner_assignment(job):
     name="sentry.tasks.post_process_handle_owner_assignment",
     queue="post_process_handle_owner_assignment",
 )
-def handle_owner_assignment_task(
+def process_owner_assignments(
     project: Project, event: GroupEvent | Event, group: Group, job: any, issue_owners_key: str
 ) -> None:
     with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_issue_owners"):
