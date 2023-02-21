@@ -91,6 +91,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     }
   ) => {
     const key = `view-hierarchy-node-${r.key}`;
+
+    if (selectedNodeIndex === r.key && selectedNode !== r.item.node) {
+      setSelectedNode(r.item.node);
+    }
+
     return (
       <TreeItem
         key={key}
@@ -101,12 +106,8 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         tabIndex={selectedNodeIndex === r.key ? 0 : 1}
         onMouseEnter={handleRowMouseEnter}
         onKeyDown={handleRowKeyDown}
-        onFocus={() => {
-          setSelectedNode(r.item.node);
-        }}
         onClick={e => {
           handleRowClick(e);
-          setSelectedNode(r.item.node);
           setUserHasSelected(true);
         }}
       >
