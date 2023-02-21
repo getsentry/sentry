@@ -207,7 +207,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         ):
             assemble_artifacts(
                 org_id=self.organization.id,
-                version=self.release.version,
+                project_id=self.project.id,
+                version=None,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
             )
@@ -247,6 +248,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
                 assemble_artifacts(
                     org_id=self.organization.id,
+                    project_id=None,
                     version=self.release.version,
                     checksum=total_checksum,
                     chunks=[blob1.checksum],
@@ -286,6 +288,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
+            project_id=None,
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -303,6 +306,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
+            project_id=None,
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -320,6 +324,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
+            project_id=None,
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -344,6 +349,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         ):
             assemble_artifacts(
                 org_id=self.organization.id,
+                project_id=None,
                 version=self.release.version,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],

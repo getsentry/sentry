@@ -1,9 +1,10 @@
 import hashlib
 import logging
 from os import path
-from typing import Optional, Set, Tuple
+from typing import List, Optional, Tuple
 
 from django.db import IntegrityError, router
+from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import options
 from sentry.api.serializers import serialize
@@ -14,6 +15,8 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
+    ReleaseArtifactBundle,
+    SourceFileType,
 )
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
 from sentry.tasks.base import instrumented_task
@@ -241,48 +244,66 @@ def _normalize_headers(headers: dict) -> dict:
     return {k.lower(): v for k, v in headers.items()}
 
 
-def _extract_information_from_manifest(manifest: dict) -> Tuple[Optional[int], Set[str]]:
-    debug_ids = set()
+def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+    try:
+        return normalize_debug_id(debug_id)
+    except SymbolicError:
+        return None
 
-    # TODO: do we want to check if there is always a debug_id pair for source and source map or we work under the
-    #   assumption that we have it?
+
+def _extract_information_from_manifest(manifest: dict) -> List[Tuple[SourceFileType, str]]:
+    debug_ids_with_types = []
+
     files = manifest.get("files", {})
     for filename, info in files.items():
         headers = _normalize_headers(info.get("headers", {}))
+        debug_id = _normalize_debug_id(headers.get("debug-id", None))
+        file_type = info.get("type", None)
 
-        if (debug_id := headers.get("debug-id", None)) is not None:
-            debug_ids.add(debug_id)
+        if debug_id is not None and file_type is not None:
+            debug_ids_with_types.append((SourceFileType.from_lowercase_key(file_type), debug_id))
 
-    return manifest.get("project"), debug_ids
+    return debug_ids_with_types
 
 
-def _update_debug_id_artifact_bundle(
+def _create_artifact_bundle(
     release: Optional[Release],
     dist: Optional[Distribution],
     org_id: int,
+    project_id: int,
     archive_file: File,
     artifact_count: int,
 ) -> bool:
     with ReleaseArchive(archive_file.getfile()) as archive:
-        project_id, debug_ids = _extract_information_from_manifest(archive.manifest)
+        debug_ids_with_types = _extract_information_from_manifest(archive.manifest)
 
-        if len(debug_ids) > 0 and project_id:
+        if len(debug_ids_with_types) > 0:
             artifact_bundle = ArtifactBundle.objects.create(
-                bundle_id=uuid.uuid4().hex,
                 organization_id=org_id,
-                release_name=release.version if release else None,
-                dist_id=dist.id if dist else None,
+                bundle_id=uuid.uuid4().hex,
                 file=archive_file,
                 artifact_count=artifact_count,
             )
 
+            if release:
+                ReleaseArtifactBundle.objects.create(
+                    organization_id=org_id,
+                    release_name=release.version if release else None,
+                    dist_id=dist.id if dist else None,
+                    artifact_bundle=artifact_bundle,
+                )
+
             ProjectArtifactBundle.objects.create(
-                project_id=project_id, artifact_bundle=artifact_bundle
+                project_id=project_id,
+                artifact_bundle=artifact_bundle,
             )
 
-            for debug_id in debug_ids:
+            for source_file_type, debug_id in debug_ids_with_types:
                 DebugIdArtifactBundle.objects.create(
-                    debug_id=debug_id, artifact_bundle=artifact_bundle
+                    organization_id=org_id,
+                    debug_id=debug_id,
+                    artifact_bundle=artifact_bundle,
+                    source_file_type=source_file_type.value,
                 )
 
             return True
@@ -334,13 +355,17 @@ def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
                 raise AssembleArtifactsError("organization does not match uploaded bundle")
 
             release_name = manifest.get("release")
-            if release_name is not None and release_name != version:
+            if version and release_name != version:
                 raise AssembleArtifactsError("release does not match uploaded bundle")
 
-            try:
-                release = Release.objects.get(organization_id=organization.id, version=release_name)
-            except Release.DoesNotExist:
-                release = None
+            release = None
+            if version:
+                try:
+                    release = Release.objects.get(
+                        organization_id=organization.id, version=release_name
+                    )
+                except Release.DoesNotExist:
+                    raise AssembleArtifactsError("release does not exist")
 
             dist_name = manifest.get("dist")
             dist = None
@@ -352,13 +377,9 @@ def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
             saved_as_archive = False
 
             if artifact_count >= min_artifact_count:
-                # For V0 we just avoid the creation of ReleaseFile if we don't have debug ids in the manifest. In the
-                # future we want to just create ArtifactBundles and index them by release name aka release.version.
-                used_debug_ids = _update_debug_id_artifact_bundle(
-                    release, dist, org_id, bundle, artifact_count
-                )
-                if not used_debug_ids:
-                    # After we tried the debug id approach, we can try the new approach, which will require a release.
+                # If we receive a version, it means that we want to create a ReleaseFile, otherwise we will create
+                # an ArtifactBundle.
+                if version:
                     if release is None:
                         raise AssembleArtifactsError("release does not exist")
 
@@ -368,6 +389,9 @@ def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
                     except Exception as exc:
                         logger.error("Unable to update artifact index", exc_info=exc)
                 else:
+                    _create_artifact_bundle(
+                        release, dist, org_id, project_id, bundle, artifact_count
+                    )
                     saved_as_archive = True
 
             if not saved_as_archive:
