@@ -144,5 +144,25 @@ class PerformanceUncompressedAssetsGroupType(GroupType):
 class ProfileBlockedThreadGroupType(GroupType):
     type_id = 2000
     slug = "profile_blocked_thread"
-    description = "Blocked Thread"
+    category = GroupCategory.PROFILE.value
+
+
+@dataclass(frozen=True)
+class ProfileFileIOGroupType(GroupType):
+    type_id = 2001
+    slug = "profile_file_io_main_thread"
+    category = GroupCategory.PROFILE.value
+
+
+@dataclass(frozen=True)
+class ProfileImageDecodeGroupType(GroupType):
+    type_id = 2002
+    slug = "profile_image_decode_main_thread"
+    category = GroupCategory.PROFILE.value
+
+
+@dataclass(frozen=True)
+class ProfileJSONDecodeType(GroupType):
+    type_id = 2003
+    slug = "profile_json_decode_main_thread"
     category = GroupCategory.PROFILE.value
