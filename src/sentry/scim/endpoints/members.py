@@ -81,9 +81,15 @@ class OperationValue(Field):
 
 
 class SCIMPatchOperationSerializer(serializers.Serializer):
-    op = serializers.ChoiceField(choices=("replace",), required=True)
+    op = serializers.CharField(required=True)
     value = OperationValue()
     path = serializers.CharField(required=False)
+
+    def validate_op(self, value: str) -> str:
+        value = value.lower()
+        if value in [MemberPatchOps.REPLACE]:
+            return value
+        raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
 class SCIMPatchRequestSerializer(serializers.Serializer):
