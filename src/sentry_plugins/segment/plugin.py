@@ -49,6 +49,7 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
             "eventId": event.event_id,
             "transaction": event.get_tag("transaction") or "",
             "release": event.get_tag("sentry:release") or "",
+            "level": event.get_tag("level") or "",
             "environment": event.get_tag("environment") or "",
         }
         if "sentry.interfaces.Http" in event.interfaces:
@@ -77,6 +78,7 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
             "eventId": event.event_id,
             "transaction": event.get_tag("transaction") or "",
             "release": event.get_tag("sentry:release") or "",
+            "level": event.get_tag("level") or "",
             "environment": event.get_tag("environment") or "",
         }
 
