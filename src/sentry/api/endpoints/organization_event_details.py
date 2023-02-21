@@ -35,6 +35,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
+        if event.group:
+            event = event.for_group(event.group)
+
         data = serialize(event)
         data["projectSlug"] = project_slug
 
