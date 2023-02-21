@@ -205,10 +205,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 "processing.release-archive-min-files": 1,
             }
         ):
-            ReleaseFile.objects.filter(release_id=self.release.id).delete()
-
-            assert self.release.count_artifacts() == 0
-
             assemble_artifacts(
                 org_id=self.organization.id,
                 version=self.release.version,
@@ -216,7 +212,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 chunks=[blob1.checksum],
             )
 
-            assert self.release.count_artifacts() == 2
+            assert self.release.count_artifacts() == 0
 
             status, details = get_assemble_status(
                 AssembleTask.ARTIFACTS, self.organization.id, total_checksum

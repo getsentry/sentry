@@ -244,6 +244,8 @@ def _normalize_headers(headers: dict) -> dict:
 def _extract_information_from_manifest(manifest: dict) -> Tuple[Optional[int], Set[str]]:
     debug_ids = set()
 
+    # TODO: do we want to check if there is always a debug_id pair for source and source map or we work under the
+    #   assumption that we have it?
     files = manifest.get("files", {})
     for filename, info in files.items():
         headers = _normalize_headers(info.get("headers", {}))
@@ -367,8 +369,8 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                     except Exception as exc:
                         logger.error("Unable to update artifact index", exc_info=exc)
 
-            if not saved_as_archive:
-                _store_single_files(archive, meta, True)
+                    if not saved_as_archive:
+                        _store_single_files(archive, meta, True)
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
