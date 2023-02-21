@@ -20,7 +20,7 @@ import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
-import {Monitor, MonitorConfig, MonitorType, ScheduleType} from './types';
+import {IntervalConfig, Monitor, MonitorConfig, MonitorType, ScheduleType} from './types';
 
 const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
   {value: ScheduleType.CRONTAB, label: 'Crontab'},
@@ -54,28 +54,32 @@ type TransformedData = {
 
 function transformData(_data: Record<string, any>, model: FormModel) {
   return model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
-    if (k.indexOf('config.') !== 0) {
+    // We're only concerned with transforming the config
+    if (!k.startsWith('config.')) {
       data[k] = v;
       return data;
     }
 
-    if (!data.config) {
-      data.config = {};
-    }
+    // Default to empty object
+    data.config ??= {};
+
     if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
       if (!Array.isArray(data.config.schedule)) {
-        data.config.schedule = [null, null];
+        data.config.schedule = [1, 'hour'];
       }
     }
 
-    if (k === 'config.schedule.frequency') {
-      data.config!.schedule![0] = parseInt(v as string, 10);
-    } else if (k === 'config.schedule.interval') {
-      data.config!.schedule![1] = v;
-    } else {
-      data.config[k.substr(7)] = v;
+    if (Array.isArray(data.config.schedule) && k === 'config.schedule.frequency') {
+      data.config.schedule![0] = parseInt(v as string, 10);
+      return data;
     }
 
+    if (Array.isArray(data.config.schedule) && k === 'config.schedule.interval') {
+      data.config.schedule![1] = v as IntervalConfig['schedule'][1];
+      return data;
+    }
+
+    data.config[k.substr(7)] = v;
     return data;
   }, {});
 }
@@ -195,6 +199,7 @@ class MonitorForm extends Component<Props> {
               name="config.schedule_type"
               label={t('Schedule Type')}
               options={SCHEDULE_TYPES}
+              defaultValue={ScheduleType.CRONTAB}
               required
             />
             <Observer>

@@ -22,7 +22,7 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
-import {IconRepeat} from 'sentry/icons/iconRepeat';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
@@ -298,7 +298,7 @@ function NativeFrame({
           <GroupingCell>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
-                <IconRepeat size="sm" color="textColor" />
+                <IconRefresh size="sm" color="textColor" />
               </Tooltip>
             )}
           </GroupingCell>

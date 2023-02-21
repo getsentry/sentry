@@ -425,7 +425,7 @@ function Flamegraph(): ReactElement {
         canvas: spansCanvas,
         model: spanChart,
         options: {
-          inverted: false,
+          inverted: flamegraph.inverted,
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
@@ -445,6 +445,7 @@ function Flamegraph(): ReactElement {
       spanChart,
       spansCanvas,
       xAxis,
+      flamegraph.inverted,
       flamegraphView,
       flamegraph.profile.startedAt,
       flamegraphTheme.SIZES,
@@ -851,6 +852,7 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
+        spansTreeDepth={spanChart?.depth}
         spans={
           spanChart && type === 'flamechart' ? (
             <FlamegraphSpans

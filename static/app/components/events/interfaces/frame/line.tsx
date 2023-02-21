@@ -24,7 +24,6 @@ import DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
 import {SymbolicatorStatus} from '../types';
 
-import {CodecovLegend} from './codecovLegend';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import PackageLink from './packageLink';
@@ -400,21 +399,8 @@ export class Line extends Component<Props, State> {
     });
     const props = {className};
 
-    const shouldShowCodecovLegend =
-      this.props.organization?.features.includes('codecov-stacktrace-integration') &&
-      this.props.organization?.codecovAccess &&
-      !this.props.nextFrame &&
-      this.state.isExpanded;
-
     return (
       <StyledLi data-test-id="line" {...props}>
-        {shouldShowCodecovLegend && (
-          <CodecovLegend
-            event={this.props.event}
-            frame={this.props.data}
-            organization={this.props.organization}
-          />
-        )}
         {this.renderLine()}
         <Context
           frame={data}
@@ -452,20 +438,12 @@ const PackageInfo = styled('div')`
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
-  border-radius: 50px;
-  padding: 1px 3px;
-  margin-left: ${space(1)};
-  border-width: thin;
-  border-style: solid;
-  border-color: ${p => p.theme.pink200};
-  color: ${p => p.theme.pink400};
-  background-color: ${p => p.theme.backgroundSecondary};
-  white-space: nowrap;
 `;
 
 const VertCenterWrapper = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: space-between;
 `;
 
 const RepeatedContent = styled(VertCenterWrapper)`

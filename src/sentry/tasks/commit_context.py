@@ -167,6 +167,7 @@ def process_commit_context(
                 return
 
             commit = None
+            new_commit = None
             for commit_context, selected_code_mapping in found_contexts:
                 try:
                     # Find commit and break
@@ -176,6 +177,13 @@ def process_commit_context(
                     )
                     break
                 except Commit.DoesNotExist:
+                    # If the commit has no date, we will not add it to avoid breaking other commit ordered-based logic.
+                    if not new_commit and commit_context.get("committedDate"):
+                        new_commit = {
+                            "context": commit_context,
+                            "repository_id": selected_code_mapping.repository_id,
+                            "code_mapping_id": selected_code_mapping.id,
+                        }
 
                     logger.info(
                         "process_commit_context.no_commit_in_sentry",
@@ -188,27 +196,33 @@ def process_commit_context(
                         },
                     )
 
-            if not commit:
-                # None of the commits found from the integrations' contexts exist in sentry_commit.
-
-                # We couldn't find the commit in Sentry, so we will debounce the task for 1 day.
-                # TODO(nisanthan): We will not get the commit history for new customers, only the commits going forward from when they installed the source-code integration. We need a long-term fix.
-                cache.set(cache_key, True, timedelta(days=1).total_seconds())
-
-                metrics.incr(
-                    "sentry.tasks.process_commit_context.aborted",
-                    tags={
-                        "detail": "commit_sha_does_not_exist_in_sentry",
-                    },
+            if not commit and new_commit:
+                context = new_commit["context"]
+                # If none of the commits exist in sentry_commit, we add the first commit we found
+                commit_author, _ = CommitAuthor.objects.get_or_create(
+                    organization_id=project.organization_id,
+                    email=context.get("commitAuthorEmail"),
+                    defaults={"name": context.get("commitAuthorName")},
                 )
+                commit = Commit.objects.create(
+                    organization_id=project.organization_id,
+                    repository_id=new_commit["repository_id"],
+                    key=context.get("commitId"),
+                    date_added=context.get("committedDate"),
+                    author=commit_author,
+                    message=context.get("message"),
+                )
+
                 logger.info(
-                    "process_commit_context.aborted.no_commit_in_sentry",
+                    "process_commit_context.added_commit_to_sentry_commit",
                     extra={
                         **basic_logging_details,
+                        "sha": new_commit.get("commitId"),
+                        "repository_id": new_commit["repository_id"],
+                        "code_mapping_id": new_commit["code_mapping_id"],
                         "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
                     },
                 )
-                return
 
             authors = list(CommitAuthor.objects.get_many_from_cache([commit.author_id]))
             author_to_user = get_users_for_authors(commit.organization_id, authors)
@@ -216,7 +230,7 @@ def process_commit_context(
             group_owner, created = GroupOwner.objects.update_or_create(
                 group_id=group_id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user_id=author_to_user.get(str(commit.author_id)).get("id"),
+                user_id=author_to_user.get(str(commit.author_id), {}).get("id"),
                 project=project,
                 organization_id=project.organization_id,
                 context={"commitId": commit.id},
