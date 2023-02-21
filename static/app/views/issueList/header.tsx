@@ -96,6 +96,7 @@ function IssueListHeader({
   displayReprocessingTab,
   selectedProjectIds,
 }: IssueListHeaderProps) {
+  const {experimentAssignment} = useExperiment('SavedIssueSearchesLocationExperiment');
   const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -105,7 +106,9 @@ function IssueListHeader({
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
-  const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
+  const savedSearchTabActive =
+    // Disable tab for saved searches location experiment
+    experimentAssignment !== 1 && !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
   const sortParam =
@@ -138,8 +141,6 @@ function IssueListHeader({
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
-
-  const {experimentAssignment} = useExperiment('SavedIssueSearchesLocationExperiment');
 
   return (
     <Layout.Header>
