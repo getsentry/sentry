@@ -2804,8 +2804,11 @@ SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
 # for synchronization/progress report.
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
-# How long can reprocessing take before we start deleting its Redis keys?
-SENTRY_REPROCESSING_SYNC_TTL = 3600 * 24
+# How long tombstones from reprocessing will live.
+SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
+
+# How long reprocessing counters are kept in Redis before they expire.
+SENTRY_REPROCESSING_SYNC_TTL = 30 * 24 * 3600  # 30 days
 
 # How many events to query for at once while paginating through an entire
 # issue. Note that this needs to be kept in sync with the time-limits on
