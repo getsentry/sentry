@@ -25,7 +25,7 @@ function ReplaysFilters() {
         pathname,
         query: {
           ...query,
-          [URL_PARAM.PERIOD]: '24h',
+          [URL_PARAM.PERIOD]: '7d',
         },
       });
     }
