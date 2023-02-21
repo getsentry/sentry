@@ -26,9 +26,8 @@ const profileConfig: IssueCategoryConfigMapping = {
     replays: {enabled: false},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
-    evidence: {
-      title: t('Function Evidence'),
-    },
+    // Renders `ProfileEventEvidence` instead
+    evidence: null,
   },
   [IssueType.PROFILE_BLOCKED_THREAD]: {
     resources: {
