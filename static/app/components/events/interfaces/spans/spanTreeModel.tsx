@@ -701,18 +701,18 @@ class SpanTreeModel {
 
         if (this.showEmbeddedChildren) {
           if (this.embeddedChildren.length === 0) {
-            return Promise.all(
-              transactions.map(transaction =>
-                this.fetchEmbeddedTransactions({
-                  orgSlug,
-                  eventSlug: generateEventSlug({
-                    id: transaction.event_id,
-                    project: transaction.project_slug,
-                  }),
-                  addTraceBounds,
-                })
-              )
-            );
+            const requests = transactions.map(transaction =>
+              this.fetchEmbeddedTransactions({
+                orgSlug,
+                eventSlug: generateEventSlug({
+                  id: transaction.event_id,
+                  project: transaction.project_slug,
+                }),
+                addTraceBounds,
+              })
+            ) as Promise<any>[];
+
+            return Promise.all(requests);
           }
           this.embeddedChildren.forEach(child => {
             addTraceBounds(child.generateTraceBounds());
