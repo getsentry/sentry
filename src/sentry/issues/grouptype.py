@@ -144,6 +144,7 @@ class PerformanceUncompressedAssetsGroupType(GroupType):
 class ProfileBlockedThreadGroupType(GroupType):
     type_id = 2000
     slug = "profile_blocked_thread"
+    description = "Blocked Thread"
     category = GroupCategory.PROFILE.value
 
 
@@ -151,6 +152,7 @@ class ProfileBlockedThreadGroupType(GroupType):
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
+    description = "File I/O on Main Thread"
     category = GroupCategory.PROFILE.value
 
 
@@ -158,6 +160,7 @@ class ProfileFileIOGroupType(GroupType):
 class ProfileImageDecodeGroupType(GroupType):
     type_id = 2002
     slug = "profile_image_decode_main_thread"
+    description = "Image Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
 
 
@@ -165,4 +168,5 @@ class ProfileImageDecodeGroupType(GroupType):
 class ProfileJSONDecodeType(GroupType):
     type_id = 2003
     slug = "profile_json_decode_main_thread"
+    description = "JSON Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
