@@ -2,7 +2,7 @@ import datetime
 import functools
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, Callable, Mapping, Optional, Set
+from typing import Any, Callable, Mapping, Optional, Set, Union
 
 import rapidjson
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -14,7 +14,7 @@ from arroyo.processing.strategies.filter import FilterStep
 from arroyo.processing.strategies.reduce import Reduce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.transform import TransformStep
-from arroyo.types import BaseValue, Commit, Message, Partition, Topic
+from arroyo.types import BaseValue, Commit, Message, Partition, Topic, FilteredPayload
 from django.utils import timezone
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
@@ -137,7 +137,7 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
         return set()
 
 
-class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]):
     def __init__(
         self,
         use_case_id: UseCaseKey,
@@ -159,7 +159,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
+    ) -> ProcessingStrategy[Union[FilteredPayload, KafkaPayload]]:
         def accumulator(result: Set[int], value: BaseValue[Set[int]]) -> Set[int]:
             result.update(value.payload)
             return result
@@ -188,7 +188,8 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             RunTask(do_update, CommitOffsets(commit)),
         )
 
-        return FilterStep(self.__should_accept, TransformStep(retrieve_db_read_keys, collect_step))
+        transform_step = TransformStep(retrieve_db_read_keys, collect_step)
+        return FilterStep(self.__should_accept, transform_step)
 
 
 def get_last_seen_updater(

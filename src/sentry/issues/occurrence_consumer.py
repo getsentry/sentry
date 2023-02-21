@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple, Union
 
 import jsonschema
 import rapidjson
@@ -15,7 +15,7 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTask,
 )
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 from django.conf import settings
 from django.utils import timezone
 
@@ -272,12 +272,12 @@ def _process_message(
             raise InvalidEventPayloadError(e)
 
 
-class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class OccurrenceStrategyFactory(ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]):
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
+    ) -> ProcessingStrategy[Union[FilteredPayload, KafkaPayload]]:
         def process_message(message: Message[KafkaPayload]) -> None:
             try:
                 payload = json.loads(message.payload.value, use_rapid_json=True)
