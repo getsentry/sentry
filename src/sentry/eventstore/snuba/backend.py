@@ -251,6 +251,8 @@ class SnubaEventStorage(EventStorage):
                 return None
 
             event.group_id = result["data"][0]["group_id"]
+            # Inject the snuba data here to make sure any snuba columns are available
+            event._snuba_data = result["data"][0]
 
         return event
 
