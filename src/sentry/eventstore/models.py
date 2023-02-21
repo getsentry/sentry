@@ -755,7 +755,7 @@ class GroupEvent(BaseEvent):
 
     @property
     def occurrence_id(self) -> Optional[str]:
-        if self.occurrence:
+        if self._occurrence:
             return self.occurrence.id
 
         column = self._get_column_name(Columns.OCCURRENCE_ID)
