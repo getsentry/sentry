@@ -1,3 +1,5 @@
+from enum import Enum
+
 from django.db import models
 from django.utils import timezone
 
@@ -11,14 +13,23 @@ from sentry.db.models import (
 from sentry.models import DB_VERSION_LENGTH
 
 
+class SourceFileType(Enum):
+    SOURCE = 1
+    MINIFIED_SOURCE = 2
+    SOURCE_MAP = 3
+    INDEXED_RAM_BUNDLE = 4
+
+    @classmethod
+    def choices(cls):
+        return [(key.value, key.name) for key in cls]
+
+
 @region_silo_only_model
 class ArtifactBundle(Model):
     __include_in_export__ = False
 
-    bundle_id = models.UUIDField(null=True)
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=DB_VERSION_LENGTH, null=True)
-    dist_id = BoundedBigIntegerField(null=True)
+    bundle_id = models.UUIDField(null=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
 
@@ -26,18 +37,33 @@ class ArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundle"
 
-        unique_together = (
-            ("organization_id", "bundle_id"),
-            ("organization_id", "release_name"),
-        )
+        unique_together = (("organization_id", "bundle_id"),)
+
+
+@region_silo_only_model
+class ReleaseArtifactBundle(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    release_name = models.CharField(max_length=DB_VERSION_LENGTH)
+    dist_id = BoundedBigIntegerField(null=True)
+    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_releaseartifactbundle"
+
+        unique_together = (("organization_id", "release_name", "dist_id", "artifact_bundle"),)
 
 
 @region_silo_only_model
 class DebugIdArtifactBundle(Model):
     __include_in_export__ = False
 
+    organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
     date_last_accessed = models.DateTimeField(default=timezone.now)
 
@@ -47,12 +73,7 @@ class DebugIdArtifactBundle(Model):
 
         # We can have the same debug_id pointing to different artifact_bundle(s) because the user might upload
         # the same artifacts twice, or they might have certain build files that don't change across builds.
-        unique_together = (
-            (
-                "debug_id",
-                "artifact_bundle",
-            ),
-        )
+        unique_together = (("debug_id", "artifact_bundle", "source_file_type"),)
 
 
 @region_silo_only_model
