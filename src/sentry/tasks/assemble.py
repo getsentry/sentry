@@ -1,7 +1,7 @@
 import hashlib
 import logging
 from os import path
-from typing import Optional, Set
+from typing import Optional, Set, Tuple
 
 from django.db import IntegrityError, router
 
@@ -10,7 +10,11 @@ from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.db.models.fields import uuid
 from sentry.models import Distribution, File, Organization, Release, ReleaseFile
-from sentry.models.artifactbundle import ArtifactBundle, DebugIdArtifactBundle
+from sentry.models.artifactbundle import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    ProjectArtifactBundle,
+)
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -233,15 +237,21 @@ def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts:
             _upsert_release_file(file, None, _simple_update, kwargs, extra_fields)
 
 
-def _extract_debug_ids_from_manifest(manifest: dict) -> Set[str]:
+def _normalize_headers(headers: dict) -> dict:
+    return {k.lower(): v for k, v in headers.items()}
+
+
+def _extract_information_from_manifest(manifest: dict) -> Tuple[Optional[int], Set[str]]:
     debug_ids = set()
 
     files = manifest.get("files", {})
     for filename, info in files.items():
-        if (debug_id := info.get("headers", {}).get("debug-id", None)) is not None:
+        headers = _normalize_headers(info.get("headers", {}))
+
+        if (debug_id := headers.get("debug-id", None)) is not None:
             debug_ids.add(debug_id)
 
-    return debug_ids
+    return manifest.get("project", None), debug_ids
 
 
 def _update_debug_id_artifact_bundle(
@@ -250,11 +260,11 @@ def _update_debug_id_artifact_bundle(
     org_id: int,
     archive_file: File,
     artifact_count: int,
-):
+) -> bool:
     with ReleaseArchive(archive_file.getfile()) as archive:
-        debug_ids = _extract_debug_ids_from_manifest(archive.manifest)
+        project_id, debug_ids = _extract_information_from_manifest(archive.manifest)
 
-        if len(debug_ids) > 0:
+        if len(debug_ids) > 0 and project_id:
             artifact_bundle = ArtifactBundle.objects.create(
                 bundle_id=uuid.uuid4().hex,
                 organization_id=org_id,
@@ -264,12 +274,18 @@ def _update_debug_id_artifact_bundle(
                 artifact_count=artifact_count,
             )
 
-            # TODO: do we want to also create a ProjectArtifactBundle entry?
+            ProjectArtifactBundle.objects.create(
+                project_id=project_id, artifact_bundle=artifact_bundle
+            )
 
             for debug_id in debug_ids:
                 DebugIdArtifactBundle.objects.create(
                     debug_id=debug_id, artifact_bundle=artifact_bundle
                 )
+
+            return True
+
+    return False
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
@@ -340,14 +356,16 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             saved_as_archive = False
             min_artifact_count = options.get("processing.release-archive-min-files")
             if artifact_count >= min_artifact_count:
-                _update_debug_id_artifact_bundle(release, dist, org_id, bundle, artifact_count)
-
-                # TODO: do we want to still create a release file in case debug ids are present?
-                try:
-                    update_artifact_index(release, dist, bundle)
-                    saved_as_archive = True
-                except Exception as exc:
-                    logger.error("Unable to update artifact index", exc_info=exc)
+                # For V0 we just avoid the creation of ReleaseFile if we don't have debug ids in the manifest. In the
+                # future we want to just create ArtifactBundles and index them by release name aka release.version.
+                if not _update_debug_id_artifact_bundle(
+                    release, dist, org_id, bundle, artifact_count
+                ):
+                    try:
+                        update_artifact_index(release, dist, bundle)
+                        saved_as_archive = True
+                    except Exception as exc:
+                        logger.error("Unable to update artifact index", exc_info=exc)
 
             if not saved_as_archive:
                 _store_single_files(archive, meta, True)

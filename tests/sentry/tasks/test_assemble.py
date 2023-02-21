@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.core.files.base import ContentFile
 
 from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
-from sentry.models.artifactbundle import DebugIdArtifactBundle
+from sentry.models.artifactbundle import DebugIdArtifactBundle, ProjectArtifactBundle
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.releasefile import read_artifact_index
 from sentry.tasks.assemble import (
@@ -193,7 +193,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         super().setUp()
 
     def test_artifacts_with_debug_ids(self):
-        bundle_file = self.create_artifact_bundle(fixture_path="artifact_bundle_debug_ids")
+        bundle_file = self.create_artifact_bundle(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
         debug_ids = {"eb6e60f1-65ff-4f6f-adff-f1bbeded627b"}
@@ -223,11 +225,16 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert details is None
 
             for debug_id in debug_ids:
-                debug_id_artifact_bundle = DebugIdArtifactBundle.objects.get(debug_id=debug_id)
-                assert debug_id_artifact_bundle.artifact_bundle.file.size == len(bundle_file)
+                debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+                assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
+
+                project_artifact_bundles = ProjectArtifactBundle.objects.filter(
+                    project_id=self.project.id
+                )
+                assert len(project_artifact_bundles) == 1
 
     def test_artifacts_without_debug_ids(self):
-        bundle_file = self.create_artifact_bundle(fixture_path="artifact_bundle_debug_ids")
+        bundle_file = self.create_artifact_bundle()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
