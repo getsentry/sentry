@@ -182,10 +182,19 @@ class ClientConfigViewTest(TestCase):
         assert data["customerDomain"] is None
 
     def test_superuser(self):
+        # Cannot set the superuser org id using override_settings().
+        # So we set them and restore them manually.
+        old_superuser_org_id = superuser.ORG_ID
+        superuser.ORG_ID = self.organization.id
+
         user = self.create_user("foo@example.com", is_superuser=True)
         self.login_as(user, superuser=True)
 
         resp = self.client.get(self.path)
+
+        # Restore values
+        superuser.ORG_ID = old_superuser_org_id
+
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
@@ -195,6 +204,12 @@ class ClientConfigViewTest(TestCase):
         assert data["user"]["email"] == user.email
         assert data["user"]["isSuperuser"] is True
         assert data["lastOrganization"] is None
+        assert data["links"] == {
+            "organizationUrl": None,
+            "regionUrl": None,
+            "sentryUrl": "http://testserver",
+            "superUserUrl": f"http://{self.organization.slug}.testserver",
+        }
         assert "activeorg" not in self.client.session
 
         # Induce last active organization
