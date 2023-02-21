@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -11,7 +11,9 @@ from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import Feature
 
-MOCK_DATETIME = datetime(2023, 8, 7, 0, 0, 0, tzinfo=timezone.utc)
+MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
 
 
 @freeze_time(MOCK_DATETIME)

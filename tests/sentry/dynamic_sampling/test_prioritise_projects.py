@@ -1,12 +1,15 @@
-from datetime import datetime, timezone
+from datetime import timedelta
 
+from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
-MOCK_DATETIME = datetime(2023, 8, 7, 0, 0, 0, tzinfo=timezone.utc)
+MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
 
 
 @freeze_time(MOCK_DATETIME)
