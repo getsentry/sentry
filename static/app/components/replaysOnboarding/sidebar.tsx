@@ -20,7 +20,7 @@ import {replayPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
@@ -34,28 +34,24 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.ReplaysOnboarding;
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const {projects, currentProject, setCurrentProject} = useCurrentProjectState({
-    currentPanel,
-  });
+  const {projects, allProjects, currentProject, setCurrentProject} =
+    useCurrentProjectState({
+      currentPanel,
+    });
 
-  if (!isActive || !hasProjectAccess || !currentProject) {
+  const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
+  if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
   }
 
-  const items: MenuItemProps[] = projects.reduce((acc: MenuItemProps[], project) => {
+  const items: MenuItemProps[] = allProjects.reduce((acc: MenuItemProps[], project) => {
     const itemProps: MenuItemProps = {
       key: project.id,
       label: <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />,
-      onAction: function switchProject() {
-        setCurrentProject(project);
-      },
+      onAction: () => setCurrentProject(project),
     };
 
-    if (currentProject.id === project.id) {
-      acc.unshift(itemProps);
-    } else {
-      acc.push(itemProps);
-    }
+    acc.push(itemProps);
 
     return acc;
   }, []);
@@ -73,16 +69,16 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
           items={items}
           triggerLabel={
             <StyledIdBadge
-              project={currentProject}
+              project={selectedProject}
               avatarSize={16}
               hideOverflow
               disableLink
             />
           }
-          triggerProps={{'aria-label': currentProject.slug}}
+          triggerProps={{'aria-label': selectedProject.slug}}
           position="bottom-end"
         />
-        <OnboardingContent currentProject={currentProject} />
+        <OnboardingContent currentProject={selectedProject} />
       </TaskList>
     </TaskSidebarPanel>
   );

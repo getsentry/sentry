@@ -28,6 +28,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
     evidence: null,
+    usesIssuePlatform: false,
   },
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {
     resources: {
@@ -113,9 +114,14 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_SLOW_DB_QUERY]: {
     resources: {
       description: t(
-        'Slow DB Queries are SELECT query spans that take longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
+        'Slow DB Queries are SELECT query spans that are consistently taking longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
       ),
-      links: [],
+      links: [
+        {
+          text: t('Sentry Docs: Slow DB Queries'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/slow-db-queries/',
+        },
+      ],
       linksByPlatform: {},
     },
   },

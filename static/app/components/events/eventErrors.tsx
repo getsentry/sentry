@@ -12,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Artifact, Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
@@ -159,7 +159,18 @@ const useFetchProguardMappingFiles = ({
             'Some frames appear to be minified. Did you configure the [plugin]?',
             {
               plugin: (
-                <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/#gradle">
+                <ExternalLink
+                  href="https://docs.sentry.io/platforms/android/proguard/#gradle"
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'issue_error_banner.proguard_misconfigured.clicked',
+                      {
+                        organization,
+                        group: event?.groupID,
+                      }
+                    );
+                  }}
+                >
                   Sentry Gradle Plugin
                 </ExternalLink>
               ),
@@ -226,6 +237,7 @@ const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Proje
 };
 
 export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
+  const organization = useOrganization();
   useRecordAnalyticsEvent({event, project});
   const releaseArtifacts = useFetchReleaseArtifacts({event, project});
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
@@ -233,6 +245,32 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
     project,
     isShare,
   });
+
+  useEffect(() => {
+    if (proguardErrors?.length) {
+      if (proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_misconfigured.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      } else if (proguardErrors[0]?.type === 'proguard_missing_mapping') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_missing_mapping.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      }
+    }
+    // Just for analytics, only track this once per visit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {dist: eventDistribution, errors: eventErrors = [], _meta} = event;
 

@@ -33,6 +33,7 @@ from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     ActorTuple,
     Commit,
@@ -49,7 +50,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    SentryAppInstallationToken,
     Team,
     User,
 )
@@ -66,13 +66,13 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.issues import GroupCategory
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -353,7 +353,7 @@ class GroupSerializerBase(Serializer, ABC):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
-            "issueType": obj.issue_type.name.lower(),
+            "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
 
@@ -719,8 +719,9 @@ class GroupSerializerBase(Serializer, ABC):
             and getattr(request.user, "is_sentry_app", False)
             and is_api_token_auth(request.auth)
         ):
-            if SentryAppInstallationToken.objects.has_organization_access(
-                request.auth, organization_id
+
+            if auth_service.token_has_org_access(
+                token=AuthenticatedToken.from_token(request.auth), organization_id=organization_id
             ):
                 return True
 

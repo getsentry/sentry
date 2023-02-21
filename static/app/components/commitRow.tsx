@@ -14,7 +14,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Commit} from 'sentry/types';
 
 export function formatCommitMessage(message: string | null) {
@@ -109,7 +109,7 @@ function CommitRow({
         </Message>
         <Meta>
           {formatCommitMessage(commit.message)} &bull;{' '}
-          <TimeSince date={commit.dateCreated} />
+          <TimeSince tooltipSuffix={commit.suspectCommitType} date={commit.dateCreated} />
         </Meta>
       </CommitMessage>
 

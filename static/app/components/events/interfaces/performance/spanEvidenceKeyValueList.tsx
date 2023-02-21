@@ -5,7 +5,7 @@ import mapValues from 'lodash/mapValues';
 
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
+import {toRoundedPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -94,20 +94,29 @@ const NPlusOneDBQueriesSpanEvidence = ({
   event,
   parentSpan,
   offendingSpans,
-}: SpanEvidenceKeyValueListProps) => (
-  <PresortedKeyValueList
-    data={
-      [
-        makeTransactionNameRow(event),
-        parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
-        makeRow(
-          t('Repeating Spans (%s)', offendingSpans.length),
-          getSpanEvidenceValue(offendingSpans[0])
-        ),
-      ].filter(Boolean) as KeyValueListData
-    }
-  />
-);
+}: SpanEvidenceKeyValueListProps) => {
+  const dbSpans = offendingSpans.filter(span => span.op === 'db');
+  const repeatingSpanRows = dbSpans
+    .filter(span => offendingSpans.find(s => s.description === span.description) === span)
+    .map((span, i) =>
+      makeRow(
+        i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
+        getSpanEvidenceValue(span)
+      )
+    );
+
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event),
+          parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+          ...repeatingSpanRows,
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+};
 
 const NPlusOneAPICallsSpanEvidence = ({
   event,
@@ -161,6 +170,10 @@ const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListPr
     data={[
       makeTransactionNameRow(event),
       makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(
+        t('Duration Impact'),
+        getSingleSpanDurationImpact(event, offendingSpans[0])
+      ),
     ]}
   />
 );
@@ -284,7 +297,7 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
     return null;
   }
   const percent = durationAdded / transactionTime;
-  return `${toPercent(percent)} (${getPerformanceDuration(
+  return `${toRoundedPercent(percent)} (${getPerformanceDuration(
     durationAdded
   )}/${getPerformanceDuration(transactionTime)})`;
 }

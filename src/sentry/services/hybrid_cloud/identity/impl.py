@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List
 
-from sentry.services.hybrid_cloud.identity import APIIdentity, APIIdentityProvider, IdentityService
+from sentry.services.hybrid_cloud.identity import IdentityService, RpcIdentity, RpcIdentityProvider
 
 
 class DatabaseBackedIdentityService(IdentityService):
@@ -15,7 +15,7 @@ class DatabaseBackedIdentityService(IdentityService):
         provider_id: int | None = None,
         provider_type: str | None = None,
         provider_ext_id: str | None = None,
-    ) -> APIIdentityProvider | None:
+    ) -> RpcIdentityProvider | None:
         from sentry.models.identity import IdentityProvider
 
         # If an id is provided, use that -- otherwise, use the type and external_id
@@ -35,7 +35,7 @@ class DatabaseBackedIdentityService(IdentityService):
         provider_id: int,
         user_id: int | None = None,
         identity_ext_id: str | None = None,
-    ) -> APIIdentity | None:
+    ) -> RpcIdentity | None:
         from sentry.models.identity import Identity
 
         # If an user_id is provided, use that -- otherwise, use the external_id
@@ -51,7 +51,7 @@ class DatabaseBackedIdentityService(IdentityService):
         user_id: int,
         provider_type: str,
         exclude_matching_external_ids: bool = False,
-    ) -> List[APIIdentity]:
+    ) -> List[RpcIdentity]:
         from django.db.models import F
 
         from sentry.models.identity import Identity

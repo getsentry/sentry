@@ -37,7 +37,9 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        result = SelectRequester.run(install=self.install, project=self.project, uri="/get-issues")
+        result = SelectRequester.run(
+            install=self.install, project_slug=self.project.slug, uri="/get-issues"
+        )
 
         assert result == {
             "choices": [["123", "An Issue"], ["456", "Another Issue"]],
@@ -68,7 +70,7 @@ class TestSelectRequester(TestCase):
         with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
-                project=self.project,
+                project_slug=self.project.slug,
                 group=self.group,
                 uri="/get-issues",
                 fields={},
@@ -86,7 +88,7 @@ class TestSelectRequester(TestCase):
         with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
-                project=self.project,
+                project_slug=self.project.slug,
                 group=self.group,
                 uri="/get-issues",
                 fields={},

@@ -17,6 +17,7 @@ from sentry import analytics, eventstream, features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -48,7 +49,7 @@ from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     issue_ignored,
     issue_mark_reviewed,
@@ -59,7 +60,6 @@ from sentry.signals import (
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 
@@ -112,7 +112,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | APIUser | None, group: Group
+    acting_user: User | RpcUser | None, group: Group
 ) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
@@ -694,7 +694,7 @@ def update_groups(
         )
         if assigned_actor:
             for group in group_list:
-                resolved_actor: APIUser | Team = assigned_actor.resolve()
+                resolved_actor: RpcUser | Team = assigned_actor.resolve()
 
                 assignment = GroupAssignee.objects.assign(
                     group, resolved_actor, acting_user, extra=extra

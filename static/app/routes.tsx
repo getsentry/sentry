@@ -20,7 +20,7 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import IssueListContainer from 'sentry/views/issueList/container';
+import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
@@ -459,7 +459,7 @@ function buildRoutes() {
       />
       <Route
         path="ownership/"
-        name={t('Issue Owners')}
+        name={t('Ownership Rules')}
         component={make(() => import('sentry/views/settings/project/projectOwnership'))}
       />
       <Route
@@ -1000,7 +1000,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const projectsRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1038,7 +1037,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const dashboardRoutes = (
     <Fragment>
       <Fragment>
@@ -1261,7 +1259,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const alertRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1317,7 +1314,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const cronsRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1348,7 +1344,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const replayRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1409,7 +1404,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const releasesRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1482,7 +1476,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const statsRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1633,7 +1626,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const performanceRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1754,7 +1746,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const issueDetailsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => (
     <Fragment>
       {issueTabs({forCustomerDomain})}
@@ -1914,7 +1905,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const gettingStartedRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1936,6 +1926,49 @@ function buildRoutes() {
         key="org-getting-started"
       >
         {gettingStartedChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
+  const profilingChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
+      <Route
+        path="summary/:projectId/"
+        component={make(() => import('sentry/views/profiling/profileSummary'))}
+      />
+      <Route
+        path="profile/:projectId/:eventId/"
+        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+      >
+        <Route
+          path="details/"
+          component={make(() => import('sentry/views/profiling/profileDetails'))}
+        />
+        <Route
+          path="flamechart/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+      </Route>
+    </Fragment>
+  );
+  const profilingRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/profiling/"
+          component={withDomainRequired(make(() => import('sentry/views/profiling')))}
+          key="orgless-profiling-route"
+        >
+          {profilingChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/profiling/"
+        component={withDomainRedirect(make(() => import('sentry/views/profiling')))}
+        key="org-profiling"
+      >
+        {profilingChildRoutes}
       </Route>
     </Fragment>
   );
@@ -2026,50 +2059,6 @@ function buildRoutes() {
         )}
       />
     </Route>
-  );
-
-  const profilingChildRoutes = (
-    <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
-      <Route
-        path="summary/:projectId/"
-        component={make(() => import('sentry/views/profiling/profileSummary'))}
-      />
-      <Route
-        path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
-      >
-        <Route
-          path="details/"
-          component={make(() => import('sentry/views/profiling/profileDetails'))}
-        />
-        <Route
-          path="flamechart/"
-          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
-      </Route>
-    </Fragment>
-  );
-
-  const profilingRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/profiling/"
-          component={withDomainRequired(make(() => import('sentry/views/profiling')))}
-          key="orgless-profiling-route"
-        >
-          {profilingChildRoutes}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/profiling/"
-        component={withDomainRedirect(make(() => import('sentry/views/profiling')))}
-        key="org-profiling"
-      >
-        {profilingChildRoutes}
-      </Route>
-    </Fragment>
   );
 
   const organizationRoutes = (

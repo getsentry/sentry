@@ -175,6 +175,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
+                query_kwargs["referrer"] = "search.group_index"
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 

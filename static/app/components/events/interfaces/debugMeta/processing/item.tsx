@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   icon: React.ReactElement;
