@@ -114,7 +114,11 @@ def get_noise_config(
     if not group_policy:
         return None
 
-    if features.has(group_policy.feature, organization, actor=None) and group_policy.limited_access:
+    if (
+        group_policy.feature
+        and features.has(group_policy.feature, organization, actor=None)
+        and group_policy.limited_access
+    ):
         return group_policy.limited_access
 
     if organization.flags.early_adopter and group_policy.early_access:

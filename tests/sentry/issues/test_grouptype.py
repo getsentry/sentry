@@ -125,10 +125,12 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 )
 
             noise_config_1 = get_noise_config(TestGroupType1, self.org)
+            assert noise_config_1 is not None
             assert noise_config_1.ignore_limit == 100
             assert noise_config_1.expiry_time == 60
 
             noise_config_2 = get_noise_config(TestGroupType2, self.org)
+            assert noise_config_2 is not None
             assert noise_config_2.ignore_limit == 10
             assert noise_config_2.expiry_time == 600
 
@@ -144,10 +146,11 @@ class GroupPolicyTest(TestCase):  # type: ignore
                 group_policy = GroupPolicy()
 
             noise_config = get_noise_config(TestGroupType1, self.org)
+            assert noise_config is not None
             assert noise_config.ignore_limit == DEFAULT_IGNORE_LIMIT
             assert noise_config.expiry_time == DEFAULT_EXPIRY_TIME
 
-    def test_get_noise_config(self):
+    def test_get_noise_config(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):
             self.org2 = self.create_organization()
             self.org2.flags.early_adopter = True
@@ -172,12 +175,15 @@ class GroupPolicyTest(TestCase):  # type: ignore
 
             with self.feature({"organizations:performance-slow-db-issue": True}):
                 noise_config = get_noise_config(TestGroupType1, self.org)
+                assert noise_config is not None
                 assert noise_config.ignore_limit == 10
 
             noise_config = get_noise_config(TestGroupType1, self.org2)
+            assert noise_config is not None
             assert noise_config.ignore_limit == 20
 
             noise_config = get_noise_config(TestGroupType1, self.org)
+            assert noise_config is not None
             assert noise_config.ignore_limit == 30
 
     def test_noise_config_validation(self) -> None:
