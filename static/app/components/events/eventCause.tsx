@@ -72,14 +72,21 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
   };
 
   const commits = getUniqueCommitsWithAuthors();
+
+  const commitHeading =
+    commits.length > 1
+      ? `${t('Suspect Commits')} (${commits.length})`
+      : t('Suspect Commit');
+
   return (
     <DataSection>
       <CauseHeader>
-        <h3 data-test-id="event-cause">
-          {t('Suspect Commits')} ({commits.length})
-        </h3>
+        <h3 data-test-id="event-cause">{commitHeading}</h3>
         {commits.length > 1 && (
-          <ExpandButton onClick={() => setIsExpanded(!isExpanded)}>
+          <ExpandButton
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-test-id="expand-commit-list"
+          >
             {isExpanded ? (
               <Fragment>
                 {t('Show less')} <IconSubtract isCircled size="md" />
