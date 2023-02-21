@@ -96,15 +96,14 @@ const NPlusOneDBQueriesSpanEvidence = ({
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => {
   const dbSpans = offendingSpans.filter(span => span.op === 'db');
-  const uniqueDbSpans = dbSpans.filter(span => {
-    return offendingSpans.find(s => s.description === span.description) === span;
-  });
-  const repeatingSpanRows = uniqueDbSpans.map((span, i) => {
-    return makeRow(
-      i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
-      getSpanEvidenceValue(span)
+  const repeatingSpanRows = dbSpans
+    .filter(span => offendingSpans.find(s => s.description === span.description) === span)
+    .map((span, i) =>
+      makeRow(
+        i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
+        getSpanEvidenceValue(span)
+      )
     );
-  });
 
   return (
     <PresortedKeyValueList
