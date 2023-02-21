@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
@@ -305,7 +306,7 @@ describe('Performance > VitalDetail', function () {
         transaction: 'something',
         project: undefined,
         environment: [],
-        statsPeriod: '24h',
+        statsPeriod: DEFAULT_STATS_PERIOD,
         start: undefined,
         end: undefined,
         query: 'sometag:value has:measurements.lcp',
@@ -357,7 +358,7 @@ describe('Performance > VitalDetail', function () {
         transaction: 'something',
         project: undefined,
         environment: [],
-        statsPeriod: '24h',
+        statsPeriod: DEFAULT_STATS_PERIOD,
         start: undefined,
         end: undefined,
         query: 'anothertag:value has:measurements.cls',

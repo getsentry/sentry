@@ -241,12 +241,12 @@ describe('Performance > Landing > Index', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '15m',
+          interval: '1h',
           partial: '1',
           project: [],
           query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
-          statsPeriod: '48h',
+          statsPeriod: '14d',
           yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
         }),
       })

@@ -2,7 +2,10 @@ import {
   MEPState,
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {generatePerformanceEventView} from 'sentry/views/performance/data';
+import {
+  DEFAULT_STATS_PERIOD,
+  generatePerformanceEventView,
+} from 'sentry/views/performance/data';
 
 describe('generatePerformanceEventView()', function () {
   it('generates default values', function () {
@@ -16,7 +19,7 @@ describe('generatePerformanceEventView()', function () {
     expect(result.query).toEqual('');
     expect(result.getQueryWithAdditionalConditions()).toEqual('event.type:transaction');
     expect(result.sorts).toEqual([{kind: 'desc', field: 'tpm'}]);
-    expect(result.statsPeriod).toEqual('24h');
+    expect(result.statsPeriod).toEqual(DEFAULT_STATS_PERIOD);
   });
 
   it('applies sort from location', function () {
@@ -27,7 +30,7 @@ describe('generatePerformanceEventView()', function () {
     });
 
     expect(result.sorts).toEqual([{kind: 'desc', field: 'p50'}]);
-    expect(result.statsPeriod).toEqual('24h');
+    expect(result.statsPeriod).toEqual(DEFAULT_STATS_PERIOD);
   });
 
   it('does not override statsPeriod from location', function () {
