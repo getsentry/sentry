@@ -21,7 +21,7 @@ CODECOV_TIMEOUT = 2
 
 class CodecovIntegrationError(Enum):
     MISSING_TOKEN = "Internal Error"
-    MISSING_GH = "Codecov access can only be enabled if the organization has a Github integration."
+    MISSING_GH = "Codecov access can only be enabled if the organization has a GitHub integration."
     MISSING_CODECOV = (
         "Codecov access can only be enabled if the organization has a Codecov integration."
     )
