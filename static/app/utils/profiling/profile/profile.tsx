@@ -101,7 +101,7 @@ export class Profile {
     openFrame: (node: CallTreeNode, value: number) => void,
     closeFrame: (node: CallTreeNode, value: number) => void
   ): void {
-    let prevStack: CallTreeNode[] = [];
+    const prevStack: CallTreeNode[] = [];
     let value = 0;
 
     let sampleIndex = 0;
@@ -123,18 +123,19 @@ export class Profile {
       let node: CallTreeNode | null = stackTop;
 
       while (node && !node.isRoot() && node !== top) {
-        toOpen.unshift(node);
+        toOpen.push(node);
         node = node.parent;
       }
 
-      for (const toOpenNode of toOpen) {
-        openFrame(toOpenNode, value);
+      for (let i = toOpen.length - 1; i >= 0; i--) {
+        openFrame(toOpen[i], value);
+        prevStack.push(toOpen[i]);
       }
 
-      prevStack = prevStack.concat(toOpen);
       value += this.weights[sampleIndex++];
     }
 
+    // Close any remaining frames
     for (let i = prevStack.length - 1; i >= 0; i--) {
       closeFrame(prevStack[i], value);
     }
