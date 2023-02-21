@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
 from sentry import projectoptions
-from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.constants import RESERVED_PROJECT_SLUGS, DataCategory, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager,
@@ -44,6 +44,14 @@ if TYPE_CHECKING:
 ProjectStatus = ObjectStatus
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+SPIKE_PROTECTED_CATEGORIES = frozenset(
+    [
+        *DataCategory.error_categories(),
+        DataCategory.TRANSACTION,
+        DataCategory.ATTACHMENT,
+        DataCategory.REPLAY,
+    ]
+)
 
 
 class ProjectManager(BaseManager):
@@ -142,14 +150,21 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             ("has_sessions", "This Project has sessions"),
             ("has_profiles", "This Project has sent profiles"),
             ("has_replays", "This Project has sent replays"),
-            ("spike_protection_error_currently_active", "spike_protection_error_currently_active"),
+            (
+                "spike_protection_error_currently_active",
+                "This Project is currently experiencing an error spike",
+            ),
             (
                 "spike_protection_transaction_currently_active",
-                "spike_protection_transaction_currently_active",
+                "This Project is currently experiencing a transaction spike",
             ),
             (
                 "spike_protection_attachment_currently_active",
-                "spike_protection_attachment_currently_active",
+                "This Project is currently experiencing an attachment spike",
+            ),
+            (
+                "spike_protection_replay_currently_active",
+                "This Project is currently experiencing a replay spike",
             ),
             ("has_minified_stack_trace", "This Project has event with minified stack trace"),
             ("has_cron_monitors", "This Project has cron monitors"),
