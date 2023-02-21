@@ -701,7 +701,7 @@ class SpanTreeModel {
 
         if (this.showEmbeddedChildren) {
           if (this.embeddedChildren.length === 0) {
-            Promise.all(
+            return Promise.all(
               transactions.map(transaction =>
                 this.fetchEmbeddedTransactions({
                   orgSlug,
@@ -713,7 +713,6 @@ class SpanTreeModel {
                 })
               )
             );
-            // return this.fetchEmbeddedTransactions({...props, addTraceBounds});
           }
           this.embeddedChildren.forEach(child => {
             addTraceBounds(child.generateTraceBounds());
