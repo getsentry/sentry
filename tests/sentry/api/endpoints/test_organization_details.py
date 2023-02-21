@@ -399,7 +399,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             status=404,
         )
         data = {"codecovAccess": True}
-        self.get_error_response(self.organization.slug, status_code=412, **data)
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_setting_trusted_relays_forbidden(self):
         data = {
