@@ -7,7 +7,7 @@
       "url": "~/index.js.map",
       "type": "source_map",
       "headers": {
-        "debug-id": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+        "debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b"
       }
     },
     "files/_/_/index.js": {
@@ -15,7 +15,7 @@
       "type": "source",
       "headers": {
         "Sourcemap": "index.js.map",
-        "debug-id": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+        "Debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b"
       }
     }
   }
