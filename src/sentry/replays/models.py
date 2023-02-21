@@ -14,14 +14,12 @@ class ReplayRecordingSegment(Model):
     DRIVER_CHOICES = [(FILESTORE, "filestore"), (STORAGE, "storage")]
 
     driver = models.SmallIntegerField(choices=DRIVER_CHOICES, default=FILESTORE)
-    org_id = BoundedBigIntegerField(null=True)
     project_id = BoundedBigIntegerField()
     replay_id = models.CharField(max_length=32, db_index=True)
     segment_id = BoundedIntegerField(db_column="sequence_id")
     file_id = BoundedBigIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
     size = BoundedPositiveIntegerField(null=True)
-    retention_days = models.IntegerField(null=True)
 
     class Meta:
         app_label = "replays"
@@ -33,3 +31,6 @@ class ReplayRecordingSegment(Model):
         )
 
     __repr__ = sane_repr("replay_id", "segment_id")
+
+    def delete(self, *args, **kwargs):
+        return super().delete(*args, **kwargs)

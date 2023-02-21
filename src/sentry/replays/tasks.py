@@ -52,8 +52,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         replay_id=replay_id, project_id=project_id
     ).all()
     for segment in segments:
-        # Segments are deleted in parallel by worker processes.
-        delete_recording_segment.delay(segment.replay_id, segment.segment_id)
+        segment.delete()
 
 
 def archive_replay(project_id: int, replay_id: str) -> None:

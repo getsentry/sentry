@@ -25,12 +25,10 @@ logger = logging.getLogger()
 
 @dataclasses.dataclass
 class RecordingSegmentStorageMeta:
-    org_id: int
     project_id: int
     replay_id: str
     segment_id: int
-    size: int
-    retention_days: int
+    file_id: Optional[int]
 
 
 # Both types implement nearly the same attributes.  One is post-ingest and the other pre-ingest.
@@ -80,7 +78,7 @@ def cached(fn: Callable[[Any, SegmentType], bytes]):
 
 class Blob(ABC):
     @abstractmethod
-    def delete(self, segment: SegmentType) -> None:
+    def delete(self, segment: RecordingSegmentStorageMeta) -> None:
         """Remove a blob from remote storage."""
         raise NotImplementedError
 
@@ -126,8 +124,8 @@ class Blob(ABC):
 class FilestoreBlob(Blob):
     """Filestore service driver blob manager."""
 
-    def delete(self, segment: SegmentType) -> None:
-        file = File.objects.get(pk=self.make_key(segment))
+    def delete(self, segment: RecordingSegmentStorageMeta) -> None:
+        file = File.objects.get(pk=segment.file_id)
         file.delete()
 
     @decompressed
@@ -148,9 +146,6 @@ class FilestoreBlob(Blob):
         if segment is None:
             file.delete()
 
-    def make_key(self, segment: SegmentType) -> int:
-        return segment.file_id
-
 
 class StorageBlob(Blob):
     """Storage service driver blob manager.
@@ -159,7 +154,7 @@ class StorageBlob(Blob):
     bucket.  Keys are prefixed by their TTL.  Those TTLs are 30, 60, 90.  Measured in days.
     """
 
-    def delete(self, segment: SegmentType) -> None:
+    def delete(self, segment: RecordingSegmentStorageMeta) -> None:
         storage = get_storage(self._make_storage_options())
         storage.delete(self.make_key(segment))
 
@@ -197,9 +192,7 @@ class StorageBlob(Blob):
 
 
 def make_filename(segment: SegmentType) -> str:
-    return "{}/{}/{}/{}/{}".format(
-        segment.retention_days,
-        segment.org_id,
+    return "{}/{}/{}".format(
         segment.project_id,
         segment.replay_id,
         segment.segment_id,
