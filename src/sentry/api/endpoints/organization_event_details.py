@@ -1,5 +1,3 @@
-import logging
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,8 +6,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.models.project import Project, ProjectStatus
-
-logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint

@@ -738,7 +738,7 @@ class GroupEvent(BaseEvent):
         return group_event
 
     @property
-    def occurrence(self) -> IssueOccurrence:
+    def occurrence(self) -> Optional[IssueOccurrence]:
         if not self._occurrence and self.occurrence_id:
             self._occurrence = IssueOccurrence.fetch(self.occurrence_id, self.project_id)
             if self._occurrence is None:
