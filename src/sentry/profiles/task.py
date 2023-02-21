@@ -58,13 +58,20 @@ def process_profile_task(
     )
     sentry_sdk.set_tag("platform", profile["platform"])
 
-    _symbolicate_profile(profile, project, event_id)
-    _deobfuscate_profile(profile, project)
+    if not _symbolicate_profile(profile, project, event_id):
+        return
+
+    if not _deobfuscate_profile(profile, project):
+        return
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    _normalize_profile(profile, organization, project)
-    _push_profile_to_vroom(profile, project)
+    if not _normalize_profile(profile, organization, project):
+        return
+
+    if not _push_profile_to_vroom(profile, project):
+        return
+
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
@@ -82,16 +89,19 @@ def _should_deobfuscate(profile: Profile) -> bool:
     return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
 
 
-def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> None:
-    try:
-        if _should_symbolicate(profile):
+def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> bool:
+    if not _should_symbolicate(profile):
+        return True
+
+    with sentry_sdk.start_span(op="task.profiling.symbolicate"):
+        try:
             if "debug_meta" not in profile or not profile["debug_meta"]:
                 metrics.incr(
                     "process_profile.missing_keys.debug_meta",
                     tags={"platform": profile["platform"]},
                     sample_rate=1.0,
                 )
-                return
+                return True
 
             # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
             # See comments in the function for why this happens.
@@ -105,56 +115,65 @@ def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> N
 
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
             profile["symbolicated"] = True
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_symbolication",
-        )
-        return
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="profiling_failed_symbolication",
+            )
+            return False
 
 
-def _deobfuscate_profile(profile: Profile, project: Project) -> None:
-    try:
-        if _should_deobfuscate(profile):
+def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
+    if not _should_deobfuscate(profile):
+        return True
+
+    with sentry_sdk.start_span(op="task.profiling.deobfuscate"):
+        try:
             if "profile" not in profile or not profile["profile"]:
                 metrics.incr(
                     "process_profile.missing_keys.profile",
                     tags={"platform": profile["platform"]},
                     sample_rate=1.0,
                 )
-                return
+                return True
 
             _deobfuscate(profile=profile, project=project)
             profile["deobfuscated"] = True
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_deobfuscation",
-        )
-        return
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="profiling_failed_deobfuscation",
+            )
+            return False
 
 
-def _normalize_profile(profile: Profile, organization: Organization, project: Project) -> None:
-    try:
-        if not profile.get("normalized", False):
+def _normalize_profile(profile: Profile, organization: Organization, project: Project) -> bool:
+    if profile.get("normalized", False):
+        return True
+
+    with sentry_sdk.start_span(op="task.profiling.normalize"):
+        try:
             _normalize(profile=profile, organization=organization)
             profile["normalized"] = True
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_normalization",
-        )
-        return
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="profiling_failed_normalization",
+            )
+            return False
 
 
 @metrics.wraps("process_profile.normalize")
@@ -502,38 +521,41 @@ def _track_outcome(
 
 @metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
-    try:
-        response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
+    with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
+        try:
+            response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
-        if response.status == 204:
-            return True
-        elif response.status == 429:
-            raise VroomTimeout
-        else:
+            if response.status == 204:
+                return True
+            elif response.status == 429:
+                raise VroomTimeout
+            else:
+                metrics.incr(
+                    "process_profile.insert_vroom_profile.error",
+                    tags={"platform": profile["platform"], "reason": "bad status"},
+                    sample_rate=1.0,
+                )
+                return False
+        except VroomTimeout:
+            raise
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             metrics.incr(
                 "process_profile.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": "bad status"},
+                tags={"platform": profile["platform"], "reason": "encountered error"},
                 sample_rate=1.0,
             )
             return False
-    except VroomTimeout:
-        raise
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        metrics.incr(
-            "process_profile.insert_vroom_profile.error",
-            tags={"platform": profile["platform"], "reason": "encountered error"},
-            sample_rate=1.0,
-        )
-        return False
 
 
-def _push_profile_to_vroom(profile: Profile, project: Project) -> None:
-    if not _insert_vroom_profile(profile=profile):
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_vroom_insertion",
-        )
-        return
+def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
+    if _insert_vroom_profile(profile=profile):
+        return True
+
+    _track_outcome(
+        profile=profile,
+        project=project,
+        outcome=Outcome.INVALID,
+        reason="profiling_failed_vroom_insertion",
+    )
+    return False
