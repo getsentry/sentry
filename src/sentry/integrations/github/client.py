@@ -23,6 +23,7 @@ logger = logging.getLogger("sentry.integrations.github")
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
 
+#
 
 class GithubRateLimitInfo:
     def __init__(self, info: Dict[str, int]) -> None:
