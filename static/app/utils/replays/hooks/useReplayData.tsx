@@ -63,10 +63,9 @@ const INITIAL_STATE: State = Object.freeze({
 
 function responsesToAttachments(responses: Array<unknown>) {
   // Each response returns an array of segments
-  const segments = responses.flatMap(_ => _);
   // Each segment includes an array of attachments
-  const attachments = segments.flatMap(_ => _);
-  return attachments;
+  // Therefore we flatten 2 levels deep
+  return responses.flat(2);
 }
 
 /**

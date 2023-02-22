@@ -175,6 +175,7 @@ export function breadcrumbFactory(
         span.op
       )
     )
+    .sort((a, b) => a.startTimestamp - b.startTimestamp)
     .map(span => {
       if (span.op.startsWith('navigation')) {
         const [, action] = span.op.split('.');
