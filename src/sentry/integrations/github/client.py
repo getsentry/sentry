@@ -25,6 +25,7 @@ MINIMUM_REQUESTS = 200
 
 #
 
+
 class GithubRateLimitInfo:
     def __init__(self, info: Dict[str, int]) -> None:
         self.limit = info["limit"]
