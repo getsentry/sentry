@@ -21,6 +21,7 @@ type AddSpanOpts = {
 
 interface TransactionSettings {
   duration?: number;
+  fcp?: number;
 }
 export class TransactionEventBuilder {
   TRACE_ID = '8cbbc19c0f54447ab702f00263262726';
@@ -73,6 +74,12 @@ export class TransactionEventBuilder {
       fingerprints: [],
       location: null,
       message: '',
+      measurements: {
+        fcp: {
+          value: transactionSettings?.fcp ?? 0,
+          unit: 'millisecond',
+        },
+      },
       metadata: {
         current_level: undefined,
         current_tree_label: undefined,
