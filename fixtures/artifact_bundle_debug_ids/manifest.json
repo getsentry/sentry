@@ -1,7 +1,6 @@
 {
   "org": "__org__",
   "release": "__release__",
-  "project": "__project__",
   "files": {
     "files/_/_/index.js.map": {
       "url": "~/index.js.map",
@@ -21,6 +20,10 @@
         "Debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b",
         "Sourcemap": "index.js.map"
       }
+    },
+    "files/_/_/bundle1.js": {
+      "url": "~/bundle1.js",
+      "type": "source"
     }
   }
 }

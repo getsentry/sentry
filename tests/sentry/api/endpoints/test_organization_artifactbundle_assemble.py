@@ -82,8 +82,8 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         mock_assemble_artifacts.apply_async.assert_called_once_with(
             kwargs={
                 "org_id": self.organization.id,
-                "project_id": None,
-                "version": self.release.version,
+                "project_ids": [self.project.id],
+                "version": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
             }
@@ -104,7 +104,11 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         response = self.client.post(
             self.url,
-            data={"checksum": total_checksum, "chunks": [blob1.checksum]},
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.id],
+            },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
@@ -126,7 +130,11 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         response = self.client.post(
             self.url,
-            data={"checksum": total_checksum, "chunks": [blob1.checksum]},
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.id],
+            },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
