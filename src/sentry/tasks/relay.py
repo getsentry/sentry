@@ -250,7 +250,8 @@ def schedule_invalidate_project_config(
     countdown=5,
 ):
     """Enqueues :func:`_schedule_invalidate_project_config` to run after the
-    ongoing database transaction is committed. See
+    ongoing database transaction is committed (or run directly if there's no
+    database transaction ongoing). See
     :func:`_schedule_invalidate_project_config`'s docstrings to learn how to use
     it.
 
