@@ -201,10 +201,14 @@ def make_performance_event(project, sample_name: str):
             "organizations:performance-issues-render-blocking-assets-detector": True,
         }
     ):
+        timestamp = datetime(2017, 9, 6, 0, 0)
+        start_timestamp = timestamp - timedelta(seconds=3)
+
         perf_data = dict(
             load_data(
                 sample_name,
-                timestamp=datetime(2017, 9, 6, 0, 0),
+                start_timestamp=start_timestamp,
+                timestamp=timestamp,
             )
         )
         perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
@@ -213,7 +217,8 @@ def make_performance_event(project, sample_name: str):
         perf_data = perf_event_manager.get_data()
         perf_event = perf_event_manager.save(project.id)
         # Prevent CI screenshot from constantly changing
-        perf_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+        perf_event.data["timestamp"] = timestamp.timestamp()
+        perf_event.data["start_timestamp"] = start_timestamp.timestamp()
 
     perf_event = perf_event.for_group(perf_event.groups[0])
     return perf_event
