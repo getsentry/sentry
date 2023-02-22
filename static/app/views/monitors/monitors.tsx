@@ -141,12 +141,18 @@ class Monitors extends AsyncView<Props, State> {
                     t('Schedule'),
                     t('Next Checkin'),
                     t('Project'),
+                    t('Actions'),
                   ]}
                 >
                   {monitorList?.map(monitor => (
                     <MonitorRow
                       key={monitor.id}
                       monitor={monitor}
+                      onDelete={() => {
+                        this.setState({
+                          monitorList: monitorList.filter(m => m.id !== monitor.id),
+                        });
+                      }}
                       organization={organization}
                     />
                   ))}
@@ -186,7 +192,7 @@ const Filters = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content max-content max-content;
+  grid-template-columns: 1fr max-content max-content max-content max-content max-content;
 `;
 
 const ButtonList = styled(ButtonBar)`
