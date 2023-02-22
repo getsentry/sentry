@@ -65,7 +65,7 @@ updates:
     schedule:
       interval: 'daily'
     reviewers:
-      - '@getsentry/owners-python-build'
+      - '@getsentry/open-source'
       - '@getsentry/security'
     # security only updates
     open-pull-requests-limit: 0
