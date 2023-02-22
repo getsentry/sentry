@@ -60,3 +60,12 @@ updates:
       - dependency-name: 'reflux'
       - dependency-name: 'sprintf-js'
       - dependency-name: 'u2f-api'
+  - package-ecosystem: 'docker'
+    directory: 'docker/'
+    schedule:
+      interval: 'daily'
+    reviewers:
+      - '@getsentry/open-source'
+      - '@getsentry/security'
+    # security only updates
+    open-pull-requests-limit: 0
