@@ -314,7 +314,7 @@ def _create_artifact_bundle(
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
     """
-    Creates release files from an uploaded artifact bundle.
+    Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
@@ -376,23 +376,20 @@ def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
             min_artifact_count = options.get("processing.release-archive-min-files")
             saved_as_archive = False
 
-            if artifact_count >= min_artifact_count:
-                # If we receive a version, it means that we want to create a ReleaseFile, otherwise we will create
-                # an ArtifactBundle.
-                if version:
-                    if release is None:
-                        raise AssembleArtifactsError("release does not exist")
+            # If we receive a version, it means that we want to create a ReleaseFile, otherwise we will create
+            # an ArtifactBundle.
+            if version and artifact_count >= min_artifact_count:
+                if release is None:
+                    raise AssembleArtifactsError("release does not exist")
 
-                    try:
-                        update_artifact_index(release, dist, bundle)
-                        saved_as_archive = True
-                    except Exception as exc:
-                        logger.error("Unable to update artifact index", exc_info=exc)
-                else:
-                    _create_artifact_bundle(
-                        release, dist, org_id, project_id, bundle, artifact_count
-                    )
+                try:
+                    update_artifact_index(release, dist, bundle)
                     saved_as_archive = True
+                except Exception as exc:
+                    logger.error("Unable to update artifact index", exc_info=exc)
+            elif version is None:
+                _create_artifact_bundle(release, dist, org_id, project_id, bundle, artifact_count)
+                saved_as_archive = True
 
             if not saved_as_archive:
                 meta = {
@@ -404,7 +401,6 @@ def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
-
     except AssembleArtifactsError as e:
         set_assemble_status(
             AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
