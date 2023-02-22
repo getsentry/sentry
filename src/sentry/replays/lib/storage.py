@@ -156,13 +156,6 @@ def make_storage_driver(organization_id: int) -> Union[FilestoreBlob, StorageBlo
     return make_storage_driver_from_name(driver_name)
 
 
-def make_storage_driver_from_id(driver_id: int) -> Union[FilestoreBlob, StorageBlob]:
-    for choice, label in ReplayRecordingSegment.DRIVER_CHOICES:
-        if driver_id == choice:
-            return make_storage_driver_from_name(label)
-    raise ValueError("Invalid blob storage driver-id specified.")
-
-
 def make_storage_driver_from_name(driver_name: str) -> Union[FilestoreBlob, StorageBlob]:
     if driver_name == "storage":
         return StorageBlob()

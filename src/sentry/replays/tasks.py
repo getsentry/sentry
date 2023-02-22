@@ -4,7 +4,6 @@ from typing import Optional
 
 from django.conf import settings
 
-from sentry.replays.lib.storage import make_storage_driver_from_id
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, kafka_config
@@ -23,27 +22,6 @@ def delete_recording_segments(project_id: int, replay_id: str, **kwargs: dict) -
     """Asynchronously delete a replay."""
     archive_replay(project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
-
-
-@instrumented_task(
-    name="sentry.replays.tasks.delete_recording_segment",
-    queue="replays.delete_replay",
-    default_retry_delay=5,
-    max_retries=5,
-)
-def delete_recording_segment(replay_id: str, segment_id: int) -> None:
-    """Asynchronously delete a recording-segment."""
-    segment = ReplayRecordingSegment.objects.filter(
-        replay_id=replay_id,
-        segment_id=segment_id,
-    ).first()
-
-    # Delete the remote storage object.
-    driver = make_storage_driver_from_id(segment.driver)
-    driver.delete(segment)
-
-    # Delete the row.
-    segment.delete()
 
 
 def delete_replay_recording(project_id: int, replay_id: str) -> None:

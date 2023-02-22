@@ -100,7 +100,10 @@ def fetch_direct_storage_segments_meta(
     limit: int,
 ) -> List[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    return _fetch_from_snuba(project_id, replay_id, offset, limit)
+    if _has_archived_segment(project_id, replay_id):
+        return []
+    else:
+        return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
 
 
 def fetch_direct_storage_segment_meta(
@@ -109,7 +112,10 @@ def fetch_direct_storage_segment_meta(
     segment_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    results = _fetch_from_snuba(
+    if _has_archived_segment(project_id, replay_id):
+        return None
+
+    results = _fetch_segments_from_snuba(
         project_id=project_id,
         replay_id=replay_id,
         offset=0,
@@ -122,7 +128,32 @@ def fetch_direct_storage_segment_meta(
         return results[0]
 
 
-def _fetch_from_snuba(
+def _has_archived_segment(project_id: int, replay_id: str) -> bool:
+    """Return true if an archive row exists for this replay."""
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[Column("is_archived")],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("replay_id"), Op.EQ, replay_id),
+                # We request the full 90 day range.
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
+                # is-archived must be true.
+                Condition(Column("is_archived", Op.EQ, 1)),
+            ],
+            orderby=[Column("segment_id")],
+            granularity=Granularity(3600),
+        ),
+    )
+    response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
+    return len(response["data"]) > 0
+
+
+def _fetch_segments_from_snuba(
     project_id: int,
     replay_id: str,
     offset: int,
@@ -138,12 +169,12 @@ def _fetch_from_snuba(
             where=[
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column("replay_id"), Op.EQ, replay_id),
-                # Segment must be in the cursor range.
-                # Condition(Column("segment_id"), Op.GTE, offset),
-                # Condition(Column("segment_id"), Op.LT, offset + limit),
                 # We request the full 90 day range.
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
+                # Optimization to reduce the number of rows before the LIMIT clause.
+                Condition(Column("segment_id"), Op.GTE, offset),
+                Condition(Column("segment_id"), Op.LT, offset + limit),
                 *conditions,
             ],
             orderby=[Column("segment_id")],
