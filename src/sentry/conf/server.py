@@ -1033,6 +1033,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
+    # Enable the transactions backed profiling views
+    "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
