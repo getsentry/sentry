@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
+import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -20,10 +21,18 @@ import {Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 import GenericFooter from '../genericFooter';
 
 import {useHeartbeat} from './useHeartbeat';
+
+type HeartbeatState = {
+  beats: {
+    firstErrorReceived: boolean | string;
+    sdkConnected: boolean;
+  };
+};
 
 enum BeatStatus {
   AWAITING = 'awaiting',
@@ -67,21 +76,26 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
       ? projects.find(proj => proj.slug === projectSlug)
       : undefined;
 
+  const heartbeat_sessionStorage_key = `heartbeat-${project?.slug}`;
+
+  const [sessionStorage, setSessionStorage] = useSessionStorage<HeartbeatState>(
+    heartbeat_sessionStorage_key,
+    {
+      beats: {
+        sdkConnected: false,
+        firstErrorReceived: false,
+      },
+    }
+  );
+
   const {
     loading,
+    issuesLoading,
     firstErrorReceived,
     firstTransactionReceived,
     sessionReceived,
     serverConnected,
   } = useHeartbeat(project?.slug, project?.id);
-
-  useEffect(() => {
-    if (loading || !serverConnected) {
-      return;
-    }
-
-    addSuccessMessage(t('SDK Connected'));
-  }, [serverConnected, loading]);
 
   useEffect(() => {
     if (loading || !sessionReceived) {
@@ -106,7 +120,25 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
   }, [firstTransactionReceived, loading, newOrg, organization]);
 
   useEffect(() => {
-    if (loading || !firstErrorReceived) {
+    if (loading || !serverConnected || !!sessionStorage?.beats?.sdkConnected) {
+      return;
+    }
+
+    setSessionStorage({
+      ...sessionStorage,
+      beats: {...sessionStorage.beats, sdkConnected: true},
+    });
+
+    addSuccessMessage(t('SDK Connected'));
+  }, [serverConnected, loading, sessionStorage, setSessionStorage]);
+
+  useEffect(() => {
+    if (
+      loading ||
+      issuesLoading ||
+      !firstErrorReceived ||
+      !!sessionStorage?.beats?.firstErrorReceived
+    ) {
       return;
     }
 
@@ -115,8 +147,26 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
       new_organization: !!newOrg,
     });
 
+    const firstErrorOrTrue =
+      firstErrorReceived !== true && 'id' in firstErrorReceived
+        ? firstErrorReceived.id
+        : true;
+
+    setSessionStorage({
+      ...sessionStorage,
+      beats: {...sessionStorage.beats, firstErrorReceived: firstErrorOrTrue},
+    });
+
     addSuccessMessage(t('First error received'));
-  }, [firstErrorReceived, loading, newOrg, organization]);
+  }, [
+    firstErrorReceived,
+    issuesLoading,
+    loading,
+    newOrg,
+    organization,
+    sessionStorage,
+    setSessionStorage,
+  ]);
 
   useEffect(() => {
     const onUnload = (nextLocation?: Location) => {
@@ -124,7 +174,13 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
         return true;
       }
 
-      if (!serverConnected) {
+      // If the user has not yet started with the onboarding, then we don't show the dialog
+      if (!sessionStorage.beats.sdkConnected) {
+        return true;
+      }
+
+      // If the user has already sent an error, then we don't show the dialog
+      if (sessionStorage.beats.firstErrorReceived) {
         return true;
       }
 
@@ -147,7 +203,13 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
     };
 
     router.setRouteLeaveHook(route, onUnload);
-  }, [router, route, organization, firstErrorReceived, serverConnected]);
+  }, [
+    router,
+    route,
+    organization,
+    sessionStorage.beats.sdkConnected,
+    sessionStorage.beats.firstErrorReceived,
+  ]);
 
   // The explore button is only showed if Sentry has not yet received any errors.
   const handleExploreSentry = useCallback(() => {
@@ -175,13 +237,13 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
       query: {project: project?.id},
     };
 
-    if (!firstErrorReceived) {
-      openChangeRouteModal(router, nextLocation);
+    if (sessionStorage.beats.firstErrorReceived) {
+      router.push(nextLocation);
       return;
     }
 
-    router.push(nextLocation);
-  }, [router, organization, project, firstErrorReceived]);
+    openChangeRouteModal(router, nextLocation);
+  }, [router, organization, project, sessionStorage.beats.firstErrorReceived]);
 
   // It's the same idea as the explore button and this will go away in the next iteration.
   const handleGoToIssues = useCallback(() => {
@@ -196,6 +258,36 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
       hash: '#welcome',
     });
   }, [router, organization, project]);
+
+  const handleGoToMyError = useCallback(() => {
+    if (projectsLoading) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('heartbeat.onboarding_go_to_my_error_button_clicked', {
+      organization,
+      new_organization: !!newOrg,
+    });
+
+    if (typeof sessionStorage.beats.firstErrorReceived !== 'boolean') {
+      router.push({
+        ...router.location,
+        pathname: `/organizations/${organization.slug}/issues/${sessionStorage.beats.firstErrorReceived}/?referrer=onboarding-first-event-footer`,
+      });
+      return;
+    }
+
+    router.push({
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
+    });
+  }, [
+    projectsLoading,
+    organization,
+    newOrg,
+    router,
+    sessionStorage.beats.firstErrorReceived,
+  ]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
@@ -213,72 +305,43 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
         )}
       </PlatformIconAndName>
       <Beats>
-        {loading ? (
-          <Fragment>
-            <LoadingPlaceholder height="28px" width="160px" />
-            <LoadingPlaceholder height="28px" width="160px" />
-          </Fragment>
-        ) : firstErrorReceived ? (
-          <Fragment>
-            <Beat status={BeatStatus.COMPLETE}>
-              <IconCheckmark size="sm" isCircled />
-              {t('DSN response received')}
-            </Beat>
-            <Beat status={BeatStatus.COMPLETE}>
-              <IconCheckmark size="sm" isCircled />
-              {t('First error received')}
-            </Beat>
-          </Fragment>
-        ) : serverConnected ? (
-          <Fragment>
-            <Beat status={BeatStatus.COMPLETE}>
-              <IconCheckmark size="sm" isCircled />
-              {t('DSN response received')}
-            </Beat>
-            <Beat status={BeatStatus.AWAITING}>
-              <PulsingIndicator>2</PulsingIndicator>
-              {t('Awaiting first error')}
-            </Beat>
-          </Fragment>
+        {sessionStorage.beats.sdkConnected ? (
+          <Beat status={BeatStatus.COMPLETE}>
+            <IconCheckmark size="sm" isCircled />
+            {t('SDK Connected')}
+          </Beat>
+        ) : loading ? (
+          <LoadingPlaceholder height="28px" width="160px" />
         ) : (
-          <Fragment>
-            <Beat status={BeatStatus.AWAITING}>
-              <PulsingIndicator>1</PulsingIndicator>
-              {t('Awaiting DSN response')}
-            </Beat>
-            <Beat status={BeatStatus.PENDING}>
-              <PulsingIndicator>2</PulsingIndicator>
-              {t('Awaiting first error')}
-            </Beat>
-          </Fragment>
+          <Beat status={BeatStatus.AWAITING}>
+            <PulsingIndicator>1</PulsingIndicator>
+            {t('Awaiting SDK connection')}
+          </Beat>
+        )}
+        {sessionStorage.beats.firstErrorReceived ? (
+          <Beat status={BeatStatus.COMPLETE}>
+            <IconCheckmark size="sm" isCircled />
+            {t('First error received')}
+          </Beat>
+        ) : loading ? (
+          <LoadingPlaceholder height="28px" width="160px" />
+        ) : (
+          <Beat status={BeatStatus.AWAITING}>
+            <PulsingIndicator>2</PulsingIndicator>
+            {t('Awaiting first error')}
+          </Beat>
         )}
       </Beats>
       <Actions>
         <ButtonBar gap={1}>
           {newOrg ? (
             <Fragment>
-              {loading ? (
-                <LoadingPlaceholderButton width="135px" />
-              ) : firstErrorReceived ? (
+              {sessionStorage.beats.firstErrorReceived &&
+              typeof sessionStorage.beats.firstErrorReceived !== 'boolean' ? (
                 <Button
                   priority="primary"
                   busy={projectsLoading}
-                  to={`/organizations/${organization.slug}/issues/${
-                    firstErrorReceived &&
-                    firstErrorReceived !== true &&
-                    'id' in firstErrorReceived
-                      ? `${firstErrorReceived.id}/`
-                      : ''
-                  }?referrer=onboarding-first-event-footer`}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'heartbeat.onboarding_go_to_my_error_button_clicked',
-                      {
-                        organization,
-                        new_organization: !!newOrg,
-                      }
-                    );
-                  }}
+                  onClick={handleGoToMyError}
                 >
                   {t('Go to my error')}
                 </Button>
@@ -297,26 +360,12 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
               <Button busy={projectsLoading} onClick={handleGoToPerformance}>
                 {t('Go to Performance')}
               </Button>
-              {firstErrorReceived ? (
+              {sessionStorage.beats.firstErrorReceived &&
+              typeof sessionStorage.beats.firstErrorReceived !== 'boolean' ? (
                 <Button
                   priority="primary"
                   busy={projectsLoading}
-                  to={`/organizations/${organization.slug}/issues/${
-                    firstErrorReceived &&
-                    firstErrorReceived !== true &&
-                    'id' in firstErrorReceived
-                      ? `${firstErrorReceived.id}/`
-                      : ''
-                  }`}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'heartbeat.onboarding_go_to_my_error_button_clicked',
-                      {
-                        organization,
-                        new_organization: !!newOrg,
-                      }
-                    );
-                  }}
+                  onClick={handleGoToMyError}
                 >
                   {t('Go to my error')}
                 </Button>
@@ -337,7 +386,12 @@ export function HeartbeatFooter({projectSlug, router, route, newOrg}: Props) {
   );
 }
 
-const Wrapper = styled(GenericFooter)<{newOrg: boolean; sidebarCollapsed: boolean}>`
+const Wrapper = styled(GenericFooter, {
+  shouldForwardProp: prop => isPropValid(prop),
+})<{
+  newOrg: boolean;
+  sidebarCollapsed: boolean;
+}>`
   display: none;
   display: flex;
   flex-direction: row;
@@ -389,10 +443,6 @@ const Beats = styled('div')`
 
 const LoadingPlaceholder = styled(Placeholder)`
   width: ${p => p.width ?? '100%'};
-`;
-
-const LoadingPlaceholderButton = styled(LoadingPlaceholder)`
-  height: ${p => p.theme.form.md.height}px;
 `;
 
 const PulsingIndicator = styled('div')`
