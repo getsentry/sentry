@@ -122,26 +122,25 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
-def should_issue_owners_ratelimit(
-    project_id,
-):
+def should_issue_owners_ratelimit(project_id, group_id):
     """
-    Make sure that we do not make more requests than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
+    Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
     """
-    cache_key = f"issue_owner_assignment_ratelimit:{project_id}"
+    cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
     data = cache.get(cache_key)
-    if data is None:
-        requests = 1
-        window_start = datetime.now()
-        cache.set(cache_key, (requests, window_start), 60)
-    else:
-        requests = data[0] + 1
-        window_start = data[1]
-        # timeout should never be less than 0
-        timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
-        cache.set(cache_key, (requests, window_start), timeout)
 
-    return requests > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    if data is None:
+        groups = {group_id}
+        window_start = datetime.now()
+        cache.set(cache_key, (groups, window_start), 60)
+    else:
+        groups = set(data[0])
+        groups.add(group_id)
+        window_start = data[1]
+        timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
+        cache.set(cache_key, (groups, window_start), timeout)
+
+    return len(groups) > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
 
 
 def handle_owner_assignment(job):
@@ -169,6 +168,17 @@ def handle_owner_assignment(job):
             # - we tried to calculate and could not find issue owners with TTL 1 day
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
+
+                with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
+                    if should_issue_owners_ratelimit(project.id, group.id):
+                        logger.info(
+                            "handle_owner_assignment.ratelimited",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "ratelimited",
+                            },
+                        )
+                        return
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_assignee"
@@ -209,21 +219,10 @@ def handle_owner_assignment(job):
                         )
                         return
 
-                with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
-
-                    if should_issue_owners_ratelimit(project.id):
-                        logger.info(
-                            "handle_owner_assignment.ratelimited",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "ratelimited",
-                            },
-                        )
-                        return
-
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.get_issue_owners"
                 ):
+
                     if killswitch_matches_context(
                         "post_process.get-autoassign-owners",
                         {
