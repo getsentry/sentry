@@ -24,7 +24,6 @@ class RestoreTest(TransactionTestCase):
 
     command = import_
     tmp_backup_filename = "test_backup.json"
-    reset_sequences = True
 
     def test_import(self):
         rv = self.runner.invoke(self.command, self.tmp_backup_filename)
