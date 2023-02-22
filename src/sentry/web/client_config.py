@@ -257,9 +257,10 @@ def get_client_config(request=None):
                 org_context = organization_service.get_organization_by_id(
                     id=superuser.ORG_ID, user_id=None
                 )
-                context["links"]["superUserUrl"] = generate_organization_url(
-                    org_context.organization.slug
-                )
+                if org_context and org_context.organization:
+                    context["links"]["superUserUrl"] = generate_organization_url(
+                        org_context.organization.slug
+                    )
     else:
         context.update({"isAuthenticated": False, "user": None})
 
