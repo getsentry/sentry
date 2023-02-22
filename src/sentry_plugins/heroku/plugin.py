@@ -68,7 +68,12 @@ class HerokuReleaseHook(ReleaseHook):
                     "email": email,
                 },
             )
-        commit = data.get("slug", {}).get("commit")
+        slug = data.get("slug")
+        if not slug:
+            logger.info("heroku.payload.missing-commit", extra={"project_id": self.project.id})
+            return HttpResponse(status=401)
+
+        commit = slug.get("commit")
         app_name = data.get("app", {}).get("name")
         if app_name:
             self.finish_release(
