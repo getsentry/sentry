@@ -41,7 +41,7 @@ class ProjectTransferTest(APITestCase):
 
             assert response.status_code == 204
             assert len(mail.outbox) == 1
-            assert organization.absolute_url("/accept-transfer/?") in mail.outbox[0].body
+            assert "http://testserver/accept-transfer/?" in mail.outbox[0].body
 
     def test_transfer_project_owner_from_team(self):
         project = self.create_project()
