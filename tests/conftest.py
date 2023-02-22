@@ -144,7 +144,7 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
-def protect_user_deletion(request):
+def protect_hybrid_cloud_deletions(request):
     """
     Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
     by preventing any deletes that do not pass through a special 'connection'.
