@@ -266,9 +266,6 @@
 - name: 'Team: Telemetry Experience'
   color: '8D5494'
   description: telemetry-experience
-- name: 'Team: Visibility'
-  color: '8D5494'
-  description: ''
 - name: 'Team: Web SDKs - Backend'
   color: '8D5494'
   description: team-web-sdk-backend
