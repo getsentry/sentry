@@ -1,6 +1,6 @@
 import {QueryClientProvider} from '@tanstack/react-query';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventData} from 'sentry/utils/discover/eventView';
 import {QueryClient} from 'sentry/utils/queryClient';
@@ -188,9 +188,9 @@ describe('Quick Context Content Issue Column', function () {
 
       // Ensure all commit data is present
       expect(screen.getByText(/MD/i)).toBeInTheDocument();
-      expect(screen.getByText(/View commit/i)).toBeInTheDocument();
-      expect(screen.getByText(/by/i)).toBeInTheDocument();
-      expect(screen.getByText(/Maisey the Dog/i)).toBeInTheDocument();
+      expect(screen.getByTestId('quick-context-commit-row')).toHaveTextContent(
+        /View commit ab27092 by Maisey the Dog/
+      );
     });
 
     it('Renders multiple suspect commits', async () => {
@@ -213,14 +213,12 @@ describe('Quick Context Content Issue Column', function () {
       // Check that they're both there
       expect(screen.getByText(/MD/i)).toBeInTheDocument();
       expect(screen.getByText(/CB/i)).toBeInTheDocument();
-
-      // Ensure each row has the right contents
-      const maiseyCommitRow = within(
-        screen.getAllByTestId('quick-context-commit-row')[0]
+      expect(screen.getAllByTestId('quick-context-commit-row')[0]).toHaveTextContent(
+        /View commit ab27092 by Maisey the Dog/
       );
-      expect(maiseyCommitRow.getByText(/View commit/i)).toBeInTheDocument();
-      expect(maiseyCommitRow.getByText(/by/i)).toBeInTheDocument();
-      expect(maiseyCommitRow.getByText(/Maisey the Dog/i)).toBeInTheDocument();
+      expect(screen.getAllByTestId('quick-context-commit-row')[1]).toHaveTextContent(
+        /View commit fe29668 by Charlie Bear/
+      );
     });
   });
 });
