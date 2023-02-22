@@ -1,21 +1,28 @@
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Iterable, MutableMapping
+from abc import ABCMeta
+from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
 
 from sentry import roles
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, User
+from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models import Organization
 
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
+    role: Optional[OrganizationRole] = roles.get("member")
+    scope: Optional[str] = None
 
     def __init__(self, organization: Organization):
         self.organization = organization
+
+    # backwards compatibility (default role should be none)
+    def has_default_role(self) -> bool:
+        return bool(self.role == roles.get("member"))
 
     def get_member(self, user: RpcUser) -> OrganizationMember:
         # cache the result
@@ -43,23 +50,58 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         # convert members to users
         return user_service.get_many(filter={"user_ids": [member.user_id for member in members]})
 
-    @abstractmethod
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         """
         Depending on the type of request this might be all organization owners,
         a specific person, or something in between.
         """
-        raise NotImplementedError
+        # default strategy is OrgMembersRecipientStrategy
+        members: Iterable[
+            OrganizationMember
+        ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id)
 
+        if not self.scope and self.has_default_role():
+            return members
+
+        # you can either set the scope or the role for now
+        # if both are set we use the scope
+        valid_roles = []
+        if self.role and not self.scope:
+            valid_roles = [self.role.id]
+        elif self.scope:
+            valid_roles = [r.id for r in roles.get_all() if r.has_scope(self.scope)]
+
+        member_ids = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
+            "id", flat=True
+        )
+        # ignore type because of optional filtering
+        members = members.filter(id__in=member_ids)  # type: ignore[attr-defined]
+
+        return members
+
+    # backwards compatibility
     def get_role_string(self, member: OrganizationMember) -> str:
         role_string: str = roles.get(member.role).name
         return role_string
 
     def build_notification_footer_from_settings_url(
-        self, settings_url: str, recipient: User
+        self, settings_url: str, recipient: Optional[User] = None
     ) -> str:
-        recipient_member = self.get_member(recipient)
+        if self.scope and not self.role:
+            return (
+                "You are receiving this notification because you have the scope "
+                f"{self.scope} | {settings_url}"
+            )
+
+        role_name = "Member"
+        # backwards compatibility
+        if recipient and not self.scope and self.has_default_role():
+            member = self.get_member(recipient)
+            role_name = self.get_role_string(member)
+        if not self.has_default_role() and self.role:
+            role_name = self.role.name
+
         return (
             "You are receiving this notification because you're listed as an organization "
-            f"{self.get_role_string(recipient_member)} | {settings_url}"
+            f"{role_name} | {settings_url}"
         )

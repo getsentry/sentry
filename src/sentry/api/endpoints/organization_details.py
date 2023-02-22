@@ -495,19 +495,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         was_pending_deletion = organization.status in DELETION_STATUSES
 
         enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
-        if (
-            enabling_codecov
-            and features.has("organizations:codecov-stacktrace-integration-v2", organization)
-            and not has_codecov_integration(organization)
+        if enabling_codecov and features.has(
+            "organizations:codecov-stacktrace-integration-v2", organization
         ):
-            return self.respond(
-                {
-                    "codecovAccess": [
-                        "Codecov access can only be enabled if the organization has a Codecov integration."
-                    ]
-                },
-                status=status.HTTP_412_PRECONDITION_FAILED,
-            )
+            has_integration, error = has_codecov_integration(organization)
+            if not has_integration:
+                return self.respond(
+                    {"codecovAccess": [error]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = serializer_cls(
             data=request.data,
