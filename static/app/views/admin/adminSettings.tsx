@@ -50,6 +50,7 @@ const optionsAvailable = [
   'profile.issues.blocked_main_thread-ingest.la-rollout',
   'profile.issues.blocked_main_thread-ingest.ea-rollout',
   'profile.issues.blocked_main_thread-ingest.ga-rollout',
+  'processing.view-hierarchies-deobfuscation-general-availability',
 ];
 
 type Field = ReturnType<typeof getOption>;
