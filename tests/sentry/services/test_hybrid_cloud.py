@@ -22,7 +22,9 @@ class RpcModelTest(TestCase):
     INTERFACE_CLASSES = frozenset(
         [
             app.RpcSentryApp,
+            app.RpcSentryAppComponent,
             app.RpcSentryAppInstallation,
+            app.RpcSentryAppService,
             auth.RpcAuthIdentity,
             auth.RpcAuthProvider,
             auth.RpcAuthProviderFlags,

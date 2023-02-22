@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import datetime
-from dataclasses import field
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict
+
+from pydantic.fields import Field
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryApp, SentryAppInstallation
@@ -20,85 +21,6 @@ if TYPE_CHECKING:
     from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
 
 
-class RpcSentryAppService(RpcModel):
-    """
-    A `SentryAppService` (a notification service) wrapped up and serializable via the
-    rpc interface.
-    """
-
-    title: str = ""
-    slug: str = ""
-    service_type: str = "sentry_app"
-
-
-class RpcSentryAppInstallation(RpcModel):
-    id: int = -1
-    organization_id: int = -1
-    status: int = SentryAppInstallationStatus.PENDING
-    sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
-    date_deleted: Optional[datetime.datetime] = None
-    uuid: str = ""
-
-
-class RpcSentryAppComponent(RpcModel):
-    uuid: str = ""
-    sentry_app_id: int = -1
-    type: str = ""
-    schema: Mapping[str, Any] = field(default_factory=dict)
-
-
-class RpcSentryApp(RpcModel):
-    id: int = -1
-    scope_list: List[str] = field(default_factory=list)
-    application_id: int = -1
-    proxy_user_id: int | None = None  # can be null on deletion.
-    owner_id: int = -1  # relation to an organization
-    name: str = ""
-    slug: str = ""
-    uuid: str = ""
-    events: List[str] = field(default_factory=list)
-
-
-class SentryAppEventDataInterface(Protocol):
-    """
-    Protocol making RpcSentryAppEvents capable of consuming from various sources, keeping only
-    the minimum required properties.
-    """
-
-    id: str
-    label: str
-
-    @property
-    def actionType(self) -> str:
-        pass
-
-    def is_enabled(self) -> bool:
-        pass
-
-
-class RpcSentryAppEventData(RpcModel, SentryAppEventDataInterface):
-    id: str = ""
-    label: str = ""
-    action_type: str = ""
-    enabled: bool = True
-
-    @property
-    def actionType(self) -> str:
-        return self.action_type
-
-    def is_enabled(self) -> bool:
-        return self.enabled
-
-    @classmethod
-    def from_event(cls, data_interface: SentryAppEventDataInterface) -> RpcSentryAppEventData:
-        return RpcSentryAppEventData(
-            id=data_interface.id,
-            label=data_interface.label,
-            action_type=data_interface.actionType,
-            enabled=data_interface.is_enabled(),
-        )
-
-
 class SentryAppInstallationFilterArgs(TypedDict, total=False):
     installation_ids: List[int]
     app_ids: List[int]
@@ -107,7 +29,7 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
 
 
 class AppService(
-    FilterQueryInterface[SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None],
+    FilterQueryInterface[SentryAppInstallationFilterArgs, "RpcSentryAppInstallation", None],
     InterfaceWithLifecycle,
 ):
     @abc.abstractmethod
@@ -197,3 +119,82 @@ app_service: AppService = silo_mode_delegation(
         SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
     }
 )
+
+
+class RpcSentryApp(RpcModel):
+    id: int = -1
+    scope_list: List[str] = Field(default_factory=list)
+    application_id: int = -1
+    proxy_user_id: Optional[int] = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    events: List[str] = Field(default_factory=list)
+
+
+class RpcSentryAppService(RpcModel):
+    """
+    A `SentryAppService` (a notification service) wrapped up and serializable via the
+    rpc interface.
+    """
+
+    title: str = ""
+    slug: str = ""
+    service_type: str = "sentry_app"
+
+
+class RpcSentryAppInstallation(RpcModel):
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
+    date_deleted: Optional[datetime.datetime] = None
+    uuid: str = ""
+
+
+class RpcSentryAppComponent(RpcModel):
+    uuid: str = ""
+    sentry_app_id: int = -1
+    type: str = ""
+    app_schema: Mapping[str, Any] = Field(default_factory=dict)
+
+
+class SentryAppEventDataInterface(Protocol):
+    """
+    Protocol making RpcSentryAppEvents capable of consuming from various sources, keeping only
+    the minimum required properties.
+    """
+
+    id: str
+    label: str
+
+    @property
+    def actionType(self) -> str:
+        pass
+
+    def is_enabled(self) -> bool:
+        pass
+
+
+class RpcSentryAppEventData(SentryAppEventDataInterface):
+    id: str = ""
+    label: str = ""
+    action_type: str = ""
+    enabled: bool = True
+
+    @property
+    def actionType(self) -> str:
+        return self.action_type
+
+    def is_enabled(self) -> bool:
+        return self.enabled
+
+    @classmethod
+    def from_event(cls, data_interface: SentryAppEventDataInterface) -> RpcSentryAppEventData:
+        return RpcSentryAppEventData(
+            id=data_interface.id,
+            label=data_interface.label,
+            action_type=data_interface.actionType,
+            enabled=data_interface.is_enabled(),
+        )

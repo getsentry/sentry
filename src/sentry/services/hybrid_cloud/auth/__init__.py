@@ -159,14 +159,14 @@ def impl_with_db() -> AuthService:
     return DatabaseBackedAuthService()
 
 
-class RpcAuthState(RpcModel):
-    sso_state: RpcMemberSsoState
-    permissions: List[str]
-
-
 class RpcMemberSsoState(RpcModel):
     is_required: bool = False
     is_valid: bool = False
+
+
+class RpcAuthState(RpcModel):
+    sso_state: RpcMemberSsoState
+    permissions: List[str]
 
 
 @dataclass
