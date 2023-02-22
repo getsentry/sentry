@@ -990,8 +990,9 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
         )
 
+    @patch("sentry.analytics.record")
     @patch("sentry.tasks.post_process.logger")
-    def test_issue_owners_should_ratelimit(self, logger):
+    def test_issue_owners_should_ratelimit(self, logger, record_mock):
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
@@ -1020,6 +1021,13 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
                 "organization": event.project.organization_id,
                 "reason": "ratelimited",
             },
+        )
+        record_mock.assert_called_with(
+            "issue_owners_event.ratelimited",
+            event_id=event.event_id,
+            group_id=event.group_id,
+            project_id=event.project_id,
+            organization_id=event.project.organization_id,
         )
 
 

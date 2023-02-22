@@ -8,7 +8,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features
+from sentry import analytics, features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -177,6 +177,13 @@ def handle_owner_assignment(job):
                                 **basic_logging_details,
                                 "reason": "ratelimited",
                             },
+                        )
+                        analytics.record(
+                            "issue_owners_event.ratelimited",
+                            event_id=event.event_id,
+                            group_id=event.group_id,
+                            project_id=event.project_id,
+                            organization_id=event.project.organization_id,
                         )
                         return
 
