@@ -193,6 +193,10 @@ const RenderBlockingAssetSpanEvidence = ({
           t('FCP Delay'),
           formatDelay(getSpanDuration(offendingSpan), event.measurements?.fcp?.value ?? 0)
         ),
+        makeRow(
+          t('Duration Impact'),
+          getSingleSpanDurationImpact(event, offendingSpans[0])
+        ),
       ]}
     />
   );

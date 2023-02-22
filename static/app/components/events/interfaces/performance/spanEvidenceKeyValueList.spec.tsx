@@ -386,6 +386,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
       {
+        duration: 3,
         fcp: 2500,
       }
     );
@@ -417,6 +418,11 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.fcp-delay')
       ).toHaveTextContent('1s (40% of 2.50s)');
+
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.duration-impact')
+      ).toHaveTextContent('33% (1s/3.00s');
     });
   });
 
