@@ -288,7 +288,7 @@ const sumSpanDurations = (spans: Span[]) => {
 };
 
 const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
-  return timestamp && start_timestamp ? (timestamp - start_timestamp) * 1000 : 0;
+  return ((timestamp ?? 0) - (start_timestamp ?? 0)) * 1000;
 };
 
 function getDurationImpact(event: EventTransaction, durationAdded: number) {
@@ -309,14 +309,7 @@ function formatDurationImpact(durationAdded: number, totalDuration: number) {
 }
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
-  if (
-    typeof span.timestamp === 'undefined' ||
-    typeof span.start_timestamp === 'undefined'
-  ) {
-    return null;
-  }
-  const spanTime = span?.timestamp - span?.start_timestamp;
-  return getDurationImpact(event, spanTime * 1000);
+  return getDurationImpact(event, getSpanDuration(span));
 }
 
 function getSpanDataField(span: Span, field: string) {
