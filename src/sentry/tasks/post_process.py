@@ -28,8 +28,6 @@ from sentry.utils.services import build_instance_from_options
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
-    from sentry.models.group import Group
-    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -154,9 +152,8 @@ def handle_owner_assignment(job):
         try:
             from sentry.models import ISSUE_OWNERS_DEBOUNCE_KEY
 
-            event: GroupEvent = job["event"]
-            project: Project = event.project
-            group: Group = event.group
+            event = job["event"]
+            project, group = event.project, event.group
             basic_logging_details = {
                 "event": event.event_id,
                 "group": event.group_id,
@@ -219,20 +216,23 @@ def handle_owner_assignment(job):
                             },
                         )
                         return
-                process_owner_assignments.delay(project, event, group, job, issue_owners_key)
+                process_owner_assignments.delay(job)
         except Exception:
             logger.exception("Failed to handle owner assignments")
 
 
-@instrumented_task(
-    name="sentry.tasks.post_process_handle_owner_assignment",
-    queue="post_process_handle_owner_assignment",
-)
-def process_owner_assignments(
-    project: Project, event: GroupEvent | Event, group: Group, job: any, issue_owners_key: str
-) -> None:
+@instrumented_task(name="sentry.tasks.process_owner_assignments", queue="process_owner_assignments")
+def process_owner_assignments(job: PostProcessJob) -> None:
     with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_issue_owners"):
-        from sentry.models import ISSUE_OWNERS_DEBOUNCE_DURATION, ProjectOwnership
+        from sentry.models import (
+            ISSUE_OWNERS_DEBOUNCE_DURATION,
+            ISSUE_OWNERS_DEBOUNCE_KEY,
+            ProjectOwnership,
+        )
+
+        event = job["event"]
+        project, group = event.project, event.group
+        issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
 
         if killswitch_matches_context(
             "post_process.get-autoassign-owners",
