@@ -222,8 +222,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         for debug_id in debug_ids:
             debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
-                debug_id=debug_id
+                organization_id=self.organization.id, debug_id=debug_id
             )
             assert len(debug_id_artifact_bundles) == 2
             assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
