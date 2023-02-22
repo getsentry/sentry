@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping
+from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -28,6 +28,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
@@ -103,8 +104,6 @@ class OrganizationMemberManager(BaseManager):
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
-        from sentry.models import OrganizationMemberTeam
-
         org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
             "id", flat=True
         )
@@ -429,23 +428,17 @@ class OrganizationMember(Model):
             scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
 
-    def get_org_roles_from_teams(self) -> List[str]:
+    def get_org_roles_from_teams(self) -> Set[str]:
         # results in an extra query when calling get_scopes()
-        return list(
-            self.teams.all().exclude(org_role=None).values_list("org_role", flat=True).distinct()
-        )
+        return set(self.teams.all().exclude(org_role=None).values_list("org_role", flat=True))
 
     def get_all_org_roles(self) -> List[str]:
         all_org_roles = self.get_org_roles_from_teams()
-        all_org_roles.append(self.role)
-        return all_org_roles
+        all_org_roles.add(self.role)
+        return list(all_org_roles)
 
     def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
-        return sorted(
-            [organization_roles.get(role) for role in self.get_all_org_roles()],
-            key=lambda r: r.priority,
-            reverse=True,
-        )
+        return roles.get_sorted_organization_roles(self.get_all_org_roles)
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -464,7 +457,7 @@ class OrganizationMember(Model):
 
         # members cannot invite roles higher than their own
         all_org_roles = self.get_all_org_roles()
-        if not len(set(all_org_roles) & {r.id for r in allowed_roles}):
+        if not len(all_org_roles & {r.id for r in allowed_roles}):
             highest_role = sorted(
                 [organization_roles.get(role) for role in all_org_roles], key=lambda r: r.priority
             )[-1].id

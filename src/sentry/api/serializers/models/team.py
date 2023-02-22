@@ -93,6 +93,29 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
     return {item["id"]: item["member_count"] for item in query}
 
 
+def get_member_orgs_and_roles(org_ids: Set[int], user_id: int):
+    org_members = OrganizationMember.objects.filter(
+        user_id=user_id, organization__in=org_ids
+    ).values_list("organization_id", "id", "role")
+    _, org_member_ids, _ = zip(*org_members)
+
+    roles_from_teams = (
+        OrganizationMemberTeam.objects.filter(organizationmember_id__in=org_member_ids)
+        .exclude(team__org_role=None)
+        .values_list("organizationmember__organization_id", "team__org_role")
+    )
+
+    orgs_and_roles = {orgs: {role} for orgs, _, role in org_members}
+
+    for org_id, org_role in roles_from_teams:
+        orgs_and_roles[org_id].add(org_role)
+
+    return {
+        org: [r.id for r in roles.get_sorted_organization_roles(org_roles)]
+        for org, org_roles in orgs_and_roles.items()
+    }
+
+
 def get_org_roles(
     org_ids: Set[int], user: User, optimization: SingularRpcAccessOrgOptimization | None = None
 ) -> Mapping[int, Sequence[str]]:
@@ -115,14 +138,7 @@ def get_org_roles(
     # map of org id to role
     # can have multiple org roles through team membership
     # return them sorted to figure out highest team role
-    return {
-        om.organization.id: _get_all_org_roles(om)
-        for om in OrganizationMember.objects.filter(user_id=user.id, organization__in=set(org_ids))
-    }
-
-
-def _get_all_org_roles(member: OrganizationMember) -> Sequence[str]:
-    return [role.id for role in member.get_all_org_roles_sorted()]
+    return get_member_orgs_and_roles(org_ids=org_ids, user_id=user.id)
 
 
 def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Team]:
