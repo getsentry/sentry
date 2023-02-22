@@ -142,7 +142,7 @@ export interface Config {
     organizationUrl: string | undefined;
     regionUrl: string | undefined;
     sentryUrl: string;
-    superUserUrl?: string;
+    superuserUrl?: string;
   };
   /**
    * This comes from django (django.contrib.messages)

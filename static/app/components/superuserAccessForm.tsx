@@ -134,9 +134,9 @@ class SuperuserAccessForm extends Component<Props, State> {
       // ignore errors
     }
     const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
-    const {superUserUrl} = window.__initialData.links;
-    if (window.__initialData?.customerDomain && superUserUrl) {
-      const redirectURL = `${trimEnd(superUserUrl, '/')}${authLoginPath}`;
+    const {superuserUrl} = window.__initialData.links;
+    if (window.__initialData?.customerDomain && superuserUrl) {
+      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
       window.location.assign(redirectURL);
       return;
     }
