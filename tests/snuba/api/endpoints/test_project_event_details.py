@@ -185,6 +185,22 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             },
         )[0]
 
+    def test_generic_event_with_occurrence(self):
+        url = reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": self.cur_event.event_id,
+                "project_slug": self.project.slug,
+                "organization_slug": self.project.organization.slug,
+            },
+        )
+        response = self.client.get(url, format="json", data={"group_id": self.cur_group.id})
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == self.cur_event.event_id
+        assert response.data["occurrence"] is not None
+        assert response.data["occurrence"]["id"] == self.cur_event.id
+
 
 @region_silo_test
 class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
