@@ -1,33 +1,30 @@
 import os
 
+import pytest
 from click.testing import CliRunner
-from django.utils.functional import cached_property
 
 from sentry.runner.commands.backup import export, import_
-from sentry.testutils import CliTestCase, TransactionTestCase
+from sentry.testutils import CliTestCase
+
+tmp_backup_filename = "test_backup.json"
 
 
 class BackupTest(CliTestCase):
     command = export
-    tmp_backup_filename = "test_backup.json"
 
     def test_export(self):
-        rv = self.invoke(self.tmp_backup_filename)
+        rv = self.invoke(tmp_backup_filename)
         assert rv.exit_code == 0, rv.output
-        assert os.path.exists(self.tmp_backup_filename)
+        assert os.path.exists(tmp_backup_filename)
 
 
-class RestoreTest(TransactionTestCase):
-    @cached_property
-    def runner(self) -> CliRunner:
-        return CliRunner()
+# Avoid using CliTestCase/TestCase since it wraps everything in an atomic function,
+# which creates an error with hybrid cloud fixture protect_user_deletion
+@pytest.mark.django_db
+def test_import():
+    rv = CliRunner().invoke(import_, tmp_backup_filename)
+    assert rv.exit_code == 0, rv.output
 
-    command = import_
-    tmp_backup_filename = "test_backup.json"
 
-    def test_import(self):
-        rv = self.runner.invoke(self.command, self.tmp_backup_filename)
-        assert rv.exit_code == 0, rv.output
-
-    if os.path.exists(tmp_backup_filename):
-        os.remove(tmp_backup_filename)
+if os.path.exists(tmp_backup_filename):
+    os.remove(tmp_backup_filename)

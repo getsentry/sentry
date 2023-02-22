@@ -36,9 +36,6 @@ class BulkDeleteQueryTest(TestCase):
 
 
 class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
-
-    serialized_rollback = True
-
     def test_iteration(self):
         target_project = self.project
         expected_group_ids = {self.create_group().id for i in range(2)}
@@ -58,4 +55,5 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
         results = set()
         for chunk in iterator:
             results.update(chunk)
+
         assert results == expected_group_ids
