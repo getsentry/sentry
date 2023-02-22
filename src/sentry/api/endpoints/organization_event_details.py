@@ -35,7 +35,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
-        if event.group:
+        if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
         data = serialize(event)

@@ -85,6 +85,9 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         environments = set(request.GET.getlist("environment"))
 
+        if hasattr(event, "for_group") and event.group:
+            event = event.for_group(event.group)
+
         data = wrap_event_response(request.user, event, project, environments)
         return Response(data)
 
