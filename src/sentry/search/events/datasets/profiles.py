@@ -75,7 +75,16 @@ COLUMNS = [
     Column(alias="os.name", column="device_os_name", kind=Kind.STRING),
     Column(alias="os.version", column="device_os_version", kind=Kind.STRING),
     Column(
-        alias="profile.duration", column="duration_ns", kind=Kind.DURATION, unit=Duration.NANOSECOND
+        alias="profile.duration",
+        column="duration_ns",
+        kind=Kind.DURATION,
+        unit=Duration.NANOSECOND,
+    ),
+    Column(
+        alias="transaction.duration",
+        column="duration_ns",
+        kind=Kind.DURATION,
+        unit=Duration.NANOSECOND,
     ),
     Column(alias="environment", column="environment", kind=Kind.STRING),
     Column(alias="platform.name", column="platform", kind=Kind.STRING),
