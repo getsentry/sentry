@@ -19,11 +19,11 @@ export default styled('div')<Props>`
     p.color
       ? `background: ${p.color};`
       : `background: ${
-          p.status === 'error'
+          p.status === CheckInStatus.ERROR
             ? p.theme.error
-            : p.status === 'ok'
+            : p.status === CheckInStatus.OK
             ? p.theme.success
-            : p.status === 'missed'
+            : p.status === CheckInStatus.MISSED
             ? p.theme.warning
             : p.theme.disabled
         };`};

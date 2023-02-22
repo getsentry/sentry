@@ -37,8 +37,8 @@ from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.integration import APIIntegration
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 INVITE_DAYS_VALID = 30
 
@@ -79,7 +79,7 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: APIIntegration, actor: APIUser) -> QuerySet:
+    def get_for_integration(self, integration: RpcIntegration, actor: RpcUser) -> QuerySet:
         return self.filter(
             user_id=actor.id,
             organization__organizationintegration__integration_id=integration.id,
@@ -101,6 +101,30 @@ class OrganizationMemberManager(BaseManager):
         for user_id, team_id in queryset:
             user_teams[user_id].append(team_id)
         return user_teams
+
+    def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
+        from sentry.models import OrganizationMemberTeam
+
+        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
+            "id", flat=True
+        )
+
+        # may be empty
+        team_members = set(
+            OrganizationMemberTeam.objects.filter(
+                team_id__org_role=role,
+                organizationmember_id__in=org_members,
+            ).values_list("organizationmember_id", flat=True)
+        )
+
+        org_members = set(
+            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+                "id", flat=True
+            )
+        )
+
+        # use union of sets because a subset may be empty
+        return self.filter(id__in=org_members.union(team_members))
 
 
 @region_silo_only_model

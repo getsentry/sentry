@@ -8,9 +8,7 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -18,7 +16,6 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
-import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -33,7 +30,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
-import MonitorIcon from './monitorIcon';
+import {MonitorRow} from './row';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
@@ -138,31 +135,20 @@ class Monitors extends AsyncView<Props, State> {
             {monitorList?.length ? (
               <Fragment>
                 <StyledPanelTable
-                  headers={[t('Monitor Name'), t('Last Check-In'), t('Project')]}
+                  headers={[
+                    t('Monitor Name'),
+                    t('Status'),
+                    t('Schedule'),
+                    t('Next Checkin'),
+                    t('Project'),
+                  ]}
                 >
                   {monitorList?.map(monitor => (
-                    <Fragment key={monitor.id}>
-                      <MonitorName>
-                        <MonitorIcon status={monitor.status} size={16} />
-                        <StyledLink
-                          to={`/organizations/${organization.slug}/crons/${monitor.id}/`}
-                        >
-                          {monitor.name}
-                        </StyledLink>
-                      </MonitorName>
-                      <div>
-                        {monitor.nextCheckIn ? (
-                          <StyledTimeSince date={monitor.lastCheckIn} />
-                        ) : (
-                          t('n/a')
-                        )}
-                      </div>
-                      <IdBadge
-                        project={monitor.project}
-                        avatarSize={18}
-                        avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-                      />
-                    </Fragment>
+                    <MonitorRow
+                      key={monitor.id}
+                      monitor={monitor}
+                      organization={organization}
+                    />
                   ))}
                 </StyledPanelTable>
                 {monitorListPageLinks && (
@@ -192,15 +178,6 @@ class Monitors extends AsyncView<Props, State> {
   }
 }
 
-const StyledLink = styled(Link)`
-  flex: 1;
-  margin-left: ${space(2)};
-`;
-
-const StyledTimeSince = styled(TimeSince)`
-  font-variant-numeric: tabular-nums;
-`;
-
 const Filters = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 300px) 1fr;
@@ -208,13 +185,8 @@ const Filters = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const MonitorName = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr max-content max-content max-content max-content;
 `;
 
 const ButtonList = styled(ButtonBar)`
