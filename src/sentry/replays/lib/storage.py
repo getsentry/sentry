@@ -28,7 +28,7 @@ class RecordingSegmentStorageMeta:
     replay_id: str
     segment_id: int
     retention_days: int
-    file_id: Optional[int]
+    file_id: Optional[int] = None
 
 
 def cached(fn: Callable[[Any, RecordingSegmentStorageMeta], bytes]):

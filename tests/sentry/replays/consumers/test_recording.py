@@ -10,9 +10,10 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.test import override_settings
 
+from sentry.models import File
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.lib.storage import FilestoreBlob, StorageBlob
+from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 
@@ -105,23 +106,10 @@ class RecordingTestCaseMixin:
     def test_chunked_compressed_segment_ingestion(self, mock_record, mock_onboarding_task):
         segment_id = 0
         self.submit(self.chunked_messages(segment_id=segment_id, compressed=True))
-
-        recording_segment = ReplayRecordingSegment.objects.first()
-        assert recording_segment.org_id == self.organization.id
-        assert recording_segment.project_id == self.project.id
-        assert recording_segment.replay_id == self.replay_id
-        assert recording_segment.segment_id == segment_id
-        assert recording_segment.size > 0
-        assert recording_segment.retention_days == 30
-        self.assert_replay_recording_segment(recording_segment)
+        self.assert_replay_recording_segment(segment_id, compressed=True)
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
-
-        bytes = self.get_recording_data(recording_segment)
-        assert bytes == b'[{"hello":"world"}]'
-        assert len(bytes) != recording_segment.size
-        assert len(zlib.compress(bytes)) == recording_segment.size
 
         mock_onboarding_task.assert_called_with(
             organization_id=self.project.organization_id,
@@ -143,22 +131,10 @@ class RecordingTestCaseMixin:
     def test_chunked_uncompressed_segment_ingestion(self, mock_record, mock_onboarding_task):
         segment_id = 0
         self.submit(self.chunked_messages(segment_id=segment_id, compressed=False))
-
-        recording_segment = ReplayRecordingSegment.objects.first()
-        assert recording_segment.org_id == self.organization.id
-        assert recording_segment.project_id == self.project.id
-        assert recording_segment.replay_id == self.replay_id
-        assert recording_segment.segment_id == segment_id
-        assert recording_segment.size > 0
-        assert recording_segment.retention_days == 30
-        self.assert_replay_recording_segment(recording_segment)
+        self.assert_replay_recording_segment(segment_id, compressed=False)
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
-
-        bytes = self.get_recording_data(recording_segment)
-        assert bytes == b'[{"hello":"world"}]'
-        assert len(bytes) == recording_segment.size
 
         mock_onboarding_task.assert_called_with(
             organization_id=self.project.organization_id,
@@ -180,23 +156,10 @@ class RecordingTestCaseMixin:
     def test_compressed_segment_ingestion(self, mock_record, mock_onboarding_task):
         segment_id = 0
         self.submit(self.nonchunked_messages(segment_id=segment_id, compressed=True))
-
-        recording_segment = ReplayRecordingSegment.objects.first()
-        assert recording_segment.org_id == self.organization.id
-        assert recording_segment.project_id == self.project.id
-        assert recording_segment.replay_id == self.replay_id
-        assert recording_segment.segment_id == segment_id
-        assert recording_segment.size > 0
-        assert recording_segment.retention_days == 30
-        self.assert_replay_recording_segment(recording_segment)
+        self.assert_replay_recording_segment(segment_id, compressed=True)
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
-
-        bytes = self.get_recording_data(recording_segment)
-        assert bytes == b'[{"hello":"world"}]'
-        assert len(bytes) != recording_segment.size
-        assert len(zlib.compress(bytes)) == recording_segment.size
 
         mock_onboarding_task.assert_called_with(
             organization_id=self.project.organization_id,
@@ -218,22 +181,10 @@ class RecordingTestCaseMixin:
     def test_uncompressed_segment_ingestion(self, mock_record, mock_onboarding_task):
         segment_id = 0
         self.submit(self.nonchunked_messages(segment_id=segment_id, compressed=False))
-
-        recording_segment = ReplayRecordingSegment.objects.first()
-        assert recording_segment.org_id == self.organization.id
-        assert recording_segment.project_id == self.project.id
-        assert recording_segment.replay_id == self.replay_id
-        assert recording_segment.segment_id == segment_id
-        assert recording_segment.size > 0
-        assert recording_segment.retention_days == 30
-        self.assert_replay_recording_segment(recording_segment)
+        self.assert_replay_recording_segment(segment_id, False)
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
-
-        bytes = self.get_recording_data(recording_segment)
-        assert bytes == b'[{"hello":"world"}]'
-        assert len(bytes) == recording_segment.size
 
         mock_onboarding_task.assert_called_with(
             organization_id=self.project.organization_id,
@@ -263,11 +214,36 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
 
-    def assert_replay_recording_segment(self, recording_segment):
-        assert recording_segment.driver == ReplayRecordingSegment.FILESTORE
+    def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
+        # Assert a recording segment model was created for filestore driver types.
+        recording_segment = ReplayRecordingSegment.objects.first()
+        assert recording_segment.project_id == self.project.id
+        assert recording_segment.replay_id == self.replay_id
+        assert recording_segment.segment_id == segment_id
         assert recording_segment.file_id is not None
 
-    def get_recording_data(self, recording_segment):
+        bytes = self.get_recording_data(segment_id)
+
+        # The bytes stored are always the bytes received from Relay.  Therefore, the size the
+        # len of bytes regardless of compression.
+        assert len(bytes) == recording_segment.size
+
+        # Assert (depending on compression) that the bytes are equal to our default mock value.
+        if compressed:
+            assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
+        else:
+            assert bytes == b'[{"hello":"world"}]'
+
+    def get_recording_data(self, segment_id):
+        file = File.objects.first()
+
+        recording_segment = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+            file_id=file.id,
+        )
         return FilestoreBlob().get(recording_segment)
 
 
@@ -277,9 +253,25 @@ class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
 
-    def assert_replay_recording_segment(self, recording_segment):
-        assert recording_segment.driver == ReplayRecordingSegment.STORAGE
-        assert recording_segment.file_id is None
+    def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
+        # Assert no recording segment is written for direct-storage.  Direct-storage does not
+        # use a metadata database.
+        recording_segment = ReplayRecordingSegment.objects.first()
+        assert recording_segment is None
 
-    def get_recording_data(self, recording_segment):
+        bytes = self.get_recording_data(segment_id)
+
+        # Assert (depending on compression) that the bytes are equal to our default mock value.
+        if compressed:
+            assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
+        else:
+            assert bytes == b'[{"hello":"world"}]'
+
+    def get_recording_data(self, segment_id):
+        recording_segment = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+        )
         return StorageBlob().get(recording_segment)

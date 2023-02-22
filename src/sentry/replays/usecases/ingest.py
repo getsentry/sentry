@@ -158,17 +158,15 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
 
     # Normalize ingest data into a standardized ingest format.
     segment_data = RecordingSegmentStorageMeta(
-        retention_days=message.retention_days,
-        org_id=message.org_id,
         project_id=message.project_id,
         replay_id=message.replay_id,
         segment_id=headers["segment_id"],
-        size=len(recording_segment),
+        retention_days=message.retention_days,
     )
 
     # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
     # within this scope.
-    driver = make_storage_driver(segment_data.org_id)
+    driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
