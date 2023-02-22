@@ -12,6 +12,7 @@ class FirstEventSentEvent(analytics.Event):
         analytics.Attribute("platform", required=False),
         analytics.Attribute("url", required=False),
         analytics.Attribute("has_minified_stack_trace", required=False),
+        analytics.Attribute("project_platform", required=False),
     )
 
 

@@ -520,7 +520,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         a first event with minified stack trace is received
         """
         now = timezone.now()
-        project = self.create_project(first_event=now)
+        project = self.create_project(first_event=now, platform="VueJS")
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
         event = load_data("javascript")
@@ -563,6 +563,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event["platform"],
+            project_platform="VueJS",
             url=url,
         )
 
