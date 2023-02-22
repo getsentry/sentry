@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Dict, Mapping, Optional, Tuple
+from uuid import UUID
 
 import jsonschema
 import rapidjson
@@ -147,7 +148,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             metrics.timing("occurrence.ingest.size.data", len(payload))
 
             occurrence_data = {
-                "id": payload["id"],
+                "id": UUID(payload["id"]).hex,
                 "project_id": payload["project_id"],
                 "fingerprint": payload["fingerprint"],
                 "issue_title": payload["issue_title"],
@@ -161,7 +162,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             }
 
             if payload.get("event_id"):
-                occurrence_data["event_id"] = payload["event_id"]
+                occurrence_data["event_id"] = UUID(payload["event_id"]).hex
 
             if "event" in payload:
                 event_payload = payload["event"]
@@ -176,7 +177,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     occurrence_data["event_id"] = event_payload.get("event_id")
 
                 event_data = {
-                    "event_id": event_payload.get("event_id"),
+                    "event_id": UUID(event_payload.get("event_id")).hex,
                     "project_id": event_payload.get("project_id"),
                     "platform": event_payload.get("platform"),
                     "tags": event_payload.get("tags"),

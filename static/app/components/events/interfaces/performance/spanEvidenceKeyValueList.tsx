@@ -95,7 +95,7 @@ const NPlusOneDBQueriesSpanEvidence = ({
   parentSpan,
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => {
-  const dbSpans = offendingSpans.filter(span => span.op === 'db');
+  const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
   const repeatingSpanRows = dbSpans
     .filter(span => offendingSpans.find(s => s.description === span.description) === span)
     .map((span, i) =>
@@ -181,14 +181,23 @@ const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListPr
 const RenderBlockingAssetSpanEvidence = ({
   event,
   offendingSpans,
-}: SpanEvidenceKeyValueListProps) => (
-  <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
-    ]}
-  />
-);
+}: SpanEvidenceKeyValueListProps) => {
+  const offendingSpan = offendingSpans[0]; // For render-blocking assets, there is only one offender
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event),
+        makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpan)),
+        makeRow(
+          t('FCP Delay'),
+          formatDelay(getSpanDuration(offendingSpan), event.measurements?.fcp?.value ?? 0)
+        ),
+        makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, offendingSpan)),
+      ]}
+    />
+  );
+};
 
 const UncompressedAssetSpanEvidence = ({
   event,
@@ -288,7 +297,7 @@ const sumSpanDurations = (spans: Span[]) => {
 };
 
 const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
-  return timestamp && start_timestamp ? (timestamp - start_timestamp) * 1000 : 0;
+  return ((timestamp ?? 0) - (start_timestamp ?? 0)) * 1000;
 };
 
 function getDurationImpact(event: EventTransaction, durationAdded: number) {
@@ -296,21 +305,28 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
   if (!transactionTime) {
     return null;
   }
-  const percent = durationAdded / transactionTime;
+
+  return formatDurationImpact(durationAdded, transactionTime);
+}
+
+function formatDurationImpact(durationAdded: number, totalDuration: number) {
+  const percent = durationAdded / totalDuration;
+
   return `${toRoundedPercent(percent)} (${getPerformanceDuration(
     durationAdded
-  )}/${getPerformanceDuration(transactionTime)})`;
+  )}/${getPerformanceDuration(totalDuration)})`;
+}
+
+function formatDelay(durationAdded: number, totalDuration: number) {
+  const percent = durationAdded / totalDuration;
+
+  return `${getPerformanceDuration(durationAdded)} (${toRoundedPercent(
+    percent
+  )} of ${getPerformanceDuration(totalDuration)})`;
 }
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
-  if (
-    typeof span.timestamp === 'undefined' ||
-    typeof span.start_timestamp === 'undefined'
-  ) {
-    return null;
-  }
-  const spanTime = span?.timestamp - span?.start_timestamp;
-  return getDurationImpact(event, spanTime * 1000);
+  return getDurationImpact(event, getSpanDuration(span));
 }
 
 function getSpanDataField(span: Span, field: string) {

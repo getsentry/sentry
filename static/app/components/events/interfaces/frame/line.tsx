@@ -289,19 +289,21 @@ export class Line extends Component<Props, State> {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title" data-test-id="title">
-          <VertCenterWrapper>
-            <SourceMapWarning frame={data} debugFrames={debugFrames} />
-            <div>
-              {this.renderLeadHint()}
-              <DefaultTitle
-                frame={data}
-                platform={this.props.platform ?? 'other'}
-                isHoverPreviewed={isHoverPreviewed}
-                meta={this.props.frameMeta}
-              />
-            </div>
+          <DefaultLineTitleWrapper>
+            <LeftLineTitle>
+              <SourceMapWarning frame={data} debugFrames={debugFrames} />
+              <div>
+                {this.renderLeadHint()}
+                <DefaultTitle
+                  frame={data}
+                  platform={this.props.platform ?? 'other'}
+                  isHoverPreviewed={isHoverPreviewed}
+                  meta={this.props.frameMeta}
+                />
+              </div>
+            </LeftLineTitle>
             {this.renderRepeats()}
-          </VertCenterWrapper>
+          </DefaultLineTitleWrapper>
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -440,13 +442,18 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const VertCenterWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
 `;
 
-const RepeatedContent = styled(VertCenterWrapper)`
+const LeftLineTitle = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
 `;
 
