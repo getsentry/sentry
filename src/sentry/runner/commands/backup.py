@@ -24,7 +24,7 @@ def import_(src):
     # There are two integrity error exceptions we handle here.
     # 1. Foreign key check failure
     # 2. Duplicate key violation
-    # For both, it seems reasonable to continue importing and just display a warning message
+    # For both, let's display a warning before reraising error.
     except IntegrityError as e:
         click.echo(
             ">> Are you restoring from a clean database? If not, we highly recommend doing so.",
