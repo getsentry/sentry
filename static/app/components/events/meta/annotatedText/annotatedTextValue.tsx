@@ -58,8 +58,4 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
 
 const ChunksSpan = styled('span')`
   word-break: break-word;
-
-  span {
-    display: inline;
-  }
 `;
