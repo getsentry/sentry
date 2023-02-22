@@ -262,6 +262,17 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     return output
 
 
+def filter_users_by_project_membership(users: List[RpcUser], project: Project) -> List[RpcUser]:
+    """
+    Returns a list of users that belong to the project
+
+    `users`: The list of users
+    `project`: The project that users' project membership will be checked for
+    """
+    project_members = project.member_set.values()
+    return [user for user in users for member in project_members if user.id == member["user_id"]]
+
+
 def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
     """
     Returns a list of users that are suspect committers for the given event.
@@ -276,8 +287,7 @@ def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
     )
     user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
     suspect_committers = user_service.get_many_by_email(user_emails)
-
-    return suspect_committers
+    return filter_users_by_project_membership(suspect_committers, project)
 
 
 def dedupe_suggested_assignees(suggested_assignees: Iterable[RpcUser]) -> Iterable[RpcUser]:
