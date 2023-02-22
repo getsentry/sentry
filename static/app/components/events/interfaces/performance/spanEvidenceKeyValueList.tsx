@@ -296,10 +296,16 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
   if (!transactionTime) {
     return null;
   }
-  const percent = durationAdded / transactionTime;
+
+  return formatDurationImpact(durationAdded, transactionTime);
+}
+
+function formatDurationImpact(durationAdded: number, totalDuration: number) {
+  const percent = durationAdded / totalDuration;
+
   return `${toRoundedPercent(percent)} (${getPerformanceDuration(
     durationAdded
-  )}/${getPerformanceDuration(transactionTime)})`;
+  )}/${getPerformanceDuration(totalDuration)})`;
 }
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
