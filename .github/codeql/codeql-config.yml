@@ -1,9 +1,4 @@
 name: 'Sentry CodeQL Config'
 
-paths:
-  - '**/*.js'
-  - '**/*.ejs'
-  - '**/*.tsx'
-  - '**/*.ts'
-  - '**/*.py'
-  - '!**/tests/**'
+paths-ignore:
+  - '**/tests/**'
