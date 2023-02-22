@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -174,7 +175,14 @@ class SudoModal extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign(`/auth/login/?next=${encodeURIComponent(location.pathname)}`);
+    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+    const {superuserUrl} = window.__initialData.links;
+    if (window.__initialData?.customerDomain && superuserUrl) {
+      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
+      window.location.assign(redirectURL);
+      return;
+    }
+    window.location.assign(authLoginPath);
   };
 
   async getAuthenticators() {
