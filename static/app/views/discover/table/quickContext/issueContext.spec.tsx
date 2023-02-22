@@ -134,7 +134,31 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   describe('Suspect commits', () => {
-    it('Renders a single suspect commit', async () => {
+    const maiseyCommitter = {
+      author: {name: 'Maisey the Dog', id: '1231'},
+      commits: [
+        {
+          message: 'feat(simulator): Add option for multiple squirrels (#1121)',
+          id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
+          dateCreated: '2012-09-08T04:15:12',
+          repository: TestStubs.Repository(),
+        },
+      ],
+    };
+    const charlieCommitter = {
+      author: {name: 'Charlie Bear', id: '1121'},
+      commits: [
+        {
+          message:
+            'ref(simulator): Split leaderboard calculations into separate functions (#1231)',
+          id: 'fe29668b24cea6faad8afb8f6d9417f402ef9c18',
+          dateCreated: '2012-04-15T09:09:12',
+          repository: TestStubs.Repository(),
+        },
+      ],
+    };
+
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/issues/3512441874/events/oldest/',
         method: 'GET',
@@ -142,23 +166,18 @@ describe('Quick Context Content Issue Column', function () {
           eventID: '6b43e285de834ec5b5fe30d62d549b20',
         },
       });
+    });
 
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('Renders a single suspect commit', async () => {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: '/projects/org-slug/cool-team/events/6b43e285de834ec5b5fe30d62d549b20/committers/',
         body: {
-          committers: [
-            {
-              author: {name: 'Maisey the Dog', id: '1231'},
-              commits: [
-                {
-                  message: 'feat(simulator): Add option for multiple squirrels',
-                  id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-                  dateCreated: '2012-09-08T04:15:12',
-                },
-              ],
-            },
-          ],
+          committers: [maiseyCommitter],
         },
       });
       renderIssueContext();
@@ -176,40 +195,10 @@ describe('Quick Context Content Issue Column', function () {
 
     it('Renders multiple suspect commits', async () => {
       MockApiClient.addMockResponse({
-        url: '/issues/3512441874/events/oldest/',
-        method: 'GET',
-        body: {
-          eventID: '6b43e285de834ec5b5fe30d62d549b20',
-        },
-      });
-
-      MockApiClient.addMockResponse({
         method: 'GET',
         url: '/projects/org-slug/cool-team/events/6b43e285de834ec5b5fe30d62d549b20/committers/',
         body: {
-          committers: [
-            {
-              author: {name: 'Maisey the Dog', id: '1231'},
-              commits: [
-                {
-                  message: 'feat(simulator): Add option for multiple squirrels (#1121)',
-                  id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-                  dateCreated: '2012-09-08T04:15:12',
-                },
-              ],
-            },
-            {
-              author: {name: 'Charlie Bear', id: '1121'},
-              commits: [
-                {
-                  message:
-                    'ref(simulator): Split leaderboard calculations into separate functions (#1231)',
-                  id: 'fe29668b24cea6faad8afb8f6d9417f402ef9c18',
-                  dateCreated: '2012-04-15T09:09:12',
-                },
-              ],
-            },
-          ],
+          committers: [maiseyCommitter, charlieCommitter],
         },
       });
       renderIssueContext();
