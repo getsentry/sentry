@@ -1,58 +1,58 @@
 import {Fragment, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {AriaListBoxSectionProps, useListBoxSection} from '@react-aria/listbox';
 import {useSeparator} from '@react-aria/separator';
 import {ListState} from '@react-stately/list';
 import {Node} from '@react-types/shared';
 
 import {space} from 'sentry/styles/space';
+import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from './control';
-import {Option} from './option';
+import {SelectContext} from '../control';
 
-interface SectionProps extends AriaListBoxSectionProps {
-  item: Node<any>;
-  /**
-   * (To be passed to Option.) Whether the list box (ul element) has focus. If not (e.g.
-   * if the search input has focus), then Option will not have any focus effect.
-   */
-  listBoxHasFocus: boolean;
+import {GridListOption} from './option';
+
+interface GridListSectionProps {
   listState: ListState<any>;
+  node: Node<any>;
   size: FormSize;
 }
 
 /**
- * A <li /> element that functions as a list box section (renders a nested <ul />
- * inside). https://react-spectrum.adobe.com/react-aria/useListBox.html
+ * A <li /> element that functions as a grid list section (renders a nested <ul />
+ * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function Section({item, listState, listBoxHasFocus, size}: SectionProps) {
-  const {itemProps, headingProps, groupProps} = useListBoxSection({
-    heading: item.rendered,
-    'aria-label': item['aria-label'],
-  });
-
+export function GridListSection({node, listState, size}: GridListSectionProps) {
+  const titleId = domId('grid-section-title-');
   const {separatorProps} = useSeparator({elementType: 'li'});
 
   const {filterOption} = useContext(SelectContext);
   const filteredOptions = useMemo(() => {
-    return [...item.childNodes].filter(child => {
+    return [...node.childNodes].filter(child => {
       return filterOption(child.props);
     });
-  }, [item.childNodes, filterOption]);
+  }, [node.childNodes, filterOption]);
 
   return (
     <Fragment>
       <Separator {...separatorProps} />
-      <SectionWrap {...itemProps}>
-        {item.rendered && <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>}
-        <SectionGroup {...groupProps}>
+      <SectionWrap
+        role="rowgroup"
+        {...(node['aria-label']
+          ? {'aria-label': node['aria-label']}
+          : {'aria-labelledby': titleId})}
+      >
+        {node.rendered && (
+          <SectionTitle id={titleId} aria-hidden>
+            {node.rendered}
+          </SectionTitle>
+        )}
+        <SectionGroup role="presentation">
           {filteredOptions.map(child => (
-            <Option
+            <GridListOption
               key={child.key}
-              item={child}
+              node={child}
               listState={listState}
-              listBoxHasFocus={listBoxHasFocus}
               size={size}
             />
           ))}

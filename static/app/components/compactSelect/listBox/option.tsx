@@ -9,13 +9,8 @@ import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {FormSize} from 'sentry/utils/theme';
 
-interface OptionProps extends AriaOptionProps {
+interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
-  /**
-   * Whether the list box (ul element) has focus. If not (e.g. if the search input has
-   * focus), then Option will not have any focus effect.
-   */
-  listBoxHasFocus: boolean;
   listState: ListState<any>;
   size: FormSize;
 }
@@ -24,7 +19,7 @@ interface OptionProps extends AriaOptionProps {
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function Option({item, listState, listBoxHasFocus, size}: OptionProps) {
+export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
@@ -55,7 +50,7 @@ export function Option({item, listState, listBoxHasFocus, size}: OptionProps) {
       label={label}
       details={details}
       disabled={isDisabled}
-      isFocused={listBoxHasFocus && isFocused}
+      isFocused={listState.selectionManager.isFocused && isFocused}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
       labelProps={{...labelProps, as: typeof label === 'string' ? 'p' : 'div'}}
       leadingItems={
