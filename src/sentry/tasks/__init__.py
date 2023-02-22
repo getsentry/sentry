@@ -1,5 +1,3 @@
-from .analytics import *  # NOQA
-
 """Celery tasks.
 
 Celery tasks are used to create asynchronous workers which communicate their tasks via a
