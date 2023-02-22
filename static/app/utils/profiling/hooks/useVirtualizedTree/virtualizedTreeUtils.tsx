@@ -295,7 +295,7 @@ export function computeVirtualizedTreeNodeScrollTop(
     return Math.max(
       Math.min(
         newPosition - scrollHeight / 2 + rowHeight,
-        maxScrollableHeight - scrollHeight - rowHeight
+        maxScrollableHeight - scrollHeight
       ),
       0
     );
