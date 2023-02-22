@@ -14,6 +14,7 @@ from sentry.utils import metrics
 
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
+CACHE_KEY_TTL = 24 * 60 * 60 * 1000
 
 logger = logging.getLogger(__name__)
 
@@ -71,11 +72,13 @@ def adjust_sample_rates(org_id: int, projects_with_tx_count: Sequence[Sequence[i
     redis_client = get_redis_client_for_ds()
     for ds_project in ds_projects:
         # hash, key, value
+        cache_key = _generate_cache_key(org_id=org_id)
         redis_client.hset(
-            _generate_cache_key(org_id=org_id),
+            cache_key,
             ds_project.id,
             ds_project.new_sample_rate,  # redis stores is as string
         )
+        redis_client.pexpire(cache_key, CACHE_KEY_TTL)
         schedule_invalidate_project_config(
             project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
         )
