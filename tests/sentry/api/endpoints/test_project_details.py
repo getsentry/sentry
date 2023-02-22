@@ -1325,6 +1325,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
+                {"id": "prioritiseByTxName", "active": False},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
@@ -1351,6 +1352,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
+                {"id": "prioritiseByTxName", "active": False},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1468,6 +1470,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             },
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostKeyTransactions", "active": False},
+            {"id": "prioritiseByTxName", "active": False},
         ]
         with Feature(
             {
