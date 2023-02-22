@@ -93,10 +93,14 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
     return {item["id"]: item["member_count"] for item in query}
 
 
-def get_member_orgs_and_roles(org_ids: Set[int], user_id: int):
+def get_member_orgs_and_roles(org_ids: Set[int], user_id: int) -> Mapping[int, Sequence[str]]:
     org_members = OrganizationMember.objects.filter(
         user_id=user_id, organization__in=org_ids
     ).values_list("organization_id", "id", "role")
+
+    if not len(org_members):
+        return {}
+
     _, org_member_ids, _ = zip(*org_members)
 
     roles_from_teams = (

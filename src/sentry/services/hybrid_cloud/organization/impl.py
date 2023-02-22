@@ -303,16 +303,17 @@ class DatabaseBackedOrganizationService(OrganizationService):
             member = OrganizationMember.objects.get(id=member_id)
             organization_member = self.serialize_member(member)
 
-        org_roles = []
+        org_roles: List[str] = []
         if organization_member:
             team_ids = [mt.team_id for mt in organization_member.member_teams]
-            org_roles = set(
+            all_roles: Set[str] = set(
                 Team.objects.filter(id__in=team_ids)
                 .exclude(org_role=None)
                 .values_list("org_role", flat=True)
             )
-            org_roles.add(organization_member.role)
-        return list(org_roles)
+            all_roles.add(organization_member.role)
+            org_roles.extend(list(all_roles))
+        return org_roles
 
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         owner_teams = list(
