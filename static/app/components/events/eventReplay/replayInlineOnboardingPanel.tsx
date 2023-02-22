@@ -6,7 +6,7 @@ import replaysInlineOnboarding from 'sentry-images/spot/replays-inline-onboardin
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 

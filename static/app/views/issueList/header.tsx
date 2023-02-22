@@ -9,12 +9,12 @@ import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingA
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
-import {Item, TabList, Tabs} from 'sentry/components/tabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -96,6 +96,7 @@ function IssueListHeader({
   displayReprocessingTab,
   selectedProjectIds,
 }: IssueListHeaderProps) {
+  const {experimentAssignment} = useExperiment('SavedIssueSearchesLocationExperiment');
   const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -105,7 +106,9 @@ function IssueListHeader({
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
-  const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
+  const savedSearchTabActive =
+    // Disable tab for saved searches location experiment
+    experimentAssignment !== 1 && !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
   const sortParam =
@@ -138,8 +141,6 @@ function IssueListHeader({
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
-
-  const {experimentAssignment} = useExperiment('SavedIssueSearchesLocationExperiment');
 
   return (
     <Layout.Header>
@@ -198,7 +199,7 @@ function IssueListHeader({
                 });
 
                 return (
-                  <Item key={tabQuery} to={to} textValue={queryName}>
+                  <TabList.Item key={tabQuery} to={to} textValue={queryName}>
                     <IssueListHeaderTabContent
                       tooltipTitle={tooltipTitle}
                       tooltipHoverable={tooltipHoverable}
@@ -207,11 +208,11 @@ function IssueListHeader({
                       hasMore={queryCounts[tabQuery]?.hasMore}
                       query={tabQuery}
                     />
-                  </Item>
+                  </TabList.Item>
                 );
               }
             ),
-            <Item
+            <TabList.Item
               hidden={!savedSearchTabActive}
               key={EXTRA_TAB_KEY}
               to={{query: queryParms, pathname: location.pathname}}
@@ -222,7 +223,7 @@ function IssueListHeader({
                 count={queryCount}
                 query={query}
               />
-            </Item>,
+            </TabList.Item>,
           ]}
         </TabList>
       </StyledTabs>

@@ -58,6 +58,27 @@ describe('Project Ownership', () => {
         screen.queryByRole('button', {name: 'Add CODEOWNERS'})
       ).not.toBeInTheDocument();
     });
+
+    it('renders allows users to edit ownership rules', () => {
+      org = TestStubs.Organization({
+        access: ['project:read'],
+      });
+      render(
+        <ProjectOwnership
+          params={{projectId: project.slug}}
+          organization={org}
+          project={project}
+        />,
+        {context: TestStubs.routerContext([{organization: org}])}
+      );
+
+      expect(screen.queryByRole('button', {name: 'Edit'})).toBeEnabled();
+      expect(screen.getByTestId('project-permission-alert')).toHaveTextContent(
+        'These settings can only be edited by users with the organization owner, manager, or admin role.'
+      );
+      // eslint-disable-next-line jest-dom/prefer-in-document
+      expect(screen.getAllByTestId('project-permission-alert')).toHaveLength(1);
+    });
   });
 
   describe('with codeowners', () => {

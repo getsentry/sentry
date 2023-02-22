@@ -13,7 +13,7 @@ import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFac
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';

@@ -17,7 +17,7 @@ def merge_pii_configs(prefixes_and_configs):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("field", ["aaa", "aää", "a a", "a\na", "a'a"])
+@pytest.mark.parametrize("field", ["ooo", "oöö", "o o", "o\no", "o'o"])
 def test_scrub_data(field, default_project):
     project = default_project
     organization = project.organization
@@ -34,7 +34,7 @@ def test_scrub_data(field, default_project):
     """,
     )
     organization.update_option("sentry:safe_fields", [])
-    organization.update_option("sentry:sensitive_fields", ["a"])
+    organization.update_option("sentry:sensitive_fields", ["o"])
     organization.update_option("sentry:scrub_ip_address", False)
     organization.update_option("sentry:require_scrub_data", True)
 
@@ -46,7 +46,6 @@ def test_scrub_data(field, default_project):
             ]
         },
     }
-
     new_event = scrub_data(project, event)
 
     assert new_event == (

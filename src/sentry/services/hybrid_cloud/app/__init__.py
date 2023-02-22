@@ -1,22 +1,119 @@
 from __future__ import annotations
 
 import abc
+import datetime
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
-    from sentry.models import SentryApp, SentryAppInstallation
+    from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
 
 
-class AppService(InterfaceWithLifecycle):
+@dataclass
+class RpcSentryAppService:
+    """
+    A `SentryAppService` (a notification service) wrapped up and serializable via the
+    rpc interface.
+    """
+
+    title: str = ""
+    slug: str = ""
+    service_type: str = "sentry_app"
+
+
+@dataclass
+class RpcSentryAppInstallation:
+    id: int = -1
+    organization_id: int = -1
+    status: int = SentryAppInstallationStatus.PENDING
+    sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
+    date_deleted: Optional[datetime.datetime] = None
+    uuid: str = ""
+
+
+@dataclass
+class RpcSentryAppComponent:
+    uuid: str = ""
+    sentry_app_id: int = -1
+    type: str = ""
+    schema: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class RpcSentryApp:
+    id: int = -1
+    scope_list: List[str] = field(default_factory=list)
+    application_id: int = -1
+    proxy_user_id: int | None = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    events: List[str] = field(default_factory=list)
+
+
+class SentryAppEventDataInterface(Protocol):
+    """
+    Protocol making RpcSentryAppEvents capable of consuming from various sources, keeping only
+    the minimum required properties.
+    """
+
+    id: str
+    label: str
+
+    @property
+    def actionType(self) -> str:
+        pass
+
+    def is_enabled(self) -> bool:
+        pass
+
+
+@dataclass
+class RpcSentryAppEventData(SentryAppEventDataInterface):
+    id: str = ""
+    label: str = ""
+    action_type: str = ""
+    enabled: bool = True
+
+    @property
+    def actionType(self) -> str:
+        return self.action_type
+
+    def is_enabled(self) -> bool:
+        return self.enabled
+
+    @classmethod
+    def from_event(cls, data_interface: SentryAppEventDataInterface) -> RpcSentryAppEventData:
+        return RpcSentryAppEventData(
+            id=data_interface.id,
+            label=data_interface.label,
+            action_type=data_interface.actionType,
+            enabled=data_interface.is_enabled(),
+        )
+
+
+class SentryAppInstallationFilterArgs(TypedDict, total=False):
+    installation_ids: List[int]
+    app_ids: List[int]
+    organization_id: int
+    uuids: List[str]
+
+
+class AppService(
+    FilterQueryInterface[SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None],
+    InterfaceWithLifecycle,
+):
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> RpcSentryAppInstallation | None:
         pass
 
     @abc.abstractmethod
@@ -24,11 +121,15 @@ class AppService(InterfaceWithLifecycle):
         self,
         *,
         organization_id: int,
-    ) -> List[ApiSentryAppInstallation]:
+    ) -> List[RpcSentryAppInstallation]:
         pass
 
-    def serialize_sentry_app(self, app: SentryApp) -> ApiSentryApp:
-        return ApiSentryApp(
+    @abc.abstractmethod
+    def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
+        pass
+
+    def serialize_sentry_app(self, app: SentryApp) -> RpcSentryApp:
+        return RpcSentryApp(
             id=app.id,
             scope_list=app.scope_list,
             application_id=app.application_id,
@@ -40,18 +141,47 @@ class AppService(InterfaceWithLifecycle):
             events=app.events,
         )
 
+    @abc.abstractmethod
+    def get_custom_alert_rule_actions(
+        self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
+    ) -> List[Mapping[str, Any]]:
+        pass
+
+    @abc.abstractmethod
+    def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
+        pass
+
+    @abc.abstractmethod
+    def get_related_sentry_app_components(
+        self,
+        *,
+        organization_ids: List[int],
+        sentry_app_ids: List[int],
+        type: str,
+        group_by: str = "sentry_app_id",
+    ) -> Mapping[str, Any]:
+        pass
+
     def serialize_sentry_app_installation(
         self, installation: SentryAppInstallation, app: SentryApp | None = None
-    ) -> ApiSentryAppInstallation:
+    ) -> RpcSentryAppInstallation:
         if app is None:
             app = installation.sentry_app
 
-        return ApiSentryAppInstallation(
+        return RpcSentryAppInstallation(
             id=installation.id,
             organization_id=installation.organization_id,
             status=installation.status,
             sentry_app=self.serialize_sentry_app(app),
+            date_deleted=installation.date_deleted,
+            uuid=app.uuid,
         )
+
+    @abc.abstractmethod
+    def trigger_sentry_app_action_creators(
+        self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
+    ) -> AlertRuleActionResult:
+        pass
 
 
 def impl_with_db() -> AppService:
@@ -67,24 +197,3 @@ app_service: AppService = silo_mode_delegation(
         SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
     }
 )
-
-
-@dataclass
-class ApiSentryAppInstallation:
-    id: int = -1
-    organization_id: int = -1
-    status: int = SentryAppInstallationStatus.PENDING
-    sentry_app: ApiSentryApp = field(default_factory=lambda: ApiSentryApp())
-
-
-@dataclass
-class ApiSentryApp:
-    id: int = -1
-    scope_list: List[str] = field(default_factory=list)
-    application_id: int = -1
-    proxy_user_id: int | None = None  # can be null on deletion.
-    owner_id: int = -1  # relation to an organization
-    name: str = ""
-    slug: str = ""
-    uuid: str = ""
-    events: List[str] = field(default_factory=list)

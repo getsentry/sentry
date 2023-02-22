@@ -6,7 +6,7 @@ import keyBy from 'lodash/keyBy';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Environment, Event, Organization, Project, TagWithTopValues} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';

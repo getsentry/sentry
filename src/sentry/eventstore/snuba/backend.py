@@ -30,15 +30,15 @@ logger = logging.getLogger(__name__)
 
 def get_before_event_condition(event):
     return [
-        [TIMESTAMP, "<=", event.timestamp],
-        [[TIMESTAMP, "<", event.timestamp], [EVENT_ID, "<", event.event_id]],
+        [TIMESTAMP, "<=", event.datetime],
+        [[TIMESTAMP, "<", event.datetime], [EVENT_ID, "<", event.event_id]],
     ]
 
 
 def get_after_event_condition(event):
     return [
-        [TIMESTAMP, ">=", event.timestamp],
-        [[TIMESTAMP, ">", event.timestamp], [EVENT_ID, ">", event.event_id]],
+        [TIMESTAMP, ">=", event.datetime],
+        [[TIMESTAMP, ">", event.datetime], [EVENT_ID, ">", event.event_id]],
     ]
 
 
@@ -196,7 +196,7 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        if group_id is not None:
+        if group_id is not None and event.get_event_type() != "generic":
             # Set passed group_id if not a transaction
             if event.get_event_type() == "transaction":
                 logger.warning("eventstore.passed-group-id-for-transaction")
@@ -220,7 +220,7 @@ class SnubaEventStorage(EventStorage):
             try:
                 result = snuba.raw_query(
                     dataset=dataset,
-                    selected_columns=["group_id"],
+                    selected_columns=self.__get_columns(dataset),
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys={"project_id": [project_id], "event_id": [event_id]},
@@ -251,6 +251,8 @@ class SnubaEventStorage(EventStorage):
                 return None
 
             event.group_id = result["data"][0]["group_id"]
+            # Inject the snuba data here to make sure any snuba columns are available
+            event._snuba_data = result["data"][0]
 
         return event
 
