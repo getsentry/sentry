@@ -190,6 +190,10 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['profile.issues.blocked_main_thread-ingest.ga-rollout']}
             </Panel>
           </Feature>
+          <Panel>
+            <PanelHeader>View Hierarchy</PanelHeader>
+            {fields['processing.view-hierarchies-deobfuscation-general-availability']}
+          </Panel>
         </Form>
       </div>
     );
