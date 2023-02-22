@@ -10,7 +10,7 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
         "tags": {"type": "object"},
         "timestamp": {"type": "string", "format": "date-time"},
         "received": {"type": "string", "format": "date-time"},
-        # "title": {"type": "string", "minLength": 1}, leaving this out, for now
+        "title": {"type": "string", "minLength": 1},
         # non-required properties
         "breadcrumbs": {
             "type": ["array", "null"],
@@ -136,6 +136,7 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
         "project_id",
         "tags",
         "timestamp",
-    ],  # title will be required, if enabled
+        "title",
+    ],
     "additionalProperties": False,
 }
