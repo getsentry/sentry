@@ -306,14 +306,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org_roles = []
         if organization_member:
             team_ids = [mt.team_id for mt in organization_member.member_teams]
-            org_roles = list(
+            org_roles = set(
                 Team.objects.filter(id__in=team_ids)
                 .exclude(org_role=None)
                 .values_list("org_role", flat=True)
-                .distinct()
             )
-            org_roles.append(organization_member.role)
-        return org_roles
+            org_roles.add(organization_member.role)
+        return list(org_roles)
 
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         owner_teams = list(
