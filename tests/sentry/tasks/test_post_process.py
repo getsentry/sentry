@@ -992,8 +992,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.logger")
     def test_issue_owners_should_ratelimit(self, logger):
         cache.set(
-            f"issue_owner_assignment_ratelimit:{self.project.id}",
-            (ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT, datetime.now()),
+            f"issue_owner_assignment_ratelimiter:{self.project.id}",
+            (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
         )
         event = self.create_event(
             data={
