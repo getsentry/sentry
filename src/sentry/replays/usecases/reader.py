@@ -165,7 +165,7 @@ def _fetch_segments_from_snuba(
         app_id="replay-backend-web",
         query=Query(
             match=Entity("replays"),
-            select=[Column("segment_id"), Column("retention_days"), Column("timestamp")],
+            select=[Column("segment_id"), Column("retention_days")],
             where=[
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column("replay_id"), Op.EQ, replay_id),
