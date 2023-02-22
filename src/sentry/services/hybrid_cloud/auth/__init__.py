@@ -42,9 +42,6 @@ class RpcAuthenticatorType(IntEnum):
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 
 
-ApiAuthenticatorType = RpcAuthenticatorType
-
-
 def authentication_request_from(request: Request) -> AuthenticationRequest:
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
@@ -85,9 +82,6 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
             return response.user, response.auth
 
         return None
-
-
-ApiAuthentication = RpcAuthentication
 
 
 class AuthService(InterfaceWithLifecycle):
@@ -165,16 +159,10 @@ class RpcAuthState:
     permissions: List[str]
 
 
-ApiAuthState = RpcAuthState
-
-
 @dataclass(eq=True)
 class RpcMemberSsoState:
     is_required: bool = False
     is_valid: bool = False
-
-
-ApiMemberSsoState = RpcMemberSsoState
 
 
 @dataclass
@@ -326,18 +314,12 @@ class RpcAuthProviderFlags:
     scim_enabled: bool = False
 
 
-RpcAuthProviderFlags
-
-
 @dataclass(eq=True, frozen=True)
 class RpcAuthProvider:
     id: int = -1
     organization_id: int = -1
     provider: str = ""
     flags: RpcAuthProviderFlags = field(default_factory=lambda: RpcAuthProviderFlags())
-
-
-ApiAuthProvider = RpcAuthProvider
 
 
 @dataclass
@@ -348,17 +330,11 @@ class RpcAuthIdentity:
     ident: str = ""
 
 
-ApiAuthIdentity = RpcAuthIdentity
-
-
 @dataclass(eq=True)
 class RpcOrganizationAuthConfig:
     organization_id: int = -1
     auth_provider: RpcAuthProvider | None = None
     has_api_key: bool = False
-
-
-ApiOrganizationAuthConfig = RpcOrganizationAuthConfig
 
 
 auth_service: AuthService = silo_mode_delegation(

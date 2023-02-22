@@ -7,9 +7,9 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud import (
-    ApiPaginationArgs,
-    ApiPaginationResult,
     InterfaceWithLifecycle,
+    RpcPaginationArgs,
+    RpcPaginationResult,
     silo_mode_delegation,
     stubbed,
 )
@@ -40,9 +40,6 @@ class RpcIntegration:
         return "disabled"
 
 
-APIIntegration = RpcIntegration
-
-
 @dataclass(frozen=True, eq=True)
 class RpcOrganizationIntegration:
     id: int
@@ -61,9 +58,6 @@ class RpcOrganizationIntegration:
             if status_id == self.status:
                 return display
         return "disabled"
-
-
-APIOrganizationIntegration = RpcOrganizationIntegration
 
 
 class IntegrationService(InterfaceWithLifecycle):
@@ -96,8 +90,8 @@ class IntegrationService(InterfaceWithLifecycle):
         *,
         provider_keys: List[str],
         organization_id: int,
-        args: ApiPaginationArgs,
-    ) -> ApiPaginationResult:
+        args: RpcPaginationArgs,
+    ) -> RpcPaginationResult:
         pass
 
     @abstractmethod
@@ -107,8 +101,8 @@ class IntegrationService(InterfaceWithLifecycle):
         organization_id: int,
         statuses: List[int],
         provider_key: str | None = None,
-        args: ApiPaginationArgs,
-    ) -> ApiPaginationResult:
+        args: RpcPaginationArgs,
+    ) -> RpcPaginationResult:
         pass
 
     @abstractmethod

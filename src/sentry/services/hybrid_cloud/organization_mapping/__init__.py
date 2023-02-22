@@ -30,9 +30,6 @@ class RpcOrganizationMapping:
     customer_id: Optional[str] = None
 
 
-APIOrganizationMapping = RpcOrganizationMapping
-
-
 @dataclass
 class RpcOrganizationMappingUpdate(PatchableMixin["Organization"]):
     organization_id: int = -1
@@ -42,9 +39,6 @@ class RpcOrganizationMappingUpdate(PatchableMixin["Organization"]):
     @classmethod
     def from_instance(cls, inst: Organization) -> RpcOrganizationMappingUpdate:
         return cls(**cls.params_from_instance(inst), organization_id=inst.id)
-
-
-ApiOrganizationMappingUpdate = RpcOrganizationMappingUpdate
 
 
 class OrganizationMappingService(InterfaceWithLifecycle):

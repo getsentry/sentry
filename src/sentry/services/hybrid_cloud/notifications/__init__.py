@@ -28,9 +28,6 @@ class RpcNotificationSetting:
     value: NotificationSettingOptionValues = NotificationSettingOptionValues.DEFAULT
 
 
-ApiNotificationSetting = RpcNotificationSetting
-
-
 class MayHaveActor(Protocol):
     @property
     def id(self) -> int:

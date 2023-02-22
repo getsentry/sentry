@@ -11,9 +11,6 @@ class RpcTombstone:
     identifier: int = -1
 
 
-ApiTombstone = RpcTombstone
-
-
 # the tombstone service itself is unaware of model mapping, that is the responsibility of the caller and the outbox
 # logic.  Basically, if you record a remote tombstone, you are implying the destination table_name exists, remotely.
 # Implementors should, thus, _not_ constraint these entries and gracefully handle version drift cases when the "mapping"

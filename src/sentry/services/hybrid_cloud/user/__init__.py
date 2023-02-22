@@ -65,9 +65,6 @@ class RpcUser:
         return "User"
 
 
-APIUser = RpcUser
-
-
 @dataclass(frozen=True, eq=True)
 class RpcAvatar:
     id: int = 0
@@ -76,17 +73,11 @@ class RpcAvatar:
     avatar_type: str = "letter_avatar"
 
 
-APIAvatar = RpcAvatar
-
-
 @dataclass(frozen=True, eq=True)
 class RpcUserEmail:
     id: int = 0
     email: str = ""
     is_verified: bool = False
-
-
-APIUserEmail = RpcUserEmail
 
 
 class UserSerializeType(IntEnum):  # annoying

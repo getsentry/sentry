@@ -392,9 +392,6 @@ class SingularRpcAccessOrgOptimization:
     access: RpcBackedAccess
 
 
-SingularApiAccessOrgOptimization = SingularRpcAccessOrgOptimization
-
-
 def maybe_singular_rpc_access_org_context(
     access: Access, org_ids: Set[int]
 ) -> SingularRpcAccessOrgOptimization | None:
@@ -581,9 +578,6 @@ class RpcBackedAccess(Access):
                         return True
 
         return False
-
-
-ApiBackedAccess = RpcBackedAccess
 
 
 class OrganizationMemberAccess(DbAccess):

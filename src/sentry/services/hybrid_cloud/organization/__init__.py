@@ -149,9 +149,6 @@ class RpcTeam:
         return "Team"
 
 
-ApiTeam = RpcTeam
-
-
 @dataclass
 class RpcTeamMember:
     id: int = -1
@@ -160,9 +157,6 @@ class RpcTeamMember:
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     team_id: int = -1
-
-
-ApiTeamMember = RpcTeamMember
 
 
 def project_status_visible() -> int:
@@ -180,9 +174,6 @@ class RpcProject:
     status: int = field(default_factory=project_status_visible)
 
 
-ApiProject = RpcProject
-
-
 @dataclass
 class RpcOrganizationMemberFlags:
     sso__linked: bool = False
@@ -197,9 +188,6 @@ class RpcOrganizationMemberFlags:
 
     def __getitem__(self, item: str) -> bool:
         return bool(getattr(self, item))
-
-
-ApiOrganizationMemberFlags = RpcOrganizationMemberFlags
 
 
 @dataclass
@@ -227,9 +215,6 @@ class RpcOrganizationMember:
         }
 
 
-ApiOrganizationMember = RpcOrganizationMember
-
-
 @dataclass
 class RpcOrganizationFlags:
     allow_joinleave: bool = False
@@ -241,17 +226,11 @@ class RpcOrganizationFlags:
     require_email_verification: bool = False
 
 
-ApiOrganizationFlags = RpcOrganizationFlags
-
-
 @dataclass
 class RpcOrganizationInvite:
     id: int = -1
     token: str = ""
     email: str = ""
-
-
-ApiOrganizationInvite = RpcOrganizationInvite
 
 
 @dataclass
@@ -265,9 +244,6 @@ class RpcOrganizationSummary:
     name: str = ""
 
 
-ApiOrganizationSummary = RpcOrganizationSummary
-
-
 @dataclass
 class RpcOrganization(RpcOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
@@ -279,9 +255,6 @@ class RpcOrganization(RpcOrganizationSummary):
     status: OrganizationStatus = OrganizationStatus.VISIBLE
 
     default_role: str = ""
-
-
-ApiOrganization = RpcOrganization
 
 
 @dataclass
@@ -307,7 +280,5 @@ class RpcUserOrganizationContext:
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
 
-
-ApiUserOrganizationContext = RpcUserOrganizationContext
 
 from sentry.roles.manager import TeamRole
