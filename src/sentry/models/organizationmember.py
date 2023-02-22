@@ -102,6 +102,30 @@ class OrganizationMemberManager(BaseManager):
             user_teams[user_id].append(team_id)
         return user_teams
 
+    def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
+        from sentry.models import OrganizationMemberTeam
+
+        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
+            "id", flat=True
+        )
+
+        # may be empty
+        team_members = set(
+            OrganizationMemberTeam.objects.filter(
+                team_id__org_role=role,
+                organizationmember_id__in=org_members,
+            ).values_list("organizationmember_id", flat=True)
+        )
+
+        org_members = set(
+            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+                "id", flat=True
+            )
+        )
+
+        # use union of sets because a subset may be empty
+        return self.filter(id__in=org_members.union(team_members))
+
 
 @region_silo_only_model
 class OrganizationMember(Model):

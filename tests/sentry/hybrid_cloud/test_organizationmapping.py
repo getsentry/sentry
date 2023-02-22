@@ -20,15 +20,15 @@ class OrganizationMappingTest(TransactionTestCase):
             "name": "test name",
             "region_name": "us",
         }
-        api_org_mapping = organization_mapping_service.create(**fields)
+        rpc_org_mapping = organization_mapping_service.create(**fields)
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
-        assert api_org_mapping.organization_id == self.organization.id
-        assert api_org_mapping.verified is False
-        assert api_org_mapping.slug == fields["slug"]
-        assert api_org_mapping.region_name == fields["region_name"]
-        assert api_org_mapping.date_created == org_mapping.date_created
-        assert api_org_mapping.name == fields["name"]
+        assert rpc_org_mapping.organization_id == self.organization.id
+        assert rpc_org_mapping.verified is False
+        assert rpc_org_mapping.slug == fields["slug"]
+        assert rpc_org_mapping.region_name == fields["region_name"]
+        assert rpc_org_mapping.date_created == org_mapping.date_created
+        assert rpc_org_mapping.name == fields["name"]
 
     def test_idempotency_key(self):
         data = {
@@ -39,16 +39,16 @@ class OrganizationMappingTest(TransactionTestCase):
         }
         self.create_organization_mapping(self.organization, **data)
         next_organization_id = 7654321
-        api_org_mapping = organization_mapping_service.create(
+        rpc_org_mapping = organization_mapping_service.create(
             **{**data, "user": self.user, "organization_id": next_organization_id}
         )
 
         assert not OrganizationMapping.objects.filter(organization_id=self.organization.id).exists()
         assert OrganizationMapping.objects.filter(organization_id=next_organization_id)
 
-        assert api_org_mapping.organization_id == next_organization_id
-        assert api_org_mapping.region_name == "us"
-        assert api_org_mapping.name == data["name"]
+        assert rpc_org_mapping.organization_id == next_organization_id
+        assert rpc_org_mapping.region_name == "us"
+        assert rpc_org_mapping.name == data["name"]
 
     def test_duplicate_slug(self):
         data = {
@@ -78,8 +78,8 @@ class OrganizationMappingTest(TransactionTestCase):
             "slug": self.organization.slug,
             "region_name": "us",
         }
-        api_org_mapping = organization_mapping_service.create(**fields)
-        assert api_org_mapping.customer_id is None
+        rpc_org_mapping = organization_mapping_service.create(**fields)
+        assert rpc_org_mapping.customer_id is None
 
         organization_mapping_service.update(
             RpcOrganizationMappingUpdate(

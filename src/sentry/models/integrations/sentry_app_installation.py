@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, List
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
@@ -18,7 +18,7 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Project
+    from sentry.models import ApiToken, Project, SentryAppComponent
 
 
 def default_uuid():
@@ -59,9 +59,9 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_related_sentry_app_components(
         self,
         organization_ids: List[int],
+        sentry_app_ids: List[int],
         type: str,
-        sentry_app_ids: Optional[List[int]] = None,
-        group_by: str = "sentry_app_id",
+        group_by="sentry_app_id",
     ):
         from sentry.models import SentryAppComponent
 
@@ -69,8 +69,9 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
             sentry_app_id=OuterRef("sentry_app_id"), type=type
         )
 
-        query = (
+        sentry_app_installations = (
             self.filter(**self.get_organization_filter_kwargs(organization_ids))
+            .filter(sentry_app_id__in=sentry_app_ids)
             .annotate(
                 # Cannot annotate model object only individual fields. We can convert it into SentryAppComponent instance later.
                 sentry_app_component_id=Subquery(component_query.values("id")[:1]),
@@ -79,10 +80,6 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
             )
             .filter(sentry_app_component_id__isnull=False)
         )
-        if sentry_app_ids is not None:
-            query = query.filter(sentry_app_id__in=sentry_app_ids)
-
-        sentry_app_installations = query.all()
 
         # There should only be 1 install of a SentryApp per organization
         grouped_sentry_app_installations = {
@@ -183,16 +180,45 @@ class SentryAppInstallation(ParanoidModel):
         return self.prepare_ui_component(component, project, values)
 
     def prepare_ui_component(self, component, project=None, values=None):
-        from sentry.coreapi import APIError
-        from sentry.mediators import sentry_app_components
+        return prepare_ui_component(
+            self, component, project_slug=project.slug if project else None, values=values
+        )
 
-        if values is None:
-            values = []
-        try:
-            sentry_app_components.Preparer.run(
-                component=component, install=self, project=project, values=values
-            )
-            return component
-        except APIError:
-            # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
-            return None
+
+def prepare_sentry_app_components(
+    installation: SentryAppInstallation,
+    component_type: str,
+    project_slug: str | None = None,
+    values: Any = None,
+):
+    from sentry.models import SentryAppComponent
+
+    try:
+        component = SentryAppComponent.objects.get(
+            sentry_app_id=installation.sentry_app_id, type=component_type
+        )
+    except SentryAppComponent.DoesNotExist:
+        return None
+
+    return prepare_ui_component(installation, component, project_slug, values)
+
+
+def prepare_ui_component(
+    installation: SentryAppInstallation,
+    component: SentryAppComponent,
+    project_slug: str | None = None,
+    values: Any = None,
+) -> SentryAppComponent | None:
+    from sentry.coreapi import APIError
+    from sentry.mediators import sentry_app_components
+
+    if values is None:
+        values = []
+    try:
+        sentry_app_components.Preparer.run(
+            component=component, install=installation, project_slug=project_slug, values=values
+        )
+        return component
+    except APIError:
+        # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
+        return None

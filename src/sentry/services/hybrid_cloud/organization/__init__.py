@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.roles.manager import TeamRole
 
 
 class OrganizationService(InterfaceWithLifecycle):
@@ -312,3 +309,5 @@ class RpcUserOrganizationContext:
 
 
 ApiUserOrganizationContext = RpcUserOrganizationContext
+
+from sentry.roles.manager import TeamRole

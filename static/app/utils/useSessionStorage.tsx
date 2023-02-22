@@ -4,7 +4,7 @@ import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 
 const isBrowser = typeof window !== 'undefined';
 
-function readStorageValue<T>(key, initialValue: T) {
+function readStorageValue<T>(key: string, initialValue: T) {
   const value = sessionStorage.getItem(key);
 
   // We check for 'undefined' because the value may have
@@ -23,13 +23,11 @@ function readStorageValue<T>(key, initialValue: T) {
   }
 }
 
-function useSessionStorage<T>(
+export function useSessionStorage<T>(
   key: string,
-  initialValue?: T
-): [T | undefined, (value: T | undefined) => void, () => void] {
-  const [state, setState] = useState<T | undefined>(() =>
-    readStorageValue(key, initialValue)
-  );
+  initialValue: T
+): [T, (value: T) => void, () => void] {
+  const [state, setState] = useState<T>(() => readStorageValue(key, initialValue));
 
   useEffect(() => {
     setState(readStorageValue(key, initialValue));
@@ -38,7 +36,7 @@ function useSessionStorage<T>(
   }, [key]);
 
   const wrappedSetState = useCallback(
-    (value: T | undefined) => {
+    (value: T) => {
       setState(value);
 
       try {
@@ -51,9 +49,9 @@ function useSessionStorage<T>(
   );
 
   const removeItem = useCallback(() => {
-    setState(undefined);
+    setState(initialValue);
     sessionStorageWrapper.removeItem(key);
-  }, [key]);
+  }, [key, initialValue]);
 
   if (!isBrowser) {
     return [initialValue, () => {}, () => {}];
@@ -61,5 +59,3 @@ function useSessionStorage<T>(
 
   return [state, wrappedSetState, removeItem];
 }
-
-export default useSessionStorage;

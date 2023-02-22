@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from django.utils import timezone
 
@@ -17,9 +17,6 @@ from sentry.services.hybrid_cloud import (
     stubbed,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models import Organization
 
 
 @dataclass(frozen=True, eq=True)
@@ -110,3 +107,5 @@ organization_mapping_service: OrganizationMappingService = silo_mode_delegation(
         SiloMode.CONTROL: impl_with_db,
     }
 )
+
+from sentry.models import Organization

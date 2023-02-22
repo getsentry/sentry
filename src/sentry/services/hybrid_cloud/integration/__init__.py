@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud import (
@@ -14,14 +14,6 @@ from sentry.services.hybrid_cloud import (
     stubbed,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.integrations.base import (
-        IntegrationFeatures,
-        IntegrationInstallation,
-        IntegrationProvider,
-    )
-    from sentry.models.integrations import Integration, OrganizationIntegration
 
 
 @dataclass(frozen=True, eq=True)
@@ -302,3 +294,10 @@ integration_service: IntegrationService = silo_mode_delegation(
         SiloMode.CONTROL: impl_with_db,
     }
 )
+
+from sentry.integrations.base import (
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationProvider,
+)
+from sentry.models.integrations import Integration, OrganizationIntegration

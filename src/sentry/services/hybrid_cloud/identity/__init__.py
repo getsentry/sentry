@@ -2,13 +2,10 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import List
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models.identity import Identity, IdentityProvider
 
 
 @dataclass(frozen=True)
@@ -107,3 +104,5 @@ identity_service: IdentityService = silo_mode_delegation(
         SiloMode.CONTROL: impl_with_db,
     }
 )
+
+from sentry.models.identity import Identity, IdentityProvider

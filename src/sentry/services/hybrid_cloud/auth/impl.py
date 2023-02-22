@@ -20,6 +20,7 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
+    SentryAppInstallationToken,
     User,
 )
 from sentry.services.hybrid_cloud.auth import (
@@ -187,6 +188,9 @@ class DatabaseBackedAuthService(AuthService):
             auth=AuthenticatedToken.from_token(token) if token else None,
             user=serialize_rpc_user(user) if user else None,
         )
+
+    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
+        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)  # type: ignore
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
@@ -409,7 +413,10 @@ AuthenticatedToken.register_kind("api_token", ApiToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
 
 
-def promote_request_api_user(request: Any) -> User:
+def promote_request_rpc_user(request: Any) -> User:
     if not hasattr(request, "_promoted_user"):
         setattr(request, "_promoted_user", User.objects.get(id=request.user.id))
     return request._promoted_user
+
+
+promote_request_api_user = promote_request_rpc_user

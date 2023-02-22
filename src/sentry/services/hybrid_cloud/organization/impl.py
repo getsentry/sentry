@@ -57,7 +57,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         cls,
         member: OrganizationMember,
     ) -> RpcOrganizationMember:
-        api_member = RpcOrganizationMember(
+        rpc_member = RpcOrganizationMember(
             id=member.id,
             organization_id=member.organization_id,
             user_id=member.user.id if member.user is not None else None,
@@ -81,12 +81,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         for omt in omts:
             omt.organizationmember = member
-            api_member.member_teams.append(
+            rpc_member.member_teams.append(
                 cls._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
             )
-        api_member.project_ids = list(all_project_ids)
+        rpc_member.project_ids = list(all_project_ids)
 
-        return api_member
+        return rpc_member
 
     @classmethod
     def _serialize_flags(cls, org: Organization) -> RpcOrganizationFlags:
@@ -139,7 +139,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @classmethod
     def serialize_organization(cls, org: Organization) -> RpcOrganization:
-        api_org: RpcOrganization = RpcOrganization(
+        rpc_org: RpcOrganization = RpcOrganization(
             slug=org.slug,
             id=org.id,
             flags=cls._serialize_flags(org),
@@ -150,9 +150,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         projects: List[Project] = Project.objects.filter(organization=org)
         teams: List[Team] = Team.objects.filter(organization=org)
-        api_org.projects.extend(cls._serialize_project(project) for project in projects)
-        api_org.teams.extend(cls._serialize_team(team) for team in teams)
-        return api_org
+        rpc_org.projects.extend(cls._serialize_project(project) for project in projects)
+        rpc_org.teams.extend(cls._serialize_team(team) for team in teams)
+        return rpc_org
 
     def check_membership_by_id(
         self, organization_id: int, user_id: int

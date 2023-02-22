@@ -148,7 +148,7 @@ export default class Sidebar extends PureComponent<Props> {
           <HeaderItem>
             <Heading noMargin>{t('Alert Status')}</Heading>
             <Status>
-              <AlertBadge status={status} />
+              <AlertBadge status={status} withText />
             </Status>
           </HeaderItem>
           <HeaderItem>

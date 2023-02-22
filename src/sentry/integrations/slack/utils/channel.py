@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 from typing import List, Optional, Tuple
 
@@ -6,7 +8,7 @@ from django.http import Http404
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration, Organization
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -34,8 +36,8 @@ def strip_channel_name(name: str) -> str:
 
 
 def get_channel_id(
-    organization: "Organization",
-    integration: "Integration",
+    organization: Organization,
+    integration: Integration | RpcIntegration,
     channel_name: str,
     use_async_lookup: bool = False,
 ) -> Tuple[str, Optional[str], bool]:
@@ -73,7 +75,7 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
     themselves, we want to make sure both values are correct.
     """
     integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
+    if not integration:
         raise Http404
 
     token = integration.metadata["access_token"]
@@ -105,7 +107,7 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
 
 
 def get_channel_id_with_timeout(
-    integration: "Integration",
+    integration: Integration | RpcIntegration,
     name: Optional[str],
     timeout: int,
 ) -> Tuple[str, Optional[str], bool]:

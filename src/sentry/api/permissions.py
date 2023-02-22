@@ -106,7 +106,7 @@ class SentryPermission(ScopedPermission):
             return
 
         if request.auth:
-            request.access = access.from_api_auth(
+            request.access = access.from_rpc_auth(
                 auth=request.auth, rpc_user_org_context=org_context
             )
             return

@@ -470,7 +470,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSearchQuery):
             self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
 
     def test_status_with_environment(self):
@@ -2490,6 +2490,18 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             )
         assert list(results) == []
         assert results.hits == 2
+
+    def test_not_handled_function(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.handled:0",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            assert list(results) == []
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

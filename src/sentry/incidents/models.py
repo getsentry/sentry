@@ -19,7 +19,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.models import Team, User  # noqa # pylint: disable=unused-import
+from sentry.models import Team
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
@@ -578,6 +578,9 @@ class AlertRuleTriggerAction(Model):
 
     @property
     def target(self):
+        if self.target_identifier is None:
+            return None
+
         if self.target_type == self.TargetType.USER.value:
             return user_service.get_user(user_id=int(self.target_identifier))
         elif self.target_type == self.TargetType.TEAM.value:

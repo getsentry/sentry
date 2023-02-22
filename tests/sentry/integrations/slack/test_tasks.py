@@ -253,9 +253,7 @@ class SlackTasksTest(TestCase):
         assert rule.created_by == self.user
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
@@ -282,9 +280,7 @@ class SlackTasksTest(TestCase):
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -308,9 +304,7 @@ class SlackTasksTest(TestCase):
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -338,9 +332,7 @@ class SlackTasksTest(TestCase):
         rule = AlertRule.objects.get(name="New Rule")
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)

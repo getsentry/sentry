@@ -122,7 +122,7 @@ fk_emeptions = {
     (SentryAppComponent, SentryApp),
     (SentryAppInstallation, Organization),
     (SentryAppInstallation, ApiGrant),
-    (SentryAppInstallationForProvider, SentryAppInstallation),
+    (SentryAppInstallationForProvider, Organization),
     (SentryAppInstallationToken, ApiToken),
     (SentryAppInstallationToken, SentryAppInstallation),
     (MonitorCheckIn, MonitorLocation),

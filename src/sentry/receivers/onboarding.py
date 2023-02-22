@@ -102,7 +102,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user_id,
+        user=user,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -110,7 +110,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user_id,
+            user=user,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
@@ -122,7 +122,7 @@ def record_raven_installed(project, user, **kwargs):
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
-        user_id=user.id,
+        user=user,
         project_id=project.id,
     )
 
@@ -164,6 +164,7 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
+        project_platform=project.platform,
         url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
     )
@@ -176,6 +177,7 @@ def record_first_event(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
+            project_platform=project.platform,
         )
         return
 
@@ -430,6 +432,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
+                project_platform=project.platform,
                 url=dict(event.tags).get("url", None),
             )
 
@@ -478,7 +481,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         organization_id=project.organization_id,
         task=task,
         status=status,
-        user_id=user.id,
+        user=user,
         project_id=project.id,
         data={"plugin": plugin.slug},
     )
@@ -502,7 +505,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         task=task,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id,
+            "user_id": user.id if user else None,
             "project_id": project.id,
             "date_completed": timezone.now(),
         },
@@ -520,7 +523,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id,
+            "user": user,
             "project_id": project.id,
             "date_completed": timezone.now(),
             "data": {"plugin": plugin.slug},
@@ -567,7 +570,7 @@ def record_integration_added(integration, organization, user, **kwargs):
         task.data["providers"] = providers
         if task.status != OnboardingTaskStatus.COMPLETE:
             task.status = OnboardingTaskStatus.COMPLETE
-            task.user_id = user.id
+            task.user = user
             task.date_completed = timezone.now()
         task.save()
     else:

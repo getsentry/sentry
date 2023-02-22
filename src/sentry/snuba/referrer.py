@@ -364,7 +364,7 @@ class ReferrerBase(Enum):
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
-    GROUP_GET_LATEST = "group.get_latest"
+    GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
@@ -462,6 +462,8 @@ class ReferrerBase(Enum):
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
+    SEARCH_GROUP_INDEX = "search.group_index"
+    SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
