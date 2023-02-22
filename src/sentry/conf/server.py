@@ -2123,8 +2123,9 @@ SENTRY_DEVSERVICES = {
         {
             "image": "ghcr.io/getsentry/snuba:latest",
             "pull": True,
-            "ports": {"1218/tcp": 1218},
-            "command": ["devserver"],
+            "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
+            "command": ["devserver"]
+            + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
             "environment": {
                 "PYTHONUNBUFFERED": "1",
                 "SNUBA_SETTINGS": "docker",
@@ -2132,7 +2133,9 @@ SENTRY_DEVSERVICES = {
                 "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
                 "CLICKHOUSE_PORT": "9000",
                 "CLICKHOUSE_HTTP_PORT": "8123",
-                "DEFAULT_BROKERS": "{containers[kafka][name]}:9093",
+                "DEFAULT_BROKERS": ""
+                if "snuba" in settings.SENTRY_EVENTSTREAM
+                else "{containers[kafka][name]}:9093",
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
