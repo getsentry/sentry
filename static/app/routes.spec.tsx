@@ -108,9 +108,9 @@ describe('buildRoutes()', function () {
           .map(item => `- slug: ${item.slug}\n  domain: ${item.domain}`)
           .join('\n');
         throw new Error(
-          `Could not matching URLs for the following ${mismatch.length} routes:\n\n` +
+          `Unable to find matching URLs for the following ${mismatch.length} routes:\n\n` +
             routelist +
-            '\n\nEach route with :orgId is expected to have a domain based route as well. ' +
+            '\n\nEach route with the :orgId parameter is expected to have corresponding domain based route as well. ' +
             'If you need help with this drop by #proj-hybrid-cloud.'
         );
       }
