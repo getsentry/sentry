@@ -67,7 +67,6 @@ export function useVirtualizedTree<T extends TreeLike>(
     scrollTop: 0,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
-    maxScrollableHeight: (props.scrollContainer?.scrollHeight ?? 24) - 24, // Need subtract padding to get true height
   });
 
   const [tree, setTree] = useState(() => {
@@ -589,7 +588,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           rowHeight: props.rowHeight,
           scrollHeight: latestStateRef.current.scrollHeight,
           currentScrollTop: latestStateRef.current.scrollTop,
-          maxScrollableHeight: latestStateRef.current.maxScrollableHeight,
+          maxScrollableHeight: newTree.flattened.length * props.rowHeight,
         },
         'center'
       );
@@ -705,10 +704,6 @@ export function useVirtualizedTree<T extends TreeLike>(
           dispatch({
             type: 'set scroll height',
             payload: elements[0]?.contentRect?.height ?? 0,
-          });
-          dispatch({
-            type: 'set max scrollable height',
-            payload: (elements[0]?.target?.scrollHeight ?? 24) - 24, // Need subtract padding to get true height
           });
         }
       });

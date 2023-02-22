@@ -1,5 +1,4 @@
 export interface VirtualizedState<T> {
-  maxScrollableHeight: number;
   overscroll: number;
   roots: T[];
   scrollHeight: number;
@@ -21,11 +20,6 @@ interface SetContainerHeight {
   type: 'set scroll height';
 }
 
-interface SetMaxScrollableHeight {
-  payload: number;
-  type: 'set max scrollable height';
-}
-
 interface ScrollToIndex {
   payload: {scrollTop: number; selectedNodeIndex: number};
   type: 'scroll to index';
@@ -35,8 +29,7 @@ type VirtualizedStateAction =
   | SetScrollTop
   | SetContainerHeight
   | SetSelectedNodeIndex
-  | ScrollToIndex
-  | SetMaxScrollableHeight;
+  | ScrollToIndex;
 
 export function VirtualizedTreeReducer<T>(
   state: VirtualizedState<T>,
@@ -54,9 +47,6 @@ export function VirtualizedTreeReducer<T>(
     }
     case 'set scroll height': {
       return {...state, scrollHeight: action.payload};
-    }
-    case 'set max scrollable height': {
-      return {...state, maxScrollableHeight: action.payload};
     }
     default: {
       return state;
