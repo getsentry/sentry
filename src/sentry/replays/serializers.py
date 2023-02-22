@@ -10,7 +10,6 @@ class ReplayRecordingSegmentSerializer(Serializer):
             "replayId": obj.replay_id,
             "segmentId": obj.segment_id,
             "projectId": str(obj.project_id),
-            "dateAdded": obj.date_added,
         }
 
 

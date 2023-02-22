@@ -7,7 +7,6 @@ proper steps are taken to migrate your data.
 import dataclasses
 import functools
 import logging
-import zlib
 from abc import ABC, abstractmethod
 from io import BytesIO
 from typing import Any, Callable, Optional, Union
@@ -28,39 +27,15 @@ class RecordingSegmentStorageMeta:
     project_id: int
     replay_id: str
     segment_id: int
+    retention_days: int
     file_id: Optional[int]
 
 
-# Both types implement nearly the same attributes.  One is post-ingest and the other pre-ingest.
-SegmentType = Union[ReplayRecordingSegment, RecordingSegmentStorageMeta]
-
-
-def decompressed(fn: Callable[[Any, SegmentType], bytes]):
-    """Decompression wrapper.  Returns decompressed blob data from storage."""
-
-    @functools.wraps(fn)
-    def decorator(self, segment: SegmentType) -> bytes:
-        buffer = fn(self, segment)
-
-        # If the file starts with a valid JSON character we assume its uncompressed. With time
-        # this condition will go extinct. Relay will compress payloads prior to forwarding to
-        # the next step.
-        if buffer.startswith(b"["):
-            return buffer
-
-        # Currently replays are gzipped by Relay.  Historical Replays retain their original gzip
-        # compression from the SDK.  In the future we may swap this for zstd or any number of
-        # compression algorithms.
-        return zlib.decompress(buffer, zlib.MAX_WBITS | 32)
-
-    return decorator
-
-
-def cached(fn: Callable[[Any, SegmentType], bytes]):
+def cached(fn: Callable[[Any, RecordingSegmentStorageMeta], bytes]):
     """Return cached blob data."""
 
     @functools.wraps(fn)
-    def decorator(self, segment: SegmentType) -> bytes:
+    def decorator(self, segment: RecordingSegmentStorageMeta) -> bytes:
         cache_key = make_filename(segment)
 
         # Fetch the recording-segment from cache if possible.
@@ -83,7 +58,7 @@ class Blob(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, segment: SegmentType) -> bytes:
+    def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
         """Return blob from remote storage."""
         raise NotImplementedError
 
@@ -92,23 +67,29 @@ class Blob(ABC):
         """Set blob in remote storage."""
         raise NotImplementedError
 
-    def save_recording_segment(
-        self,
-        segment: RecordingSegmentStorageMeta,
-        driver: int,
-        size: int,
-        file_id: Optional[int] = None,
-    ) -> Optional[ReplayRecordingSegment]:
+
+class FilestoreBlob(Blob):
+    """Filestore service driver blob manager."""
+
+    def delete(self, segment: RecordingSegmentStorageMeta) -> None:
+        file = File.objects.get(pk=segment.file_id)
+        file.delete()
+
+    def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
+        file = File.objects.get(pk=segment.file_id)
+        return file.getfile().read()
+
+    def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
+        file = File.objects.create(name=make_filename(segment), type="replay.recording")
+        file.putfile(BytesIO(value), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+
         try:
-            return ReplayRecordingSegment.objects.create(
-                retention_days=segment.retention_days,
-                org_id=segment.org_id,
+            segment = ReplayRecordingSegment.objects.create(
                 project_id=segment.project_id,
                 replay_id=segment.replay_id,
                 segment_id=segment.segment_id,
-                file_id=file_id,
-                driver=driver,
-                size=size,
+                file_id=file.id,
+                size=len(value),
             )
         except IntegrityError:
             logger.warning(
@@ -120,30 +101,7 @@ class Blob(ABC):
                 },
             )
 
-
-class FilestoreBlob(Blob):
-    """Filestore service driver blob manager."""
-
-    def delete(self, segment: RecordingSegmentStorageMeta) -> None:
-        file = File.objects.get(pk=segment.file_id)
-        file.delete()
-
-    @decompressed
-    def get(self, segment: SegmentType) -> bytes:
-        file = File.objects.get(pk=self.make_key(segment))
-        return file.getfile().read()
-
-    def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
-        file = File.objects.create(name=make_filename(segment), type="replay.recording")
-        file.putfile(BytesIO(value), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
-
-        segment = self.save_recording_segment(
-            segment,
-            driver=ReplayRecordingSegment.FILESTORE,
-            size=len(value),
-            file_id=file.id,
-        )
-        if segment is None:
+            # Delete the file from remote storage since it is un-retrievable.
             file.delete()
 
 
@@ -159,8 +117,7 @@ class StorageBlob(Blob):
         storage.delete(self.make_key(segment))
 
     @cached
-    @decompressed
-    def get(self, segment: SegmentType) -> bytes:
+    def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
         storage = get_storage(self._make_storage_options())
 
         blob = storage.open(self.make_key(segment))
@@ -172,15 +129,7 @@ class StorageBlob(Blob):
         storage = get_storage(self._make_storage_options())
         storage.save(self.make_key(segment), BytesIO(value))
 
-        segment = self.save_recording_segment(
-            segment,
-            driver=ReplayRecordingSegment.STORAGE,
-            size=len(value),
-        )
-        if segment is None:
-            self.delete(segment)
-
-    def make_key(self, segment: SegmentType) -> str:
+    def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
         return make_filename(segment)
 
     def _make_storage_options(self) -> Optional[dict]:
@@ -191,8 +140,9 @@ class StorageBlob(Blob):
         return {"backend": backend, "options": options.get("replays.storage.options")}
 
 
-def make_filename(segment: SegmentType) -> str:
-    return "{}/{}/{}".format(
+def make_filename(segment: RecordingSegmentStorageMeta) -> str:
+    return "{}/{}/{}/{}".format(
+        segment.retention_days,
         segment.project_id,
         segment.replay_id,
         segment.segment_id,

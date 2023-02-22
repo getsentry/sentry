@@ -1,3 +1,4 @@
+import datetime
 import uuid
 import zlib
 from collections import namedtuple
@@ -5,7 +6,8 @@ from collections import namedtuple
 from django.urls import reverse
 
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
-from sentry.testutils import TransactionTestCase
+from sentry.replays.testutils import mock_replay
+from sentry.testutils import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
 from sentry.testutils.silo import region_silo_test
 
 Message = namedtuple("Message", ["project_id", "replay_id"])
@@ -97,19 +99,18 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(
 
     def save_recording_segment(self, segment_id, data: bytes, compressed: bool = True):
         metadata = RecordingSegmentStorageMeta(
-            org_id=self.organization.id,
             project_id=self.project.id,
             replay_id=self.replay_id,
             segment_id=segment_id,
-            size=0,
             retention_days=30,
+            file_id=None,
         )
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
 
 @region_silo_test
 class StorageProjectReplayRecordingSegmentIndexTestCase(
-    ProjectReplayRecordingSegmentIndexMixin, TransactionTestCase
+    ProjectReplayRecordingSegmentIndexMixin, APITestCase, ReplaysSnubaTestCase
 ):
     def setUp(self):
         super().setUp()
@@ -119,14 +120,24 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
             self.endpoint,
             args=(self.organization.slug, self.project.slug, self.replay_id),
         )
+        self.features = {"organizations:session-replay": True}
 
-    def save_recording_segment(self, segment_id, data: bytes, compressed: bool = True):
+    def save_recording_segment(self, segment_id: int, data: bytes, compressed: bool = True):
+        # Insert the row in clickhouse.
+        mock_replay(
+            datetime.datetime.now(),
+            self.project.id,
+            self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+        )
+
+        # Store the binary blob in the remote storage provider.
         metadata = RecordingSegmentStorageMeta(
-            org_id=self.organization.id,
             project_id=self.project.id,
             replay_id=self.replay_id,
             segment_id=segment_id,
-            size=0,
             retention_days=30,
+            file_id=None,
         )
         StorageBlob().set(metadata, zlib.compress(data) if compressed else data)
