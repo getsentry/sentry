@@ -12,10 +12,7 @@
     },
     "files/_/_/index.js": {
       "url": "~/index.js",
-      "type": "source",
-      "headers": {
-        "Sourcemap": "index.js.map"
-      }
+      "type": "source"
     },
     "files/_/_/index.min.js": {
       "url": "~/index.min.js",

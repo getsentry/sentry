@@ -33,7 +33,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                     "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 },
             },
-            "required": ["checksum", "chunks"],
+            "required": ["checksum", "chunks", "projects"],
             "additionalProperties": False,
         }
 

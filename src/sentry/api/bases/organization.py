@@ -458,6 +458,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         for a minute on the unique combination of actor,org,release, and project
         ids.
         """
+        if release is None:
+            return True
+
         actor_id = None
         has_perms = None
         key = None
