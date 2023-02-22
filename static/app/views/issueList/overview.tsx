@@ -838,17 +838,6 @@ class IssueListOverview extends Component<Props, State> {
     });
   }
 
-  onIssueListSidebarSearch = (query: string) => {
-    trackAdvancedAnalyticsEvent('search.searched', {
-      organization: this.props.organization,
-      query,
-      search_type: 'issues',
-      search_source: 'search_builder',
-    });
-
-    this.onSearch(query);
-  };
-
   onSearch = (query: string) => {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
