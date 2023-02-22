@@ -145,6 +145,21 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                     }
                 ]
             },
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "code_file": "https://example.com/static/js/main.js",
+                        "debug_id": "395835f4-03e0-4436-80d3-136f0749a893",
+                    }
+                ],
+                "sdk_info": {
+                    "sdk_name": "iOS",
+                    "version_major": 10,
+                    "version_minor": 3,
+                    "version_patchlevel": 0,
+                },
+            },
         }
 
         mock_fetch_file.return_value.body = force_bytes("\n".join("hello world"))
