@@ -7,7 +7,7 @@ import {CommitRowProps} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Commit, Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -73,10 +73,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
 
   const commits = getUniqueCommitsWithAuthors();
 
-  const commitHeading =
-    commits.length > 1
-      ? `${t('Suspect Commits')} (${commits.length})`
-      : t('Suspect Commit');
+  const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return (
     <DataSection>
