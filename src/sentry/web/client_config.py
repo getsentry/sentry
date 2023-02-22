@@ -258,7 +258,7 @@ def get_client_config(request=None):
                     id=superuser.ORG_ID, user_id=None
                 )
                 if org_context and org_context.organization:
-                    context["links"]["superUserUrl"] = generate_organization_url(
+                    context["links"]["superuserUrl"] = generate_organization_url(
                         org_context.organization.slug
                     )
     else:

@@ -201,7 +201,7 @@ class ClientConfigViewTest(TestCase):
             "organizationUrl": None,
             "regionUrl": None,
             "sentryUrl": "http://testserver",
-            "superUserUrl": f"http://{self.organization.slug}.testserver",
+            "superuserUrl": f"http://{self.organization.slug}.testserver",
         }
         assert "activeorg" not in self.client.session
 
