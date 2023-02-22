@@ -91,6 +91,15 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     }
   ) => {
     const key = `view-hierarchy-node-${r.key}`;
+
+    if (selectedNodeIndex === r.key && selectedNode !== r.item.node) {
+      // Workaround because rows don't take up the whole width of the scroll container
+      // so the onClick handler won't fire
+      setSelectedNode(r.item.node);
+      r.ref?.focus({preventScroll: true});
+      setUserHasSelected(true);
+    }
+
     return (
       <TreeItem
         key={key}
@@ -101,13 +110,8 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         tabIndex={selectedNodeIndex === r.key ? 0 : 1}
         onMouseEnter={handleRowMouseEnter}
         onKeyDown={handleRowKeyDown}
-        onFocus={() => {
-          setSelectedNode(r.item.node);
-        }}
         onClick={e => {
           handleRowClick(e);
-          setSelectedNode(r.item.node);
-          setUserHasSelected(true);
         }}
       >
         {r.item.depth !== 0 && <DepthMarker depth={r.item.depth} />}
