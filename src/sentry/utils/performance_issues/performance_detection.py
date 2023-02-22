@@ -485,13 +485,17 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             self.fcp = None
 
     def _is_blocking_render(self, span):
+        data = span.get("data", None)
+        render_blocking_status = data and data.get("resource.render_blocking_status")
+        if render_blocking_status == "non-blocking":
+            return False
+
         span_end_timestamp = timedelta(seconds=span.get("timestamp", 0))
         fcp_timestamp = self.transaction_start + self.fcp
         if span_end_timestamp >= fcp_timestamp:
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        data = span.get("data", None)
         encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
         if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
             return False

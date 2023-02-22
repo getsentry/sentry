@@ -38,6 +38,7 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
                     "Transfer Size": 1200000,
                     "Encoded Body Size": 1200000,
                     "Decoded Body Size": 2000000,
+                    "resource.render_blocking_status": "blocking",
                 },
             ),
         ],
@@ -81,135 +82,76 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             )
         ]
 
-    def test_not_detect_render_block_asset(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                modify_span_start(
-                    create_span("resource.script", duration=1000.0),
-                    2000.0,
-                ),
-            ],
-        }
+    def test_does_not_detect_if_resource_overlaps_fcp(self):
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                modify_span_start(span, 2000.0)
 
         assert self.find_problems(event) == []
 
     def test_does_not_detect_with_no_fcp(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": None,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
-
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        event["measurements"]["fcp"]["value"] = None
         assert self.find_problems(event) == []
 
     def test_does_not_detect_with_no_measurements(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": None,
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
-
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        event["measurements"] = None
         assert self.find_problems(event) == []
 
     def test_does_not_detect_with_short_render_blocking_asset(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=200.0),
-            ],
-        }
-
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                span["timestamp"] = 0.1
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_too_small(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span(
-                    "resource.script",
-                    duration=1000.0,
-                    data={
-                        "Transfer Size": 900000,
-                        "Encoded Body Size": 900000,
-                        "Decoded Body Size": 1700000,
-                    },
-                ),
-            ],
-        }
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                span["data"]["Encoded Body Size"] = 900000
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_missing_size(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                del span["data"]
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_too_large(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span(
-                    "resource.script",
-                    duration=1000.0,
-                    data={
-                        # A resource span with these stats was really logged.
-                        "Transfer Size": 299,
-                        "Encoded Body Size": 18446744073709552000,
-                        "Decoded Body Size": 0,
-                    },
-                ),
-            ],
-        }
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                # This is a real value we saw in production.
+                span["data"]["Encoded Body Size"] = 18446744073709552000
+        assert self.find_problems(event) == []
+
+    def test_detects_if_render_blocking_status_is_missing(self):
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            del span["data"]["resource.render_blocking_status"]
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1004-ba43281143a88ba902029356cb543dd0bff8f41c",
+                op="resource.script",
+                desc="https://example.com/a.js",
+                type=PerformanceRenderBlockingAssetSpanGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+            )
+        ]
+
+    def test_does_not_detect_if_render_blocking_status_is_non_blocking(self):
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            span["data"]["resource.render_blocking_status"] = "non-blocking"
+
         assert self.find_problems(event) == []
 
 
