@@ -402,6 +402,20 @@ class TestInvalidationTask:
             countdown=2,
         )
 
+    @mock.patch("sentry.tasks.relay._schedule_invalidate_project_config")
+    def test_project_config_invalidations_delayed(self, schedule_inner, default_project):
+        with transaction.atomic():
+            schedule_invalidate_project_config(
+                trigger="inside-transaction", project_id=default_project, countdown=2
+            )
+            assert schedule_inner.call_count == 0
+
+        assert schedule_inner.call_count == 1
+        schedule_invalidate_project_config(
+            trigger="outside-transaction", project_id=default_project, countdown=2
+        )
+        assert schedule_inner.call_count == 2
+
 
 @pytest.mark.django_db(transaction=True)
 def test_invalidate_hierarchy(
