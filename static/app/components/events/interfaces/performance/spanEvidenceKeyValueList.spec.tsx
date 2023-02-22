@@ -389,7 +389,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 1000,
+      endTimestamp: 1.0,
       op: 'resource.script',
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,
