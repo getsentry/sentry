@@ -21,7 +21,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 
@@ -34,7 +34,8 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        assert rule.owner == User.objects.get(id=owner_id).actor
+        with exempt_from_silo_limits():
+            assert rule.owner == User.objects.get(id=owner_id).actor
     else:
         assert rule.owner is None
 
@@ -70,6 +71,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
+@region_silo_test(stable=True)
 class ProjectRuleDetailsBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
@@ -96,7 +98,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -259,7 +261,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -706,7 +708,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 

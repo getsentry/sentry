@@ -29,9 +29,6 @@ class RpcOrganizationMapping(RpcModel):
     customer_id: Optional[str] = None
 
 
-APIOrganizationMapping = RpcOrganizationMapping
-
-
 class RpcOrganizationMappingUpdate(RpcModel, PatchableMixin["Organization"]):
     organization_id: int = -1
     name: Unset[str] = UnsetVal
@@ -40,9 +37,6 @@ class RpcOrganizationMappingUpdate(RpcModel, PatchableMixin["Organization"]):
     @classmethod
     def from_instance(cls, inst: Organization) -> RpcOrganizationMappingUpdate:
         return cls(**cls.params_from_instance(inst), organization_id=inst.id)
-
-
-ApiOrganizationMappingUpdate = RpcOrganizationMappingUpdate
 
 
 class OrganizationMappingService(InterfaceWithLifecycle):

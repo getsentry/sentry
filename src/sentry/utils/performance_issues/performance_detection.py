@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import random
 import re
 from abc import ABC, abstractmethod
@@ -486,13 +485,17 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             self.fcp = None
 
     def _is_blocking_render(self, span):
+        data = span.get("data", None)
+        render_blocking_status = data and data.get("resource.render_blocking_status")
+        if render_blocking_status == "non-blocking":
+            return False
+
         span_end_timestamp = timedelta(seconds=span.get("timestamp", 0))
         fcp_timestamp = self.transaction_start + self.fcp
         if span_end_timestamp >= fcp_timestamp:
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        data = span.get("data", None)
         encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
         if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
             return False
@@ -754,7 +757,6 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     __slots__ = ("spans_involved", "stored_problems")
 
-    IGNORED_EXTENSIONS = {".nib", ".plist", ".strings"}
     type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
 
@@ -854,9 +856,6 @@ class FileIOMainThreadDetector(PerformanceDetector):
     def _is_file_io_on_main_thread(self, span: Span) -> bool:
         data = span.get("data", {})
         if data is None:
-            return False
-        _, fileext = os.path.splitext(data.get("file.path", ""))
-        if fileext in self.IGNORED_EXTENSIONS:
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True

@@ -48,9 +48,6 @@ class RpcAuthenticatorType(IntEnum):
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 
 
-ApiAuthenticatorType = RpcAuthenticatorType
-
-
 def authentication_request_from(request: Request) -> AuthenticationRequest:
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
@@ -91,9 +88,6 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
             return response.user, response.auth
 
         return None
-
-
-ApiAuthentication = RpcAuthentication
 
 
 class AuthService(InterfaceWithLifecycle):
@@ -154,6 +148,10 @@ class AuthService(InterfaceWithLifecycle):
     ) -> Tuple[RpcUser, RpcOrganizationMember]:
         pass
 
+    @abc.abstractmethod
+    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
+        pass
+
 
 def impl_with_db() -> AuthService:
     from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
@@ -161,20 +159,14 @@ def impl_with_db() -> AuthService:
     return DatabaseBackedAuthService()
 
 
-class RpcMemberSsoState(RpcModel):
-    is_required: bool = False
-    is_valid: bool = False
-
-
-ApiMemberSsoState = RpcMemberSsoState
-
-
 class RpcAuthState(RpcModel):
     sso_state: RpcMemberSsoState
     permissions: List[str]
 
 
-ApiAuthState = RpcAuthState
+class RpcMemberSsoState(RpcModel):
+    is_required: bool = False
+    is_valid: bool = False
 
 
 @dataclass
@@ -325,17 +317,11 @@ class RpcAuthProviderFlags(RpcModel):
     scim_enabled: bool = False
 
 
-RpcAuthProviderFlags
-
-
 class RpcAuthProvider(RpcModel):
     id: int = -1
     organization_id: int = -1
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
-
-
-ApiAuthProvider = RpcAuthProvider
 
 
 class RpcAuthIdentity(RpcModel):
@@ -345,16 +331,10 @@ class RpcAuthIdentity(RpcModel):
     ident: str = ""
 
 
-ApiAuthIdentity = RpcAuthIdentity
-
-
 class RpcOrganizationAuthConfig(RpcModel):
     organization_id: int = -1
     auth_provider: Optional[RpcAuthProvider] = None
     has_api_key: bool = False
-
-
-ApiOrganizationAuthConfig = RpcOrganizationAuthConfig
 
 
 auth_service: AuthService = silo_mode_delegation(

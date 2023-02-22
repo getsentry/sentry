@@ -18,17 +18,11 @@ class RpcIdentityProvider(RpcModel):
     external_id: str
 
 
-APIIdentityProvider = RpcIdentityProvider
-
-
 class RpcIdentity(RpcModel):
     id: int
     idp_id: int
     user_id: int
     external_id: str
-
-
-APIIdentity = RpcIdentity
 
 
 class IdentityService(InterfaceWithLifecycle):

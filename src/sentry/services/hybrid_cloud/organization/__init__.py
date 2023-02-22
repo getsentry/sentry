@@ -155,9 +155,6 @@ class RpcTeam(RpcModel):
         return "Team"
 
 
-ApiTeam = RpcTeam
-
-
 class RpcTeamMember(RpcModel):
     id: int = -1
     is_active: bool = False
@@ -169,9 +166,6 @@ class RpcTeamMember(RpcModel):
     @property
     def role(self) -> Optional[TeamRole]:
         return team_roles.get(self.role_id) if self.role_id else None
-
-
-ApiTeamMember = RpcTeamMember
 
 
 def project_status_visible() -> int:
@@ -188,9 +182,6 @@ class RpcProject(RpcModel):
     status: int = Field(default_factory=project_status_visible)
 
 
-ApiProject = RpcProject
-
-
 class RpcOrganizationMemberFlags(RpcModel):
     sso__linked: bool = False
     sso__invalid: bool = False
@@ -204,9 +195,6 @@ class RpcOrganizationMemberFlags(RpcModel):
 
     def __getitem__(self, item: str) -> bool:
         return bool(getattr(self, item))
-
-
-ApiOrganizationMemberFlags = RpcOrganizationMemberFlags
 
 
 class RpcOrganizationMember(RpcModel):
@@ -233,9 +221,6 @@ class RpcOrganizationMember(RpcModel):
         }
 
 
-ApiOrganizationMember = RpcOrganizationMember
-
-
 class RpcOrganizationFlags(RpcModel):
     allow_joinleave: bool = False
     enhanced_privacy: bool = False
@@ -246,16 +231,10 @@ class RpcOrganizationFlags(RpcModel):
     require_email_verification: bool = False
 
 
-ApiOrganizationFlags = RpcOrganizationFlags
-
-
 class RpcOrganizationInvite(RpcModel):
     id: int = -1
     token: str = ""
     email: str = ""
-
-
-ApiOrganizationInvite = RpcOrganizationInvite
 
 
 class RpcOrganizationSummary(RpcModel):
@@ -268,9 +247,6 @@ class RpcOrganizationSummary(RpcModel):
     name: str = ""
 
 
-ApiOrganizationSummary = RpcOrganizationSummary
-
-
 class RpcOrganization(RpcOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
@@ -281,9 +257,6 @@ class RpcOrganization(RpcOrganizationSummary):
     status: OrganizationStatus = OrganizationStatus.VISIBLE
 
     default_role: str = ""
-
-
-ApiOrganization = RpcOrganization
 
 
 class RpcUserOrganizationContext(RpcModel):
@@ -308,7 +281,5 @@ class RpcUserOrganizationContext(RpcModel):
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
 
-
-ApiUserOrganizationContext = RpcUserOrganizationContext
 
 from sentry.roles.manager import TeamRole

@@ -22,9 +22,6 @@ class RpcUserOption(RpcModel):
     organization_id: Optional[int] = None
 
 
-ApiUserOption = RpcUserOption
-
-
 def get_option_from_list(
     options: List[RpcUserOption],
     *,

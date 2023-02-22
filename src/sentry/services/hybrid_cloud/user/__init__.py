@@ -87,7 +87,17 @@ class RpcUser(RpcModel):
         return "User"
 
 
-APIUser = RpcUser
+class RpcAvatar(RpcModel):
+    id: int = 0
+    file_id: int = 0
+    ident: str = ""
+    avatar_type: str = "letter_avatar"
+
+
+class RpcUserEmail(RpcModel):
+    id: int = 0
+    email: str = ""
+    is_verified: bool = False
 
 
 class UserSerializeType(IntEnum):  # annoying

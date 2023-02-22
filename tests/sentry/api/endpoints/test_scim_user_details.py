@@ -351,7 +351,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         patch_req = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-            "Operations": [{"op": "replace", "value": {"active": False}}],
+            "Operations": [{"op": "Replace", "value": {"active": False}}],
         }
         response = self.client.patch(url, patch_req)
 
@@ -362,6 +362,25 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
         with pytest.raises(AuthIdentity.DoesNotExist):
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
+
+    def test_invalid_patch_op(self):
+        member = self.create_member(
+            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+        )
+        AuthIdentity.objects.create(
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
+        )
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        patch_req = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "invalid", "value": {"active": False}}],
+        }
+        response = self.client.patch(url, patch_req)
+
+        assert response.status_code == 400, response.content
 
     def test_user_details_get_404(self):
         url = reverse(
