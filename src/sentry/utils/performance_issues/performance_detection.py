@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import random
 import re
 from abc import ABC, abstractmethod
@@ -754,7 +753,6 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     __slots__ = ("spans_involved", "stored_problems")
 
-    IGNORED_EXTENSIONS = {".nib", ".plist", ".strings"}
     type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
 
@@ -854,9 +852,6 @@ class FileIOMainThreadDetector(PerformanceDetector):
     def _is_file_io_on_main_thread(self, span: Span) -> bool:
         data = span.get("data", {})
         if data is None:
-            return False
-        _, fileext = os.path.splitext(data.get("file.path", ""))
-        if fileext in self.IGNORED_EXTENSIONS:
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
