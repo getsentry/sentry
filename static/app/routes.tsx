@@ -2237,6 +2237,9 @@ function buildRoutes() {
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
 
+// Exported for use in tests.
+export {buildRoutes};
+
 function NoOp(props: {children: React.ReactNode}) {
   return <Fragment>{props.children}</Fragment>;
 }
