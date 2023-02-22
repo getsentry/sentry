@@ -8,6 +8,7 @@ import dataclasses
 import functools
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable, Optional, Union
 
@@ -28,6 +29,7 @@ class RecordingSegmentStorageMeta:
     replay_id: str
     segment_id: int
     retention_days: int
+    date_added: Optional[datetime] = None
     file_id: Optional[int] = None
 
 

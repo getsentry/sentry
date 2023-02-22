@@ -68,6 +68,7 @@ def fetch_filestore_segments_meta(
             replay_id=replay_id,
             segment_id=segment.segment_id,
             retention_days=0,
+            date_added=segment.date_added,
             file_id=segment.file_id,
         )
         for segment in segments
@@ -89,6 +90,7 @@ def fetch_filestore_segment_meta(
         replay_id=replay_id,
         segment_id=segment.segment_id,
         retention_days=0,
+        date_added=segment.date_added,
         file_id=segment.file_id,
     )
 
@@ -165,7 +167,7 @@ def _fetch_segments_from_snuba(
         app_id="replay-backend-web",
         query=Query(
             match=Entity("replays"),
-            select=[Column("segment_id"), Column("retention_days")],
+            select=[Column("segment_id"), Column("retention_days"), Column("timestamp")],
             where=[
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column("replay_id"), Op.EQ, replay_id),
@@ -191,6 +193,7 @@ def _fetch_segments_from_snuba(
             replay_id=replay_id,
             segment_id=item["segment_id"],
             retention_days=item["retention_days"],
+            date_added=item["timestamp"],
             file_id=None,
         )
         for item in response["data"]
