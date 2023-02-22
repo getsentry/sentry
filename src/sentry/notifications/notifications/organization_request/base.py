@@ -56,7 +56,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         )
 
         return self.role_based_recipient_strategy.build_notification_footer_from_settings_url(
-            settings_url, recipient
+            settings_url
         )
 
     def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
