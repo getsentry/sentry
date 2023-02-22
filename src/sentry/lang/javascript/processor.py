@@ -161,15 +161,16 @@ def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
 
 
 def discover_sourcemap_by_debug_id(org_id, debug_id):
+    if debug_id is None:
+        return False
+
     result = DebugIdArtifactBundle.objects.filter(
         organization_id=org_id, debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP.value
     )
 
-    if len(result) > 0:
-        # TODO: check if we can just return the file here and load it later on.
-        return result[0].debug_id
+    # TODO: put artifact bundle in cache for fast lookup.
 
-    return None
+    return len(result) > 0
 
 
 def discover_sourcemap(result):
@@ -910,6 +911,23 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.release = None
         self.dist = None
 
+        # For performance reasons we build an in-memory mapping between absolute path and debug id.
+        self.abs_path_to_debug_id = self.build_abs_path_to_debug_id_dict()
+
+    def build_abs_path_to_debug_id_dict(self):
+        abs_path_debug_id_dict = {}
+        images = self.data.get("debug_meta", {}).get("images", [])
+
+        for image in images:
+            if image is not None:
+                code_file = image.get("code_file", None)
+                debug_id = image.get("debug_id", None)
+
+                if code_file is not None and debug_id is not None:
+                    abs_path_debug_id_dict[code_file] = debug_id
+
+        return abs_path_debug_id_dict
+
     def get_valid_frames(self):
         # build list of frames that we can actually grab source for
         frames = []
@@ -949,18 +967,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # frames for function name resolution by call site.
         processable_frame.data = {"token": None}
 
-    def debug_id_for_frame(self, frame):
-        # TODO: scrape self.data and look for the debug_id.
-        return "12302093902"
-
     def process_frame(self, processable_frame, processing_task):
         """
         Attempt to demangle the given frame.
         """
         frame = processable_frame.frame
-        # We inject the debug_id for the frame, to make it easier to work with it across the pipeline.
-        frame["debug_id"] = self.debug_id_for_frame(frame)
-
         token = None
 
         cache = self.cache
@@ -987,7 +998,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # `source` is used for pre/post and `context_line` frame expansion.
         # Here it's pointing to minified source, however the variable can be shadowed with the original sourceview
         # (or `None` if the token doesnt provide us with the `context_line`) down the road.
-        source = self.get_sourceview(frame["abs_path"], frame.get("debug_id"))
+        source = self.get_sourceview(frame["abs_path"])
         source_context = None
 
         in_app = None
@@ -1046,7 +1057,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 if token.context_line is not None:
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
-                    source = self.get_sourceview(abs_path, frame.get("debug_id"))
+                    source = self.get_sourceview(abs_path)
 
                 if source is None:
                     errors = cache.get_errors(abs_path)
@@ -1218,24 +1229,69 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         return True
 
-    def get_sourceview(self, filename, debug_id):
+    def get_sourceview(self, filename):
         if filename not in self.cache:
-            self.cache_source(filename, debug_id)
+            self.cache_source(filename)
 
         return self.cache.get(filename)
 
-    def cache_source(self, filename, debug_id):
+    def handle_sourcemap_with_debug_id(self):
+        # TODO: implement storing of artifact bound to a specific debug id.
+        pass
+
+    def handle_sourcemap_without_debug_id(self, filename, result):
+        sourcemaps = self.sourcemaps
+
+        sourcemap_url = discover_sourcemap(result)
+        if not sourcemap_url:
+            return
+
+        logger.debug(
+            "Found sourcemap URL %r for minified script %r", sourcemap_url[:256], result.url
+        )
+
+        sourcemaps.link(filename, sourcemap_url)
+        if sourcemap_url in sourcemaps:
+            return
+
+        # pull down sourcemap
+        try:
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
+            ) as span:
+                span.set_data("sourcemap_url", sourcemap_url)
+                sourcemap_view = fetch_sourcemap(
+                    sourcemap_url,
+                    source=result.body,
+                    project=self.project,
+                    release=self.release,
+                    dist=self.dist,
+                    allow_scraping=self.allow_scraping,
+                )
+        except http.BadSource as exc:
+            # we don't perform the same check here as above, because if someone has
+            # uploaded a node_modules file, which has a sourceMappingURL, they
+            # presumably would like it mapped (and would like to know why it's not
+            # working, if that's the case). If they're not looking for it to be
+            # mapped, then they shouldn't be uploading the source file in the
+            # first place.
+            cache.add_error(filename, exc.data)
+            return
+
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
+        ) as span:
+            sourcemaps.add(sourcemap_url, sourcemap_view)
+
+    def cache_source(self, filename):
         """
         Look for and (if found) cache a source file and its associated source
         map (if any).
         """
-        sourcemaps = self.sourcemaps
-        cache = self.cache
-
         self.fetch_count += 1
 
         if self.fetch_count > self.max_fetches:
-            cache.add_error(filename, {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES})
+            self.cache.add_error(filename, {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES})
             return
 
         # TODO: respect cache-control/max-age headers to some extent
@@ -1259,62 +1315,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
             return
-        cache.add(filename, result.body, result.encoding)
-        cache.alias(result.url, filename)
 
-        # We tread debug id as url for simplicity. We might need a proper refactor later on.
-        sourcemap_url = discover_sourcemap_by_debug_id(self.organization.id, debug_id)
-        fetch_with_debug_id = False
-        if sourcemap_url:
-            logger.debug(
-                "Found sourcemap with debug id %r for minified script %r", sourcemap_url, result.url
-            )
-            fetch_with_debug_id = True
+        self.cache.add(filename, result.body, result.encoding)
+        self.cache.alias(result.url, filename)
+
+        debug_id = self.abs_path_to_debug_id.get(filename)
+        if discover_sourcemap_by_debug_id(self.organization.id, debug_id):
+            self.handle_sourcemap_with_debug_id()
         else:
-            sourcemap_url = discover_sourcemap(result)
-            if not sourcemap_url:
-                return
-
-            logger.debug(
-                "Found sourcemap URL %r for minified script %r", sourcemap_url[:256], result.url
-            )
-
-        sourcemaps.link(filename, sourcemap_url)
-        if sourcemap_url in sourcemaps:
-            return
-
-        if fetch_with_debug_id:
-            # TODO: implement the fetching of the source map.
-            sourcemap_view = None
-        else:
-            # pull down sourcemap
-            try:
-                with sentry_sdk.start_span(
-                    op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
-                ) as span:
-                    span.set_data("sourcemap_url", sourcemap_url)
-                    sourcemap_view = fetch_sourcemap(
-                        sourcemap_url,
-                        source=result.body,
-                        project=self.project,
-                        release=self.release,
-                        dist=self.dist,
-                        allow_scraping=self.allow_scraping,
-                    )
-            except http.BadSource as exc:
-                # we don't perform the same check here as above, because if someone has
-                # uploaded a node_modules file, which has a sourceMappingURL, they
-                # presumably would like it mapped (and would like to know why it's not
-                # working, if that's the case). If they're not looking for it to be
-                # mapped, then they shouldn't be uploading the source file in the
-                # first place.
-                cache.add_error(filename, exc.data)
-                return
-
-        with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
-        ) as span:
-            sourcemaps.add(sourcemap_url, sourcemap_view)
+            self.handle_sourcemap_without_debug_id(filename, result)
 
     def populate_source_cache(self, frames):
         """
