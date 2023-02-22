@@ -206,7 +206,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_id=self.project.id,
+            project_ids=[self.project.id],
             version=None,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -221,7 +221,11 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert details is None
 
         for debug_id in debug_ids:
-            debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+            debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                debug_id=debug_id
+            )
+            assert len(debug_id_artifact_bundles) == 2
             assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
 
             release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
@@ -252,7 +256,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
                 assemble_artifacts(
                     org_id=self.organization.id,
-                    project_id=None,
+                    project_ids=[],
                     version=self.release.version,
                     checksum=total_checksum,
                     chunks=[blob1.checksum],
@@ -292,7 +296,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_id=None,
+            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -310,7 +314,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_id=None,
+            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -328,7 +332,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_id=None,
+            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -353,7 +357,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         ):
             assemble_artifacts(
                 org_id=self.organization.id,
-                project_id=None,
+                project_ids=[],
                 version=self.release.version,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],

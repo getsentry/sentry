@@ -257,11 +257,15 @@ def _extract_information_from_manifest(manifest: dict) -> List[Tuple[SourceFileT
     files = manifest.get("files", {})
     for filename, info in files.items():
         headers = _normalize_headers(info.get("headers", {}))
-        debug_id = _normalize_debug_id(headers.get("debug-id", None))
-        file_type = info.get("type", None)
-
-        if debug_id is not None and file_type is not None:
-            debug_ids_with_types.append((SourceFileType.from_lowercase_key(file_type), debug_id))
+        if (debug_id := headers.get("debug-id", None)) is not None:
+            debug_id = _normalize_debug_id(debug_id)
+            file_type = info.get("type", None)
+            if (
+                debug_id is not None
+                and file_type is not None
+                and (source_file_type := SourceFileType.from_lowercase_key(file_type)) is not None
+            ):
+                debug_ids_with_types.append((source_file_type, debug_id))
 
     return debug_ids_with_types
 
@@ -270,7 +274,7 @@ def _create_artifact_bundle(
     release: Optional[Release],
     dist: Optional[Distribution],
     org_id: int,
-    project_id: int,
+    project_ids: List[int],
     archive_file: File,
     artifact_count: int,
 ) -> bool:
@@ -293,10 +297,11 @@ def _create_artifact_bundle(
                     artifact_bundle=artifact_bundle,
                 )
 
-            ProjectArtifactBundle.objects.create(
-                project_id=project_id,
-                artifact_bundle=artifact_bundle,
-            )
+            for project_id in project_ids:
+                ProjectArtifactBundle.objects.create(
+                    project_id=project_id,
+                    artifact_bundle=artifact_bundle,
+                )
 
             for source_file_type, debug_id in debug_ids_with_types:
                 DebugIdArtifactBundle.objects.create(
@@ -312,7 +317,7 @@ def _create_artifact_bundle(
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
-def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
+def assemble_artifacts(org_id, project_ids, version, checksum, chunks, **kwargs):
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
@@ -388,7 +393,7 @@ def assemble_artifacts(org_id, project_id, version, checksum, chunks, **kwargs):
                 except Exception as exc:
                     logger.error("Unable to update artifact index", exc_info=exc)
             elif version is None:
-                _create_artifact_bundle(release, dist, org_id, project_id, bundle, artifact_count)
+                _create_artifact_bundle(release, dist, org_id, project_ids, bundle, artifact_count)
                 saved_as_archive = True
 
             if not saved_as_archive:

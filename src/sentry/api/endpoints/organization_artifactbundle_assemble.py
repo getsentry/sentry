@@ -23,12 +23,13 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         if not self.has_release_permission(request, organization, None):
             raise ResourceDoesNotExist
 
-        # TODO: get real project id from HTTP request.
-        project_id = 0
-
         schema = {
             "type": "object",
             "properties": {
+                "projects": {
+                    "type": "array",
+                    "items": {"type": "integer"}
+                },
                 "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 "chunks": {
                     "type": "array",
@@ -71,7 +72,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         assemble_artifacts.apply_async(
             kwargs={
                 "org_id": organization.id,
-                "project_id": project_id,
+                "project_ids": data.get("projects", []),
                 "version": None,
                 "checksum": checksum,
                 "chunks": chunks,

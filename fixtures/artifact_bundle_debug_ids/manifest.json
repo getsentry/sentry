@@ -14,8 +14,15 @@
       "url": "~/index.js",
       "type": "source",
       "headers": {
-        "Sourcemap": "index.js.map",
-        "Debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b"
+        "Sourcemap": "index.js.map"
+      }
+    },
+    "files/_/_/index.min.js": {
+      "url": "~/index.min.js",
+      "type": "minified_source",
+      "headers": {
+        "Debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b",
+        "Sourcemap": "index.js.map"
       }
     }
   }

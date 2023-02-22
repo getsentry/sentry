@@ -86,7 +86,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_id=None,
+            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
@@ -108,7 +108,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_id=None,
+            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
