@@ -1237,6 +1237,8 @@ SENTRY_FEATURES = {
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable setting view hierarchies deobfuscation options
+    "organizations:mobile-view-hierarchies-options-dev": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
