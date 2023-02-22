@@ -193,8 +193,14 @@ def make_performance_event(project, sample_name: str):
             "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
             "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
+            "performance.issues.render_blocking_assets.problem-creation": 1.0,
         }
-    ), Feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
+    ), Feature(
+        {
+            "organizations:performance-n-plus-one-api-calls-detector": True,
+            "organizations:performance-issues-render-blocking-assets-detector": True,
+        }
+    ):
         perf_data = dict(
             load_data(
                 sample_name,
