@@ -295,7 +295,7 @@ type Props = ChartProps['tooltip'] &
     chartId?: string;
   };
 
-export default function Tooltip({
+export function ChartTooltip({
   filter,
   isGroupedByDate,
   showTimeInTooltip,
@@ -402,3 +402,6 @@ export default function Tooltip({
     ...props,
   };
 }
+
+const DoNotUseChartTooltip = ChartTooltip;
+export default DoNotUseChartTooltip;
