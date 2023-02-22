@@ -170,18 +170,6 @@ def handle_owner_assignment(job):
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
 
-                with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
-
-                    if should_issue_owners_ratelimit(project.id):
-                        logger.info(
-                            "handle_owner_assignment.ratelimited",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "ratelimited",
-                            },
-                        )
-                        return
-
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
@@ -217,6 +205,18 @@ def handle_owner_assignment(job):
                             extra={
                                 **basic_logging_details,
                                 "reason": "issue_owners_exist",
+                            },
+                        )
+                        return
+
+                with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
+
+                    if should_issue_owners_ratelimit(project.id):
+                        logger.info(
+                            "handle_owner_assignment.ratelimited",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "ratelimited",
                             },
                         )
                         return
