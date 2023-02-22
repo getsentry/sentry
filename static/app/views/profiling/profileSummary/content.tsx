@@ -108,7 +108,7 @@ const ALL_FIELDS = [
   'device.model',
   'device.classification',
   'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
@@ -126,8 +126,7 @@ const DEFAULT_FIELDS: ProfilingFieldType[] = [
   'id',
   'timestamp',
   'release',
-  'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ];
 
 const FILTER_OPTIONS = [
@@ -137,11 +136,11 @@ const FILTER_OPTIONS = [
   },
   {
     label: t('Slowest Profiles'),
-    value: '-profile.duration',
+    value: '-transaction.duration',
   },
   {
     label: t('Fastest Profiles'),
-    value: 'profile.duration',
+    value: 'transaction.duration',
   },
 ];
 

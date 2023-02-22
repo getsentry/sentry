@@ -156,7 +156,7 @@ export function ProfilingTransactionHovercardBody({
               <PerformanceDuration
                 milliseconds={
                   slowestProfileDurationMultiplier *
-                  (slowestProfile['profile.duration'] as number)
+                  (slowestProfile['transaction.duration'] as number)
                 }
                 abbreviation
               />

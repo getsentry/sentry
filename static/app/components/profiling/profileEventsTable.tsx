@@ -251,6 +251,7 @@ const FIELDS = [
   'trace.transaction',
   'trace',
   'transaction',
+  'transaction.duration',
   'profile.duration',
   'project',
   'project.id',
@@ -277,6 +278,7 @@ const FIELDS = [
 type FieldType = (typeof FIELDS)[number];
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
+  'transaction.duration',
   'profile.duration',
   'p75()',
   'p95()',
@@ -304,6 +306,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   transaction: {
     key: 'transaction',
     name: t('Transaction'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'transaction.duration': {
+    key: 'transaction.duration',
+    name: t('Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   'profile.duration': {
