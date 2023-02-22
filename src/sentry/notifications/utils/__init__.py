@@ -505,8 +505,14 @@ class PerformanceProblemContext:
         if not self.event:
             return 0
 
-        start = self.event.data.get("start_timestamp", 0)
-        end = self.event.data.get("timestamp", 0)
+        return self.duration(self.event.data)
+
+    def duration(self, item: Mapping | None) -> float:
+        if not item:
+            return 0
+
+        start = float(item.get("start_timestamp", 0) or 0)
+        end = float(item.get("timestamp", 0) or 0)
 
         return (end - start) * 1000
 
@@ -652,14 +658,7 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
 
     @property
     def slow_span_duration(self) -> float:
-        slow_span = self.slow_span
-        if not slow_span:
-            return 0
-
-        start = float(slow_span.get("start_timestamp", 0))
-        end = float(slow_span.get("timestamp", 0))
-
-        return (end - start) * 1000
+        return self.duration(self.slow_span)
 
     @property
     def fcp(self) -> float:
