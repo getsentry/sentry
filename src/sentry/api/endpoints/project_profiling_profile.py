@@ -73,7 +73,7 @@ class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoin
             return Response(status=404)
         kwargs: Dict[str, Any] = {
             "method": "GET",
-            "path": f"/organizations/{project.organization.id}/projects/{project.id}/transactions/{transaction_id}",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/transactions/{transaction_id}",
         }
         return proxy_profiling_service(**kwargs)
 
@@ -86,7 +86,7 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
 
         response = get_from_profiling_service(
             "GET",
-            f"/organizations/{project.organization.id}/projects/{project.id}/profiles/{profile_id}",
+            f"/organizations/{project.organization_id}/projects/{project.id}/profiles/{profile_id}",
         )
 
         if response.status == 200:
@@ -128,7 +128,20 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
             return Response(status=404)
         kwargs: Dict[str, Any] = {
             "method": "GET",
-            "path": f"/organizations/{project.organization.id}/projects/{project.id}/raw_profiles/{profile_id}",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/raw_profiles/{profile_id}",
+        }
+        return proxy_profiling_service(**kwargs)
+
+
+@region_silo_endpoint
+class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
+    def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
+        if not features.has("organizations:profiling", project.organization, actor=request.user):
+            return Response(status=404)
+        kwargs: Dict[str, Any] = {
+            "method": "GET",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",
+            "params": self.get_profiling_params(request, project),
         }
         return proxy_profiling_service(**kwargs)
 
@@ -159,7 +172,7 @@ class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
 
             response = get_from_profiling_service(
                 "GET",
-                f"/organizations/{project.organization.id}/projects/{project.id}/functions",
+                f"/organizations/{project.organization_id}/projects/{project.id}/functions",
                 **kwargs,
             )
 
