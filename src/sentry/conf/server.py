@@ -1033,6 +1033,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
+    # Enable the transactions backed profiling views
+    "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
     # Enable multi project selection
@@ -1237,8 +1239,8 @@ SENTRY_FEATURES = {
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
-    # Enable View Hierarchies deobfuscation for proguard obfuscated files
-    "organizations:view-hierarchy-deobfuscation": False,
+    # Enable view hierarchies options
+    "organizations:view-hierarchies-options-dev": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
