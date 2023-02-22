@@ -67,7 +67,7 @@ function TransactionHeader({
   );
 
   const hasSessionReplay =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+    organization.features.includes('session-replay') && projectSupportsReplay(project);
 
   const hasProfiling =
     project &&

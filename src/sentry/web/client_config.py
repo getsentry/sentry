@@ -253,6 +253,14 @@ def get_client_config(request=None):
             # This is needed in the case where you access a different org and get denied, but the UI
             # can open the sudo dialog if you are an "inactive" superuser
             context["user"]["isSuperuser"] = request.user.is_superuser
+            if superuser.ORG_ID is not None:
+                org_context = organization_service.get_organization_by_id(
+                    id=superuser.ORG_ID, user_id=None
+                )
+                if org_context and org_context.organization:
+                    context["links"]["superuserUrl"] = generate_organization_url(
+                        org_context.organization.slug
+                    )
     else:
         context.update({"isAuthenticated": False, "user": None})
 
