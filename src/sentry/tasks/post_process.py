@@ -215,15 +215,7 @@ def handle_owner_assignment(job):
                                 "reason": "issue_owners_exist",
                             },
                         )
-                        metric_tags = {
-                            "event": event.event_id,
-                            "group": event.group_id,
-                            "project": event.project_id,
-                        }
-                        metrics.incr(
-                            "sentry.tasks.post_process.handle_owner_assignment.debounce",
-                            tags={**metric_tags},
-                        )
+                        metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
                         return
                 process_owner_assignments.delay(job)
         except Exception:
@@ -232,6 +224,7 @@ def handle_owner_assignment(job):
 
 @instrumented_task(name="sentry.tasks.process_owner_assignments", queue="process_owner_assignments")
 def process_owner_assignments(job: PostProcessJob) -> None:
+    metrics.incr("sentry.tasks.post_process.process_owner_assignments")
     with metrics.timer("post_process.process_owner_assignments.duration"):
         with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_issue_owners"):
             from sentry.models import (
@@ -269,12 +262,6 @@ def process_owner_assignments(job: PostProcessJob) -> None:
                     handle_group_owners(project, group, issue_owners)
                 except Exception:
                     logger.exception("Failed to store group owners")
-    metric_tags = {
-        "event": event.event_id,
-        "group": event.group_id,
-        "project": event.project_id,
-    }
-    metrics.incr("sentry.tasks.post_process.process_owner_assignments", tags={**metric_tags})
     handle_auto_assignment(job)
 
 
