@@ -181,14 +181,22 @@ const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListPr
 const RenderBlockingAssetSpanEvidence = ({
   event,
   offendingSpans,
-}: SpanEvidenceKeyValueListProps) => (
-  <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
-    ]}
-  />
-);
+}: SpanEvidenceKeyValueListProps) => {
+  const offendingSpan = offendingSpans[0]; // For render-blocking assets, there is only one offender
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event),
+        makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpan)),
+        makeRow(
+          t('FCP Delay'),
+          formatDelay(getSpanDuration(offendingSpan), event.measurements?.fcp?.value ?? 0)
+        ),
+      ]}
+    />
+  );
+};
 
 const UncompressedAssetSpanEvidence = ({
   event,
@@ -306,6 +314,14 @@ function formatDurationImpact(durationAdded: number, totalDuration: number) {
   return `${toRoundedPercent(percent)} (${getPerformanceDuration(
     durationAdded
   )}/${getPerformanceDuration(totalDuration)})`;
+}
+
+function formatDelay(durationAdded: number, totalDuration: number) {
+  const percent = durationAdded / totalDuration;
+
+  return `${getPerformanceDuration(durationAdded)} (${toRoundedPercent(
+    percent
+  )} of ${getPerformanceDuration(totalDuration)})`;
 }
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {

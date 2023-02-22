@@ -384,7 +384,10 @@ describe('SpanEvidenceKeyValueList', () => {
     const builder = new TransactionEventBuilder(
       'a1',
       '/',
-      IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET
+      IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+      {
+        fcp: 2500,
+      }
     );
 
     const offenderSpan = new MockSpan({
@@ -409,6 +412,11 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
       ).toHaveTextContent('resource.script - https://example.com/resource.js');
+
+      expect(screen.getByRole('cell', {name: 'FCP Delay'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.fcp-delay')
+      ).toHaveTextContent('1s (40% of 2.50s)');
     });
   });
 
