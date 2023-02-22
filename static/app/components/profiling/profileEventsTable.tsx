@@ -132,7 +132,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   const columnType = props.meta.fields[key];
   const columnUnit = props.meta.units[key];
 
-  if (key === 'id') {
+  if (key === 'id' || key === 'profile.id') {
     const project = getProjectForRow(props.baggage, props.dataRow);
 
     if (!defined(project)) {
@@ -248,6 +248,7 @@ function getProjectForRow<F extends FieldType>(
 
 const FIELDS = [
   'id',
+  'profile.id',
   'trace.transaction',
   'trace',
   'transaction',
@@ -290,6 +291,11 @@ const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
 const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   id: {
     key: 'id',
+    name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'profile.id': {
+    key: 'profile.id',
     name: t('Profile ID'),
     width: COL_WIDTH_UNDEFINED,
   },

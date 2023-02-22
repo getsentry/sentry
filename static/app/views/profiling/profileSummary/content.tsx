@@ -102,7 +102,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
 }
 
 const ALL_FIELDS = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
   'device.model',
@@ -123,7 +123,7 @@ export function getProfilesTableFields(platform: Project['platform']) {
 
 const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
   'transaction.duration',
