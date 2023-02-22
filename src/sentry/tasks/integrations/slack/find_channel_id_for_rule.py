@@ -9,7 +9,8 @@ from sentry.integrations.slack.utils import (
     strip_channel_name,
 )
 from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule, RuleActivity, RuleActivityType, User
+from sentry.models import Project, Rule, RuleActivity, RuleActivityType, User
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 
@@ -55,13 +56,14 @@ def find_channel_id_for_rule(
             channel_name = strip_channel_name(action["channel"])
             break
 
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
+    integration: RpcIntegration
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
+    )
+    if not integrations:
         redis_rule_status.set_value("failed")
         return
+    integration = integrations[0]
 
     # We do not know exactly how long it will take to paginate through all of the Slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,

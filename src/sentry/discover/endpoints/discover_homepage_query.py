@@ -16,7 +16,7 @@ from sentry.discover.models import DiscoverSavedQuery
 
 def get_homepage_query(organization, user):
     return DiscoverSavedQuery.objects.get(
-        organization=organization, is_homepage=True, created_by=user
+        organization=organization, is_homepage=True, created_by_id=user.id
     )
 
 
@@ -85,7 +85,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             name="",
             query=data["query"],
             version=data["version"],
-            created_by=request.user,
+            created_by_id=request.user.id,
             is_homepage=True,
         )
 
