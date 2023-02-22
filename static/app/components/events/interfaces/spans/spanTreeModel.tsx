@@ -3,6 +3,8 @@ import {action, computed, makeObservable, observable} from 'mobx';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 import {ActiveOperationFilter} from './filter';
 import {
@@ -683,29 +685,43 @@ class SpanTreeModel {
     addTraceBounds: (bounds: TraceBound) => void;
     removeTraceBounds: (eventSlug: string) => void;
   }) =>
-    action('toggleEmbeddedChildren', (props: {eventSlug: string; orgSlug: string}) => {
-      this.showEmbeddedChildren = !this.showEmbeddedChildren;
-      this.fetchEmbeddedChildrenState = 'idle';
+    action(
+      'toggleEmbeddedChildren',
+      (orgSlug: string, transactions: QuickTraceEvent[]) => {
+        this.showEmbeddedChildren = !this.showEmbeddedChildren;
+        this.fetchEmbeddedChildrenState = 'idle';
 
-      if (!this.showEmbeddedChildren) {
-        if (this.embeddedChildren.length > 0) {
+        if (!this.showEmbeddedChildren) {
+          if (this.embeddedChildren.length > 0) {
+            this.embeddedChildren.forEach(child => {
+              removeTraceBounds(child.generateTraceBounds().spanId);
+            });
+          }
+        }
+
+        if (this.showEmbeddedChildren) {
+          if (this.embeddedChildren.length === 0) {
+            const requests = transactions.map(transaction =>
+              this.fetchEmbeddedTransactions({
+                orgSlug,
+                eventSlug: generateEventSlug({
+                  id: transaction.event_id,
+                  project: transaction.project_slug,
+                }),
+                addTraceBounds,
+              })
+            ) as Promise<any>[];
+
+            return Promise.all(requests);
+          }
           this.embeddedChildren.forEach(child => {
-            removeTraceBounds(child.generateTraceBounds().spanId);
+            addTraceBounds(child.generateTraceBounds());
           });
         }
-      }
 
-      if (this.showEmbeddedChildren) {
-        if (this.embeddedChildren.length === 0) {
-          return this.fetchEmbeddedTransactions({...props, addTraceBounds});
-        }
-        this.embeddedChildren.forEach(child => {
-          addTraceBounds(child.generateTraceBounds());
-        });
+        return Promise.resolve(undefined);
       }
-
-      return Promise.resolve(undefined);
-    });
+    );
 
   fetchEmbeddedTransactions({
     orgSlug,
@@ -759,7 +775,7 @@ class SpanTreeModel {
             this.api,
             false
           );
-          this.embeddedChildren = [parsedRootSpan];
+          this.embeddedChildren.push(parsedRootSpan);
           this.fetchEmbeddedChildrenState = 'idle';
           addTraceBounds(parsedRootSpan.generateTraceBounds());
         })
