@@ -484,7 +484,7 @@ class PerformanceProblemContext:
         self.parent_span = parent_span
         self.repeating_spans = repeating_spans
 
-    def to_dict(self) -> Dict[str, str | List[str]]:
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
         return {
             "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
@@ -507,7 +507,7 @@ class PerformanceProblemContext:
 
         return self.duration(self.event.data)
 
-    def duration(self, item: Mapping | None) -> float:
+    def duration(self, item: Mapping[str, Any] | None) -> float:
         if not item:
             return 0
 
@@ -544,7 +544,7 @@ class PerformanceProblemContext:
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, str | List[str]]:
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
         return {
             "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
@@ -665,4 +665,4 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
         if not self.event:
             return 0
 
-        return self.event.data.get("measurements", {}).get("fcp", {}).get("value", 0)
+        return float(self.event.data.get("measurements", {}).get("fcp", {}).get("value", 0) or 0)
