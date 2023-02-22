@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
+
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 30
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -120,51 +122,104 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
+def should_issue_owners_ratelimit(
+    project_id,
+):
+    """
+    Make sure that we do not make more requests than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
+    """
+    cache_key = f"issue_owner_assignment_ratelimit:{project_id}"
+    data = cache.get(cache_key)
+    if data is None:
+        requests = 1
+        window_start = datetime.now()
+        cache.set(cache_key, (requests, window_start), 60)
+    else:
+        requests = data[0] + 1
+        window_start = data[1]
+        # timeout should never be less than 0
+        timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
+        cache.set(cache_key, (requests, window_start), timeout)
+
+    return requests > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+
+
 def handle_owner_assignment(job):
     if job["is_reprocessed"]:
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import GroupOwnerType, ProjectOwnership
+            from sentry.models import (
+                ISSUE_OWNERS_DEBOUNCE_DURATION,
+                ISSUE_OWNERS_DEBOUNCE_KEY,
+                ProjectOwnership,
+            )
 
             event = job["event"]
             project, group = event.project, event.group
-
+            basic_logging_details = {
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+            }
+            # We want to debounce owner assignment when:
+            # - GroupOwner of type Ownership Rule || CodeOwner exist with TTL 1 day
+            # - we tried to calculate and could not find issue owners with TTL 1 day
+            # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.cache_set_owner"
-                ):
-                    issue_owner_key = f"owner_exists:1:{group.id}"
-                    issue_owners_exists = cache.get(issue_owner_key)
-                    if issue_owners_exists is None:
-                        # We don't care if a Suspect Commit groupowner exists
-                        issue_owners_exists = group.groupowner_set.filter(
-                            type__in=[
-                                GroupOwnerType.OWNERSHIP_RULE.value,
-                                GroupOwnerType.CODEOWNERS.value,
-                            ],
-                        ).exists()
-                        # Cache for an hour if it's assigned. We don't need to move that fast.
-                        cache.set(
-                            issue_owner_key,
-                            issue_owners_exists,
-                            3600 if issue_owners_exists else 60,
+
+                with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
+
+                    if should_issue_owners_ratelimit(project.id):
+                        logger.info(
+                            "handle_owner_assignment.ratelimited",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "ratelimited",
+                            },
                         )
+                        return
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
                     # Is the issue already assigned to a team or user?
-                    assignee_key = "assignee_exists:1:%s" % group.id
+                    assignee_key = f"assignee_exists:1:{group.id}"
                     assignees_exists = cache.get(assignee_key)
                     if assignees_exists is None:
                         assignees_exists = group.assignee_set.exists()
-                        # Cache for an hour if it's assigned. We don't need to move that fast.
-                        cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+                        # Cache for 1 day if it's assigned. We don't need to move that fast.
+                        cache.set(
+                            assignee_key, assignees_exists, 60 * 60 * 24 if assignees_exists else 60
+                        )
 
-                if issue_owners_exists and assignees_exists:
-                    return
+                    if assignees_exists:
+                        logger.info(
+                            "handle_owner_assignment.assignee_exists",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "assignee_exists",
+                            },
+                        )
+                        return
+
+                with sentry_sdk.start_span(
+                    op="post_process.handle_owner_assignment.debounce_issue_owners"
+                ):
+                    issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
+                    debounce_issue_owners = cache.get(issue_owners_key)
+
+                    if debounce_issue_owners:
+                        logger.info(
+                            "handle_owner_assignment.issue_owners_exist",
+                            extra={
+                                **basic_logging_details,
+                                "reason": "issue_owners_exist",
+                            },
+                        )
+                        return
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.get_issue_owners"
@@ -181,10 +236,17 @@ def handle_owner_assignment(job):
 
                         issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
+                        # Cache for 1 day after we calculated. We don't need to move that fast.
+                        cache.set(
+                            issue_owners_key,
+                            True,
+                            ISSUE_OWNERS_DEBOUNCE_DURATION,
+                        )
+
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.handle_group_owners"
                 ):
-                    if issue_owners and not issue_owners_exists:
+                    if issue_owners:
                         try:
                             handle_group_owners(project, group, issue_owners)
                         except Exception:

@@ -215,6 +215,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
             elif txt == "Repository access blocked":
                 logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            elif txt == "Server Error":
+                logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+            elif txt == "Bad credentials":
+                logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
+            elif txt.startswith("Unable to reach host:"):
+                logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
             elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
                 logger.warning("Github has blocked this org. We will not continue.", extra=extra)
                 # Raising the error will be handled at the task level
@@ -340,14 +346,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         ):
             output = []
 
-            resp = self.get(path, params={"per_page": self.page_size})
-            output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
+            logger.info(f"Page {page_number}: {path}?per_page={self.page_size}")
+            resp = self.get(path, params={"per_page": self.page_size})
+            logger.info(resp)
+            output.extend(resp) if not response_key else output.extend(resp[response_key])
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while get_next_link(resp) and page_number < page_number_limit:
-                resp = self.get(get_next_link(resp))
+                new_path = get_next_link(resp)
+                logger.info(f"Page {page_number}: {path}")
+                resp = self.get(new_path)
+                logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 page_number += 1
             return output

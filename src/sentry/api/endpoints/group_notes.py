@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
@@ -27,8 +28,8 @@ class GroupNotesEndpoint(GroupEndpoint):
         return self.paginate(
             request=request,
             queryset=notes,
-            # TODO(dcramer): we want to sort by datetime
-            order_by="-id",
+            paginator_cls=DateTimePaginator,
+            order_by="-datetime",
             on_results=lambda x: serialize(x, request.user),
         )
 

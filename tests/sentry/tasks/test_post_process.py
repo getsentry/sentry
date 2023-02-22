@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict
 from unittest import mock
 from unittest.mock import Mock, patch
@@ -33,12 +33,17 @@ from sentry.models import (
     ProjectTeam,
 )
 from sentry.models.activity import ActivityIntegration
+from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, ISSUE_OWNERS_DEBOUNCE_KEY
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
-from sentry.tasks.post_process import post_process_group, process_event
+from sentry.tasks.post_process import (
+    ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
+    post_process_group,
+    process_event,
+)
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
@@ -953,6 +958,67 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_regression=False,
             is_new_group_environment=False,
             event=event,
+        )
+
+    @patch("sentry.tasks.post_process.logger")
+    def test_debounces_handle_owner_assignments(self, logger):
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), True, ISSUE_OWNERS_DEBOUNCE_DURATION)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        logger.info.assert_any_call(
+            "handle_owner_assignment.issue_owners_exist",
+            extra={
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+                "reason": "issue_owners_exist",
+            },
+        )
+
+    @patch("sentry.tasks.post_process.logger")
+    def test_issue_owners_should_ratelimit(self, logger):
+        cache.set(
+            f"issue_owner_assignment_ratelimit:{self.project.id}",
+            (ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT, datetime.now()),
+        )
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        logger.info.assert_any_call(
+            "handle_owner_assignment.ratelimited",
+            extra={
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+                "reason": "ratelimited",
+            },
         )
 
 

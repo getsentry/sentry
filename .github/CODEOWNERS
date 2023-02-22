@@ -41,6 +41,7 @@
 /src/sentry/scripts/quotas/                              @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/                                @getsentry/owners-ingest
 /src/sentry/tasks/store.py                               @getsentry/owners-ingest
+/src/sentry/tasks/relay.py                               @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py                             @getsentry/owners-ingest
 /tests/sentry/event_manager/                             @getsentry/owners-ingest
 /tests/sentry/ingest/                                    @getsentry/owners-ingest
