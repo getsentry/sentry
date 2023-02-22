@@ -84,6 +84,12 @@
 - name: 'Type: User Feedback'
   color: '584774'
   description: ''
+- name: 'Type: Power'
+  color: '584774'
+  description: ''
+- name: 'Type: Simplicity'
+  color: '584774'
+  description: ''
 
 # Components
 - name: 'Component: Analytics'
