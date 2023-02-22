@@ -174,7 +174,8 @@ def _fetch_segments_from_snuba(
                 # We request the full 90 day range.
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-                # Optimization to reduce the number of rows before the LIMIT clause.
+                # Optimization to reduce the number of rows before the LIMIT clause.  The
+                # cursors happen to map 1 to 1 with segment_id.
                 Condition(Column("segment_id"), Op.GTE, offset),
                 Condition(Column("segment_id"), Op.LT, offset + limit),
                 *conditions,
