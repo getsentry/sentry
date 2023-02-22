@@ -1,3 +1,5 @@
+import {waitFor} from 'sentry-test/reactTestingLibrary';
+
 import {Client} from 'sentry/api';
 import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
 import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -8,6 +10,7 @@ import {
 } from 'sentry/components/events/interfaces/spans/utils';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
+import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 describe('SpanTreeModel', () => {
   const api: Client = new Client();
@@ -348,13 +351,14 @@ describe('SpanTreeModel', () => {
     let mockRemoveTraceBounds = jest.fn();
 
     // embed a child transaction
+    const transaction = {
+      event_id: '19c403a10af34db2b7d93ad669bb51ed',
+      project_slug: 'project',
+    } as QuickTraceEvent;
     let promise = spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: mockAddTraceBounds,
       removeTraceBounds: mockRemoveTraceBounds,
-    })({
-      orgSlug: 'sentry',
-      eventSlug: 'project:19c403a10af34db2b7d93ad669bb51ed',
-    });
+    })('sentry', [transaction]);
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
       'loading_embedded_transactions'
     );
@@ -459,10 +463,7 @@ describe('SpanTreeModel', () => {
     promise = spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: mockAddTraceBounds,
       removeTraceBounds: mockRemoveTraceBounds,
-    })({
-      orgSlug: 'sentry',
-      eventSlug: 'project:19c403a10af34db2b7d93ad669bb51ed',
-    });
+    })('sentry', [transaction]);
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
 
     await promise;
@@ -501,22 +502,23 @@ describe('SpanTreeModel', () => {
     const rootSpan = generateRootSpan(parsedTrace);
 
     const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
+    const transaction = {
+      event_id: 'broken',
+      project_slug: 'project',
+    } as QuickTraceEvent;
 
-    const promise = spanTreeModel.makeToggleEmbeddedChildren({
+    spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-    })({
-      orgSlug: 'sentry',
-      eventSlug: 'project:broken',
-    });
+    })('sentry', [transaction]);
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
       'loading_embedded_transactions'
     );
 
-    await promise;
-
-    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
-      'error_fetching_embedded_transactions'
+    await waitFor(() =>
+      expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
+        'error_fetching_embedded_transactions'
+      )
     );
   });
 

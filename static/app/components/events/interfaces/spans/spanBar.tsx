@@ -48,7 +48,6 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   QuickTraceContext,
   QuickTraceContextChildrenProps,
@@ -134,7 +133,7 @@ export type SpanBarProps = {
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
+    | ((orgSlug: string, transactions: QuickTraceEvent[]) => void)
     | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
@@ -877,8 +876,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   ): React.ReactNode {
     const {toggleEmbeddedChildren, organization, showEmbeddedChildren} = this.props;
 
-    if (transactions && transactions.length === 1) {
-      const transaction = transactions[0];
+    if (transactions && transactions.length >= 1) {
       return (
         <Tooltip
           title={
@@ -900,13 +898,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                   : 'span_view.embedded_child.show';
                 trackAdvancedAnalyticsEvent(eventKey, {organization});
 
-                toggleEmbeddedChildren({
-                  orgSlug: organization.slug,
-                  eventSlug: generateEventSlug({
-                    id: transaction.event_id,
-                    project: transaction.project_slug,
-                  }),
-                });
+                toggleEmbeddedChildren(organization.slug, transactions);
               }
             }}
           />
