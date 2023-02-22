@@ -287,6 +287,11 @@ export function computeVirtualizedTreeNodeScrollTop(
   }
 
   if (block === 'center') {
+    // The return value is bounded between 0 and the maximum scroll
+    // distance from the top (calculated by subtracting the max scroll
+    // height from the total height of the scrollable area). This is
+    // to ensure that the scroll position is never negative or greater
+    // than allowed.
     return Math.max(
       Math.min(
         newPosition - scrollHeight / 2 + rowHeight,
