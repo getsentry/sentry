@@ -501,6 +501,15 @@ const definitions: Field[] = [
     component: BooleanField,
     defaultValue: () => false,
   },
+  {
+    key: 'processing.view-hierarchies-deobfuscation-general-availability',
+    label: t('View Hierarchies Deobfuscation GA'),
+    defaultValue: () => 0.0,
+    component: NumberField,
+    min: 0.0,
+    max: 1.0,
+    step: 0.0001,
+  },
   ...performanceOptionDefinitions,
 ];
 
