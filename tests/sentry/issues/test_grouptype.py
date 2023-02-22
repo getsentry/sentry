@@ -59,11 +59,7 @@ class GroupTypeTest(TestCase):  # type: ignore
 
             assert get_group_type_by_slug(TestGroupType.slug) == TestGroupType
 
-            nonexistent_slug = "meow"
-            with self.assertRaisesMessage(
-                ValueError, f"No group type with the slug {nonexistent_slug} is registered."
-            ):
-                get_group_type_by_slug(nonexistent_slug)
+            assert get_group_type_by_slug("meow") is None
 
     def test_category_validation(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):

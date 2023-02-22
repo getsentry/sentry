@@ -310,5 +310,5 @@ class ConvertTypeValueTest(TestCase):
         assert convert_type_value(
             ["error", "performance_n_plus_one_db_queries"], [self.project], self.user, None
         ) == [1, 1006]
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSearchQuery):
             convert_type_value(["hellboy"], [self.project], self.user, None)
