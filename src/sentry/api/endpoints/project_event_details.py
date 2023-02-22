@@ -85,6 +85,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         environments = set(request.GET.getlist("environment"))
 
+        # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
