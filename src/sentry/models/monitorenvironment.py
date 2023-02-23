@@ -27,6 +27,5 @@ class MonitorEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
-        index_together = (("type", "next_checkin"),)
 
     __repr__ = sane_repr("monitor_id", "environment_project_id")
