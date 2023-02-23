@@ -7,9 +7,11 @@ from typing import Any, Mapping, Optional, Union
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
-from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory, Reduce
+from arroyo.processing.strategies import ProcessingStrategy
+from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
+from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.processing.strategies.transform import ParallelTransformStep
-from arroyo.types import BaseValue, Commit, Message, Partition, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
@@ -17,8 +19,8 @@ from sentry.sentry_metrics.configuration import (
     initialize_sentry_and_global_consumer_state,
 )
 from sentry.sentry_metrics.consumers.indexer.common import (
+    BatchMessages,
     IndexerOutputMessageBatch,
-    MessageBatch,
     get_config,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
@@ -33,10 +35,10 @@ from sentry.utils.batching_kafka_consumer import create_topics
 logger = logging.getLogger(__name__)
 
 
-class Unbatcher(ProcessingStrategy[IndexerOutputMessageBatch]):
+class Unbatcher(ProcessingStep[IndexerOutputMessageBatch]):
     def __init__(
         self,
-        next_step: ProcessingStrategy[Union[KafkaPayload, RoutingPayload]],
+        next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
@@ -144,19 +146,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             ),
         )
 
-        def accumulator(result: MessageBatch, value: BaseValue[KafkaPayload]) -> MessageBatch:
-            result.append(Message(value))
-            return result
-
-        def initializer() -> MessageBatch:
-            return []
-
-        strategy = Reduce(
-            self.__max_msg_batch_size,
-            self.__max_msg_batch_time,
-            accumulator,
-            initializer,
-            parallel_strategy,
+        strategy = BatchMessages(
+            parallel_strategy, self.__max_msg_batch_time, self.__max_msg_batch_size
         )
 
         return strategy
@@ -227,5 +218,4 @@ def get_parallel_metrics_consumer(
             min_commit_frequency_sec=max_batch_time / 1000,
             min_commit_messages=max_batch_size,
         ),
-        join_timeout=0.0,
     )
