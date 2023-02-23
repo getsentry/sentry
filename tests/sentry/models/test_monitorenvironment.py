@@ -13,12 +13,12 @@ class MonitorEnvironmentTestCase(TestCase):
         project = self.project
         environment = Environment.get_or_create(project, "production")
 
-        monitor = Monitor(
+        monitor = Monitor.objects.create(
             last_checkin=datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc),
             config={"schedule": "* * * * *"},
         )
 
-        production_monitor = MonitorEnvironment(
+        production_monitor = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_project=EnvironmentProject.objects.get(
                 environment=environment, project=project
