@@ -99,7 +99,7 @@ describe('SourceMapDebug', () => {
     });
     expect(
       await screen.findByText(
-        "We've encountered 1 problem de-minifying your applications source code!"
+        "We've encountered 1 problem un-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
@@ -132,7 +132,7 @@ describe('SourceMapDebug', () => {
     });
     expect(
       await screen.findByText(
-        "We've encountered 1 problem de-minifying your applications source code!"
+        "We've encountered 1 problem un-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
@@ -161,7 +161,7 @@ describe('SourceMapDebug', () => {
     });
     expect(
       await screen.findByText(
-        "We've encountered 1 problem de-minifying your applications source code!"
+        "We've encountered 1 problem un-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
