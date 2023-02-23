@@ -19,6 +19,7 @@ from sentry import options
 from sentry.models.file import File, get_storage
 from sentry.replays.cache import replay_cache
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.utils import metrics
 
 logger = logging.getLogger()
 
@@ -77,10 +78,12 @@ class FilestoreBlob(Blob):
         file = File.objects.get(pk=segment.file_id)
         file.delete()
 
+    @metrics.wraps("replays.lib.storage.FilestoreBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
         file = File.objects.get(pk=segment.file_id)
         return file.getfile().read()
 
+    @metrics.wraps("replays.lib.storage.FilestoreBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
         file = File.objects.create(name=make_filename(segment), type="replay.recording")
         file.putfile(BytesIO(value), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
@@ -118,6 +121,7 @@ class StorageBlob(Blob):
         storage = get_storage(self._make_storage_options())
         storage.delete(self.make_key(segment))
 
+    @metrics.wraps("replays.lib.storage.StorageBlob.get")
     @cached
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
         storage = get_storage(self._make_storage_options())
@@ -127,6 +131,7 @@ class StorageBlob(Blob):
         blob.close()
         return result
 
+    @metrics.wraps("replays.lib.storage.StorageBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
         storage.save(self.make_key(segment), BytesIO(value))
