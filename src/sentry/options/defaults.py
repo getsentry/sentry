@@ -200,7 +200,7 @@ register(
 # on organization-id.
 register(
     "replays.storage.direct-storage-sample-rate",
-    type=int,
+    type=Int,
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
