@@ -40,6 +40,15 @@ class ProjectMonitorPermission(ProjectPermission):
 class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
     scope_map = ProjectMonitorPermission.scope_map
 
+    def has_object_permission(self, request: Request, view, project):
+        result = super().has_object_permission(request, view, project)
+
+        # Allow attachment uploads via DSN
+        if request.method == "POST":
+            return True
+
+        return result
+
 
 class MonitorEndpoint(Endpoint):
     permission_classes = (ProjectMonitorPermission,)
