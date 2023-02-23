@@ -9,7 +9,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import Histogram from 'sentry/utils/performance/histogram';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -57,7 +57,9 @@ function Content({
   totalCount,
 }: Props) {
   const [zoomError, setZoomError] = useState(false);
-  const displayCountAsPercentage = !!totalCount;
+  const displayCountAsPercentage = organization.features.includes(
+    'performance-metrics-backed-transaction-summary'
+  );
 
   function handleMouseOver() {
     // Hide the zoom error tooltip on the next hover.
@@ -68,7 +70,7 @@ function Content({
 
   function parseHistogramData(data: HistogramData): HistogramData {
     // display each bin's count as a % of total count
-    if (totalCount) {
+    if (displayCountAsPercentage && totalCount) {
       return data.map(({bin, count}) => ({bin, count: count / totalCount}));
     }
     return data;
@@ -144,7 +146,15 @@ function Content({
           <BarChart
             grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
             xAxis={xAxis}
-            yAxis={{type: 'value'}}
+            yAxis={{
+              type: 'value',
+              axisLabel: {
+                formatter: value =>
+                  displayCountAsPercentage
+                    ? formatPercentage(value, 0)
+                    : formatAbbreviatedNumber(value),
+              },
+            }}
             series={[series]}
             tooltip={tooltip}
             colors={colors}

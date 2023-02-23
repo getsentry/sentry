@@ -68,11 +68,6 @@ export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   },
   {
     prefix: t('Sort By'),
-    label: t('Total Count'),
-    field: SpanSortOthers.COUNT,
-  },
-  {
-    prefix: t('Sort By'),
     label: t('p50 Self Time'),
     field: SpanSortPercentiles.P50_EXCLUSIVE_TIME,
   },
@@ -176,6 +171,7 @@ export function generateSpansEventView({
 export function getTotalsView(eventView: EventView): EventView {
   const totalsView = eventView.withColumns([
     {kind: 'function', function: ['count', '', undefined, undefined]},
+    {kind: 'function', function: ['sum', 'transaction.duration', undefined, undefined]},
   ]);
 
   const conditions = new MutableSearch(eventView.query);
@@ -203,12 +199,6 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
     'count()',
     'count_unique(id)',
     'equation|count() / count_unique(id)',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortOthers.COUNT]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [

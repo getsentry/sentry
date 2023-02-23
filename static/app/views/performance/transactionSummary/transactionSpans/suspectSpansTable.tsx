@@ -45,7 +45,6 @@ export default function SuspectSpansTable(props: Props) {
     operation: suspectSpan.op,
     group: suspectSpan.group,
     description: suspectSpan.description,
-    totalCount: suspectSpan.count,
     frequency:
       // Frequency is computed using the `uniq` function in ClickHouse.
       // Because it is an approximation, it can occasionally exceed the number of events.
@@ -57,7 +56,12 @@ export default function SuspectSpansTable(props: Props) {
     p75ExclusiveTime: suspectSpan.p75ExclusiveTime,
     p95ExclusiveTime: suspectSpan.p95ExclusiveTime,
     p99ExclusiveTime: suspectSpan.p99ExclusiveTime,
-    sumExclusiveTime: suspectSpan.sumExclusiveTime,
+    sumExclusiveTime:
+      totals &&
+      defined(totals?.['sum(transaction.duration)']) &&
+      defined(suspectSpan.sumExclusiveTime)
+        ? suspectSpan.sumExclusiveTime / totals['sum(transaction.duration)']
+        : null,
   }));
 
   return (
@@ -124,7 +128,6 @@ function renderBodyCellWithMeta(
 type TableColumnKey =
   | 'operation'
   | 'description'
-  | 'totalCount'
   | 'frequency'
   | 'avgOccurrences'
   | 'p50ExclusiveTime'
@@ -142,14 +145,6 @@ type TableDataRowWithExtras = TableDataRow & {
 };
 
 const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
-  [SpanSortOthers.COUNT]: [
-    'operation',
-    'description',
-    'totalCount',
-    'frequency',
-    'p75ExclusiveTime',
-    'sumExclusiveTime',
-  ],
   [SpanSortOthers.AVG_OCCURRENCE]: [
     'operation',
     'description',
@@ -161,7 +156,6 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
   [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
     'operation',
     'description',
-    'totalCount',
     'frequency',
     'p75ExclusiveTime',
     'sumExclusiveTime',
@@ -169,7 +163,6 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
     'operation',
     'description',
-    'totalCount',
     'frequency',
     'p50ExclusiveTime',
     'sumExclusiveTime',
@@ -177,7 +170,6 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
   [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
     'operation',
     'description',
-    'totalCount',
     'frequency',
     'p75ExclusiveTime',
     'sumExclusiveTime',
@@ -185,7 +177,6 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
   [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
     'operation',
     'description',
-    'totalCount',
     'frequency',
     'p95ExclusiveTime',
     'sumExclusiveTime',
@@ -193,7 +184,6 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
   [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
     'operation',
     'description',
-    'totalCount',
     'frequency',
     'p99ExclusiveTime',
     'sumExclusiveTime',
@@ -209,11 +199,6 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   description: {
     key: 'description',
     name: t('Span Name'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  totalCount: {
-    key: 'totalCount',
-    name: t('Span Count'),
     width: COL_WIDTH_UNDEFINED,
   },
   frequency: {
@@ -248,7 +233,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   sumExclusiveTime: {
     key: 'sumExclusiveTime',
-    name: t('Total Self Time'),
+    name: t('Total Self Time %'),
     width: COL_WIDTH_UNDEFINED,
   },
 };
@@ -256,12 +241,11 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
 const COLUMN_TYPE: Record<TableColumnKey, ColumnType> = {
   operation: 'string',
   description: 'string',
-  totalCount: 'integer',
   frequency: 'percentage',
   avgOccurrences: 'number',
   p50ExclusiveTime: 'duration',
   p75ExclusiveTime: 'duration',
   p95ExclusiveTime: 'duration',
   p99ExclusiveTime: 'duration',
-  sumExclusiveTime: 'duration',
+  sumExclusiveTime: 'percentage',
 };

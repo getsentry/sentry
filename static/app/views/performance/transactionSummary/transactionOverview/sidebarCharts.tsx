@@ -16,18 +16,14 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-} from 'sentry/utils/formatters';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -52,13 +48,9 @@ type ContainerProps = {
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
-  unfilteredTotals?: Record<string, number> | null;
 };
 
-type Props = Pick<
-  ContainerProps,
-  'organization' | 'isLoading' | 'error' | 'totals' | 'unfilteredTotals'
-> & {
+type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
   chartData: {
     chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
@@ -86,26 +78,10 @@ function SidebarCharts({
   chartData,
   eventView,
   transactionName,
-  unfilteredTotals,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
-  const displayTPMAsPercentage = !!unfilteredTotals;
-
-  function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
-    if (totalValues) {
-      if (unfilteredTotalValues) {
-        return tct('[tpm]', {
-          tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
-        });
-      }
-      return tct('[tpm] tpm', {
-        tpm: formatFloat(totalValues[field], 4),
-      });
-    }
-    return null;
-  }
 
   return (
     <RelativeBox>
@@ -143,29 +119,6 @@ function SidebarCharts({
         />
       </ChartLabel>
 
-      <ChartLabel top="320px">
-        <ChartTitle>
-          {displayTPMAsPercentage ? t('Total Events') : t('TPM')}
-          <QuestionTooltip
-            position="top"
-            title={
-              displayTPMAsPercentage
-                ? tct('[count] events', {
-                    count: unfilteredTotals['count()'].toLocaleString(),
-                  })
-                : getTermHelp(organization, PERFORMANCE_TERM.TPM)
-            }
-            size="sm"
-          />
-        </ChartTitle>
-        <ChartSummaryValue
-          data-test-id="tpm-summary-value"
-          isLoading={isLoading}
-          error={error}
-          value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
-        />
-      </ChartLabel>
-
       <AnomaliesQuery
         location={location}
         organization={organization}
@@ -185,7 +138,7 @@ function SidebarCharts({
 
               if (errored) {
                 return (
-                  <ErrorPanel height="580px">
+                  <ErrorPanel height="300px">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
@@ -233,7 +186,7 @@ function SidebarCharts({
                     value: (
                       <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                     ),
-                    fixed: <Placeholder height="480px" testId="skeleton-ui" />,
+                    fixed: <Placeholder height="300px" testId="skeleton-ui" />,
                   })}
                 </TransitionChart>
               );
@@ -252,14 +205,13 @@ function SidebarChartsContainer({
   error,
   totals,
   transactionName,
-  unfilteredTotals,
 }: ContainerProps) {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(2);
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -289,7 +241,7 @@ function SidebarChartsContainer({
   };
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
-    height: 360,
+    height: 300,
     grid: [
       {
         top: '60px',
@@ -303,18 +255,12 @@ function SidebarChartsContainer({
         right: '10px',
         height: '100px',
       },
-      {
-        top: '380px',
-        left: '10px',
-        right: '10px',
-        height: '0px',
-      },
     ],
     axisPointer: {
       // Link each x-axis together.
-      link: [{xAxisIndex: [0, 1, 2]}],
+      link: [{xAxisIndex: [0, 1]}],
     },
-    xAxes: Array.from(new Array(3)).map((_i, index) => ({
+    xAxes: Array.from(new Array(2)).map((_i, index) => ({
       gridIndex: index,
       type: 'time',
       show: false,
@@ -342,33 +288,16 @@ function SidebarChartsContainer({
         },
         ...axisLineConfig,
       },
-      {
-        // throughput
-        gridIndex: 2,
-        splitNumber: 4,
-        axisLabel: {
-          formatter: value =>
-            unfilteredTotals
-              ? formatPercentage(value, 0)
-              : formatAbbreviatedNumber(value),
-          color: theme.chartLabel,
-        },
-        ...axisLineConfig,
-      },
     ],
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]],
+    colors: [colors[0], colors[1]],
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: (value, label) => {
-        const shouldUsePercentageForTPM = unfilteredTotals && label === 'epm()';
-        return shouldUsePercentageForTPM
-          ? tooltipFormatter(value, 'percentage')
-          : tooltipFormatter(value, aggregateOutputType(label));
-      },
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },
@@ -394,7 +323,6 @@ function SidebarChartsContainer({
     end,
     utc,
     totals,
-    unfilteredTotals,
   };
 
   const datetimeSelection = {

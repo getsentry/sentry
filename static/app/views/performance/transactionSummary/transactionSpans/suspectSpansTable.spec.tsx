@@ -31,8 +31,8 @@ describe('SuspectSpansTable', () => {
         transactionName="Test Transaction"
         isLoading={false}
         suspectSpans={[suspectSpan]}
-        totals={{'count()': 100}}
-        sort={SpanSortOthers.COUNT}
+        totals={{'count()': 100, 'sum(transaction.duration)': 9999}}
+        sort={SpanSortOthers.SUM_EXCLUSIVE_TIME}
       />,
       {context: initialData.routerContext}
     );
