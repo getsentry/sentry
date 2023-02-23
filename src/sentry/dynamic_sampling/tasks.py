@@ -1,11 +1,19 @@
 import logging
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from sentry import features, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.adjustment_models import DSProject as DSProject
+from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
+from sentry.dynamic_sampling.prioritise_transactions import (
+    ProjectTransactions,
+    fetch_transactions_with_total_volumes,
+)
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
+from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
+    set_transactions_resampling_rates,
+)
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId, get_redis_client_for_ds
 from sentry.models import Organization, Project
 from sentry.tasks.base import instrumented_task
@@ -14,7 +22,7 @@ from sentry.utils import metrics
 
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
-CACHE_KEY_TTL = 24 * 60 * 60 * 1000
+CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
 
 logger = logging.getLogger(__name__)
 
@@ -98,3 +106,75 @@ def adjust_sample_rates(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )
         pipeline.execute()
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.prioritise_transactions",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,  # 25 mins
+    time_limit=2 * 60 + 5,
+)  # type: ignore
+def prioritise_transactions() -> None:
+    """
+    A task that retrieves all relative transaction counts from all projects in all orgs
+    and invokes a task for rebalancing transaction sampling rates within each project
+    """
+    metrics.incr("sentry.tasks.dynamic_sampling.prioritise_transactions.start", sample_rate=1.0)
+    current_org: Optional[Organization] = None
+    current_org_enabled = False
+    with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_transactions", sample_rate=1.0):
+        for project_transactions in fetch_transactions_with_total_volumes():
+            if not current_org or current_org.id != project_transactions.org_id:
+                current_org = Organization.objects.get_from_cache(id=project_transactions.org_id)
+                current_org_enabled = features.has(
+                    "organizations:ds-prioritise-by-transaction-bias", current_org
+                )
+            if current_org_enabled:
+                process_transaction_biases.delay(project_transactions)
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.process_transaction_biases",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,  # 25 mins
+    time_limit=2 * 60 + 5,
+)  # type: ignore
+def process_transaction_biases(project_transactions: ProjectTransactions) -> None:
+    """
+    A task that given a project relative transaction counts calculates rebalancing
+    sampling rates based on the overall desired project sampling rate.
+    """
+    # TODO RaduW Do we want this to be configurable, is 10 OK ?
+    MAX_EXPLICIT_TRANSACTIONS = 10
+
+    org_id = project_transactions.org_id
+    project_id = project_transactions.project_id
+    transactions = project_transactions.transaction_counts
+    project = Project.objects.get_from_cache(id=project_id)
+    sample_rate = quotas.get_blended_sample_rate(project)
+
+    if sample_rate is None:
+        # no sampling => no rebalancing
+        return
+
+    named_rates, global_rate = adjust_sample_rate(
+        transactions=transactions,
+        rate=sample_rate,
+        max_explicit_transactions=MAX_EXPLICIT_TRANSACTIONS,
+    )
+
+    set_transactions_resampling_rates(
+        org_id=org_id,
+        proj_id=project_id,
+        named_rates=named_rates,
+        default_rate=global_rate,
+        ttl_ms=CACHE_KEY_TTL,
+    )
+
+    schedule_invalidate_project_config(
+        project_id=project_id, trigger="dynamic_sampling_prioritise_transaction_bias"
+    )
