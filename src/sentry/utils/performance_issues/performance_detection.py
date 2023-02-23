@@ -791,7 +791,8 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     if debug_file_path is None:
                         return
 
-                    mapper = ProguardMapper.open(debug_file_path)
+                    with sentry_sdk.start_span(op="symbolic", description="ProguardMapper.open"):
+                        mapper = ProguardMapper.open(debug_file_path)
                     if not mapper.has_line_info:
                         return
                     self.mapper = mapper

@@ -1,3 +1,4 @@
+import sentry_sdk
 from symbolic import ProguardMapper
 
 from sentry.lang.java.processing import deobfuscate_exception_value
@@ -39,7 +40,8 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if dif_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                view = ProguardMapper.open(dif_path)
+                with sentry_sdk.start_span(op="symbolic", description="ProguardMapper.open"):
+                    view = ProguardMapper.open(dif_path)
                 if not view.has_line_info:
                     error_type = EventError.PROGUARD_MISSING_LINENO
                 else:
