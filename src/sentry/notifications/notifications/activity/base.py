@@ -40,7 +40,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         """The most basic context shared by every notification type."""
         return {
             "data": self.activity.data,
-            "author": self.activity.user,
             "title": self.title,
             "project": self.project,
             "project_link": self.get_project_link(),
