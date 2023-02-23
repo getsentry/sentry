@@ -1,4 +1,4 @@
-from typing import Mapping, Tuple
+from typing import Mapping, Tuple, cast
 
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.utils import json
@@ -17,7 +17,8 @@ def get_transactions_resampling_rates(
         serialised_val = redis_client.get(cache_key)
         if serialised_val:
             val = json.loads(serialised_val)
-            return val
+            ret_val = cast(Tuple[Mapping[str, float], float], val)
+            return ret_val
     except (TypeError, ValueError):
         # for any error just get the default
         pass
@@ -27,7 +28,7 @@ def get_transactions_resampling_rates(
 
 def set_transactions_resampling_rates(
     org_id: int, proj_id: int, named_rates: Mapping[str, float], default_rate: float, ttl_ms: int
-):
+) -> None:
     redis_client = get_redis_client_for_ds()
     cache_key = _get_cache_key(org_id=org_id, proj_id=proj_id)
     val = [named_rates, default_rate]

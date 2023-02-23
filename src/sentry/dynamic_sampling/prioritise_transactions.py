@@ -2,7 +2,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Generator, List, Tuple
+from typing import Generator, List, Optional, Tuple, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -34,19 +34,6 @@ class ProjectTransactions:
     org_id: int
     transaction_counts: List[Tuple[str, int]]
 
-    @staticmethod
-    def from_dict(val: dict) -> "ProjectTransactions":
-        # let it raise if there are missing keys
-        project_id = val["project_id"]
-        org_id = val["org_id"]
-        tc = val["transaction_counts"]
-        # change list to tuple for internal elements
-        transaction_counts = [(name, count) for name, count in tc]
-
-        return ProjectTransactions(
-            project_id=project_id, org_id=org_id, transaction_counts=transaction_counts
-        )
-
 
 def fetch_transactions_with_total_volumes() -> Generator[ProjectTransactions, None, None]:
     """
@@ -55,8 +42,8 @@ def fetch_transactions_with_total_volumes() -> Generator[ProjectTransactions, No
     start_time = time.time()
     offset = 0
     transaction_tag = f"tags_raw[{SHARED_STRINGS['transaction']}]"
-    current_org_id = None
-    current_proj_id = None
+    current_org_id: Optional[int] = None
+    current_proj_id: Optional[int] = None
     transaction_counts: List[Tuple[str, int]] = []
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
@@ -114,8 +101,8 @@ def fetch_transactions_with_total_volumes() -> Generator[ProjectTransactions, No
             if current_proj_id != proj_id or current_org_id != org_id:
                 if len(transaction_counts) > 0:
                     yield ProjectTransactions(
-                        project_id=current_proj_id,
-                        org_id=current_org_id,
+                        project_id=cast(int, current_proj_id),
+                        org_id=cast(int, current_org_id),
                         transaction_counts=transaction_counts,
                     )
                 transaction_counts = []
@@ -125,8 +112,8 @@ def fetch_transactions_with_total_volumes() -> Generator[ProjectTransactions, No
         if not more_results:
             if len(transaction_counts) > 0:
                 yield ProjectTransactions(
-                    project_id=current_proj_id,
-                    org_id=current_org_id,
+                    project_id=cast(int, current_proj_id),
+                    org_id=cast(int, current_org_id),
                     transaction_counts=transaction_counts,
                 )
             break
