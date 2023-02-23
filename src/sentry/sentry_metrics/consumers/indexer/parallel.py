@@ -227,4 +227,5 @@ def get_parallel_metrics_consumer(
             min_commit_frequency_sec=max_batch_time / 1000,
             min_commit_messages=max_batch_size,
         ),
+        join_timeout=0.0,
     )
