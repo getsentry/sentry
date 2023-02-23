@@ -93,12 +93,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             # Exception is already source mapped
             return self._create_response()
 
+        frame, filename, abs_path = self._get_frame_filename_and_path(exception, frame_idx)
+
+        if frame.pre_context or frame.post_context:
+            return self._create_response()
+
         try:
             release = self._extract_release(event, project)
         except (SourceMapException, Release.DoesNotExist):
             return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
-
-        filename, abs_path = self._get_filename_and_path(exception, frame_idx)
 
         user_agent = release.user_agent
 
@@ -163,12 +166,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             errors_list.append(response)
         return Response({"errors": errors_list})
 
-    def _get_filename_and_path(self, exception, frame_idx):
+    def _get_frame_filename_and_path(self, exception, frame_idx):
         frame_list = exception.stacktrace.frames
         frame = frame_list[int(frame_idx)]
         filename = frame.filename
         abs_path = frame.abs_path
-        return filename, abs_path
+        return frame, filename, abs_path
 
     def _find_matches(self, release_artifacts, unified_path, filename, release, event):
         full_matches = [
