@@ -161,17 +161,17 @@ def serialize_rpc_user(user: User) -> RpcUser:
 
     # And process the _base_query special data additions
     permissions: FrozenSet[str] = frozenset({})
-    if user.permissions is not None:
+    if hasattr(user, "permissions") and user.permissions is not None:
         permissions = frozenset(user.permissions)
     args["permissions"] = permissions
 
     roles: FrozenSet[str] = frozenset({})
-    if user.roles is not None:
+    if hasattr(user, "roles") and user.roles is not None:
         roles = frozenset(flatten(user.roles))
     args["roles"] = roles
 
     useremails: FrozenSet[RpcUserEmail] = frozenset({})
-    if user.useremails is not None:
+    if hasattr(user, "useremails") and user.useremails is not None:
         useremails = frozenset(
             {
                 RpcUserEmail(
@@ -193,7 +193,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
         )
     args["avatar"] = avatar
     authenticators: FrozenSet[RpcAuthenticator] = frozenset()
-    if user.authenticators is not None:
+    if hasattr(user, "authenticators") and user.authenticators is not None:
         authenticators = frozenset(
             RpcAuthenticator(
                 id=a["id"],
