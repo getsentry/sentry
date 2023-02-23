@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/events/interfaces/spans/utils';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
-import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 
 describe('SpanTreeModel', () => {
   const api: Client = new Client();
@@ -351,14 +351,15 @@ describe('SpanTreeModel', () => {
     let mockRemoveTraceBounds = jest.fn();
 
     // embed a child transaction
-    const transaction = {
-      event_id: '19c403a10af34db2b7d93ad669bb51ed',
-      project_slug: 'project',
-    } as QuickTraceEvent;
+    const eventSlug = generateEventSlug({
+      id: '19c403a10af34db2b7d93ad669bb51ed',
+      project: 'project',
+    });
+
     let promise = spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: mockAddTraceBounds,
       removeTraceBounds: mockRemoveTraceBounds,
-    })('sentry', [transaction]);
+    })('sentry', [eventSlug]);
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
       'loading_embedded_transactions'
     );
@@ -463,7 +464,7 @@ describe('SpanTreeModel', () => {
     promise = spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: mockAddTraceBounds,
       removeTraceBounds: mockRemoveTraceBounds,
-    })('sentry', [transaction]);
+    })('sentry', [eventSlug]);
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
 
     await promise;
@@ -502,15 +503,15 @@ describe('SpanTreeModel', () => {
     const rootSpan = generateRootSpan(parsedTrace);
 
     const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
-    const transaction = {
-      event_id: 'broken',
-      project_slug: 'project',
-    } as QuickTraceEvent;
+    const eventSlug = generateEventSlug({
+      id: 'broken',
+      project: 'project',
+    });
 
     spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-    })('sentry', [transaction]);
+    })('sentry', [eventSlug]);
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
       'loading_embedded_transactions'
     );

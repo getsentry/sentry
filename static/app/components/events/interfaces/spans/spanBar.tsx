@@ -48,6 +48,7 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   QuickTraceContext,
   QuickTraceContextChildrenProps,
@@ -133,7 +134,7 @@ export type SpanBarProps = {
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
-    | ((orgSlug: string, transactions: QuickTraceEvent[]) => void)
+    | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
@@ -898,7 +899,14 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                   : 'span_view.embedded_child.show';
                 trackAdvancedAnalyticsEvent(eventKey, {organization});
 
-                toggleEmbeddedChildren(organization.slug, transactions);
+                const eventSlugs = transactions.map(transaction =>
+                  generateEventSlug({
+                    id: transaction.event_id,
+                    project: transaction.project_slug,
+                  })
+                );
+
+                toggleEmbeddedChildren(organization.slug, eventSlugs);
               }
             }}
           />
