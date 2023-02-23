@@ -4,7 +4,7 @@ from abc import ABCMeta
 from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
 
 from sentry import roles
-from sentry.models import OrganizationMember, User
+from sentry.models import OrganizationMember
 from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
@@ -14,15 +14,11 @@ if TYPE_CHECKING:
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
-    role: Optional[OrganizationRole] = roles.get("member")
+    role: Optional[OrganizationRole] = None
     scope: Optional[str] = None
 
     def __init__(self, organization: Organization):
         self.organization = organization
-
-    # backwards compatibility (default role should be none)
-    def has_default_role(self) -> bool:
-        return bool(self.role == roles.get("member"))
 
     def get_member(self, user: RpcUser) -> OrganizationMember:
         # cache the result
@@ -60,7 +56,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
             OrganizationMember
         ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id)
 
-        if not self.scope and self.has_default_role():
+        if not self.scope and not self.role:
             return members
 
         # you can either set the scope or the role for now
@@ -79,14 +75,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
 
         return members
 
-    # backwards compatibility
-    def get_role_string(self, member: OrganizationMember) -> str:
-        role_string: str = roles.get(member.role).name
-        return role_string
-
-    def build_notification_footer_from_settings_url(
-        self, settings_url: str, recipient: Optional[User] = None
-    ) -> str:
+    def build_notification_footer_from_settings_url(self, settings_url: str) -> str:
         if self.scope and not self.role:
             return (
                 "You are receiving this notification because you have the scope "
@@ -94,11 +83,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
             )
 
         role_name = "Member"
-        # backwards compatibility
-        if recipient and not self.scope and self.has_default_role():
-            member = self.get_member(recipient)
-            role_name = self.get_role_string(member)
-        if not self.has_default_role() and self.role:
+        if self.role:
             role_name = self.role.name
 
         return (

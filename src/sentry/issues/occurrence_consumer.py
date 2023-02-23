@@ -23,7 +23,7 @@ from django.utils import timezone
 from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -41,9 +41,6 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
-
-
-INGEST_ALLOWED_ISSUE_TYPES = frozenset([ProfileBlockedThreadGroupType.type_id])
 
 
 def get_occurrences_ingest_consumer(
@@ -183,6 +180,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
                     "received": event_payload.get("received", timezone.now()),
+                    # This allows us to show the title consistently in discover
+                    "title": occurrence_data["issue_title"],
                 }
 
                 optional_params = [
@@ -235,7 +234,6 @@ def _process_message(
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
     """
-    metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
     with sentry_sdk.start_transaction(
         op="_process_message",
         name="issues.occurrence_consumer",
@@ -244,8 +242,12 @@ def _process_message(
         try:
             kwargs = _get_kwargs(message)
             occurrence_data = kwargs["occurrence_data"]
-            if occurrence_data["type"] not in INGEST_ALLOWED_ISSUE_TYPES:
-                return None
+            metrics.incr(
+                "occurrence_ingest.messages",
+                sample_rate=1.0,
+                tags={"occurrence_type": occurrence_data["type"]},
+            )
+            txn.set_tag("occurrence_type", occurrence_data["type"])
 
             project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
             organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -255,8 +257,14 @@ def _process_message(
             txn.set_tag("project_id", project.id)
             txn.set_tag("project_slug", project.slug)
 
-            if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
-                metrics.incr("occurrence_ingest.dropped_feature_disabled", sample_rate=1.0)
+            if occurrence_data["type"] not in PROFILE_FILE_IO_ISSUE_TYPES or not features.has(
+                "organizations:profile-blocked-main-thread-ingest", organization
+            ):
+                metrics.incr(
+                    "occurrence_ingest.dropped_feature_disabled",
+                    sample_rate=1.0,
+                    tags={"occurrence_type": occurrence_data["type"]},
+                )
                 txn.set_tag("result", "dropped_feature_disabled")
                 return None
 

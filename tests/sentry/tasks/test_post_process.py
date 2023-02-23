@@ -992,8 +992,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.logger")
     def test_issue_owners_should_ratelimit(self, logger):
         cache.set(
-            f"issue_owner_assignment_ratelimit:{self.project.id}",
-            (ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT, datetime.now()),
+            f"issue_owner_assignment_ratelimiter:{self.project.id}",
+            (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
         )
         event = self.create_event(
             data={
@@ -1435,15 +1435,16 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=None,
-            group_id=event.group_id,
-            occurrence_id=event.occurrence.id,
-            project_id=event.group.project_id,
-        )
+        with self.feature("organizations:profile-blocked-main-thread-ppg"):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=None,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence.id,
+                project_id=event.group.project_id,
+            )
         return cache_key
 
     def test_issueless(self):

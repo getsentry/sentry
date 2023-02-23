@@ -197,6 +197,12 @@ class ProfileJSONDecodeType(GroupType):
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
 
+PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
+    [
+        ProfileBlockedThreadGroupType.type_id,
+        ProfileFileIOGroupType.type_id,
+    ]
+)
 
 def reduce_noise(
     new_grouphashes: Set[str],

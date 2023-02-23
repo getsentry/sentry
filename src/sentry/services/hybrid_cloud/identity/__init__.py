@@ -15,18 +15,12 @@ class RpcIdentityProvider:
     external_id: str
 
 
-APIIdentityProvider = RpcIdentityProvider
-
-
 @dataclass(frozen=True)
 class RpcIdentity:
     id: int
     idp_id: int
     user_id: int
     external_id: str
-
-
-APIIdentity = RpcIdentity
 
 
 class IdentityService(InterfaceWithLifecycle):

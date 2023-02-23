@@ -144,7 +144,25 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
-def protect_user_deletion(request):
+def protect_hybrid_cloud_deletions(request):
+    """
+    Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
+    by preventing any deletes that do not pass through a special 'connection'.
+
+    This logic creates an additional database role which cannot make deletions on special
+    restricted hybrid cloud objects, forcing code that would delete it in tests to explicitly
+    escalate their role -- the hope being that only codepaths that are smart about outbox
+    creation will do so.
+
+    If you are running into issues with permissions to delete objects, consider whether
+    you are deleting an object with a hybrid cloud foreign key pointing to it, and whether
+    there is an 'expected' way to delete it (usually through the ORM .delete() method, but
+    not the QuerySet.delete() or raw SQL delete).
+
+    If you are certain you need to delete the objects in a new codepath, check out User.delete
+    logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
+    create Outbox objects in the same transaction that matches what you delete.
+    """
     if "django_db_setup" not in request.fixturenames:
         yield
         return
