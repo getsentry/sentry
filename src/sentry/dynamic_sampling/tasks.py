@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2hours
+    time_limit=2 * 60 * 60 + 5,
 )  # type: ignore
 def prioritise_projects() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
@@ -37,6 +39,8 @@ def prioritise_projects() -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
+    soft_time_limit=25 * 60,  # 25 mins
+    time_limit=2 * 60 + 5,
 )  # type: ignore
 def process_projects_sample_rates(
     org_id: OrganizationId, projects_with_tx_count: Sequence[Tuple[ProjectId, int]]
