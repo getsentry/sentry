@@ -285,4 +285,4 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_occurrence_title_on_event(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["issue_title"] == kwargs["event_data"]["title"]
+        assert kwargs["occurrence_data"]["issue_title"] == kwargs["event_data"]["metadata"]["title"]

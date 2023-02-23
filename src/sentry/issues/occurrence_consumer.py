@@ -180,8 +180,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
                     "received": event_payload.get("received", timezone.now()),
-                    # This allows us to show the title consistently in discover
-                    "title": occurrence_data["issue_title"],
                 }
 
                 optional_params = [
@@ -205,6 +203,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         event_data[optional_param] = event_payload.get(optional_param)
 
                 _validate_event_data(event_data)
+
+                event_data["metadata"] = {
+                    # This allows us to show the title consistently in discover
+                    "title": occurrence_data["issue_title"],
+                }
 
                 return {"occurrence_data": occurrence_data, "event_data": event_data}
             else:
