@@ -177,9 +177,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # no source map means no raw_stacktrace
         assert exception.values[0].raw_stacktrace is None
 
-    @patch("sentry.lang.javascript.processor.fetch_file")
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
-    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_file):
+    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_by_url):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -205,19 +205,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
-        mock_fetch_file.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_file.return_value.body = force_bytes("\n".join("<generated source>"))
-        mock_fetch_file.return_value.encoding = None
+        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
 
-        mock_fetch_file.assert_called_once_with(
-            "http://example.com/test.min.js",
-            project=self.project,
-            release=None,
-            dist=None,
-            allow_scraping=True,
-        )
+        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
