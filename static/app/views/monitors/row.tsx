@@ -2,20 +2,27 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import cronstrue from 'cronstrue';
 
+import {deleteMonitor} from 'sentry/actionCreators/monitors';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
+import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {MonitorBadge} from './monitorBadge';
 import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from './types';
 
 interface MonitorRowProps {
   monitor: Monitor;
+  onDelete: () => void;
   organization: Organization;
 }
 
@@ -55,8 +62,36 @@ function scheduleAsText(config: MonitorConfig) {
   return t('Unknown schedule');
 }
 
-function MonitorRow({monitor, organization}: MonitorRowProps) {
+function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
+  const api = useApi();
   const lastCheckin = <TimeSince unitStyle="regular" date={monitor.lastCheckIn} />;
+
+  const actions: MenuItemProps[] = [
+    {
+      key: 'edit',
+      label: t('Edit'),
+      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.id}/edit/`),
+    },
+    {
+      key: 'delete',
+      label: t('Delete'),
+      priority: 'danger',
+      onAction: () => {
+        openConfirmModal({
+          onConfirm: async () => {
+            await deleteMonitor(api, organization.slug, monitor.id);
+            onDelete();
+          },
+          header: t('Delete Monitor?'),
+          message: tct('Are you sure you want to permanently delete [name]?', {
+            name: monitor.name,
+          }),
+          confirmText: t('Delete Monitor'),
+          priority: 'danger',
+        });
+      },
+    },
+  ];
 
   return (
     <Fragment>
@@ -100,6 +135,18 @@ function MonitorRow({monitor, organization}: MonitorRowProps) {
           avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
         />
       </ProjectColumn>
+      <ActionsColumn>
+        <DropdownMenu
+          items={actions}
+          position="bottom-end"
+          triggerProps={{
+            'aria-label': t('Actions'),
+            size: 'xs',
+            icon: <IconEllipsis size="xs" />,
+            showChevron: false,
+          }}
+        />
+      </ActionsColumn>
     </Fragment>
   );
 }
@@ -131,4 +178,10 @@ const NextCheckin = styled('div')`
 const ProjectColumn = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const ActionsColumn = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;

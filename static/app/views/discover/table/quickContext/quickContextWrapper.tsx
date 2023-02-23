@@ -167,7 +167,6 @@ export function QuickContextHoverWrapper(props: ContextProps) {
     <HoverWrapper>
       <StyledHovercard
         showUnderline
-        displayTimeout={600}
         delay={HOVER_DELAY}
         header={getHoverHeader(dataRow, contextType, organization)}
         body={getHoverBody(
