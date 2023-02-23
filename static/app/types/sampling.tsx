@@ -2,7 +2,7 @@ export enum DynamicSamplingBiasType {
   BOOST_ENVIRONMENTS = 'boostEnvironments',
   BOOST_LATEST_RELEASES = 'boostLatestRelease',
   BOOST_KEY_TRANSACTIONS = 'boostKeyTransactions',
-  BOOST_LOW_VOLUME_TRANSACTIONS = 'prioritiseByTxName',
+  BOOST_LOW_VOLUME_TRANSACTIONS = 'boostLowVolumeTransactions',
   IGNORE_HEALTH_CHECKS = 'ignoreHealthChecks',
 }
 
