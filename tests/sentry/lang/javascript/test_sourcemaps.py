@@ -102,16 +102,16 @@ class GetSourceContentsTest(TestCase):
         # basic sourcemap fixture has no inlined sources, so expect None
         smap_view = SourceMapView.from_json_bytes(sourcemap)
 
-        source = smap_view.get_or_fetch_sourceview(0)
+        source = smap_view.get_sourceview(0)
         assert source is None
 
     def test_indexed_inline(self):
         smap_view = SourceMapView.from_json_bytes(indexed_sourcemap_example)
 
-        assert smap_view.get_or_fetch_sourceview(0).get_source() == (
+        assert smap_view.get_sourceview(0).get_source() == (
             " ONE.foo = function (bar) {\n" + "   return baz(bar);\n" + " };"
         )
-        assert smap_view.get_or_fetch_sourceview(1).get_source() == (
+        assert smap_view.get_sourceview(1).get_source() == (
             " TWO.inc = function (n) {\n" + "   return n + 1;\n" + " };"
         )
 

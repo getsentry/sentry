@@ -876,6 +876,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.fetch_count = 0
         self.sourcemaps_touched = set()
 
+        # All the following dictionaries have been defined top level for simplicity reasons. Because this code will
+        # be ported to Symbolicator we wanted to keep it as simple and explicit as possible. This comment also
+        # applies to the many repetitions across the code.
+
         # Cache holding the results of the fetching by url.
         self.fetch_by_url_result = {}
         self.fetch_by_url_errors = {}
@@ -952,7 +956,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         Attempt to demangle the given frame.
         """
         frame = processable_frame.frame
-        token = None
 
         all_errors = []
         sourcemap_applied = False
@@ -1036,6 +1039,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     "Mapping compressed source %r to mapping in %r", frame["abs_path"], abs_path
                 )
 
+                # This 'if' should always evaluate to True when debug_id is used.
                 if token.context_line is not None:
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
@@ -1253,13 +1257,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # TODO: this branch should only apply to http fetches.
         if self.fetch_count > self.max_fetches:
-            cache.add_error(url, {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES})
+            self.fetch_by_url_errors.setdefault(url, []).append(
+                {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES}
+            )
             return None
 
         if debug_id is not None:
             logger.debug("Attempting to cache source with debug id %r", debug_id)
             with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor._fetch_and_cache_sourceview.fetch_by_debug_id"
+                op="JavaScriptStacktraceProcessor.fetch_and_cache_sourceview.fetch_by_debug_id"
             ) as span:
                 span.set_data("debug_id", debug_id)
                 result = self.fetcher.fetch_by_debug_id(debug_id, source_file_type)
@@ -1273,7 +1279,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         try:
             logger.debug("Attempting to cache source with url %r", url)
             with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor._fetch_and_cache_sourceview.fetch_by_url"
+                op="JavaScriptStacktraceProcessor.fetch_and_cache_sourceview.fetch_by_url"
             ) as span:
                 span.set_data("url", url)
                 result = self.fetcher.fetch_by_url(url)
@@ -1293,8 +1299,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.fetch_by_url_result[url] = result
             sourceview = SourceView.from_bytes(result.body)
 
-            # TODO: the discovery of sourcemap urls here is very opaque, consider of putting it closer to the
-            #  function's callsite.
             sourcemap_url = discover_sourcemap(result)
             if sourcemap_url:
                 self.minified_source_url_to_sourcemap_url[url] = sourcemap_url
@@ -1442,9 +1446,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # TODO: we want to implement the construction of the debug
                 # We first want to fetch the sourceview of the file.
                 self.get_or_fetch_sourceview(url=filename)
-                # We then want to fetch the sourcemap of the file, but this call can fail in case filename points to a
-                # non minified file.
-                self.get_or_fetch_sourcemap_view(url=filename)
 
     def close(self):
         StacktraceProcessor.close(self)
