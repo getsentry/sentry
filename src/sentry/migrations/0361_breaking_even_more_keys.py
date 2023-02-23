@@ -89,6 +89,69 @@ def activityuser_migrations():
     ]
 
 
+def apiauthorization_user_migrations():
+    database_operations = [
+        migrations.AlterField(
+            model_name="apiauthorization",
+            name="application",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.ApiApplication", db_constraint=False, db_index=True, null=True
+            ),
+        ),
+    ]
+
+    state_operations = [
+        migrations.AlterField(
+            model_name="apiauthorization",
+            name="application",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.ApiApplication", db_index=True, on_delete="CASCADE", null=True
+            ),
+        ),
+        migrations.RenameField(
+            model_name="apiauthorization",
+            old_name="application",
+            new_name="application_id",
+        ),
+        migrations.AlterUniqueTogether("apiauthorization", {("user", "application_id")}),
+    ]
+
+    return database_operations + [
+        migrations.SeparateDatabaseAndState(state_operations=state_operations)
+    ]
+
+
+def apigrant_user_migrations():
+    database_operations = [
+        migrations.AlterField(
+            model_name="apigrant",
+            name="application",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.ApiApplication", db_constraint=False, db_index=True, null=False
+            ),
+        ),
+    ]
+
+    state_operations = [
+        migrations.AlterField(
+            model_name="apigrant",
+            name="application",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.ApiApplication", db_index=True, on_delete="CASCADE"
+            ),
+        ),
+        migrations.RenameField(
+            model_name="apigrant",
+            old_name="application",
+            new_name="application_id",
+        ),
+    ]
+
+    return database_operations + [
+        migrations.SeparateDatabaseAndState(state_operations=state_operations)
+    ]
+
+
 class Migration(CheckedMigration):
     # This flag is used to mark that a migration shouldn't be automatically run in production. For
     # the most part, this should only be used for operations where it's safe to run the migration

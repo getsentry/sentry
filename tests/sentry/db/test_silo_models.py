@@ -11,13 +11,9 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models import (
-    Activity,
     Actor,
     ApiApplication,
-    ApiAuthorization,
-    ApiGrant,
     ApiKey,
-    ApiToken,
     AuthProvider,
     AuthProviderDefaultTeams,
     Broadcast,
@@ -88,10 +84,6 @@ class any_model:
 
 decorator_exemptions = set()
 fk_emeptions = {
-    (Activity, User),
-    (ApiAuthorization, ApiApplication),
-    (ApiAuthorization, User),
-    (ApiGrant, Organization),
     (ApiKey, Organization),
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
@@ -117,9 +109,7 @@ fk_emeptions = {
     (SentryApp, Organization),
     (SentryAppComponent, SentryApp),
     (SentryAppInstallation, Organization),
-    (SentryAppInstallation, ApiGrant),
     (SentryAppInstallationForProvider, Organization),
-    (SentryAppInstallationToken, ApiToken),
     (SentryAppInstallationToken, SentryAppInstallation),
     (MonitorCheckIn, MonitorLocation),
     (NotificationSetting, Actor),
