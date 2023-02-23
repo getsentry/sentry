@@ -22,11 +22,9 @@ class EnvironmentMixin:
         self.segment_data_size = len(self.segment_data)
 
         metadata = RecordingSegmentStorageMeta(
-            org_id=self.organization.id,
             project_id=self.project.id,
             replay_id=self.replay_id,
             segment_id=self.segment_id,
-            size=0,
             retention_days=30,
         )
         driver.set(metadata, self.segment_data)
