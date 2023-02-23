@@ -1435,15 +1435,16 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=None,
-            group_id=event.group_id,
-            occurrence_id=event.occurrence.id,
-            project_id=event.group.project_id,
-        )
+        with self.feature("organizations:profile-blocked-main-thread-ppg"):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=None,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence.id,
+                project_id=event.group.project_id,
+            )
         return cache_key
 
     def test_issueless(self):
