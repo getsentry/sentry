@@ -1492,6 +1492,20 @@ class ErrorMappingTest(unittest.TestCase):
                             ]
                         },
                     },
+                    {
+                        "type": "Error",
+                        "value": "this is not a react minified error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "foo.js",
+                                    "lineno": 1,
+                                    "colno": 0,
+                                },
+                            ],
+                        },
+                    },
                 ]
             },
             "_meta": {
