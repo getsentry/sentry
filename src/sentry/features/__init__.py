@@ -155,6 +155,7 @@ default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, Tr
 default_manager.add("organizations:scaleable-codeowners-search", OrganizationFeature)
 default_manager.add("organizations:scim-orgmember-roles", OrganizationFeature, True)
 default_manager.add("organizations:scim-team-roles", OrganizationFeature, True)
+default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, True)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:session-replay", OrganizationFeature)
 default_manager.add("organizations:session-replay-beta-grace", OrganizationFeature, True)
