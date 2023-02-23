@@ -39,8 +39,6 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
-from .cache import SourceMapCache
-
 __all__ = ["JavaScriptStacktraceProcessor"]
 
 
@@ -577,16 +575,139 @@ def fetch_release_artifact(url, release, dist):
     return result
 
 
+def is_html_response(result):
+    # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
+    # This cannot parse as valid JS/JSON.
+    # NOTE: not relying on Content-Type header because apps often don't set this correctly
+    # Discard leading whitespace (often found before doctype)
+    body_start = result.body[:20].lstrip()
+
+    if body_start[:1] == b"<":
+        return True
+    return False
+
+
+def get_max_age(headers):
+    cache_control = headers.get("cache-control")
+    max_age = CACHE_CONTROL_MIN
+
+    if cache_control:
+        match = CACHE_CONTROL_RE.search(cache_control)
+        if match:
+            max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
+    return min(max_age, CACHE_CONTROL_MAX)
+
+
+def is_data_uri(url):
+    return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
+
+
+def generate_module(src):
+    """
+    Converts a url into a made-up module name by doing the following:
+     * Extract just the path name ignoring querystrings
+     * Trimming off the initial /
+     * Trimming off the file extension
+     * Removes off useless folder prefixes
+
+    e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
+    """
+    if not src:
+        return UNKNOWN_MODULE
+
+    filename, ext = splitext(urlsplit(src).path)
+    if filename.endswith(".min"):
+        filename = filename[:-4]
+
+    # TODO(dcramer): replace CLEAN_MODULE_RE with tokenizer completely
+    tokens = filename.split("/")
+    for idx, token in enumerate(tokens):
+        # a SHA
+        if VERSION_RE.match(token):
+            return "/".join(tokens[idx + 1 :])
+
+    return CLEAN_MODULE_RE.sub("", filename) or UNKNOWN_MODULE
+
+
+def is_valid_frame(frame):
+    return frame is not None and frame.get("lineno") is not None
+
+
+def get_function_for_token(frame, token, previous_frame=None):
+    """
+    Get function name for a given frame based on the token resolved by symbolic.
+    It tries following paths in order:
+    - return token function name if we have a usable value (filtered through `USELESS_FN_NAMES` list),
+    - return mapped name of the caller (previous frame) token if it had,
+    - return token function name, including filtered values if it mapped to anything in the first place,
+    - return current frames function name as a fallback
+    """
+
+    frame_function_name = frame.get("function")
+    token_function_name = token.function_name
+
+    # Try to use the function name we got from sourcemap-cache, filtering useless names.
+    if token_function_name not in USELESS_FN_NAMES:
+        return token_function_name
+
+    # If not found, ask the callsite (previous token) for function name if possible.
+    if previous_frame is not None:
+        last_token = previous_frame.data.get("token")
+        if last_token is not None and last_token.name not in ("", None):
+            return last_token.name
+
+    # If there was no minified name at all, return even useless, filtered one from the original token.
+    if not frame_function_name:
+        return token_function_name
+
+    # Otherwise fallback to the old, minified name.
+    return frame_function_name
+
+
+def fold_function_name(function_name):
+    """
+    Fold multiple consecutive occurences of the same property name into a single group, excluding the last component.
+
+    foo | foo
+    foo.foo | foo.foo
+    foo.foo.foo | {foo#2}.foo
+    bar.foo.foo | bar.foo.foo
+    bar.foo.foo.foo | bar.{foo#2}.foo
+    bar.foo.foo.onError | bar.{foo#2}.onError
+    bar.bar.bar.foo.foo.onError | {bar#3}.{foo#2}.onError
+    bar.foo.foo.bar.bar.onError | bar.{foo#2}.{bar#2}.onError
+    """
+
+    parts = function_name.split(".")
+
+    if len(parts) == 1:
+        return function_name
+
+    tail = parts.pop()
+    grouped = [list(g) for _, g in groupby(parts)]
+
+    def format_groups(p):
+        if len(p) == 1:
+            return p[0]
+        return f"\u007b{p[0]}#{len(p)}\u007d"
+
+    return f'{".".join(map(format_groups, grouped))}.{tail}'
+
+
 class Fetcher:
+    """
+    Components responsible for fetching files either by url or debug_id that aims at hiding the complexity involved
+    in file fetching.
+    """
+
     def __init__(self, project, release, dist, allow_scraping):
         self.project = project
         self.release = release
         self.dist = dist
         self.allow_scraping = allow_scraping
 
-        self.sourcemap_cache = SourceMapCache()
-
     def fetch_by_debug_id(self, debug_id, source_file_type):
+        # TODO: implement debug id lookup.
         pass
 
     def fetch_by_url(self, url):
@@ -717,126 +838,8 @@ class Fetcher:
         return result
 
     def _fetch_sourcemap_by_debug_id(self):
+        # TODO: implement debug id lookup.
         pass
-
-
-def is_html_response(result):
-    # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
-    # This cannot parse as valid JS/JSON.
-    # NOTE: not relying on Content-Type header because apps often don't set this correctly
-    # Discard leading whitespace (often found before doctype)
-    body_start = result.body[:20].lstrip()
-
-    if body_start[:1] == b"<":
-        return True
-    return False
-
-
-def get_max_age(headers):
-    cache_control = headers.get("cache-control")
-    max_age = CACHE_CONTROL_MIN
-
-    if cache_control:
-        match = CACHE_CONTROL_RE.search(cache_control)
-        if match:
-            max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
-    return min(max_age, CACHE_CONTROL_MAX)
-
-
-def is_data_uri(url):
-    return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
-
-
-def generate_module(src):
-    """
-    Converts a url into a made-up module name by doing the following:
-     * Extract just the path name ignoring querystrings
-     * Trimming off the initial /
-     * Trimming off the file extension
-     * Removes off useless folder prefixes
-
-    e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
-    """
-    if not src:
-        return UNKNOWN_MODULE
-
-    filename, ext = splitext(urlsplit(src).path)
-    if filename.endswith(".min"):
-        filename = filename[:-4]
-
-    # TODO(dcramer): replace CLEAN_MODULE_RE with tokenizer completely
-    tokens = filename.split("/")
-    for idx, token in enumerate(tokens):
-        # a SHA
-        if VERSION_RE.match(token):
-            return "/".join(tokens[idx + 1 :])
-
-    return CLEAN_MODULE_RE.sub("", filename) or UNKNOWN_MODULE
-
-
-def is_valid_frame(frame):
-    return frame is not None and frame.get("lineno") is not None
-
-
-def get_function_for_token(frame, token, previous_frame=None):
-    """
-    Get function name for a given frame based on the token resolved by symbolic.
-    It tries following paths in order:
-    - return token function name if we have a usable value (filtered through `USELESS_FN_NAMES` list),
-    - return mapped name of the caller (previous frame) token if it had,
-    - return token function name, including filtered values if it mapped to anything in the first place,
-    - return current frames function name as a fallback
-    """
-
-    frame_function_name = frame.get("function")
-    token_function_name = token.function_name
-
-    # Try to use the function name we got from sourcemap-cache, filtering useless names.
-    if token_function_name not in USELESS_FN_NAMES:
-        return token_function_name
-
-    # If not found, ask the callsite (previous token) for function name if possible.
-    if previous_frame is not None:
-        last_token = previous_frame.data.get("token")
-        if last_token is not None and last_token.name not in ("", None):
-            return last_token.name
-
-    # If there was no minified name at all, return even useless, filtered one from the original token.
-    if not frame_function_name:
-        return token_function_name
-
-    # Otherwise fallback to the old, minified name.
-    return frame_function_name
-
-
-def fold_function_name(function_name):
-    """
-    Fold multiple consecutive occurences of the same property name into a single group, excluding the last component.
-
-    foo | foo
-    foo.foo | foo.foo
-    foo.foo.foo | {foo#2}.foo
-    bar.foo.foo | bar.foo.foo
-    bar.foo.foo.foo | bar.{foo#2}.foo
-    bar.foo.foo.onError | bar.{foo#2}.onError
-    bar.bar.bar.foo.foo.onError | {bar#3}.{foo#2}.onError
-    bar.foo.foo.bar.bar.onError | bar.{foo#2}.{bar#2}.onError
-    """
-
-    parts = function_name.split(".")
-
-    if len(parts) == 1:
-        return function_name
-
-    tail = parts.pop()
-    grouped = [list(g) for _, g in groupby(parts)]
-
-    def format_groups(p):
-        if len(p) == 1:
-            return p[0]
-        return f"\u007b{p[0]}#{len(p)}\u007d"
-
-    return f'{".".join(map(format_groups, grouped))}.{tail}'
 
 
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
@@ -884,8 +887,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.debug_id_sourcemap_cache = {}
         self.sourcemap_url_sourcemap_cache = {}
 
-        # Additional caches for mapping purposes.
+        # Contains a mapping between the 'result.url' of the request and the file url from 'abs_path'.
         self.url_aliases = {}
+
+        # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap url
+        # which is discovered by looking at the minified source.
         self.minified_source_url_to_sourcemap_url = {}
 
         # Component responsible for fetching the files.
@@ -961,14 +967,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if errors is not None:
             all_errors.extend(errors)
 
-        # `source` is used for pre/post and `context_line` frame expansion.
-        # Here it's pointing to minified source, however the variable can be shadowed with the original sourceview
+        # `sourceview` is used for pre/post and `context_line` frame expansion.
+        # Here it's pointing to the minified source, however the variable can be shadowed with the original sourceview
         # (or `None` if the token doesnt provide us with the `context_line`) down the road.
         # TODO: add support for debug ids.
-        # We fetch the sourcemap url for the given source.
         sourceview = self.get_or_fetch_sourceview(url=frame["abs_path"])
-        sourcemap_view = self.get_or_fetch_sourcemap(url=frame["abs_path"])
+        sourcemap_view = self.get_or_fetch_sourcemap_view(url=frame["abs_path"])
 
+        # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
         sourcemap_url = self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
         self.sourcemaps_touched.add(sourcemap_url)
 
@@ -1203,9 +1209,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         return True
 
-    # If we return None it means that we weren't able to find the file.
     def get_or_fetch_sourceview(self, url=None, debug_id=None, source_file_type=None):
+        """
+        Gets from the cache or fetches the file at 'url' or 'debug_id'.
+
+        Returns None when a file with either 'url' or 'debug_id' cannot be found.
+        """
         # We require that artifact bundles with debug ids used embedded source in the source map.
+        # TODO: use enum for source file type when available.
         if debug_id is not None and source_file_type != "source":
             return None
 
@@ -1239,14 +1250,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             cache.add_error(url, {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES})
             return None
 
-        # TODO: respect cache-control/max-age headers to some extent
-        logger.debug("Attempting to cache source %r", url)
-        # this both looks in the database and tries to scrape the internet
-        with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.cache_source.fetch_file"
-        ) as span:
-            span.set_data("filename", url)
-            if debug_id is not None:
+        if debug_id is not None:
+            logger.debug("Attempting to cache source with debug id %r", debug_id)
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor._fetch_and_cache_sourceview.fetch_by_debug_id"
+            ) as span:
+                span.set_data("debug_id", debug_id)
                 result = self.fetcher.fetch_by_debug_id(debug_id, source_file_type)
                 if result is not None:
                     # We temporarily store the result directly, in case we want to compute the sourceview on demand
@@ -1255,44 +1264,51 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     sourceview = SourceView.from_bytes(result.body)
                     return sourceview
 
-            try:
+        try:
+            logger.debug("Attempting to cache source with url %r", url)
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor._fetch_and_cache_sourceview.fetch_by_url"
+            ) as span:
+                span.set_data("url", url)
                 result = self.fetcher.fetch_by_url(url)
-            except http.BadSource as exc:
-                if not fetch_error_should_be_silienced(exc.data, url):
-                    self.fetch_by_url_errors.setdefault(url, [])
-                    self.fetch_by_url_errors[url].append(exc.data)
-                # either way, there's no more for us to do here, since we don't have
-                # a valid file to cache
-                return None
-            else:
-                # TODO: it should do something but we don't know.
-                if result.url != url:
-                    self.url_aliases[result.url] = url
+        except http.BadSource as exc:
+            if not fetch_error_should_be_silienced(exc.data, url):
+                self.fetch_by_url_errors.setdefault(url, [])
+                self.fetch_by_url_errors[url].append(exc.data)
+            # either way, there's no more for us to do here, since we don't have
+            # a valid file to cache
+            return None
+        else:
+            # TODO: it should do something but we don't know.
+            if result.url != url:
+                self.url_aliases[result.url] = url
 
-                # We temporarily store the result directly, in case we want to compute the sourceview on demand
-                # we can delete the other dictionary.
-                self.fetch_by_url_result[url] = result
-                sourceview = SourceView.from_bytes(result.body)
+            # We temporarily store the result directly, in case we want to compute the sourceview on demand
+            # we can delete the other dictionary.
+            self.fetch_by_url_result[url] = result
+            sourceview = SourceView.from_bytes(result.body)
 
-                # TODO: the discovery of sourcemap urls here is very opaque, consider of putting it closer to the
-                #  function's callsite.
-                sourcemap_url = discover_sourcemap(result)
-                if sourcemap_url:
-                    self.minified_source_url_to_sourcemap_url[url] = sourcemap_url
+            # TODO: the discovery of sourcemap urls here is very opaque, consider of putting it closer to the
+            #  function's callsite.
+            sourcemap_url = discover_sourcemap(result)
+            if sourcemap_url:
+                self.minified_source_url_to_sourcemap_url[url] = sourcemap_url
 
-                return sourceview
+            return sourceview
 
-    # The url is of the minified file.
-    # If this function returns None, it means that we didn't find the sourcemap, maybe because the file at url isn't
-    # a minified file.
-    def get_or_fetch_sourcemap(self, url=None, debug_id=None):
-        rv = self._get_cached_sourcemap(url, debug_id)
+    def get_or_fetch_sourcemap_view(self, url=None, debug_id=None):
+        """
+        Gets from the cache or fetches the sourcemap view of the file at 'url' or 'debug_id'.
+
+        Returns None when a sourcemap corresponding to the file at 'url' is not found.
+        """
+        rv = self._get_cached_sourcemap_view(url, debug_id)
         if rv is not None:
             return rv
 
-        return self._fetch_and_cache_sourcemap(url, debug_id)
+        return self._fetch_and_cache_sourcemap_view(url, debug_id)
 
-    def _get_cached_sourcemap(self, url, debug_id):
+    def _get_cached_sourcemap_view(self, url, debug_id):
         if debug_id is not None:
             rv = self.debug_id_sourcemap_cache.get(debug_id)
             if rv is not None:
@@ -1307,7 +1323,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         return None
 
-    def _fetch_and_cache_sourcemap(self, url, debug_id):
+    def _fetch_and_cache_sourcemap_view(self, url, debug_id):
         if debug_id is not None:
             sourcemap_view = self._handle_debug_id_sourcemap_lookup(debug_id)
             if sourcemap_view is not None:
@@ -1325,7 +1341,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if minified_result is None:
             return None
 
-        # TODO: use enum for source file type.
+        # TODO: use enum for source file type when available.
         result = self.fetcher.fetch_by_debug_id(debug_id, "sourcemap")
         if result is not None:
             sourcemap_view = SmCache.from_bytes(minified_result.body, result.body)
@@ -1343,10 +1359,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         try:
             with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
+                op="JavaScriptStacktraceProcessor.handle_url_sourcemap_lookup.fetch_sourcemap_view_by_url"
             ) as span:
+                span.set_data("url", url)
                 span.set_data("sourcemap_url", sourcemap_url)
-                sourcemap_view = self._fetch_sourcemap(sourcemap_url, source=minified_result.body)
+                sourcemap_view = self._fetch_sourcemap_view_by_url(
+                    sourcemap_url, source=minified_result.body
+                )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has
             # uploaded a node_modules file, which has a sourceMappingURL, they
@@ -1358,13 +1377,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.fetch_by_url_errors[url].append(exc.data)
             return None
         else:
-            with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
-            ):
-                self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_view
-                return sourcemap_view
+            self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_view
+            return sourcemap_view
 
-    def _fetch_sourcemap(self, url, source=b""):
+    def _fetch_sourcemap_view_by_url(self, url, source=b""):
         if is_data_uri(url):
             try:
                 body = base64.b64decode(
@@ -1376,7 +1392,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         else:
             # look in the database and, if not found, optionally try to scrape the web
             with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.fetch_sourcemap.fetch_file"
+                op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url"
             ) as span:
                 span.set_data("url", url)
                 result = self.fetcher.fetch_by_url(url)
@@ -1384,7 +1400,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             body = result.body
         try:
             with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.fetch_sourcemap.SmCache.from_bytes"
+                op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.SmCache.from_bytes"
             ):
                 return SmCache.from_bytes(source, body)
 
@@ -1424,7 +1440,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 self.get_or_fetch_sourceview(url=filename)
                 # We then want to fetch the sourcemap of the file, but this call can fail in case filename points to a
                 # non minified file.
-                self.get_or_fetch_sourcemap(url=filename)
+                self.get_or_fetch_sourcemap_view(url=filename)
 
     def close(self):
         StacktraceProcessor.close(self)
