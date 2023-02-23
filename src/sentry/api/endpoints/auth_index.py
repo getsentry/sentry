@@ -59,7 +59,10 @@ class AuthIndexEndpoint(Endpoint):
         if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
-        raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
+        raise SsoRequired(
+            organization=Organization.objects.get_from_cache(id=org_id),
+            after_login_redirect=redirect,
+        )
 
     @staticmethod
     def _verify_user_via_inputs(validator, request):
