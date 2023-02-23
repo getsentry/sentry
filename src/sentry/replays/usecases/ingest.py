@@ -67,7 +67,7 @@ class MissingRecordingSegmentHeaders(ValueError):
 class RecordingIngestMessage:
     replay_id: str
     key_id: int | None
-    org_id: int | None
+    org_id: int
     received: int
     project_id: int
     retention_days: int
