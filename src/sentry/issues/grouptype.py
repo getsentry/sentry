@@ -121,7 +121,7 @@ class PerformanceConsecutiveHTTPQueriesGroupType(GroupType):
     slug = "performance_consecutive_http"
     description = "Consecutive HTTP"
     category = GroupCategory.PERFORMANCE.value
-    ignore_limit = 0
+    ignore_limit = 5
 
 
 @dataclass(frozen=True)
