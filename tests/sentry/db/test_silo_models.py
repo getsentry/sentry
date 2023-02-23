@@ -93,8 +93,6 @@ fk_emeptions = {
     (Activity, User),
     (ApiAuthorization, ApiApplication),
     (ApiAuthorization, User),
-    (ApiGrant, User),
-    (ApiGrant, ApiApplication),
     (ApiGrant, Organization),
     (ApiKey, Organization),
     (AssistantActivity, User),
