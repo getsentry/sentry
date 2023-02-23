@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.faux import faux
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
@@ -18,7 +18,7 @@ from sentry.types.activity import ActivityType
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
-@region_silo_test
+@region_silo_test(stable=True)
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -154,14 +154,15 @@ class TestIssueWorkflowNotifications(APITestCase):
 
     def test_notify_pending_installation(self, delay):
         self.install.status = SentryAppInstallationStatus.PENDING
-        self.install.save()
+        with exempt_from_silo_limits():
+            self.install.save()
 
         self.update_issue()
         assert not delay.called
 
 
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
-@region_silo_test
+@region_silo_test(stable=True)
 class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -188,7 +189,8 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
         with Feature("organizations:sentry-functions"):
             self.update_issue()
             sub_data = {"resolution_type": "now"}
-            sub_data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                sub_data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
@@ -205,7 +207,8 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 {"statusDetails": {"inCommit": {"repository": repo.name, "commit": commit.key}}}
             )
             sub_data = {"resolution_type": "in_commit"}
-            sub_data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                sub_data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
@@ -219,7 +222,8 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             release = self.create_release(project=self.project)
             self.update_issue({"statusDetails": {"inRelease": release.version}})
             sub_data = {"resolution_type": "in_release"}
-            sub_data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                sub_data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
@@ -234,7 +238,8 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
 
             self.update_issue({"statusDetails": {"inRelease": "latest"}})
             sub_data = {"resolution_type": "in_release"}
-            sub_data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                sub_data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
@@ -249,7 +254,9 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             self.update_issue({"statusDetails": {"inNextRelease": True}})
 
             sub_data = {"resolution_type": "in_next_release"}
-            sub_data["user"] = serialize(self.user, UserSerializer())
+
+            with exempt_from_silo_limits():
+                sub_data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
@@ -299,7 +306,8 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
         with Feature("organizations:sentry-functions"):
             self.update_issue({"status": "ignored"})
             sub_data = {}
-            sub_data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                sub_data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.ignored",
@@ -309,7 +317,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
-@region_silo_test
+@region_silo_test(stable=True)
 class TestIssueAssigned(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -382,6 +390,7 @@ class TestIssueAssigned(APITestCase):
 
 @with_feature("organizations:sentry-functions")
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
+@region_silo_test(stable=True)
 class TestIssueAssignedSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -440,6 +449,7 @@ class TestIssueAssignedSentryFunctions(APITestCase):
 
 
 @patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
+@region_silo_test(stable=True)
 class TestComments(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -512,6 +522,7 @@ class TestComments(APITestCase):
 
 
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
+@region_silo_test(stable=True)
 class TestCommentsSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -541,7 +552,8 @@ class TestCommentsSentryFunctions(APITestCase):
                 "comment": "hello world",
                 "project_slug": self.project.slug,
             }
-            data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "comment.created",
@@ -562,7 +574,8 @@ class TestCommentsSentryFunctions(APITestCase):
                 "comment": "goodbye cruel world",
                 "project_slug": self.project.slug,
             }
-            data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "comment.updated",
@@ -581,7 +594,8 @@ class TestCommentsSentryFunctions(APITestCase):
                 "comment": "hello world",
                 "project_slug": self.project.slug,
             }
-            data["user"] = serialize(self.user, UserSerializer())
+            with exempt_from_silo_limits():
+                data["user"] = serialize(self.user)
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "comment.deleted",
