@@ -50,6 +50,10 @@ class Migration(CheckedMigration):
             name="projectintegration",
             unique_together={("project", "integration_id")},
         ),
+        migrations.RemoveField(
+            model_name="integration",
+            name="projects",
+        ),
     ]
 
     operations = database_operations + [
