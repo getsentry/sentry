@@ -80,6 +80,11 @@ describe('Dynamic Sampling', function () {
 
     expect(ignoreHealthChecks).toBeEnabled();
     expect(ignoreHealthChecks).toBeChecked();
+
+    // Prioritize transaction names is not available
+    expect(
+      screen.queryByRole('checkbox', {name: 'Prioritize transaction names'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders disabled default UI, when user has not permission to edit', async function () {
@@ -169,6 +174,52 @@ describe('Dynamic Sampling', function () {
             {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
             {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
             {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+          ],
+        },
+      })
+    );
+  });
+
+  it('render and toggle "Prioritize transaction names" option', function () {
+    const {project, organization} = initializeOrg({
+      ...initializeOrg(),
+      projects: [
+        TestStubs.Project({
+          dynamicSamplingBiases: [
+            ...dynamicSamplingBiases,
+            {id: DynamicSamplingBiasType.BOOST_TRANSACTION_NAMES, active: false},
+          ],
+        }),
+      ],
+      organization: {
+        ...initializeOrg().organization,
+        features: [...ORG_FEATURES, 'dynamic-sampling-transaction-name-priority'],
+      },
+    });
+
+    const mockRequests = renderMockRequests(organization.slug, project.slug);
+
+    render(<DynamicSampling project={project} />, {organization});
+
+    const prioritizeTransactionNames = screen.getByRole('checkbox', {
+      name: 'Prioritize transaction names',
+    });
+
+    expect(prioritizeTransactionNames).toBeEnabled();
+    expect(prioritizeTransactionNames).not.toBeChecked();
+
+    userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize transaction names'}));
+
+    expect(mockRequests.projectDetails).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/`,
+      expect.objectContaining({
+        data: {
+          dynamicSamplingBiases: [
+            {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
+            {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
+            {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+            {id: DynamicSamplingBiasType.BOOST_TRANSACTION_NAMES, active: true},
           ],
         },
       })
