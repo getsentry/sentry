@@ -42,10 +42,19 @@ def create_audit_entry_from_user(
     ip_address: str | None = None,
     transaction_id: int | str | None = None,
     logger: Logger | None = None,
+    organization: Organization | None = None,
+    organization_id: int | None = None,
     **kwargs: Any,
 ) -> AuditLogEntry:
+    if organization:
+        organization_id = organization.id
+
     entry = AuditLogEntry(
-        actor_id=user.id if user else None, actor_key=api_key, ip_address=ip_address, **kwargs
+        actor_id=user.id if user else None,
+        actor_key=api_key,
+        ip_address=ip_address,
+        organization_id=organization_id,
+        **kwargs,
     )
 
     # Only create a real AuditLogEntry record if we are passing an event type
@@ -146,13 +155,20 @@ def _complete_delete_log(delete_log: DeletedEntry, entry: AuditLogEntry) -> None
 
 
 def create_system_audit_entry(
-    transaction_id: int | str | None = None, logger: Logger | None = None, **kwargs: Any
+    transaction_id: int | str | None = None,
+    logger: Logger | None = None,
+    organization: Organization | None = None,
+    organization_id: int | None = None,
+    **kwargs: Any,
 ) -> AuditLogEntry:
     """
     Creates an audit log entry for events that are triggered by Sentry's
     systems and do not have an associated Sentry user as the "actor".
     """
-    entry = AuditLogEntry(actor_label="Sentry", **kwargs)
+    if organization:
+        organization_id = organization.id
+
+    entry = AuditLogEntry(actor_label="Sentry", organization_id=organization_id, **kwargs)
     if entry.event is not None:
         log_service.record_audit_log(event=entry.as_event())
 
