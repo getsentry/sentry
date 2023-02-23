@@ -38,14 +38,14 @@ def fetch_segment_metadata(
     project_id: int,
     replay_id: str,
     segment_id: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> RecordingSegmentStorageMeta | None:
     """Return a recording segment storage metadata instance."""
     # TODO: Filestore is privileged until the direct storage is released to all projects.  Once
     # direct-storage is the default driver we need to invert this.  90 days after deployment we
     # need to remove filestore querying.
-    segments = fetch_filestore_segment_meta(project_id, replay_id, segment_id)
-    if segments:
-        return segments
+    segment = fetch_filestore_segment_meta(project_id, replay_id, segment_id)
+    if segment:
+        return segment
 
     return fetch_direct_storage_segment_meta(project_id, replay_id, segment_id)
 
@@ -79,7 +79,7 @@ def fetch_filestore_segment_meta(
     project_id: int,
     replay_id: str,
     segment_id: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> RecordingSegmentStorageMeta:
     """Return filestore metadata derived from our Postgres table."""
     segment: ReplayRecordingSegment = ReplayRecordingSegment.objects.filter(
         project_id=project_id, replay_id=replay_id, segment_id=segment_id
@@ -160,8 +160,8 @@ def _fetch_segments_from_snuba(
     replay_id: str,
     offset: int,
     limit: int,
-    *conditions,
-):
+    *conditions: List[Condition],
+) -> List[RecordingSegmentStorageMeta]:
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -204,14 +204,14 @@ def _fetch_segments_from_snuba(
 # BLOB DOWNLOAD BEHAVIOR.
 
 
-def download_segments(segments: List[RecordingSegmentStorageMeta]):
+def download_segments(segments: List[RecordingSegmentStorageMeta]) -> str:
     """Download segment data from remote storage."""
     with ThreadPoolExecutor(max_workers=4) as exe:
         results = exe.map(download_segment, segments)
         return (b"[" + b",".join(results) + b"]").decode("utf-8")
 
 
-def download_segment(segment: RecordingSegmentStorageMeta):
+def download_segment(segment: RecordingSegmentStorageMeta) -> bytes:
     """Return the segment blob data."""
     driver = FilestoreBlob() if segment.file_id else StorageBlob()
     return decompress(driver.get(segment))
