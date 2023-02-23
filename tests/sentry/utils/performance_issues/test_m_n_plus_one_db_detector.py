@@ -103,3 +103,7 @@ class MNPlusOneDBDetectorTest(TestCase):
     def test_m_n_plus_one_does_not_include_extra_span(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-off-by-one")
         assert self.find_problems(event) == []
+
+    def test_m_n_plus_one_ignores_redis(self):
+        event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
+        assert self.find_problems(event) == []

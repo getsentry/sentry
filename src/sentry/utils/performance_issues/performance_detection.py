@@ -947,7 +947,10 @@ class SearchingForMNPlusOne(MNPlusOneState):
             op = span.get("op") or ""
             description = span.get("description") or ""
             found_db_op = found_db_op or (
-                op.startswith("db") and description and not description.endswith("...")
+                op.startswith("db")
+                and not op.startswith("db.redis")
+                and description
+                and not description.endswith("...")
             )
             found_different_span = found_different_span or not self._equivalent(pattern[0], span)
             if found_db_op and found_different_span:
