@@ -90,13 +90,15 @@ def fetch_filestore_segment_meta(
     project_id: int,
     replay_id: str,
     segment_id: int,
-) -> RecordingSegmentStorageMeta:
+) -> RecordingSegmentStorageMeta | None:
     """Return filestore metadata derived from our Postgres table."""
-    segment: ReplayRecordingSegment = ReplayRecordingSegment.objects.filter(
+    segment = ReplayRecordingSegment.objects.filter(
         project_id=project_id,
         replay_id=replay_id,
         segment_id=segment_id,
-    ).get()
+    ).first()
+    if segment is None:
+        return None
 
     return RecordingSegmentStorageMeta(
         project_id=project_id,
@@ -134,7 +136,7 @@ def fetch_direct_storage_segment_meta(
         replay_id=replay_id,
         offset=0,
         limit=1,
-        conditions=[Condition("segment_id", Op.EQ, segment_id)],
+        segment_id=segment_id,
     )
     if len(results) == 0:
         return None
@@ -171,8 +173,12 @@ def _fetch_segments_from_snuba(
     replay_id: str,
     offset: int,
     limit: int,
-    *conditions: List[Condition],
+    segment_id: int | None = None,
 ) -> List[RecordingSegmentStorageMeta]:
+    conditions = []
+    if segment_id:
+        conditions.append(Condition(Column("segment_id"), Op.EQ, segment_id))
+
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
