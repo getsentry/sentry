@@ -118,7 +118,7 @@ def fetch_direct_storage_segments_meta(
     limit: int,
 ) -> List[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if not _has_archived_segment(project_id, replay_id):
+    if not has_archived_segment(project_id, replay_id):
         return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
     return []
 
@@ -129,7 +129,7 @@ def fetch_direct_storage_segment_meta(
     segment_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if _has_archived_segment(project_id, replay_id):
+    if has_archived_segment(project_id, replay_id):
         return None
 
     results = _fetch_segments_from_snuba(
@@ -145,7 +145,7 @@ def fetch_direct_storage_segment_meta(
         return results[0]
 
 
-def _has_archived_segment(project_id: int, replay_id: str) -> bool:
+def has_archived_segment(project_id: int, replay_id: str) -> bool:
     """Return true if an archive row exists for this replay."""
     snuba_request = Request(
         dataset="replays",
