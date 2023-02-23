@@ -116,12 +116,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
         if serializer.is_valid():
             team = serializer.save()
 
+            data = team.get_audit_log_data()
+            data["old_org_role"] = team_org_role
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
                 event=audit_log.get_event_id("TEAM_EDIT"),
-                data=team.get_audit_log_data(),
+                data=data,
             )
 
             return Response(serialize(team, request.user))
