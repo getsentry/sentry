@@ -110,9 +110,6 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
-    # group_policy = GroupPolicy(
-    #     feature="organizations:performance-issues-render-blocking-assets-detector"
-    # )
 
 
 @dataclass(frozen=True)
@@ -121,7 +118,6 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
-    # group_policy = GroupPolicy(feature="performance.issues.n_plus_one_db")
 
 
 @dataclass(frozen=True)
@@ -233,7 +229,7 @@ def reduce_noise(
     return new_grouphashes
 
 
-@metrics.wraps("group_policy.should_create_group", sample_rate=1.0)
+@metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     client: Any,
     grouphash: str,
@@ -248,7 +244,7 @@ def should_create_group(
     over_threshold = times_seen >= ignore_limit
 
     metrics.incr(
-        "group_policy.should_create_group.threshold",
+        "noise_reduction.should_create_group.threshold",
         tags={
             "over_threshold": over_threshold,
             "group_type": grouptype.slug,
