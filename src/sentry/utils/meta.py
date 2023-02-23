@@ -7,8 +7,10 @@ RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 class Remark(TypedDict):
     rule_id: str
     type: RemarkType
-    range_start: Optional[bytes]
-    range_end: Optional[bytes]
+    # Range start is a byte offset
+    range_start: Optional[int]
+    # Range end is a byte offset
+    range_end: Optional[int]
 
 
 class Meta:
@@ -166,6 +168,8 @@ class Meta:
         If an optional ``value`` is specified, it is attached as original value
         into the meta data. Note that there is only one original value, not one
         per remark.
+
+        `range_start` and `range_end` in `rem` are byte offsets.
 
         If no meta data entry exists for the current path, it is created, along
         with the entire parent tree.

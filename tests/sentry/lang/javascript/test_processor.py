@@ -1458,6 +1458,8 @@ class ErrorMappingTest(unittest.TestCase):
             "transaction": "fancy",
             "exception": {
                 "values": [
+                    # Set first item to be None to check that we handle this case.
+                    None,
                     {
                         "type": "InvariantViolation",
                         "value": value_109,
@@ -1478,20 +1480,7 @@ class ErrorMappingTest(unittest.TestCase):
                             ]
                         },
                     },
-                    {
-                        "type": "InvariantViolation",
-                        "value": value_108,
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/foo.js",
-                                    "filename": "foo.js",
-                                    "lineno": 4,
-                                    "colno": 0,
-                                }
-                            ]
-                        },
-                    },
+                    # Non react minified error
                     {
                         "type": "Error",
                         "value": "this is not a react minified error",
@@ -1504,6 +1493,20 @@ class ErrorMappingTest(unittest.TestCase):
                                     "colno": 0,
                                 },
                             ],
+                        },
+                    },
+                    {
+                        "type": "InvariantViolation",
+                        "value": value_108,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "foo.js",
+                                    "lineno": 4,
+                                    "colno": 0,
+                                }
+                            ]
                         },
                     },
                 ]
@@ -1528,12 +1531,8 @@ class ErrorMappingTest(unittest.TestCase):
         assert data["_meta"] == {
             "exception": {
                 "values": {
-                    "0": {
-                        "value": {"": {"rem": [["react_minified_error", "s"]], "val": value_109}}
-                    },
-                    "1": {
-                        "value": {"": {"rem": [["react_minified_error", "s"]], "val": value_108}}
-                    },
+                    "1": {"value": {"": {"rem": [["@processing:react", "s"]], "val": value_109}}},
+                    "3": {"value": {"": {"rem": [["@processing:react", "s"]], "val": value_108}}},
                 }
             },
             "transaction": {
