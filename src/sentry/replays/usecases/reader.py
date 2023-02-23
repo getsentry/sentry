@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -155,7 +156,7 @@ def _has_archived_segment(project_id: int, replay_id: str) -> bool:
             where=[
                 Condition(Column("is_archived"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("replay_id"), Op.EQ, replay_id),
+                Condition(Column("replay_id"), Op.EQ, str(uuid.UUID(replay_id))),
                 # We request the full 90 day range. This is effectively an unbounded timestamp
                 # range.
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
@@ -187,7 +188,7 @@ def _fetch_segments_from_snuba(
             select=[Column("segment_id"), Column("retention_days"), Column("timestamp")],
             where=[
                 Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("replay_id"), Op.EQ, replay_id),
+                Condition(Column("replay_id"), Op.EQ, str(uuid.UUID(replay_id))),
                 # We request the full 90 day range. This is effectively an unbounded timestamp
                 # range.
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
