@@ -66,7 +66,7 @@ class RpcUser:
         return "User"
 
     def has_2fa(self) -> bool:
-        return self.authenticators is not None and len(self.authenticators) > 0
+        return len(self.authenticators) > 0
 
 
 APIUser = RpcUser
