@@ -10,8 +10,9 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import GroupCategory, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.occurrence_consumer import PROFILE_FILE_IO_ISSUE_TYPES
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
@@ -526,7 +527,7 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type is ProfileBlockedThreadGroupType and not features.has(
+    if group_event.group.issue_type.type_id in PROFILE_FILE_IO_ISSUE_TYPES and not features.has(
         "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
     ):
         return
