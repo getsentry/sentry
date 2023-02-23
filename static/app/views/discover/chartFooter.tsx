@@ -90,7 +90,7 @@ export default function ChartFooter({
         ) : (
           <OptionSelector
             multiple
-            isClearable
+            clearable
             menuTitle={
               yAxisOptions.length > 3 ? t('Select up to 3 options') : t('Y-axis')
             }

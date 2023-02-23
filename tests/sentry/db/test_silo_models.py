@@ -67,7 +67,11 @@ from sentry.models.integrations import (
     ProjectIntegration,
     RepositoryProjectPathConfig,
 )
-from sentry.testutils.silo import validate_models_have_silos, validate_no_cross_silo_foreign_keys
+from sentry.testutils.silo import (
+    validate_models_have_silos,
+    validate_no_cross_silo_deletions,
+    validate_no_cross_silo_foreign_keys,
+)
 
 
 class any_model:
@@ -120,7 +124,7 @@ fk_emeptions = {
     (SentryAppComponent, SentryApp),
     (SentryAppInstallation, Organization),
     (SentryAppInstallation, ApiGrant),
-    (SentryAppInstallationForProvider, SentryAppInstallation),
+    (SentryAppInstallationForProvider, Organization),
     (SentryAppInstallationToken, ApiToken),
     (SentryAppInstallationToken, SentryAppInstallation),
     (MonitorCheckIn, MonitorLocation),
@@ -155,6 +159,10 @@ def test_models_have_silos():
 
 def test_silo_foreign_keys():
     validate_no_cross_silo_foreign_keys(fk_emeptions)
+
+
+def test_cross_silo_deletions():
+    validate_no_cross_silo_deletions(fk_emeptions)
 
 
 # We really should not be using api serializers with the hybrid cloud data classes.

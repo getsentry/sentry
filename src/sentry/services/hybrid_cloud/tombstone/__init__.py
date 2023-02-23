@@ -6,7 +6,7 @@ from sentry.silo import SiloMode
 
 
 @dataclass
-class ApiTombstone:
+class RpcTombstone:
     table_name: str = ""
     identifier: int = -1
 
@@ -17,7 +17,7 @@ class ApiTombstone:
 # of who owns what models changes independent of the rollout of logic.
 class TombstoneService(InterfaceWithLifecycle):
     @abstractmethod
-    def record_remote_tombstone(self, tombstone: ApiTombstone) -> None:
+    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
         pass
 
 

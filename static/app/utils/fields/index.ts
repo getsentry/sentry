@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -658,7 +659,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
   },
   [FieldKey.ISSUE]: {
-    desc: t('The issue identification code'),
+    desc: t('The issue identification short code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -973,6 +974,7 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
@@ -1165,19 +1167,17 @@ export const REPLAY_FIELDS = [
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
-    desc: t(
-      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
-    ),
+    desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the brower'),
+    desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the Browser'),
+    desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1241,3 +1241,16 @@ export const getFieldDefinition = (
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
+
+export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
+  return Object.fromEntries(
+    fieldKeys.map(fieldKey => [
+      fieldKey,
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
+    ])
+  );
+}

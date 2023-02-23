@@ -20,10 +20,13 @@ class UpdateMonitorCheckInTest(APITestCase):
         self.latest.guid = "latest"
 
     def _get_path_functions(self):
+        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
+        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
+        # decision to permanently remove either path schema is a TODO.
         return (
-            lambda monitor, checkin: reverse(self.endpoint, args=[monitor.guid, checkin.guid]),
-            lambda monitor, checkin: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor.guid, checkin.guid]
+            lambda monitor_id, checkin_id: reverse(self.endpoint, args=[monitor_id, checkin_id]),
+            lambda monitor_id, checkin_id: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor_id, checkin_id]
             ),
         )
 
@@ -47,7 +50,7 @@ class UpdateMonitorCheckInTest(APITestCase):
                 status=CheckInStatus.IN_PROGRESS,
             )
 
-            path = path_func(monitor, checkin)
+            path = path_func(monitor.guid, checkin.guid)
             resp = self.client.put(path)
             assert resp.status_code == 200, resp.content
 
@@ -62,7 +65,7 @@ class UpdateMonitorCheckInTest(APITestCase):
                 monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
             )
 
-            path = path_func(monitor, checkin)
+            path = path_func(monitor.guid, checkin.guid)
             resp = self.client.put(path, data={"status": "ok"})
             assert resp.status_code == 200, resp.content
 
@@ -81,7 +84,7 @@ class UpdateMonitorCheckInTest(APITestCase):
                 monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
             )
 
-            path = path_func(monitor, checkin)
+            path = path_func(monitor.guid, checkin.guid)
             resp = self.client.put(path, data={"status": "error"})
             assert resp.status_code == 200, resp.content
 
@@ -115,7 +118,7 @@ class UpdateMonitorCheckInTest(APITestCase):
                 status=CheckInStatus.OK,
             )
 
-            path = path_func(monitor, self.latest)
+            path = path_func(monitor.guid, self.latest.guid)
             resp = self.client.put(path, data={"status": "ok"})
             assert resp.status_code == 200, resp.content
 
@@ -143,6 +146,20 @@ class UpdateMonitorCheckInTest(APITestCase):
                 status=CheckInStatus.OK,
             )
 
-            path = path_func(monitor, self.latest)
+            path = path_func(monitor.guid, self.latest.guid)
             resp = self.client.put(path, data={"status": "ok"})
             assert resp.status_code == 404, resp.content
+
+    def test_invalid_checkin_id(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
+                status=CheckInStatus.OK,
+            )
+
+            path = path_func("invalid-guid", self.latest.guid)
+            resp = self.client.put(path, data={"status": "ok"})
+            assert resp.status_code == 400, resp.content

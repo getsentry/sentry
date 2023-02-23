@@ -110,8 +110,11 @@ export function FlamegraphSpans({
     if (!spansRenderer) {
       return;
     }
-    spansRenderer.setSearchResults(flamegraphSearch.results.spans);
-  }, [spansRenderer, flamegraphSearch.results.spans]);
+    spansRenderer.setSearchResults(
+      flamegraphSearch.query,
+      flamegraphSearch.results.spans
+    );
+  }, [spansRenderer, flamegraphSearch.query, flamegraphSearch.results.spans]);
 
   useEffect(() => {
     if (!spansCanvas || !spansView || !spansRenderer || !spansTextRenderer) {
@@ -383,7 +386,7 @@ export function FlamegraphSpans({
         <CollapsibleTimelineMessage>
           {t('No associated transaction found')}
         </CollapsibleTimelineMessage>
-      ) : profiledTransaction.type === 'resolved' && spanChart.spans.length <= 1 ? (
+      ) : profiledTransaction.type === 'resolved' && spanChart.spans.length < 1 ? (
         <CollapsibleTimelineMessage>
           {t('Transaction has no spans')}
         </CollapsibleTimelineMessage>
@@ -405,7 +408,7 @@ export function FlamegraphSpans({
 
 const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;
-  height: 100%;
+  height: calc(100% - 20px);
   position: absolute;
   left: 0;
   top: 0;

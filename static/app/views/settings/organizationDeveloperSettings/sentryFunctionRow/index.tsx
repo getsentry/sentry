@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import {IconInput} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SentryFunction} from 'sentry/types';
 
 import ActionButtons from '../sentryFunctionRow/actionButtons';

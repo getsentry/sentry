@@ -18,7 +18,7 @@ import omit from 'lodash/omit';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
@@ -439,8 +439,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   };
 
   const filterOptions = createFilter({
-    // Use plainTextLabel if available
-    stringify: option => option.data.plainTextLabel ?? `${option.label} ${option.value}`,
+    // Use `textValue` if available
+    stringify: option => option.data.textValue ?? `${option.label} ${option.value}`,
   });
 
   return (

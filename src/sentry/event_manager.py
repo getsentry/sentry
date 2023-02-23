@@ -77,6 +77,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -126,7 +127,6 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -142,7 +142,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
 
@@ -155,14 +155,6 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-
-DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
-GROUPHASH_IGNORE_LIMIT_MAP = {
-    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
-    GroupType.PERFORMANCE_SLOW_DB_QUERY: 100,
-    GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: 15,
-    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: 10,
-}
 
 
 @dataclass
@@ -584,6 +576,7 @@ class EventManager:
         _get_or_create_environment_many(jobs, projects)
         _get_or_create_group_environment_many(jobs, projects)
         _get_or_create_release_associated_models(jobs, projects)
+        _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs, projects)
         _tsdb_record_all_metrics(jobs)
 
@@ -1046,12 +1039,18 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 @metrics.wraps("save_event.get_or_create_group_environment_many")
 def _get_or_create_group_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        for group_info in job["groups"]:
-            group_info.is_new_group_environment = GroupEnvironment.get_or_create(
-                group_id=group_info.group.id,
-                environment_id=job["environment"].id,
-                defaults={"first_release": job["release"] or None},
-            )[1]
+        _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
+
+
+def _get_or_create_group_environment(
+    environment: Environment, release: Optional[Release], groups: Sequence[GroupInfo]
+) -> None:
+    for group_info in groups:
+        group_info.is_new_group_environment = GroupEnvironment.get_or_create(
+            group_id=group_info.group.id,
+            environment_id=environment.id,
+            defaults={"first_release": release or None},
+        )[1]
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
@@ -1077,42 +1076,73 @@ def _get_or_create_release_associated_models(
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
-        rp_new_groups = 0
-        rpe_new_groups = 0
-        for group_info in job["groups"]:
-            if group_info.is_new:
-                rp_new_groups += 1
-            if group_info.is_new_group_environment:
-                rpe_new_groups += 1
-        if rp_new_groups:
-            buffer_incr(
-                ReleaseProject,
-                {"new_groups": rp_new_groups},
-                {"release_id": release.id, "project_id": project.id},
-            )
-        if rpe_new_groups:
-            buffer_incr(
-                ReleaseProjectEnvironment,
-                {"new_issues_count": rpe_new_groups},
-                {
-                    "project_id": project.id,
-                    "release_id": release.id,
-                    "environment_id": environment.id,
-                },
-            )
+
+
+def _increment_release_associated_counts_many(
+    jobs: Sequence[Job], projects: ProjectsMapping
+) -> None:
+    for job in jobs:
+        _increment_release_associated_counts(
+            projects[job["project_id"]], job["environment"], job["release"], job["groups"]
+        )
+
+
+def _increment_release_associated_counts(
+    project: Project,
+    environment: Environment,
+    release: Optional[Release],
+    groups: Sequence[GroupInfo],
+) -> None:
+    if not release:
+        return
+
+    rp_new_groups = 0
+    rpe_new_groups = 0
+    for group_info in groups:
+        if group_info.is_new:
+            rp_new_groups += 1
+        if group_info.is_new_group_environment:
+            rpe_new_groups += 1
+    if rp_new_groups:
+        buffer_incr(
+            ReleaseProject,
+            {"new_groups": rp_new_groups},
+            {"release_id": release.id, "project_id": project.id},
+        )
+    if rpe_new_groups:
+        buffer_incr(
+            ReleaseProjectEnvironment,
+            {"new_issues_count": rpe_new_groups},
+            {
+                "project_id": project.id,
+                "release_id": release.id,
+                "environment_id": environment.id,
+            },
+        )
 
 
 @metrics.wraps("save_event.get_or_create_group_release_many")
 def _get_or_create_group_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        if job["release"]:
-            for group_info in job["groups"]:
-                group_info.group_release = GroupRelease.get_or_create(
-                    group=group_info.group,
-                    release=job["release"],
-                    environment=job["environment"],
-                    datetime=job["event"].datetime,
-                )
+        _get_or_create_group_release(
+            job["environment"], job["release"], job["event"], job["groups"]
+        )
+
+
+def _get_or_create_group_release(
+    environment: Environment,
+    release: Optional[Release],
+    event: BaseEvent,
+    groups: Sequence[GroupInfo],
+) -> None:
+    if release:
+        for group_info in groups:
+            group_info.group_release = GroupRelease.get_or_create(
+                group=group_info.group,
+                release=release,
+                environment=environment,
+                datetime=event.datetime,
+            )
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
@@ -2298,7 +2328,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     for new_grouphash in new_grouphashes:
                         group_type = performance_problems_by_hash[new_grouphash].type
-                        if not should_create_group(client, new_grouphash, group_type):
+                        if not should_create_group(client, new_grouphash, group_type, project):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2332,12 +2362,12 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         problem = performance_problems_by_hash[new_grouphash]
 
                         span.set_tag("create_group_transaction.outcome", "no_group")
-                        span.set_tag("group_type", problem.type.name)
+                        span.set_tag("group_type", problem.type.slug)
                         metric_tags["create_group_transaction.outcome"] = "no_group"
-                        metric_tags["group_type"] = problem.type.name
+                        metric_tags["group_type"] = problem.type.slug.upper()
 
                         group_kwargs = kwargs.copy()
-                        group_kwargs["type"] = problem.type.value
+                        group_kwargs["type"] = problem.type.type_id
 
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                             group_kwargs["data"]["metadata"], problem
@@ -2411,28 +2441,29 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
-    times_seen = client.incr(f"grouphash:{grouphash}")
+def should_create_group(client: Any, grouphash: str, type: GroupType, project: Project) -> bool:
+    key = f"grouphash:{grouphash}:{project.id}"
+    times_seen = client.incr(key)
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
         tags={
             "times_seen": times_seen,
-            "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
+            "group_type": type.description,
         },
         sample_rate=1.0,
     )
 
-    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
+    if times_seen >= type.ignore_limit:
         client.delete(grouphash)
         metrics.incr(
             "performance.performance_issue.issue_will_be_created",
-            tags={"group_type": type.name},
+            tags={"group_type": type.slug},
             sample_rate=1.0,
         )
 
         return True
     else:
-        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+        client.expire(key, 60 * 60 * 24)  # 24 hour expiration from last seen
         return False
 
 
@@ -2467,6 +2498,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
+    _increment_release_associated_counts_many(jobs, projects)
     _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)

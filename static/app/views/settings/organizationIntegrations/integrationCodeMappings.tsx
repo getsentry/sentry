@@ -10,16 +10,9 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import RepositoryProjectPathConfigForm from 'sentry/components/repositoryProjectPathConfigForm';
-import RepositoryProjectPathConfigRow, {
-  ButtonWrapper,
-  InputPathColumn,
-  NameRepoColumn,
-  OutputPathColumn,
-} from 'sentry/components/repositoryProjectPathConfigRow';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Integration,
   Organization,
@@ -37,6 +30,14 @@ import withRouteAnalytics, {
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+
+import RepositoryProjectPathConfigForm from './repositoryProjectPathConfigForm';
+import RepositoryProjectPathConfigRow, {
+  ButtonWrapper,
+  InputPathColumn,
+  NameRepoColumn,
+  OutputPathColumn,
+} from './repositoryProjectPathConfigRow';
 
 type Props = AsyncComponent['props'] &
   WithRouteAnalyticsProps & {
@@ -161,7 +162,9 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
-        <Header closeButton>{t('Configure code path mapping')}</Header>
+        <Header closeButton>
+          <h4>{t('Configure code path mapping')}</h4>
+        </Header>
         <Body>
           <RepositoryProjectPathConfigForm
             organization={organization}

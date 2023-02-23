@@ -26,7 +26,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
@@ -838,17 +838,6 @@ class IssueListOverview extends Component<Props, State> {
     });
   }
 
-  onIssueListSidebarSearch = (query: string) => {
-    trackAdvancedAnalyticsEvent('search.searched', {
-      organization: this.props.organization,
-      query,
-      search_type: 'issues',
-      search_source: 'search_builder',
-    });
-
-    this.onSearch(query);
-  };
-
   onSearch = (query: string) => {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
@@ -1204,11 +1193,7 @@ class IssueListOverview extends Component<Props, State> {
         />
         <StyledBody>
           <StyledMain>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              onSearch={this.onSearch}
-            />
+            <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
               <IssueListActions

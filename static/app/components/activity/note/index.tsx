@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import ActivityItem, {ActivityAuthorType} from 'sentry/components/activity/item';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {User} from 'sentry/types';
 import {NoteType} from 'sentry/types/alerts';
 import {ActivityType} from 'sentry/views/alerts/types';

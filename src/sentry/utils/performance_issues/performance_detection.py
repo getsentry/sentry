@@ -14,16 +14,15 @@ from symbolic import ProguardMapper  # type: ignore
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.grouptype.grouptype import (
-    PerformanceConsecutiveDBQueriesGroupType,
+from sentry.issues.grouptype import (
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
-from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
@@ -34,17 +33,15 @@ from .base import (
     PerformanceDetector,
     fingerprint_resource_span,
     fingerprint_span,
-    fingerprint_spans,
     get_span_duration,
 )
-from .detectors import NPlusOneAPICallsDetector, UncompressedAssetSpanDetector
+from .detectors import (
+    ConsecutiveDBSpanDetector,
+    NPlusOneAPICallsDetector,
+    UncompressedAssetSpanDetector,
+)
 from .performance_problem import PerformanceProblem
 from .types import Span
-
-
-def join_regexes(regexes: Sequence[str]) -> str:
-    return r"(?:" + r")|(?:".join(regexes) + r")"
-
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
@@ -56,16 +53,6 @@ INTEGRATIONS_OF_INTEREST = [
 ]
 
 PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
-CONTAINS_PARAMETER_REGEX = re.compile(
-    join_regexes(
-        [
-            r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
-            r"\b(?:true|false)\b",  # booleans
-            r"-?\b(?:[0-9]+\.)?[0-9]+(?:[eE][+-]?[0-9]+)?\b",  # numbers
-            r"\?|\$1|%s",  # existing parameters
-        ]
-    )
-)
 
 
 class EventPerformanceProblem:
@@ -483,7 +470,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     fingerprint=fingerprint,
                     op=op,
                     desc=span.get("description") or "",
-                    type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                    type=PerformanceRenderBlockingAssetSpanGroupType,
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
                     cause_span_ids=[],
@@ -498,13 +485,17 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             self.fcp = None
 
     def _is_blocking_render(self, span):
+        data = span.get("data", None)
+        render_blocking_status = data and data.get("resource.render_blocking_status")
+        if render_blocking_status == "non-blocking":
+            return False
+
         span_end_timestamp = timedelta(seconds=span.get("timestamp", 0))
         fcp_timestamp = self.transaction_start + self.fcp
         if span_end_timestamp >= fcp_timestamp:
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        data = span.get("data", None)
         encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
         if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
             return False
@@ -516,191 +507,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     def _fingerprint(self, span: Span):
         resource_url_hash = fingerprint_resource_span(span)
         return f"1-{PerformanceRenderBlockingAssetSpanGroupType.type_id}-{resource_url_hash}"
-
-
-class ConsecutiveDBSpanDetector(PerformanceDetector):
-    """
-    Let X and Y be the consecutive db span count threshold and the span duration threshold respectively,
-    each defined in the threshold settings.
-
-    The detector first looks for X number of consecutive db query spans,
-    Once these set of spans are found, the detector will compare each db span in the consecutive list
-    to determine if they are dependant on one another.
-    If the sum of the durations of the independent spans exceeds Y, then a performance issue is found.
-
-    This detector assuming spans are ordered chronologically
-    """
-
-    __slots__ = "stored_problems"
-
-    type: DetectorType = DetectorType.CONSECUTIVE_DB_OP
-    settings_key = DetectorType.CONSECUTIVE_DB_OP
-
-    def init(self):
-        self.stored_problems: dict[str, PerformanceProblem] = {}
-        self.consecutive_db_spans: list[Span] = []
-        self.independent_db_spans: list[Span] = []
-
-    def visit_span(self, span: Span) -> None:
-        span_id = span.get("span_id", None)
-
-        if not span_id or not self._is_db_query(span) or self._overlaps_last_span(span):
-            self._validate_and_store_performance_problem()
-            self._reset_variables()
-            return
-
-        self._add_problem_span(span)
-
-    def _add_problem_span(self, span: Span) -> None:
-        self.consecutive_db_spans.append(span)
-
-    def _validate_and_store_performance_problem(self):
-        self._set_independent_spans(self.consecutive_db_spans)
-        if not len(self.independent_db_spans):
-            return
-
-        exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
-            "consecutive_count_threshold"
-        )
-        exceeds_span_duration_threshold = all(
-            get_span_duration(span).total_seconds() * 1000
-            > self.settings.get("span_duration_threshold")
-            for span in self.independent_db_spans
-        )
-
-        time_saved = self._calculate_time_saved(self.independent_db_spans)
-        total_time = self._sum_span_duration(self.consecutive_db_spans)
-
-        exceeds_time_saved_threshold = time_saved >= self.settings.get("min_time_saved")
-
-        exceeds_time_saved_threshold_ratio = False
-        if total_time > 0:
-            exceeds_time_saved_threshold_ratio = time_saved / total_time >= self.settings.get(
-                "min_time_saved_ratio"
-            )
-
-        if (
-            exceeds_count_threshold
-            and exceeds_span_duration_threshold
-            and exceeds_time_saved_threshold
-            and exceeds_time_saved_threshold_ratio
-        ):
-            self._store_performance_problem()
-
-    def _store_performance_problem(self) -> None:
-        fingerprint = self._fingerprint()
-        offender_span_ids = [span.get("span_id", None) for span in self.independent_db_spans]
-        cause_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
-        query: str = self.independent_db_spans[0].get("description", None)
-
-        self.stored_problems[fingerprint] = PerformanceProblem(
-            fingerprint,
-            "db",
-            desc=query,  # TODO - figure out which query to use for description
-            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-            cause_span_ids=cause_span_ids,
-            parent_span_ids=None,
-            offender_span_ids=offender_span_ids,
-        )
-
-        self._reset_variables()
-
-    def _sum_span_duration(self, spans: list[Span]) -> int:
-        "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0
-        for span in spans:
-            sum += get_span_duration(span).total_seconds() * 1000
-        return sum
-
-    def _set_independent_spans(self, spans: list[Span]):
-        """
-        Given a list of spans, checks if there is at least a single span that is independent of the rest.
-        To start, we are just checking for a span in a list of consecutive span without a WHERE clause
-        """
-        independent_spans = []
-        for span in spans[1:]:
-            query: str = span.get("description", None)
-            if (
-                query
-                and contains_complete_query(span)
-                and "WHERE" not in query.upper()
-                and not CONTAINS_PARAMETER_REGEX.search(query)
-            ):
-                independent_spans.append(span)
-        self.independent_db_spans = independent_spans
-
-    def _calculate_time_saved(self, independent_spans: list[Span]) -> float:
-        """
-        Calculates the cost saved by running spans in parallel,
-        this is the maximum time saved of running all independent queries in parallel
-        note, maximum means it does not account for db connection times and overhead associated with parallelization,
-        this is where thresholds come in
-        """
-        consecutive_spans = self.consecutive_db_spans
-        total_duration = self._sum_span_duration(consecutive_spans)
-
-        max_independent_span_duration = max(
-            [get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
-        )
-
-        sum_of_dependent_span_durations = 0
-        for span in consecutive_spans:
-            if span not in independent_spans:
-                sum_of_dependent_span_durations += get_span_duration(span).total_seconds() * 1000
-
-        return total_duration - max(max_independent_span_duration, sum_of_dependent_span_durations)
-
-    def _overlaps_last_span(self, span: Span) -> bool:
-        if len(self.consecutive_db_spans) == 0:
-            return False
-
-        last_span = self.consecutive_db_spans[-1]
-
-        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
-        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
-        return last_span_ends > current_span_begins
-
-    def _reset_variables(self) -> None:
-        self.consecutive_db_spans = []
-        self.independent_db_spans = []
-
-    def _is_db_query(self, span: Span) -> bool:
-        op: str = span.get("op", "") or ""
-        description: str = span.get("description", "") or ""
-        is_db_op = op == "db" or op.startswith("db.sql")
-        is_query = "SELECT" in description.upper()  # TODO - make this more elegant
-        return is_db_op and is_query
-
-    def _fingerprint(self) -> str:
-        prior_span_index = self.consecutive_db_spans.index(self.independent_db_spans[0]) - 1
-        hashed_spans = fingerprint_spans(
-            [self.consecutive_db_spans[prior_span_index]] + self.independent_db_spans
-        )
-        return f"1-{PerformanceConsecutiveDBQueriesGroupType.type_id}-{hashed_spans}"
-
-    def on_complete(self) -> None:
-        self._validate_and_store_performance_problem()
-
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-consecutive-db-issue", organization, actor=None
-        )
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
-
-    @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
-        request = event.get("request", None) or None
-        sdk_name = get_sdk_name(event) or ""
-
-        if request:
-            url = request.get("url", "") or ""
-            method = request.get("method", "") or ""
-            if url.endswith("/graphql") and method.lower() in ["post", "get"]:
-                return False
-
-        return "php" not in sdk_name.lower()
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
@@ -890,7 +696,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 fingerprint=fingerprint,
                 op="db",
                 desc=self.n_spans[0].get("description", ""),
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
@@ -1029,7 +835,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     op=span_list[0].get("op"),
                     desc=span_list[0].get("description", ""),
                     parent_span_ids=[parent_span_id],
-                    type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+                    type=PerformanceFileIOMainThreadGroupType,
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
                 )
@@ -1096,12 +902,13 @@ class SearchingForMNPlusOne(MNPlusOneState):
     it transitions to the ContinuingMNPlusOne state.
     """
 
-    __slots__ = ("settings", "recent_spans")
+    __slots__ = ("settings", "event", "recent_spans")
 
     def __init__(
-        self, settings: Dict[str, Any], initial_spans: Optional[Sequence[Span]] = None
+        self, settings: Dict[str, Any], event: Event, initial_spans: Optional[Sequence[Span]] = None
     ) -> None:
         self.settings = settings
+        self.event = event
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
 
     def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
@@ -1119,7 +926,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
             if self._equivalent(span, recent_span):
                 pattern = recent_span_list[i:]
                 if self._is_valid_pattern(pattern):
-                    return (ContinuingMNPlusOne(self.settings, pattern, span), None)
+                    return (ContinuingMNPlusOne(self.settings, self.event, pattern, span), None)
 
         # We haven't found a pattern yet, so remember this span and keep
         # looking.
@@ -1154,10 +961,13 @@ class ContinuingMNPlusOne(MNPlusOneState):
     PerformanceProblem if the detected sequence met our thresholds.
     """
 
-    __slots__ = ("settings", "pattern", "spans", "pattern_index")
+    __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
-    def __init__(self, settings: Dict[str, Any], pattern: Sequence[Span], first_span: Span) -> None:
+    def __init__(
+        self, settings: Dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
+    ) -> None:
         self.settings = settings
+        self.event = event
         self.pattern = pattern
 
         # The full list of spans involved in the MN pattern.
@@ -1181,7 +991,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         start_index = len(self.pattern) * times_occurred
         remaining_spans = self.spans[start_index:] + [span]
         return (
-            SearchingForMNPlusOne(self.settings, remaining_spans),
+            SearchingForMNPlusOne(self.settings, self.event, remaining_spans),
             self._maybe_performance_problem(),
         )
 
@@ -1202,13 +1012,17 @@ class ContinuingMNPlusOne(MNPlusOneState):
         if total_duration < total_duration_threshold:
             return None
 
+        parent_span = self._find_common_parent_span(offender_spans)
+        if not parent_span:
+            return None
+
         db_span = self._first_db_span()
         return PerformanceProblem(
-            fingerprint=self._fingerprint(db_span["hash"]),
+            fingerprint=self._fingerprint(db_span["hash"], parent_span),
             op="db",
             desc=db_span["description"],
-            type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
-            parent_span_ids=[],
+            type=PerformanceNPlusOneGroupType,
+            parent_span_ids=[parent_span["span_id"]],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
         )
@@ -1219,10 +1033,26 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 return span
         return None
 
-    def _fingerprint(self, db_hash) -> str:
-        # TODO: Add more information to the hash. Since issues aren't being
-        # detected yet, this doesn't matter.
-        full_fingerprint = hashlib.sha1(db_hash.encode("utf8")).hexdigest()
+    def _find_common_parent_span(self, spans: Sequence[Span]):
+        parent_span_id = spans[0].get("parent_span_id")
+        if not parent_span_id:
+            return None
+        for id in [span.get("parent_span_id") for span in spans[1:]]:
+            if not id or id != parent_span_id:
+                return None
+
+        all_spans = self.event.get("spans") or []
+        for span in all_spans:
+            if span.get("span_id") == parent_span_id:
+                return span
+        return None
+
+    def _fingerprint(self, db_hash: str, parent_span: Span) -> str:
+        parent_op = parent_span.get("op") or ""
+        parent_hash = parent_span.get("hash") or ""
+        full_fingerprint = hashlib.sha1(
+            (parent_op + parent_hash + db_hash).encode("utf8")
+        ).hexdigest()
         return f"1-{PerformanceMNPlusOneDBQueriesGroupType.type_id}-{full_fingerprint}"
 
 
@@ -1245,7 +1075,17 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
     def init(self):
         self.stored_problems = {}
-        self.state = SearchingForMNPlusOne(self.settings)
+        self.state = SearchingForMNPlusOne(self.settings, self.event())
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return features.has(
+            "organizations:performance-issues-m-n-plus-one-db-detector",
+            organization,
+            actor=None,
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
     def visit_span(self, span):
         self.state, performance_problem = self.state.next(span)
