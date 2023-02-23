@@ -2361,7 +2361,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         self.profile_group_2 = group_info.group
 
         event_id_3 = uuid.uuid4().hex
-        process_event_and_issue_occurrence(
+        _, group_info = process_event_and_issue_occurrence(
             self.build_occurrence_data(event_id=event_id_3, fingerprint=["put-me-in-group-3"]),
             {
                 "event_id": event_id_3,
@@ -2369,10 +2369,11 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 "title": "some other problem",
                 "platform": "python",
                 "tags": {"my_tag": "2"},
-                "timestamp": before_now(minutes=2).isoformat(),
-                "message_timestamp": before_now(minutes=2).isoformat(),
+                "timestamp": before_now(minutes=3).isoformat(),
+                "message_timestamp": before_now(minutes=3).isoformat(),
             },
         )
+        self.profile_group_3 = group_info.group
 
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
@@ -2530,6 +2531,39 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             )
 
             assert list(results) == list(results2) == list(result3) == list(results4) == []
+
+    def test_event_type_should_ignore(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile",
+                sort_by="date",
+                limit=10,
+                count_hits=True,
+            )
+
+            results1 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile event.type:error",
+                sort_by="date",
+                limit=10,
+                count_hits=True,
+            )
+
+            results2 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile event.type:transaction",
+                sort_by="date",
+                limit=10,
+                count_hits=True,
+            )
+
+            assert (
+                list(results)
+                == list(results1)
+                == list(results2)
+                == [self.profile_group_1, self.profile_group_2, self.profile_group_3]
+            )
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

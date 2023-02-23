@@ -232,7 +232,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         if group_category in SEARCH_FILTER_UPDATERS:
             # remove filters not relevant to the group_category
-            search_filters = SEARCH_FILTER_UPDATERS[group_category](search_filters)
+            search_filters_updated = SEARCH_FILTER_UPDATERS[group_category](search_filters)
+            search_filters = search_filters_updated.updated_filters
 
         # convert search_filters to snuba format
         converted_filters = self._convert_search_filters(

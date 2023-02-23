@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
 from sentry import features
@@ -40,7 +41,14 @@ class SearchQueryPartial(Protocol):
         ...
 
 
-GroupSearchFilterUpdater = Callable[[Sequence[SearchFilter]], Sequence[SearchFilter]]
+@dataclass(frozen=True)
+class SearchFilterUpdated:
+    original_filters: Sequence[SearchFilter]
+    updated_filters: Sequence[SearchFilter]
+    ignored_filters: Sequence[SearchFilter]
+
+
+GroupSearchFilterUpdater = Callable[[Sequence[SearchFilter]], SearchFilterUpdated]
 
 GroupSearchStrategy = Callable[
     [
@@ -231,10 +239,27 @@ SEARCH_STRATEGIES: Mapping[int, GroupSearchStrategy] = {
 }
 
 
+def _update_performance_search_filters(
+    search_filters: Sequence[SearchFilter],
+) -> SearchFilterUpdated:
+    updated_filters = []
+    ignored_filters = []
+
+    for sf in search_filters:
+        # need to remove this search filter, so we don't constrain the returned transactions
+        if sf.key.name == "message":
+            ignored_filters.append(sf)
+        else:
+            updated_filters.append(sf)
+
+    return SearchFilterUpdated(search_filters, updated_filters, ignored_filters)
+
+
 def _update_profiling_search_filters(
     search_filters: Sequence[SearchFilter],
-) -> Sequence[SearchFilter]:
+) -> SearchFilterUpdated:
     updated_filters = []
+    ignored_filters = []
 
     for sf in search_filters:
         # XXX: we replace queries on these keys to something that should return nothing since
@@ -243,19 +268,17 @@ def _update_profiling_search_filters(
             raise UnsupportedSearchQuery(
                 f"{sf.key.name} filter isn't supported for {GroupCategory.PROFILE.name}"
             )
+        elif sf.key.name == "event.type":
+            # from the context of searching this dataset, event.type doesn't make sense so we just ignore it
+            ignored_filters.append(sf)
         else:
             updated_filters.append(sf)
 
-    return updated_filters
+    return SearchFilterUpdated(search_filters, updated_filters, ignored_filters)
 
 
 SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
-    GroupCategory.PERFORMANCE.value: lambda search_filters: [
-        # need to remove this search filter, so we don't constrain the returned transactions
-        sf
-        for sf in search_filters
-        if sf.key.name != "message"
-    ],
+    GroupCategory.PERFORMANCE.value: _update_performance_search_filters,
     GroupCategory.PROFILE.value: _update_profiling_search_filters,
 }
 
