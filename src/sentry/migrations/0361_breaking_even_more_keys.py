@@ -64,7 +64,7 @@ def activityuser_migrations():
             model_name="activity",
             name="user",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                to="sentry.Organization", db_constraint=False, db_index=True, null=True
+                to="sentry.User", db_constraint=False, db_index=True, null=True
             ),
         ),
     ]
