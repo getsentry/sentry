@@ -136,7 +136,9 @@ export type EditOwnershipRulesModalOptions = {
 /**
  * Open the edit ownership modal within issue details
  */
-export async function openIssueOwnershipRule(options: CreateOwnershipRuleModalOptions) {
+export async function openIssueOwnershipRuleModal(
+  options: CreateOwnershipRuleModalOptions
+) {
   const mod = await import('sentry/components/modals/issueOwnershipRuleModal');
   const {default: Modal, modalCss} = mod;
 

@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {openIssueOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {
   AssigneeSelectorDropdown,
@@ -199,7 +199,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
           <Access access={['project:write']}>
             <Button
               onClick={() => {
-                openIssueOwnershipRule({
+                openIssueOwnershipRuleModal({
                   project,
                   organization,
                   issueId: group.id,

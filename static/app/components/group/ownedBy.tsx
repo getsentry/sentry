@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {openIssueOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
@@ -72,7 +72,7 @@ function OwnedBy({group, project, organization, event}: OwnedByProps) {
           <Access access={['project:write']}>
             <Button
               onClick={() => {
-                openIssueOwnershipRule({
+                openIssueOwnershipRuleModal({
                   project,
                   organization,
                   issueId: group.id,
