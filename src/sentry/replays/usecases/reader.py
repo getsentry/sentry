@@ -157,7 +157,7 @@ def _has_archived_segment(project_id: int, replay_id: str) -> bool:
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
                 # is-archived must be true.
-                Condition(Column("is_archived", Op.EQ, 1)),
+                Condition(Column("is_archived"), Op.EQ, 1),
             ],
             granularity=Granularity(3600),
         ),
