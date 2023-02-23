@@ -43,6 +43,9 @@ class EventLookupError(Exception):
     pass
 
 
+DEFAULT_LEVEL = "error"
+
+
 def get_occurrences_ingest_consumer(
     consumer_type: str,
     auto_offset_reset: str,
@@ -155,7 +158,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "evidence_display": payload.get("evidence_display"),
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
-                # TODO: need to parse level
+                "level": payload.get("level", DEFAULT_LEVEL),
             }
 
             if payload.get("event_id"):
@@ -175,11 +178,12 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
                 event_data = {
                     "event_id": UUID(event_payload.get("event_id")).hex,
+                    "level": occurrence_data["level"],
                     "project_id": event_payload.get("project_id"),
                     "platform": event_payload.get("platform"),
+                    "received": event_payload.get("received", timezone.now()),
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
-                    "received": event_payload.get("received", timezone.now()),
                 }
 
                 optional_params = [
