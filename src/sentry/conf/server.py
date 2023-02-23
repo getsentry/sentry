@@ -700,6 +700,10 @@ CELERY_QUEUES = [
         "transactions.name_clusterer", routing_key="transactions.name_clusterer"
     ),  # TODO: add workers
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
+    Queue(
+        "dynamicsampling",
+        routing_key="dynamicsampling",
+    ),
 ]
 
 for queue in CELERY_QUEUES:
