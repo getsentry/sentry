@@ -183,6 +183,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
                     "received": event_payload.get("received", timezone.now()),
+                    # This allows us to show the title consistently in discover
+                    "title": occurrence_data["issue_title"],
                 }
 
                 optional_params = [
@@ -235,7 +237,6 @@ def _process_message(
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
     """
-    metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
     with sentry_sdk.start_transaction(
         op="_process_message",
         name="issues.occurrence_consumer",
@@ -244,7 +245,15 @@ def _process_message(
         try:
             kwargs = _get_kwargs(message)
             occurrence_data = kwargs["occurrence_data"]
+            metrics.incr(
+                "occurrence_ingest.messages",
+                sample_rate=1.0,
+                tags={"occurrence_type": occurrence_data["type"]},
+            )
+            txn.set_tag("occurrence_type", occurrence_data["type"])
             if occurrence_data["type"] not in INGEST_ALLOWED_ISSUE_TYPES:
+                metrics.incr("occurrence_ingest.dropped_invalid_issue_type", sample_rate=1.0)
+                txn.set_tag("result", "dropped_invalid_issue_type")
                 return None
 
             project = Project.objects.get_from_cache(id=occurrence_data["project_id"])

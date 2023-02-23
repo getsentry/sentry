@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Set, Type
+from typing import Any, Dict, Optional, Set, Type
 
 
 class GroupCategory(Enum):
@@ -52,9 +52,9 @@ def get_group_types_by_category(category: int) -> Set[int]:
     return _category_lookup[category]
 
 
-def get_group_type_by_slug(slug: str) -> Type[GroupType]:
+def get_group_type_by_slug(slug: str) -> Optional[Type[GroupType]]:
     if slug not in _slug_lookup:
-        raise ValueError(f"No group type with the slug {slug} is registered.")
+        return None
     return _slug_lookup[slug]
 
 

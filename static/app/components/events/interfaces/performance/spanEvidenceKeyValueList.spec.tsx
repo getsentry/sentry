@@ -91,7 +91,7 @@ describe('SpanEvidenceKeyValueList', () => {
     parentSpan.addChild({
       startTimestamp: 2.1,
       endTimestamp: 4.0,
-      op: 'db',
+      op: 'db.sql.active_record',
       description: 'SELECT * FROM books WHERE id = %s',
       problemSpan: ProblemSpan.OFFENDER,
     });
@@ -116,7 +116,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
       ).toHaveTextContent('db - SELECT * FROM books');
       expect(screen.getByTestId('span-evidence-key-value-list.')).toHaveTextContent(
-        'db - SELECT * FROM books WHERE id = %s'
+        'db.sql.active_record - SELECT * FROM books WHERE id = %s'
       );
 
       expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
@@ -384,12 +384,16 @@ describe('SpanEvidenceKeyValueList', () => {
     const builder = new TransactionEventBuilder(
       'a1',
       '/',
-      IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET
+      IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+      {
+        duration: 3,
+        fcp: 2500,
+      }
     );
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 1000,
+      endTimestamp: 1.0,
       op: 'resource.script',
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,
@@ -409,6 +413,16 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
       ).toHaveTextContent('resource.script - https://example.com/resource.js');
+
+      expect(screen.getByRole('cell', {name: 'FCP Delay'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.fcp-delay')
+      ).toHaveTextContent('1s (40% of 2.50s)');
+
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.duration-impact')
+      ).toHaveTextContent('33% (1s/3.00s');
     });
   });
 

@@ -1033,8 +1033,12 @@ SENTRY_FEATURES = {
     "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
+    # Enable the transactions backed profiling views
+    "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
+    # Whether to enable post process group for profile blocked main thread issues
+    "organizations:profile-blocked-main-thread-ppg": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1125,6 +1129,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
+    # Enable the dynamic sampling "Transaction Name" priority in the UI
+    "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1237,8 +1243,8 @@ SENTRY_FEATURES = {
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
-    # Enable View Hierarchies deobfuscation for proguard obfuscated files
-    "organizations:view-hierarchy-deobfuscation": False,
+    # Enable view hierarchies options
+    "organizations:view-hierarchies-options-dev": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
@@ -2123,8 +2129,9 @@ SENTRY_DEVSERVICES = {
         {
             "image": "ghcr.io/getsentry/snuba:latest",
             "pull": True,
-            "ports": {"1218/tcp": 1218},
-            "command": ["devserver"],
+            "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
+            "command": ["devserver"]
+            + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
             "environment": {
                 "PYTHONUNBUFFERED": "1",
                 "SNUBA_SETTINGS": "docker",
@@ -2132,7 +2139,9 @@ SENTRY_DEVSERVICES = {
                 "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
                 "CLICKHOUSE_PORT": "9000",
                 "CLICKHOUSE_HTTP_PORT": "8123",
-                "DEFAULT_BROKERS": "{containers[kafka][name]}:9093",
+                "DEFAULT_BROKERS": ""
+                if "snuba" in settings.SENTRY_EVENTSTREAM
+                else "{containers[kafka][name]}:9093",
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
