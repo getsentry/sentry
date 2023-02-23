@@ -43,7 +43,7 @@ def test_import_duplicate_key():
     rv = CliRunner().invoke(import_, tmp_backup_filename)
     assert (
         rv.output
-        == ">> We highly recommend restoring from a backup from the same version of Sentry onto a clean database\n>> If you're doing both already, file a bug report, it's probably our fault\n"
+        == ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If you're doing both already, file a bug report, it's probably our fault\n"
     )
     assert isinstance(rv.exception, IntegrityError)
     assert rv.exit_code == 1
