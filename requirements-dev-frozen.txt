@@ -27,7 +27,7 @@ click==8.0.4
 confluent-kafka==1.9.2
 coverage==6.3.3
 croniter==0.3.37
-cryptography==38.0.3
+cryptography==39.0.1
 cssselect==1.0.3
 cssutils==2.4.0
 datadog==0.29.3
