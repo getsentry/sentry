@@ -843,17 +843,17 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'environment, dev, 100% of all events. View events with this tag value.'
         )
       );
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'foo, bar, 100% of all events. View events with this tag value.'
         )
       );
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'user, id:100, 100% of all events. View events with this tag value.'
         )
       );
@@ -1256,12 +1256,12 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'environment, dev, 100% of all events. View events with this tag value.'
         )
       );
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'foo, bar, 100% of all events. View events with this tag value.'
         )
       );
