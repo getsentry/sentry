@@ -148,12 +148,17 @@ function transformStatsResponse<F extends string>(
 }
 
 function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
-  const formatter = makeFormatTo(
-    rawSeries.meta.units[yAxis] ??
-      rawSeries.meta.units[getAggregateAlias(yAxis)] ??
-      'nanoseconds',
-    'milliseconds'
-  );
+  const type =
+    rawSeries.meta.fields[yAxis] ?? rawSeries.meta.fields[getAggregateAlias(yAxis)];
+  const formatter =
+    type === 'duration'
+      ? makeFormatTo(
+          rawSeries.meta.units[yAxis] ??
+            rawSeries.meta.units[getAggregateAlias(yAxis)] ??
+            'nanoseconds',
+          'milliseconds'
+        )
+      : value => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,
