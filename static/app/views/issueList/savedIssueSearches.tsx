@@ -165,7 +165,7 @@ const SavedIssueSearches = ({
   sort,
 }: SavedIssueSearchesProps) => {
   const theme = useTheme();
-  const [isOpen, setIsOpen] = useSyncedLocalStorageState(
+  const [isOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
@@ -176,17 +176,9 @@ const SavedIssueSearches = ({
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
-  const isAboveContent = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const onClickSavedSearch = (savedSearch: SavedSearch) => {
-    // On small screens, the sidebar appears above the issue list, so we
-    // will close it automatically for convenience.
-    if (isAboveContent) {
-      setIsOpen(false);
-    }
-    onSavedSearchSelect(savedSearch);
-  };
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
-  if (!isOpen) {
+  if (!isOpen || isMobile) {
     return null;
   }
 
@@ -230,7 +222,7 @@ const SavedIssueSearches = ({
             <SavedSearchItem
               key={item.id}
               organization={organization}
-              onSavedSearchSelect={onClickSavedSearch}
+              onSavedSearchSelect={onSavedSearchSelect}
               savedSearch={item}
             />
           ))}
@@ -259,7 +251,7 @@ const SavedIssueSearches = ({
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
-                onSavedSearchSelect={onClickSavedSearch}
+                onSavedSearchSelect={onSavedSearchSelect}
                 savedSearch={item}
               />
             ))}

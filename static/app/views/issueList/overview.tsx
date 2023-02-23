@@ -1136,7 +1136,7 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, selection, location, router} = this.props;
+    const {organization, selection, location, router} = this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1188,7 +1188,6 @@ class IssueListOverview extends Component<Props, State> {
           onRealtimeChange={this.onRealtimeChange}
           router={router}
           displayReprocessingTab={showReprocessingTab}
-          savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
         <StyledBody>
@@ -1275,17 +1274,9 @@ const StyledBody = styled('div')`
   gap: 0;
   padding: 0;
 
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(max-content, 1fr);
-  grid-template-areas:
-    'saved-searches'
-    'content';
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: 1fr;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'content saved-searches';
-  }
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'content saved-searches';
 `;
 
 const StyledMain = styled('section')`
