@@ -134,7 +134,7 @@
     "prop-types": "^15.8.1",
     "pyright": "1.1.255",
     "qrcode.react": "^3.1.0",
-    "query-string": "7.0.1",
+    "query-string": "8.1.0",
     "react": "17.0.2",
     "react-autosize-textarea": "7.1.0",
     "react-date-range": "^1.4.0",
