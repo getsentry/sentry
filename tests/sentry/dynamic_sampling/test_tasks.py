@@ -9,7 +9,6 @@ from sentry.dynamic_sampling import generate_rules
 from sentry.dynamic_sampling.tasks import prioritise_projects
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers import Feature
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -59,8 +58,9 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
 
-        with Feature({"organizations:ds-prioritise-by-project-bias": True}):
-            prioritise_projects()
+        with self.feature({"organizations:ds-prioritise-by-project-bias": True}):
+            with self.tasks():
+                prioritise_projects()
 
         # we expect only uniform rule
         assert generate_rules(proj_a)[0]["samplingValue"] == {

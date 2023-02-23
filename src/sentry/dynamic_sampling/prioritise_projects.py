@@ -2,7 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, Tuple
 
 from snuba_sdk import (
     Column,
@@ -17,6 +17,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -27,7 +28,7 @@ MAX_SECONDS = 60
 CHUNK_SIZE = 1000
 
 
-def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[Sequence[int]]]:
+def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int]]]:
     """
     This function fetch with pagination orgs and projects with count per root project
     """

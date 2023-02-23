@@ -16,6 +16,10 @@ LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
 IGNORE_HEALTH_CHECKS_FACTOR = 5
 
 
+ProjectId = int
+OrganizationId = int
+
+
 class ActivatableBias(TypedDict):
     """
     A bias that can be activated, where activated means that the bias is enabled.
