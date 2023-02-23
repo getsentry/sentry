@@ -23,7 +23,7 @@ from django.utils import timezone
 from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -41,9 +41,6 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
-
-
-INGEST_ALLOWED_ISSUE_TYPES = frozenset([ProfileBlockedThreadGroupType.type_id])
 
 
 def get_occurrences_ingest_consumer(
@@ -251,10 +248,6 @@ def _process_message(
                 tags={"occurrence_type": occurrence_data["type"]},
             )
             txn.set_tag("occurrence_type", occurrence_data["type"])
-            if occurrence_data["type"] not in INGEST_ALLOWED_ISSUE_TYPES:
-                metrics.incr("occurrence_ingest.dropped_invalid_issue_type", sample_rate=1.0)
-                txn.set_tag("result", "dropped_invalid_issue_type")
-                return None
 
             project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
             organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -264,8 +257,14 @@ def _process_message(
             txn.set_tag("project_id", project.id)
             txn.set_tag("project_slug", project.slug)
 
-            if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
-                metrics.incr("occurrence_ingest.dropped_feature_disabled", sample_rate=1.0)
+            if occurrence_data["type"] not in PROFILE_FILE_IO_ISSUE_TYPES or not features.has(
+                "organizations:profile-blocked-main-thread-ingest", organization
+            ):
+                metrics.incr(
+                    "occurrence_ingest.dropped_feature_disabled",
+                    sample_rate=1.0,
+                    tags={"occurrence_type": occurrence_data["type"]},
+                )
                 txn.set_tag("result", "dropped_feature_disabled")
                 return None
 
