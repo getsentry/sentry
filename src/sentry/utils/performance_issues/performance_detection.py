@@ -848,8 +848,13 @@ class FileIOMainThreadDetector(PerformanceDetector):
                 module = self._deobfuscate_module(item.get("module", ""))
                 function = self._deobfuscate_function(item)
                 call_stack_strings.append(f"{module}.{function}")
-            overall_stack.append(".".join(call_stack_strings))
-        call_stack = "-".join(overall_stack).encode("utf8")
+            # Use set to remove dupes, and list index to preserve order
+            overall_stack.append(
+                ".".join(sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c)))
+            )
+        call_stack = "-".join(
+            sorted(set(overall_stack), key=lambda s: overall_stack.index(s))
+        ).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
 
@@ -942,7 +947,10 @@ class SearchingForMNPlusOne(MNPlusOneState):
             op = span.get("op") or ""
             description = span.get("description") or ""
             found_db_op = found_db_op or (
-                op.startswith("db") and description and not description.endswith("...")
+                op.startswith("db")
+                and not op.startswith("db.redis")
+                and description
+                and not description.endswith("...")
             )
             found_different_span = found_different_span or not self._equivalent(pattern[0], span)
             if found_db_op and found_different_span:
