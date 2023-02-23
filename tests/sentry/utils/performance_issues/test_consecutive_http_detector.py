@@ -65,7 +65,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint="1-1009-e3d915e5dd423874d4bee287a277fafeb6e3245d",
                 op="http",
-                desc="SELECT `order`.`id` FROM `books_author`",
+                desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=[],
@@ -78,3 +78,9 @@ class ConsecutiveDbDetectorTest(TestCase):
                 ],
             )
         ]
+
+    def test_does_not_detect_conseucitve_http_issue_with_low_duration(self):
+        event = self.create_issue_event(500)
+        problems = self.find_problems(event)
+
+        assert problems == []
