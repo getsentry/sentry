@@ -9,7 +9,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, features, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -24,6 +24,7 @@ from sentry.api.serializers.models.organization import (
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
     STORE_CRASH_REPORTS_MAX,
@@ -491,6 +492,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             serializer_cls = OrganizationSerializer
 
         was_pending_deletion = organization.status in DELETION_STATUSES
+
+        enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
+        if enabling_codecov and features.has(
+            "organizations:codecov-stacktrace-integration-v2", organization
+        ):
+            has_integration, error = has_codecov_integration(organization)
+            if not has_integration:
+                return self.respond(
+                    {"codecovAccess": [error]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = serializer_cls(
             data=request.data,

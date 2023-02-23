@@ -36,7 +36,6 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState, auth_service
 from sentry.services.hybrid_cloud.organization import (
     RpcTeamMember,
@@ -393,9 +392,6 @@ class SingularRpcAccessOrgOptimization:
     access: RpcBackedAccess
 
 
-SingularApiAccessOrgOptimization = SingularRpcAccessOrgOptimization
-
-
 def maybe_singular_rpc_access_org_context(
     access: Access, org_ids: Set[int]
 ) -> SingularRpcAccessOrgOptimization | None:
@@ -582,9 +578,6 @@ class RpcBackedAccess(Access):
                         return True
 
         return False
-
-
-ApiBackedAccess = RpcBackedAccess
 
 
 class OrganizationMemberAccess(DbAccess):
@@ -1022,6 +1015,8 @@ def _from_sentry_app(
 
 
 def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
+    from sentry.services.hybrid_cloud.app import app_service
+
     if not context or context.user_id is None:
         return NoAccess()
 

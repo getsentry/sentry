@@ -70,7 +70,6 @@ class DatabaseBackedUserService(
         query: BaseQuerySet,
         filters: UserFilterArgs,
     ) -> List[User]:
-        query = self._base_query()
         if "user_ids" in filters:
             query = query.filter(id__in=filters["user_ids"])
         if "is_active" in filters:
