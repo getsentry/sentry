@@ -21,7 +21,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        segment = fetch_segment_metadata(project.id, replay_id, segment_id)
+        segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
         if not segment:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
