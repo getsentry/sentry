@@ -2495,13 +2495,41 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         with self.feature("organizations:issue-platform"):
             results = self.make_query(
                 projects=[self.project],
+                search_filter_query="issue.category:profile error.unhandled:0",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            results2 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.unhandled:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            assert list(results) == list(results2) == []
+
+    def test_is_handled_function(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
                 search_filter_query="issue.category:profile error.handled:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
             )
 
-            assert list(results) == []
+            results2 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.handled:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            assert list(results) == list(results2) == []
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):
