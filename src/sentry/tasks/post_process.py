@@ -796,11 +796,7 @@ def process_commits(job: PostProcessJob) -> None:
 
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
-                metric_tags = {
-                    "event": event.event_id,
-                    "group": event.group_id,
-                    "project": event.project_id,
-                }
+
                 integrations = Integration.objects.filter(
                     organizations=event.project.organization,
                     provider__in=["github", "gitlab"],
@@ -817,10 +813,7 @@ def process_commits(job: PostProcessJob) -> None:
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
-                        metrics.incr(
-                            "sentry.tasks.process_commit_context.debounce",
-                            tags={**metric_tags},
-                        )
+                        metrics.incr("sentry.tasks.process_commit_context.debounce")
                         return
                     process_commit_context.delay(
                         event_id=event.event_id,
@@ -833,10 +826,7 @@ def process_commits(job: PostProcessJob) -> None:
                 else:
                     cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
-                        metrics.incr(
-                            "sentry.tasks.process_suspect_commits.debounce",
-                            tags={**metric_tags},
-                        )
+                        metrics.incr("sentry.tasks.process_suspect_commits.debounce")
                         return
                     process_suspect_commits.delay(
                         event_id=event.event_id,
