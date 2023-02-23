@@ -848,8 +848,13 @@ class FileIOMainThreadDetector(PerformanceDetector):
                 module = self._deobfuscate_module(item.get("module", ""))
                 function = self._deobfuscate_function(item)
                 call_stack_strings.append(f"{module}.{function}")
-            overall_stack.append(".".join(call_stack_strings))
-        call_stack = "-".join(overall_stack).encode("utf8")
+            # Use set to remove dupes, and list index to preserve order
+            overall_stack.append(
+                ".".join(sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c)))
+            )
+        call_stack = "-".join(
+            sorted(set(overall_stack), key=lambda s: overall_stack.index(s))
+        ).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
 
