@@ -116,8 +116,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "brand": "Sony",
         }
 
-    @patch("sentry.lang.javascript.processor.fetch_file")
-    def test_source_expansion(self, mock_fetch_file):
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
+    def test_source_expansion(self, mock_fetch_by_url):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -147,19 +147,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             },
         }
 
-        mock_fetch_file.return_value.body = force_bytes("\n".join("hello world"))
-        mock_fetch_file.return_value.encoding = None
-        mock_fetch_file.return_value.headers = {}
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("hello world"))
+        mock_fetch_by_url.return_value.encoding = None
+        mock_fetch_by_url.return_value.headers = {}
 
         event = self.post_and_retrieve_event(data)
 
-        mock_fetch_file.assert_called_once_with(
-            "http://example.com/foo.js",
-            project=self.project,
-            release=None,
-            dist=None,
-            allow_scraping=True,
-        )
+        mock_fetch_by_url.assert_called_once_with("http://example.com/foo.js")
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
