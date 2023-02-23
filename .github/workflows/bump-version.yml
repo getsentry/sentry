@@ -1,0 +1,47 @@
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        required: true
+        type: string
+        description: package name such as `sentry-arroyo`
+      version:
+        required: true
+        type: string
+        description: desired version such as `1.2.3`
+
+# disable all permissions -- we use the PAT's permissions instead
+permissions: {}
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      with:
+        token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+    - run: |
+        set -euxo pipefail
+
+        git checkout -b "bot/bump-version/$PACKAGE/$VERSION"
+
+        re="$(sed 's/[_-]/[_-]/g' <<< "$PACKAGE")"
+        sed -i "s/^$re==.*/$PACKAGE==$VERSION/g" -- requirements*.txt
+
+        git \
+            -c user.name=getsentry-bot \
+            -c user.email='10587625+getsentry-bot@users.noreply.github.com' \
+            commit \
+            --all \
+            --message "ref: bump $PACKAGE to $VERSION" \
+            --message "Co-Authored-By: $SENDER <$SENDER_ID+$SENDER@users.noreply.github.com>"
+
+        git push origin HEAD --quiet
+
+        gh pr create --fill
+      env:
+        GH_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
+        PACKAGE: ${{ inputs.package }}
+        VERSION: ${{ inputs.version }}
+        SENDER: ${{ github.event.sender.login }}
+        SENDER_ID: ${{ github.event.sender.id }}
