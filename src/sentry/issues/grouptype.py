@@ -110,9 +110,6 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
-    # group_policy = GroupPolicy(
-    #     feature="organizations:performance-issues-render-blocking-assets-detector"
-    # )
 
 
 @dataclass(frozen=True)
@@ -121,7 +118,6 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
-    # group_policy = GroupPolicy(feature="performance.issues.n_plus_one_db")
 
 
 @dataclass(frozen=True)
@@ -197,12 +193,14 @@ class ProfileJSONDecodeType(GroupType):
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
 
+
 PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
     [
         ProfileBlockedThreadGroupType.type_id,
         ProfileFileIOGroupType.type_id,
     ]
 )
+
 
 def reduce_noise(
     new_grouphashes: Set[str],
