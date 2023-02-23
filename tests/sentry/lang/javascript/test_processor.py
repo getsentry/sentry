@@ -1453,7 +1453,7 @@ class CacheSourceTest(TestCase):
         # before caching, no errors
         assert len(processor.cache.get_errors(abs_path)) == 0
 
-        processor.cache_source(abs_path)
+        processor._fetch_and_cache_sourceview(abs_path)
 
         # now we have an error
         assert len(processor.cache.get_errors(abs_path)) == 1
@@ -1474,7 +1474,7 @@ class CacheSourceTest(TestCase):
         # not a real url, so won't find file on the internet
         abs_path = "app:///../node_modules/i/dont/exist.js"
 
-        processor.cache_source(abs_path)
+        processor._fetch_and_cache_sourceview(abs_path)
 
         # no errors, even though the file can't have been found
         assert len(processor.cache.get_errors(abs_path)) == 0
@@ -1499,7 +1499,7 @@ class CacheSourceTest(TestCase):
         # but since this is just a unit test, we have to set it manually
         processor.release = release
 
-        processor.cache_source(abs_path)
+        processor._fetch_and_cache_sourceview(abs_path)
 
         # file is cached, no errors are generated
         assert processor.cache.get(abs_path)
@@ -1532,7 +1532,7 @@ class CacheSourceTest(TestCase):
         # before caching, no errors
         assert len(processor.cache.get_errors(abs_path)) == 0
 
-        processor.cache_source(abs_path)
+        processor._fetch_and_cache_sourceview(abs_path)
 
         # now we have an error
         assert len(processor.cache.get_errors(abs_path)) == 1
