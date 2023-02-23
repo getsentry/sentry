@@ -14,7 +14,13 @@ export interface LinkProps
     'href' | 'target' | 'as' | 'css'
   > {
   /**
-   * The string path or LocationDescriptor object
+   * The string path or LocationDescriptor object.
+   *
+   * If your link target is a string literal or a `LocationDescriptor` with
+   * a literal `pathname`, you need to use the slug based URL
+   * e.g `/organizations/${slug}/issues/`. This ensures that your link will
+   * work in environments that do have customer-domains (saas) and those without
+   * customer-domains (single-tenant).
    */
   to: ((location: Location) => LocationDescriptor) | LocationDescriptor;
   /**
