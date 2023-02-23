@@ -38,7 +38,7 @@ from .repository import GitHubRepositoryProvider
 logger = logging.getLogger("sentry.webhooks")
 
 
-def clear_tags_and_context_if_already_set():
+def clear_tags_and_context_if_already_set() -> None:
     with configure_scope() as scope:
         report_tags_already_set(scope)
         for tag in ["organization", "organization.slug"]:
