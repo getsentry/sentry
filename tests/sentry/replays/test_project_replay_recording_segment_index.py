@@ -124,12 +124,14 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
 
     def save_recording_segment(self, segment_id: int, data: bytes, compressed: bool = True):
         # Insert the row in clickhouse.
-        mock_replay(
-            datetime.datetime.now(),
-            self.project.id,
-            self.replay_id,
-            segment_id=segment_id,
-            retention_days=30,
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                self.replay_id,
+                segment_id=segment_id,
+                retention_days=30,
+            )
         )
 
         # Store the binary blob in the remote storage provider.

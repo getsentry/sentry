@@ -12,7 +12,6 @@ from snuba_sdk import (
     Entity,
     Granularity,
     Limit,
-    Offset,
     Op,
     OrderBy,
     Query,
@@ -94,7 +93,9 @@ def fetch_filestore_segment_meta(
 ) -> RecordingSegmentStorageMeta:
     """Return filestore metadata derived from our Postgres table."""
     segment: ReplayRecordingSegment = ReplayRecordingSegment.objects.filter(
-        project_id=project_id, replay_id=replay_id, segment_id=segment_id
+        project_id=project_id,
+        replay_id=replay_id,
+        segment_id=segment_id,
     ).get()
 
     return RecordingSegmentStorageMeta(
@@ -114,10 +115,9 @@ def fetch_direct_storage_segments_meta(
     limit: int,
 ) -> List[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if _has_archived_segment(project_id, replay_id):
-        return []
-    else:
+    if not _has_archived_segment(project_id, replay_id):
         return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
+    return []
 
 
 def fetch_direct_storage_segment_meta(
@@ -151,13 +151,13 @@ def _has_archived_segment(project_id: int, replay_id: str) -> bool:
             match=Entity("replays"),
             select=[Column("is_archived")],
             where=[
+                Condition(Column("is_archived"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column("replay_id"), Op.EQ, replay_id),
-                # We request the full 90 day range.
+                # We request the full 90 day range. This is effectively an unbounded timestamp
+                # range.
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-                # is-archived must be true.
-                Condition(Column("is_archived"), Op.EQ, 1),
             ],
             granularity=Granularity(3600),
         ),
@@ -182,19 +182,26 @@ def _fetch_segments_from_snuba(
             where=[
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column("replay_id"), Op.EQ, replay_id),
-                # We request the full 90 day range.
+                # We request the full 90 day range. This is effectively an unbounded timestamp
+                # range.
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-                # Optimization to reduce the number of rows before the LIMIT clause.  The
-                # cursors happen to map 1 to 1 with segment_id.
+                # NOTE: Optimization to reduce the number of rows before the LIMIT clause. The
+                # cursors happen to map 1 to 1 with segment_id. If these filters are removed
+                # you will need to supply an offset value.
                 Condition(Column("segment_id"), Op.GTE, offset),
                 Condition(Column("segment_id"), Op.LT, offset + limit),
+                # Used to dynamically pass the "segment_id" condition for details requests.
                 *conditions,
             ],
             orderby=[OrderBy(Column("segment_id"), Direction.ASC)],
             granularity=Granularity(3600),
             limit=Limit(limit),
-            offset=Offset(offset),
+            # NOTE: We do not use the offset parameter because of the segment_id query optimization
+            # in the where clause.  If you remove the segment_id filters you need to uncomment this
+            # offset value.
+            #
+            # offset=Offset(0),
         ),
     )
     response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
