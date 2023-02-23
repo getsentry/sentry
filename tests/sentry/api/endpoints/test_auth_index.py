@@ -239,6 +239,13 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     )
                     # status code of 401 means invalid SSO session
                     assert response.status_code == 401
+                    assert response.data == {
+                        "detail": {
+                            "code": "sso-required",
+                            "extra": {"loginUrl": f"/auth/login/{self.organization.slug}/"},
+                            "message": "Must login via SSO",
+                        }
+                    }
                     assert COOKIE_NAME not in response.cookies
 
     @with_feature("organizations:u2f-superuser-form")
