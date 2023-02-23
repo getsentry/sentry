@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRule} from 'sentry/actionCreators/modal';
 import OwnedBy from 'sentry/components/group/ownedBy';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {buildTeamId, buildUserId} from 'sentry/utils';
@@ -96,7 +96,7 @@ describe('Group > OwnedBy', () => {
 
     userEvent.click(screen.getByLabelText('Create Ownership Rule'));
 
-    expect(openCreateOwnershipRule).toHaveBeenCalledWith(
+    expect(openIssueOwnershipRule).toHaveBeenCalledWith(
       expect.objectContaining({issueId: '1'})
     );
   });

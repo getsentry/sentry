@@ -6,6 +6,10 @@ describe('Project Ownership', () => {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
   const issueId = '1234';
+  const stacktrace = TestStubs.EventEntryStacktrace();
+  const event = TestStubs.Event({
+    entries: [stacktrace],
+  });
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -36,15 +40,8 @@ describe('Project Ownership', () => {
         raw: null,
       },
     });
-    const stacktrace = TestStubs.EventEntryStacktrace();
     // Set one frame to in-app
     stacktrace.data.frames[0].inApp = true;
-    MockApiClient.addMockResponse({
-      url: `/issues/${issueId}/events/latest/`,
-      body: TestStubs.Event({
-        entries: [stacktrace],
-      }),
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       body: TestStubs.Members(),
@@ -61,7 +58,7 @@ describe('Project Ownership', () => {
         issueId={issueId}
         organization={org}
         project={project}
-        onSave={() => {}}
+        eventData={event}
       />
     );
 

@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRule} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {
   AssigneeSelectorDropdown,
@@ -199,7 +199,12 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
           <Access access={['project:write']}>
             <Button
               onClick={() => {
-                openCreateOwnershipRule({project, organization, issueId: group.id});
+                openIssueOwnershipRule({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event!,
+                });
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}

@@ -151,16 +151,22 @@ class OwnerInput extends Component<Props, State> {
     const {project, organization, disabled, urls, paths, initialText} = this.props;
     const {hasChanges, text, error} = this.state;
 
+    const hasStreamlineTargetingFeature = organization.features.includes(
+      'streamline-targeting-context'
+    );
+
     return (
       <Fragment>
-        <RuleBuilder
-          urls={urls}
-          paths={paths}
-          organization={organization}
-          project={project}
-          onAddRule={this.handleAddRule.bind(this)}
-          disabled={disabled}
-        />
+        {!hasStreamlineTargetingFeature && (
+          <RuleBuilder
+            urls={urls}
+            paths={paths}
+            organization={organization}
+            project={project}
+            onAddRule={this.handleAddRule.bind(this)}
+            disabled={disabled}
+          />
+        )}
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {

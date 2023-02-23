@@ -1,10 +1,14 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
-import {Entry, EventError} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
@@ -18,16 +22,72 @@ type IssueOwnershipResponse = {
 
 type Props = AsyncComponent['props'] & {
   issueId: string;
-  onSave: () => void;
   organization: Organization;
   project: Project;
+  eventData?: Event;
 };
 
 type State = {
-  eventData: null | EventError;
   ownership: null | IssueOwnershipResponse;
   urlTagData: null | TagWithTopValues;
 } & AsyncComponent['state'];
+
+function getFrameSuggestions(eventData?: Event) {
+  // pull frame data out of exception or the stacktrace
+  const entry = eventData?.entries?.find(({type}) =>
+    ['exception', 'stacktrace'].includes(type)
+  );
+
+  let frames: Frame[] = [];
+  if (entry?.type === 'exception') {
+    frames = entry?.data?.values?.[0]?.stacktrace?.frames ?? [];
+  } else if (entry?.type === 'stacktrace') {
+    frames = entry?.data?.frames ?? [];
+  }
+
+  // Only display in-app frames
+  frames = frames.filter(frame => frame.inApp);
+
+  return uniq(frames.map(frame => frame.filename || frame.absPath || '')).filter(i => i);
+}
+
+function OwnershipSuggestions({
+  paths,
+  urls,
+  eventData,
+}: {
+  paths: string[];
+  urls: string[];
+  eventData?: Event;
+}) {
+  const email = ConfigStore.get('user')?.email;
+  if (!email) {
+    return null;
+  }
+
+  const pathSuggestion = paths.length ? `path:${paths[0]} ${email}` : null;
+  const urlSuggestion = urls.length ? `url:${urls[0]} ${email}` : null;
+
+  const transactionTag = eventData?.tags?.find(({key}) => key === 'transaction');
+  const transactionSuggestion = transactionTag
+    ? `tags.transaction:${transactionTag.value} ${email}`
+    : null;
+
+  return (
+    <StyledPre>
+      <PreComment># {t('Here’s some suggestions based on this issue')}</PreComment>
+      <br />
+      {[pathSuggestion, urlSuggestion, transactionSuggestion]
+        .filter(x => x)
+        .map(suggestion => (
+          <Fragment key={suggestion}>
+            {suggestion}
+            <br />
+          </Fragment>
+        ))}
+    </StyledPre>
+  );
+}
 
 class ProjectOwnershipModal extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -44,15 +104,16 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
             error.status === 404,
         },
       ],
-      ['eventData', `/issues/${issueId}/events/latest/`],
     ];
   }
 
   renderBody() {
-    const {ownership, urlTagData, eventData} = this.state;
-    if (!ownership && !urlTagData && !eventData) {
+    const {ownership, urlTagData} = this.state;
+    const {eventData, organization, project} = this.props;
+    if (!ownership) {
       return null;
     }
+
     const urls = urlTagData
       ? urlTagData.topValues
           .sort((a, b) => a.count - b.count)
@@ -60,31 +121,29 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
           .slice(0, 5)
       : [];
 
-    // pull frame data out of exception or the stacktrace
-    const entry = (eventData?.entries as Entry[])?.find(({type}) =>
-      ['exception', 'stacktrace'].includes(type)
+    const hasStreamlineTargetingFeature = organization.features.includes(
+      'streamline-targeting-context'
     );
-
-    let frames: Frame[] = [];
-    if (entry?.type === 'exception') {
-      frames = entry?.data?.values?.[0]?.stacktrace?.frames ?? [];
-    }
-    if (entry?.type === 'stacktrace') {
-      frames = entry?.data?.frames ?? [];
-    }
-
-    // Only display in-app frames
-    frames = frames.filter(frame => frame.inApp);
-
-    const paths = uniq(frames.map(frame => frame.filename || frame.absPath || ''))
-      .filter(i => i)
-      .slice(0, 30);
+    const paths = getFrameSuggestions(eventData).slice(0, 30);
 
     return (
       <Fragment>
-        <p>{t('Match against Issue Data: (globbing syntax *, ? supported)')}</p>
+        <Description>
+          {tct(
+            'Assign issues based on custom rules. To learn more, [docs:read the docs].',
+            {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
+              ),
+            }
+          )}
+        </Description>
+        {hasStreamlineTargetingFeature ? (
+          <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
+        ) : null}
         <OwnerInput
-          {...this.props}
+          organization={organization}
+          project={project}
           initialText={ownership?.raw || ''}
           urls={urls}
           paths={paths}
@@ -93,5 +152,20 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const Description = styled('p')`
+  margin-bottom: ${space(1)};
+`;
+
+const PreComment = styled('span')`
+  color: ${p => p.theme.subText};
+`;
+
+const StyledPre = styled('pre')`
+  word-break: break-word;
+  padding: ${space(3)} ${space(2)};
+  color: ${p => p.theme.textColor};
+  line-height: 1.6;
+`;
 
 export default ProjectOwnershipModal;
