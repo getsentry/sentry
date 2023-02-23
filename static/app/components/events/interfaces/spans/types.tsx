@@ -84,7 +84,7 @@ type CommonEnhancedProcessedSpanType = {
   numOfSpanChildren: number;
   showEmbeddedChildren: boolean;
   toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
+    | ((props: {orgSlug: string; orgSlug: string}) => void)
     | undefined;
   treeDepth: number;
   groupOccurrence?: number;
