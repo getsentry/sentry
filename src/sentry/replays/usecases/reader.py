@@ -5,7 +5,19 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import List
 
-from snuba_sdk import Column, Condition, Entity, Granularity, Limit, Offset, Op, Query, Request
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
@@ -147,7 +159,6 @@ def _has_archived_segment(project_id: int, replay_id: str) -> bool:
                 # is-archived must be true.
                 Condition(Column("is_archived", Op.EQ, 1)),
             ],
-            orderby=[Column("segment_id")],
             granularity=Granularity(3600),
         ),
     )
@@ -180,7 +191,7 @@ def _fetch_segments_from_snuba(
                 Condition(Column("segment_id"), Op.LT, offset + limit),
                 *conditions,
             ],
-            orderby=[Column("segment_id")],
+            orderby=[OrderBy(Column("segment_id"), Direction.ASC)],
             granularity=Granularity(3600),
             limit=Limit(limit),
             offset=Offset(offset),
