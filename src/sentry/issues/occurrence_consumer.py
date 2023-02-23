@@ -23,7 +23,7 @@ from django.utils import timezone
 from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -41,14 +41,6 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
-
-
-PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
-    [
-        ProfileBlockedThreadGroupType.type_id,
-        ProfileFileIOGroupType.type_id,
-    ]
-)
 
 
 def get_occurrences_ingest_consumer(

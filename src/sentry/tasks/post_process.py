@@ -10,9 +10,8 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_consumer import PROFILE_FILE_IO_ISSUE_TYPES
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
