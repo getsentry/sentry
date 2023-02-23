@@ -119,6 +119,7 @@ SHARED_TAG_STRINGS = {
     "abnormal_mechanism": PREFIX + 236,  # release health
     "anr_foreground": PREFIX + 237,  # release health
     "anr_background": PREFIX + 238,  # release health
+    "drop": PREFIX + 239,  # transactions. "decision" and "keep" already exist
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
