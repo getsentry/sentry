@@ -95,7 +95,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         frame, filename, abs_path = self._get_frame_filename_and_path(exception, frame_idx)
 
-        if frame.pre_context or frame.post_context:
+        if frame.context_line:
             return self._create_response()
 
         try:

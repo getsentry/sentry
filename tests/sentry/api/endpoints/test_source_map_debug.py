@@ -70,6 +70,43 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
 
     @with_feature("organizations:fix-source-map-cta")
+    def test_event_has_context_line(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                        "context_line": "function foo() {",
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        error = resp.data["errors"]
+        assert error == []
+
+    @with_feature("organizations:fix-source-map-cta")
     def test_event_has_no_release(self):
         event = self.store_event(
             data={
