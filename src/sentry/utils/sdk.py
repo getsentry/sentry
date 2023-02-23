@@ -1,5 +1,6 @@
 import copy
 import inspect
+import logging
 import random
 
 import sentry_sdk
@@ -8,7 +9,13 @@ from django.urls import resolve
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
+from sentry_sdk import (  # NOQA
+    Scope,
+    capture_exception,
+    capture_message,
+    configure_scope,
+    push_scope,
+)
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -17,6 +24,8 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+
+logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
@@ -445,11 +454,27 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
+# We have some events being tagged with organization.slug even when we don't have such info
+def report_tags_already_set(scope: Scope):
+    """If the tags are already set, report them as a Sentry error."""
+    try:
+
+        if scope._tags != {}:
+            for tag in ["organization", "organization.slug"]:
+                if tag in scope._tags:
+                    logger.info(f"Tags already set: {scope._tags}")
+                    raise Exception("Tags are already set. Code execution will not be affected.")
+    except Exception as e:
+        logger.exception(e)
+
+
 def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.configure_scope() as scope:
+        report_tags_already_set(scope)
+
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
         scope.set_context("organization", {"id": organization.id, "slug": organization.slug})
