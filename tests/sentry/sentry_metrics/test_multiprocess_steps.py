@@ -1,20 +1,16 @@
 import logging
 import pickle
-import time
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Dict, List, MutableMapping, Sequence, Union
-from unittest.mock import Mock, call
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -59,156 +55,6 @@ def compare_message_batches_ignoring_metadata(
     assert len(actual) == len(expected)
     for (a, e) in zip(actual, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
-
-
-def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
-    # batch time is in seconds
-    batch_messages_step = BatchMessages(
-        next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
-    )
-
-    message1 = Message(
-        BrokerValue(
-            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
-        )
-    )
-    message2 = Message(
-        BrokerValue(
-            KafkaPayload(None, b"another value", []),
-            Partition(Topic("topic"), 0),
-            2,
-            datetime.now(),
-        )
-    )
-    return (batch_messages_step, message1, message2)
-
-
-def test_batch_messages() -> None:
-    next_step = Mock()
-
-    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
-
-    # submit the first message, batch builder should should be created
-    # and the messaged added to the batch
-    batch_messages_step.submit(message=message1)
-
-    assert len(batch_messages_step._BatchMessages__batch) == 1
-
-    # neither batch_size or batch_time as been met so poll shouldn't
-    # do anything yet (aka shouldn't flush and call next_step.submit)
-    batch_messages_step.poll()
-
-    assert len(batch_messages_step._BatchMessages__batch) == 1
-    assert not next_step.submit.called
-
-    # submit the second message, message should be added to the batch
-    # which will now saturate the batch_size (2). This will trigger
-    # __flush which in turn calls next.submit and reset the batch to None
-    batch_messages_step.submit(message=message2)
-
-    assert next_step.submit.call_args == call(
-        Message(Value([message1, message2], message2.committable)),
-    )
-
-    assert batch_messages_step._BatchMessages__batch is None
-
-
-def test_batch_messages_rejected_message():
-    next_step = Mock()
-    next_step.submit.side_effect = MessageRejected()
-
-    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
-
-    batch_messages_step.poll()
-    batch_messages_step.submit(message=message1)
-
-    # if we try to submit a batch when the next step is
-    # not ready to accept more messages we'll get a
-    # MessageRejected error. This will be reraised for
-    # to the stream processor on the subsequent call to submit
-    batch_messages_step.submit(message=message2)
-
-    with pytest.raises(MessageRejected):
-        batch_messages_step.submit(message=message2)
-
-    # when poll is called, we still try to flush the batch
-    # caust its full but we handled the MessageRejected error
-    batch_messages_step.poll()
-    assert next_step.submit.called
-
-
-def test_batch_messages_join():
-    next_step = Mock()
-
-    batch_messages_step, message1, _ = _batch_message_set_up(next_step)
-
-    batch_messages_step.poll()
-    batch_messages_step.submit(message=message1)
-    # A rebalance, restart, scale up or any other event
-    # that causes partitions to be revoked will call join
-    batch_messages_step.join(timeout=3)
-    # we don't flush the batch
-    assert not next_step.submit.called
-
-
-def test_metrics_batch_builder():
-    max_batch_time = 3.0  # seconds
-    max_batch_size = 2
-
-    # 1. Ready when max_batch_size is reached
-    batch_builder_size = MetricsBatchBuilder(
-        max_batch_size=max_batch_size, max_batch_time=max_batch_time
-    )
-
-    assert not batch_builder_size.ready()
-
-    message1 = Message(
-        BrokerValue(
-            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
-        )
-    )
-    batch_builder_size.append(message1)
-    assert not batch_builder_size.ready()
-
-    message2 = Message(
-        BrokerValue(
-            KafkaPayload(None, b"another value", []),
-            Partition(Topic("topic"), 0),
-            2,
-            datetime.now(),
-        )
-    )
-    batch_builder_size.append(message2)
-    assert batch_builder_size.ready()
-
-    # 2. Ready when max_batch_time is reached
-    batch_builder_time = MetricsBatchBuilder(
-        max_batch_size=max_batch_size, max_batch_time=max_batch_time
-    )
-
-    assert not batch_builder_time.ready()
-
-    message1 = Message(
-        BrokerValue(
-            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
-        )
-    )
-    batch_builder_time.append(message1)
-    assert not batch_builder_time.ready()
-
-    time.sleep(3)
-    assert batch_builder_time.ready()
-
-    # 3. Adding the same message twice to the same batch
-    batch_builder_time = MetricsBatchBuilder(
-        max_batch_size=max_batch_size, max_batch_time=max_batch_time
-    )
-    message1 = Message(
-        BrokerValue(
-            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
-        )
-    )
-    batch_builder_time.append(message1)
 
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
