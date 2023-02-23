@@ -8,8 +8,8 @@ from unittest.mock import ANY, patch
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
-from django.test import override_settings
 
+from sentry import options
 from sentry.models import File
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
@@ -208,7 +208,6 @@ class RecordingTestCaseMixin:
 # configuration values.
 
 
-@override_settings(SENTRY_REPLAYS_BLOB_DRIVER="filestore")
 class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
@@ -247,11 +246,11 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
         return FilestoreBlob().get(recording_segment)
 
 
-@override_settings(SENTRY_REPLAYS_BLOB_DRIVER="storage")
 class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
+        options.set("replay.storage.direct-storage-sample-rate", 100)
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
         # Assert no recording segment is written for direct-storage.  Direct-storage does not
