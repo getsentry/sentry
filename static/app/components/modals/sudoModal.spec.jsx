@@ -15,7 +15,6 @@ describe('Sudo Modal', function () {
         organizationUrl: 'https://albertos-apples.sentry.io',
         regionUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
-        // superuserUrl?: string;
       },
     };
 
