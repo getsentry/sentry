@@ -97,7 +97,7 @@ const NPlusOneDBQueriesSpanEvidence = ({
 }: SpanEvidenceKeyValueListProps) => {
   const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
   const repeatingSpanRows = dbSpans
-    .filter(span => offendingSpans.find(s => s.description === span.description) === span)
+    .filter(span => offendingSpans.find(s => s.hash === span.hash) === span)
     .map((span, i) =>
       makeRow(
         i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
