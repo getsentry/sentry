@@ -41,6 +41,8 @@ class JavaScriptSdkLoader(BaseView):
     def _get_bundle_kind_modifier(self, key: ProjectKey, sdk_version: str) -> Tuple[str, bool]:
         """Returns a string that is used to modify the bundle name"""
 
+        is_v7_sdk = sdk_version >= Version("7.0.0")
+
         # If we load a performance/replay bundle, set this to be false, as we do not want to
         # load the default bundle.
         isLazy = True
@@ -56,7 +58,8 @@ class JavaScriptSdkLoader(BaseView):
 
         has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
 
-        if has_replay:
+        # If the project does not have a v7 sdk set, we cannot load the replay bundle.
+        if not is_v7_sdk and has_replay:
             bundle_kind_modifier += ".replay"
             isLazy = False
 
@@ -65,7 +68,7 @@ class JavaScriptSdkLoader(BaseView):
         #
         # If we are loading replay, do not add the es5 modifier, as those bundles are
         # ES6 only.
-        if sdk_version >= Version("7.0.0") and not has_replay:
+        if is_v7_sdk and not has_replay:
             bundle_kind_modifier += ".es5"
 
         if get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG):

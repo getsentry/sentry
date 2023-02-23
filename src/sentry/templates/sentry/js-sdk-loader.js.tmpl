@@ -15,7 +15,11 @@
 
   for (var i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf(_publicKey) > -1) {
-      lazy = !(document.scripts[i].getAttribute('data-lazy') === 'no');
+      // If lazy was set to true above, we need to check if the user has set data-lazy="no"
+      // to confirm that we should lazy load the CDN bundle
+      if (lazy && document.scripts[i].getAttribute('data-lazy') === 'no') {
+        lazy = false;
+      }
       break;
     }
   }
