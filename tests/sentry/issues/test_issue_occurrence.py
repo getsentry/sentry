@@ -14,7 +14,7 @@ class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):  # type: ignor
 
     def test_level_default(self) -> None:
         occurrence_data = self.build_occurrence_data()
-        del occurrence_data["level"]
+        occurrence_data["level"] = None
         occurrence = IssueOccurrence.from_dict(occurrence_data)
         assert occurrence.level == DEFAULT_LEVEL
 
