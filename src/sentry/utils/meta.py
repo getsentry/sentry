@@ -6,9 +6,9 @@ RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 
 class Remark(TypedDict):
     rule_id: str
-    ty: RemarkType
-    range_start: Optional[int]
-    range_end: Optional[int]
+    type: RemarkType
+    range_start: Optional[bytes]
+    range_end: Optional[bytes]
 
 
 class Meta:
@@ -174,7 +174,7 @@ class Meta:
         if "rem" not in meta or meta["rem"] is None:
             meta["rem"] = []
 
-        rem_list: List[Union[str, int]] = [rem["rule_id"], rem["ty"]]
+        rem_list: List[Union[str, int]] = [rem["rule_id"], rem["type"]]
 
         range_start = rem.get("range_start")
         if range_start is not None:
