@@ -1,5 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from unittest.mock import patch
 
 from sentry.issues.grouptype import (
@@ -102,7 +103,7 @@ class GroupPolicyTest(TestCase):  # type: ignore
                     feature="organizations:performance-slow-db-issue",
                     general_access=NoiseConfig(
                         ignore_limit=100,
-                        expiry_time=60,
+                        expiry_time=timedelta(minutes=60),
                     ),
                 )
 
@@ -116,19 +117,19 @@ class GroupPolicyTest(TestCase):  # type: ignore
                     feature="organizations:performance-file-io-main-thread-detector",
                     general_access=NoiseConfig(
                         ignore_limit=10,
-                        expiry_time=600,
+                        expiry_time=timedelta(minutes=600),
                     ),
                 )
 
             noise_config_1 = get_noise_config(TestGroupType1, self.org)
             assert noise_config_1 is not None
             assert noise_config_1.ignore_limit == 100
-            assert noise_config_1.expiry_time == 60
+            assert noise_config_1.expiry_time == timedelta(minutes=60)
 
             noise_config_2 = get_noise_config(TestGroupType2, self.org)
             assert noise_config_2 is not None
             assert noise_config_2.ignore_limit == 10
-            assert noise_config_2.expiry_time == 600
+            assert noise_config_2.expiry_time == timedelta(minutes=600)
 
     def test_default_noise_config(self) -> None:
         with patch.dict(_group_type_registry, {}, clear=True):
@@ -263,11 +264,11 @@ class GroupPolicyTest(TestCase):  # type: ignore
                     feature="organizations:performance-issues-compressed-assets-detector",
                     early_access=NoiseConfig(
                         ignore_limit=10,
-                        expiry_time=60,
+                        expiry_time=timedelta(minutes=60),
                     ),
                     general_access=NoiseConfig(
                         ignore_limit=10,
-                        expiry_time=600,
+                        expiry_time=timedelta(minutes=600),
                     ),
                 )
 
@@ -285,11 +286,11 @@ class GroupPolicyTest(TestCase):  # type: ignore
                         feature="organizations:performance-issues-compressed-assets-detector",
                         early_access=NoiseConfig(
                             ignore_limit=10,
-                            expiry_time=60,
+                            expiry_time=timedelta(minutes=60),
                         ),
                         general_access=NoiseConfig(
                             ignore_limit=10,
-                            expiry_time=600,
+                            expiry_time=timedelta(minutes=600),
                         ),
                     ),
                 )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
 
@@ -29,13 +30,13 @@ _group_type_registry: Dict[int, Type[GroupType]] = {}
 _slug_lookup: Dict[str, Type[GroupType]] = {}
 _category_lookup: Dict[int, Set[int]] = defaultdict(set)
 DEFAULT_IGNORE_LIMIT: int = 3
-DEFAULT_EXPIRY_TIME: int = 60 * 60 * 24
+DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
 
 
 @dataclass(frozen=True)
 class NoiseConfig:
     ignore_limit: int = DEFAULT_IGNORE_LIMIT
-    expiry_time: int = DEFAULT_EXPIRY_TIME
+    expiry_time: timedelta = DEFAULT_EXPIRY_TIME
 
 
 @dataclass(frozen=True)
@@ -85,12 +86,13 @@ class GroupType:
             if group_policy.limited_access:
                 prev_ignore_limit_ratio = (
                     group_policy.limited_access.ignore_limit
-                    / group_policy.limited_access.expiry_time
+                    / group_policy.limited_access.expiry_time.total_seconds()
                 )
 
             if group_policy.early_access:
                 early_access_ratio = (
-                    group_policy.early_access.ignore_limit / group_policy.early_access.expiry_time
+                    group_policy.early_access.ignore_limit
+                    / group_policy.early_access.expiry_time.total_seconds()
                 )
                 if early_access_ratio < prev_ignore_limit_ratio:
                     raise ValueError(
@@ -99,7 +101,8 @@ class GroupType:
                 prev_ignore_limit_ratio = early_access_ratio
 
             general_access_ratio = (
-                group_policy.general_access.ignore_limit / group_policy.general_access.expiry_time
+                group_policy.general_access.ignore_limit
+                / group_policy.general_access.expiry_time.total_seconds()
             )
             if general_access_ratio < prev_ignore_limit_ratio:
                 raise ValueError(
@@ -307,7 +310,7 @@ def should_create_group(
     grouphash: str,
     grouptype: GroupType,
     ignore_limit: int,
-    expiry_time: int,
+    expiry_time: timedelta,
     project: Project,
 ) -> bool:
     key = f"grouphash:{grouphash}:{project.id}"
@@ -330,5 +333,5 @@ def should_create_group(
         client.delete(grouphash)
         return True
     else:
-        client.expire(key, expiry_time)
+        client.expire(key, expiry_time.total_seconds())
         return False
