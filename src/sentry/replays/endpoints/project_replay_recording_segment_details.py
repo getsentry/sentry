@@ -7,10 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_filename
-from sentry.replays.models import ReplayRecordingSegment
-from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
 
 
@@ -24,18 +21,22 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        try:
-            segment = fetch_segment_metadata(project.id, replay_id, segment_id)
-            if not segment:
-                raise ReplayRecordingSegment.DoesNotExist
-        except ReplayRecordingSegment.DoesNotExist:
+        segment = fetch_segment_metadata(project.id, replay_id, segment_id)
+        if not segment:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
         if request.GET.get("download") is not None:
             return self.download(segment)
         else:
             return self.respond(
-                {"data": serialize(segment, request.user, ReplayRecordingSegmentSerializer())}
+                {
+                    "data": {
+                        "replayId": segment.replay_id,
+                        "segmentId": segment.segment_id,
+                        "projectId": str(segment.project_id),
+                        "dateAdded": segment.date_added,
+                    }
+                }
             )
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
