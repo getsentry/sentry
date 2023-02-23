@@ -17,6 +17,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
 
@@ -89,7 +90,8 @@ class Activity(Model):
     type = BoundedPositiveIntegerField(choices=CHOICES)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    # user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
 

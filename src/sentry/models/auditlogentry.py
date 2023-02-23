@@ -36,7 +36,7 @@ def format_scim_token_actor_name(actor):
 class AuditLogEntry(Model):
     __include_in_export__ = False
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="SET_NULL")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)
     # if the entry was created via a user
     actor = FlexibleForeignKey(
