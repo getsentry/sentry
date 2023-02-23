@@ -700,7 +700,7 @@ class Fetcher:
     in file fetching.
     """
 
-    def __init__(self, project, release, dist, allow_scraping):
+    def __init__(self, project=None, release=None, dist=None, allow_scraping=True):
         self.project = project
         self.release = release
         self.dist = dist
@@ -923,14 +923,20 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 date = timestamp and datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
                 self.dist = self.release.add_dist(self.data["dist"], date)
 
-        self.fetcher = Fetcher(self.project, self.release, self.dist, self.allow_scraping)
+        # We initialize the fetcher during preprocessing, so that we can start fetching files during source cache
+        # population.
+        self._initialize_fetcher()
 
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
         ):
-            self.populate_sources_cache(frames)
+            self.populate_source_cache(frames)
 
         return True
+
+    def _initialize_fetcher(self):
+        # We initialize the fetcher once all data has been loaded.
+        self.fetcher = Fetcher(self.project, self.release, self.dist, self.allow_scraping)
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
@@ -1273,8 +1279,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 result = self.fetcher.fetch_by_url(url)
         except http.BadSource as exc:
             if not fetch_error_should_be_silienced(exc.data, url):
-                self.fetch_by_url_errors.setdefault(url, [])
-                self.fetch_by_url_errors[url].append(exc.data)
+                self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
             return None
@@ -1373,8 +1378,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # working, if that's the case). If they're not looking for it to be
             # mapped, then they shouldn't be uploading the source file in the
             # first place.
-            self.fetch_by_url_errors.setdefault(url, [])
-            self.fetch_by_url_errors[url].append(exc.data)
+            self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
             return None
         else:
             self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_view
@@ -1409,7 +1413,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             logger.debug(str(exc), exc_info=True)
             raise UnparseableSourcemap({"url": http.expose_url(url)})
 
-    def populate_sources_cache(self, frames):
+    def populate_source_cache(self, frames):
         """
         Fetch all sources that we know are required (being referenced directly
         in frames).
