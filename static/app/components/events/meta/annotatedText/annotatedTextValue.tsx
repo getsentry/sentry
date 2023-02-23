@@ -22,6 +22,7 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
           if (chunk.type === 'redaction') {
             return (
               <Tooltip
+                skipWrapper
                 title={getTooltipText({rule_id: chunk.rule_id, remark: chunk.remark})}
                 key={index}
               >
@@ -56,7 +57,5 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
 }
 
 const ChunksSpan = styled('span')`
-  span {
-    display: inline;
-  }
+  word-break: break-word;
 `;

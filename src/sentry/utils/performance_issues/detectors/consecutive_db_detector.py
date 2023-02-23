@@ -181,7 +181,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         op: str = span.get("op", "") or ""
         description: str = span.get("description", "") or ""
         is_db_op = op == "db" or op.startswith("db.sql")
-        is_query = "SELECT" in description.upper()  # TODO - make this more elegant
+        is_query = description.strip().upper().startswith("SELECT")
         return is_db_op and is_query
 
     def _fingerprint(self) -> str:

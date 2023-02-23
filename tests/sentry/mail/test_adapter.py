@@ -308,7 +308,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Parent Span",
             "django.view - index",
             "Repeating Spans (10)",
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author`",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_autho...",
         ]
         for checked_value in checked_values:
             assert (
