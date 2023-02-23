@@ -163,7 +163,7 @@ def protect_hybrid_cloud_deletions(request):
     logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
     create Outbox objects in the same transaction that matches what you delete.
     """
-    if "django_db_blocker" not in request.fixturenames:
+    if not ({"django_db_blocker", "django_db_setup"} & set(request.fixturenames)):
         yield
         return
 
