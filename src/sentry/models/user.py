@@ -22,7 +22,7 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import test_psql_role_override
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import LostPasswordHash
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -198,7 +198,7 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with transaction.atomic(), test_psql_role_override("postgres"):
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()

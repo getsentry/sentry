@@ -11,7 +11,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager import BaseManager
-from sentry.db.postgres.roles import test_psql_role_override
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_orgs
 from sentry.signals import integration_added
@@ -59,7 +59,7 @@ class Integration(DefaultFieldsModel):
         return integrations.get(self.provider)
 
     def delete(self, *args, **kwds):
-        with transaction.atomic(), test_psql_role_override("postgres"):
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             for outbox in Integration.outboxes_for_update(self.id):
                 outbox.save()
             return super().delete(*args, **kwds)

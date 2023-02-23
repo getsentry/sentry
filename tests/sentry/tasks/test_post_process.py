@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.processing import event_processing_store
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
@@ -1106,7 +1107,8 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        Integration.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Integration.objects.all().delete()
         integration = Integration.objects.create(provider="bitbucket")
         integration.add_organization(self.organization)
         with self.tasks():

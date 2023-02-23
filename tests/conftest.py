@@ -169,11 +169,11 @@ def protect_hybrid_cloud_deletions(request):
     try:
         with get_connection().cursor() as conn:
             conn.execute("SET ROLE 'postgres'")
-    except RuntimeError as e:
+    except (RuntimeError, AssertionError) as e:
         # Tests that do not have access to the database should pass through.
         # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
         # fixture name that fully covered all cases of database access, so this approach is "try and then fail".
-        if "Database access not allowed" in str(e):
+        if "Database access not allowed" in str(e) or "Database queries to" in str(e):
             yield
             return
 
