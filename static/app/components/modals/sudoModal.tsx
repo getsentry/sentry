@@ -168,6 +168,15 @@ class SudoModal extends Component<Props, State> {
     }
   };
 
+  getAuthLoginPath(): string {
+    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+    const {superuserUrl} = window.__initialData.links;
+    if (window.__initialData?.customerDomain && superuserUrl) {
+      return `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
+    }
+    return authLoginPath;
+  }
+
   handleLogout = async () => {
     const {api} = this.props;
     try {
@@ -175,14 +184,7 @@ class SudoModal extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
-    const {superuserUrl} = window.__initialData.links;
-    if (window.__initialData?.customerDomain && superuserUrl) {
-      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
-      window.location.assign(redirectURL);
-      return;
-    }
-    window.location.assign(authLoginPath);
+    window.location.assign(this.getAuthLoginPath());
   };
 
   async getAuthenticators() {
@@ -256,10 +258,7 @@ class SudoModal extends Component<Props, State> {
               )}
             </Form>
           ) : (
-            <Button
-              priority="primary"
-              href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
-            >
+            <Button priority="primary" href={this.getAuthLoginPath()}>
               {t('Continue')}
             </Button>
           )}
