@@ -8,12 +8,10 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
 
 from django.conf import settings
 
-from sentry import features
-from sentry.features.exceptions import FeatureNotRegistered
 from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models import Project
     from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
 
@@ -40,21 +38,13 @@ class NoiseConfig:
 
 
 @dataclass(frozen=True)
-class GroupPolicy:
-    feature: Optional[str] = None  # should be in the format "organizations:name-of-feature"
-    limited_access: Optional[NoiseConfig] = None
-    early_access: Optional[NoiseConfig] = None
-    general_access: NoiseConfig = NoiseConfig()
-
-
-@dataclass(frozen=True)
 class GroupType:
+
     type_id: int
     slug: str
     description: str
     category: int
-    ignore_limit: int = DEFAULT_IGNORE_LIMIT
-    group_policy: Optional[GroupPolicy] = None
+    noise_config: Optional[NoiseConfig] = None
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -70,64 +60,6 @@ class GroupType:
         valid_categories = [category.value for category in GroupCategory]
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
-
-        # ensure that noise config ignore limits only increase with rollouts
-        # use a ratio of ignore limit to expiry time to allow for greater flexibility
-        if self.group_policy:
-            group_policy = self.group_policy
-
-            if group_policy.feature:
-                try:
-                    features.get(group_policy.feature, None)
-                except FeatureNotRegistered:
-                    raise ValueError(f"Feature {group_policy.feature} is not registered")
-
-            prev_ignore_limit_ratio = 0.0
-            if group_policy.limited_access:
-                prev_ignore_limit_ratio = (
-                    group_policy.limited_access.ignore_limit
-                    / group_policy.limited_access.expiry_time.total_seconds()
-                )
-
-            if group_policy.early_access:
-                early_access_ratio = (
-                    group_policy.early_access.ignore_limit
-                    / group_policy.early_access.expiry_time.total_seconds()
-                )
-                if early_access_ratio < prev_ignore_limit_ratio:
-                    raise ValueError(
-                        "Early Access ignore limit ratio must be greater than Limited Access ignore limit ratio"
-                    )
-                prev_ignore_limit_ratio = early_access_ratio
-
-            general_access_ratio = (
-                group_policy.general_access.ignore_limit
-                / group_policy.general_access.expiry_time.total_seconds()
-            )
-            if general_access_ratio < prev_ignore_limit_ratio:
-                raise ValueError(
-                    "General Access ignore limit ratio must be greater than Early Access and Limited Access ignore limit ratios"
-                )
-
-
-def get_noise_config(
-    grouptype: Type[GroupType], organization: Organization
-) -> Optional[NoiseConfig]:
-    group_policy = grouptype.group_policy
-    if not group_policy:
-        return None
-
-    if (
-        group_policy.feature
-        and features.has(group_policy.feature, organization, actor=None)
-        and group_policy.limited_access
-    ):
-        return group_policy.limited_access
-
-    if organization.flags.early_adopter and group_policy.early_access:
-        return group_policy.early_access
-
-    return group_policy.general_access
 
 
 def get_all_group_type_ids() -> Set[int]:
@@ -156,93 +88,82 @@ class ErrorGroupType(GroupType):
     slug = "error"
     description = "Error"
     category = GroupCategory.ERROR.value
-    ignore_limit = 0
+
+
+# used as an additional superclass for Performance GroupType defaults
+class PerformanceGroupTypeDefaults:
+    noise_config = NoiseConfig()
 
 
 @dataclass(frozen=True)
-class PerformanceSlowDBQueryGroupType(GroupType):
+class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1001
     slug = "performance_slow_db_query"
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
-    ignore_limit = 100
-    group_policy = GroupPolicy(
-        feature="organizations:performance-slow-db-issue",
-        general_access=NoiseConfig(ignore_limit=100),
-    )
+    noise_config = NoiseConfig(ignore_limit=100)
 
 
 @dataclass(frozen=True)
-class PerformanceRenderBlockingAssetSpanGroupType(GroupType):
+class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1004
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
-    group_policy = GroupPolicy(
-        feature="organizations:performance-issues-render-blocking-assets-detector"
-    )
+    # group_policy = GroupPolicy(
+    #     feature="organizations:performance-issues-render-blocking-assets-detector"
+    # )
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneGroupType(GroupType):
+class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1006
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
-    group_policy = GroupPolicy(feature="performance.issues.n_plus_one_db")
+    # group_policy = GroupPolicy(feature="performance.issues.n_plus_one_db")
 
 
 @dataclass(frozen=True)
-class PerformanceConsecutiveDBQueriesGroupType(GroupType):
+class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1007
     slug = "performance_consecutive_db_queries"
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
-    ignore_limit = 15
-    group_policy = GroupPolicy(
-        feature="organizations:performance-consecutive-db-issue",
-        general_access=NoiseConfig(ignore_limit=15),
-    )
+    noise_config = NoiseConfig(ignore_limit=15)
 
 
 @dataclass(frozen=True)
-class PerformanceFileIOMainThreadGroupType(GroupType):
+class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1008
     slug = "performance_file_io_main_thread"
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
-    group_policy = GroupPolicy(feature="organizations:performance-file-io-main-thread-detector")
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneAPICallsGroupType(GroupType):
+class PerformanceNPlusOneAPICallsGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1010
     slug = "performance_n_plus_one_api_calls"
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
-    group_policy = GroupPolicy(feature="organizations:performance-n-plus-one-api-calls-detector")
 
 
 @dataclass(frozen=True)
-class PerformanceMNPlusOneDBQueriesGroupType(GroupType):
+class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1011
     slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
-    group_policy = GroupPolicy(feature="organizations:performance-issues-m-n-plus-one-db-detector")
 
 
 @dataclass(frozen=True)
-class PerformanceUncompressedAssetsGroupType(GroupType):
+class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1012
     slug = "performance_uncompressed_assets"
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
-    ignore_limit = 100
-    group_policy = GroupPolicy(
-        feature="organizations:performance-issues-compressed-assets-detector",
-        general_access=NoiseConfig(ignore_limit=100),
-    )
+    noise_config = NoiseConfig(ignore_limit=100)
 
 
 @dataclass(frozen=True)
@@ -284,12 +205,12 @@ def reduce_noise(
 ) -> Set[str]:
 
     groups_to_ignore = set()
-    cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get("cluster", "default")
+    cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
     client = redis.redis_clusters.get(cluster_key)
 
     for new_grouphash in new_grouphashes:
         group_type = performance_problems_by_hash[new_grouphash].type
-        noise_config = get_noise_config(group_type, project.organization)
+        noise_config = group_type.noise_config
         if not noise_config:
             continue
 
@@ -318,8 +239,6 @@ def should_create_group(
 
     over_threshold = times_seen >= ignore_limit
 
-    # TODO also log access level of org
-
     metrics.incr(
         "group_policy.should_create_group.threshold",
         tags={
@@ -333,5 +252,5 @@ def should_create_group(
         client.delete(grouphash)
         return True
     else:
-        client.expire(key, expiry_time.total_seconds())
+        client.expire(key, int(expiry_time.total_seconds()))
         return False
