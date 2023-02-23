@@ -438,7 +438,7 @@ class OrganizationMember(Model):
         return list(all_org_roles)
 
     def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
-        return roles.get_sorted_organization_roles(self.get_all_org_roles())
+        return organization_roles.get_sorted_roles(self.get_all_org_roles())
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -458,7 +458,7 @@ class OrganizationMember(Model):
         # members cannot invite roles higher than their own
         all_org_roles = self.get_all_org_roles()
         if not len(set(all_org_roles) & {r.id for r in allowed_roles}):
-            highest_role = roles.get_sorted_organization_roles(all_org_roles)[0].id
+            highest_role = organization_roles.get_sorted_roles(all_org_roles)[0].id
             raise UnableToAcceptMemberInvitationException(
                 f"You do not have permission to approve a member invitation with the role {highest_role}."
             )

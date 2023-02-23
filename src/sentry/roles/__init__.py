@@ -9,7 +9,6 @@ default_manager = RoleManager(
 organization_roles = default_manager.organization_roles
 team_roles = default_manager.team_roles
 get_minimum_team_role = default_manager.get_minimum_team_role
-get_sorted_organization_roles = default_manager.get_sorted_organization_roles
 
 # Deprecated: Prefer calling methods on organization_roles
 can_manage = default_manager.can_manage

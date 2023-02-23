@@ -39,7 +39,7 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
-from sentry.roles import team_roles
+from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -115,7 +115,7 @@ def get_member_orgs_and_roles(org_ids: Set[int], user_id: int) -> Mapping[int, S
         orgs_and_roles[org_id].add(org_role)
 
     return {
-        org: [r.id for r in roles.get_sorted_organization_roles(org_roles)]
+        org: [r.id for r in organization_roles.get_sorted_roles(org_roles)]
         for org, org_roles in orgs_and_roles.items()
     }
 
