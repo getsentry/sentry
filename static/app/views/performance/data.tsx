@@ -18,7 +18,7 @@ import {
   vitalNameFromLocation,
 } from './vitalDetail/utils';
 
-export const DEFAULT_STATS_PERIOD = '24h';
+export const DEFAULT_STATS_PERIOD = '7d';
 export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
@@ -38,7 +38,7 @@ const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
   if (organization?.features?.includes('performance-landing-page-stats-period')) {
-    return '7d';
+    return '14d';
   }
   return DEFAULT_STATS_PERIOD;
 };

@@ -35,6 +35,10 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
+        # TODO: Remove `for_group` check once performance issues are moved to the issue platform
+        if hasattr(event, "for_group") and event.group:
+            event = event.for_group(event.group)
+
         data = serialize(event)
         data["projectSlug"] = project_slug
 

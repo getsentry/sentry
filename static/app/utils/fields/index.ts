@@ -974,7 +974,7 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
-  // FieldKey.ISSUE,
+  FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,

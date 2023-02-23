@@ -49,46 +49,19 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
-export function getCoverageColorClass(
+export function getLineCoverage(
   lines: [number, string][],
-  lineCov: LineCoverage[],
-  activeLineNo: number
-): [Array<string>, boolean] {
-  const lineCoverage = keyBy(lineCov, 0);
-  let hasCoverage = false;
-  const lineColors = lines.map(([lineNo]) => {
-    const coverage = lineCoverage[lineNo]
-      ? lineCoverage[lineNo][1]
-      : Coverage.NOT_APPLICABLE;
+  lineCov: LineCoverage[]
+): [Array<Coverage | undefined>, boolean] {
+  const keyedCoverage = keyBy(lineCov, 0);
+  const lineCoverage = lines.map<Coverage | undefined>(
+    ([lineNo]) => keyedCoverage[lineNo]?.[1]
+  );
+  const hasCoverage = lineCoverage.some(
+    coverage => coverage !== Coverage.NOT_APPLICABLE && coverage !== undefined
+  );
 
-    let color = '';
-    switch (coverage) {
-      case Coverage.COVERED:
-        color = 'covered';
-        break;
-      case Coverage.NOT_COVERED:
-        color = 'uncovered';
-        break;
-      case Coverage.PARTIAL:
-        color = 'partial';
-        break;
-      case Coverage.NOT_APPLICABLE:
-      // fallthrough
-      default:
-        break;
-    }
-
-    if (color !== '') {
-      hasCoverage = true;
-    }
-
-    if (activeLineNo !== lineNo) {
-      return color;
-    }
-    return color === '' ? 'active' : `active ${color}`;
-  });
-
-  return [lineColors, hasCoverage];
+  return [lineCoverage, hasCoverage];
 }
 
 const Context = ({
@@ -131,16 +104,20 @@ const Context = ({
     }
   );
 
+  /**
+   * frame.lineNo is the highlighted frame in the middle of the context
+   */
+  const activeLineNumber = frame.lineNo;
   const contextLines = isExpanded
     ? frame?.context
-    : frame?.context?.filter(l => l[0] === frame.lineNo);
+    : frame?.context?.filter(l => l[0] === activeLineNumber);
 
   const hasCoverageData =
     !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
-  const [lineColors = [], hasCoverage] =
-    hasCoverageData && data!.codecov?.lineCoverage && !!frame.lineNo! && contextLines
-      ? getCoverageColorClass(contextLines, data!.codecov?.lineCoverage, frame.lineNo)
+  const [lineCoverage = [], hasCoverage] =
+    hasCoverageData && data!.codecov?.lineCoverage && !!activeLineNumber! && contextLines
+      ? getLineCoverage(contextLines, data!.codecov?.lineCoverage)
       : [];
 
   useRouteAnalyticsParams(
@@ -181,16 +158,16 @@ const Context = ({
 
       {frame.context &&
         contextLines.map((line, index) => {
-          const isActive = frame.lineNo === line[0];
+          const isActive = activeLineNumber === line[0];
           const hasComponents = isActive && components.length > 0;
           const showStacktraceLink = hasStacktraceLink && isActive;
 
           return (
-            <StyledContextLine
+            <ContextLine
               key={index}
               line={line}
               isActive={isActive}
-              colorClass={lineColors[index] ?? ''}
+              coverage={lineCoverage[index]}
             >
               {hasComponents && (
                 <ErrorBoundary mini>
@@ -212,7 +189,7 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-            </StyledContextLine>
+            </ContextLine>
           );
         })}
 
@@ -245,67 +222,6 @@ const StyledClippedBox = styled(ClippedBox)`
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${space(1)};
-`;
-
-const StyledContextLine = styled(ContextLine)`
-  background: inherit;
-  z-index: 1000;
-  list-style: none;
-
-  &::marker {
-    content: none;
-  }
-
-  &:before {
-    content: counter(frame);
-    counter-increment: frame;
-    text-align: center;
-    padding-left: ${space(3)};
-    padding-right: ${space(1.5)};
-    margin-right: ${space(1.5)};
-    display: inline-block;
-    height: 24px;
-    background: transparent;
-    z-index: 1;
-    min-width: 58px;
-    border-right-style: solid;
-    border-right-color: transparent;
-  }
-
-  &.covered:before {
-    background: ${p => p.theme.green100};
-    border-right-color: ${p => p.theme.green300};
-  }
-
-  &.uncovered:before {
-    background: ${p => p.theme.red100};
-  }
-
-  &.partial:before {
-    background: ${p => p.theme.yellow100};
-    border-right-style: dashed;
-    border-right-color: ${p => p.theme.yellow300};
-  }
-
-  &.active {
-    background: ${p => p.theme.stacktraceActiveBackground};
-    color: ${p => p.theme.stacktraceActiveText};
-  }
-
-  &.active.partial:before {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.yellow200};
-  }
-
-  &.active.covered:before {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.green200};
-  }
-
-  &.active.uncovered:before {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.red200};
-  }
 `;
 
 const Wrapper = styled('ol')<{startLineNo: number}>`
