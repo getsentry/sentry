@@ -25,7 +25,7 @@ from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.models import Organization, Project
 from sentry.utils import json, metrics
@@ -41,9 +41,6 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
-
-
-DEFAULT_LEVEL = "error"
 
 
 def get_occurrences_ingest_consumer(
