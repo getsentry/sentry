@@ -21,13 +21,17 @@ def import_(src):
             for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
                 if obj.object._meta.app_label not in EXCLUDED_APPS:
                     obj.save()
-    # There are two integrity error exceptions we handle here.
-    # 1. Foreign key check failure
-    # 2. Duplicate key violation
-    # For both, let's display a warning before reraising error.
+    # For all database integrity errors, let's warn users to follow our
+    # recommended backup/restore workflow before reraising exception. Most of
+    # these errors come from restoring on a different version of Sentry or not restoring
+    # on a clean install.
     except IntegrityError as e:
         click.echo(
-            ">> Are you restoring from a clean database? If not, we highly recommend doing so.",
+            ">> We highly recommend restoring from a backup from the same version of Sentry onto a clean database",
+            err=True,
+        )
+        click.echo(
+            ">> If you're doing both already, file a bug report, it's probably our fault",
             err=True,
         )
         raise (e)
