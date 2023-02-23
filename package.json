@@ -151,6 +151,7 @@
     "reflux": "0.4.1",
     "screenfull": "^6.0.2",
     "scroll-to-element": "^2.0.0",
+    "sentry-javascript": "github:getsentry/sentry-javascript#e38c5a106",
     "sprintf-js": "1.0.3",
     "style-loader": "^3.3.1",
     "ts-node": "^10.9.1",
