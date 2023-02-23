@@ -262,6 +262,21 @@ class UpdateMonitorTest(MonitorTestCase):
 
         assert resp.status_code == 400
 
+    def test_cannot_change_project(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor.guid)
+            self.login_as(user=self.user)
+
+            project2 = self.create_project()
+            resp = self.client.put(path, data={"project": project2.slug})
+
+            assert resp.status_code == 400, resp.content
+            assert (
+                resp.data["detail"]["message"]
+                == "existing monitors may not be moved between projects"
+            ), resp.content
+
 
 @region_silo_test()
 class DeleteMonitorTest(MonitorTestCase):

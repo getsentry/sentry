@@ -8,11 +8,13 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
+from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitor import MonitorSerializerResponse
 from sentry.api.validators import MonitorValidator
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOTFOUND,
     RESPONSE_UNAUTHORIZED,
@@ -61,6 +63,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         request=MonitorValidator,
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
@@ -105,7 +108,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         if "config" in result:
             params["config"] = result["config"]
         if "project" in result and result["project"].id != monitor.project_id:
-            params["project_id"] = result["project"].id
+            raise ParameterValidationError("existing monitors may not be moved between projects")
 
         if params:
             monitor.update(**params)
