@@ -84,15 +84,17 @@ def adjust_sample_rates(
     ds_projects = model.adjust_sample_rates()
 
     redis_client = get_redis_client_for_ds()
-    for ds_project in ds_projects:
-        # hash, key, value
-        cache_key = _generate_cache_key(org_id=org_id)
-        redis_client.hset(
-            cache_key,
-            ds_project.id,
-            ds_project.new_sample_rate,  # redis stores is as string
-        )
-        redis_client.pexpire(cache_key, CACHE_KEY_TTL)
-        schedule_invalidate_project_config(
-            project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
-        )
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for ds_project in ds_projects:
+            # hash, key, value
+            cache_key = _generate_cache_key(org_id=org_id)
+            pipeline.hset(
+                cache_key,
+                ds_project.id,
+                ds_project.new_sample_rate,  # redis stores is as string
+            )
+            pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+            schedule_invalidate_project_config(
+                project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
+            )
+        pipeline.execute()
