@@ -46,7 +46,7 @@ class DatabaseBackedUserService(
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> List[RpcUser]:
-        qs = User.objects
+        qs = self._base_query()
 
         if is_active is not None:
             qs = qs.filter(is_active=is_active)
@@ -161,17 +161,17 @@ def serialize_rpc_user(user: User) -> RpcUser:
 
     # And process the _base_query special data additions
     permissions: FrozenSet[str] = frozenset({})
-    if hasattr(user, "permissions") and user.permissions is not None:
+    if user.permissions is not None:
         permissions = frozenset(user.permissions)
     args["permissions"] = permissions
 
     roles: FrozenSet[str] = frozenset({})
-    if hasattr(user, "roles") and user.roles is not None:
+    if user.roles is not None:
         roles = frozenset(flatten(user.roles))
     args["roles"] = roles
 
     useremails: FrozenSet[RpcUserEmail] = frozenset({})
-    if hasattr(user, "useremails") and user.useremails is not None:
+    if user.useremails is not None:
         useremails = frozenset(
             {
                 RpcUserEmail(
@@ -192,8 +192,9 @@ def serialize_rpc_user(user: User) -> RpcUser:
             avatar_type=avatar.avatar_type,
         )
     args["avatar"] = avatar
-    if hasattr(user, "authenticators") and user.authenticators is not None:
-        args["authenticators"] = {
+    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
+    if user.authenticators is not None:
+        authenticators = frozenset(
             RpcAuthenticator(
                 id=a["id"],
                 user_id=a["user_id"],
@@ -203,7 +204,8 @@ def serialize_rpc_user(user: User) -> RpcUser:
                 config=a["config"],
             )
             for a in user.authenticators
-        }
+        )
+    args["authenticators"] = authenticators
 
     return RpcUser(**args)
 
