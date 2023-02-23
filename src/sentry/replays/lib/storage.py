@@ -140,14 +140,18 @@ class StorageBlob(Blob):
         return make_filename(segment)
 
     def _make_storage_options(self) -> Optional[dict]:
-        backend = options.get("replays.storage.backend")
-        if not backend:
-            return None  # If no custom backend specified fall back to the storage default.
-
-        return {"backend": backend, "options": options.get("replays.storage.options")}
+        backend = options.get("replay.storage.backend")
+        if backend:
+            return {"backend": backend, "options": options.get("replay.storage.options")}
 
 
 def make_filename(segment: RecordingSegmentStorageMeta) -> str:
+    """Return a deterministic segment filename.
+
+    Filename prefixes have special ordering requirements.  The first prefix "retention days" is
+    used for managing TTLs.  The project_id and replay_id prefixes are used for managing user
+    and GDPR deletions.
+    """
     return "{}/{}/{}/{}".format(
         segment.retention_days,
         segment.project_id,
@@ -157,16 +161,10 @@ def make_filename(segment: RecordingSegmentStorageMeta) -> str:
 
 
 def make_storage_driver(organization_id: int) -> Union[FilestoreBlob, StorageBlob]:
-    driver_name = settings.SENTRY_REPLAYS_BLOB_DRIVER_ORGS.get(
-        organization_id, settings.SENTRY_REPLAYS_BLOB_DRIVER
-    )
-    return make_storage_driver_from_name(driver_name)
-
-
-def make_storage_driver_from_name(driver_name: str) -> Union[FilestoreBlob, StorageBlob]:
-    if driver_name == "storage":
+    """Return a storage driver instance."""
+    if organization_id % 100 > options.get("replays.storage.direct-storage-sample-rate"):
         return StorageBlob()
-    elif driver_name == "filestore":
-        return FilestoreBlob()
+    elif organization_id in settings.SENTRY_REPLAYS_STORAGE_ALLOWLIST:
+        return StorageBlob()
     else:
-        raise ValueError("Invalid driver name specified.")
+        return FilestoreBlob()
