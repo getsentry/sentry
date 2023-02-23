@@ -30,7 +30,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         replay_id=replay_id, project_id=project_id
     ).all()
     for segment in segments:
-        segment.delete()
+        segment.delete()  # Three queries + one request to the message broker
 
 
 def archive_replay(project_id: int, replay_id: str) -> None:
