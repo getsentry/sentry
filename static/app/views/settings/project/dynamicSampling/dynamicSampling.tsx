@@ -48,8 +48,8 @@ export const knowDynamicSamplingBiases = {
     label: t('Prioritize key transactions'),
     help: t('Captures more of your most important (starred) transactions'),
   },
-  [DynamicSamplingBiasType.BOOST_TRANSACTION_NAMES]: {
-    label: t('Prioritize transaction names'),
+  [DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS]: {
+    label: t('Prioritize low-volume transactions'),
     help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
   },
   [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
@@ -156,10 +156,10 @@ export function DynamicSampling({project}: Props) {
                 return null;
               }
 
-              // "Prioritize Transaction Names" is only available to orgs with the feature flag
+              // "Prioritize low-volume transactions" is only available to orgs with the feature flag
               if (
                 !hasTransactionNamePriorityFlag &&
-                key === DynamicSamplingBiasType.BOOST_TRANSACTION_NAMES
+                key === DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS
               ) {
                 return null;
               }

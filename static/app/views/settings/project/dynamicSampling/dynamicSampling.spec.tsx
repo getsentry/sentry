@@ -81,9 +81,9 @@ describe('Dynamic Sampling', function () {
     expect(ignoreHealthChecks).toBeEnabled();
     expect(ignoreHealthChecks).toBeChecked();
 
-    // Prioritize transaction names is not available
+    // Prioritize low-volume transactions is not available
     expect(
-      screen.queryByRole('checkbox', {name: 'Prioritize transaction names'})
+      screen.queryByRole('checkbox', {name: 'Prioritize low-volume transactions'})
     ).not.toBeInTheDocument();
   });
 
@@ -180,14 +180,14 @@ describe('Dynamic Sampling', function () {
     );
   });
 
-  it('render and toggle "Prioritize transaction names" option', function () {
+  it('render and toggle "Prioritize low-volume transactions" option', function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
         TestStubs.Project({
           dynamicSamplingBiases: [
             ...dynamicSamplingBiases,
-            {id: DynamicSamplingBiasType.BOOST_TRANSACTION_NAMES, active: false},
+            {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
           ],
         }),
       ],
@@ -202,13 +202,15 @@ describe('Dynamic Sampling', function () {
     render(<DynamicSampling project={project} />, {organization});
 
     const prioritizeTransactionNames = screen.getByRole('checkbox', {
-      name: 'Prioritize transaction names',
+      name: 'Prioritize low-volume transactions',
     });
 
     expect(prioritizeTransactionNames).toBeEnabled();
     expect(prioritizeTransactionNames).not.toBeChecked();
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize transaction names'}));
+    userEvent.click(
+      screen.getByRole('checkbox', {name: 'Prioritize low-volume transactions'})
+    );
 
     expect(mockRequests.projectDetails).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,
@@ -219,7 +221,7 @@ describe('Dynamic Sampling', function () {
             {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
             {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
             {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
-            {id: DynamicSamplingBiasType.BOOST_TRANSACTION_NAMES, active: true},
+            {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: true},
           ],
         },
       })
