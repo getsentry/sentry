@@ -48,7 +48,12 @@ function getFrameSuggestions(eventData?: Event) {
   // Only display in-app frames
   frames = frames.filter(frame => frame.inApp);
 
-  return uniq(frames.map(frame => frame.filename || frame.absPath || '')).filter(i => i);
+  return (
+    uniq(frames.map(frame => frame.filename || frame.absPath || ''))
+      .filter(i => i)
+      // TODO(scttcper): Remove slice and return the first result on GA streamline-targeting-context
+      .slice(0, 30)
+  );
 }
 
 function OwnershipSuggestions({
@@ -124,7 +129,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
     const hasStreamlineTargetingFeature = organization.features.includes(
       'streamline-targeting-context'
     );
-    const paths = getFrameSuggestions(eventData).slice(0, 30);
+    const paths = getFrameSuggestions(eventData);
 
     return (
       <Fragment>
