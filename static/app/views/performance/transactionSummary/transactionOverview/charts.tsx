@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -6,23 +7,16 @@ import {
   ChartContainer,
   ChartControls,
   InlineContainer,
-  SectionHeading,
-  SectionValue,
 } from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {
-  canUseMetricsInTransactionSummary,
-  getTransactionMEPParamsIfApplicable,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
@@ -78,7 +72,6 @@ type Props = {
   organization: Organization;
   totalValue: number | null;
   withoutZerofill: boolean;
-  unfilteredTotalValue?: number | null;
 };
 
 function TransactionSummaryCharts({
@@ -88,7 +81,6 @@ function TransactionSummaryCharts({
   location,
   currentFilter,
   withoutZerofill,
-  unfilteredTotalValue,
 }: Props) {
   function handleDisplayChange(value: string) {
     const display = decodeScalar(location.query.display, DisplayModes.DURATION);
@@ -167,23 +159,6 @@ function TransactionSummaryCharts({
     organization,
     location
   );
-  // For mep-incompatible displays hide event count
-  const hideTransactionCount =
-    canUseMetricsInTransactionSummary(organization) && display === DisplayModes.TREND;
-
-  // For partially-mep-compatible displays show event count as a %
-  const showTransactionCountAsPercentage =
-    canUseMetricsInTransactionSummary(organization) && display === DisplayModes.LATENCY;
-
-  function getTotalValue() {
-    if (totalValue === null || hideTransactionCount) {
-      return <Placeholder height="24px" />;
-    }
-    if (showTransactionCountAsPercentage && unfilteredTotalValue) {
-      return formatPercentage(totalValue / unfilteredTotalValue);
-    }
-    return totalValue.toLocaleString();
-  }
 
   return (
     <Panel>
@@ -199,8 +174,7 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
-            queryExtras={queryExtras}
-            totalCount={showTransactionCountAsPercentage ? totalValue : null}
+            totalCount={totalValue}
           />
         )}
         {display === DisplayModes.DURATION && (
@@ -276,13 +250,7 @@ function TransactionSummaryCharts({
         )}
       </ChartContainer>
 
-      <ChartControls>
-        <InlineContainer>
-          <SectionHeading key="total-heading">
-            {hideTransactionCount ? '' : t('Total Transactions')}
-          </SectionHeading>
-          <SectionValue key="total-value">{getTotalValue()}</SectionValue>
-        </InlineContainer>
+      <ReversedChartControls>
         <InlineContainer>
           {display === DisplayModes.TREND && (
             <OptionSelector
@@ -310,9 +278,13 @@ function TransactionSummaryCharts({
             onChange={handleDisplayChange}
           />
         </InlineContainer>
-      </ChartControls>
+      </ReversedChartControls>
     </Panel>
   );
 }
+
+const ReversedChartControls = styled(ChartControls)`
+  flex-direction: row-reverse;
+`;
 
 export default TransactionSummaryCharts;
