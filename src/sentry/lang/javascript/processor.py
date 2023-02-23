@@ -873,24 +873,23 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.fetch_count = 0
         self.sourcemaps_touched = set()
 
-        # cache holding mangled code, original code, and errors associated with
-        # each abs_path in the stacktrace
-        # self.cache = SourceCache()
+        # Cache holding the results of the fetching by url.
         self.fetch_by_url_result = {}
         self.fetch_by_url_errors = {}
 
+        # Cache holding the results of the fetching by debug id.
         self.fetch_by_debug_id_result = {}
 
+        # Cache holding the sourcemaps views indexed by either debug id or sourcemap url.
         self.debug_id_sourcemap_cache = {}
         self.sourcemap_url_sourcemap_cache = {}
 
+        # Additional caches for mapping purposes.
         self.url_aliases = {}
         self.minified_source_url_to_sourcemap_url = {}
 
+        # Component responsible for fetching the files.
         self.fetcher = None
-
-        # cache holding source URLs, corresponding source map URLs, and source map contents
-        self.sourcemaps = SourceMapCache()
 
         self.release = None
         self.dist = None
@@ -958,8 +957,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         ):
             return
 
-        errors = cache.get_errors(frame["abs_path"])
-        if errors:
+        errors = self.fetch_by_url_errors.get(frame["abs_path"])
+        if errors is not None:
             all_errors.extend(errors)
 
         # `source` is used for pre/post and `context_line` frame expansion.
@@ -1031,7 +1030,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     sourceview = self.get_or_fetch_sourceview(url=abs_path)
 
                 if sourceview is None:
-                    errors = cache.get_errors(abs_path)
+                    errors = self.fetch_by_url_errors[abs_path]
                     if errors:
                         all_errors.extend(errors)
                     else:
@@ -1260,7 +1259,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 result = self.fetcher.fetch_by_url(url)
             except http.BadSource as exc:
                 if not fetch_error_should_be_silienced(exc.data, url):
-                    self.fetch_by_url_errors[url] = exc.data
+                    self.fetch_by_url_errors.setdefault(url, [])
+                    self.fetch_by_url_errors[url].append(exc.data)
                 # either way, there's no more for us to do here, since we don't have
                 # a valid file to cache
                 return None
@@ -1354,7 +1354,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # working, if that's the case). If they're not looking for it to be
             # mapped, then they shouldn't be uploading the source file in the
             # first place.
-            self.fetch_by_url_errors[url] = exc.data
+            self.fetch_by_url_errors.setdefault(url, [])
+            self.fetch_by_url_errors[url].append(exc.data)
             return None
         else:
             with sentry_sdk.start_span(
