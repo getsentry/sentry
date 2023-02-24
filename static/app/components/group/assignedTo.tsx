@@ -196,7 +196,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
       <StyledSidebarTitle>
         {t('Assigned To')}
         {hasStreamlineTargetingFeature && (
-          <Access access={['project:write']}>
+          <Access access={['project:read']}>
             <Button
               onClick={() => {
                 openIssueOwnershipRuleModal({

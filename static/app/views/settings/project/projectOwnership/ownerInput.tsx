@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import TextArea from 'sentry/components/forms/controls/textarea';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -21,6 +23,7 @@ const defaultProps = {
 
 type Props = {
   initialText: string;
+  onCancel: () => void;
   organization: Organization;
   project: Project;
   onSave?: (text: string | null) => void;
@@ -175,37 +178,44 @@ class OwnerInput extends Component<Props, State> {
             }
           }}
         >
-          <StyledTextArea
-            aria-label={t('Ownership Rules')}
-            placeholder={
-              '#example usage\n' +
-              'path:src/example/pipeline/* person@sentry.io #infra\n' +
-              'module:com.module.name.example #sdks\n' +
-              'url:http://example.com/settings/* #product\n' +
-              'tags.sku_class:enterprise #enterprise'
-            }
-            autosize
-            monospace
-            onChange={this.handleChange}
-            disabled={disabled}
-            value={defined(text) ? text : initialText}
-            spellCheck="false"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-          />
+          <Panel>
+            <PanelHeader>{t('Ownership Rules')}</PanelHeader>
+            <PanelBody>
+              <StyledTextArea
+                aria-label={t('Ownership Rules')}
+                placeholder={
+                  '#example usage\n' +
+                  'path:src/example/pipeline/* person@sentry.io #infra\n' +
+                  'module:com.module.name.example #sdks\n' +
+                  'url:http://example.com/settings/* #product\n' +
+                  'tags.sku_class:enterprise #enterprise'
+                }
+                monospace
+                onChange={this.handleChange}
+                disabled={disabled}
+                value={defined(text) ? text : initialText}
+                spellCheck="false"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+              />
+            </PanelBody>
+          </Panel>
           <ActionBar>
             <div>{this.parseError(error)}</div>
-            <SaveButton>
+            <ButtonBar gap={1}>
+              <Button type="button" size="sm" onClick={this.props.onCancel}>
+                {t('Cancel')}
+              </Button>
               <Button
                 size="sm"
                 priority="primary"
                 onClick={this.handleUpdateOwnership}
                 disabled={disabled || !hasChanges}
               >
-                {t('Save Changes')}
+                {t('Save')}
               </Button>
-            </SaveButton>
+            </ButtonBar>
           </ActionBar>
         </div>
       </Fragment>
@@ -220,6 +230,7 @@ const ActionBar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-top: 10px;
 `;
 
 const SyntaxOverlay = styled('div')<{line: number}>`
@@ -232,22 +243,21 @@ const SyntaxOverlay = styled('div')<{line: number}>`
   pointer-events: none;
 `;
 
-const SaveButton = styled('div')`
-  text-align: end;
-  padding-top: 10px;
-`;
-
 const StyledTextArea = styled(TextArea)`
   min-height: 140px;
   overflow: auto;
   outline: 0;
   width: 100%;
   resize: none;
-  margin: 0;
+  margin: 1px 0 0 0;
   word-break: break-all;
   white-space: pre-wrap;
   padding-top: ${TEXTAREA_PADDING}px;
   line-height: ${TEXTAREA_LINE_HEIGHT}px;
+  height: 450px;
+  border-width: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 `;
 
 const InvalidOwners = styled('div')`

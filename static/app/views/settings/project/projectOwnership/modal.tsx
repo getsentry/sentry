@@ -22,6 +22,7 @@ type IssueOwnershipResponse = {
 
 type Props = AsyncComponent['props'] & {
   issueId: string;
+  onCancel: () => void;
   organization: Organization;
   project: Project;
   eventData?: Event;
@@ -46,14 +47,9 @@ function getFrameSuggestions(eventData?: Event) {
   }
 
   // Only display in-app frames
-  frames = frames.filter(frame => frame.inApp);
+  frames = frames.filter(frame => frame && frame.inApp).reverse();
 
-  return (
-    uniq(frames.map(frame => frame.filename || frame.absPath || ''))
-      .filter(i => i)
-      // TODO(scttcper): Remove slice and return the first result on GA streamline-targeting-context
-      .slice(0, 30)
-  );
+  return uniq(frames.map(frame => frame.filename || frame.absPath || ''));
 }
 
 function OwnershipSuggestions({
@@ -80,7 +76,7 @@ function OwnershipSuggestions({
 
   return (
     <StyledPre>
-      <PreComment># {t('Here’s some suggestions based on this issue')}</PreComment>
+      # {t('Here’s some suggestions based on this issue')}
       <br />
       {[pathSuggestion, urlSuggestion, transactionSuggestion]
         .filter(x => x)
@@ -114,7 +110,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {ownership, urlTagData} = this.state;
-    const {eventData, organization, project} = this.props;
+    const {eventData, organization, project, onCancel} = this.props;
     if (!ownership) {
       return null;
     }
@@ -133,25 +129,30 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <Description>
-          {tct(
-            'Assign issues based on custom rules. To learn more, [docs:read the docs].',
-            {
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
-              ),
-            }
-          )}
-        </Description>
         {hasStreamlineTargetingFeature ? (
-          <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
-        ) : null}
+          <Fragment>
+            <Description>
+              {tct(
+                'Assign issues based on custom rules. To learn more, [docs:read the docs].',
+                {
+                  docs: (
+                    <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
+                  ),
+                }
+              )}
+            </Description>
+            <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
+          </Fragment>
+        ) : (
+          <p>{t('Match against Issue Data: (globbing syntax *, ? supported)')}</p>
+        )}
         <OwnerInput
           organization={organization}
           project={project}
           initialText={ownership?.raw || ''}
           urls={urls}
           paths={paths}
+          onCancel={onCancel}
         />
       </Fragment>
     );
@@ -162,15 +163,11 @@ const Description = styled('p')`
   margin-bottom: ${space(1)};
 `;
 
-const PreComment = styled('span')`
-  color: ${p => p.theme.subText};
-`;
-
 const StyledPre = styled('pre')`
   word-break: break-word;
-  padding: ${space(3)} ${space(2)};
-  color: ${p => p.theme.textColor};
+  padding: ${space(2)};
   line-height: 1.6;
+  color: ${p => p.theme.subText};
 `;
 
 export default ProjectOwnershipModal;

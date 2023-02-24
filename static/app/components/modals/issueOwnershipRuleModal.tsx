@@ -22,6 +22,7 @@ const IssueOwnershipRuleModal = ({
   project,
   issueId,
   eventData,
+  closeModal,
 }: CreateOwnershipRuleProps) => {
   return (
     <Fragment>
@@ -34,6 +35,7 @@ const IssueOwnershipRuleModal = ({
           project={project}
           issueId={issueId}
           eventData={eventData}
+          onCancel={closeModal}
         />
       </Body>
     </Fragment>
@@ -43,9 +45,6 @@ const IssueOwnershipRuleModal = ({
 export const modalCss = css`
   @media (min-width: ${theme.breakpoints.small}) {
     width: 80%;
-  }
-  [role='document'] {
-    overflow: initial;
   }
 `;
 
