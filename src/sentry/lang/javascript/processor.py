@@ -1292,7 +1292,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # a valid file to cache
             return None
         else:
-            # TODO: it should do something but we don't know.
+            # TODO: aliasing is not used in the codebase as of now, we might want to remove it because we always call
+            #  this function with url == frame.abs_path.
             if result.url != url:
                 self.url_aliases[result.url] = url
 
@@ -1445,8 +1446,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 op="JavaScriptStacktraceProcessor.populate_source_cache.cache_source"
             ) as span:
                 span.set_data("filename", filename)
-                # TODO: we want to implement the construction of the debug
-                # We first want to fetch the sourceview of the file.
+                # TODO: we want to implement the construction of the abs_path -> debug_id table.
+                # We first want to fetch the sourceview of the file but not the sourcemaps.
                 self.get_or_fetch_sourceview(url=filename)
 
     def close(self):
