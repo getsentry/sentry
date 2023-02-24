@@ -43,13 +43,15 @@ def test_import_duplicate_key():
     rv = CliRunner().invoke(import_, tmp_backup_filename)
     assert (
         rv.output
-        == ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If you're doing both already, file a bug report, it's probably our fault\n"
+        == ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If neither, then open an issue here: https://github.com/getsentry/sentry/issues/new/choose\n"
     )
     assert isinstance(rv.exception, IntegrityError)
     assert rv.exit_code == 1
 
 
-# cleanup backup file once test suite finishes
+# Cleanup backup file once test suite finishes
+# Using atexit here instead of the teardown hook since
+# we're avoiding using CliTestCase/TestCase due to failing fixture
 @atexit.register
 def cleanup_backup_file():
     if os.path.exists(tmp_backup_filename):
