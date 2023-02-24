@@ -86,4 +86,5 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     ],
     ProfileBlockedThreadGroupType,
     ensure_aware(datetime.now()),
+    "info",
 )

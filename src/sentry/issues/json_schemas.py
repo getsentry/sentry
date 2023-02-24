@@ -5,11 +5,12 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     "properties": {
         # required properties
         "event_id": {"type": "string", "minLength": 1},
+        "level": {"type": "string", "minLength": 1},
         "platform": {"type": "string", "minLength": 1},
         "project_id": {"type": "integer"},
+        "received": {"type": "string", "format": "date-time"},
         "tags": {"type": "object"},
         "timestamp": {"type": "string", "format": "date-time"},
-        "received": {"type": "string", "format": "date-time"},
         # non-required properties
         "breadcrumbs": {
             "type": ["array", "null"],
@@ -131,6 +132,7 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     },
     "required": [
         "event_id",
+        "level",
         "platform",
         "project_id",
         "tags",

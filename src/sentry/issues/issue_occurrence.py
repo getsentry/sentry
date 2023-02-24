@@ -11,6 +11,8 @@ from sentry import nodestore
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.utils.dates import parse_timestamp
 
+DEFAULT_LEVEL = "info"
+
 
 class IssueEvidenceData(TypedDict):
     name: str
@@ -80,7 +82,7 @@ class IssueOccurrence:
     evidence_display: Sequence[IssueEvidence]
     type: Type[GroupType]
     detection_time: datetime
-    level: Optional[str] = None
+    level: str
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -106,6 +108,10 @@ class IssueOccurrence:
 
     @classmethod
     def from_dict(cls, data: IssueOccurrenceData) -> IssueOccurrence:
+        # Backwards compatibility - we used to not require this field, so set a default when `None`
+        level = data.get("level")
+        if not level:
+            level = DEFAULT_LEVEL
         return cls(
             data["id"],
             data["project_id"],
@@ -122,7 +128,7 @@ class IssueOccurrence:
             ],
             get_group_type_by_type_id(data["type"]),
             cast(datetime, parse_timestamp(data["detection_time"])),
-            data.get("level"),
+            level,
         )
 
     @property
