@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0360_authenticator_config_type_change"),
+        ("sentry", "0361_monitor_environment"),
     ]
 
     database_operations = [
