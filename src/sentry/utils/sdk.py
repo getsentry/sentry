@@ -1,5 +1,6 @@
 import copy
 import inspect
+import logging
 import random
 
 import sentry_sdk
@@ -8,7 +9,13 @@ from django.urls import resolve
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
+from sentry_sdk import (  # NOQA
+    Scope,
+    capture_exception,
+    capture_message,
+    configure_scope,
+    push_scope,
+)
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -17,6 +24,8 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+
+logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
@@ -445,11 +454,26 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
+def check_tag(tag_key: str, expected_value: str):
+    if scope._tags and tag_key in scope._tags and scope._tags["organization"] != expected_value:
+        extra = {tag_key: scope._tags[tag_key], f"new_{tag_key}": expected_value}
+        logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+
+
+# We have some events being tagged with organization.slug even when we don't have such info
+def log_if_tags_already_set(scope: Scope, org_id: int, org_slug: str) -> None:
+    """If the tags are already set and differ, report them as a Sentry error."""
+    check_tag("organization", org_id)
+    check_tag("organization.slug", org_slug)
+
+
 def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.configure_scope() as scope:
+        log_if_tags_already_set(scope, organization.id, organization.slug)
+
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
         scope.set_context("organization", {"id": organization.id, "slug": organization.slug})
