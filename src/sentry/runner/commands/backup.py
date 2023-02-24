@@ -26,7 +26,7 @@ def import_(src):
     # these errors come from restoring on a different version of Sentry or not restoring
     # on a clean install.
     except IntegrityError as e:
-        warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If neither, then open an issue here: https://github.com/getsentry/sentry/issues/new/choose"
+        warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
         click.echo(
             warningText,
             err=True,
