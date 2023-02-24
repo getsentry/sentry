@@ -29,4 +29,4 @@ class MonitorEnvironment(Model):
         db_table = "sentry_monitorenvironment"
         indexes = [models.Index(fields=["monitor", "environment"])]
 
-    __repr__ = sane_repr("monitor_id", "environment_project_id")
+    __repr__ = sane_repr("monitor_id", "environment_id")
