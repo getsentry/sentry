@@ -7,7 +7,6 @@ from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     AuditLogEntry,
-    Authenticator,
     AuthProvider,
     InviteStatus,
     Organization,
@@ -63,7 +62,7 @@ class AcceptInviteTest(TestCase):
     def _enroll_user_in_2fa(self, user):
         interface = TotpInterface()
         interface.enroll(user)
-        assert Authenticator.objects.user_has_2fa(user)
+        assert user.has_2fa()
 
     def test_invalid_member_id(self):
         for path in self._get_paths([1, 2]):
@@ -120,7 +119,7 @@ class AcceptInviteTest(TestCase):
 
     def test_user_needs_2fa(self):
         self._require_2fa_for_organization()
-        assert not Authenticator.objects.user_has_2fa(self.user)
+        assert not self.user.has_2fa()
 
         self.login_as(self.user)
 
@@ -302,7 +301,7 @@ class AcceptInviteTest(TestCase):
 
     def test_cannot_accept_when_user_needs_2fa(self):
         self._require_2fa_for_organization()
-        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+        self.assertFalse(self.user.has_2fa())
 
         self.login_as(self.user)
 
@@ -319,7 +318,7 @@ class AcceptInviteTest(TestCase):
         for i, url in enumerate(urls):
             self._require_2fa_for_organization()
             user = self.create_user(f"boo{i}@example.com")
-            self.assertFalse(Authenticator.objects.user_has_2fa(user))
+            self.assertFalse(user.has_2fa())
 
             self.login_as(user)
 
