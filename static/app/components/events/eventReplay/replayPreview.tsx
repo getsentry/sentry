@@ -72,7 +72,11 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   };
 
   return (
-    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+    <ReplayContextProvider
+      isFetching={fetching}
+      replay={replay}
+      initialTimeOffset={initialTimeOffset}
+    >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>
           <ReplayPlayer isPreview />
