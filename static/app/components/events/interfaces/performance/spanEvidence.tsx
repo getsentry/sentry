@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -24,33 +23,25 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
 };
 
 export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
-  const model = useMemo(() => {
-    if (!event) {
-      return null;
-    }
-
-    const parentSpanIDs = event?.perfProblem?.parentSpanIds ?? [];
-    const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
-
-    const affectedSpanIds = [...offendingSpanIDs];
-    const focusedSpanIds: string[] = [];
-    const issueType = event?.perfProblem?.issueType;
-    if (issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-      affectedSpanIds.push(...parentSpanIDs);
-    }
-    if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
-      const consecutiveSpanIds = event?.perfProblem?.causeSpanIds ?? [];
-
-      if (consecutiveSpanIds.length < 11) {
-        focusedSpanIds.push(...consecutiveSpanIds);
-      }
-    }
-
-    return new WaterfallModel(event as EventTransaction, affectedSpanIds, focusedSpanIds);
-  }, [event]);
-
-  if (!model) {
+  if (!event) {
     return null;
+  }
+
+  const parentSpanIDs = event?.perfProblem?.parentSpanIds ?? [];
+  const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
+
+  const affectedSpanIds = [...offendingSpanIDs];
+  const focusedSpanIds: string[] = [];
+  const issueType = event?.perfProblem?.issueType;
+  if (issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
+    affectedSpanIds.push(...parentSpanIDs);
+  }
+  if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
+    const consecutiveSpanIds = event?.perfProblem?.causeSpanIds ?? [];
+
+    if (consecutiveSpanIds.length < 11) {
+      focusedSpanIds.push(...consecutiveSpanIds);
+    }
   }
 
   const profileId = event.contexts?.profile?.profile_id ?? null;
@@ -84,7 +75,13 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
                 <TraceViewWrapper>
                   <TraceView
                     organization={organization}
-                    waterfallModel={model}
+                    waterfallModel={
+                      new WaterfallModel(
+                        event as EventTransaction,
+                        affectedSpanIds,
+                        focusedSpanIds
+                      )
+                    }
                     isEmbedded
                   />
                 </TraceViewWrapper>
@@ -94,7 +91,17 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         </ProfilesProvider>
       ) : (
         <TraceViewWrapper>
-          <TraceView organization={organization} waterfallModel={model} isEmbedded />
+          <TraceView
+            organization={organization}
+            waterfallModel={
+              new WaterfallModel(
+                event as EventTransaction,
+                affectedSpanIds,
+                focusedSpanIds
+              )
+            }
+            isEmbedded
+          />
         </TraceViewWrapper>
       )}
     </EventDataSection>
