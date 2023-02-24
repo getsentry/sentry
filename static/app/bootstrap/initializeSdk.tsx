@@ -6,11 +6,10 @@ import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {BrowserProfilingIntegration} from '@sentry/profiling-browser/dist/index.js';
-import {addExtensionMethods} from '@sentry/profiling-browser/dist/hubextensions';
+import {wrapTransactionWithProfiling} from '@sentry/profiling-browser/dist/hubextensions';
 
 // @ts-ignore
 window.__DEBUG_BUILD__ = true;
-addExtensionMethods();
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
@@ -61,6 +60,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
       },
       _experiments: {
         enableInteractions: true,
+        onStartRouteTransaction: wrapTransactionWithProfiling,
       },
       ...partialTracingOptions,
     }),
