@@ -154,12 +154,7 @@ const NPlusOneAPICallsSpanEvidence = ({
               )
             : null,
           problemParameters.length > 0
-            ? makeRow(t('Parameters'), [
-                ...problemParameters,
-                ...problemParameters,
-                ...problemParameters,
-                ...problemParameters,
-              ])
+            ? makeRow(t('Parameters'), problemParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
