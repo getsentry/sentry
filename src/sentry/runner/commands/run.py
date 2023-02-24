@@ -445,6 +445,49 @@ def query_subscription_consumer(**options):
     run_processor_with_signals(subscriber)
 
 
+def kafka_options(group, allow_force_cluster=True):
+    """
+    Basic set of Kafka options for a consumer.
+    """
+
+    def inner(f):
+        f = click.option(
+            "--consumer-group",
+            "group_id",
+            default=group,
+            help="Kafka consumer group for the consumer.",
+        )(f)
+
+        f = click.option(
+            "--auto-offset-reset",
+            "auto_offset_reset",
+            default="latest",
+            type=click.Choice(["earliest", "latest", "error"]),
+            help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+        )(f)
+
+        if allow_force_cluster:
+            f = click.option(
+                "--force-topic",
+                "force_topic",
+                default=None,
+                type=str,
+                help="Override the Kafka topic the consumer will read from.",
+            )(f)
+
+            f = click.option(
+                "--force-cluster",
+                "force_cluster",
+                default=None,
+                type=str,
+                help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
+            )(f)
+
+        return f
+
+    return inner
+
+
 def batching_kafka_options(
     group, max_batch_size=None, max_batch_time_ms=1000, allow_force_cluster=True
 ):
@@ -598,7 +641,7 @@ def occurrences_ingest_consumer(**options):
 
 @run.command("ingest-metrics-parallel-consumer")
 @log_options()
-@batching_kafka_options("ingest-metrics-consumer", allow_force_cluster=False)
+@kafka_options("ingest-metrics-consumer", allow_force_cluster=False)
 @strict_offset_reset_option()
 @configuration
 @click.option(
