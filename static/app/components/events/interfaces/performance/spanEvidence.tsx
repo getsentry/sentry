@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {EventTransaction, IssueType, Organization} from 'sentry/types';
+import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import TraceView from '../spans/traceView';
 import {TraceContextType} from '../spans/types';
@@ -13,13 +15,14 @@ import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 interface Props {
   event: EventTransaction;
   organization: Organization;
+  projectSlug: string;
 }
 
 export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
-export function SpanEvidenceSection({event, organization}: Props) {
+export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   if (!event) {
     return null;
   }
@@ -41,6 +44,12 @@ export function SpanEvidenceSection({event, organization}: Props) {
     }
   }
 
+  const profileId = event.contexts?.profile?.profile_id ?? null;
+
+  const hasProfilingPreviewsFeature =
+    organization.features.includes('profiling') &&
+    organization.features.includes('profiling-previews');
+
   return (
     <EventDataSection
       title={t('Span Evidence')}
@@ -50,16 +59,51 @@ export function SpanEvidenceSection({event, organization}: Props) {
       )}
     >
       <SpanEvidenceKeyValueList event={event} />
-
-      <TraceViewWrapper>
-        <TraceView
-          organization={organization}
-          waterfallModel={
-            new WaterfallModel(event as EventTransaction, affectedSpanIds, focusedSpanIds)
-          }
-          isEmbedded
-        />
-      </TraceViewWrapper>
+      {hasProfilingPreviewsFeature ? (
+        <ProfilesProvider
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          profileId={profileId || ''}
+        >
+          <ProfileContext.Consumer>
+            {profiles => (
+              <ProfileGroupProvider
+                type="flamechart"
+                input={profiles?.type === 'resolved' ? profiles.data : null}
+                traceID={profileId || ''}
+              >
+                <TraceViewWrapper>
+                  <TraceView
+                    organization={organization}
+                    waterfallModel={
+                      new WaterfallModel(
+                        event as EventTransaction,
+                        affectedSpanIds,
+                        focusedSpanIds
+                      )
+                    }
+                    isEmbedded
+                  />
+                </TraceViewWrapper>
+              </ProfileGroupProvider>
+            )}
+          </ProfileContext.Consumer>
+        </ProfilesProvider>
+      ) : (
+        <TraceViewWrapper>
+          <TraceView
+            organization={organization}
+            waterfallModel={
+              new WaterfallModel(
+                event as EventTransaction,
+                affectedSpanIds,
+                focusedSpanIds
+              )
+            }
+            isEmbedded
+          />
+        </TraceViewWrapper>
+      )}
     </EventDataSection>
   );
 }
