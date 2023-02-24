@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import GroupCategory, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -526,7 +526,7 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type is ProfileBlockedThreadGroupType and not features.has(
+    if group_event.group.issue_type.type_id in PROFILE_FILE_IO_ISSUE_TYPES and not features.has(
         "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
     ):
         return
@@ -796,11 +796,7 @@ def process_commits(job: PostProcessJob) -> None:
 
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
-                metric_tags = {
-                    "event": event.event_id,
-                    "group": event.group_id,
-                    "project": event.project_id,
-                }
+
                 integrations = Integration.objects.filter(
                     organizations=event.project.organization,
                     provider__in=["github", "gitlab"],
@@ -817,10 +813,7 @@ def process_commits(job: PostProcessJob) -> None:
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
-                        metrics.incr(
-                            "sentry.tasks.process_commit_context.debounce",
-                            tags={**metric_tags},
-                        )
+                        metrics.incr("sentry.tasks.process_commit_context.debounce")
                         return
                     process_commit_context.delay(
                         event_id=event.event_id,
@@ -833,10 +826,7 @@ def process_commits(job: PostProcessJob) -> None:
                 else:
                     cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
-                        metrics.incr(
-                            "sentry.tasks.process_suspect_commits.debounce",
-                            tags={**metric_tags},
-                        )
+                        metrics.incr("sentry.tasks.process_suspect_commits.debounce")
                         return
                     process_suspect_commits.delay(
                         event_id=event.event_id,

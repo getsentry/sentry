@@ -102,13 +102,13 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
 }
 
 const ALL_FIELDS = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
   'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
@@ -123,11 +123,10 @@ export function getProfilesTableFields(platform: Project['platform']) {
 
 const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
-  'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ];
 
 const FILTER_OPTIONS = [
@@ -137,11 +136,11 @@ const FILTER_OPTIONS = [
   },
   {
     label: t('Slowest Profiles'),
-    value: '-profile.duration',
+    value: '-transaction.duration',
   },
   {
     label: t('Fastest Profiles'),
-    value: 'profile.duration',
+    value: 'transaction.duration',
   },
 ];
 

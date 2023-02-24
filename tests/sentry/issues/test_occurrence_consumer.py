@@ -128,7 +128,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         message = get_test_message(self.project.id, type=300)
         with pytest.raises(InvalidEventPayloadError):
             with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
-                "sentry.issues.occurrence_consumer.INGEST_ALLOWED_ISSUE_TYPES",
+                "sentry.issues.occurrence_consumer.PROFILE_FILE_IO_ISSUE_TYPES",
                 {300},
             ):
                 _process_message(message)
@@ -170,7 +170,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             type=PerformanceSlowDBQueryGroupType.type_id,
         )
         with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
-            "sentry.issues.occurrence_consumer.INGEST_ALLOWED_ISSUE_TYPES",
+            "sentry.issues.occurrence_consumer.PROFILE_FILE_IO_ISSUE_TYPES",
             {PerformanceSlowDBQueryGroupType.type_id},
         ):
             processed = _process_message(message)
@@ -285,4 +285,9 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_occurrence_title_on_event(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["issue_title"] == kwargs["event_data"]["title"]
+        assert kwargs["occurrence_data"]["issue_title"] == kwargs["event_data"]["metadata"]["title"]
+
+    def test_occurrence_level_on_event(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]
