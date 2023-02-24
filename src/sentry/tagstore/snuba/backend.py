@@ -1205,7 +1205,7 @@ class SnubaTagStorage(TagStorage):
         # time:         This is a column computed from timestamp so it suffers the same issues
         if snuba_key in {"group_id"}:
             snuba_key = f"tags[{snuba_key}]"
-        if snuba_key in {"event_id", "timestamp", "time"} or key in {
+        if snuba_key in {"event_id", "timestamp", "time", "profile_id"} or key in {
             "trace",
             "trace.span",
             "trace.parent_span",
