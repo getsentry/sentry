@@ -118,8 +118,6 @@ class EventMetas extends Component<Props, State> {
       />
     );
 
-    const httpStatus = <HttpStatus event={event} />;
-
     return (
       <Projects orgId={organization.slug} slugs={[projectId]}>
         {({projects}) => {
@@ -168,7 +166,7 @@ class EventMetas extends Component<Props, State> {
                     'The status of this transaction indicating if it succeeded or otherwise.'
                   )}
                   bodyText={getStatusBodyText(project, event, meta)}
-                  subtext={httpStatus}
+                  subtext={<HttpStatus event={event} />}
                 />
               )}
               {isTransaction(event) &&
