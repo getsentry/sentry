@@ -714,7 +714,7 @@ class Fetcher:
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
         # TODO: implement debug id lookup.
-        pass
+        return None
 
     def fetch_by_url(self, url):
         """
@@ -845,7 +845,7 @@ class Fetcher:
 
     def _fetch_sourcemap_by_debug_id(self):
         # TODO: implement debug id lookup.
-        pass
+        return None
 
 
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
