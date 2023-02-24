@@ -20,7 +20,6 @@ def get_cron_checkins_consumer(
     strict_offset_reset: bool,
     force_topic: str | None,
     force_cluster: str | None,
-    **options: dict[str, str],
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or topic
     consumer_config = get_config(

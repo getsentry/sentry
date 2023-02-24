@@ -677,7 +677,7 @@ def replays_recordings_consumer(**options):
 
 @run.command("ingest-crons")
 @log_options()
-@click.option("--topic", default="crons", help="Topic to get cron checlkin data from.")
+@click.option("--topic", default="ingest-crons", help="Topic to get cron checlkin data from.")
 @batching_kafka_options("ingest-crons", max_batch_size=100)
 @strict_offset_reset_option()
 @configuration
