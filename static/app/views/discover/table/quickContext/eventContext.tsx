@@ -12,8 +12,6 @@ import {Event, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
-import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {useQuery} from 'sentry/utils/queryClient';
 import {
   getStatusBodyText,
@@ -40,7 +38,7 @@ interface EventContextProps extends BaseContextProps {
 }
 
 function EventContext(props: EventContextProps) {
-  const {organization, dataRow, eventView, location, projects} = props;
+  const {organization, dataRow, eventView, location} = props;
   const {isLoading, isError, data} = useQuery<Event>(
     [
       `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
@@ -65,9 +63,6 @@ function EventContext(props: EventContextProps) {
   }
 
   if (data.type === 'transaction') {
-    const traceId = data.contexts?.trace?.trace_id ?? '';
-    const {start, end} = getTraceTimeRangeFromEvent(data);
-    const project = projects?.find(p => p.slug === data.projectID);
     const transactionDuration = getDuration(
       data.endTimestamp - data.startTimestamp,
       2,
@@ -94,43 +89,30 @@ function EventContext(props: EventContextProps) {
         </EventContextContainer>
         {location && (
           <EventContextContainer>
-            <TraceMetaQuery
-              location={location}
-              orgSlug={organization.slug}
-              traceId={traceId}
-              start={start}
-              end={end}
-            >
-              {metaResults => {
-                const status = getStatusBodyText(project, data, metaResults?.meta);
-                return (
-                  <Fragment>
-                    <ContextHeader>
-                      <ContextTitle>{t('Status')}</ContextTitle>
-                      {location && eventView && (
-                        <ActionDropDown
-                          dataRow={dataRow}
-                          contextValueType={ContextValueType.STRING}
-                          location={location}
-                          eventView={eventView}
-                          organization={organization}
-                          queryKey="transaction.status"
-                          value={status}
-                        />
-                      )}
-                    </ContextHeader>
-                    <EventContextBody>
-                      <ContextRow>
-                        {status}
-                        <HttpStatusWrapper>
-                          (<HttpStatus event={data} />)
-                        </HttpStatusWrapper>
-                      </ContextRow>
-                    </EventContextBody>
-                  </Fragment>
-                );
-              }}
-            </TraceMetaQuery>
+            <Fragment>
+              <ContextHeader>
+                <ContextTitle>{t('Status')}</ContextTitle>
+                {location && eventView && (
+                  <ActionDropDown
+                    dataRow={dataRow}
+                    contextValueType={ContextValueType.STRING}
+                    location={location}
+                    eventView={eventView}
+                    organization={organization}
+                    queryKey="transaction.status"
+                    value={getStatusBodyText(data)}
+                  />
+                )}
+              </ContextHeader>
+              <EventContextBody>
+                <ContextRow>
+                  {status}
+                  <HttpStatusWrapper>
+                    (<HttpStatus event={data} />)
+                  </HttpStatusWrapper>
+                </ContextRow>
+              </EventContextBody>
+            </Fragment>
           </EventContextContainer>
         )}
       </Wrapper>

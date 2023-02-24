@@ -15,7 +15,7 @@ import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {Event, EventTransaction} from 'sentry/types/event';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -168,7 +168,7 @@ class EventMetas extends Component<Props, State> {
                   tooltipText={t(
                     'The status of this transaction indicating if it succeeded or otherwise.'
                   )}
-                  bodyText={event.contexts?.trace?.status ?? '\u2014'}
+                  bodyText={getStatusBodyText(event)}
                   subtext={<HttpStatus event={event} />}
                 />
               )}
@@ -335,6 +335,10 @@ export function HttpStatus({event}: {event: Event}) {
   }
 
   return <Fragment>HTTP {tag.value}</Fragment>;
+}
+
+export function getStatusBodyText(event: EventTransaction): string {
+  return event.contexts?.trace?.status ?? '\u2014';
 }
 
 export default EventMetas;
