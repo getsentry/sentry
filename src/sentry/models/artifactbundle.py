@@ -10,7 +10,6 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
-from sentry.models import DB_VERSION_LENGTH
 
 
 class SourceFileType(Enum):
@@ -45,7 +44,7 @@ class ReleaseArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=DB_VERSION_LENGTH)
+    release_name = models.CharField(max_length=250)
     dist_id = BoundedBigIntegerField(null=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
 
