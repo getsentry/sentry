@@ -92,7 +92,7 @@ class AuditLogEntry(Model):
         return AuditLogEvent(
             actor_label=self.actor_label,
             organization_id=int(
-                self.organization.id
+                self.organization_id
             ),  # prefer raising NoneType here over actually passing through
             date_added=self.datetime or timezone.now(),
             actor_user_id=self.actor and self.actor.id,
