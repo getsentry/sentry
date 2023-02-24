@@ -6,7 +6,6 @@ export enum SpanSortPercentiles {
 }
 
 export enum SpanSortOthers {
-  COUNT = 'count',
   AVG_OCCURRENCE = 'avgOccurrence',
   SUM_EXCLUSIVE_TIME = 'sumExclusiveTime',
 }
@@ -21,4 +20,5 @@ export type SpanSortOption = {
 
 export type SpansTotalValues = {
   'count()': number;
+  'sum(transaction.duration)': number;
 };
