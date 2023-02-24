@@ -73,7 +73,8 @@ type Props = {
 };
 
 function renderGroupedSpansToggler(props: Props) {
-  const {treeDepth, spanGrouping, renderSpanTreeConnector, toggleSpanGroup} = props;
+  const {treeDepth, spanGrouping, renderSpanTreeConnector, toggleSpanGroup, spanBarType} =
+    props;
 
   const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
@@ -89,6 +90,7 @@ function renderGroupedSpansToggler(props: Props) {
           event.stopPropagation();
           toggleSpanGroup();
         }}
+        spanBarType={spanBarType}
       >
         <Count value={spanGrouping.length} />
       </TreeToggle>
