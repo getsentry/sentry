@@ -4,6 +4,7 @@ from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.models import (
     AlertRuleActivity,
     AlertRuleTriggerAction,
+    IncidentActivity,
     IncidentSeen,
     IncidentSubscription,
 )
@@ -105,6 +106,7 @@ fk_emeptions = {
     (ProjectTransactionThreshold, User),
     (AlertRuleTriggerAction, SentryApp),
     (DiscoverSavedQuery, User),
+    (IncidentActivity, User),
 }
 
 
