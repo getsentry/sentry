@@ -92,9 +92,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 ],
                 count_segments=2,
                 # count_errors=3,
-                count_errors=1,
+                count_errors=2,
                 tags={"test": ["hello", "world"], "other": ["hello"]},
-                activity=4,
+                activity=6,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
@@ -502,7 +502,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*zz",
                 "urls:example.com",
                 "url:example.com",
-                "activity:3",
+                "activity:5",
                 "activity:>2",
             ]
 
@@ -546,7 +546,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "release:[a,b]",
                 "c:*zz",
                 "!c:*st",
-                "!activity:3",
+                "!activity:5",
                 "activity:<2",
             ]
             for query in null_queries:

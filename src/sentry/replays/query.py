@@ -637,8 +637,8 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
     "count_errors": Function(
-        "uniqArray",
-        parameters=[Column("error_ids")],
+        "sum",
+        parameters=[Function("length", parameters=[Column("error_ids")])],
         alias="count_errors",
     ),
     "count_urls": Function(
