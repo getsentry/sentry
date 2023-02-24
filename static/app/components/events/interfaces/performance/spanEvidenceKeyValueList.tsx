@@ -67,7 +67,7 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
   return (
-    <ClippedBox clipHeight={250}>
+    <ClippedBox clipHeight={300}>
       <Component event={event} {...spanInfo} />
     </ClippedBox>
   );
