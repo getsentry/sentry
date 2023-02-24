@@ -35,6 +35,11 @@ describe('extractSlug', () => {
       domain: 'dev.getsentry.net',
     },
     {
+      hostname: 'acme.sentry-inst123.dev.getsentry.net',
+      slug: 'acme',
+      domain: 'sentry-inst123.dev.getsentry.net',
+    },
+    {
       hostname: 'acme.dev.getsentry.net:7999',
       slug: 'acme',
       domain: 'dev.getsentry.net:7999',
@@ -43,9 +48,19 @@ describe('extractSlug', () => {
     {hostname: 'sentry.dev:7999', slug: '', domain: 'sentry.dev:7999'},
     {hostname: 'acme.sentry.dev', slug: 'acme', domain: 'sentry.dev'},
     {
+      hostname: 'acme.sentry-inst123.sentry.dev',
+      slug: 'acme',
+      domain: 'sentry-inst123.sentry.dev',
+    },
+    {
       hostname: 'acme.sentry.dev:7999',
       slug: 'acme',
       domain: 'sentry.dev:7999',
+    },
+    {
+      hostname: 'acme.sentry-inst123.sentry.dev:7999',
+      slug: 'acme',
+      domain: 'sentry-inst123.sentry.dev:7999',
     },
   ])('should split "$slug" & "$domain" from $hostname', ({hostname, slug, domain}) => {
     expect(extractSlug(hostname)).toStrictEqual({slug, domain});
