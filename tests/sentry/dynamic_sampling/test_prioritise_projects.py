@@ -30,6 +30,8 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             project_id=p1.id,
             org_id=org1.id,
         )
-
-        results = fetch_projects_with_total_volumes()
+        with self.settings(
+            SENTRY_OPTIONS={"dynamic-sampling.prioritise_projects.sample_rate": 1.0}
+        ):
+            results = fetch_projects_with_total_volumes()
         assert results[org1.id] == [(p1.id, 1.0)]

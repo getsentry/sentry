@@ -17,6 +17,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -35,6 +36,7 @@ def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tupl
     aggregated_projects = defaultdict(list)
     start_time = time.time()
     offset = 0
+    sample_rate = int(options.get("dynamic-sampling.prioritise_projects.sample_rate") * 100)
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
             Query(
@@ -46,6 +48,7 @@ def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tupl
                 ],
                 groupby=[Column("org_id"), Column("project_id")],
                 where=[
+                    Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate),
                     Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(
