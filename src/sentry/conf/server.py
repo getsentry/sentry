@@ -700,6 +700,10 @@ CELERY_QUEUES = [
         "transactions.name_clusterer", routing_key="transactions.name_clusterer"
     ),  # TODO: add workers
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
+    Queue(
+        "dynamicsampling",
+        routing_key="dynamicsampling",
+    ),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1268,6 +1272,8 @@ SENTRY_FEATURES = {
     "organizations:scim-orgmember-roles": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
+    # Enable the setting of org roles for team
+    "organizations:org-roles-for-teams": False,
     # Enable the in-app source map debugging feature
     "organizations:fix-source-map-cta": False,
     # Enable new JS SDK Dynamic Loader
