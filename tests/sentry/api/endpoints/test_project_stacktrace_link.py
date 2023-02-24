@@ -9,7 +9,7 @@ from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEn
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -327,6 +327,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
 
+@apply_feature_flag_on_cls("organizations:codecov-stacktrace-integration")
 class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)
@@ -364,7 +365,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
 
-    @with_feature("organizations:codecov-stacktrace-integration")
     @with_feature("organizations:codecov-commit-sha-from-git-blame")
     @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
     @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
@@ -399,7 +399,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         ]
         assert response.data.get("codecov") is None
 
-    @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_codecov_line_coverage_success(self, mock_integration, mock_get_codecov_data):
@@ -422,7 +421,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         assert response.data["codecov"]["lineCoverage"] == expected_line_coverage
         assert response.data["codecov"]["status"] == expected_status_code
 
-    @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_codecov_line_coverage_with_branch_success(
@@ -448,7 +446,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         assert response.data["codecov"]["lineCoverage"] == expected_line_coverage
         assert response.data["codecov"]["status"] == expected_status_code
 
-    @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_codecov_line_coverage_exception(self, mock_integration, mock_get_codecov_data):
@@ -477,7 +474,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             )
         ]
 
-    @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.get_codecov_data")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_codecov_line_coverage_cached(self, mock_integration, mock_get_codecov_data):

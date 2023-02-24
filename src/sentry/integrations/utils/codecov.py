@@ -6,7 +6,7 @@ from typing import Literal, Optional, Sequence, Tuple
 import requests
 from sentry_sdk import configure_scope
 
-from sentry import options
+from sentry import features, options
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 
@@ -14,9 +14,13 @@ LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 )
+NEW_CODECOV_REPORT_URL = (
+    "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}/"
+)
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 REF_TYPE = Literal["branch", "sha"]
 CODECOV_TIMEOUT = 2
+WALK_BACK_LIMIT = 20
 
 
 class CodecovIntegrationError(Enum):
@@ -81,15 +85,20 @@ def get_codecov_data(
         owner_username, repo_name = repo.split("/")
         if service == "github":
             service = "gh"
+
         path = path.lstrip("/")
         url = CODECOV_REPORT_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
+        if features.has("organizations:codecov-stacktrace-integrations-v2", Organization):
+            url = NEW_CODECOV_REPORT_URL.format(
+                service=service, owner_username=owner_username, repo_name=repo_name, path=path
+            )
+
         with configure_scope() as scope:
-            params = {ref_type: ref, "path": path}
             response = requests.get(
                 url,
-                params=params,
+                params={ref_type: ref, "walk_back": WALK_BACK_LIMIT},
                 headers={"Authorization": f"Bearer {codecov_token}"},
                 timeout=CODECOV_TIMEOUT if set_timeout else None,
             )
