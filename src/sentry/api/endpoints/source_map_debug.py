@@ -79,26 +79,37 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if not frame_idx:
             raise ParseError(detail="Query parameter 'frame_idx' is required")
 
+        frame_idx = int(frame_idx)
+
         exception_idx = request.GET.get("exception_idx")
         if not exception_idx:
             raise ParseError(detail="Query parameter 'exception_idx' is required")
+
+        exception_idx = int(exception_idx)
 
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
 
-        exception = event.interfaces["exception"].values[int(exception_idx)]
+        try:
+            exception = event.interfaces["exception"].values[exception_idx]
+        except IndexError:
+            raise ParseError(detail="Query parameter 'exception_idx' is out of bounds")
+
         raw_stacktrace = exception.raw_stacktrace
         if raw_stacktrace:
             # Exception is already source mapped
+            return self._create_response()
+
+        frame, filename, abs_path = self._get_frame_filename_and_path(exception, frame_idx)
+
+        if frame.context_line:
             return self._create_response()
 
         try:
             release = self._extract_release(event, project)
         except (SourceMapException, Release.DoesNotExist):
             return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
-
-        filename, abs_path = self._get_filename_and_path(exception, frame_idx)
 
         user_agent = release.user_agent
 
@@ -163,12 +174,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             errors_list.append(response)
         return Response({"errors": errors_list})
 
-    def _get_filename_and_path(self, exception, frame_idx):
+    def _get_frame_filename_and_path(self, exception, frame_idx):
         frame_list = exception.stacktrace.frames
-        frame = frame_list[int(frame_idx)]
+        try:
+            frame = frame_list[frame_idx]
+        except IndexError:
+            raise ParseError(detail="Query parameter 'frame_idx' is out of bounds")
         filename = frame.filename
         abs_path = frame.abs_path
-        return filename, abs_path
+        return frame, filename, abs_path
 
     def _find_matches(self, release_artifacts, unified_path, filename, release, event):
         full_matches = [
@@ -252,13 +266,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 },
             )
         return full_matches[0]
-
-    def _get_filename(self, event, exception_idx, frame_idx):
-        exceptions = event.interfaces["exception"].values
-        frame_list = exceptions[int(exception_idx)].stacktrace.frames
-        frame = frame_list[int(frame_idx)]
-        filename = frame.filename
-        return filename
 
     def _discover_sourcemap_url(self, artifact, filename):
         file = artifact.file
