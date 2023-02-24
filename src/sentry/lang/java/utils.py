@@ -54,7 +54,7 @@ def get_proguard_mapper(uuid: str, project: Project):
     return mapper
 
 
-def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierarchy):
+def deobfuscate_view_hierarchy_data(event_data: Event, project: Project, view_hierarchy):
     """
     Deobfuscates a view hierarchy in-place.
 
@@ -74,7 +74,10 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
             windows_to_deobfuscate = [*view_hierarchy.get("windows")]
             while windows_to_deobfuscate:
                 window = windows_to_deobfuscate.pop()
-                window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
+                if type := window.get("type"):
+                    window["type"] = mapper.remap_class(type) or type
+                if identifier := window.get("identifier"):
+                    window["identifier"] = mapper.remap_class(identifier) or identifier
                 if children := window.get("children"):
                     windows_to_deobfuscate.extend(children)
 
@@ -87,18 +90,18 @@ def deobfuscate_view_hierarchy(data):
     ):
         return
 
+    cache_key = cache_key_for_event(data)
+    attachments = [*attachment_cache.get(cache_key)]
+
+    if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
+        return
+
     with sentry_sdk.start_transaction(name="proguard.deobfuscate_view_hierarchy", sampled=True):
-        cache_key = cache_key_for_event(data)
-        attachments = [*attachment_cache.get(cache_key)]
-
-        if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
-            return
-
         new_attachments = []
         for attachment in attachments:
             if attachment.type == "event.view_hierarchy":
                 view_hierarchy = json.loads(attachment_cache.get_data(attachment))
-                _deobfuscate_view_hierarchy(data, project, view_hierarchy)
+                deobfuscate_view_hierarchy_data(data, project, view_hierarchy)
 
                 # Reupload to cache as a unchunked data
                 new_attachments.append(

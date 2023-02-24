@@ -29,6 +29,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
+from sentry.lang.java.utils import deobfuscate_view_hierarchy_data, has_proguard_file
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_transaction
@@ -384,9 +385,29 @@ def process_individual_attachment(message, projects) -> None:
         logger.exception("invalid individual attachment type: %s", attachment.type)
         return
 
+    new_attachment = attachment
+    # We need the event to get the proguard file
+    # TODO: What if we don't have the event? Do we drop the attachment?
+    if (
+        attachment.type == "event.view_hierarchy"
+        and event is not None
+        and has_proguard_file(event.data)
+    ):
+        view_hierarchy = json.loads(attachment_cache.get_data(attachment))
+        deobfuscate_view_hierarchy_data(event.data, event.project, view_hierarchy)
+
+        new_attachment = CachedAttachment(
+            type=attachment.type,
+            id=attachment.id,
+            name=attachment.name,
+            content_type=attachment.content_type,
+            data=json.dumps_htmlsafe(view_hierarchy).encode(),
+            chunks=None,
+        )
+
     save_attachment(
         cache_key,
-        attachment,
+        new_attachment,
         project,
         event_id,
         key_id=None,  # TODO: Inject this from Relay

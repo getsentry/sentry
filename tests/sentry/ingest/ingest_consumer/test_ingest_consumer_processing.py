@@ -222,12 +222,12 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
         f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
         create_files_from_dif_zip(f, project=default_project)
 
-    expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
+    expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"org.slf4j.helpers.Util$ClassContextSecurityManager","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
     obfuscated_view_hierarchy = {
         "rendering_system": "Test System",
         "windows": [
             {
-                "identifier": "parent",
+                "identifier": "org.a.b.g$a",
                 "type": "org.a.b.g$a",
                 "children": [
                     {
@@ -281,6 +281,85 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
     file_contents = file.getfile()
     assert file_contents.read() == expected_response
     assert file_contents.name == "view_hierarchy.json"
+
+
+@pytest.mark.django_db
+@override_options({"processing.view-hierarchies-deobfuscation-general-availability": 1.0})
+def test_deobfuscate_individual_attachments(default_project, factories, task_runner):
+    event_id = uuid.uuid4().hex
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+    project_id = default_project.id
+
+    factories.store_event(
+        data={
+            "event_id": event_id,
+            "message": "existence is pain",
+            "debug_meta": {"images": [{"uuid": PROGUARD_UUID, "type": "proguard"}]},
+        },
+        project_id=project_id,
+    )
+
+    # Create the proguard file
+    with zipfile.ZipFile(BytesIO(), "w") as f:
+        f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+        create_files_from_dif_zip(f, project=default_project)
+
+    expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"org.slf4j.helpers.Util$ClassContextSecurityManager","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
+    obfuscated_view_hierarchy = json.dumps_htmlsafe(
+        {
+            "rendering_system": "Test System",
+            "windows": [
+                {
+                    "identifier": "org.a.b.g$a",
+                    "type": "org.a.b.g$a",
+                    "children": [
+                        {
+                            "identifier": "child",
+                            "type": "org.a.b.g$a",
+                        }
+                    ],
+                }
+            ],
+        }
+    ).encode()
+
+    process_attachment_chunk(
+        {
+            "payload": obfuscated_view_hierarchy,
+            "event_id": event_id,
+            "project_id": project_id,
+            "id": attachment_id,
+            "chunk_index": 0,
+        },
+        projects={default_project.id: default_project},
+    )
+
+    process_individual_attachment(
+        {
+            "type": "attachment",
+            "attachment": {
+                "attachment_type": "event.view_hierarchy",
+                "chunks": 1,
+                "content_type": "application/json",
+                "id": attachment_id,
+                "name": "view-hierarchy.json",
+            },
+            "event_id": event_id,
+            "project_id": project_id,
+        },
+        projects={default_project.id: default_project},
+    )
+
+    persisted_attachments = list(
+        EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+    )
+    (attachment,) = persisted_attachments
+    file = File.objects.get(id=attachment.file_id)
+    assert file.type == "event.view_hierarchy"
+    assert file.headers == {"Content-Type": "application/json"}
+    file_contents = file.getfile()
+    assert file_contents.read() == expected_response
+    assert file_contents.name == "view-hierarchy.json"
 
 
 @pytest.mark.django_db
