@@ -250,7 +250,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0358_break_group_related_user_fks"),
+        ("sentry", "0361_monitor_environment"),
     ]
 
     operations = [
