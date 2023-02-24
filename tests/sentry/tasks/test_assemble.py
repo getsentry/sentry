@@ -10,6 +10,7 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
+    SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.releasefile import read_artifact_index
@@ -202,7 +203,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
-        debug_ids = ["eb6e60f1-65ff-4f6f-adff-f1bbeded627b"]
+
+        expected_source_file_types = [SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP]
+        expected_debug_ids = ["eb6e60f1-65ff-4f6f-adff-f1bbeded627b"]
 
         assemble_artifacts(
             org_id=self.organization.id,
@@ -220,12 +223,15 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert status == ChunkFileState.OK
         assert details is None
 
-        for debug_id in debug_ids:
+        for debug_id in expected_debug_ids:
             debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
                 organization_id=self.organization.id, debug_id=debug_id
             )
             assert len(debug_id_artifact_bundles) == 2
             assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
+            # We check also if the source file types are equal.
+            for index, entry in enumerate(debug_id_artifact_bundles):
+                assert entry.source_file_type == expected_source_file_types[index].value
 
             release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
                 organization_id=self.organization.id

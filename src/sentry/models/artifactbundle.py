@@ -96,4 +96,4 @@ class ProjectArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        # unique_together = (("project_id", "artifact_bundle"),)
+        unique_together = (("project_id", "artifact_bundle"),)
