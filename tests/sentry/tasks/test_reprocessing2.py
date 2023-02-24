@@ -611,9 +611,13 @@ def test_apply_new_stack_trace_rules(
 def test_finish_reprocessing(default_project):
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project)
+    new_group = Group.objects.create(project=default_project)
 
-    old_group.activity_set.create(project=default_project, type=ActivityType.REPROCESS.value)
-    old_group.activity_set.create(project=default_project, type=ActivityType.REPROCESS.value)
+    old_group.activity_set.create(
+        project=default_project,
+        type=ActivityType.REPROCESS.value,
+        data={"newGroupId": new_group.id},
+    )
     old_group.activity_set.create(project=default_project, type=ActivityType.NOTE.value)
 
     finish_reprocessing(old_group.project_id, old_group.id)
