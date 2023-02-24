@@ -344,6 +344,107 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert raw_frame_list[1] == frame_list[1]
 
     @responses.activate
+    def test_sourcemap_ignore_debug_id(self):
+        # This tests the same as the one above, but it ensures that for now the debug_id
+        # code that is not yet implemented, will be not make any damage yet.
+        responses.add(
+            responses.GET,
+            "http://example.com/file.min.js",
+            body=load_fixture("file.min.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(
+            responses.GET,
+            "http://example.com/file1.js",
+            body=load_fixture("file1.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(
+            responses.GET,
+            "http://example.com/file2.js",
+            body=load_fixture("file2.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(
+            responses.GET,
+            "http://example.com/file.sourcemap.js",
+            body=load_fixture("file.sourcemap.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "debug_id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
+                        "code_file": "http://example.com/file.min.js",
+                    }
+                ]
+            },
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                # NOTE: Intentionally source is not retrieved from this HTML file
+                                {
+                                    "function": 'function: "HTMLDocument.<anonymous>"',
+                                    "abs_path": "http//example.com/index.html",
+                                    "filename": "index.html",
+                                    "lineno": 283,
+                                    "colno": 17,
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert event.data["errors"] == [
+            {"type": "js_no_source", "url": "http//example.com/index.html"}
+        ]
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        expected = "\treturn a + b; // fôo"
+        assert frame.context_line == expected
+        assert frame.post_context == ["}", ""]
+
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+        raw_frame = raw_frame_list[0]
+        assert not raw_frame.pre_context
+        assert (
+            raw_frame.context_line
+            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
+            'divide(a,b){"use strict";try{return multip {snip}'
+        )
+        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
+        assert raw_frame.lineno == 1
+
+        # Since we couldn't expand source for the 2nd frame, both
+        # its raw and original form should be identical
+        assert raw_frame_list[1] == frame_list[1]
+
+    @responses.activate
     def test_sourcemap_embedded_source_expansion(self):
         responses.add(
             responses.GET,
