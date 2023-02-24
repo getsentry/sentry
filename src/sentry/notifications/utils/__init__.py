@@ -635,7 +635,9 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         transaction_duration = self.transaction_duration
         time_saved = self._calculate_time_saved()
         time_saved_percentage = time_saved / transaction_duration * 100
-        return f"{round(time_saved_percentage,3)}% ({int(time_saved)}ms/{int(transaction_duration)}ms)"
+        return (
+            f"{round(time_saved_percentage,3)}% ({int(time_saved)}ms/{int(transaction_duration)}ms)"
+        )
 
     def _sum_span_duration(self, spans: list) -> int:
         "Given a non-overlapping spans, find the sum of the span durations in milliseconds"
