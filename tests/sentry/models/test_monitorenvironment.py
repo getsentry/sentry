@@ -1,11 +1,4 @@
-from sentry.models import (
-    Environment,
-    EnvironmentProject,
-    Monitor,
-    MonitorEnvironment,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.models import Environment, Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -24,10 +17,7 @@ class MonitorEnvironmentTestCase(TestCase):
         )
 
         production_monitor = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment_project=EnvironmentProject.objects.get(
-                environment=environment, project=project
-            ),
+            monitor=monitor, environment=environment
         )
 
         assert type(production_monitor) == MonitorEnvironment

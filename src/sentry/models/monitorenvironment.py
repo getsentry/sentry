@@ -16,7 +16,7 @@ class MonitorEnvironment(Model):
     __include_in_export__ = True
 
     monitor = FlexibleForeignKey("sentry.Monitor")
-    environment_project = FlexibleForeignKey("sentry.EnvironmentProject")
+    environment = FlexibleForeignKey("sentry.Environment")
     status = BoundedPositiveIntegerField(
         default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
     )
@@ -27,6 +27,6 @@ class MonitorEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
-        indexes = [models.Index(fields=["monitor", "environment_project"])]
+        indexes = [models.Index(fields=["monitor", "environment"])]
 
     __repr__ = sane_repr("monitor_id", "environment_project_id")
