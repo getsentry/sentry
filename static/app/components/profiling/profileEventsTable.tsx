@@ -132,7 +132,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   const columnType = props.meta.fields[key];
   const columnUnit = props.meta.units[key];
 
-  if (key === 'id') {
+  if (key === 'id' || key === 'profile.id') {
     const project = getProjectForRow(props.baggage, props.dataRow);
 
     if (!defined(project)) {
@@ -248,9 +248,11 @@ function getProjectForRow<F extends FieldType>(
 
 const FIELDS = [
   'id',
+  'profile.id',
   'trace.transaction',
   'trace',
   'transaction',
+  'transaction.duration',
   'profile.duration',
   'project',
   'project.id',
@@ -277,6 +279,7 @@ const FIELDS = [
 type FieldType = (typeof FIELDS)[number];
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
+  'transaction.duration',
   'profile.duration',
   'p75()',
   'p95()',
@@ -288,6 +291,11 @@ const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
 const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   id: {
     key: 'id',
+    name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'profile.id': {
+    key: 'profile.id',
     name: t('Profile ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -304,6 +312,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   transaction: {
     key: 'transaction',
     name: t('Transaction'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'transaction.duration': {
+    key: 'transaction.duration',
+    name: t('Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   'profile.duration': {

@@ -3,6 +3,8 @@ import {useQuery} from '@tanstack/react-query';
 import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {EventsStatsSeries} from 'sentry/types';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {makeFormatTo} from 'sentry/utils/profiling/units/units';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -24,10 +26,16 @@ export function useProfileEventsStats<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  let dataset: 'profiles' | 'discover' = 'profiles';
+  if (organization.features.includes('profiling-using-transactions')) {
+    dataset = 'discover';
+    query = `has:profile.id ${query ?? ''}`;
+  }
+
   const path = `/organizations/${organization.slug}/events-stats/`;
   const endpointOptions = {
     query: {
-      dataset: 'profiles',
+      dataset,
       referrer,
       project: selection.projects,
       environment: selection.environments,
@@ -140,6 +148,18 @@ function transformStatsResponse<F extends string>(
 }
 
 function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
+  const type =
+    rawSeries.meta.fields[yAxis] ?? rawSeries.meta.fields[getAggregateAlias(yAxis)];
+  const formatter =
+    type === 'duration'
+      ? makeFormatTo(
+          rawSeries.meta.units[yAxis] ??
+            rawSeries.meta.units[getAggregateAlias(yAxis)] ??
+            'nanoseconds',
+          'milliseconds'
+        )
+      : value => value;
+
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,
     values: [],
@@ -154,7 +174,7 @@ function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
   for (let i = 0; i < rawSeries.data.length; i++) {
     const [timestamp, value] = rawSeries.data[i];
     // the api has this awkward structure for legacy reason
-    series.values.push(value[0].count as number);
+    series.values.push(formatter(value[0].count as number));
     timestamps.push(timestamp);
   }
 
