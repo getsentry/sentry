@@ -1,8 +1,11 @@
-from datetime import datetime
-
-from django.utils import timezone
-
-from sentry.models import Environment, EnvironmentProject, Monitor, MonitorEnvironment
+from sentry.models import (
+    Environment,
+    EnvironmentProject,
+    Monitor,
+    MonitorEnvironment,
+    MonitorType,
+    ScheduleType,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -14,8 +17,10 @@ class MonitorEnvironmentTestCase(TestCase):
         environment = Environment.get_or_create(project, "production")
 
         monitor = Monitor.objects.create(
-            last_checkin=datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc),
-            config={"schedule": "* * * * *"},
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
         production_monitor = MonitorEnvironment.objects.create(
