@@ -23,6 +23,7 @@ from sentry.models import (
     fetch_actors_by_actor_ids,
 )
 from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.snuba.models import SnubaQueryEventType
 
 
@@ -70,26 +71,36 @@ class AlertRuleSerializer(Serializer):
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
 
-        for rule_activity in AlertRuleActivity.objects.filter(
-            alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
-        ).select_related("alert_rule", "user"):
-            if rule_activity.user:
-                user = {
-                    "id": rule_activity.user.id,
-                    "name": rule_activity.user.get_display_name(),
-                    "email": rule_activity.user.email,
-                }
-            else:
-                user = None
+        rule_activities = list(
+            AlertRuleActivity.objects.filter(
+                alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
+            )
+        )
 
-            result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
+        rule_activities_by_user_id = {r.user_id: r for r in rule_activities}
+        for user in user_service.get_many(
+            filter={"user_ids": list(rule_activities_by_user_id.keys())}
+        ):
+            rule_activity = rule_activities_by_user_id.get(user.id)
+            if not rule_activity:
+                continue
 
-        resolved_actors = {}
+            result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = dict(
+                id=user.id, name=user.get_display_name(), email=user.email
+            )
+
+        # Fill in any created_by in the rule_activities query that didn't have a user.
+        for rule_activity in rule_activities:
+            item = alert_rules[rule_activity.alert_rule_id]
+            if "created_by" not in result[item]:
+                result[item]["created_by"] = None
+
         owners_by_type = defaultdict(list)
         for item in item_list:
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
+        resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
             resolved_actors[k] = {
                 a.actor_id: a.id

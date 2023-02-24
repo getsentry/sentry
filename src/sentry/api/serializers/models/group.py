@@ -35,7 +35,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
-    ActorTuple,
     Commit,
     Environment,
     Group,
@@ -183,19 +182,24 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
-    def _serialize_assigness(
-        self, actor_dict: Mapping[int, ActorTuple]
-    ) -> Mapping[int, Union[Team, Any]]:
-        actors_by_type: MutableMapping[Any, List[ActorTuple]] = defaultdict(list)
-        for actor in actor_dict.values():
-            actors_by_type[actor.type].append(actor)
+    def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Union[Team, Any]]:
+        gas = GroupAssignee.objects.filter(group__in=item_list)
+        result: MutableMapping[int, Union[Team, Any]] = {}
+        all_team_ids: MutableMapping[int, int] = {}
+        all_user_ids: MutableMapping[int, int] = {}
 
-        resolved_actors = {}
-        for t, actors in actors_by_type.items():
-            serializable = ActorTuple.resolve_many(actors)
-            resolved_actors[t] = {actor.id: actor for actor in serializable}
+        for g in gas:
+            if g.team_id:
+                all_team_ids[g.team_id] = g.group_id
+            if g.user_id:
+                all_user_ids[g.user_id] = g.group_id
 
-        return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
+        for team in Team.objects.filter(id__in=all_team_ids.keys()):
+            result[all_team_ids[team.id]] = team
+        for user in user_service.get_many(filter=dict(user_ids=list(all_user_ids.keys()))):
+            result[all_user_ids[user.id]] = user
+
+        return result
 
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
@@ -223,11 +227,7 @@ class GroupSerializerBase(Serializer, ABC):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, False, None))
 
-        assignees: Mapping[int, ActorTuple] = {
-            a.group_id: a.assigned_actor()
-            for a in GroupAssignee.objects.filter(group__in=item_list)
-        }
-        resolved_assignees = self._serialize_assigness(assignees)
+        resolved_assignees = self._serialize_assignees(item_list)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 
