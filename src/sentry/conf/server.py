@@ -977,6 +977,8 @@ SENTRY_FEATURES = {
     "organizations:codecov-stacktrace-integration": False,
     # Enables V2 for codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration-v2": False,
+    # Enables the cron job to auto-enable codecov integrations.
+    "organizations:auto-enable-codecov": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
