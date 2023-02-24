@@ -467,20 +467,8 @@ def _activity_score():
     #  score = (count_errors * 25 + pagesVisited * 5 ) / 10;
     #  score = Math.floor(Math.min(10, Math.max(1, score)));
 
-    error_weight = Function(
-        "multiply",
-        parameters=[Column("count_errors"), 25],
-    )
-    pages_visited_weight = Function(
-        "multiply",
-        parameters=[
-            Function(
-                "length",
-                parameters=[Column("urls_sorted")],
-            ),
-            5,
-        ],
-    )
+    error_weight = Function("multiply", parameters=[Column("count_errors"), 25])
+    pages_visited_weight = Function("multiply", parameters=[Column("count_urls"), 5])
 
     combined_weight = Function(
         "plus",
@@ -549,10 +537,10 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "urls": ["urls_sorted", "agg_urls"],
     "url": ["urls_sorted", "agg_urls"],
     "count_errors": ["count_errors"],
-    "count_urls": ["count_urls", "urls_sorted", "agg_urls"],
+    "count_urls": ["count_urls"],
     "count_segments": ["count_segments"],
     "is_archived": ["is_archived"],
-    "activity": ["activity", "count_errors", "urls_sorted", "agg_urls"],
+    "activity": ["activity", "count_errors", "count_urls"],
     "user": ["user_id", "user_email", "user_name", "user_ip"],
     "os": ["os_name", "os_version"],
     "browser": ["browser_name", "browser_version"],
@@ -642,8 +630,8 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_errors",
     ),
     "count_urls": Function(
-        "length",
-        parameters=[Column("urls_sorted")],
+        "sum",
+        parameters=[Function("length", parameters=[Column("urls")])],
         alias="count_urls",
     ),
     "is_archived": Function(
