@@ -74,7 +74,9 @@ function BreadcrumbItem({
           ) : null}
         </TitleContainer>
 
-        <Description title={description}>{description}</Description>
+        <Description title={typeof description === 'string' ? description : undefined}>
+          {description}
+        </Description>
       </CrumbDetails>
     </CrumbItem>
   );

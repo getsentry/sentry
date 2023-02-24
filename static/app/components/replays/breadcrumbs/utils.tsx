@@ -1,3 +1,6 @@
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
 /**
@@ -9,6 +12,19 @@ export function getDescription(crumb: Crumb) {
       case 'largest-contentful-paint':
         if (crumb.data?.value !== undefined) {
           return `${crumb.data.value}ms`;
+        }
+        if (crumb.data?.duration !== undefined) {
+          // this means user is using an old SDK where LCP values are not
+          // always correct. Prompt them to upgrade
+          return (
+            <Tooltip
+              title={t(
+                'This replay uses a SDK version that is subject to inaccurate LCP values. Please upgrade to the latest version for best results if you have not already done so.'
+              )}
+            >
+              <IconWarning />
+            </Tooltip>
+          );
         }
         break;
       default:
