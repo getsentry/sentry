@@ -2219,25 +2219,25 @@
     htmlparser2 "^4.1.0"
     title-case "^3.0.2"
 
-"@sentry-internal/rrweb-player@^1.103.0":
-  version "1.103.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-1.103.0.tgz#9b821efd4e87092009f8bf38e6bec990eed46b6e"
-  integrity sha512-rMZ/CSOCDqKlqcnVP9SfyE7TloAhKVJ54RcHSV2GkAMor0ZNXAkEEZDNIENP5orOFsC6pbu4A8IwRVnfEUG3XA==
+"@sentry-internal/rrweb-player@^1.104.0":
+  version "1.104.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-1.104.0.tgz#8f1a22adaf97c8a806bb95b2b94910bf0937764c"
+  integrity sha512-HGkDSmV6fLJhtAS4jI+P4pndcs2h2cnoDL1UBrh64MXIckNre3/A2z9YcscC4KyW8oOAsDdVFjd4FbiHNmvNyA==
   dependencies:
-    "@sentry-internal/rrweb" "1.103.0"
+    "@sentry-internal/rrweb" "1.104.0"
     "@tsconfig/svelte" "^3.0.0"
 
-"@sentry-internal/rrweb-snapshot@1.103.0":
-  version "1.103.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.103.0.tgz#afabe3d5c729a82a65b896e45018d50ee896fd74"
-  integrity sha512-YE0RlQh/bvVr3LcYgMhs5FJ4VUMpVZPUT/IqDVN+rZ4be2ARAn9z50skA26RyO/z6IXiIi8i6YacP8gGTOyFJg==
+"@sentry-internal/rrweb-snapshot@1.104.0":
+  version "1.104.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.104.0.tgz#888ded12c6340891f092474b34feb5e88144395b"
+  integrity sha512-brdzqFiOVNfBJh4ggbkA7vrCg82MU5mMZ9NFqtrRi6/WPJch7mZvXY7WcqkwBykY7I61s/A/35gZYi3pvgG9Lw==
 
-"@sentry-internal/rrweb@1.103.0", "@sentry-internal/rrweb@^1.103.0":
-  version "1.103.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.103.0.tgz#c702be1616e9391e1dde2b0549a6038438e7bbf7"
-  integrity sha512-F9RfDbbjM1oddUX6jcfuv4n8jpZG5fsHvzIjT4z+KxBa8V09G9Nz/8wuDrIg0Cgb54wTRAbyyAKOexvzoZ8SKA==
+"@sentry-internal/rrweb@1.104.0", "@sentry-internal/rrweb@^1.104.0":
+  version "1.104.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.104.0.tgz#0dd31446b7a48090fbd73385763974e9db4a1e4f"
+  integrity sha512-FZRXzPFg7WW3WgpBzSWc/LLY+JP1HNLmTT2DaTSMSuuWyjtTBB7SHfblD3niiGCu2T8bHKMEyZkEBcZWtb9NWA==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "1.103.0"
+    "@sentry-internal/rrweb-snapshot" "1.104.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
