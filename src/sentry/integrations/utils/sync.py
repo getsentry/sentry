@@ -10,11 +10,11 @@ from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import APIIntegration
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
 def where_should_sync(
-    integration: APIIntegration,
+    integration: RpcIntegration,
     key: str,
     organization_id: int | None = None,
 ) -> Sequence[Organization]:
@@ -53,7 +53,7 @@ def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: Group) -> 
 
 
 def sync_group_assignee_inbound(
-    integration: APIIntegration,
+    integration: RpcIntegration,
     email: str | None,
     external_issue_key: str,
     assign: bool = True,

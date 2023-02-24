@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from django.utils import timezone
 
@@ -18,12 +18,9 @@ from sentry.services.hybrid_cloud import (
 )
 from sentry.silo import SiloMode
 
-if TYPE_CHECKING:
-    from sentry.models import Organization
-
 
 @dataclass(frozen=True, eq=True)
-class APIOrganizationMapping:
+class RpcOrganizationMapping:
     organization_id: int = -1
     slug: str = ""
     name: str = ""
@@ -34,13 +31,13 @@ class APIOrganizationMapping:
 
 
 @dataclass
-class ApiOrganizationMappingUpdate(PatchableMixin["Organization"]):
+class RpcOrganizationMappingUpdate(PatchableMixin["Organization"]):
     organization_id: int = -1
     name: Unset[str] = UnsetVal
     customer_id: Unset[str] = UnsetVal
 
     @classmethod
-    def from_instance(cls, inst: Organization) -> ApiOrganizationMappingUpdate:
+    def from_instance(cls, inst: Organization) -> RpcOrganizationMappingUpdate:
         return cls(**cls.params_from_instance(inst), organization_id=inst.id)
 
 
@@ -56,7 +53,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
-    ) -> APIOrganizationMapping:
+    ) -> RpcOrganizationMapping:
         """
         This method returns a new or recreated OrganizationMapping object.
         If a record already exists with the same slug, the organization_id can only be
@@ -77,7 +74,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def update(self, update: ApiOrganizationMappingUpdate) -> None:
+    def update(self, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
     @abstractmethod
@@ -104,3 +101,5 @@ organization_mapping_service: OrganizationMappingService = silo_mode_delegation(
         SiloMode.CONTROL: impl_with_db,
     }
 )
+
+from sentry.models import Organization

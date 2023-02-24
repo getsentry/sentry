@@ -6,7 +6,7 @@ from sentry import quotas
 from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.logging import log_rules
-from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_enabled_user_biases
+from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.UNIFORM_RULE}
@@ -26,7 +26,7 @@ def _get_rules_of_enabled_biases(
     base_sample_rate: float,
     enabled_biases: Set[str],
     combined_biases: OrderedDict[RuleType, Bias],
-) -> List[BaseRule]:
+) -> List[PolymorphicRule]:
     rules = []
 
     for (rule_type, bias) in combined_biases.items():
@@ -44,7 +44,7 @@ def _get_rules_of_enabled_biases(
     return rules
 
 
-def generate_rules(project: Project) -> List[BaseRule]:
+def generate_rules(project: Project) -> List[PolymorphicRule]:
     try:
         return _get_rules_of_enabled_biases(
             project,

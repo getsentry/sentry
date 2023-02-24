@@ -1,26 +1,23 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
 import {
   formatSort,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
-
-const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
 
 interface ProfileSummaryContentProps {
   location: Location;
@@ -41,16 +38,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location.query.cursor]
   );
 
-  const functionsCursor = useMemo(
-    () => decodeScalar(props.location.query.functionsCursor),
-    [props.location.query.functionsCursor]
-  );
-
-  const functionsSort = useMemo(
-    () => decodeScalar(props.location.query.functionsSort, '-p99'),
-    [props.location.query.functionsSort]
-  );
-
   const sort = formatSort<ProfilingFieldType>(
     decodeScalar(props.location.query.sort),
     fields,
@@ -68,27 +55,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     limit: 5,
     referrer: 'api.profiling.profile-summary-table',
   });
-
-  const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
-    'application'
-  );
-
-  const functions = useFunctions({
-    cursor: functionsCursor,
-    project: props.project,
-    query: '', // TODO: This doesnt support the same filters
-    selection: props.selection,
-    transaction: props.transaction,
-    sort: functionsSort,
-    functionType,
-  });
-
-  const handleFunctionsCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [FUNCTIONS_CURSOR_NAME]: cursor},
-    });
-  }, []);
 
   const handleFilterChange = useCallback(
     value => {
@@ -126,51 +92,23 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         isLoading={profiles.status === 'loading'}
         sort={sort}
       />
-      <TableHeader>
-        <CompactSelect
-          triggerProps={{prefix: t('Suspect Functions'), size: 'xs'}}
-          value={functionType}
-          options={[
-            {
-              label: t('All'),
-              value: 'all' as const,
-            },
-            {
-              label: t('Application'),
-              value: 'application' as const,
-            },
-            {
-              label: t('System'),
-              value: 'system' as const,
-            },
-          ]}
-          onChange={({value}) => setFunctionType(value)}
-        />
-        <StyledPagination
-          pageLinks={functions.type === 'resolved' ? functions.data.pageLinks : null}
-          onCursor={handleFunctionsCursor}
-          size="xs"
-        />
-      </TableHeader>
-      <FunctionsTable
-        error={functions.type === 'errored' ? functions.error : null}
-        isLoading={functions.type === 'initial' || functions.type === 'loading'}
-        functions={functions.type === 'resolved' ? functions.data.functions : []}
+      <SuspectFunctionsTable
         project={props.project}
-        sort={functionsSort}
+        transaction={props.transaction}
+        analyticsPageSource="profiling_transaction"
       />
     </Layout.Main>
   );
 }
 
 const ALL_FIELDS = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
   'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
@@ -185,11 +123,10 @@ export function getProfilesTableFields(platform: Project['platform']) {
 
 const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
-  'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ];
 
 const FILTER_OPTIONS = [
@@ -199,11 +136,11 @@ const FILTER_OPTIONS = [
   },
   {
     label: t('Slowest Profiles'),
-    value: '-profile.duration',
+    value: '-transaction.duration',
   },
   {
     label: t('Fastest Profiles'),
-    value: 'profile.duration',
+    value: 'transaction.duration',
   },
 ];
 

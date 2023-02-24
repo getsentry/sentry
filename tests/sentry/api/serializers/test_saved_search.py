@@ -56,7 +56,7 @@ class SavedSearchSerializerTest(TestCase):
     def test_pinned(self):
         search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.user,
+            owner_id=self.user.id,
             name="Something",
             query="some query",
             visibility=Visibility.OWNER_PINNED,

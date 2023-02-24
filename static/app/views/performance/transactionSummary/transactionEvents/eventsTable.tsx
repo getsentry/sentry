@@ -16,14 +16,14 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {IssueAttachment, Organization, Project} from 'sentry/types';
+import {IssueAttachment, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -38,6 +38,7 @@ import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {COLUMN_TITLES} from '../../data';
 import {
+  generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
@@ -45,25 +46,6 @@ import {
 } from '../utils';
 
 import OperationSort, {TitleProps} from './operationSort';
-
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
-
-  const project = projects.find(currentProject => currentProject.slug === projectSlug);
-
-  if (!project) {
-    return undefined;
-  }
-
-  return project.id;
-}
 
 function OperationTitle({onClick}: TitleProps) {
   return (
@@ -86,7 +68,6 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
-  showReplayCol: boolean;
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
@@ -222,6 +203,20 @@ class EventsTable extends Component<Props, State> {
       );
     }
 
+    if (field === 'profile.id') {
+      const target = generateProfileLink()(organization, dataRow, undefined);
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          {target ? <Link to={target}>{rendered}</Link> : rendered}
+        </CellAction>
+      );
+    }
+
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
     if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -345,8 +340,7 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, referrer, showReplayCol} =
-      this.props;
+    const {eventView, organization, location, setError, referrer} = this.props;
 
     const totalEventsView = eventView.clone();
     totalEventsView.sorts = [];
@@ -364,9 +358,7 @@ class EventsTable extends Component<Props, State> {
       .getColumns()
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          ((!containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)) &&
-            col.name !== 'replayId') ||
-          showReplayCol
+          !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

@@ -7,7 +7,7 @@ import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {

@@ -1,12 +1,20 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
 
 type ProfilingEventSource =
+  | 'discover.transactions_table'
+  | 'performance.missing_instrumentation'
+  | 'performance.trace_view'
+  | 'performance.transactions_summary.overview'
   | 'slowest_transaction_panel'
   | 'transaction_details'
   | 'transaction_hovercard.trigger'
   | 'transaction_hovercard.latest_profile'
   | 'transaction_hovercard.slowest_profile'
-  | 'transaction_hovercard.suspect_function';
+  | 'transaction_hovercard.suspect_function'
+  | 'events.profile_event_context'
+  | 'profiling_transaction.suspect_functions_table'
+  | 'performance_transaction.suspect_functions_table'
+  | 'discover.table';
 
 interface EventPayloadWithProjectDetails {
   project_id: string | number | undefined;

@@ -16,26 +16,24 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-} from 'sentry/utils/formatters';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {
   anomaliesRouteWithQuery,
@@ -84,6 +82,7 @@ function SidebarCharts({
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
+
   return (
     <RelativeBox>
       <ChartLabel top="0px">
@@ -120,29 +119,6 @@ function SidebarCharts({
         />
       </ChartLabel>
 
-      <ChartLabel top="320px">
-        <ChartTitle>
-          {t('TPM')}
-          <QuestionTooltip
-            position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
-            size="sm"
-          />
-        </ChartTitle>
-        <ChartSummaryValue
-          data-test-id="tpm-summary-value"
-          isLoading={isLoading}
-          error={error}
-          value={
-            totals
-              ? tct('[tpm] tpm', {
-                  tpm: formatFloat(totals['tpm()'], 4),
-                })
-              : null
-          }
-        />
-      </ChartLabel>
-
       <AnomaliesQuery
         location={location}
         organization={organization}
@@ -162,7 +138,7 @@ function SidebarCharts({
 
               if (errored) {
                 return (
-                  <ErrorPanel height="580px">
+                  <ErrorPanel height="300px">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
@@ -210,7 +186,7 @@ function SidebarCharts({
                     value: (
                       <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                     ),
-                    fixed: <Placeholder height="480px" testId="skeleton-ui" />,
+                    fixed: <Placeholder height="300px" testId="skeleton-ui" />,
                   })}
                 </TransitionChart>
               );
@@ -235,7 +211,7 @@ function SidebarChartsContainer({
   const api = useApi();
   const theme = useTheme();
 
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(2);
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -243,6 +219,13 @@ function SidebarChartsContainer({
   const environment = eventView.environment;
   const query = eventView.query;
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
+
+  const mepSetting = useMEPSettingContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    organization,
+    location
+  );
 
   const axisLineConfig = {
     scale: true,
@@ -258,7 +241,7 @@ function SidebarChartsContainer({
   };
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
-    height: 480,
+    height: 300,
     grid: [
       {
         top: '60px',
@@ -272,18 +255,12 @@ function SidebarChartsContainer({
         right: '10px',
         height: '100px',
       },
-      {
-        top: '380px',
-        left: '10px',
-        right: '10px',
-        height: '120px',
-      },
     ],
     axisPointer: {
       // Link each x-axis together.
-      link: [{xAxisIndex: [0, 1, 2]}],
+      link: [{xAxisIndex: [0, 1]}],
     },
-    xAxes: Array.from(new Array(3)).map((_i, index) => ({
+    xAxes: Array.from(new Array(2)).map((_i, index) => ({
       gridIndex: index,
       type: 'time',
       show: false,
@@ -311,21 +288,11 @@ function SidebarChartsContainer({
         },
         ...axisLineConfig,
       },
-      {
-        // throughput
-        gridIndex: 2,
-        splitNumber: 4,
-        axisLabel: {
-          formatter: formatAbbreviatedNumber,
-          color: theme.chartLabel,
-        },
-        ...axisLineConfig,
-      },
     ],
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]],
+    colors: [colors[0], colors[1]],
     tooltip: {
       trigger: 'axis',
       truncate: 80,
@@ -371,14 +338,15 @@ function SidebarChartsContainer({
       interval={getInterval(datetimeSelection)}
       showLoading={false}
       includePrevious={false}
-      yAxis={['apdex()', 'failure_rate()', 'epm()']}
+      yAxis={['apdex()', 'failure_rate()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
+      queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {
         const series = results
-          ? results.map((values, i: number) => ({
-              ...values,
+          ? results.map((v, i: number) => ({
+              ...v,
               yAxisIndex: i,
               xAxisIndex: i,
             }))

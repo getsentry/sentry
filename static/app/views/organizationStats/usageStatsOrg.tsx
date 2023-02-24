@@ -13,8 +13,8 @@ import NotAvailable from 'sentry/components/notAvailable';
 import ScoreCard, {ScoreCardProps} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {DataCategory, IntervalPeriod, Organization, Outcome} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {DataCategoryInfo, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
@@ -33,11 +33,11 @@ import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
 export type UsageStatsOrganizationProps = {
-  dataCategory: DataCategory;
+  dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
-    dataCategory?: DataCategory;
+    dataCategory?: DataCategoryInfo['plural'];
     pagePeriod?: string | null;
     transform?: ChartDataTransform;
   }) => void;

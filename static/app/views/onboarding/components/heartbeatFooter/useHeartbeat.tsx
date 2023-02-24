@@ -20,10 +20,10 @@ export function useHeartbeat(
 
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstTransactionReceived, setFirstTransactionReceived] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
+  const [sessionReceived, setSessionReceived] = useState(false);
   const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
 
-  const serverConnected = hasSession || firstTransactionReceived;
+  const serverConnected = sessionReceived || firstTransactionReceived;
 
   const {isLoading: eventIsLoading} = useQuery<Project>(
     [`/projects/${organization.slug}/${projectSlug}/`],
@@ -58,7 +58,7 @@ export function useHeartbeat(
         const hasHealthData =
           getCount(data.groups, SessionFieldWithOperation.SESSIONS) > 0;
 
-        setHasSession(hasHealthData);
+        setSessionReceived(hasHealthData);
       },
     }
   );
@@ -67,20 +67,26 @@ export function useHeartbeat(
   // *not* include sample events, while just looking at the issues list will.
   // We will wait until the project.firstEvent is set and then locate the
   // event given that event datetime
-  useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
-    staleTime: 0,
-    enabled: !!firstError && !firstIssue, // Only fetch if an error event is received and we have not yet located the first issue,
-    onSuccess: data => {
-      setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
-    },
-  });
+  const {isLoading: issuesLoading} = useQuery<Group[]>(
+    [`/projects/${organization.slug}/${projectSlug}/issues/`],
+    {
+      staleTime: 0,
+      enabled: !!firstError && !firstIssue, // Only fetch if an error event is received and we have not yet located the first issue,
+      onSuccess: data => {
+        setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
+      },
+    }
+  );
 
   const firstErrorReceived = firstIssue ?? !!firstError;
   const loading = eventIsLoading || sessionIsLoading;
 
   return {
     loading,
+    issuesLoading,
     serverConnected,
     firstErrorReceived,
+    firstTransactionReceived,
+    sessionReceived,
   };
 }

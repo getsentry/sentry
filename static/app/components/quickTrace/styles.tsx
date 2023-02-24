@@ -7,7 +7,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
 import Tag, {Background} from 'sentry/components/tag';
 import Truncate from 'sentry/components/truncate';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
 import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
@@ -44,8 +44,7 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)<{disabled?: boolean}>`
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
+export const EventNode = styled(Tag)`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};

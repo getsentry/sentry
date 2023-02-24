@@ -6,7 +6,7 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
-} from 'sentry/views/organizationIntegrations/constants';
+} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {BaseRelease} from './release';
@@ -81,6 +81,18 @@ export type Repository = {
   url: string;
 };
 
+/**
+ * Integration Repositories from OrganizationIntegrationReposEndpoint
+ */
+export type IntegrationRepository = {
+  /**
+   * ex - getsentry/sentry
+   */
+  identifier: string;
+  name: string;
+  defaultBranch?: string | null;
+};
+
 export type Commit = {
   dateCreated: string;
   id: string;
@@ -89,6 +101,7 @@ export type Commit = {
   author?: User;
   pullRequest?: PullRequest | null;
   repository?: Repository;
+  suspectCommitType?: string;
 };
 
 export type Committer = {

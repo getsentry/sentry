@@ -19,6 +19,7 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -89,7 +90,6 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
 from sentry.snuba.referrer import Referrer
-from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -581,6 +581,15 @@ class DiscoverDatasetConfig(DatasetConfig):
                     required_args=[NumericColumn("column1"), NumericColumn("column2")],
                     snql_aggregate=lambda args, alias: Function(
                         "corr", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "linear_regression",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "simpleLinearRegression", [args["column1"], args["column2"]], alias
                     ),
                     default_result_type="number",
                     redundant_grouping=True,

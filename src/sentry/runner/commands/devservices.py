@@ -341,19 +341,9 @@ def _start_service(
     fast: bool = False,
     always_start: bool = False,
 ) -> docker.models.containers.Container | None:
-    from django.conf import settings
-
     from docker.errors import NotFound
 
     options = containers[name]
-
-    # HACK(mattrobenolt): special handle snuba backend because it needs to
-    # handle different values based on the eventstream backend
-    # For snuba, we can't run the full suite of devserver, but can only
-    # run the api.
-    if name == "snuba" and "snuba" in settings.SENTRY_EVENTSTREAM:
-        options["environment"].pop("DEFAULT_BROKERS", None)
-        options["command"] = ["devserver", "--no-workers"]
 
     for key, value in list(options["environment"].items()):
         options["environment"][key] = value.format(containers=containers)

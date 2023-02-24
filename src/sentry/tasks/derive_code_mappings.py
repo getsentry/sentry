@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
 
@@ -14,7 +14,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
@@ -27,6 +27,42 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.integrations.base import IntegrationInstallation
+
+
+def process_error(error: ApiError, extra: Dict[str, str]) -> None:
+    """Log known issues and report unknown ones"""
+    msg = error.text
+    if error.json:
+        json_data: JSONData = error.json
+        msg = json_data.get("message")
+    extra["error"] = msg
+
+    if msg == "Not Found":
+        logger.warning("The org has uninstalled the Sentry App.", extra=extra)
+        return
+    elif msg == "This installation has been suspended":
+        logger.warning("The org has suspended the Sentry App.", extra=extra)
+        return
+    elif msg == "Server Error":
+        logger.warning("Github failed to respond.", extra=extra)
+        return
+    elif msg.startswith("Although you appear to have the correct authorization credentials"):
+        # Although you appear to have the correct authorization credentials, the
+        # <github_org_here> organization has an IP allow list enabled, and
+        # <ip_address_here> is not permitted to access this resource.
+        logger.warning("The org has suspended the Sentry App. See code comment.", extra=extra)
+        return
+    elif msg.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+        logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+        return
+
+    # Logging the exception and returning is better than re-raising the error
+    # Otherwise, API errors would not group them since the HTTPError in the stack
+    # has unique URLs, thus, separating the errors
+    logger.exception(
+        "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
+        extra=extra,
+    )
 
 
 @instrumented_task(  # type: ignore
@@ -80,22 +116,17 @@ def derive_code_mappings(
             # This method is specific to the GithubIntegration
             trees = installation.get_trees_for_org()  # type: ignore
     except ApiError as error:
-        msg = error.text
-        if error.json:
-            json_data: JSONData = error.json
-            msg = json_data.get("message")
-        extra["error"] = msg
-
-        if msg == "Not Found":
-            logger.warning("The org has uninstalled the Sentry App.", extra=extra)
-            return
-
-        raise error  # Let's be report the issue
+        process_error(error, extra)
+        return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
         # This will cause the auto-retry logic to try again
         raise error
+
+    if not trees:
+        logger.error("The tree is empty. Investigate.")
+        return
 
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
@@ -140,7 +171,7 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 
 def get_installation(
     organization: Organization,
-) -> Tuple[IntegrationInstallation | None, APIOrganizationIntegration | None]:
+) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
     integration, organization_integration = integration_service.get_organization_context(
         organization_id=organization.id, provider="github"
     )

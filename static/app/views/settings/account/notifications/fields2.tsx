@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -17,20 +16,6 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['never', t('Off')],
     ],
     help: t('Notifications sent from Alert rules that your team has set up.'),
-  },
-  activeRelease: {
-    name: 'activeRelease',
-    type: 'select',
-    label: (
-      <Fragment>
-        {t('Release Issues')} <FeatureBadge type="alpha" />
-      </Fragment>
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ],
-    help: t('Notifications sent for issues likely caused by your code changes.'),
   },
   workflow: {
     name: 'workflow',
@@ -167,6 +152,17 @@ export const QUOTA_FIELDS = [
         learnMore: <ExternalLink href={getDocsLinkForEventType('transaction')} />,
       }
     ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
+    name: 'quotaReplays',
+    label: t('Replays'),
+    help: tct('Receive notifications about your replay quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('replay')} />,
+    }),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],

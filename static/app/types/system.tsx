@@ -85,6 +85,11 @@ declare global {
       };
     };
     /**
+     * Is the UI running as dev-ui proxy.
+     * Used by webpack-devserver + html-webpack
+     */
+    __SENTRY_DEV_UI?: boolean;
+    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
@@ -137,6 +142,7 @@ export interface Config {
     organizationUrl: string | undefined;
     regionUrl: string | undefined;
     sentryUrl: string;
+    superuserUrl?: string;
   };
   /**
    * This comes from django (django.contrib.messages)

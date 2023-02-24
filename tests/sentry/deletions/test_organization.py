@@ -25,7 +25,7 @@ from sentry.models import (
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.snuba.models import SnubaQuery
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.silo import region_silo_test
 

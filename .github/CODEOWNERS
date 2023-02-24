@@ -17,12 +17,14 @@
 
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
-/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/visibility
+/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/search/snuba/                                @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
+/src/sentry/sentry_metrics/                              @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/owners-ingest
@@ -39,11 +41,13 @@
 /src/sentry/scripts/quotas/                              @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/                                @getsentry/owners-ingest
 /src/sentry/tasks/store.py                               @getsentry/owners-ingest
+/src/sentry/tasks/relay.py                               @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py                             @getsentry/owners-ingest
 /tests/sentry/event_manager/                             @getsentry/owners-ingest
 /tests/sentry/ingest/                                    @getsentry/owners-ingest
 /tests/sentry/relay/                                     @getsentry/owners-ingest
 /tests/relay_integration/                                @getsentry/owners-ingest
+/bin/invalidate-project-configs                          @getsentry/owners-ingest
 
 ## Security
 /src/sentry/net/                                         @getsentry/security
@@ -86,12 +90,30 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
-/docs-ui/components/                                     @getsentry/design @getsentry/core-ui
 
 ## Core UI
-/static/app/components                                   @getsentry/core-ui
-/static/app/views/issueList                              @getsentry/core-ui
-/static/app/views/organizationGroupDetails               @getsentry/core-ui
+/static/app/components                                       @getsentry/core-ui
+
+/static/app/views/issueList                                  @getsentry/core-ui
+/static/app/views/organizationGroupDetails                   @getsentry/core-ui
+
+/static/app/views/monitors                                   @getsentry/core-ui
+/src/sentry/models/monitor.py               			     @getsentry/core-ui
+/src/sentry/models/monitorcheckin.py               		     @getsentry/core-ui
+/src/sentry/models/monitorlocation.py                 	     @getsentry/core-ui
+/src/sentry/api/validators/monitor.py               	     @getsentry/core-ui
+/src/sentry/api/bases/monitor.py               	 		     @getsentry/core-ui
+/src/sentry/api/endpoints/monitor_stats.py                   @getsentry/core-ui
+/src/sentry/api/endpoints/organization_monitors.py           @getsentry/core-ui
+/src/sentry/api/endpoints/monitor_checkins.py                @getsentry/core-ui
+/src/sentry/api/endpoints/monitor_checkin_details.py         @getsentry/core-ui
+/src/sentry/tasks/check_monitors.py 						 @getsentry/core-ui
+/tests/sentry/api/endpoints/test_organization_monitors.py    @getsentry/core-ui
+/tests/sentry/api/endpoints/test_monitor_checkins.py         @getsentry/core-ui
+/tests/sentry/api/endpoints/test_monitor_checkin_details.py  @getsentry/core-ui
+/tests/sentry/models/test_monitor.py 						 @getsentry/core-ui
+/tests/sentry/utils/test_monitors.py 						 @getsentry/core-ui
+/tests/sentry/tasks/test_check_monitors.py 					 @getsentry/core-ui
 
 
 # Owners by product feature
@@ -138,18 +160,29 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Visibility
-/src/sentry/api/endpoints/organization_tags.py               @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_histogram.py   @getsentry/visibility
-/tests/snuba/api/endpoints/                                  @getsentry/visibility
-/src/sentry/api/serializers/snuba.py                         @getsentry/visibility
-/src/sentry/snuba/discover.py                                @getsentry/visibility
-/src/sentry/snuba/metrics_performance.py                     @getsentry/visibility
-/src/sentry/snuba/metrics_enhanced_performance.py            @getsentry/visibility
+/src/sentry/api/endpoints/organization_tags.py                              @getsentry/performance
+/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/performance
 
-/src/sentry/search/events/                                   @getsentry/visibility
-/tests/snuba/search/test_backend.py                          @getsentry/visibility
-/static/app/utils/discover/                                  @getsentry/visibility
-/static/app/components/charts/                               @getsentry/visibility
+/tests/snuba/api/endpoints/*                                                @getsentry/discover-n-dashboards
+/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
+
+/src/sentry/api/serializers/snuba.py                                        @getsentry/discover-n-dashboards
+/src/sentry/snuba/discover.py                                               @getsentry/discover-n-dashboards
+/src/sentry/snuba/metrics_performance.py                                    @getsentry/discover-n-dashboards
+/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/discover-n-dashboards
+
+/src/sentry/search/events/                                                  @getsentry/discover-n-dashboards
+/tests/snuba/search/test_backend.py                                         @getsentry/discover-n-dashboards
+/static/app/utils/discover/                                                 @getsentry/discover-n-dashboards
+/static/app/components/charts/                                              @getsentry/discover-n-dashboards
 ## Endof Visibility
 
 
@@ -219,11 +252,11 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Replays
-/static/app/components/replays/   @getsentry/emerging-technology
-/static/app/utils/replays/        @getsentry/emerging-technology
-/static/app/views/replays/        @getsentry/emerging-technology
-/src/sentry/replays/              @getsentry/emerging-technology
-/tests/sentry/replays/            @getsentry/emerging-technology
+/static/app/components/replays/   @getsentry/replay-frontend
+/static/app/utils/replays/        @getsentry/replay-frontend
+/static/app/views/replays/        @getsentry/replay-frontend
+/src/sentry/replays/              @getsentry/replay-backend
+/tests/sentry/replays/            @getsentry/replay-backend
 ## End of Replays
 
 

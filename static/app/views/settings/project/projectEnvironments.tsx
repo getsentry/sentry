@@ -14,7 +14,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';

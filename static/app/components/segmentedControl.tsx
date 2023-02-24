@@ -10,12 +10,22 @@ import {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 
 export interface SegmentedControlItemProps<Value extends string> extends ItemProps<any> {
   key: Value;
   disabled?: boolean;
+  /**
+   * Optional tooltip that appears when the use hovers over the segment. Avoid using
+   * tooltips if there are other, more visible ways to display the same information.
+   */
+  tooltip?: React.ReactNode;
+  /**
+   * Additional props to be passed into <Tooltip />.
+   */
+  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
 }
 
 type Priority = 'default' | 'primary';
@@ -63,7 +73,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
       <LayoutGroup id={radioGroupProps.id}>
-        {[...collectionList].map(option => (
+        {collectionList.map(option => (
           <Segment
             {...option.props}
             key={option.key}
@@ -88,7 +98,9 @@ SegmentedControl.Item = Item as <Value extends string>(
   props: SegmentedControlItemProps<Value>
 ) => JSX.Element;
 
-interface SegmentProps extends AriaRadioProps {
+interface SegmentProps<Value extends string>
+  extends Omit<SegmentedControlItemProps<Value>, keyof ItemProps<any>>,
+    AriaRadioProps {
   lastKey: string;
   layoutGroupId: string;
   priority: Priority;
@@ -98,18 +110,20 @@ interface SegmentProps extends AriaRadioProps {
   prevKey?: string;
 }
 
-function Segment({
+function Segment<Value extends string>({
   state,
   nextKey,
   prevKey,
   size,
   priority,
   layoutGroupId,
+  tooltip,
+  tooltipOptions = {},
   ...props
-}: SegmentProps) {
+}: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
 
-  const {inputProps} = useRadio({...props}, state, ref);
+  const {inputProps} = useRadio(props, state, ref);
 
   const prevOptionIsSelected = defined(prevKey) && state.selectedValue === prevKey;
   const nextOptionIsSelected = defined(nextKey) && state.selectedValue === nextKey;
@@ -118,8 +132,13 @@ function Segment({
   const showDivider = !isSelected && !nextOptionIsSelected;
 
   const {isDisabled} = props;
-  return (
-    <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
+  const content = (
+    <SegmentWrap
+      size={size}
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      data-test-id={props.value}
+    >
       <SegmentInput {...inputProps} ref={ref} />
       {!isDisabled && (
         <SegmentInteractionStateLayer
@@ -150,6 +169,20 @@ function Segment({
       </LabelWrap>
     </SegmentWrap>
   );
+
+  if (tooltip) {
+    return (
+      <Tooltip
+        skipWrapper
+        title={tooltip}
+        {...{delay: 500, position: 'bottom', ...tooltipOptions}}
+      >
+        {content}
+      </Tooltip>
+    );
+  }
+
+  return content;
 }
 
 const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
@@ -171,7 +204,7 @@ const SegmentWrap = styled('label')<{
   isDisabled?: boolean;
 }>`
   position: relative;
-  display: block;
+  display: flex;
   margin: 0;
   border-radius: calc(${p => p.theme.borderRadius} - 1px);
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
@@ -180,16 +213,19 @@ const SegmentWrap = styled('label')<{
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: 400;
 
-  &:hover {
-    background-color: inherit;
+  ${p =>
+    !p.isDisabled &&
+    `
+    &:hover {
+      background-color: inherit;
 
-    [role='separator'] {
-      opacity: 0;
+      [role='separator'] {
+        opacity: 0;
+      }
     }
-  }
+  `}
 
   ${p => p.isSelected && `z-index: 1;`}
-  ${p => p.isDisabled && `pointer-events: none;`}
 `;
 
 const SegmentInput = styled('input')`
@@ -241,32 +277,31 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
   bottom: 0;
   left: 0;
   right: 0;
-  background: ${p =>
-    p.priority === 'primary' ? p.theme.active : p.theme.backgroundElevated};
-  border-radius: ${p =>
-    p.priority === 'primary'
-      ? p.theme.borderRadius
-      : `calc(${p.theme.borderRadius} - 1px)`};
-  box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-
-  input.focus-visible ~ & {
-    box-shadow: ${p =>
-      p.priority === 'primary'
-        ? `0 0 0 3px ${p.theme.focus}`
-        : `0 0 0 2px ${p.theme.focusBorder}`};
-  }
 
   ${p =>
-    p.priority === 'primary' &&
-    `
+    p.priority === 'primary'
+      ? `
+    background: ${p.theme.active};
+    border-radius: ${p.theme.borderRadius};
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 3px ${p.theme.focus};
+    }
+
     top: -1px;
     bottom: -1px;
-
     label:first-child > & {
       left: -1px;
     }
     label:last-child > & {
       right: -1px;
+    }
+  `
+      : `
+    background: ${p.theme.backgroundElevated};
+    border-radius: calc(${p.theme.borderRadius} - 1px);
+    box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 2px ${p.theme.focusBorder};
     }
   `}
 `;
@@ -275,6 +310,7 @@ const LabelWrap = styled('span')`
   position: relative;
   display: flex;
   line-height: 1;
+  min-width: 0;
 `;
 
 const HiddenLabel = styled('span')`

@@ -1,9 +1,8 @@
 import {useState} from 'react';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {EntryType, Event} from 'sentry/types/event';
 
@@ -57,17 +56,11 @@ export function Csp({data, event}: Props) {
         };
 
   const actions = (
-    <ButtonBar merged active={view}>
-      <Button barId="report" size="xs" onClick={() => setView('report')}>
-        {t('Report')}
-      </Button>
-      <Button barId="raw" size="xs" onClick={() => setView('raw')}>
-        {t('Raw')}
-      </Button>
-      <Button barId="help" size="xs" onClick={() => setView('help')}>
-        {t('Help')}
-      </Button>
-    </ButtonBar>
+    <SegmentedControl aria-label={t('View')} size="xs" value={view} onChange={setView}>
+      <SegmentedControl.Item key="report">{t('Report')}</SegmentedControl.Item>
+      <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+      <SegmentedControl.Item key="help">{t('Help')}</SegmentedControl.Item>
+    </SegmentedControl>
   );
 
   return (

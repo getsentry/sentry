@@ -84,7 +84,7 @@ function generateEventView({
     name: `Replay events within a transaction`,
     version: 2,
     fields,
-    query: `event.type:transaction transaction:${transactionName} !replayId:""`,
+    query: `event.type:transaction transaction:"${transactionName}" !replayId:""`,
     projects: [Number(location.query.project)],
   });
 }

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import AutoComplete from 'sentry/components/autoComplete';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {Result} from './sources/types';
 import SearchResult from './searchResult';

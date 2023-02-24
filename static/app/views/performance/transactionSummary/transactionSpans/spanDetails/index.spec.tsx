@@ -494,7 +494,11 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         );
 
         (await within(displayToggle).findByRole('button')).click();
-        (await within(displayToggle).findByTestId('histogram')).click();
+        (
+          await within(displayToggle).findByRole('option', {
+            name: 'Self Time Distribution',
+          })
+        ).click();
 
         expect(browserHistory.push).toHaveBeenCalledWith(
           expect.objectContaining({

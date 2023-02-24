@@ -17,7 +17,9 @@ import {CollapsibleTimeline} from './collapsibleTimeline';
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
 const MIN_FLAMEGRAPH_DRAWER_DIMENSIONS: [number, number] = [680, 30];
-const FLAMEGRAPH_DRAWER_INITIAL_HEIGHT = 180;
+const FLAMEGRAPH_DRAWER_INITIAL_HEIGHT = 166;
+const TIMELINE_LABEL_HEIGHT = 20;
+const EMPTY_TIMELINE_HEIGHT = 80;
 
 interface FlamegraphLayoutProps {
   flamegraph: React.ReactElement;
@@ -25,6 +27,7 @@ interface FlamegraphLayoutProps {
   minimap: React.ReactElement;
   spans: React.ReactElement | null;
   uiFrames: React.ReactElement | null;
+  spansTreeDepth?: number;
 }
 
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {
@@ -118,11 +121,23 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     [dispatch]
   );
 
+  const spansTreeDepth = props.spansTreeDepth ?? 0;
+  const spansTimelineHeight =
+    Math.min(
+      (spansTreeDepth + flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET) *
+        flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
+      flamegraphTheme.SIZES.MAX_SPANS_HEIGHT
+    ) + TIMELINE_LABEL_HEIGHT;
+
   return (
     <FlamegraphLayoutContainer>
       <FlamegraphGrid layout={layout}>
         <MinimapContainer
-          height={timelines.minimap ? flamegraphTheme.SIZES.MINIMAP_HEIGHT : 20}
+          height={
+            timelines.minimap
+              ? flamegraphTheme.SIZES.MINIMAP_HEIGHT
+              : TIMELINE_LABEL_HEIGHT
+          }
         >
           <CollapsibleTimeline
             title="Minimap"
@@ -135,7 +150,11 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         </MinimapContainer>
         {props.uiFrames ? (
           <UIFramesContainer
-            height={timelines.ui_frames ? flamegraphTheme.SIZES.UI_FRAMES_HEIGHT : 20}
+            height={
+              timelines.ui_frames
+                ? flamegraphTheme.SIZES.UI_FRAMES_HEIGHT
+                : TIMELINE_LABEL_HEIGHT
+            }
           >
             <CollapsibleTimeline
               title={t('UI Frames')}
@@ -149,7 +168,14 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         ) : null}
         {props.spans ? (
           <SpansContainer
-            height={timelines.transaction_spans ? flamegraphTheme.SIZES.SPANS_HEIGHT : 20}
+            height={
+              // If we have a span depth
+              timelines.transaction_spans
+                ? props.spansTreeDepth
+                  ? spansTimelineHeight
+                  : EMPTY_TIMELINE_HEIGHT
+                : TIMELINE_LABEL_HEIGHT
+            }
           >
             <CollapsibleTimeline
               title={t('Transaction')}
@@ -243,7 +269,7 @@ const ZoomViewContainer = styled('div')`
 `;
 
 const SpansContainer = styled('div')<{
-  height: FlamegraphTheme['SIZES']['SPANS_HEIGHT'];
+  height: FlamegraphTheme['SIZES']['MAX_SPANS_HEIGHT'];
 }>`
   position: relative;
   height: ${p => p.height}px;

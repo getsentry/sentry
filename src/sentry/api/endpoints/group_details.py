@@ -22,13 +22,13 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
 from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user import user_service
-from sentry.types.issues import GroupCategory
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -61,9 +61,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         return Activity.objects.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request: Request, group):
-        seen_by = list(
-            GroupSeen.objects.filter(group=group).select_related("user").order_by("-last_seen")
-        )
+        seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return serialize(seen_by, request.user)
 
     def _get_actions(self, request: Request, group):
@@ -210,8 +208,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": user_service.serialize_users(
-                        user_ids=GroupSubscriptionManager.get_participating_user_ids(group),
+                    "participants": user_service.serialize_many(
+                        filter={
+                            "user_ids": GroupSubscriptionManager.get_participating_user_ids(group)
+                        },
                         as_user=request.user,
                     ),
                     "pluginActions": action_list,

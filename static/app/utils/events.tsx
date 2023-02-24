@@ -1,3 +1,5 @@
+import uniq from 'lodash/uniq';
+
 import {
   BaseGroup,
   EntryException,
@@ -13,6 +15,7 @@ import {
   TreeLabelPart,
 } from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
+import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
@@ -197,7 +200,7 @@ export function getShortEventId(eventId: string) {
  * Returns a comma delineated list of errors
  */
 function getEventErrorString(event: Event) {
-  return event.errors?.map(error => error.type).join(',') || '';
+  return uniq(event.errors?.map(error => error.type)).join(',') || '';
 }
 
 function hasTrace(event: Event) {
@@ -284,7 +287,7 @@ function getAssignmentIntegration(group: Group) {
   return integrationAssignments?.data.integration || '';
 }
 
-export function getAnalyicsDataForEvent(event?: Event) {
+export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParams {
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
@@ -306,7 +309,24 @@ export function getAnalyicsDataForEvent(event?: Event) {
   };
 }
 
-export function getAnalyicsDataForGroup(group: Group | null) {
+export type CommonGroupAnalyticsData = {
+  error_count: number;
+  group_has_replay: boolean;
+  group_id: number;
+  has_external_issue: boolean;
+  has_owner: boolean;
+  integration_assignment_source: string;
+  issue_age: number;
+  issue_category: IssueCategory;
+  issue_id: number;
+  issue_type: IssueType;
+  num_comments: number;
+  is_assigned?: boolean;
+  issue_level?: string;
+  issue_status?: string;
+};
+
+export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
   const groupId = group ? parseInt(group.id, 10) : -1;
   return {
     group_id: groupId,

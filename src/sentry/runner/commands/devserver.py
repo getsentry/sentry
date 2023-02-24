@@ -52,6 +52,18 @@ _DEFAULT_DAEMONS = {
         "--synchronize-commit-group=transactions_group",
         "--no-strict-offset-reset",
     ],
+    "post-process-forwarder-issue-platform": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--entity=search_issues",
+        "--loglevel=debug",
+        "--commit-batch-size=100",
+        "--commit-batch-timeout-ms=1000",
+        "--commit-log-topic=snuba-generic-events-commit-log",
+        "--synchronize-commit-group=generic_events_group",
+        "--no-strict-offset-reset",
+    ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
     "region_to_control": [
@@ -63,7 +75,6 @@ _DEFAULT_DAEMONS = {
         "--no-strict-offset-reset",
     ],
     "server": ["sentry", "run", "web"],
-    "storybook": ["yarn", "storybook"],
     "subscription-consumer": [
         "sentry",
         "run",
@@ -129,11 +140,6 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
 @click.option(
     "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
 )
-@click.option(
-    "--styleguide/--no-styleguide",
-    default=False,
-    help="Start local styleguide web server on port 9001",
-)
 @click.option("--environment", default="development", help="The environment name.")
 @click.option(
     "--debug-server/--no-debug-server",
@@ -158,7 +164,6 @@ def devserver(
     ingest: bool,
     occurrence_ingest: bool,
     experimental_spa: bool,
-    styleguide: bool,
     prefix: bool,
     pretty: bool,
     environment: str,
@@ -296,6 +301,7 @@ and run `sentry devservices up kafka zookeeper`.
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
             daemons += [_get_daemon("post-process-forwarder-transactions")]
+            daemons += [_get_daemon("post-process-forwarder-issue-platform")]
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -387,9 +393,6 @@ and run `sentry devservices up kafka zookeeper`.
         # This sets all the appropriate uwsgi env vars, etc
         server.prepare_environment()
         daemons += [_get_daemon("server")]
-
-    if styleguide:
-        daemons += [_get_daemon("storybook")]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 

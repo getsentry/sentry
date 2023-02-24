@@ -93,7 +93,7 @@ class AuditLogEntry(Model):
             organization_id=int(
                 self.organization.id
             ),  # prefer raising NoneType here over actually passing through
-            time_of_creation=self.datetime or timezone.now(),
+            date_added=self.datetime or timezone.now(),
             actor_user_id=self.actor and self.actor.id,
             target_object_id=self.target_object,
             ip_address=self.ip_address and str(self.ip_address),
@@ -111,7 +111,7 @@ class AuditLogEntry(Model):
         """
         return AuditLogEntry(
             organization_id=event.organization_id,
-            datetime=event.time_of_creation,
+            datetime=event.date_added,
             actor_id=event.actor_user_id,
             target_object=event.target_object_id,
             ip_address=event.ip_address,

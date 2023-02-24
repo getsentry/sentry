@@ -11,9 +11,9 @@ from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRule, Incident, User
+from sentry.incidents.models import AlertRule, Incident
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.models import Integration, Organization
+from sentry.models import Integration, Organization, User
 from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer

@@ -89,7 +89,6 @@ class Field:
         value: Union[List[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
-
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
 
 

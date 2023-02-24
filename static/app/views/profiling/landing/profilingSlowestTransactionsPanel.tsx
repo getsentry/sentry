@@ -17,15 +17,18 @@ import {
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {
+  EventsResults,
   EventsResultsDataRow,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {makeFormatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -103,6 +106,7 @@ export function ProfilingSlowestTransactionsPanel() {
               transaction={transaction}
               open={transaction.transaction === openPanel}
               onOpen={() => setOpenPanel(transaction.transaction as string)}
+              units={profilingTransactionsQuery.data?.[0].meta.units}
             />
           );
         })}
@@ -114,12 +118,14 @@ interface SlowestTransactionPanelItemProps {
   onOpen: () => void;
   open: boolean;
   transaction: EventsResultsDataRow<SlowestTransactionsFields>;
+  units?: EventsResults<SlowestTransactionsFields>['meta']['units'];
 }
 
 function SlowestTransactionPanelItem({
   transaction,
   open,
   onOpen,
+  units,
 }: SlowestTransactionPanelItemProps) {
   const organization = useOrganization();
   const projects = useProjects();
@@ -131,6 +137,12 @@ function SlowestTransactionPanelItem({
   if (!transactionProject) {
     throw Error('Cannot find project for slowest transaction');
   }
+
+  const key: SlowestTransactionsFields = 'p95()';
+  const formatter = makeFormatTo(
+    units?.[key] ?? units?.[getAggregateAlias(key)] ?? 'nanoseconds',
+    'milliseconds'
+  );
 
   return (
     <PanelItem key={transaction.transaction}>
@@ -156,7 +168,10 @@ function SlowestTransactionPanelItem({
           </Link>
         </Flex.Item>
 
-        <PerformanceDuration nanoseconds={transaction['p95()'] as number} abbreviation />
+        <PerformanceDuration
+          milliseconds={formatter(transaction[key] as number)}
+          abbreviation
+        />
         <Button borderless size="zero" onClick={onOpen}>
           <IconChevron direction={open ? 'up' : 'down'} size="xs" />
         </Button>
@@ -194,11 +209,11 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
     skipSlowestProfile: true,
   });
 
-  if (functionsQuery.type === 'loading') {
+  if (functionsQuery.isLoading) {
     return <FunctionsMiniGridLoading />;
   }
 
-  if (functionsQuery.type === 'resolved' && functions && functions.length === 0) {
+  if (!functions || (functions && functions.length === 0)) {
     return <FunctionsMiniGridEmptyState />;
   }
 
