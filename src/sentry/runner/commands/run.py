@@ -675,6 +675,19 @@ def replays_recordings_consumer(**options):
     run_processor_with_signals(consumer)
 
 
+@run.command("ingest-crons")
+@log_options()
+@click.option("--topic", default="crons", help="Topic to get cron checlkin data from.")
+@batching_kafka_options("ingest-crons", max_batch_size=100)
+@strict_offset_reset_option()
+@configuration
+def crons_consumer(**options):
+    from sentry.crons.consumers import get_cron_checkins_consumer
+
+    consumer = get_cron_checkins_consumer(**options)
+    run_processor_with_signals(consumer)
+
+
 @run.command("indexer-last-seen-updater")
 @log_options()
 @configuration
