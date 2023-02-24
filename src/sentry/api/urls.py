@@ -224,9 +224,6 @@ from .endpoints.organization_dashboard_widget_details import (
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
-from .endpoints.organization_dynamic_sampling_sdk_versions import (
-    OrganizationDynamicSamplingSDKVersionsEndpoint,
-)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -1573,11 +1570,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/transaction-anomaly-detection/$",
                     OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
                     name="sentry-api-0-organization-transaction-anomaly-detection",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/dynamic-sampling/sdk-versions/$",
-                    OrganizationDynamicSamplingSDKVersionsEndpoint.as_view(),
-                    name="sentry-api-0-organization-dynamic-sampling-sdk-versions",
                 ),
                 # relay usage
                 url(

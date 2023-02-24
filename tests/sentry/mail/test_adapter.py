@@ -204,6 +204,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ],
             ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
+            "info",
         )
         occurrence.save()
         event.occurrence = occurrence
@@ -252,6 +253,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             [],  # no evidence
             ProfileBlockedThreadGroupType,
             ensure_aware(datetime.now()),
+            "info",
         )
         occurrence.save()
         event.occurrence = occurrence
