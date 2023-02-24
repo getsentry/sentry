@@ -1373,7 +1373,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     def test_user_report_gets_environment(self):
         project = self.create_project()
         environment = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="production"
+            organization_id=project.organization_id, name="production"
         )
         environment.add_project(project)
 
