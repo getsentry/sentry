@@ -65,6 +65,7 @@ def dispatch_post_process_group_task(
                 "group_id": group_id,
                 "group_states": group_states,
                 "occurrence_id": occurrence_id,
+                "project_id": project_id,
             },
             queue=queue,
         )

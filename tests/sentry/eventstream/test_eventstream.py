@@ -219,6 +219,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
+
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
@@ -238,7 +239,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         self.__produce_event(*insert_args, **insert_kwargs)
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
-
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
         assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
         assert produce_kwargs["key"] is None

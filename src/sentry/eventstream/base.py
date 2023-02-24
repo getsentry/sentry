@@ -93,6 +93,7 @@ class EventStream(Service):
         queue: str,
         skip_consume: bool = False,
         group_states: Optional[GroupStates] = None,
+        occurrence_id: Optional[str] = None,
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -108,6 +109,8 @@ class EventStream(Service):
                     "cache_key": cache_key,
                     "group_id": group_id,
                     "group_states": group_states,
+                    "occurrence_id": occurrence_id,
+                    "project_id": project_id,
                 },
                 queue=queue,
             )
@@ -152,6 +155,7 @@ class EventStream(Service):
             self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
+            occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )
 
     def start_delete_groups(
