@@ -95,6 +95,8 @@ const storeConfig: TagStoreDefinition = {
           IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
           IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
           IssueType.PERFORMANCE_SLOW_DB_QUERY,
+          IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+          IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
           ...(org.features.includes('issue-platform')
             ? [IssueType.PROFILE_BLOCKED_THREAD]
             : []),
