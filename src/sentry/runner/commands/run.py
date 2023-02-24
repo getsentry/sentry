@@ -366,8 +366,8 @@ def cron(**options):
 @strict_offset_reset_option()
 @click.option(
     "--entity",
-    type=click.Choice(["errors", "transactions"]),
-    help="The type of entity to process (errors, transactions).",
+    type=click.Choice(["errors", "transactions", "search_issues"]),
+    help="The type of entity to process (errors, transactions, search_issues).",
 )
 @log_options()
 @configuration

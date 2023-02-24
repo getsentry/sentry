@@ -18,6 +18,7 @@ import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
+import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
@@ -103,6 +104,9 @@ const GroupEventDetailsContent = ({
         location={location}
       />
       <EventEvidence event={event} group={group} />
+      {group.issueCategory === IssueCategory.PROFILE && (
+        <ProfileEventEvidence event={event} projectSlug={project.slug} />
+      )}
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />

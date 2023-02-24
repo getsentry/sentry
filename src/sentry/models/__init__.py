@@ -63,6 +63,7 @@ from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .monitor import *  # NOQA
 from .monitorcheckin import *  # NOQA
+from .monitorenvironment import *  # NOQA
 from .monitorlocation import *  # NOQA
 from .notificationsetting import *  # NOQA
 from .options import *  # NOQA
