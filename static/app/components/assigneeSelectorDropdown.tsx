@@ -30,7 +30,8 @@ import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 export type SuggestedAssignee = Actor & {
   assignee: AssignableTeam | User;
-  suggestedReason: string;
+  suggestedReason: SuggestedOwnerReason;
+  suggestedReasonText?: React.ReactNode;
 };
 
 type AssignableTeam = {
@@ -47,6 +48,12 @@ type RenderProps = {
   suggestedAssignees: SuggestedAssignee[];
 };
 
+export type OnAssignCallback = (
+  type: Actor['type'],
+  assignee: User | Actor,
+  suggestedAssignee?: SuggestedAssignee
+) => void;
+
 export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
@@ -54,11 +61,7 @@ export interface AssigneeSelectorDropdownProps {
   assignedTo?: Actor;
   disabled?: boolean;
   memberList?: User[];
-  onAssign?: (
-    type: Actor['type'],
-    assignee: User | Actor,
-    suggestedAssignee?: SuggestedAssignee
-  ) => void;
+  onAssign?: OnAssignCallback;
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
 
@@ -217,7 +220,7 @@ export class AssigneeSelectorDropdown extends Component<
       const suggestion = this.getSuggestedAssignees().find(
         actor => actor.type === suggestionType && actor.id === assignee.id
       );
-      onAssign?.(type, assignee, suggestion);
+      onAssign(type, assignee, suggestion);
     }
   };
 
@@ -228,7 +231,10 @@ export class AssigneeSelectorDropdown extends Component<
     e.stopPropagation();
   };
 
-  renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
+  renderMemberNode(
+    member: User,
+    suggestedReason?: React.ReactNode
+  ): ItemsBeforeFilter[0] {
     const sessionUser = ConfigStore.get('user');
 
     const handleSelect = () => this.assignToUser(member);
@@ -280,7 +286,7 @@ export class AssigneeSelectorDropdown extends Component<
 
   renderTeamNode(
     assignableTeam: AssignableTeam,
-    suggestedReason?: string
+    suggestedReason?: React.ReactNode
   ): ItemsBeforeFilter[0] {
     const {id, display, team} = assignableTeam;
 
@@ -318,23 +324,16 @@ export class AssigneeSelectorDropdown extends Component<
     typeof DropdownAutoComplete
   >['items'] {
     const {assignedTo} = this.props;
-    const textReason: Record<SuggestedOwnerReason, string> = {
-      suspectCommit: t('Suspect Commit'),
-      releaseCommit: t('Suspect Release'),
-      ownershipRule: t('Ownership Rule'),
-      codeowners: t('Codeowners'),
-    };
     // filter out suggested assignees if a suggestion is already selected
     return this.getSuggestedAssignees()
       .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
       .filter(({type}) => type === 'user' || type === 'team')
-      .map(({type, suggestedReason, assignee}) => {
-        const reason = textReason[suggestedReason] ?? suggestedReason;
+      .map(({type, suggestedReasonText, assignee}) => {
         if (type === 'user') {
-          return this.renderMemberNode(assignee as User, reason);
+          return this.renderMemberNode(assignee as User, suggestedReasonText);
         }
 
-        return this.renderTeamNode(assignee as AssignableTeam, reason);
+        return this.renderTeamNode(assignee as AssignableTeam, suggestedReasonText);
       });
   }
 
@@ -490,10 +489,18 @@ export class AssigneeSelectorDropdown extends Component<
       return [];
     }
 
-    const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
-      owner => {
+    const textReason: Record<SuggestedOwnerReason, string> = {
+      suspectCommit: t('Suspect Commit'),
+      ownershipRule: t('Ownership Rule'),
+      projectOwnership: t('Ownership Rule'),
+      // TODO: codeowners may no longer exist
+      codeowners: t('Codeowners'),
+    };
+    return suggestedOwners
+      .map<SuggestedAssignee | null>(owner => {
         // converts a backend suggested owner to a suggested assignee
         const [ownerType, id] = owner.owner.split(':');
+        const suggestedReasonText = textReason[owner.type];
         if (ownerType === 'user') {
           const member = memberList.find(user => user.id === id);
           if (member) {
@@ -502,6 +509,7 @@ export class AssigneeSelectorDropdown extends Component<
               type: 'user',
               name: member.name,
               suggestedReason: owner.type,
+              suggestedReasonText,
               assignee: member,
             };
           }
@@ -515,16 +523,15 @@ export class AssigneeSelectorDropdown extends Component<
               type: 'team',
               name: matchingTeam.team.name,
               suggestedReason: owner.type,
+              suggestedReasonText,
               assignee: matchingTeam,
             };
           }
         }
 
         return null;
-      }
-    );
-
-    return suggestedAssignees.filter((owner): owner is SuggestedAssignee => !!owner);
+      })
+      .filter((owner): owner is SuggestedAssignee => !!owner);
   }
 
   render() {
