@@ -972,16 +972,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         ):
             return
 
-        errors = self.fetch_by_url_errors.get(frame["abs_path"])
-        if errors is not None:
-            all_errors.extend(errors)
-
-        # `sourceview` is used for pre/post and `context_line` frame expansion.
+        # The 'sourceview' is used for pre/post and 'context_line' frame expansion.
         # Here it's pointing to the minified source, however the variable can be shadowed with the original sourceview
-        # (or `None` if the token doesnt provide us with the `context_line`) down the road.
+        # (or 'None' if the token doesnt provide us with the 'context_line') down the road.
         # TODO: add support for debug ids.
         sourceview = self.get_or_fetch_sourceview(url=frame["abs_path"])
         sourcemap_view = self.get_or_fetch_sourcemap_view(url=frame["abs_path"])
+
+        # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
+        # happen in one of the two we will detect them and add them to 'all_errors'.
+        errors = self.fetch_by_url_errors.get(frame["abs_path"])
+        if errors is not None:
+            all_errors.extend(errors)
 
         # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
         sourcemap_url = self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
