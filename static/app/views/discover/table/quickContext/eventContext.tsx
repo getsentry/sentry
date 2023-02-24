@@ -68,6 +68,7 @@ function EventContext(props: EventContextProps) {
       2,
       true
     );
+    const status = getStatusBodyText(data);
     return (
       <Wrapper data-test-id="quick-context-hover-body">
         <EventContextContainer>
@@ -100,7 +101,7 @@ function EventContext(props: EventContextProps) {
                     eventView={eventView}
                     organization={organization}
                     queryKey="transaction.status"
-                    value={getStatusBodyText(data)}
+                    value={status}
                   />
                 )}
               </ContextHeader>
