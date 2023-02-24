@@ -1,5 +1,4 @@
 import {Fragment, useRef} from 'react';
-import styled from '@emotion/styled';
 import {AriaOptionProps, useOption} from '@react-aria/listbox';
 import {ListState} from '@react-stately/list';
 import {Node} from '@react-types/shared';
@@ -8,6 +7,8 @@ import Checkbox from 'sentry/components/checkbox';
 import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {FormSize} from 'sentry/utils/theme';
+
+import {CheckWrap} from '../styles';
 
 interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
@@ -77,13 +78,3 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
     />
   );
 }
-
-const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 1em;
-  height: 1.4em;
-  padding-bottom: 1px;
-  pointer-events: none;
-`;
