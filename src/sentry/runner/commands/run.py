@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
+from typing import Optional
 
 import click
 
@@ -445,7 +446,14 @@ def query_subscription_consumer(**options):
     run_processor_with_signals(subscriber)
 
 
-def kafka_options(group, allow_force_cluster=True):
+def kafka_options(
+    consumer_group: str,
+    allow_force_cluster: bool = True,
+    include_batching_options: bool = False,
+    default_max_batch_size: Optional[int] = None,
+    default_max_batch_time_ms: Optional[int] = 1000,
+):
+
     """
     Basic set of Kafka options for a consumer.
     """
@@ -454,7 +462,7 @@ def kafka_options(group, allow_force_cluster=True):
         f = click.option(
             "--consumer-group",
             "group_id",
-            default=group,
+            default=consumer_group,
             help="Kafka consumer group for the consumer.",
         )(f)
 
@@ -465,6 +473,23 @@ def kafka_options(group, allow_force_cluster=True):
             type=click.Choice(["earliest", "latest", "error"]),
             help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
         )(f)
+
+        if include_batching_options:
+            f = click.option(
+                "--max-batch-size",
+                "max_batch_size",
+                default=default_max_batch_size,
+                type=int,
+                help="Maximum number of messages to batch before flushing.",
+            )(f)
+
+            f = click.option(
+                "--max-batch-time-ms",
+                "max_batch_time",
+                default=default_max_batch_time_ms,
+                type=int,
+                help="Maximum time (in seconds) to wait before flushing a batch.",
+            )(f)
 
         if allow_force_cluster:
             f = click.option(
@@ -496,60 +521,17 @@ def batching_kafka_options(
 
     TODO(markus): Probably want to have this as part of batching_kafka_consumer
     as this is duplicated effort between Snuba and Sentry.
+
+    TODO: To be removed in favour of `kafka_options` after it is no longer used by sentry and getsentry.
     """
 
-    def inner(f):
-        f = click.option(
-            "--consumer-group",
-            "group_id",
-            default=group,
-            help="Kafka consumer group for the consumer.",
-        )(f)
-
-        f = click.option(
-            "--max-batch-size",
-            "max_batch_size",
-            default=max_batch_size,
-            type=int,
-            help="How many messages to process before committing offsets.",
-        )(f)
-
-        f = click.option(
-            "--max-batch-time-ms",
-            "max_batch_time",
-            default=max_batch_time_ms,
-            type=int,
-            help="How long to batch for before committing offsets.",
-        )(f)
-
-        f = click.option(
-            "--auto-offset-reset",
-            "auto_offset_reset",
-            default="latest",
-            type=click.Choice(["earliest", "latest", "error"]),
-            help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
-        )(f)
-
-        if allow_force_cluster:
-            f = click.option(
-                "--force-topic",
-                "force_topic",
-                default=None,
-                type=str,
-                help="Override the Kafka topic the consumer will read from.",
-            )(f)
-
-            f = click.option(
-                "--force-cluster",
-                "force_cluster",
-                default=None,
-                type=str,
-                help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
-            )(f)
-
-        return f
-
-    return inner
+    return kafka_options(
+        group,
+        allow_force_cluster=allow_force_cluster,
+        include_batching_options=True,
+        default_max_batch_size=max_batch_size,
+        default_max_batch_time_ms=max_batch_time_ms,
+    )
 
 
 @run.command("ingest-consumer")
