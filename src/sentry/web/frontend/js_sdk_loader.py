@@ -43,9 +43,7 @@ class JavaScriptSdkLoader(BaseView):
 
         is_v7_sdk = sdk_version >= Version("7.0.0")
 
-        # If we load a performance/replay bundle, set this to be false, as we do not want to
-        # load the default bundle.
-        isLazy = True
+        is_lazy = True
         bundle_kind_modifier = ""
 
         # The order in which these modifiers are added is important, as the
@@ -54,14 +52,14 @@ class JavaScriptSdkLoader(BaseView):
 
         if get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE):
             bundle_kind_modifier += ".tracing"
-            isLazy = False
+            is_lazy = False
 
         has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
 
         # If the project does not have a v7 sdk set, we cannot load the replay bundle.
-        if not is_v7_sdk and has_replay:
+        if is_v7_sdk and has_replay:
             bundle_kind_modifier += ".replay"
-            isLazy = False
+            is_lazy = False
 
         # From JavaScript SDK version 7 onwards, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
@@ -74,7 +72,7 @@ class JavaScriptSdkLoader(BaseView):
         if get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG):
             bundle_kind_modifier += ".debug"
 
-        return bundle_kind_modifier, isLazy
+        return bundle_kind_modifier, is_lazy
 
     def _get_context(
         self, key: Optional[ProjectKey]
