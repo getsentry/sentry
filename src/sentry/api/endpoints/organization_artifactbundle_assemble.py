@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import Project
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -66,10 +67,14 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
 
         from sentry.tasks.assemble import assemble_artifacts
 
+        project_ids = Project.objects.filter(
+            organization=organization, slug__in=data.get("projects", [])
+        ).values_list("id", flat=True)
+
         assemble_artifacts.apply_async(
             kwargs={
                 "org_id": organization.id,
-                "project_ids": data.get("projects", []),
+                "project_ids": list(project_ids),
                 "version": None,
                 "checksum": checksum,
                 "chunks": chunks,

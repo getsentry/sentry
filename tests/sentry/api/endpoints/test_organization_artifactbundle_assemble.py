@@ -70,7 +70,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [blob1.checksum],
-                "projects": [self.project.id],
+                "projects": [self.project.slug],
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -107,7 +107,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [blob1.checksum],
-                "projects": [self.project.id],
+                "projects": [self.project.slug],
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -133,7 +133,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [blob1.checksum],
-                "projects": [self.project.id],
+                "projects": [self.project.slug],
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
