@@ -706,6 +706,11 @@ class Fetcher:
         self.dist = dist
         self.allow_scraping = allow_scraping
 
+    def bind_release(self, release=None, dist=None):
+        """Updates the fetcher with a project, release and dist."""
+        self.release = release
+        self.dist = dist
+
     def fetch_by_debug_id(self, debug_id, source_file_type):
         # TODO: implement debug id lookup.
         pass
@@ -869,9 +874,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         self.organization = organization
         self.max_fetches = MAX_RESOURCE_FETCHES
-        self.allow_scraping = organization.get_option(
-            "sentry:scrape_javascript", True
-        ) is not False and self.project.get_option("sentry:scrape_javascript", True)
 
         self.fetch_count = 0
         self.sourcemaps_touched = set()
@@ -899,10 +901,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.minified_source_url_to_sourcemap_url = {}
 
         # Component responsible for fetching the files.
-        self.fetcher = None
-
-        self.release = None
-        self.dist = None
+        self.fetcher = Fetcher(
+            allow_scraping=organization.get_option("sentry:scrape_javascript", True) is not False
+            and self.project.get_option("sentry:scrape_javascript", True)
+        )
 
     def get_valid_frames(self):
         # build list of frames that we can actually grab source for
@@ -920,16 +922,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             )
             return False
 
+        release = None
+        dist = None
+
         with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.preprocess_step.get_release"):
-            self.release = self.get_release(create=True)
-            if self.data.get("dist") and self.release:
+            release = self.get_release(create=True)
+            if self.data.get("dist") and release:
                 timestamp = self.data.get("timestamp")
                 date = timestamp and datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
-                self.dist = self.release.add_dist(self.data["dist"], date)
+                dist = release.add_dist(self.data["dist"], date)
 
-        # We initialize the fetcher during preprocessing, so that we can start fetching files during source cache
-        # population.
-        self._initialize_fetcher()
+        self.fetcher.bind_release(release=release, dist=dist)
 
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
@@ -937,10 +940,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.populate_source_cache(frames)
 
         return True
-
-    def _initialize_fetcher(self):
-        # We initialize the fetcher once all data has been loaded.
-        self.fetcher = Fetcher(self.project, self.release, self.dist, self.allow_scraping)
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")

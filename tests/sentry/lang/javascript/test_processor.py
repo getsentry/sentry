@@ -56,18 +56,18 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         project = self.create_project()
         r = JavaScriptStacktraceProcessor({}, None, project)
         # defaults
-        assert r.allow_scraping
+        assert r.fetcher.allow_scraping
 
         # disabled for project
         project.update_option("sentry:scrape_javascript", False)
         r = JavaScriptStacktraceProcessor({}, None, project)
-        assert not r.allow_scraping
+        assert not r.fetcher.allow_scraping
 
         # disabled for org
         project.delete_option("sentry:scrape_javascript")
         project.organization.update_option("sentry:scrape_javascript", False)
         r = JavaScriptStacktraceProcessor({}, None, project)
-        assert not r.allow_scraping
+        assert not r.fetcher.allow_scraping
 
     @patch(
         "sentry.lang.javascript.processor.JavaScriptStacktraceProcessor.get_valid_frames",
@@ -87,15 +87,15 @@ class JavaScriptStacktraceProcessorTest(TestCase):
             project=project,
         )
 
-        assert processor.release is None
-        assert processor.dist is None
+        assert processor.fetcher.release is None
+        assert processor.fetcher.dist is None
 
         processor.preprocess_step(None)
 
-        assert processor.release == release
-        assert processor.dist is not None
-        assert processor.dist.name == "foo"
-        assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
+        assert processor.fetcher.release == release
+        assert processor.fetcher.dist is not None
+        assert processor.fetcher.dist.name == "foo"
+        assert processor.fetcher.dist.date_added.timestamp() == processor.data["timestamp"]
 
     @with_feature("organizations:javascript-console-error-tag")
     def test_tag_suspected_console_error(self):
@@ -1160,7 +1160,6 @@ class FetchSourcemapTest(TestCase):
         processor = JavaScriptStacktraceProcessor(
             data={}, stacktrace_infos=None, project=self.create_project()
         )
-        processor._initialize_fetcher()
         smap_view = processor._fetch_sourcemap_view_by_url(base64_sourcemap)
         token = smap_view.lookup(1, 1, 0)
 
@@ -1173,7 +1172,6 @@ class FetchSourcemapTest(TestCase):
         processor = JavaScriptStacktraceProcessor(
             data={}, stacktrace_infos=None, project=self.create_project()
         )
-        processor._initialize_fetcher()
         smap_view = processor._fetch_sourcemap_view_by_url(base64_sourcemap.rstrip("="))
         token = smap_view.lookup(1, 1, 0)
 
@@ -1187,7 +1185,6 @@ class FetchSourcemapTest(TestCase):
             processor = JavaScriptStacktraceProcessor(
                 data={}, stacktrace_infos=None, project=self.create_project()
             )
-            processor._initialize_fetcher()
             processor._fetch_sourcemap_view_by_url("data:application/json;base64,xxx")
 
     @responses.activate
@@ -1200,7 +1197,6 @@ class FetchSourcemapTest(TestCase):
             processor = JavaScriptStacktraceProcessor(
                 data={}, stacktrace_infos=None, project=self.create_project()
             )
-            processor._initialize_fetcher()
             processor._fetch_sourcemap_view_by_url("http://example.com")
 
 
@@ -1458,10 +1454,9 @@ class CacheSourceTest(TestCase):
         project = self.create_project()
 
         processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
-        processor._initialize_fetcher()
 
         # no release on the event, so won't find file in database
-        assert processor.release is None
+        assert processor.fetcher.release is None
 
         # not a real url, so won't find file on the internet
         abs_path = "app:///i/dont/exist.js"
@@ -1487,10 +1482,9 @@ class CacheSourceTest(TestCase):
         project = self.create_project()
         processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
         # We need to initialize the fetcher so that it can capture the necessary context to execute file fetching.
-        processor._initialize_fetcher()
 
         # no release on the event, so won't find file in database
-        assert processor.release is None
+        assert processor.fetcher.release is None
 
         # not a real url, so won't find file on the internet
         abs_path = "app:///../node_modules/i/dont/exist.js"
@@ -1518,9 +1512,8 @@ class CacheSourceTest(TestCase):
         # in real life the preprocess step will pull release out of the data
         # dictionary passed to the JavaScriptStacktraceProcessor constructor,
         # but since this is just a unit test, we have to set it manually
-        processor.release = release
+        processor.fetcher.bind_release(release=release)
         # We need to initialize the fetcher so that it can capture the necessary context to execute file fetching.
-        processor._initialize_fetcher()
 
         # We found the source view.
         assert processor.get_or_fetch_sourceview(url=abs_path)
@@ -1550,9 +1543,8 @@ class CacheSourceTest(TestCase):
         # in real life the preprocess step will pull release out of the data
         # dictionary passed to the JavaScriptStacktraceProcessor constructor,
         # but since this is just a unit test, we have to set it manually
-        processor.release = release
+        processor.fetcher.bind_release(release=release)
         # We need to initialize the fetcher so that it can capture the necessary context to execute file fetching.
-        processor._initialize_fetcher()
 
         # before caching, no errors
         assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 0
