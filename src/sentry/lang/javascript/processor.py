@@ -1,4 +1,5 @@
 import base64
+import binascii
 import errno
 import logging
 import re
@@ -1396,7 +1397,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     force_bytes(url[BASE64_PREAMBLE_LENGTH:])
                     + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
                 )
-            except TypeError as e:
+            except binascii.Error as e:
                 raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
         else:
             # look in the database and, if not found, optionally try to scrape the web

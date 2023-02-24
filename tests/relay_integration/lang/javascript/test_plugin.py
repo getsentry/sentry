@@ -22,6 +22,8 @@ BASE64_SOURCEMAP = "data:application/json;base64," + (
     .replace("\n", "")
 )
 
+INVALID_BASE64_SOURCEMAP = "data:application/json;base64,A"
+
 
 def get_fixture_path(name):
     return os.path.join(os.path.dirname(__file__), "fixtures", name)
@@ -215,6 +217,52 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame.context_line == 'console.log("hello, World!")'
         assert not frame.post_context
         assert frame.data["sourcemap"] == "http://example.com/test.min.js"
+
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
+    @patch("sentry.lang.javascript.processor.discover_sourcemap")
+    def test_invalid_base64_sourcemap_returns_an_error(
+        self, mock_discover_sourcemap, mock_fetch_by_url
+    ):
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        mock_discover_sourcemap.return_value = INVALID_BASE64_SOURCEMAP
+
+        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.encoding = None
+
+        event = self.post_and_retrieve_event(data)
+
+        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
+
+        assert len(event.data["errors"]) == 1
+        assert event.data["errors"][0] == {
+            "url": "<base64>",
+            "reason": "Invalid base64-encoded string: "
+            "number of data characters (1) cannot be 1 more than a multiple of 4",
+            "type": "js_invalid_source",
+        }
 
     @responses.activate
     def test_error_message_translations(self):
