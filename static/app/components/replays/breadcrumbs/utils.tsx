@@ -11,7 +11,7 @@ export function getDescription(crumb: Crumb) {
     switch (crumb.data.action) {
       case 'largest-contentful-paint':
         if (crumb.data?.value !== undefined) {
-          return `${crumb.data.value}ms`;
+          return `${Math.round(crumb.data.value)}ms`;
         }
         if (crumb.data?.duration !== undefined) {
           // this means user is using an old SDK where LCP values are not
