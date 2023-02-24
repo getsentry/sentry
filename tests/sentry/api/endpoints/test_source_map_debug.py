@@ -12,6 +12,28 @@ from sentry.testutils.silo import region_silo_test
 class SourceMapDebugEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug"
 
+    base_data = {
+        "event_id": "a" * 32,
+        "exception": {
+            "values": [
+                {
+                    "type": "Error",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                "filename": "/static/js/main.fa8fe19f.js",
+                                "lineno": 1,
+                                "colno": 39,
+                                "context_line": "function foo() {",
+                            }
+                        ]
+                    },
+                },
+            ]
+        },
+    }
+
     def setUp(self) -> None:
         self.login_as(self.user)
         return super().setUp()
@@ -72,27 +94,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
     @with_feature("organizations:fix-source-map-cta")
     def test_frame_out_of_bounds(self):
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/js/main.fa8fe19f.js",
-                                        "lineno": 1,
-                                        "colno": 39,
-                                        "context_line": "function foo() {",
-                                    }
-                                ]
-                            },
-                        },
-                    ]
-                },
-            },
+            data=self.base_data,
             project_id=self.project.id,
         )
 
@@ -108,27 +110,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
     @with_feature("organizations:fix-source-map-cta")
     def test_exception_out_of_bounds(self):
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/js/main.fa8fe19f.js",
-                                        "lineno": 1,
-                                        "colno": 39,
-                                        "context_line": "function foo() {",
-                                    }
-                                ]
-                            },
-                        },
-                    ]
-                },
-            },
+            data=self.base_data,
             project_id=self.project.id,
         )
 
@@ -144,27 +126,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
     @with_feature("organizations:fix-source-map-cta")
     def test_event_has_context_line(self):
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/js/main.fa8fe19f.js",
-                                        "lineno": 1,
-                                        "colno": 39,
-                                        "context_line": "function foo() {",
-                                    }
-                                ]
-                            },
-                        },
-                    ]
-                },
-            },
+            data=self.base_data,
             project_id=self.project.id,
         )
 
