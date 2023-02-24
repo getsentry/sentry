@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SpanEvidenceSection} from './spanEvidence';
 
-const {organization} = initializeData();
+const {organization, project} = initializeData();
 
 describe('spanEvidence', () => {
   it('renders and highlights the correct data in the span evidence section', () => {
@@ -70,7 +70,11 @@ describe('spanEvidence', () => {
     builder.addSpan(parentProblemSpan);
 
     render(
-      <SpanEvidenceSection event={builder.getEvent()} organization={organization} />,
+      <SpanEvidenceSection
+        event={builder.getEvent()}
+        organization={organization}
+        projectSlug={project.slug}
+      />,
       {organization}
     );
 

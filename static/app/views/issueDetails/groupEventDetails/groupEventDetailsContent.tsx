@@ -115,6 +115,7 @@ const GroupEventDetailsContent = ({
         <SpanEvidenceSection
           event={event as EventTransaction}
           organization={organization}
+          projectSlug={project.slug}
         />
       )}
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />

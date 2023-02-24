@@ -165,6 +165,7 @@ function EventEntryContent({
           <SpanEvidenceSection
             event={event as EventTransaction}
             organization={organization as Organization}
+            projectSlug={projectSlug}
           />
         );
       }
