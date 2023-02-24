@@ -26,7 +26,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         schema = {
             "type": "object",
             "properties": {
-                "projects": {"type": "array", "items": {"type": "integer"}},
+                "projects": {"type": "array", "items": {"type": "string"}},
                 "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 "chunks": {
                     "type": "array",
