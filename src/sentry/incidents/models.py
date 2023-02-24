@@ -251,7 +251,7 @@ class IncidentActivity(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, db_index=False)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     type = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
