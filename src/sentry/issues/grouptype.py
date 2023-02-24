@@ -170,3 +170,11 @@ class ProfileJSONDecodeType(GroupType):
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
+
+
+PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
+    [
+        ProfileBlockedThreadGroupType.type_id,
+        ProfileFileIOGroupType.type_id,
+    ]
+)

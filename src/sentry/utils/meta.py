@@ -6,8 +6,10 @@ RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 
 class Remark(TypedDict):
     rule_id: str
-    ty: RemarkType
+    type: RemarkType
+    # Range start is a byte offset
     range_start: Optional[int]
+    # Range end is a byte offset
     range_end: Optional[int]
 
 
@@ -167,6 +169,8 @@ class Meta:
         into the meta data. Note that there is only one original value, not one
         per remark.
 
+        `range_start` and `range_end` in `rem` are byte offsets.
+
         If no meta data entry exists for the current path, it is created, along
         with the entire parent tree.
         """
@@ -174,7 +178,7 @@ class Meta:
         if "rem" not in meta or meta["rem"] is None:
             meta["rem"] = []
 
-        rem_list: List[Union[str, int]] = [rem["rule_id"], rem["ty"]]
+        rem_list: List[Union[str, int]] = [rem["rule_id"], rem["type"]]
 
         range_start = rem.get("range_start")
         if range_start is not None:
