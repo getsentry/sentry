@@ -700,6 +700,10 @@ CELERY_QUEUES = [
         "transactions.name_clusterer", routing_key="transactions.name_clusterer"
     ),  # TODO: add workers
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
+    Queue(
+        "dynamicsampling",
+        routing_key="dynamicsampling",
+    ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
 ]
 
@@ -1040,6 +1044,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
+    # Whether to enable post process group for profile blocked main thread issues
+    "organizations:profile-blocked-main-thread-ppg": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1130,6 +1136,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
+    # Enable the dynamic sampling "Transaction Name" priority in the UI
+    "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1267,6 +1275,8 @@ SENTRY_FEATURES = {
     "organizations:scim-orgmember-roles": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
+    # Enable the setting of org roles for team
+    "organizations:org-roles-for-teams": False,
     # Enable the in-app source map debugging feature
     "organizations:fix-source-map-cta": False,
     # Enable new JS SDK Dynamic Loader

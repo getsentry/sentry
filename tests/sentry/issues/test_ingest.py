@@ -123,7 +123,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         group = group_info.group
         assert group.title == occurrence.issue_title
         assert group.platform == event.platform
-        assert group.level == LOG_LEVELS_MAP.get(event.data["level"])
+        assert group.level == LOG_LEVELS_MAP.get(occurrence.level)
         assert group.last_seen == event.datetime
         assert group.first_seen == event.datetime
         assert group.active_at == event.datetime
@@ -198,7 +198,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
-            "level": LOG_LEVELS_MAP.get(event.data["level"]),
+            "level": LOG_LEVELS_MAP.get(occurrence.level),
             "culprit": occurrence.subtitle,
             "last_seen": event.datetime,
             "first_seen": event.datetime,
