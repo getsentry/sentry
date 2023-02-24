@@ -54,8 +54,36 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             data={"checksum": checksum, "chunks": [], "projects": []},
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(
+            self.url,
+            data={"checksum": checksum, "chunks": [], "projects": [self.project.id]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
+
+    @patch("sentry.tasks.assemble.assemble_artifacts")
+    def test_assemble_with_invalid_projects(self, mock_assemble_artifacts):
+        bundle_file = self.create_artifact_bundle()
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": ["myslug", "anotherslug"],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data["error"] == "One or more projects have not been found"
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble(self, mock_assemble_artifacts):

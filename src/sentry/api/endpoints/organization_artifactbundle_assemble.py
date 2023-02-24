@@ -21,6 +21,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         """
         Assembles an artifact bundle and stores the debug ids in the database.
         """
+        # TODO: check how to properly do validation without a release.
         if not self.has_release_permission(request, organization, None):
             raise ResourceDoesNotExist
 
@@ -46,6 +47,16 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
+        projects = data.get("projects", [])
+        if len(projects) == 0:
+            return Response({"error": "You need to specify at least one project"}, status=400)
+
+        project_ids = Project.objects.filter(
+            organization=organization, slug__in=projects
+        ).values_list("id", flat=True)
+        if len(project_ids) != len(projects):
+            return Response({"error": "One or more projects have not been found"}, status=400)
+
         checksum = data.get("checksum", None)
         chunks = data.get("chunks", [])
 
@@ -66,10 +77,6 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         )
 
         from sentry.tasks.assemble import assemble_artifacts
-
-        project_ids = Project.objects.filter(
-            organization=organization, slug__in=data.get("projects", [])
-        ).values_list("id", flat=True)
 
         assemble_artifacts.apply_async(
             kwargs={
