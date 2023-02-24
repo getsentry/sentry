@@ -263,7 +263,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
                 )
             except ApiError as error:
-                self.process_error(error, extra)
+                self._populate_trees_process_error(error, extra)
             except Exception:
                 # Report for investigation but do not stop processing
                 logger.exception(
