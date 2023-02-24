@@ -258,16 +258,16 @@ def process_commit_context(
                 extra={
                     **basic_logging_details,
                     "group_owner_id": group_owner.id,
+                    **(
+                        {
+                            "repository_id": selected_code_mapping.repository_id,
+                            "selected_code_mapping": selected_code_mapping.id,
+                        }
+                        if selected_code_mapping is not None
+                        else {}
+                    ),
                     "reason": "created" if created else "updated",
-                }
-                | (
-                    {
-                        "repository_id": selected_code_mapping.repository_id,
-                        "selected_code_mapping": selected_code_mapping.id,
-                    }
-                    if selected_code_mapping is not None
-                    else {}
-                ),
+                },
             )
             metrics.incr(
                 "sentry.tasks.process_commit_context.success",
