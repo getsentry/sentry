@@ -167,6 +167,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       removeContentSpanBarRef={removeContentSpanBarRef}
       didAnchoredSpanMount={didAnchoredSpanMount}
       getCurrentLeftPos={getCurrentLeftPos}
+      spanBarType={spanBarType}
     />
   );
 }

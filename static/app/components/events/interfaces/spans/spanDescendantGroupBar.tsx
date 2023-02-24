@@ -179,6 +179,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
       removeContentSpanBarRef={removeContentSpanBarRef}
       didAnchoredSpanMount={didAnchoredSpanMount}
       getCurrentLeftPos={getCurrentLeftPos}
+      spanBarType={spanBarType}
     />
   );
 }

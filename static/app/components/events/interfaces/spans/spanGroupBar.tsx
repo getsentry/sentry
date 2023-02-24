@@ -6,9 +6,14 @@ import {
   useEffect,
   useRef,
 } from 'react';
+import {useTheme} from '@emotion/react';
 
 import Count from 'sentry/components/count';
-import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {
+  getSpanBarColours,
+  ROW_HEIGHT,
+  SpanBarType,
+} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
   RowCell,
@@ -64,6 +69,7 @@ type Props = {
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
+  spanBarType?: SpanBarType;
 };
 
 function renderGroupedSpansToggler(props: Props) {
@@ -163,7 +169,10 @@ export function SpanGroupBar(props: Props) {
     spanGrouping,
     toggleSpanGroup,
     getCurrentLeftPos,
+    spanBarType,
   } = props;
+
+  const theme = useTheme();
 
   // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
   // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
@@ -271,7 +280,9 @@ export function SpanGroupBar(props: Props) {
                       width: '100%',
                     }}
                   >
-                    <SpanGroupRowTitleContent>
+                    <SpanGroupRowTitleContent
+                      color={getSpanBarColours(spanBarType, theme).primary}
+                    >
                       {props.renderGroupSpansTitle()}
                     </SpanGroupRowTitleContent>
                   </RowTitle>
