@@ -35,6 +35,7 @@ class OutboxScope(IntEnum):
     WEBHOOK_SCOPE = 2
     AUDIT_LOG_SCOPE = 3
     USER_IP_SCOPE = 4
+    INTEGRATION_SCOPE = 5
 
     def __str__(self):
         return self.name
@@ -52,6 +53,7 @@ class OutboxCategory(IntEnum):
     VERIFY_ORGANIZATION_MAPPING = 4
     AUDIT_LOG_EVENT = 5
     USER_IP_EVENT = 6
+    INTEGRATION_UPDATE = 7
 
     @classmethod
     def as_choices(cls):
@@ -342,17 +344,8 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
     }
 
 
-def find_regions_for_user(user_id: int) -> Set[str]:
+def find_regions_for_orgs(org_ids: Iterable[int]) -> Set[str]:
     from sentry.models import OrganizationMapping
-
-    org_ids: Set[int]
-    if "pytest" in sys.modules:
-        from sentry.testutils.silo import exempt_from_silo_limits
-
-        with exempt_from_silo_limits():
-            org_ids = _find_orgs_for_user(user_id)
-    else:
-        org_ids = _find_orgs_for_user(user_id)
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {
@@ -365,6 +358,19 @@ def find_regions_for_user(user_id: int) -> Set[str]:
                 "region_name"
             )
         }
+
+
+def find_regions_for_user(user_id: int) -> Set[str]:
+    org_ids: Set[int]
+    if "pytest" in sys.modules:
+        from sentry.testutils.silo import exempt_from_silo_limits
+
+        with exempt_from_silo_limits():
+            org_ids = _find_orgs_for_user(user_id)
+    else:
+        org_ids = _find_orgs_for_user(user_id)
+
+    return find_regions_for_orgs(org_ids)
 
 
 def outbox_silo_modes() -> List[SiloMode]:

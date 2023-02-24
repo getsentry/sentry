@@ -8,7 +8,7 @@ from django.db.transaction import get_connection
 
 
 @contextlib.contextmanager
-def test_psql_role_override(role_name: str, using: str | None = None):
+def in_test_psql_role_override(role_name: str, using: str | None = None):
     """
     During test runs, the role of the current connection will be swapped with role_name, and then swapped
     back to its original.  Has no effect in production.

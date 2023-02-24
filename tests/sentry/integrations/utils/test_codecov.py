@@ -3,6 +3,7 @@ from unittest.mock import patch
 import responses
 
 from sentry import options
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.integrations.utils.codecov import CodecovIntegrationError, has_codecov_integration
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
@@ -18,7 +19,8 @@ class TestCodecovIntegration(APITestCase):
         options.set("codecov.client-secret", "supersecrettoken")
 
     def test_no_github_integration(self):
-        Integration.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Integration.objects.all().delete()
 
         has_integration, error = has_codecov_integration(self.organization)
         assert not has_integration
