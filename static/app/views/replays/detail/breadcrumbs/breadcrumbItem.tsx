@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
@@ -74,9 +75,9 @@ function BreadcrumbItem({
           ) : null}
         </TitleContainer>
 
-        <Description title={typeof description === 'string' ? description : undefined}>
-          {description}
-        </Description>
+        <Tooltip title={description} showOnlyOnOverflow>
+          <Description>{description}</Description>
+        </Tooltip>
       </CrumbDetails>
     </CrumbItem>
   );
