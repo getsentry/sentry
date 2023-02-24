@@ -164,6 +164,7 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
+        project_platform=project.platform,
         url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
     )
@@ -176,6 +177,7 @@ def record_first_event(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
+            project_platform=project.platform,
         )
         return
 
@@ -430,6 +432,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
+                project_platform=project.platform,
                 url=dict(event.tags).get("url", None),
             )
 
@@ -502,7 +505,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         task=task,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user": user,
+            "user_id": user.id if user else None,
             "project_id": project.id,
             "date_completed": timezone.now(),
         },

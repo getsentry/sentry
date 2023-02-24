@@ -14,6 +14,7 @@ type AddSpanOpts = {
   startTimestamp: number;
   data?: Record<string, any>;
   description?: string;
+  hash?: string;
   op?: string;
   problemSpan?: ProblemSpan | ProblemSpan[];
   status?: string;
@@ -21,6 +22,7 @@ type AddSpanOpts = {
 
 interface TransactionSettings {
   duration?: number;
+  fcp?: number;
 }
 export class TransactionEventBuilder {
   TRACE_ID = '8cbbc19c0f54447ab702f00263262726';
@@ -73,6 +75,12 @@ export class TransactionEventBuilder {
       fingerprints: [],
       location: null,
       message: '',
+      measurements: {
+        fcp: {
+          value: transactionSettings?.fcp ?? 0,
+          unit: 'millisecond',
+        },
+      },
       metadata: {
         current_level: undefined,
         current_tree_label: undefined,
@@ -173,13 +181,15 @@ export class MockSpan {
    * this will be handled automatically and you do not need to provide an ID. Defaults to the root span's ID.
    */
   constructor(opts: AddSpanOpts) {
-    const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
+    const {startTimestamp, endTimestamp, op, description, hash, status, problemSpan} =
+      opts;
 
     this.span = {
       start_timestamp: startTimestamp,
       timestamp: endTimestamp,
       op,
       description,
+      hash,
       status: status ?? 'ok',
       data: opts.data || {},
       // These values are automatically assigned by the TransactionEventBuilder when the spans are added
@@ -196,7 +206,8 @@ export class MockSpan {
    * @param opts.numSpans If provided, will create the same span numSpan times
    */
   addChild(opts: AddSpanOpts, numSpans = 1) {
-    const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
+    const {startTimestamp, endTimestamp, op, description, hash, status, problemSpan} =
+      opts;
 
     for (let i = 0; i < numSpans; i++) {
       const span = new MockSpan({
@@ -204,6 +215,7 @@ export class MockSpan {
         endTimestamp,
         op,
         description,
+        hash,
         status,
         problemSpan,
       });

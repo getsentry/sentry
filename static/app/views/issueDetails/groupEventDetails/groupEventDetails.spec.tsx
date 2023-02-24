@@ -331,6 +331,52 @@ describe('groupEventDetails', () => {
       })
     ).toBeInTheDocument();
   });
+
+  it('renders the Function Evidence and Resources section for Profile Issues', async function () {
+    const props = makeDefaultMockData();
+    const group: Group = TestStubs.Group({
+      issueCategory: IssueCategory.PROFILE,
+      issueType: IssueType.PROFILE_BLOCKED_THREAD,
+    });
+    const transaction = TestStubs.Event({
+      entries: [],
+    });
+
+    mockGroupApis(
+      props.organization,
+      props.project,
+      props.group,
+      TestStubs.Event({
+        size: 1,
+        dateCreated: '2019-03-20T00:00:00.000Z',
+        errors: [],
+        entries: [],
+        tags: [{key: 'environment', value: 'dev'}],
+        previousEventID: 'prev-event-id',
+        nextEventID: 'next-event-id',
+      })
+    );
+
+    const routerContext = TestStubs.routerContext();
+    await act(async () => {
+      render(<TestComponent group={group} event={transaction} />, {
+        organization: props.organization,
+        context: routerContext,
+      });
+      await tick();
+    });
+
+    expect(
+      screen.getByRole('heading', {
+        name: /function evidence/i,
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: /resources/i,
+      })
+    ).toBeInTheDocument();
+  });
 });
 
 describe('EventCause', () => {
