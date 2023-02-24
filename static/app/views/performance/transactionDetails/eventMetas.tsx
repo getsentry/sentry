@@ -10,12 +10,12 @@ import {generateIconName} from 'sentry/components/events/contextSummary/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {frontend} from 'sentry/data/platformCategories';
+import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarProject, OrganizationSummary} from 'sentry/types';
-import {Event, EventTransaction} from 'sentry/types/event';
+import {OrganizationSummary} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -122,6 +122,9 @@ class EventMetas extends Component<Props, State> {
       <Projects orgId={organization.slug} slugs={[projectId]}>
         {({projects}) => {
           const project = projects.find(p => p.slug === projectId);
+          const isBackendProject =
+            project?.platform && backend.includes(project.platform as any);
+
           return (
             <EventDetailHeader type={type} hasReplay={hasReplay}>
               <MetaData
@@ -159,13 +162,13 @@ class EventMetas extends Component<Props, State> {
                   })}
                 />
               )}
-              {isTransaction(event) && (
+              {isTransaction(event) && isBackendProject && (
                 <MetaData
                   headingText={t('Status')}
                   tooltipText={t(
                     'The status of this transaction indicating if it succeeded or otherwise.'
                   )}
-                  bodyText={getStatusBodyText(project, event, meta)}
+                  bodyText={event.contexts?.trace?.status ?? '\u2014'}
                   subtext={<HttpStatus event={event} />}
                 />
               )}
@@ -332,34 +335,6 @@ export function HttpStatus({event}: {event: Event}) {
   }
 
   return <Fragment>HTTP {tag.value}</Fragment>;
-}
-
-/*
-  TODO: Ash
-  I put this in place as a temporary patch to prevent successful frontend transactions from being set as 'unknown', which is what Relay sets by default
-  if there is no status set by the SDK. In the future, the possible statuses will be revised and frontend transactions should properly have a status set.
-  When that change is implemented, this function can simply be replaced with:
-
-  event.contexts?.trace?.status ?? '\u2014';
-*/
-
-export function getStatusBodyText(
-  project: AvatarProject | undefined,
-  event: EventTransaction,
-  meta: TraceMeta | null
-): string {
-  const isFrontendProject = frontend.some(val => val === project?.platform);
-
-  if (
-    isFrontendProject &&
-    meta &&
-    meta.errors === 0 &&
-    event.contexts?.trace?.status === 'unknown'
-  ) {
-    return 'ok';
-  }
-
-  return event.contexts?.trace?.status ?? '\u2014';
 }
 
 export default EventMetas;
