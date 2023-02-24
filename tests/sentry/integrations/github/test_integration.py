@@ -682,3 +682,34 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     Repo(f"{gh_org}/foo", "master"), ["src/sentry/api/endpoints/auth_login.py"]
                 ),
             }
+
+    @responses.activate
+    def test_get_trees_for_org_rate_limit_401(self):
+        """Sometimes the rate limit API fails from the get go."""
+        # Test specific set up
+        # Sometimes Github gives us a 401 response
+        responses.add(
+            responses.GET,
+            url="https://api.github.com/rate_limit",
+            json={"message": "Bad credentials"},
+            status=401,
+        )
+
+        # Generic test set up
+        gh_org = "Test-Organization"
+        repos_key = "githubtrees:repositories:Test-Organization"
+        cache.clear()  # TODO: Investigate why it did not work in the setUp method
+        installation = self.get_installation_helper()
+
+        assert cache.get(repos_key) is None
+        trees = installation.get_trees_for_org()
+        assert trees == {}
+
+        assert cache.get(repos_key) == [
+            {"full_name": "Test-Organization/xyz", "default_branch": "master"},
+            {"full_name": "Test-Organization/foo", "default_branch": "master"},
+            {"full_name": "Test-Organization/bar", "default_branch": "main"},
+            {"full_name": "Test-Organization/baz", "default_branch": "master"},
+        ]
+        repo_key = f"github:repo:{gh_org}/xyz:source-code"
+        assert not cache.get(repo_key)
