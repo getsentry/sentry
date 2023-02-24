@@ -1,13 +1,16 @@
 from base64 import b64encode
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
+import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
 
-from sentry import audit_log, options
+from sentry import audit_log
+from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -27,6 +30,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -134,12 +138,12 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         # make sure options are not cached the first time to get predictable number of database queries
         with exempt_from_silo_limits():
-            options.delete("system.rate-limit")
-            options.delete("store.symbolicate-event-lpq-always")
-            options.delete("store.symbolicate-event-lpq-never")
+            sentry_options.delete("system.rate-limit")
+            sentry_options.delete("store.symbolicate-event-lpq-always")
+            sentry_options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 50 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 52
+        expected_queries = 49 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 51
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -280,16 +284,34 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
 
     def test_upload_avatar(self):
-        data = {"avatarType": "upload", "avatar": b64encode(self.load_fixture("avatar.jpg"))}
+        data = {
+            "avatarType": "upload",
+            "avatar": b64encode(self.load_fixture("avatar.jpg")),
+        }
         self.get_success_response(self.organization.slug, **data)
 
         avatar = OrganizationAvatar.objects.get(organization=self.organization)
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
-    def test_various_options(self):
+    @responses.activate
+    @patch(
+        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        return_value=["testgit/abc"],
+    )
+    @with_feature("organizations:codecov-stacktrace-integration-v2")
+    def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
         AuditLogEntry.objects.filter(organization=self.organization).delete()
+        self.create_integration(
+            organization=self.organization, provider="github", external_id="extid"
+        )
+        sentry_options.set("codecov.client-secret", "supersecrettoken")
+        responses.add(
+            responses.GET,
+            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            status=200,
+        )
 
         data = {
             "openMembership": False,
@@ -314,7 +336,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # needed to set require2FA
         interface = TotpInterface()
         interface.enroll(self.user)
-        assert Authenticator.objects.user_has_2fa(self.user)
+        assert self.user.has_2fa()
 
         self.get_success_response(self.organization.slug, **data)
 
@@ -363,6 +385,21 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
+
+    @with_feature("organizations:codecov-stacktrace-integration-v2")
+    @responses.activate
+    @patch(
+        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        return_value=["testgit/abc"],
+    )
+    def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
+        responses.add(
+            responses.GET,
+            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            status=404,
+        )
+        data = {"codecovAccess": True}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_setting_trusted_relays_forbidden(self):
         data = {
@@ -836,14 +873,14 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.has_2fa = self.create_user()
         TotpInterface().enroll(self.has_2fa)
         self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
-        assert Authenticator.objects.user_has_2fa(self.has_2fa)
+        assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
-        assert not Authenticator.objects.user_has_2fa(self.owner)
+        assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):

@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GH_RELEASE_PAT }}
           fetch-depth: 0
       - name: Prepare release
-        uses: getsentry/action-prepare-release@b318692847c53c6bab9d22b09deef25c42a86beb  # v1
+        uses: getsentry/action-prepare-release@d2cc2db3db92bc5b79a90c316f588f2b13626a2b  # v1.5.6
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
         with:

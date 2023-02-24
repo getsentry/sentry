@@ -19,9 +19,9 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink} from 'sentry/icons';
+import {IconLink, IconProfiling} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -148,7 +148,12 @@ class TransactionDetail extends Component<Props> {
     }
 
     return (
-      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+      <StyledButton
+        size="xs"
+        to={target}
+        onClick={handleOnClick}
+        icon={<IconProfiling size="xs" />}
+      >
         {t('Go to Profile')}
       </StyledButton>
     );

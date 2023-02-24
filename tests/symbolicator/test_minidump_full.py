@@ -13,7 +13,7 @@ from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.utils.safe import get_path
-from tests.symbolicator import insta_snapshot_stacktrace_data
+from tests.symbolicator import insta_snapshot_stacktrace_data, redact_location
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -82,6 +82,10 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
                     },
                     {"sentry[logger]": "test-logger"},
                 )
+
+        candidates = event.data["debug_meta"]["images"][0]["candidates"]
+        redact_location(candidates)
+        event.data["debug_meta"]["images"][0]["candidates"] = candidates
 
         insta_snapshot_stacktrace_data(self, event.data)
         assert event.data.get("logger") == "test-logger"
@@ -173,6 +177,10 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             new_event = eventstore.get_event_by_id(self.project.id, event.event_id)
             assert new_event is not None
             assert new_event.event_id == event.event_id
+
+        candidates = new_event.data["debug_meta"]["images"][0]["candidates"]
+        redact_location(candidates)
+        new_event.data["debug_meta"]["images"][0]["candidates"] = candidates
 
         insta_snapshot_stacktrace_data(self, new_event.data, subname="reprocessed")
 

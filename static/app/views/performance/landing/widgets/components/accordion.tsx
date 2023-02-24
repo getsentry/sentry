@@ -2,7 +2,7 @@ import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import DropdownButton from 'sentry/components/dropdownButton';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
   content: () => ReactNode;

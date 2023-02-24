@@ -1230,11 +1230,12 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
                 includeDynamicSamplingRules=1,
             )
             # we expect 2 rules 1 for boostEnvironments and uniform rule
-            assert len(response.data["dynamicSamplingRules"]) == 2
+            assert len(response.data["dynamicSamplingRules"]["rules"]) == 0
+            assert len(response.data["dynamicSamplingRules"]["rulesV2"]) == 2
             # 1001 is dev bias rule id
-            assert response.data["dynamicSamplingRules"][0]["id"] == 1001
+            assert response.data["dynamicSamplingRules"]["rulesV2"][0]["id"] == 1001
             # 1000 uniform rule id
-            assert response.data["dynamicSamplingRules"][1]["id"] == 1000
+            assert response.data["dynamicSamplingRules"]["rulesV2"][1]["id"] == 1000
 
     def test_get_dynamic_sampling_rules_disabled_if_no_feature_flag(self):
         with Feature(

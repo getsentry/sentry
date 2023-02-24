@@ -163,7 +163,7 @@ export function breadcrumbFactory(
       label: error['error.type'].join(''),
       eventId: error.id,
       groupId: error['issue.id'] || 1,
-      groupShortId: error.issue || 'POKEDEX-4NN',
+      groupShortId: error.issue,
       project: error['project.name'],
     },
     timestamp: error.timestamp,
@@ -175,6 +175,7 @@ export function breadcrumbFactory(
         span.op
       )
     )
+    .sort((a, b) => a.startTimestamp - b.startTimestamp)
     .map(span => {
       if (span.op.startsWith('navigation')) {
         const [, action] = span.op.split('.');
@@ -263,8 +264,11 @@ export function replayTimestamps(
   )
     .map(timestamp => +new Date(timestamp * 1000))
     .filter(Boolean);
-  const spanStartTimestamps = rawSpanData.map(span => span.startTimestamp * 1000);
-  const spanEndTimestamps = rawSpanData.map(span => span.endTimestamp * 1000);
+  const rawSpanDataFiltered = rawSpanData.filter(
+    ({op}) => op !== 'largest-contentful-paint'
+  );
+  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp * 1000);
+  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp * 1000);
 
   return {
     startTimestampMs: Math.min(

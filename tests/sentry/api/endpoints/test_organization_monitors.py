@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
@@ -30,17 +33,23 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
         self.check_valid_response(response, [monitor])
 
     def test_sort(self):
-        def add_status_monitor(status_key: str):
+        last_checkin = datetime.now() - timedelta(minutes=1)
+        last_checkin_older = datetime.now() - timedelta(minutes=5)
+
+        def add_status_monitor(status_key: str, date: datetime | None = None):
             return Monitor.objects.create(
                 project_id=self.project.id,
                 organization_id=self.organization.id,
                 status=getattr(MonitorStatus, status_key),
+                last_checkin=date or last_checkin,
                 name=status_key,
             )
 
+        # Subsort next checkin time
         monitor_active = add_status_monitor("ACTIVE")
         monitor_ok = add_status_monitor("OK")
         monitor_disabled = add_status_monitor("DISABLED")
+        monitor_error_older_checkin = add_status_monitor("ERROR", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
 
@@ -49,9 +58,10 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
             response,
             [
                 monitor_error,
+                monitor_error_older_checkin,
                 monitor_missed_checkin,
-                monitor_active,
                 monitor_ok,
+                monitor_active,
                 monitor_disabled,
             ],
         )

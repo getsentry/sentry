@@ -43,7 +43,7 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -134,7 +134,7 @@ export type SpanBarProps = {
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
+    | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
@@ -877,8 +877,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   ): React.ReactNode {
     const {toggleEmbeddedChildren, organization, showEmbeddedChildren} = this.props;
 
-    if (transactions && transactions.length === 1) {
-      const transaction = transactions[0];
+    if (transactions && transactions.length >= 1) {
       return (
         <Tooltip
           title={
@@ -900,13 +899,14 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                   : 'span_view.embedded_child.show';
                 trackAdvancedAnalyticsEvent(eventKey, {organization});
 
-                toggleEmbeddedChildren({
-                  orgSlug: organization.slug,
-                  eventSlug: generateEventSlug({
+                const eventSlugs = transactions.map(transaction =>
+                  generateEventSlug({
                     id: transaction.event_id,
                     project: transaction.project_slug,
-                  }),
-                });
+                  })
+                );
+
+                toggleEmbeddedChildren(organization.slug, eventSlugs);
               }
             }}
           />

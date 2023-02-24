@@ -39,7 +39,7 @@ export function ChangeRouteModal({
       </Header>
       <Body>
         {t(
-          'You are about to leave this page without completing the steps required to monitor errors and or performance for the selected projects.'
+          'You are about to leave this page without completing the steps required to monitor errors and or performance for this project.'
         )}
       </Body>
       <Footer>
