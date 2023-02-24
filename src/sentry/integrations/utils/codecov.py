@@ -15,7 +15,7 @@ CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 )
 NEW_CODECOV_REPORT_URL = (
-    "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}/"
+    "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 REF_TYPE = Literal["branch", "sha"]
@@ -90,15 +90,17 @@ def get_codecov_data(
         url = CODECOV_REPORT_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
+        params = {ref_type: ref, "path": path}
         if features.has("organizations:codecov-stacktrace-integrations-v2", Organization):
             url = NEW_CODECOV_REPORT_URL.format(
                 service=service, owner_username=owner_username, repo_name=repo_name, path=path
             )
+            params = {ref_type: ref, "walk_back": WALK_BACK_LIMIT}
 
         with configure_scope() as scope:
             response = requests.get(
                 url,
-                params={ref_type: ref, "walk_back": WALK_BACK_LIMIT},
+                params=params,
                 headers={"Authorization": f"Bearer {codecov_token}"},
                 timeout=CODECOV_TIMEOUT if set_timeout else None,
             )
