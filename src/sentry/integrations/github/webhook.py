@@ -14,7 +14,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
-from sentry_sdk import configure_scope
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -31,24 +30,10 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.json import JSONData
-from sentry.utils.sdk import report_tags_already_set
 
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
-
-
-def clear_tags_and_context_if_already_set() -> None:
-    with configure_scope() as scope:
-        report_tags_already_set(scope)
-        for tag in ["organization", "organization.slug"]:
-            if tag in scope._tags:
-                del scope._tags[tag]
-
-        if "organization" in scope._contexts:
-            del scope._contexts["organization"]
-
-        logger.info("We've reset the context and tags.")
 
 
 class Webhook:
@@ -471,7 +456,6 @@ class GitHubWebhookBase(View):  # type: ignore
         raise NotImplementedError
 
     def handle(self, request: Request) -> HttpResponse:
-        clear_tags_and_context_if_already_set()
         secret = self.get_secret()
 
         if secret is None:
