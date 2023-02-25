@@ -1,12 +1,18 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 
 from sentry import options
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.integrations.utils.codecov import CodecovIntegrationError, has_codecov_integration
+from sentry.integrations.utils.codecov import (
+    CodecovIntegrationError,
+    get_codecov_data,
+    has_codecov_integration,
+)
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class TestCodecovIntegration(APITestCase):
@@ -56,3 +62,75 @@ class TestCodecovIntegration(APITestCase):
 
         has_integration, _ = has_codecov_integration(self.organization)
         assert has_integration
+
+    @responses.activate
+    def test_get_codecov_report(self):
+        expected_line_coverage = [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
+        expected_codecov_url = "https://codecov.io/gh/testgit/abc/commit/abc"
+        responses.add(
+            responses.GET,
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/report",
+            status=200,
+            json={
+                "files": [{"line_coverage": expected_line_coverage}],
+                "commit_file_url": expected_codecov_url,
+            },
+        )
+
+        coverage, url = get_codecov_data(
+            repo="testgit/abc",
+            service="github",
+            ref="master",
+            ref_type="branch",
+            path="path/to/file.py",
+            organization=self.organization,
+        )
+        assert coverage == expected_line_coverage
+        assert url == expected_codecov_url
+
+    @responses.activate
+    @with_feature("organizations:codecov-stacktrace-integration-v2")
+    def test_get_codecov_report_with_walkback(self):
+        expected_line_coverage = [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
+        expected_codecov_url = "https://codecov.io/gh/testgit/abc/commit/abc"
+        responses.add(
+            responses.GET,
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master&walk_back=20",
+            status=200,
+            json={
+                "files": [{"line_coverage": expected_line_coverage}],
+                "commit_file_url": expected_codecov_url,
+            },
+        )
+
+        coverage, url = get_codecov_data(
+            repo="testgit/abc",
+            service="github",
+            ref="master",
+            ref_type="branch",
+            path="path/to/file.py",
+            organization=self.organization,
+        )
+        assert coverage == expected_line_coverage
+        assert url == expected_codecov_url
+
+    @responses.activate
+    @with_feature("organizations:codecov-stacktrace-integration-v2")
+    def test_get_codecov_report_with_walkback_error(self):
+        responses.add(
+            responses.GET,
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master&walk_back=20",
+            status=404,
+        )
+
+        with pytest.raises(Exception) as e:
+            _, _ = get_codecov_data(
+                repo="testgit/abc",
+                service="github",
+                ref="master",
+                ref_type="branch",
+                path="path/to/file.py",
+                organization=self.organization,
+            )
+
+            assert e.status == 404
