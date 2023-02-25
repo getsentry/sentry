@@ -325,9 +325,7 @@ class Factories:
         organization = kwargs.get("organization")
         organization_id = organization.id if organization else project.organization_id
 
-        env = Environment.objects.create(
-            organization_id=organization_id, project_id=project.id, name=name
-        )
+        env = Environment.objects.create(organization_id=organization_id, name=name)
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
 
