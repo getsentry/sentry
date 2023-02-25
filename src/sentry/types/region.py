@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import functools
-import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Iterable
+from urllib.parse import urljoin
 
 from sentry.silo import SiloMode
 
@@ -55,7 +55,7 @@ class Region:
 
         (This method is a placeholder. See the `address` attribute.)
         """
-        return os.path.join(self.address, path)
+        return urljoin(self.address, path)
 
 
 class RegionResolutionError(Exception):
