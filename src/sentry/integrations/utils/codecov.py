@@ -76,7 +76,7 @@ def get_codecov_data(
     ref: str,
     ref_type: REF_TYPE,
     path: str,
-    set_timeout: bool,
+    organization: Organization,
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
@@ -91,18 +91,24 @@ def get_codecov_data(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
         params = {ref_type: ref, "path": path}
-        if features.has("organizations:codecov-stacktrace-integrations-v2", Organization):
+        if features.has("organizations:codecov-stacktrace-integration-v2", organization):
             url = NEW_CODECOV_REPORT_URL.format(
                 service=service, owner_username=owner_username, repo_name=repo_name, path=path
             )
             params = {ref_type: ref, "walk_back": WALK_BACK_LIMIT}
 
         with configure_scope() as scope:
+            timeout = (
+                CODECOV_TIMEOUT
+                if features.has("organizations:codecov-stacktrace-integration-v2", organization)
+                else None
+            )
+
             response = requests.get(
                 url,
                 params=params,
                 headers={"Authorization": f"Bearer {codecov_token}"},
-                timeout=CODECOV_TIMEOUT if set_timeout else None,
+                timeout=timeout,
             )
             tags = {
                 "codecov.request_url": url,
