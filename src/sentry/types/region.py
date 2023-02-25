@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Iterable
@@ -34,7 +35,7 @@ class Region:
     """The address of the region's silo.
 
     Represent a region's hostname or subdomain in a production environment
-    (e.g., "eu.sentry.io"), and addresses such as "localhost:8001" in a dev
+    (e.g., "https://eu.sentry.io"), and addresses such as "http://localhost:8001" in a dev
     environment.
 
     (This attribute is a placeholder. Please update this docstring when its
@@ -45,18 +46,16 @@ class Region:
     """The region's category."""
 
     def __post_init__(self) -> None:
-        from sentry.utils.snowflake import NULL_REGION_ID, REGION_ID
+        from sentry.utils.snowflake import REGION_ID
 
         REGION_ID.validate(self.id)
-        if self.id == NULL_REGION_ID:
-            raise ValueError(f"Region ID {NULL_REGION_ID} is reserved for non-multi-region systems")
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a URL on this region's silo.
 
         (This method is a placeholder. See the `address` attribute.)
         """
-        return self.address + path
+        return os.path.join(self.address, path)
 
 
 class RegionResolutionError(Exception):
@@ -125,6 +124,15 @@ def get_local_region() -> Region:
     Raises RegionContextError if this server instance is not a region silo.
     """
     from django.conf import settings
+
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        # This is a dummy value used to make region.to_url work
+        return Region(
+            name="monolith",
+            id=0,
+            address="/",
+            category=RegionCategory.MULTI_TENANT,
+        )
 
     if SiloMode.get_current_mode() != SiloMode.REGION:
         raise RegionContextError("Not a region silo")

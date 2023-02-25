@@ -6,13 +6,14 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import Organization, OrganizationStatus, User
+from sentry.services.hybrid_cloud.user import user_service
 
 
 class UserPermission(SentryPermission):
     def has_object_permission(self, request: Request, view, user=None):
         if user is None:
             user = request.user
-        if request.user == user:
+        if request.user.id == user.id:
             return True
         if is_system_auth(request.auth):
             return True
@@ -66,7 +67,7 @@ class UserEndpoint(Endpoint):
             user_id = request.user.id
 
         try:
-            user = User.objects.get(id=user_id)
+            user = user_service.get_user(user_id=user_id)
         except (User.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 

@@ -110,6 +110,11 @@ class UserFilterArgs(TypedDict, total=False):
     emails: List[str]
 
 
+class UserUpdateArgs(TypedDict, total=False):
+    avatar_url: str
+    avatar_type: int
+
+
 class UserService(
     FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeType], InterfaceWithLifecycle
 ):
@@ -148,6 +153,16 @@ class UserService(
 
     @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
+        pass
+
+    @abstractmethod
+    def update_user(
+        self,
+        *,
+        user_id: int,
+        attrs: UserUpdateArgs,
+    ) -> Any:
+        # Returns a serialized user
         pass
 
     def get_user(self, user_id: int) -> Optional[RpcUser]:
