@@ -1,5 +1,6 @@
 import contextlib
-from unittest.mock import patch
+from unittest import mock
+from unittest.mock import call, patch
 
 import pytest
 from django.db import transaction
@@ -8,6 +9,7 @@ from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (
+    _schedule_invalidate_project_config,
     build_project_config,
     invalidate_project_config,
     schedule_build_project_config,
@@ -330,8 +332,8 @@ def test_db_transaction(
     }
 
 
+@pytest.mark.django_db(transaction=True)
 class TestInvalidationTask:
-    @pytest.mark.django_db
     def test_debounce(
         self,
         monkeypatch,
@@ -375,7 +377,6 @@ class TestInvalidationTask:
             },
         ]
 
-    @pytest.mark.django_db
     def test_invalidate(
         self,
         monkeypatch,
@@ -399,7 +400,6 @@ class TestInvalidationTask:
             assert cfg["disabled"] is False
             assert cfg["projectId"] == default_project.id
 
-    @pytest.mark.django_db
     def test_invalidate_org(
         self,
         monkeypatch,
@@ -425,8 +425,44 @@ class TestInvalidationTask:
             assert new_cfg is not None
             assert new_cfg != cfg
 
+    @mock.patch(
+        "sentry.tasks.relay._schedule_invalidate_project_config",
+        wraps=_schedule_invalidate_project_config,
+    )
+    @mock.patch("django.db.transaction.on_commit", wraps=transaction.on_commit)
+    def test_project_config_invalidations_after_commit(
+        self, oncommit, schedule_inner, default_project
+    ):
+        schedule_invalidate_project_config(
+            trigger="test", project_id=default_project.id, countdown=2
+        )
 
-@pytest.mark.django_db
+        assert oncommit.call_count == 1
+        assert schedule_inner.call_count == 1
+        assert schedule_inner.call_args == call(
+            trigger="test",
+            organization_id=None,
+            project_id=default_project.id,
+            public_key=None,
+            countdown=2,
+        )
+
+    @mock.patch("sentry.tasks.relay._schedule_invalidate_project_config")
+    def test_project_config_invalidations_delayed(self, schedule_inner, default_project):
+        with transaction.atomic():
+            schedule_invalidate_project_config(
+                trigger="inside-transaction", project_id=default_project, countdown=2
+            )
+            assert schedule_inner.call_count == 0
+
+        assert schedule_inner.call_count == 1
+        schedule_invalidate_project_config(
+            trigger="outside-transaction", project_id=default_project, countdown=2
+        )
+        assert schedule_inner.call_count == 2
+
+
+@pytest.mark.django_db(transaction=True)
 def test_invalidate_hierarchy(
     monkeypatch,
     burst_task_runner,

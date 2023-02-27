@@ -109,11 +109,7 @@ class TeamKeyTransactionModelManager(BaseManager):
             )
             # invalidate project config only when the rule is enabled
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
-                transaction.on_commit(
-                    lambda: schedule_invalidate_project_config(
-                        project_id=project.id, trigger=trigger
-                    )
-                )
+                schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     def post_save(self, instance, **kwargs):
         # this hook may be called from model hooks during an

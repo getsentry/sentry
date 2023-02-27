@@ -8,7 +8,7 @@ from time import time
 from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.db.models.signals import pre_save
 from django.utils import timezone
@@ -83,9 +83,7 @@ class ReleaseProjectModelManager(BaseManager):
             and options.get("dynamic-sampling:enabled-biases")
             and project_boosted_releases.has_boosted_releases
         ):
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
-            )
+            schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     def post_save(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
