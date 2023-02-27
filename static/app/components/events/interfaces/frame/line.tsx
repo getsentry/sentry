@@ -24,7 +24,6 @@ import DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
 import {SymbolicatorStatus} from '../types';
 
-import {CodecovLegend} from './codecovLegend';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import PackageLink from './packageLink';
@@ -290,19 +289,21 @@ export class Line extends Component<Props, State> {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title" data-test-id="title">
-          <VertCenterWrapper>
-            <SourceMapWarning frame={data} debugFrames={debugFrames} />
-            <div>
-              {this.renderLeadHint()}
-              <DefaultTitle
-                frame={data}
-                platform={this.props.platform ?? 'other'}
-                isHoverPreviewed={isHoverPreviewed}
-                meta={this.props.frameMeta}
-              />
-            </div>
+          <DefaultLineTitleWrapper>
+            <LeftLineTitle>
+              <SourceMapWarning frame={data} debugFrames={debugFrames} />
+              <div>
+                {this.renderLeadHint()}
+                <DefaultTitle
+                  frame={data}
+                  platform={this.props.platform ?? 'other'}
+                  isHoverPreviewed={isHoverPreviewed}
+                  meta={this.props.frameMeta}
+                />
+              </div>
+            </LeftLineTitle>
             {this.renderRepeats()}
-          </VertCenterWrapper>
+          </DefaultLineTitleWrapper>
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -400,21 +401,8 @@ export class Line extends Component<Props, State> {
     });
     const props = {className};
 
-    const shouldShowCodecovLegend =
-      this.props.organization?.features.includes('codecov-stacktrace-integration') &&
-      this.props.organization?.codecovAccess &&
-      !this.props.nextFrame &&
-      this.state.isExpanded;
-
     return (
       <StyledLi data-test-id="line" {...props}>
-        {shouldShowCodecovLegend && (
-          <CodecovLegend
-            event={this.props.event}
-            frame={this.props.data}
-            organization={this.props.organization}
-          />
-        )}
         {this.renderLine()}
         <Context
           frame={data}
@@ -454,13 +442,18 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const VertCenterWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
 `;
 
-const RepeatedContent = styled(VertCenterWrapper)`
+const LeftLineTitle = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
 `;
 

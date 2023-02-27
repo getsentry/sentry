@@ -45,9 +45,6 @@ class RpcSentryAppComponent:
     schema: Mapping[str, Any] = field(default_factory=dict)
 
 
-ApiSentryAppInstallation = RpcSentryAppInstallation
-
-
 @dataclass
 class RpcSentryApp:
     id: int = -1
@@ -59,9 +56,6 @@ class RpcSentryApp:
     slug: str = ""
     uuid: str = ""
     events: List[str] = field(default_factory=list)
-
-
-ApiSentryApp = RpcSentryApp
 
 
 class SentryAppEventDataInterface(Protocol):

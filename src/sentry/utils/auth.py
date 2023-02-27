@@ -15,7 +15,7 @@ from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 
 from sentry import options
-from sentry.models import Authenticator, Organization, User
+from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
@@ -277,11 +277,10 @@ def login(
 
     Returns boolean indicating if the user was logged in.
     """
-    has_2fa = Authenticator.objects.user_has_2fa(user)
     if passed_2fa is None:
         passed_2fa = request.session.get(MFA_SESSION_KEY, "") == str(user.id)
 
-    if has_2fa and not passed_2fa:
+    if user.has_2fa() and not passed_2fa:
         request.session["_pending_2fa"] = [user.id, time(), organization_id]
         if after_2fa is not None:
             request.session["_after_2fa"] = after_2fa

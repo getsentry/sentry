@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict
 from unittest import mock
 from unittest.mock import Mock, patch
@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.processing import event_processing_store
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
@@ -39,7 +40,11 @@ from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
-from sentry.tasks.post_process import post_process_group, process_event
+from sentry.tasks.post_process import (
+    ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
+    post_process_group,
+    process_event,
+)
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
@@ -985,6 +990,38 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
         )
 
+    @patch("sentry.tasks.post_process.logger")
+    def test_issue_owners_should_ratelimit(self, logger):
+        cache.set(
+            f"issue_owner_assignment_ratelimiter:{self.project.id}",
+            (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
+        )
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        logger.info.assert_any_call(
+            "handle_owner_assignment.ratelimited",
+            extra={
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+                "reason": "ratelimited",
+            },
+        )
+
 
 class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
     github_blame_return_value = {
@@ -1070,7 +1107,8 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        Integration.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Integration.objects.all().delete()
         integration = Integration.objects.create(provider="bitbucket")
         integration.add_organization(self.organization)
         with self.tasks():
@@ -1399,15 +1437,16 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=None,
-            group_id=event.group_id,
-            occurrence_id=event.occurrence.id,
-            project_id=event.group.project_id,
-        )
+        with self.feature("organizations:profile-blocked-main-thread-ppg"):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=None,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence.id,
+                project_id=event.group.project_id,
+            )
         return cache_key
 
     def test_issueless(self):

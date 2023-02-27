@@ -107,6 +107,7 @@ function ReplayDetails({
 
   return (
     <ReplayContextProvider
+      isFetching={fetching}
       replay={replay}
       initialTimeOffset={getInitialTimeOffset({
         eventTimestamp,

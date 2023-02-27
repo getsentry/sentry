@@ -33,6 +33,7 @@ from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
 )
 from sentry.models import (
     Activity,
@@ -248,7 +249,9 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data = dict(commit)
                     commit_data["shortId"] = commit_data["id"][:7]
                     commit_data["author"] = committer["author"]
-                    commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
+                    commit_data["subject"] = (
+                        commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
+                    )
                     commits[commit["id"]] = commit_data
 
     # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
@@ -481,7 +484,7 @@ class PerformanceProblemContext:
         self.parent_span = parent_span
         self.repeating_spans = repeating_spans
 
-    def to_dict(self) -> Dict[str, str | List[str]]:
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
         return {
             "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
@@ -496,6 +499,22 @@ class PerformanceProblemContext:
         if self.event and self.event.transaction:
             return str(self.event.transaction)
         return ""
+
+    @property
+    def transaction_duration(self) -> float:
+        if not self.event:
+            return 0
+
+        return self.duration(self.event.data)
+
+    def duration(self, item: Mapping[str, Any] | None) -> float:
+        if not item:
+            return 0
+
+        start = float(item.get("start_timestamp", 0) or 0)
+        end = float(item.get("timestamp", 0) or 0)
+
+        return (end - start) * 1000
 
     def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
         if not self.spans:
@@ -518,12 +537,14 @@ class PerformanceProblemContext:
             return NPlusOneAPICallProblemContext(problem, spans, event)
         if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)
+        if problem.type == PerformanceRenderBlockingAssetSpanGroupType:
+            return RenderBlockingAssetProblemContext(problem, spans, event)
         else:
             return cls(problem, spans, event)
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, str | List[str]]:
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
         return {
             "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
@@ -601,3 +622,47 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     def _find_span_desc_by_id(self, id: str) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
+
+
+class RenderBlockingAssetProblemContext(PerformanceProblemContext):
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
+        return {
+            "transaction_name": self.transaction,
+            "slow_span_description": self.slow_span_description,
+            "slow_span_duration": self.slow_span_duration,
+            "transaction_duration": self.transaction_duration,
+            "fcp": self.fcp,
+        }
+
+    @property
+    def slow_span(self) -> Dict[str, Union[str, float]] | None:
+        if not self.spans:
+            return None
+
+        offending_spans = [
+            span for span in self.spans if span.get("span_id") in self.problem.offender_span_ids
+        ]
+
+        if len(offending_spans) == 0:
+            return None
+
+        return offending_spans[0]
+
+    @property
+    def slow_span_description(self) -> str:
+        slow_span = self.slow_span
+        if not slow_span:
+            return ""
+
+        return str(slow_span.get("description", ""))
+
+    @property
+    def slow_span_duration(self) -> float:
+        return self.duration(self.slow_span)
+
+    @property
+    def fcp(self) -> float:
+        if not self.event:
+            return 0
+
+        return float(self.event.data.get("measurements", {}).get("fcp", {}).get("value", 0) or 0)
