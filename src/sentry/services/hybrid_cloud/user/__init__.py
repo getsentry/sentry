@@ -115,7 +115,12 @@ class UserService(
 ):
     @abstractmethod
     def get_many_by_email(
-        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+        self,
+        emails: List[str],
+        is_active: bool = True,
+        is_verified: bool = True,
+        is_project_member: bool = False,
+        project_id: Optional[int] = None,
     ) -> List[RpcUser]:
         """
         Return a list of users matching the filters
