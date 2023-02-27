@@ -23,7 +23,7 @@ from sentry.models import (
 from sentry.plugins.base.v2 import Plugin2
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
-from sentry.tasks.reprocessing2 import reprocess_group
+from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -605,3 +605,19 @@ def test_apply_new_stack_trace_rules(
     assert event1.group.id == event2.group.id
 
     assert event1.data["grouping_config"] != original_grouping_config
+
+
+@pytest.mark.django_db
+def test_finish_reprocessing(default_project):
+    # Pretend that the old group has more than one activity still connected:
+    old_group = Group.objects.create(project=default_project)
+    new_group = Group.objects.create(project=default_project)
+
+    old_group.activity_set.create(
+        project=default_project,
+        type=ActivityType.REPROCESS.value,
+        data={"newGroupId": new_group.id},
+    )
+    old_group.activity_set.create(project=default_project, type=ActivityType.NOTE.value)
+
+    finish_reprocessing(old_group.project_id, old_group.id)
