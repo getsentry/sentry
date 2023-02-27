@@ -31,13 +31,24 @@ class DatabaseBackedUserService(
     UserService,
 ):
     def get_many_by_email(
-        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+        self,
+        emails: List[str],
+        is_active: bool = True,
+        is_verified: bool = True,
+        is_project_member: bool = False,
+        project_id: Optional[int] = None,
     ) -> List[RpcUser]:
         query = self._base_query()
         if is_verified:
             query = query.filter(emails__is_verified=is_verified)
         if is_active:
             query = query.filter(is_active=is_active)
+        if is_project_member:
+            query = query.filter(
+                sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id__in=[
+                    project_id
+                ]
+            )
         return [
             self._serialize_rpc(user) for user in query.filter(in_iexact("emails__email", emails))
         ]
