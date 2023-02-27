@@ -78,7 +78,7 @@ export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps)
             name: timestamps[i]!,
             // the response value contains nulls when no data
             // is available, use 0 to represent it
-            value: (value ?? 0) / 1e6, // convert ns to ms
+            value: value ?? 0,
           })),
           seriesName: rawData.axis,
           xAxisIndex: 1,

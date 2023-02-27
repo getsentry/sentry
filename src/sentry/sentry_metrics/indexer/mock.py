@@ -67,6 +67,16 @@ class RawSimpleIndexer(StringIndexer):
             self._reverse[index] = string
         return index
 
+    def resolve_shared_org(self, string: str) -> Optional[int]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class SimpleIndexer"
+        )
+
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class SimpleIndexer"
+        )
+
 
 class SimpleIndexer(StaticStringIndexer):
     def __init__(self) -> None:

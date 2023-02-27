@@ -34,8 +34,11 @@ export function GapSpanDetails({
   resetCellMeasureCache,
   span,
 }: GapSpanDetailsProps) {
-  const {projects} = useProjects({slugs: event.projectSlug ? [event.projectSlug] : []});
-  const project = projects?.[0];
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
 
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
@@ -98,7 +101,7 @@ export function GapSpanDetails({
   // so use that first and fall back to the project's platform
   const docsLink =
     getProfilingDocsForPlatform(event.platform) ??
-    getProfilingDocsForPlatform(project.platform);
+    (project && getProfilingDocsForPlatform(project.platform));
 
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
