@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -67,37 +67,39 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   );
 
   return (
-    <Layout.Main fullWidth>
-      <ProfileCharts query={props.query} hideCount />
-      <TableHeader>
-        <CompactSelect
-          triggerProps={{prefix: t('Filter'), size: 'xs'}}
-          value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
-          options={FILTER_OPTIONS}
-          onChange={opt => handleFilterChange(opt.value)}
+    <Fragment>
+      <Layout.Main fullWidth>
+        <ProfileCharts query={props.query} hideCount />
+        <TableHeader>
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
+            options={FILTER_OPTIONS}
+            onChange={opt => handleFilterChange(opt.value)}
+          />
+          <StyledPagination
+            pageLinks={
+              profiles.status === 'success'
+                ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+                : null
+            }
+            size="xs"
+          />
+        </TableHeader>
+        <ProfileEventsTable
+          columns={fields}
+          data={profiles.status === 'success' ? profiles.data[0] : null}
+          error={profiles.status === 'error' ? t('Unable to load profiles') : null}
+          isLoading={profiles.status === 'loading'}
+          sort={sort}
         />
-        <StyledPagination
-          pageLinks={
-            profiles.status === 'success'
-              ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
-              : null
-          }
-          size="xs"
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
         />
-      </TableHeader>
-      <ProfileEventsTable
-        columns={fields}
-        data={profiles.status === 'success' ? profiles.data[0] : null}
-        error={profiles.status === 'error' ? t('Unable to load profiles') : null}
-        isLoading={profiles.status === 'loading'}
-        sort={sort}
-      />
-      <SuspectFunctionsTable
-        project={props.project}
-        transaction={props.transaction}
-        analyticsPageSource="profiling_transaction"
-      />
-    </Layout.Main>
+      </Layout.Main>
+    </Fragment>
   );
 }
 
