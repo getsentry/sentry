@@ -86,7 +86,7 @@ COLUMNS = [
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
-class FunctionColumnArg(ColumnArg):  # type: ignore
+class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -99,7 +99,7 @@ class FunctionColumnArg(ColumnArg):  # type: ignore
         return value
 
 
-class FunctionNumericColumn(NumericColumn):  # type: ignore
+class ProfileFunctionNumericColumn(NumericColumn):  # type: ignore
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 
@@ -122,7 +122,7 @@ class FunctionNumericColumn(NumericColumn):  # type: ignore
             return Kind.NUMBER.value
 
 
-class FunctionsDatasetConfig(DatasetConfig):
+class ProfileFunctionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {
         "project.id",
         "project_id",
@@ -139,14 +139,6 @@ class FunctionsDatasetConfig(DatasetConfig):
         "os_name",
         "os_version",
         "retention_days",
-        "count",
-        "percentiles",
-        "min",
-        "max",
-        "avg",
-        "sum",
-        "worst",
-        "examples",
     }
 
     def __init__(self, builder: builder.QueryBuilder):
@@ -215,7 +207,7 @@ class FunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "count",
                     snql_aggregate=lambda _, alias: Function(
-                        "countMerge",
+                        "count",
                         [SnColumn("count")],
                         alias,
                     ),
@@ -242,7 +234,7 @@ class FunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "percentiles",
                     required_args=[
-                        FunctionNumericColumn("column"),
+                        ProfileFunctionNumericColumn("column"),
                         NumberRange("percentile", 0, 1),
                     ],
                     snql_aggregate=self._resolve_percentile,
@@ -253,7 +245,7 @@ class FunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p50",
                     optional_args=[
-                        with_default("percentiles", FunctionNumericColumn("column")),
+                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
                     result_type_fn=self.reflective_result_type(),
@@ -263,7 +255,7 @@ class FunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p75",
                     optional_args=[
-                        with_default("percentiles", FunctionNumericColumn("column")),
+                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
                     result_type_fn=self.reflective_result_type(),
@@ -273,7 +265,7 @@ class FunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p95",
                     optional_args=[
-                        with_default("percentiles", FunctionNumericColumn("column")),
+                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
                     result_type_fn=self.reflective_result_type(),
@@ -283,7 +275,7 @@ class FunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p99",
                     optional_args=[
-                        with_default("percentiles", FunctionNumericColumn("column")),
+                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
                     result_type_fn=self.reflective_result_type(),

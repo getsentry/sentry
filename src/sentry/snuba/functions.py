@@ -1,7 +1,10 @@
 from datetime import datetime
 from typing import Any, List, Optional
 
-from sentry.search.events.builder import FunctionsQueryBuilder, FunctionsTimeseriesQueryBuilder
+from sentry.search.events.builder import (
+    ProfileFunctionsQueryBuilder,
+    ProfileFunctionsTimeseriesQueryBuilder,
+)
 from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
 from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba.discover import transform_tips, zerofill
@@ -30,7 +33,7 @@ def query(
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
-    builder = FunctionsQueryBuilder(
+    builder = ProfileFunctionsQueryBuilder(
         dataset=Dataset.Functions,
         params=params,
         query=query,
@@ -63,7 +66,7 @@ def timeseries_query(
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
 ) -> Any:
-    builder = FunctionsTimeseriesQueryBuilder(
+    builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
         query=query,

@@ -56,9 +56,9 @@ from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-from sentry.search.events.datasets.functions import FunctionsDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import (
@@ -339,7 +339,7 @@ class QueryBuilder(BaseQueryBuilder):
         elif self.dataset == Dataset.Profiles:
             self.config = ProfilesDatasetConfig(self)
         elif self.dataset == Dataset.Functions:
-            self.config = FunctionsDatasetConfig(self)
+            self.config = ProfileFunctionsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 

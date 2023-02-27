@@ -5762,7 +5762,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         query = {
             "field": fields,
             "project": [self.project.id],
-            "dataset": "functions",
+            "dataset": "profile_functions",
         }
         response = self.do_request(query, features={"organizations:profiling": True})
         assert response.status_code == 200, response.content

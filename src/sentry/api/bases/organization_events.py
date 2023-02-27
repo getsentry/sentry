@@ -44,7 +44,7 @@ DATASET_OPTIONS = {
     "metrics": metrics_performance,
     "profiles": profiles,
     "issuePlatform": issue_platform,
-    "functions": functions,
+    "profile_functions": functions,
 }
 
 

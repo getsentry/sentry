@@ -3,13 +3,13 @@ from typing import Optional, Protocol
 from snuba_sdk import Column
 
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
-from sentry.search.events.datasets.functions import FunctionsDatasetConfig
+from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.types import SnubaParams
 
 
-class FunctionsQueryBuilderProtocol(Protocol):
+class ProfileFunctionsQueryBuilderProtocol(Protocol):
     @property
-    def config(self) -> FunctionsDatasetConfig:
+    def config(self) -> ProfileFunctionsDatasetConfig:
         ...
 
     @property
@@ -20,23 +20,23 @@ class FunctionsQueryBuilderProtocol(Protocol):
         ...
 
 
-class FunctionsQueryBuilderMixin:
-    f: bool = False
-
-    def resolve_column_name(self: FunctionsQueryBuilderProtocol, col: str) -> str:
+class ProfileFunctionsQueryBuilderMixin:
+    def resolve_column_name(self: ProfileFunctionsQueryBuilderProtocol, col: str) -> str:
         # giving resolved a type here convinces mypy that the type is str
         resolved: str = self.config.resolve_column(col)
         return resolved
 
-    def get_field_type(self: FunctionsQueryBuilderProtocol, field: str) -> Optional[str]:
+    def get_field_type(self: ProfileFunctionsQueryBuilderProtocol, field: str) -> Optional[str]:
         # giving resolved a type here convinces mypy that the type is str
         resolved: Optional[str] = self.config.resolve_column_type(field)
         return resolved
 
 
-class FunctionsQueryBuilder(FunctionsQueryBuilderMixin, QueryBuilder):
+class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
     pass
 
 
-class FunctionsTimeseriesQueryBuilder(FunctionsQueryBuilderMixin, TimeseriesQueryBuilder):
+class ProfileFunctionsTimeseriesQueryBuilder(
+    ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
+):
     pass
