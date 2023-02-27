@@ -270,7 +270,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.login_as(user=self.user)
 
         self.require_2fa_for_organization()
-        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+        self.assertFalse(self.user.has_2fa())
 
     def require_2fa_for_organization(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))

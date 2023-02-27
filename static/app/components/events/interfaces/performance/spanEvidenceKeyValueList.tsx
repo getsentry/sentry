@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
+import ClippedBox from 'sentry/components/clippedBox';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {toRoundedPercent} from 'sentry/components/performance/waterfall/utils';
@@ -65,7 +66,11 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
-  return <Component event={event} {...spanInfo} />;
+  return (
+    <ClippedBox clipHeight={300}>
+      <Component event={event} {...spanInfo} />
+    </ClippedBox>
+  );
 }
 
 const ConsecutiveDBQueriesSpanEvidence = ({
@@ -97,7 +102,7 @@ const NPlusOneDBQueriesSpanEvidence = ({
 }: SpanEvidenceKeyValueListProps) => {
   const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
   const repeatingSpanRows = dbSpans
-    .filter(span => offendingSpans.find(s => s.description === span.description) === span)
+    .filter(span => offendingSpans.find(s => s.hash === span.hash) === span)
     .map((span, i) =>
       makeRow(
         i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',

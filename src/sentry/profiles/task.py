@@ -214,44 +214,45 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 
 
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
-    modules = profile["debug_meta"]["images"]
+    with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
+        modules = profile["debug_meta"]["images"]
 
-    # NOTE: the usage of `adjust_instruction_addr` assumes that all
-    # the profilers on all the platforms are walking stacks right from a
-    # suspended threads cpu context
+        # NOTE: the usage of `adjust_instruction_addr` assumes that all
+        # the profilers on all the platforms are walking stacks right from a
+        # suspended threads cpu context
 
-    # in the sample format, we have a frames key containing all the frames
-    if "version" in profile:
-        frames = profile["profile"]["frames"]
+        # in the sample format, we have a frames key containing all the frames
+        if "version" in profile:
+            frames = profile["profile"]["frames"]
 
-        for stack in profile["profile"]["stacks"]:
-            if len(stack) > 0:
-                # Make a deep copy of the leaf frame with adjust_instruction_addr = False
-                # and append it to the list. This ensures correct behavior
-                # if the leaf frame also shows up in the middle of another stack.
-                first_frame_idx = stack[0]
-                frame = deepcopy(frames[first_frame_idx])
-                frame["adjust_instruction_addr"] = False
-                frames.append(frame)
-                stack[0] = len(frames) - 1
+            for stack in profile["profile"]["stacks"]:
+                if len(stack) > 0:
+                    # Make a deep copy of the leaf frame with adjust_instruction_addr = False
+                    # and append it to the list. This ensures correct behavior
+                    # if the leaf frame also shows up in the middle of another stack.
+                    first_frame_idx = stack[0]
+                    frame = deepcopy(frames[first_frame_idx])
+                    frame["adjust_instruction_addr"] = False
+                    frames.append(frame)
+                    stack[0] = len(frames) - 1
 
-        stacktraces = [{"registers": {}, "frames": frames}]
-    # in the original format, we need to gather frames from all samples
-    else:
-        stacktraces = []
-        for s in profile["sampled_profile"]["samples"]:
-            frames = s["frames"]
+            stacktraces = [{"registers": {}, "frames": frames}]
+        # in the original format, we need to gather frames from all samples
+        else:
+            stacktraces = []
+            for s in profile["sampled_profile"]["samples"]:
+                frames = s["frames"]
 
-            if len(frames) > 0:
-                frames[0]["adjust_instruction_addr"] = False
+                if len(frames) > 0:
+                    frames[0]["adjust_instruction_addr"] = False
 
-            stacktraces.append(
-                {
-                    "registers": {},
-                    "frames": frames,
-                }
-            )
-    return (modules, stacktraces)
+                stacktraces.append(
+                    {
+                        "registers": {},
+                        "frames": frames,
+                    }
+                )
+        return (modules, stacktraces)
 
 
 @metrics.wraps("process_profile.symbolicate.request")
@@ -263,8 +264,9 @@ def _symbolicate(
 
     while True:
         try:
-            response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-            return (response.get("modules", modules), response.get("stacktraces", stacktraces))
+            with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+                response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+                return (response.get("modules", modules), response.get("stacktraces", stacktraces))
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -288,20 +290,21 @@ def _symbolicate(
 def _process_symbolicator_results(
     profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> None:
-    # update images with status after symbolication
-    profile["debug_meta"]["images"] = modules
+    with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
+        # update images with status after symbolication
+        profile["debug_meta"]["images"] = modules
 
-    if "version" in profile:
-        _process_symbolicator_results_for_sample(profile, stacktraces)
-        return
+        if "version" in profile:
+            _process_symbolicator_results_for_sample(profile, stacktraces)
+            return
 
-    if profile["platform"] == "rust":
-        _process_symbolicator_results_for_rust(profile, stacktraces)
-    elif profile["platform"] == "cocoa":
-        _process_symbolicator_results_for_cocoa(profile, stacktraces)
+        if profile["platform"] == "rust":
+            _process_symbolicator_results_for_rust(profile, stacktraces)
+        elif profile["platform"] == "cocoa":
+            _process_symbolicator_results_for_cocoa(profile, stacktraces)
 
-    # rename the profile key to suggest it has been processed
-    profile["profile"] = profile.pop("sampled_profile")
+        # rename the profile key to suggest it has been processed
+        profile["profile"] = profile.pop("sampled_profile")
 
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
@@ -449,46 +452,51 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     if debug_file_id is None or debug_file_id == "":
         return
 
-    dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
-    debug_file_path = dif_paths.get(debug_file_id)
-    if debug_file_path is None:
-        return
-
-    mapper = ProguardMapper.open(debug_file_path)
-    if not mapper.has_line_info:
-        return
-
-    for method in profile["profile"]["methods"]:
-        mapped = mapper.remap_frame(
-            method["class_name"], method["name"], method["source_line"] or 0
+    with sentry_sdk.start_span(op="task.profiling.deobfuscate.fetch_difs"):
+        dif_paths = ProjectDebugFile.difcache.fetch_difs(
+            project, [debug_file_id], features=["mapping"]
         )
-        if len(mapped) == 1:
-            new_frame = mapped[0]
-            method.update(
-                {
-                    "class_name": new_frame.class_name,
-                    "name": new_frame.method,
-                    "source_file": new_frame.file,
-                    "source_line": new_frame.line,
-                }
+        debug_file_path = dif_paths.get(debug_file_id)
+        if debug_file_path is None:
+            return
+
+    with sentry_sdk.start_span(op="task.profiling.deobfuscate.open_mapper"):
+        mapper = ProguardMapper.open(debug_file_path)
+        if not mapper.has_line_info:
+            return
+
+    with sentry_sdk.start_span(op="task.profiling.deobfuscate.remap"):
+        for method in profile["profile"]["methods"]:
+            mapped = mapper.remap_frame(
+                method["class_name"], method["name"], method["source_line"] or 0
             )
-        elif len(mapped) > 1:
-            bottom_class = mapped[-1].class_name
-            method["inline_frames"] = [
-                {
-                    "class_name": new_frame.class_name,
-                    "name": new_frame.method,
-                    "source_file": method["source_file"]
-                    if bottom_class == new_frame.class_name
-                    else None,
-                    "source_line": new_frame.line,
-                }
-                for new_frame in mapped
-            ]
-        else:
-            mapped = mapper.remap_class(method["class_name"])
-            if mapped:
-                method["class_name"] = mapped
+            if len(mapped) == 1:
+                new_frame = mapped[0]
+                method.update(
+                    {
+                        "class_name": new_frame.class_name,
+                        "name": new_frame.method,
+                        "source_file": new_frame.file,
+                        "source_line": new_frame.line,
+                    }
+                )
+            elif len(mapped) > 1:
+                bottom_class = mapped[-1].class_name
+                method["inline_frames"] = [
+                    {
+                        "class_name": new_frame.class_name,
+                        "name": new_frame.method,
+                        "source_file": method["source_file"]
+                        if bottom_class == new_frame.class_name
+                        else None,
+                        "source_line": new_frame.line,
+                    }
+                    for new_frame in mapped
+                ]
+            else:
+                mapped = mapper.remap_class(method["class_name"])
+                if mapped:
+                    method["class_name"] = mapped
 
 
 @metrics.wraps("process_profile.track_outcome")
