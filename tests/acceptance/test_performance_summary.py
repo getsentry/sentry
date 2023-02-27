@@ -25,9 +25,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]
         )
-        self.project = self.create_project(
-            organization=self.org, teams=[self.team], name="Bengal", platform="ruby"
-        )
+        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
         self.path = "/organizations/{}/performance/summary/?{}".format(
