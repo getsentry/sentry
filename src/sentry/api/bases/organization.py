@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List, Optional
 
 import sentry_sdk
 from django.core.cache import cache
@@ -448,7 +448,11 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         )
 
     def has_release_permission(
-        self, request: Request, organization: Organization, release: Release
+        self,
+        request: Request,
+        organization: Organization,
+        release: Optional[Release] = None,
+        project_ids: Optional[List[int]] = None,
     ) -> bool:
         """
         Does the given request have permission to access this release, based
@@ -466,15 +470,27 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if getattr(request, "auth", None) and request.auth.id:
             actor_id = "apikey:%s" % request.auth.id
         if actor_id is not None:
-            project_ids = sorted(self.get_requested_project_ids_unchecked(request))
+            requested_project_ids = project_ids
+            if requested_project_ids is None:
+                requested_project_ids = self.get_requested_project_ids_unchecked(request)
             key = "release_perms:1:%s" % hash_values(
-                [actor_id, organization.id, release.id] + project_ids
+                [actor_id, organization.id, release.id if release is not None else 0]
+                + sorted(requested_project_ids)
             )
             has_perms = cache.get(key)
         if has_perms is None:
-            has_perms = ReleaseProject.objects.filter(
-                release=release, project__in=self.get_projects(request, organization)
-            ).exists()
+            projects = self.get_projects(request, organization, project_ids=set(project_ids))
+            # XXX(iambriccardo): The logic here is that you have access to this release if any of your projects
+            # associated with this release you have release permissions to.  This is a bit of
+            # a problem because anyone can add projects to a release, so this check is easy
+            # to defeat.
+            if release is not None:
+                has_perms = ReleaseProject.objects.filter(
+                    release=release, project__in=projects
+                ).exists()
+            else:
+                has_perms = len(projects) > 0
+
             if key is not None and actor_id is not None:
                 cache.set(key, has_perms, 60)
 

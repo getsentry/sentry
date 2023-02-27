@@ -4,7 +4,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.models import Project
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import Project, ProjectStatus
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -42,17 +43,20 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        projects = data.get("projects", [])
+        projects = set(data.get("projects", []))
         if len(projects) == 0:
             return Response({"error": "You need to specify at least one project"}, status=400)
 
         project_ids = Project.objects.filter(
-            organization=organization, slug__in=projects
+            organization=organization, status=ProjectStatus.VISIBLE, slug__in=projects
         ).values_list("id", flat=True)
         if len(project_ids) != len(projects):
-            return Response({"error": "One or more projects have not been found"}, status=400)
+            return Response({"error": "One or more projects are invalid"}, status=400)
 
-        checksum = data.get("checksum", None)
+        if not self.has_release_permission(request, organization, project_ids=project_ids):
+            raise ResourceDoesNotExist
+
+        checksum = data.get("checksum")
         chunks = data.get("chunks", [])
 
         state, detail = get_assemble_status(AssembleTask.ARTIFACTS, organization.id, checksum)

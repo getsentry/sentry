@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils import APITestCase
@@ -61,29 +62,38 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             data={"checksum": checksum, "chunks": [], "projects": [self.project.id]},
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(
+            self.url,
+            data={"checksum": checksum, "chunks": [], "projects": [self.project.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
-    @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble_with_invalid_projects(self, mock_assemble_artifacts):
+    def test_assemble_with_invalid_projects(self):
         bundle_file = self.create_artifact_bundle()
         total_checksum = sha1(bundle_file).hexdigest()
 
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
+        # We want to test also with a project that has a status != VISIBLE.
+        pending_deletion_project = self.create_project(status=ObjectStatus.PENDING_DELETION)
+
         response = self.client.post(
             self.url,
             data={
                 "checksum": total_checksum,
                 "chunks": [blob1.checksum],
-                "projects": ["myslug", "anotherslug"],
+                "projects": [pending_deletion_project.slug, "myslug", "anotherslug"],
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
         assert response.status_code == 400, response.content
-        assert response.data["error"] == "One or more projects have not been found"
+        assert response.data["error"] == "One or more projects are invalid"
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble(self, mock_assemble_artifacts):
