@@ -19,6 +19,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import CodeOwnersPanel from 'sentry/views/settings/project/projectOwnership/codeowners';
+import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownshipRulesTable';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
@@ -176,6 +177,7 @@ tags.sku_class:enterprise #enterprise`;
           projectSlug={project.slug}
           codeowners={codeowners ?? []}
         />
+        {ownership && <OwnershipRulesTable />}
         {ownership && (
           <RulesPanel
             data-test-id="issueowners-panel"
