@@ -1024,7 +1024,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         record_mock.assert_called_with(
             "issue_owners_event.ratelimited",
-            event_id=event.event_id,
             group_id=event.group_id,
             project_id=event.project_id,
             organization_id=event.project.organization_id,
