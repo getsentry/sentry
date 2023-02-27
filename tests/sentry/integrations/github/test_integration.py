@@ -714,19 +714,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_trees_for_org_rate_limit_401(self):
         """Sometimes the rate limit API fails from the get go."""
-        # Test specific set up
-        # Sometimes Github gives us a 401 response
-        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
-
         # Generic test set up
-        gh_org = "Test-Organization"
-        repos_key = "githubtrees:repositories:Test-Organization"
         cache.clear()  # TODO: Investigate why it did not work in the setUp method
         installation = self.get_installation_helper()
 
-        assert cache.get(repos_key) is None
+        # None of the repos will have any files since rate limit will fail
+        # with a 401 response (which makes no sense)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
         trees = installation.get_trees_for_org()
-        expected_trees = self._expected_trees(
+        assert trees == self._expected_trees(
             [
                 ("xyz", "master", []),
                 ("foo", "master", []),
@@ -734,19 +730,25 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ("baz", "master", []),
             ]
         )
-        assert trees == expected_trees
 
-        # There should be no code since
-        repo_key = f"github:repo:{gh_org}/xyz:source-code"
-        assert not cache.get(repo_key)
-
-        # This time the rate limit will not fail with a 401 and we will fetch
+        # This time the rate limit will not fail, thus, it will fetch the trees
         self.set_rate_limit()
         trees = installation.get_trees_for_org()
-        expected_trees = self._expected_trees(
+        assert trees == self._expected_trees(
             [
                 ("xyz", "master", ["src/foo.py"]),
                 ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
             ]
         )
-        assert trees == expected_trees
+
+        # This time we will get a 401 but be will load from the cache (unlike the first time)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", ["src/foo.py"]),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
