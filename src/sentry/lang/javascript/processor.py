@@ -886,7 +886,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # Cache holding the results of the fetching by url.
         self.fetch_by_url_sourceviews = {}
         self.fetch_by_url_errors = {}
-        self.result_map = {}
 
         # Cache holding the results of the fetching by debug id.
         self.fetch_by_debug_id_sourceviews = {}
@@ -1287,7 +1286,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         else:
             sourceview = SourceView.from_bytes(result.body)
             self.fetch_by_url_sourceviews[url] = sourceview
-            self.result_map[url] = result.body
 
             sourcemap_url = discover_sourcemap(result)
             if sourcemap_url:
