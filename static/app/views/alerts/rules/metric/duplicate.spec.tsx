@@ -167,6 +167,9 @@ describe('Incident Rules Duplicate', function () {
 
     // Still has a selected slack action
     expect(screen.getByText('Slack')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('optional: channel ID or user ID')).toHaveValue(
+      'ABC123'
+    );
     expect(screen.getByText(/Enter a channel or user ID/)).toBeInTheDocument();
   });
 });
