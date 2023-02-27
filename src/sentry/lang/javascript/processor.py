@@ -1048,7 +1048,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     sourceview = self.get_or_fetch_sourceview(url=abs_path)
 
                 if sourceview is None:
-                    errors = self.fetch_by_url_errors[abs_path]
+                    errors = self.fetch_by_url_errors.get(abs_path)
                     if errors:
                         all_errors.extend(errors)
                     else:
