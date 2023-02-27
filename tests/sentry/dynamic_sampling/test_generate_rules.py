@@ -140,7 +140,6 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                         "op": "glob",
                         "name": "event.transaction",
                         "value": HEALTH_CHECK_GLOBS,
-                        "options": {"ignoreCase": True},
                     }
                 ],
             },
@@ -156,7 +155,6 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                         "op": "glob",
                         "name": "trace.environment",
                         "value": ENVIRONMENT_GLOBS,
-                        "options": {"ignoreCase": True},
                     }
                 ],
             },

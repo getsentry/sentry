@@ -38,7 +38,6 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
                             "op": "glob",
                             "name": "trace.environment",
                             "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
