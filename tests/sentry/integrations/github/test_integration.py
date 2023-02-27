@@ -16,7 +16,7 @@ from sentry.testutils import IntegrationTestCase
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
-    "xyz": {"status_code": 200, "body": {"tree": [{"path": "src/xyz.py", "type": "blob"}]}},
+    "xyz": {"status_code": 200, "body": {"tree": [{"path": "src/foo.py", "type": "blob"}]}},
     "foo": {
         "status_code": 200,
         "body": {
@@ -618,7 +618,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         result = {}
         # bar and baz are defined to fail, thus, do not show up in the default case
         list = repo_info_list or [
-            ("xyz", "master", ["src/xyz.py"]),
+            ("xyz", "master", ["src/foo.py"]),
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
         ]
         for repo, branch, files in list:
@@ -638,17 +638,29 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Fetch the tree representation of a repo"""
         installation = self.get_installation_helper()
         cache.clear()
-        self.set_rate_limit()
-        expected_trees = self._expected_trees()
+        self.set_rate_limit(MINIMUM_REQUESTS + 50)
+        expected_trees = {
+            "Test-Organization/foo": RepoTree(
+                Repo("Test-Organization/foo", "master"), ["src/sentry/api/endpoints/auth_login.py"]
+            ),
+            "Test-Organization/xyz": RepoTree(
+                Repo("Test-Organization/xyz", "master"), ["src/foo.py"]
+            ),
+        }
+
         repos_key = "githubtrees:repositories:Test-Organization"
         repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
         assert cache.get(repos_key) is None
         assert cache.get(repo_key("foo")) is None
-
         trees = installation.get_trees_for_org()
 
-        assert cache.get(repos_key) == self._expected_cached_repos()
+        assert cache.get(repos_key) == [
+            {"full_name": "Test-Organization/xyz", "default_branch": "master"},
+            {"full_name": "Test-Organization/foo", "default_branch": "master"},
+            {"full_name": "Test-Organization/bar", "default_branch": "main"},
+            {"full_name": "Test-Organization/baz", "default_branch": "master"},
+        ]
         assert cache.get(repo_key("foo")) == ["src/sentry/api/endpoints/auth_login.py"]
         assert trees == expected_trees
 
@@ -659,27 +671,29 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_trees_for_org_prevent_exhaustion_some_repos(self):
         """Some repos will hit the network but the rest will grab from the cache."""
+        gh_org = "Test-Organization"
         repos_key = "githubtrees:repositories:Test-Organization"
         cache.clear()
         installation = self.get_installation_helper()
-        expected_trees = self._expected_trees(
-            [
-                ("xyz", "master", ["src/xyz.py"]),
-                # foo will have no files because we will hit the minimum remaining requests floor
-                ("foo", "master", []),
-                ("bar", "main", []),
-                ("baz", "master", []),
-            ]
-        )
-
+        expected_trees = {
+            f"{gh_org}/xyz": RepoTree(Repo(f"{gh_org}/xyz", "master"), ["src/foo.py"]),
+            # This will have no files because we will hit the minimum remaining requests floor
+            f"{gh_org}/foo": RepoTree(Repo(f"{gh_org}/foo", "master"), []),
+            f"{gh_org}/bar": RepoTree(Repo(f"{gh_org}/bar", "main"), []),
+            f"{gh_org}/baz": RepoTree(Repo(f"{gh_org}/baz", "master"), []),
+        }
         with patch("sentry.integrations.github.client.MINIMUM_REQUESTS", new=5, autospec=False):
             # We start with one request left before reaching the minimum remaining requests floor
             self.set_rate_limit(remaining=6)
             assert cache.get(repos_key) is None
             trees = installation.get_trees_for_org()
-
-            assert trees == expected_trees
-            assert cache.get(repos_key) == self._expected_cached_repos()
+            assert trees == expected_trees  # xyz will have files but not foo
+            assert cache.get(repos_key) == [
+                {"full_name": "Test-Organization/xyz", "default_branch": "master"},
+                {"full_name": "Test-Organization/foo", "default_branch": "master"},
+                {"full_name": "Test-Organization/bar", "default_branch": "main"},
+                {"full_name": "Test-Organization/baz", "default_branch": "master"},
+            ]
 
             # Another call should not make us loose the files for xyz
             self.set_rate_limit(remaining=5)
@@ -689,13 +703,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             # We reset the remaining values
             self.set_rate_limit(remaining=20)
             trees = installation.get_trees_for_org()
-            # Now that the rate limit is reset we should get files for foo
-            assert trees == self._expected_trees(
-                [
-                    ("xyz", "master", ["src/xyz.py"]),
-                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
-                ]
-            )
+            assert trees == {
+                f"{gh_org}/xyz": RepoTree(Repo(f"{gh_org}/xyz", "master"), ["src/foo.py"]),
+                # Now that the rate limit is reset we should get files for foo
+                f"{gh_org}/foo": RepoTree(
+                    Repo(f"{gh_org}/foo", "master"), ["src/sentry/api/endpoints/auth_login.py"]
+                ),
+            }
 
     @responses.activate
     def test_get_trees_for_org_rate_limit_401(self):
@@ -731,7 +745,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         trees = installation.get_trees_for_org()
         expected_trees = self._expected_trees(
             [
-                ("xyz", "master", ["src/xyz.py"]),
+                ("xyz", "master", ["src/foo.py"]),
                 ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
             ]
         )
