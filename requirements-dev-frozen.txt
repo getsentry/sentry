@@ -120,7 +120,7 @@ pycountry==17.5.14
 pycparser==2.21
 pyflakes==3.0.1
 pyjwt==2.4.0
-pyopenssl==22.0.0
+pyopenssl==23.0.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
 pysocks==1.7.1
