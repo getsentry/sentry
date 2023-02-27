@@ -10,6 +10,7 @@ from sentry.relay import projectconfig_cache
 
 @pending_silo_endpoint
 class AdminRelayProjectConfigsEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
