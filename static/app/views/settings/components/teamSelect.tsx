@@ -36,6 +36,10 @@ type Props = {
    */
   enforceIdpProvisioned: boolean;
   /**
+   * Allow adding to teams with org role
+   */
+  hasOrgAdminAccess: boolean;
+  /**
    * callback when teams are added
    */
   onAddTeam: (teamSlug: string) => void;
@@ -77,6 +81,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
+  hasOrgAdminAccess,
   loadingTeams,
   enforceIdpProvisioned,
   menuHeader,
@@ -145,6 +150,7 @@ function TeamSelect({
                 key={r.teamSlug}
                 disabled={disabled}
                 enforceIdpProvisioned={enforceIdpProvisioned}
+                hasOrgAdminAccess={hasOrgAdminAccess}
                 confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
@@ -181,9 +187,22 @@ function TeamSelect({
             </Tooltip>
           );
         }
+        if (team.orgRole && !hasOrgAdminAccess) {
+          return (
+            <Tooltip
+              title={t(
+                'Membership to a team with an organization role is managed by organization owners.'
+              )}
+            >
+              <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+            </Tooltip>
+          );
+        }
         return <DropdownTeamBadge avatarSize={18} team={team} />;
       },
-      disabled: enforceIdpProvisioned && team.flags['idp:provisioned'],
+      disabled:
+        (enforceIdpProvisioned && team.flags['idp:provisioned']) ||
+        (team.orgRole && !hasOrgAdminAccess),
     }));
 
   return (
@@ -258,6 +277,7 @@ const ProjectTeamRow = ({
 
 type MemberTeamRowProps = {
   enforceIdpProvisioned: boolean;
+  hasOrgAdminAccess: boolean;
   onChangeTeamRole: Props['onChangeTeamRole'];
   selectedOrgRole: Member['orgRole'];
   selectedTeamRole: Member['teamRoles'][0]['role'];
@@ -273,6 +293,7 @@ const MemberTeamRow = ({
   disabled,
   confirmMessage,
   enforceIdpProvisioned,
+  hasOrgAdminAccess,
 }: MemberTeamRowProps) => {
   const {teamRoleList, orgRoleList} = organization;
   const isRoleOverwritten = hasOrgRoleOverwrite({
@@ -285,11 +306,36 @@ const MemberTeamRow = ({
     ? teamRoleList[1] // set as team admin
     : teamRoleList.find(r => r.id === selectedTeamRole) || teamRoleList[0];
 
+  const teamOrgRole = team.orgRole
+    ? team.orgRole.charAt(0).toUpperCase() + team.orgRole.slice(1) + ' Team'
+    : '';
+
+  const isRemoveDisabled =
+    disabled ||
+    (enforceIdpProvisioned && team.flags['idp:provisioned']) ||
+    (team.orgRole !== null && !hasOrgAdminAccess);
+
+  const buttonHelpText = () => {
+    if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
+      return t(
+        "Membership to this team is managed through your organization's identity provider."
+      );
+    }
+    if (team.orgRole && !hasOrgAdminAccess) {
+      return t(
+        'Membership to a team with an organization role is managed by organization owners.'
+      );
+    }
+    return undefined;
+  };
+
   return (
     <TeamPanelItem data-test-id="team-row-for-member">
       <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
         <TeamBadge team={team} />
       </StyledLink>
+
+      <TeamOrgRole>{teamOrgRole}</TeamOrgRole>
 
       {organization.features.includes('team-roles') && onChangeTeamRole && (
         <React.Fragment>
@@ -308,19 +354,13 @@ const MemberTeamRow = ({
         message={confirmMessage}
         bypass={!confirmMessage}
         onConfirm={() => onRemoveTeam(team.slug)}
-        disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
+        disabled={isRemoveDisabled}
       >
         <Button
           size="xs"
           icon={<IconSubtract isCircled size="xs" />}
-          disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
-          title={
-            enforceIdpProvisioned && team.flags['idp:provisioned']
-              ? t(
-                  "Membership to this team is managed through your organization's identity provider."
-                )
-              : undefined
-          }
+          disabled={isRemoveDisabled}
+          title={buttonHelpText()}
         >
           {t('Remove')}
         </Button>
@@ -349,7 +389,14 @@ const TeamPanelItem = styled(PanelItem)`
 `;
 
 const StyledLink = styled(Link)`
+  flex-grow: 4;
+`;
+
+const TeamOrgRole = styled('div')`
+  min-width: 90px;
   flex-grow: 1;
+  display: flex;
+  justify-content: center;
 `;
 
 const StyledRoleSelectControl = styled(RoleSelectControl)`
