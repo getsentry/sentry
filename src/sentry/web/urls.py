@@ -594,6 +594,12 @@ urlpatterns += [
         DisabledMemberView.as_view(),
         name="sentry-customer-domain-organization-disabled-member",
     ),
+    # Restore organization
+    url(
+        r"^restore/",
+        RestoreOrganizationView.as_view(),
+        name="sentry-customer-domain-restore-organization",
+    ),
     # Project on-boarding
     # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
     url(
