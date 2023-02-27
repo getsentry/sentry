@@ -117,10 +117,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
-  const isNewProfilingDashboardEnabled = organization.features.includes(
-    'profiling-dashboard-redesign'
-  );
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -193,22 +189,10 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 </ProfilingOnboardingPanel>
               ) : (
                 <Fragment>
-                  {isNewProfilingDashboardEnabled ? (
-                    <PanelsGrid>
-                      <ProfilingSlowestTransactionsPanel />
-                      <ProfileCharts
-                        query={query}
-                        selection={selection}
-                        hideCount={isNewProfilingDashboardEnabled}
-                      />
-                    </PanelsGrid>
-                  ) : (
-                    <ProfileCharts
-                      query={query}
-                      selection={selection}
-                      hideCount={isNewProfilingDashboardEnabled}
-                    />
-                  )}
+                  <PanelsGrid>
+                    <ProfilingSlowestTransactionsPanel />
+                    <ProfileCharts query={query} selection={selection} hideCount />
+                  </PanelsGrid>
                   <ProfileEventsTable
                     columns={FIELDS.slice()}
                     data={transactions.status === 'success' ? transactions.data[0] : null}
@@ -248,7 +232,7 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = (typeof FIELDS)[number];
+type FieldType = typeof FIELDS[number];
 
 const ActionBar = styled('div')`
   display: grid;
