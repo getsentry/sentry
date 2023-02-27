@@ -142,12 +142,12 @@ class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupTy
 
 
 @dataclass(frozen=True)
-class PerformanceConsecutiveHTTPQueriesGroupType(GroupType):
+class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1009
     slug = "performance_consecutive_http"
     description = "Consecutive HTTP"
     category = GroupCategory.PERFORMANCE.value
-    ignore_limit = 5
+    noise_config = NoiseConfig(ignore_limit=5)
 
 
 @dataclass(frozen=True)
