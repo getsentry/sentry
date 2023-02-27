@@ -132,7 +132,7 @@ export function ProfilingTransactionHovercardBody({
         >
           {latestProfile ? (
             <Link
-              to={linkToFlamechartRoute(String(latestProfile.id))}
+              to={linkToFlamechartRoute(String(latestProfile['profile.id']))}
               onClick={() =>
                 trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
                   organization,
@@ -140,7 +140,7 @@ export function ProfilingTransactionHovercardBody({
                 })
               }
             >
-              {getShortEventId(String(latestProfile!.id))}
+              {getShortEventId(String(latestProfile!['profile.id']))}
             </Link>
           ) : (
             '-'
@@ -156,12 +156,12 @@ export function ProfilingTransactionHovercardBody({
               <PerformanceDuration
                 milliseconds={
                   slowestProfileDurationMultiplier *
-                  (slowestProfile['profile.duration'] as number)
+                  (slowestProfile['transaction.duration'] as number)
                 }
                 abbreviation
               />
               <Link
-                to={linkToFlamechartRoute(String(slowestProfile.id))}
+                to={linkToFlamechartRoute(String(slowestProfile['profile.id']))}
                 onClick={() =>
                   trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
                     organization,
@@ -169,7 +169,7 @@ export function ProfilingTransactionHovercardBody({
                   })
                 }
               >
-                ({getShortEventId(String(slowestProfile?.id))})
+                ({getShortEventId(String(slowestProfile['profile.id']))})
               </Link>
             </Flex>
           ) : (
