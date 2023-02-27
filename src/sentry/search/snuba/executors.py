@@ -41,6 +41,7 @@ from sentry.issues.search import (
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
+    UnsupportedSearchQuery,
     _query_params_for_generic,
     group_categories_from,
 )
@@ -225,6 +226,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
     ) -> SnubaQueryParams:
+        """
+        :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
+        """
 
         if group_category in SEARCH_FILTER_UPDATERS:
             # remove filters not relevant to the group_category
@@ -356,24 +360,29 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not features.has("organizations:performance-issues-search", organization):
             group_categories.discard(GroupCategory.PERFORMANCE.value)
 
-        query_params_for_categories = [
-            self._prepare_params_for_category(
-                gc,
-                query_partial,
-                organization.id,
-                project_ids,
-                environments,
-                group_ids,
-                filters,
-                snuba_search_filters,
-                sort_field,
-                start,
-                end,
-                cursor,
-                get_sample,
-            )
-            for gc in group_categories
-        ]
+        query_params_for_categories = []
+
+        for gc in group_categories:
+            try:
+                query_params_for_categories.append(
+                    self._prepare_params_for_category(
+                        gc,
+                        query_partial,
+                        organization.id,
+                        project_ids,
+                        environments,
+                        group_ids,
+                        filters,
+                        snuba_search_filters,
+                        sort_field,
+                        start,
+                        end,
+                        cursor,
+                        get_sample,
+                    )
+                )
+            except UnsupportedSearchQuery:
+                pass
 
         query_params_for_categories = [
             query_params for query_params in query_params_for_categories if query_params is not None
