@@ -61,6 +61,34 @@ class GroupType:
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
+    @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
+    def should_create_group(
+        self: GroupType,
+        client: Any,
+        grouphash: str,
+        project: Project,
+    ) -> bool:
+        key = f"grouphash:{grouphash}:{project.id}"
+        times_seen = client.incr(key)
+
+        over_threshold = times_seen >= self.noise_config.ignore_limit
+
+        metrics.incr(
+            "noise_reduction.should_create_group.threshold",
+            tags={
+                "over_threshold": over_threshold,
+                "group_type": self.slug,
+            },
+            sample_rate=1.0,
+        )
+
+        if over_threshold:
+            client.delete(grouphash)
+            return True
+        else:
+            client.expire(key, int(self.noise_config.expiry_time.total_seconds()))
+            return False
+
 
 def get_all_group_type_ids() -> Set[int]:
     return {type.type_id for type in _group_type_registry.values()}
@@ -218,43 +246,10 @@ def reduce_noise(
         if not noise_config:
             continue
 
-        ignore_limit, expiry_time = noise_config.ignore_limit, noise_config.expiry_time
-
-        if ignore_limit and not should_create_group(
-            client, new_grouphash, group_type, ignore_limit, expiry_time, project
+        if noise_config.ignore_limit and not group_type.should_create_group(
+            client, new_grouphash, project
         ):
             groups_to_ignore.add(new_grouphash)
 
     new_grouphashes = new_grouphashes - groups_to_ignore
     return new_grouphashes
-
-
-@metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
-def should_create_group(
-    client: Any,
-    grouphash: str,
-    grouptype: GroupType,
-    ignore_limit: int,
-    expiry_time: timedelta,
-    project: Project,
-) -> bool:
-    key = f"grouphash:{grouphash}:{project.id}"
-    times_seen = client.incr(key)
-
-    over_threshold = times_seen >= ignore_limit
-
-    metrics.incr(
-        "noise_reduction.should_create_group.threshold",
-        tags={
-            "over_threshold": over_threshold,
-            "group_type": grouptype.slug,
-        },
-        sample_rate=1.0,
-    )
-
-    if over_threshold:
-        client.delete(grouphash)
-        return True
-    else:
-        client.expire(key, int(expiry_time.total_seconds()))
-        return False
