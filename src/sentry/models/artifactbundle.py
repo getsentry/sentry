@@ -72,7 +72,7 @@ class DebugIdArtifactBundle(Model):
 
         # We can have the same debug_id pointing to different artifact_bundle(s) because the user might upload
         # the same artifacts twice, or they might have certain build files that don't change across builds.
-        unique_together = (("debug_id", "artifact_bundle", "source_file_type"),)
+        unique_together = (("organization_id", "debug_id", "artifact_bundle", "source_file_type"),)
 
 
 @region_silo_only_model
