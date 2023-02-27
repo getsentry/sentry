@@ -1,5 +1,5 @@
+import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
-import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
