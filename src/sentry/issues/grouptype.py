@@ -116,6 +116,15 @@ class PerformanceFileIOMainThreadGroupType(GroupType):
 
 
 @dataclass(frozen=True)
+class PerformanceConsecutiveHTTPQueriesGroupType(GroupType):
+    type_id = 1009
+    slug = "performance_consecutive_http"
+    description = "Consecutive HTTP"
+    category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 5
+
+
+@dataclass(frozen=True)
 class PerformanceNPlusOneAPICallsGroupType(GroupType):
     type_id = 1010
     slug = "performance_n_plus_one_api_calls"
