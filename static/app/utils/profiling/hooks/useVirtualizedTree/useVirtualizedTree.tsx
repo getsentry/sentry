@@ -594,6 +594,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           rowHeight: props.rowHeight,
           scrollHeight: latestStateRef.current.scrollHeight,
           currentScrollTop: latestStateRef.current.scrollTop,
+          maxScrollableHeight: newTree.flattened.length * props.rowHeight,
         },
         'center'
       );

@@ -176,8 +176,8 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       <Content>
         <Left hasRight={showWireframe}>
           <TreeContainer>
-            <GhostRow ref={hoveredGhostRowRef} />
-            <GhostRow ref={clickedGhostRowRef} />
+            <div ref={hoveredGhostRowRef} />
+            <div ref={clickedGhostRowRef} />
             <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
               <RenderedItemsContainer style={containerStyles}>
                 {renderedItems}
@@ -274,10 +274,6 @@ const DepthMarker = styled('div')<{depth: number}>`
     transparent 6px,
     transparent 21px
   );
-`;
-
-const GhostRow = styled('div')`
-  top: 0;
 `;
 
 const EmptyStateContainer = styled('div')`
