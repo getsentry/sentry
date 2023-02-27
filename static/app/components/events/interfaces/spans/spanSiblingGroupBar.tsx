@@ -138,6 +138,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
         <SpanRectangleOverlay
           spanGrouping={spanGrouping}
           bounds={getSpanGroupBounds(spanGrouping, generateBounds)}
+          spanBarType={spanBarType}
         />
       </Fragment>
     );
