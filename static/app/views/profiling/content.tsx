@@ -57,12 +57,16 @@ function ProfilingContent({location}: ProfilingContentProps) {
     order: 'desc',
   });
 
-  const profileFilters = useProfileFilters({query: '', selection});
-  const {projects} = useProjects();
-
   const profilingUsingTransactions = organization.features.includes(
     'profiling-using-transactions'
   );
+
+  const profileFilters = useProfileFilters({
+    query: '',
+    selection,
+    disabled: profilingUsingTransactions,
+  });
+  const {projects} = useProjects();
 
   const transactions = useProfileEvents<FieldType>({
     cursor,

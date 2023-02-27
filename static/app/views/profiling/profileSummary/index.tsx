@@ -100,6 +100,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const profileFilters = useProfileFilters({
     query: filtersQuery,
     selection: props.selection,
+    disabled: profilingUsingTransactions,
   });
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
