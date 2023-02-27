@@ -1518,7 +1518,7 @@ class CacheSourceTest(TestCase):
         # We found the source view.
         assert processor.get_or_fetch_sourceview(url=abs_path)
         # Source view exists in cache.
-        assert processor.fetch_by_url_result.get(abs_path)
+        assert processor.fetch_by_url_sourceviews.get(abs_path)
         assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 0
 
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
