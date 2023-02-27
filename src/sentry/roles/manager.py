@@ -118,6 +118,13 @@ class RoleLevel(Generic[R]):
             if any(role.has_scope(scope) for scope in scopes):
                 yield role
 
+    def get_sorted_roles(self, roles: Iterable[str]) -> Iterable[Role]:
+        return sorted(
+            [self.get(role) for role in roles],
+            key=lambda r: r.priority,
+            reverse=True,
+        )
+
 
 class RoleManager:
     def __init__(

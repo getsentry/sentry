@@ -116,6 +116,15 @@ class PerformanceFileIOMainThreadGroupType(GroupType):
 
 
 @dataclass(frozen=True)
+class PerformanceConsecutiveHTTPQueriesGroupType(GroupType):
+    type_id = 1009
+    slug = "performance_consecutive_http"
+    description = "Consecutive HTTP"
+    category = GroupCategory.PERFORMANCE.value
+    ignore_limit = 5
+
+
+@dataclass(frozen=True)
 class PerformanceNPlusOneAPICallsGroupType(GroupType):
     type_id = 1010
     slug = "performance_n_plus_one_api_calls"
@@ -170,3 +179,11 @@ class ProfileJSONDecodeType(GroupType):
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
+
+
+PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
+    [
+        ProfileBlockedThreadGroupType.type_id,
+        ProfileFileIOGroupType.type_id,
+    ]
+)
