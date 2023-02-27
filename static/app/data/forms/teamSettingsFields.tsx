@@ -40,7 +40,9 @@ const formGroups: JsonFormObject[] = [
         },
         required: false,
         label: t('Organization Role'),
-        help: t('The organization role that team members will have access to'),
+        help: t(
+          'Organization owners can set the role that team members will have access to'
+        ),
         disabled: ({access, idpProvisioned}) =>
           !access.has('org:admin') || idpProvisioned,
         visible: ({hasOrgRoleFlag}) => hasOrgRoleFlag,
