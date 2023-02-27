@@ -14,7 +14,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
-        project_id = request.GET.get("project-id")
+        project_id = request.GET.get("projectId")
 
         project_keys = []
         if project_id is not None:
@@ -26,7 +26,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             except Exception:
                 raise Http404
 
-        project_key = request.GET.get("project-key")
+        project_key = request.GET.get("projectKey")
         if project_key is not None:
             project_keys.append(project_key)
 

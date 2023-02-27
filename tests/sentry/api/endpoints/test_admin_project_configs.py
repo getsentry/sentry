@@ -7,7 +7,7 @@ from sentry.testutils.silo import no_silo_test
 
 
 @no_silo_test
-class AcceptTransferProjectTest(APITestCase):
+class AdminRelayProjectConfigsEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
@@ -39,11 +39,11 @@ class AcceptTransferProjectTest(APITestCase):
         ret_val = reverse(self.path)
         ret_val += "?"
         if proj_id:
-            ret_val += f"project-id={proj_id}"
+            ret_val += f"projectId={proj_id}"
         if proj_id and key:
             ret_val += "&"
         if key:
-            ret_val += f"project-key={key}"
+            ret_val += f"projectKey={key}"
 
         return ret_val
 
