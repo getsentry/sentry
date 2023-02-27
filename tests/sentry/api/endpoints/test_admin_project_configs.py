@@ -1,0 +1,106 @@
+from django.urls import reverse
+from rest_framework import status
+
+from sentry.relay import projectconfig_cache
+from sentry.testutils import APITestCase
+from sentry.testutils.silo import no_silo_test
+
+
+@no_silo_test
+class AcceptTransferProjectTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.owner = self.create_user(
+            email="example@example.com", is_superuser=False, is_staff=True, is_active=True
+        )
+        self.org = self.create_organization(owner=self.owner)
+        self.first_team = self.create_team(organization=self.org)
+        self.proj1 = self.create_project(
+            name="proj1", organization=self.org, teams=[self.first_team]
+        )
+        self.proj2 = self.create_project(
+            name="proj2", organization=self.org, teams=[self.first_team]
+        )
+        self.superuser = self.create_user(
+            "superuser@example.com", is_superuser=True, is_staff=True, is_active=True
+        )
+        self.path = "sentry-api-0-internal-project-config"
+
+        self.p1_pk = self.create_project_key(self.proj1)
+        self.p2_pk = self.create_project_key(self.proj2)
+
+        projectconfig_cache.set_many(
+            {
+                self.p1_pk.public_key: "proj1 config",
+            }
+        )
+
+    def get_url(self, proj_id=None, key=None):
+        ret_val = reverse(self.path)
+        ret_val += "?"
+        if proj_id:
+            ret_val += f"project-id={proj_id}"
+        if proj_id and key:
+            ret_val += "&"
+        if key:
+            ret_val += f"project-key={key}"
+
+        return ret_val
+
+    def test_normal_users_do_not_have_access(self):
+        """
+        Request denied for non super-users
+        """
+        self.login_as(self.user)
+        url = self.get_url(proj_id=self.proj1.id)
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_retrieving_project_configs(self):
+        """
+        Asking for a project will return all project configs from all public
+        keys in redis
+        """
+        self.login_as(self.superuser, superuser=True)
+        url = self.get_url(proj_id=self.proj1.id)
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
+        actual = response.json()
+        assert actual == expected
+
+    def test_retrieving_public_key_configs(self):
+        """
+        Asking for a particular public key will return only the project config
+        for that public key
+        """
+        self.login_as(self.superuser, superuser=True)
+        url = self.get_url(key=self.p1_pk.public_key)
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
+        actual = response.json()
+        assert actual == expected
+
+    def test_uncached_project(self):
+        """
+        Asking for a project that was not cached in redis will return
+        an empty marker
+        """
+        expected = {"configs": {self.p2_pk.public_key: "EMPTY"}}
+
+        self.login_as(self.superuser, superuser=True)
+        url = self.get_url(proj_id=self.proj2.id)
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        actual = response.json()
+        assert actual == expected
+        url = self.get_url(key=self.p2_pk.public_key)
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        actual = response.json()
+        assert actual == expected
