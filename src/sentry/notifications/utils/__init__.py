@@ -528,9 +528,14 @@ class PerformanceProblemContext:
         return None
 
     def get_span_duration(self, span: Dict[str, any]) -> timedelta:
-        return timedelta(seconds=span.get("timestamp", 0)) - timedelta(
-            seconds=span.get("start_timestamp", 0)
-        )
+        return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
+
+    def _sum_span_duration(self, spans: list) -> int:
+        "Given non-overlapping spans, find the sum of the span durations in milliseconds"
+        sum = 0
+        for span in spans:
+            sum += self.get_span_duration(span).total_seconds() * 1000
+        return sum
 
     @classmethod
     def from_problem_and_spans(
@@ -605,8 +610,9 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
                     "value": self.parallelizable_spans,
                     "is_multi_value": True,
                 },
-                {"key": _("Duration Impact"), "value": self.duration_impact},
             ],
+            "transaction_duration": self.transaction_duration,
+            "slow_span_duration": self.time_saved,
         }
 
     @property
@@ -631,22 +637,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         return get_span_evidence_value(self._find_span_by_id(id))
 
     @property
-    def duration_impact(self) -> str:
-        transaction_duration = self.transaction_duration
-        time_saved = self._calculate_time_saved()
-        time_saved_percentage = time_saved / transaction_duration * 100
-        return (
-            f"{round(time_saved_percentage,3)}% ({int(time_saved)}ms/{int(transaction_duration)}ms)"
-        )
-
-    def _sum_span_duration(self, spans: list) -> int:
-        "Given a non-overlapping spans, find the sum of the span durations in milliseconds"
-        sum = 0
-        for span in spans:
-            sum += self.get_span_duration(span).total_seconds() * 1000
-        return sum
-
-    def _calculate_time_saved(self) -> float:
+    def time_saved(self) -> float:
         """
         Calculates the cost saved by running spans in parallel,
         this is the maximum time saved of running all independent queries in parallel
