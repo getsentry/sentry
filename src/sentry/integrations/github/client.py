@@ -242,7 +242,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
         except ApiError:
             only_use_cache = True
-            logger.warning("Loading from cache. We can't check the rate limit at the moment.")
+            # Report so we can investigate
+            logger.exception("Loading trees from cache. Execution will continue. Check logs.")
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
