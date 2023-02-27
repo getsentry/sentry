@@ -79,6 +79,7 @@ class DebugIdArtifactBundle(Model):
 class ProjectArtifactBundle(Model):
     __include_in_export__ = False
 
+    organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
 
