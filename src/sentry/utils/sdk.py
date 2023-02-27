@@ -467,19 +467,16 @@ def check_tag(tag_key: str, expected_value: str) -> bool:
                 f"new_{tag_key}": expected_value,
             }
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            # This can be used to find errors that may have been mistagged
+            scope.set_tag("possible_mistag", True)
             return True
 
 
 # We have some events being tagged with organization.slug even when we don't have such info
 def log_if_tags_already_set(scope: Scope, org_id: int, org_slug: str) -> None:
     """If the tags are already set and differ, report them as a Sentry error."""
-    try:
-        if check_tag("organization", org_id) or check_tag("organization.slug", org_slug):
-            raise Exception(
-                "This is an intended error for investigating what is the root of this problem."
-            )
-    except Exception as e:
-        logger.exception(e)
+    if check_tag("organization", org_id) or check_tag("organization.slug", org_slug):
+        logger.error("Intentional error for investigation. Ignore it. WOR-2464.")
 
 
 def bind_organization_context(organization):
