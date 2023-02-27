@@ -454,17 +454,32 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag(tag_key: str, expected_value: str):
-    if scope._tags and tag_key in scope._tags and scope._tags["organization"] != expected_value:
-        extra = {tag_key: scope._tags[tag_key], f"new_{tag_key}": expected_value}
-        logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+def check_tag(tag_key: str, expected_value: str) -> bool:
+    """Detect a tag already set and being different than what we expect.
+
+    This function checks if a tag has been already been set and if it differs
+    from what we want to set it to.
+    """
+    with configure_scope() as scope:
+        if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+            extra = {
+                f"previous_{tag_key}": scope._tags[tag_key],
+                f"new_{tag_key}": expected_value,
+            }
+            logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            return True
 
 
 # We have some events being tagged with organization.slug even when we don't have such info
 def log_if_tags_already_set(scope: Scope, org_id: int, org_slug: str) -> None:
     """If the tags are already set and differ, report them as a Sentry error."""
-    check_tag("organization", org_id)
-    check_tag("organization.slug", org_slug)
+    try:
+        if check_tag("organization", org_id) or check_tag("organization.slug", org_slug):
+            raise Exception(
+                "This is an intended error for investigating what is the root of this problem."
+            )
+    except Exception as e:
+        logger.exception(e)
 
 
 def bind_organization_context(organization):
