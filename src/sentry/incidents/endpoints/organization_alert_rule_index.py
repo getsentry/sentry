@@ -46,9 +46,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             user_team_list = OrganizationMemberTeam.objects.filter(
                 organizationmember__user=request.user, team__in=org_team_list
             ).values_list("team", flat=True)
-            project_ids = Project.objects.filter(teams__in=user_team_list).values_list(
-                "id", flat=True
-            )
+            project_ids = Project.objects.filter(
+                teams__in=user_team_list, status=ProjectStatus.VISIBLE
+            ).values_list("id", flat=True)
 
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal

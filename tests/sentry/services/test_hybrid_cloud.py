@@ -51,6 +51,7 @@ class RpcModelTest(TestCase):
             organization_mapping.RpcOrganizationMapping,
             organization_mapping.RpcOrganizationMappingUpdate,
             tombstone.RpcTombstone,
+            user.RpcAuthenticator,
             user.RpcAvatar,
             user.RpcUser,
             user.RpcUserEmail,

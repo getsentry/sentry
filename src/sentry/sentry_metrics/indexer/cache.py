@@ -167,3 +167,13 @@ class CachingIndexer(StringIndexer):
 
     def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         return self.indexer.reverse_resolve(use_case_id, org_id, id)
+
+    def resolve_shared_org(self, string: str) -> Optional[int]:
+        raise NotImplementedError(
+            "This class should not be used directly, use a wrapping class that derives from StaticStringIndexer"
+        )
+
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+        raise NotImplementedError(
+            "This class should not be used directly, use a wrapping class that derives from StaticStringIndexer"
+        )

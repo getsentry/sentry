@@ -65,6 +65,7 @@ COLUMNS = [
     Column(alias="project.id", column="project_id", kind=Kind.INTEGER),
     Column(alias="trace.transaction", column="transaction_id", kind=Kind.STRING),
     Column(alias="id", column="profile_id", kind=Kind.STRING),
+    Column(alias="profile.id", column="profile_id", kind=Kind.STRING),
     Column(alias="timestamp", column="received", kind=Kind.DATE),
     Column(alias="device.arch", column="architecture", kind=Kind.STRING),
     Column(alias="device.classification", column="device_classification", kind=Kind.STRING),
