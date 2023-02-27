@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from freezegun import freeze_time
-from sentry_relay.processing import validate_sampling_configuration
+from sentry_relay.processing import validate_project_config
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
@@ -38,6 +38,22 @@ def latest_release_only(default_project):
     )
 
 
+def _validate_rules(project):
+    rules = generate_rules(project)
+    # Generate boilerplate around minimal project config:
+    project_config = {
+        "allowedDomains": ["*"],
+        "piiConfig": None,
+        "trustedRelays": [],
+        "dynamicSampling": {
+            "rules": [],
+            "rulesV2": rules,
+            "mode": "total",
+        },
+    }
+    validate_project_config(json.dumps(project_config), strict=True)
+
+
 @patch("sentry.dynamic_sampling.rules.base.sentry_sdk")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
@@ -50,9 +66,7 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     assert generate_rules(fake_project) == []
     get_blended_sample_rate.assert_called_with(fake_project)
     sentry_sdk.capture_exception.assert_called()
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project)})
-    )
+    _validate_rules(fake_project)
 
 
 @pytest.mark.django_db
@@ -81,9 +95,7 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
@@ -110,9 +122,7 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_enabled_user_biases.assert_called_with(
         fake_project.get_option("sentry:dynamic_sampling_biases", None)
     )
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project)})
-    )
+    _validate_rules(fake_project)
 
 
 @pytest.mark.django_db
@@ -165,9 +175,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -222,9 +230,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -288,9 +294,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -348,9 +352,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
@@ -371,9 +373,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
         },
     ]
     get_blended_sample_rate.assert_called_with(fake_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project)})
-    )
+    _validate_rules(fake_project)
 
 
 @freeze_time("2022-10-21 18:50:25+00:00")
@@ -445,9 +445,7 @@ def test_generate_rules_with_different_project_platforms(
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -530,9 +528,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -588,9 +584,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -611,9 +605,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -636,6 +628,4 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
