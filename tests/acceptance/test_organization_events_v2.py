@@ -153,7 +153,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.user = self.create_user("foo@example.com", is_superuser=True)
         self.org = self.create_organization(name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+        self.project = self.create_project(
+            organization=self.org, teams=[self.team], name="Bengal", platform="ruby"
+        )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
