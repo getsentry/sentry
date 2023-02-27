@@ -2214,6 +2214,31 @@
     htmlparser2 "^4.1.0"
     title-case "^3.0.2"
 
+"@sentry-internal/rrweb-player@^1.104.0":
+  version "1.104.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-1.104.0.tgz#8f1a22adaf97c8a806bb95b2b94910bf0937764c"
+  integrity sha512-HGkDSmV6fLJhtAS4jI+P4pndcs2h2cnoDL1UBrh64MXIckNre3/A2z9YcscC4KyW8oOAsDdVFjd4FbiHNmvNyA==
+  dependencies:
+    "@sentry-internal/rrweb" "1.104.0"
+    "@tsconfig/svelte" "^3.0.0"
+
+"@sentry-internal/rrweb-snapshot@1.104.0":
+  version "1.104.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.104.0.tgz#888ded12c6340891f092474b34feb5e88144395b"
+  integrity sha512-brdzqFiOVNfBJh4ggbkA7vrCg82MU5mMZ9NFqtrRi6/WPJch7mZvXY7WcqkwBykY7I61s/A/35gZYi3pvgG9Lw==
+
+"@sentry-internal/rrweb@1.104.0", "@sentry-internal/rrweb@^1.104.0":
+  version "1.104.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.104.0.tgz#0dd31446b7a48090fbd73385763974e9db4a1e4f"
+  integrity sha512-FZRXzPFg7WW3WgpBzSWc/LLY+JP1HNLmTT2DaTSMSuuWyjtTBB7SHfblD3niiGCu2T8bHKMEyZkEBcZWtb9NWA==
+  dependencies:
+    "@sentry-internal/rrweb-snapshot" "1.104.0"
+    "@types/css-font-loading-module" "0.0.7"
+    "@xstate/fsm" "^1.4.0"
+    base64-arraybuffer "^1.0.1"
+    fflate "^0.4.4"
+    mitt "^1.1.3"
+
 "@sentry/browser@7.38.0":
   version "7.38.0"
   resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-7.38.0.tgz#cdb39da23f9ee2ce47395b2c12542acb4969efa7"
@@ -2494,10 +2519,10 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.2.tgz#423c77877d0569db20e1fc80885ac4118314010e"
   integrity sha512-eZxlbI8GZscaGS7kkc/trHTT5xgrjH3/1n2JDwusC9iahPKWMRvRjJSAN5mCXviuTGQ/lHnhvv8Q1YTpnfz9gA==
 
-"@tsconfig/svelte@^1.0.0":
-  version "1.0.13"
-  resolved "https://registry.yarnpkg.com/@tsconfig/svelte/-/svelte-1.0.13.tgz#2fa34376627192c0d643ce54964915e2bd3a58e4"
-  integrity sha512-5lYJP45Xllo4yE/RUBccBT32eBlRDbqN8r1/MIvQbKxW3aFqaYPCNgm8D5V20X4ShHcwvYWNlKg3liDh1MlBoA==
+"@tsconfig/svelte@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@tsconfig/svelte/-/svelte-3.0.0.tgz#b06e059209f04c414de0069f2f0e2796d979fc6f"
+  integrity sha512-pYrtLtOwku/7r1i9AMONsJMVYAtk3hzOfiGNekhtq5tYBGA7unMve8RvUclKLMT3PrihvJqUmzsRGh0RP84hKg==
 
 "@types/aria-query@^4.2.0":
   version "4.2.1"
@@ -9596,31 +9621,6 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
   dependencies:
     hash-base "^3.0.0"
     inherits "^2.0.1"
-
-rrweb-player@^0.7.13:
-  version "0.7.14"
-  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.7.14.tgz#582840551cde5652dcadb7e41f957e652835287c"
-  integrity sha512-ehHgBWhWNVT8R5g6mWYdiT7rRVis5hCqEX7s8pzDeyUyfiBOyfXHIqsNFUL7875lryxkmuBQDCXfHhKtCYmbYg==
-  dependencies:
-    "@tsconfig/svelte" "^1.0.0"
-    rrweb "^1.1.3"
-
-rrweb-snapshot@^1.1.14:
-  version "1.1.14"
-  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-1.1.14.tgz#9d4d9be54a28a893373428ee4393ec7e5bd83fcc"
-  integrity sha512-eP5pirNjP5+GewQfcOQY4uBiDnpqxNRc65yKPW0eSoU1XamDfc4M8oqpXGMyUyvLyxFDB0q0+DChuxxiU2FXBQ==
-
-rrweb@^1.1.3:
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-1.1.3.tgz#4fbb3d473d71c79b6c30a54e585e5a01c8ac08bb"
-  integrity sha512-F2qp8LteJLyycsv+lCVJqtVpery63L3U+/ogqMA0da8R7Jx57o6gT+HpjrzdeeGMIBZR7kKNaKyJwDupTTu5KA==
-  dependencies:
-    "@types/css-font-loading-module" "0.0.7"
-    "@xstate/fsm" "^1.4.0"
-    base64-arraybuffer "^1.0.1"
-    fflate "^0.4.4"
-    mitt "^1.1.3"
-    rrweb-snapshot "^1.1.14"
 
 run-parallel@^1.1.9:
   version "1.1.9"
