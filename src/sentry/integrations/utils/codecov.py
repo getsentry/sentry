@@ -115,6 +115,8 @@ def get_codecov_data(
                 "codecov.request_ref": ref,
                 "codecov.http_code": response.status_code,
             }
+            if features.has("organizations:codecov-stacktrace-integration-v2", organization):
+                tags["codecov.new_endpoint"] = True
 
             response_json = response.json()
             files = response_json.get("files")
