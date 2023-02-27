@@ -663,7 +663,7 @@ def metrics_parallel_consumer(**options):
 
 @run.command("billing-metrics-consumer")
 @log_options()
-@batching_kafka_options("billing-metrics-consumer", max_batch_size=100)
+@kafka_options("billing-metrics-consumer")
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
