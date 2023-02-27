@@ -1,6 +1,8 @@
+from unittest import mock
+
 import pytest
 
-from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -100,3 +102,27 @@ class ProjectKeyTest(TestCase):
             assert key.csp_endpoint == f"http://{host}/api/1/csp-report/?sentry_key=abc"
             assert key.minidump_endpoint == f"http://{host}/api/1/minidump/?sentry_key=abc"
             assert key.unreal_endpoint == f"http://{host}/api/1/unreal/abc/"
+
+
+@mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
+@pytest.mark.django_db(transaction=True)
+def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project):
+    assert inv_proj_config.call_count == 0
+
+    key = ProjectKey.objects.get(project=default_project)
+    manager = ProjectKeyManager()
+    manager.post_delete(key)
+
+    assert inv_proj_config.call_count == 1
+
+
+@mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
+@pytest.mark.django_db(transaction=True)
+def test_key_saved_projconfig_invalidated(inv_proj_config, default_project):
+    assert inv_proj_config.call_count == 0
+
+    key = ProjectKey.objects.get(project=default_project)
+    manager = ProjectKeyManager()
+    manager.post_save(key)
+
+    assert inv_proj_config.call_count == 1
