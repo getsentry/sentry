@@ -23,7 +23,7 @@ describe('OrganizationMemberDetail', function () {
 
   const team = TestStubs.Team();
   const idpTeam = TestStubs.Team({
-    id: '4',
+    id: '3',
     slug: 'idp-member-team',
     name: 'Idp Member Team',
     isMember: true,
@@ -32,6 +32,13 @@ describe('OrganizationMemberDetail', function () {
     },
   });
   const managerTeam = TestStubs.Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
+  const orgRoleTeam = TestStubs.Team({
+    id: '4',
+    slug: 'org-role-team',
+    name: 'Org Role Team',
+    isMember: true,
+    orgRole: 'manager',
+  });
   const teams = [
     team,
     TestStubs.Team({
@@ -40,17 +47,9 @@ describe('OrganizationMemberDetail', function () {
       name: 'New Team',
       isMember: false,
     }),
-    TestStubs.Team({
-      id: '3',
-      slug: 'idp-team',
-      name: 'Idp Team',
-      isMember: false,
-      flags: {
-        'idp:provisioned': true,
-      },
-    }),
     idpTeam,
     managerTeam,
+    orgRoleTeam,
   ];
 
   const teamAssignment = {
@@ -97,6 +96,18 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
+  const orgRoleTeamMember = TestStubs.Member({
+    id: 5,
+    roles: TestStubs.OrgRoleList(),
+    dateCreated: new Date(),
+    teams: [orgRoleTeam.slug],
+    teamRoles: [
+      {
+        teamSlug: orgRoleTeam.slug,
+        role: null,
+      },
+    ],
+  });
 
   beforeAll(() => {
     TeamStore.loadInitialData(teams);
@@ -128,6 +139,10 @@ describe('OrganizationMemberDetail', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${idpTeamMember.id}/`,
         body: idpTeamMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${orgRoleTeamMember.id}/`,
+        body: orgRoleTeamMember,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/teams/`,
@@ -190,6 +205,20 @@ describe('OrganizationMemberDetail', function () {
       expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
     });
 
+    it('cannot leave org role team if missing org:admin', function () {
+      organization = TestStubs.Organization({
+        teams,
+        features: ['team-roles'],
+        access: [],
+      });
+      routerContext = TestStubs.routerContext([{organization}]);
+      render(<OrganizationMemberDetail params={{memberId: orgRoleTeamMember.id}} />, {
+        context: routerContext,
+      });
+      expect(screen.getByText('Manager Team')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
+    });
+
     it('joins a team and assign a team-role', async function () {
       render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
         context: routerContext,
@@ -229,11 +258,31 @@ describe('OrganizationMemberDetail', function () {
         context: routerContext,
       });
 
-      await userEvent.click(screen.getByText('Add Team'));
-      await userEvent.hover(screen.queryByText('#idp-team'));
+      userEvent.click(screen.getByText('Add Team'));
+      userEvent.hover(screen.queryByText('#idp-member-team'));
       expect(
         await screen.findByText(
           "Membership to this team is managed through your organization's identity provider."
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('cannot join org role team if missing org:admin', async function () {
+      organization = TestStubs.Organization({
+        teams,
+        features: ['team-roles'],
+        access: ['org:write'],
+      });
+      routerContext = TestStubs.routerContext([{organization}]);
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
+
+      userEvent.click(screen.getByText('Add Team'));
+      userEvent.click(screen.queryByText('#org-role-team'));
+      expect(
+        await screen.findByText(
+          'Membership to a team with an organization role is managed by organization owners.'
         )
       ).toBeInTheDocument();
     });
