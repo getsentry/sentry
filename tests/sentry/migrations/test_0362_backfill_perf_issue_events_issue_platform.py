@@ -13,8 +13,8 @@ from tests.sentry.event_manager.test_event_manager import make_event
 
 
 class TestDefaultFlag(TestMigrations):
-    migrate_from = "0358_break_group_related_user_fks"
-    migrate_to = "0359_backfill_perf_issue_events_issue_platform"
+    migrate_from = "0361_monitor_environment"
+    migrate_to = "0362_backfill_perf_issue_events_issue_platform"
     QUERY_START_DATE = datetime(2008, 5, 8)
     QUERY_END_DATE = datetime.now() + timedelta(days=1)
 
@@ -87,7 +87,7 @@ class TestDefaultFlag(TestMigrations):
 
         result_snql = raw_snql_query(
             snuba_request,
-            referrer="0359_duplicate_perf_issue_events_issue_platform._query_performance_issue_events",
+            referrer="0362_duplicate_perf_issue_events_issue_platform._query_performance_issue_events",
             use_cache=False,
         )
 
@@ -116,7 +116,7 @@ class TestDefaultFlag(TestMigrations):
 
         result_snql = raw_snql_query(
             snuba_request,
-            referrer="0359_duplicate_perf_issue_events_issue_platform._query_performance_issue_events",
+            referrer="0362_duplicate_perf_issue_events_issue_platform._query_performance_issue_events",
             use_cache=False,
         )
 

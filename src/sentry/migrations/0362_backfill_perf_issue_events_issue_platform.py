@@ -209,7 +209,7 @@ def _query_performance_issue_events(
 
     result_snql = raw_snql_query(
         snuba_request,
-        referrer="0359_duplicate_perf_issue_events_issue_platform._query_performance_issue_events",
+        referrer="0362_backfill_perf_issue_events_issue_platform._query_performance_issue_events",
         use_cache=False,
     )
 
