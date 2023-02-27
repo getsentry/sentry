@@ -24,6 +24,7 @@ type TestStubFixtures = {
   Breadcrumb: OverridableStub;
   Broadcast: OverridableStub;
   BuiltInSymbolSources: OverridableStubList;
+  CodeOwner: OverridableStub;
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
