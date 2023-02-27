@@ -133,11 +133,10 @@ jobs:
         uses: ./.github/actions/artifacts
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
-  visual-diff:
-    # triggers visual snapshot is a required check so we need this job to
-    # always run and report a status.
+  acceptance-required-checks:
+    # this is a required check so we need this job to always run and report a status.
     if: always()
-    name: triggers visual snapshot
+    name: Acceptance
     needs: [acceptance, files-changed]
     runs-on: ubuntu-20.04
     timeout-minutes: 20
