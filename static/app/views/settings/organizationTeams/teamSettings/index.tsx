@@ -62,6 +62,9 @@ class TeamSettings extends AsyncView<Props, State> {
     const {organization, team} = this.props;
 
     const access = new Set<Scope>(organization.access);
+    const idpProvisioned = team.flags['idp:provisioned'];
+    const orgRoleList = organization.orgRoleList;
+    const hasOrgRoleFlag = organization.features.includes('org-roles-for-teams');
 
     return (
       <Fragment>
@@ -75,9 +78,14 @@ class TeamSettings extends AsyncView<Props, State> {
           initialData={{
             name: team.name,
             slug: team.slug,
+            orgRole: team.orgRole,
           }}
         >
-          <JsonForm access={access} forms={teamSettingsFields} />
+          <JsonForm
+            access={access}
+            additionalFieldProps={{idpProvisioned, hasOrgRoleFlag, orgRoleList}}
+            forms={teamSettingsFields}
+          />
         </Form>
 
         <Panel>
