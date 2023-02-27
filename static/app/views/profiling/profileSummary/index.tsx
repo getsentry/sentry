@@ -30,6 +30,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {ProfileSummaryContent} from './content';
 
@@ -161,6 +162,11 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         shouldForceProject={defined(project)}
         forceProject={project}
         specificProjectSlugs={defined(project) ? [project.slug] : []}
+        defaultSelection={
+          profilingUsingTransactions
+            ? {datetime: DEFAULT_PROFILING_DATETIME_SELECTION}
+            : undefined
+        }
       >
         <Layout.Page>
           {project && transaction && (

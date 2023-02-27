@@ -68,3 +68,10 @@ export function renderTableHeader<K>(rightAlignedColumns: Set<K>) {
     );
   };
 }
+
+export const DEFAULT_PROFILING_DATETIME_SELECTION = {
+  start: null,
+  end: null,
+  utc: false,
+  period: '24h',
+};
