@@ -126,7 +126,11 @@ class EventMetas extends Component<Props, State> {
             project?.platform && backend.includes(project.platform as any);
 
           return (
-            <EventDetailHeader type={type} hasReplay={hasReplay}>
+            <EventDetailHeader
+              type={type}
+              isBackendProject={isBackendProject}
+              hasReplay={hasReplay}
+            >
               <MetaData
                 headingText={t('Event ID')}
                 tooltipText={t('The unique ID assigned to this %s.', type)}
@@ -243,18 +247,25 @@ const BrowserDisplay = ({event}: {event: Event}) => {
 
 type EventDetailHeaderProps = {
   hasReplay: boolean;
+  isBackendProject: boolean;
   type?: 'transaction' | 'event';
 };
 
-function getEventDetailHeaderCols({hasReplay, type}: EventDetailHeaderProps): string {
-  if (type === 'transaction') {
-    return hasReplay
-      ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  5fr minmax(325px, 1fr);'
-      : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  6fr;';
-  }
-  return hasReplay
-    ? 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 5fr minmax(325px, 1fr);'
-    : 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 6fr;';
+export function getEventDetailHeaderCols({
+  hasReplay,
+  isBackendProject,
+  type,
+}: EventDetailHeaderProps): string {
+  return `grid-template-columns: ${[
+    'minmax(160px, 1fr)', // Event ID
+    type === 'transaction' ? 'minmax(160px, 1fr)' : 'minmax(200px, 1fr)', // Duration or Created Time
+    type === 'transaction' && 'minmax(160px, 1fr)', // Status
+    type === 'transaction' && 'minmax(160px, 1fr) ', // Browser
+    hasReplay ? '5fr' : '6fr', // Replay
+    hasReplay && 'minmax(325px, 1fr)', // Quick Trace
+  ]
+    .filter(Boolean)
+    .join(' ')};`;
 }
 
 const EventDetailHeader = styled('div')<EventDetailHeaderProps>`
