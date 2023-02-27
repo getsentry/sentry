@@ -123,7 +123,7 @@ class EventMetas extends Component<Props, State> {
         {({projects}) => {
           const project = projects.find(p => p.slug === projectId);
           const isBackendProject =
-            project?.platform && backend.includes(project.platform as any);
+            !!project?.platform && backend.includes(project.platform as any);
 
           return (
             <EventDetailHeader
