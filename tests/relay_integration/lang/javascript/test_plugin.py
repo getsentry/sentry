@@ -238,7 +238,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                     "filename": "test.js",
                                     "lineno": 1,
                                     "colno": 1,
-                                }
+                                },
                             ]
                         },
                     }
@@ -263,6 +263,60 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "number of data characters (1) cannot be 1 more than a multiple of 4",
             "type": "js_invalid_source",
         }
+
+    @patch("sentry.lang.javascript.processor.SmCache.from_bytes")
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
+    @patch("sentry.lang.javascript.processor.discover_sourcemap")
+    def test_sourcemap_cache_is_constructed_only_once_if_an_error_is_raised(
+        self, mock_discover_sourcemap, mock_fetch_by_url, mock_from_bytes
+    ):
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
+
+        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.encoding = None
+
+        mock_from_bytes.side_effect = Exception()
+
+        self.post_and_retrieve_event(data)
+
+        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
+        mock_from_bytes.assert_called_once()
 
     @responses.activate
     def test_error_message_translations(self):

@@ -1160,7 +1160,7 @@ class FetchSourcemapTest(TestCase):
         processor = JavaScriptStacktraceProcessor(
             data={}, stacktrace_infos=None, project=self.create_project()
         )
-        smap_view = processor._fetch_sourcemap_view_by_url(base64_sourcemap)
+        smap_view = processor._fetch_sourcemap_cache_by_url(base64_sourcemap)
         token = smap_view.lookup(1, 1, 0)
 
         assert token.src == "/test.js"
@@ -1172,7 +1172,7 @@ class FetchSourcemapTest(TestCase):
         processor = JavaScriptStacktraceProcessor(
             data={}, stacktrace_infos=None, project=self.create_project()
         )
-        smap_view = processor._fetch_sourcemap_view_by_url(base64_sourcemap.rstrip("="))
+        smap_view = processor._fetch_sourcemap_cache_by_url(base64_sourcemap.rstrip("="))
         token = smap_view.lookup(1, 1, 0)
 
         assert token.src == "/test.js"
@@ -1185,7 +1185,7 @@ class FetchSourcemapTest(TestCase):
             processor = JavaScriptStacktraceProcessor(
                 data={}, stacktrace_infos=None, project=self.create_project()
             )
-            processor._fetch_sourcemap_view_by_url("data:application/json;base64,xxx")
+            processor._fetch_sourcemap_cache_by_url("data:application/json;base64,xxx")
 
     @responses.activate
     def test_garbage_json(self):
@@ -1197,7 +1197,7 @@ class FetchSourcemapTest(TestCase):
             processor = JavaScriptStacktraceProcessor(
                 data={}, stacktrace_infos=None, project=self.create_project()
             )
-            processor._fetch_sourcemap_view_by_url("http://example.com")
+            processor._fetch_sourcemap_cache_by_url("http://example.com")
 
 
 class TrimLineTest(unittest.TestCase):
@@ -1550,7 +1550,7 @@ class CacheSourceTest(TestCase):
         assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 0
 
         processor.get_or_fetch_sourceview(url=abs_path)
-        processor.get_or_fetch_sourcemap_view(url=abs_path)
+        processor.get_or_fetch_sourcemap_cache(url=abs_path)
 
         # now we have an error
         assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 1

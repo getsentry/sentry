@@ -884,18 +884,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # applies to the many repetitions across the code.
 
         # Cache holding the results of the fetching by url.
-        self.fetch_by_url_result = {}
+        self.fetch_by_url_sourceviews = {}
         self.fetch_by_url_errors = {}
+        self.result_map = {}
 
         # Cache holding the results of the fetching by debug id.
-        self.fetch_by_debug_id_result = {}
+        self.fetch_by_debug_id_sourceviews = {}
 
         # Cache holding the sourcemaps views indexed by either debug id or sourcemap url.
         self.debug_id_sourcemap_cache = {}
         self.sourcemap_url_sourcemap_cache = {}
-
-        # Contains a mapping between the 'result.url' of the request and the file url from 'abs_path'.
-        self.url_aliases = {}
 
         # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap url
         # which is discovered by looking at the minified source.
@@ -977,7 +975,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # (or 'None' if the token doesnt provide us with the 'context_line') down the road.
         # TODO: add support for debug ids.
         sourceview = self.get_or_fetch_sourceview(url=frame["abs_path"])
-        sourcemap_view = self.get_or_fetch_sourcemap_view(url=frame["abs_path"])
+        sourcemap_cache = self.get_or_fetch_sourcemap_cache(url=frame["abs_path"])
 
         # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
         # happen in one of the two we will detect them and add them to 'all_errors'.
@@ -995,11 +993,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         new_frame = dict(frame)
         raw_frame = dict(frame)
 
-        if sourcemap_view and frame.get("colno") is None:
+        if sourcemap_cache and frame.get("colno") is None:
             all_errors.append(
                 {"type": EventError.JS_NO_COLUMN, "url": http.expose_url(frame["abs_path"])}
             )
-        elif sourcemap_view:
+        elif sourcemap_cache:
             if is_data_uri(sourcemap_url):
                 sourcemap_label = frame["abs_path"]
             else:
@@ -1010,7 +1008,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             try:
                 # Errors are 1-indexed in the frames.
                 assert frame["lineno"] > 0, "line numbers are 1-indexed"
-                token = sourcemap_view.lookup(frame["lineno"], frame["colno"], LINES_OF_CONTEXT)
+                token = sourcemap_cache.lookup(frame["lineno"], frame["colno"], LINES_OF_CONTEXT)
             except Exception:
                 token = None
                 all_errors.append(
@@ -1240,16 +1238,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
     def _get_cached_sourceview(self, url=None, debug_id=None, source_file_type=None):
         if debug_id is not None:
-            source_result = self.fetch_by_debug_id_result.get((debug_id, source_file_type))
-            if source_result is not None:
-                sourceview = SourceView.from_bytes(source_result.body)
+            sourceview = self.fetch_by_debug_id_sourceviews.get((debug_id, source_file_type))
+            if sourceview is not None:
                 return sourceview
 
         if url is not None:
-            real_url = self.url_aliases.get(url, url)
-            source_result = self.fetch_by_url_result.get(real_url)
-            if source_result is not None:
-                sourceview = SourceView.from_bytes(source_result.body)
+            sourceview = self.fetch_by_url_sourceviews.get(url)
+            if sourceview is not None:
                 return sourceview
 
         return None
@@ -1272,10 +1267,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 span.set_data("debug_id", debug_id)
                 result = self.fetcher.fetch_by_debug_id(debug_id, source_file_type)
                 if result is not None:
-                    # We temporarily store the result directly, in case we want to compute the sourceview on demand
-                    # we can delete the other dictionary.
-                    self.fetch_by_debug_id_result[debug_id, source_file_type] = result
                     sourceview = SourceView.from_bytes(result.body)
+                    self.fetch_by_debug_id_sourceviews[debug_id, source_file_type] = sourceview
                     return sourceview
 
         try:
@@ -1292,15 +1285,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # a valid file to cache
             return None
         else:
-            # TODO: aliasing is not used in the codebase as of now, we might want to remove it because we always call
-            #  this function with url == frame.abs_path.
-            if result.url != url:
-                self.url_aliases[result.url] = url
-
-            # We temporarily store the result directly, in case we want to compute the sourceview on demand
-            # we can delete the other dictionary.
-            self.fetch_by_url_result[url] = result
             sourceview = SourceView.from_bytes(result.body)
+            self.fetch_by_url_sourceviews[url] = sourceview
+            self.result_map[url] = result.body
 
             sourcemap_url = discover_sourcemap(result)
             if sourcemap_url:
@@ -1308,34 +1295,34 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             return sourceview
 
-    def get_or_fetch_sourcemap_view(self, url=None, debug_id=None):
+    def get_or_fetch_sourcemap_cache(self, url=None, debug_id=None):
         """
-        Gets from the cache or fetches the sourcemap view of the file at 'url' or 'debug_id'.
+        Gets from the cache or fetches the SmCache of the file at 'url' or 'debug_id'.
 
         Returns None when a sourcemap corresponding to the file at 'url' is not found.
         """
-        rv = self._get_cached_sourcemap_view(url, debug_id)
+        rv = self._get_cached_sourcemap_cache(url, debug_id)
         if rv is not None:
             return rv
 
-        return self._fetch_and_cache_sourcemap_view(url, debug_id)
+        return self._fetch_and_cache_sourcemap_cache(url, debug_id)
 
-    def _get_cached_sourcemap_view(self, url, debug_id):
+    def _get_cached_sourcemap_cache(self, url, debug_id):
         if debug_id is not None:
             rv = self.debug_id_sourcemap_cache.get(debug_id)
             if rv is not None:
                 return rv
 
         if url is not None:
-            real_url = self.url_aliases.get(url, url)
-            sourcemap_url = self.minified_source_url_to_sourcemap_url.get(real_url)
+            # We get the url of the sourcemap from the url of the minified file.
+            sourcemap_url = self.minified_source_url_to_sourcemap_url.get(url)
             rv = self.sourcemap_url_sourcemap_cache.get(sourcemap_url)
             if rv is not None:
                 return rv
 
         return None
 
-    def _fetch_and_cache_sourcemap_view(self, url, debug_id):
+    def _fetch_and_cache_sourcemap_cache(self, url, debug_id):
         if debug_id is not None:
             sourcemap_view = self._handle_debug_id_sourcemap_lookup(debug_id)
             if sourcemap_view is not None:
@@ -1349,20 +1336,27 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         return None
 
     def _handle_debug_id_sourcemap_lookup(self, debug_id):
-        minified_result = self.fetch_by_debug_id_result.get(debug_id)
-        if minified_result is None:
+        minified_sourceview = self.fetch_by_debug_id_sourceviews.get(debug_id)
+        if minified_sourceview is None:
             return None
 
         # TODO: use enum for source file type when available.
         result = self.fetcher.fetch_by_debug_id(debug_id, "sourcemap")
         if result is not None:
-            sourcemap_view = SmCache.from_bytes(minified_result.body, result.body)
+            sourcemap_view = SmCache.from_bytes(
+                minified_sourceview.get_source().encode(), result.body
+            )
             self.debug_id_sourcemap_cache[debug_id] = sourcemap_view
             return sourcemap_view
 
     def _handle_url_sourcemap_lookup(self, url):
-        minified_result = self.fetch_by_url_result.get(url)
-        if minified_result is None:
+        # In case there are any fetching errors tied to the url of the minified file, we don't want to attempt the
+        # construction of the sourcemap cache.
+        if len(self.fetch_by_url_errors.get(url, [])) > 0:
+            return None
+
+        minified_sourceview = self.fetch_by_url_sourceviews.get(url)
+        if minified_sourceview is None:
             return None
 
         sourcemap_url = self.minified_source_url_to_sourcemap_url.get(url)
@@ -1375,8 +1369,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             ) as span:
                 span.set_data("url", url)
                 span.set_data("sourcemap_url", sourcemap_url)
-                sourcemap_view = self._fetch_sourcemap_view_by_url(
-                    sourcemap_url, source=minified_result.body
+                sourcemap_cache = self._fetch_sourcemap_cache_by_url(
+                    sourcemap_url, source=minified_sourceview.get_source().encode()
                 )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has
@@ -1388,10 +1382,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
             return None
         else:
-            self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_view
-            return sourcemap_view
+            self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_cache
+            return sourcemap_cache
 
-    def _fetch_sourcemap_view_by_url(self, url, source=b""):
+    def _fetch_sourcemap_cache_by_url(self, url, source=b""):
         if is_data_uri(url):
             try:
                 body = base64.b64decode(
@@ -1409,12 +1403,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 result = self.fetcher.fetch_by_url(url)
 
             body = result.body
+
         try:
             with sentry_sdk.start_span(
                 op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.SmCache.from_bytes"
             ):
+                # This is an expensive operation that should be executed as few times as possible.
                 return SmCache.from_bytes(source, body)
-
         except Exception as exc:
             # This is in debug because the product shows an error already.
             logger.debug(str(exc), exc_info=True)
