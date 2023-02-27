@@ -238,7 +238,7 @@ def _update_profiling_search_filters(
 
     for sf in search_filters:
         # XXX: we replace queries on these keys to something that should return nothing since
-        # profiling issues doesn't support have stacktraces
+        # profiling issues doesn't support stacktraces
         if sf.key.name in ("error.unhandled", "error.handled"):
             raise UnsupportedSearchQuery(
                 f"{sf.key.name} filter isn't support for {GroupCategory.PROFILE.name}"
