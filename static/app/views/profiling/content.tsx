@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import SearchBar from 'sentry/components/events/searchBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -25,6 +26,7 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   formatError,
   formatSort,
@@ -55,7 +57,15 @@ function ProfilingContent({location}: ProfilingContentProps) {
     order: 'desc',
   });
 
-  const profileFilters = useProfileFilters({query: '', selection});
+  const profilingUsingTransactions = organization.features.includes(
+    'profiling-using-transactions'
+  );
+
+  const profileFilters = useProfileFilters({
+    query: '',
+    selection,
+    disabled: profilingUsingTransactions,
+  });
   const {projects} = useProjects();
 
   const transactions = useProfileEvents<FieldType>({
@@ -121,6 +131,22 @@ function ProfilingContent({location}: ProfilingContentProps) {
     'profiling-dashboard-redesign'
   );
 
+  const eventView = useMemo(() => {
+    const _eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: t('Profiling'),
+        fields: [],
+        query,
+        projects: selection.projects,
+      },
+      location
+    );
+    _eventView.additionalConditions.setFilterValues('has', ['profile.id']);
+    return _eventView;
+  }, [location, query, selection.projects]);
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -172,15 +198,26 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <EnvironmentPageFilter />
                   <DatePageFilter alignDropdown="left" />
                 </PageFilterBar>
-                <SmartSearchBar
-                  organization={organization}
-                  hasRecentSearches
-                  searchSource="profile_landing"
-                  supportedTags={profileFilters}
-                  query={query}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {profilingUsingTransactions ? (
+                  <SearchBar
+                    searchSource="profile_summary"
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                ) : (
+                  <SmartSearchBar
+                    organization={organization}
+                    hasRecentSearches
+                    searchSource="profile_landing"
+                    supportedTags={profileFilters}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
                 <ProfilingOnboardingPanel>
