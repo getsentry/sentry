@@ -15,6 +15,8 @@ import {
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 
 const TeamMembersRow = (props: {
+  hasOrgAdminAccess: boolean;
+  hasTeamOrgRole: boolean;
   hasWriteAccess: boolean;
   member: TeamMember;
   organization: Organization;
@@ -29,6 +31,8 @@ const TeamMembersRow = (props: {
     member,
     user,
     hasWriteAccess,
+    hasTeamOrgRole,
+    hasOrgAdminAccess,
     removeMember,
     updateMemberRole,
   } = props;
@@ -50,6 +54,8 @@ const TeamMembersRow = (props: {
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
+          hasTeamOrgRole={hasTeamOrgRole}
+          hasOrgAdminAccess={hasOrgAdminAccess}
           onClick={() => removeMember(member)}
           member={member}
           user={user}
@@ -117,12 +123,15 @@ const TeamRoleSelect = (props: {
 };
 
 const RemoveButton = (props: {
+  hasOrgAdminAccess: boolean;
+  hasTeamOrgRole: boolean;
   hasWriteAccess: boolean;
   member: TeamMember;
   onClick: () => void;
   user: User;
 }) => {
-  const {member, user, hasWriteAccess, onClick} = props;
+  const {member, user, hasWriteAccess, hasTeamOrgRole, hasOrgAdminAccess, onClick} =
+    props;
 
   const isSelf = member.email === user.email;
   const canRemoveMember = hasWriteAccess || isSelf;
@@ -130,7 +139,21 @@ const RemoveButton = (props: {
     return null;
   }
 
-  if (member.flags['idp:provisioned']) {
+  const buttonHelpText = () => {
+    if (member.flags['idp:provisioned']) {
+      return t(
+        "Membership to this team is managed through your organization's identity provider."
+      );
+    }
+    if (hasTeamOrgRole && !hasOrgAdminAccess) {
+      return t(
+        'Membership to a team with an organization role is managed by organization owners.'
+      );
+    }
+    return undefined;
+  };
+
+  if (member.flags['idp:provisioned'] || (hasTeamOrgRole && !hasOrgAdminAccess)) {
     return (
       <Button
         size="xs"
@@ -138,15 +161,12 @@ const RemoveButton = (props: {
         icon={<IconSubtract size="xs" isCircled />}
         onClick={onClick}
         aria-label={t('Remove')}
-        title={t(
-          "Membership to this team is managed through your organization's identity provider."
-        )}
+        title={buttonHelpText()}
       >
         {t('Remove')}
       </Button>
     );
   }
-
   return (
     <Button
       size="xs"
