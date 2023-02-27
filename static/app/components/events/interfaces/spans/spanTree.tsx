@@ -474,11 +474,21 @@ class SpanTree extends Component<PropType> {
         const {span, treeDepth, continuingTreeDepths} = payload;
 
         if (payload.type === 'span_group_chain') {
+          const groupingContainsAffectedSpan =
+            isEmbeddedSpanTree &&
+            payload.spanNestedGrouping?.find(
+              ({span: s}) =>
+                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+            );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.DESCENDANT_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,
@@ -500,11 +510,21 @@ class SpanTree extends Component<PropType> {
         }
 
         if (payload.type === 'span_group_siblings') {
+          const groupingContainsAffectedSpan =
+            isEmbeddedSpanTree &&
+            payload.spanSiblingGrouping?.find(
+              ({span: s}) =>
+                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+            );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.SIBLING_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,

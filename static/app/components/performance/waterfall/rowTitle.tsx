@@ -27,6 +27,6 @@ export const RowTitleContent = styled('span')<{errored: boolean}>`
   color: ${p => (p.errored ? p.theme.error : 'inherit')};
 `;
 
-export const SpanGroupRowTitleContent = styled('span')`
-  color: ${p => p.theme.linkColor};
+export const SpanGroupRowTitleContent = styled('span')<{color: string}>`
+  color: ${p => p.color};
 `;
