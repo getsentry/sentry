@@ -183,9 +183,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         self.env3 = env3
 
     def make_environment(self, name, project):
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name=name
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 

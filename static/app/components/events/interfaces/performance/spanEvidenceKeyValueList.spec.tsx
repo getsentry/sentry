@@ -29,6 +29,7 @@ describe('SpanEvidenceKeyValueList', () => {
       endTimestamp: 2.1,
       op: 'db',
       description: 'SELECT * FROM books',
+      hash: 'aaa',
       problemSpan: ProblemSpan.OFFENDER,
     });
 
@@ -37,6 +38,7 @@ describe('SpanEvidenceKeyValueList', () => {
       endTimestamp: 4.0,
       op: 'db',
       description: 'SELECT * FROM books',
+      hash: 'aaa',
       problemSpan: ProblemSpan.OFFENDER,
     });
 
@@ -85,6 +87,7 @@ describe('SpanEvidenceKeyValueList', () => {
       endTimestamp: 2.1,
       op: 'db',
       description: 'SELECT * FROM books',
+      hash: 'aaa',
       problemSpan: ProblemSpan.OFFENDER,
     });
 
@@ -93,6 +96,7 @@ describe('SpanEvidenceKeyValueList', () => {
       endTimestamp: 4.0,
       op: 'db.sql.active_record',
       description: 'SELECT * FROM books WHERE id = %s',
+      hash: 'bbb',
       problemSpan: ProblemSpan.OFFENDER,
     });
 

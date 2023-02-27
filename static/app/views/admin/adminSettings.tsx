@@ -50,6 +50,9 @@ const optionsAvailable = [
   'profile.issues.blocked_main_thread-ingest.la-rollout',
   'profile.issues.blocked_main_thread-ingest.ea-rollout',
   'profile.issues.blocked_main_thread-ingest.ga-rollout',
+  'profile.issues.blocked_main_thread-ppg.la-rollout',
+  'profile.issues.blocked_main_thread-ppg.ea-rollout',
+  'profile.issues.blocked_main_thread-ppg.ga-rollout',
   'processing.view-hierarchies-deobfuscation-general-availability',
 ];
 
@@ -184,10 +187,26 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.m_n_plus_one_db.ga-rollout']}
             </Panel>
             <Panel>
-              <PanelHeader>Profiling Issues - Block Main Thread Detector</PanelHeader>
+              <PanelHeader>
+                Profiling Issues - Block Main Thread Detector Ingest
+              </PanelHeader>
               {fields['profile.issues.blocked_main_thread-ingest.la-rollout']}
               {fields['profile.issues.blocked_main_thread-ingest.ea-rollout']}
               {fields['profile.issues.blocked_main_thread-ingest.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Profiling Issues - Block Main Thread Detector Post Process Group
+              </PanelHeader>
+              {fields['profile.issues.blocked_main_thread-ppg.la-rollout']}
+              {fields['profile.issues.blocked_main_thread-ppg.ea-rollout']}
+              {fields['profile.issues.blocked_main_thread-ppg.ga-rollout']}
+            </Panel>
+          </Feature>
+          <Feature features={['organizations:view-hierarchies-options-dev']}>
+            <Panel>
+              <PanelHeader>View Hierarchy</PanelHeader>
+              {fields['processing.view-hierarchies-deobfuscation-general-availability']}
             </Panel>
           </Feature>
         </Form>
