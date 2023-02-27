@@ -67,7 +67,7 @@ describe('SuspectSpans', function () {
               eventView={initialData.eventView}
               projectId="1"
               transactionName="Test Transaction"
-              totals={{'count()': 1, 'sum(transaction.duration)': 1000}}
+              totals={{'count()': 1}}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>
@@ -79,7 +79,7 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('Span Name')).toBeInTheDocument();
       expect(await screen.findByText('Frequency')).toBeInTheDocument();
       expect(await screen.findByText('P75 Self Time')).toBeInTheDocument();
-      expect(await screen.findByText('Total Self Time %')).toBeInTheDocument();
+      expect(await screen.findByText('Total Self Time')).toBeInTheDocument();
     });
 
     // Due to the createHref being stubbed out (see link below),

@@ -20,5 +20,4 @@ export type SpanSortOption = {
 
 export type SpansTotalValues = {
   'count()': number;
-  'sum(transaction.duration)': number;
 };
