@@ -4,6 +4,7 @@ import scrollToElement from 'scroll-to-element';
 
 import {Button} from 'sentry/components/button';
 import {
+  getLeadHint,
   hasAssembly,
   hasContextRegisters,
   hasContextSource,
@@ -247,11 +248,9 @@ function NativeFrame({
           <div>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
-                {!nextFrame ? (
-                  <PackageNote>{t('Crashed in Non-App')}</PackageNote>
-                ) : (
-                  <PackageNote>{t('Called from')}</PackageNote>
-                )}
+                <PackageNote>
+                  {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+                </PackageNote>
               </Fragment>
             )}
             <Tooltip

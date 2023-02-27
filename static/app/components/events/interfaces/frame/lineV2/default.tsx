@@ -42,6 +42,7 @@ function Default({
   onMouseDown,
   onClick,
   frameMeta,
+  event,
   ...props
 }: Props) {
   const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
@@ -80,6 +81,7 @@ function Default({
             </Tooltip>
           ) : null}
           <LeadHint
+            event={event}
             isExpanded={isExpanded}
             nextFrame={nextFrame}
             leadsToApp={leadsToApp}

@@ -8,6 +8,7 @@ import {
   StacktraceFilenameQuery,
   useSourceMapDebug,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import LeadHint from 'sentry/components/events/interfaces/frame/lineV2/leadHint';
 import StrictClick from 'sentry/components/strictClick';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
@@ -239,30 +240,10 @@ export class Line extends Component<Props, State> {
 
   renderLeadHint() {
     const {isExpanded} = this.state;
-
-    if (isExpanded) {
-      return null;
-    }
-
+    const {event, nextFrame} = this.props;
     const leadsToApp = this.leadsToApp();
 
-    if (!leadsToApp) {
-      return null;
-    }
-
-    const {nextFrame} = this.props;
-
-    return !nextFrame ? (
-      <LeadHint className="leads-to-app-hint" width="115px">
-        {t('Crashed in non-app')}
-        {': '}
-      </LeadHint>
-    ) : (
-      <LeadHint className="leads-to-app-hint">
-        {t('Called from')}
-        {': '}
-      </LeadHint>
-    );
+    return <LeadHint {...{nextFrame, event, isExpanded, leadsToApp}} />;
   }
 
   renderRepeats() {
@@ -488,11 +469,6 @@ const DefaultLine = styled('div')`
 
 const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
-`;
-
-const LeadHint = styled('div')<{width?: string}>`
-  ${p => p.theme.overflowEllipsis}
-  max-width: ${p => (p.width ? p.width : '67px')}
 `;
 
 const ToggleContextButtonWrapper = styled('span')`
