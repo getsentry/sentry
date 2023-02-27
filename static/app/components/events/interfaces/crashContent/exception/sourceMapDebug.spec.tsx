@@ -166,7 +166,7 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
 
     const expandedMessage =
-      'The given abs_path of the stack frame is absValue which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.';
+      'The abs_path of the stack frame is absValue which is not a valid URL. Read our docs for troubleshooting help.';
     expect(
       screen.queryByText(textWithMarkupMatcher(expandedMessage))
     ).not.toBeInTheDocument();
