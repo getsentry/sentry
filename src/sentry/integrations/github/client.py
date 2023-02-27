@@ -194,44 +194,43 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return repositories
 
+    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> None:
+        msg = "Continuing execution."
+        txt = error.text
+        if error.json:
+            json_data: JSONData = error.json
+            txt = json_data.get("message")
+
+        # TODO: Add condition for  getsentry/DataForThePeople
+        # e.g. getsentry/nextjs-sentry-example
+        if txt == "Git Repository is empty.":
+            logger.warning(f"The repository is empty. {msg}", extra=extra)
+        elif txt == "Not Found":
+            logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
+        elif txt == "Repository access blocked":
+            logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+        elif txt == "Server Error":
+            logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+        elif txt == "Bad credentials":
+            logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
+        elif txt.startswith("Unable to reach host:"):
+            logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
+        elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+            logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+            # Raising the error will be handled at the task level
+            raise error
+        else:
+            # We do not raise the exception so we can keep iterating through the repos.
+            # Nevertheless, investigate the error to determine if we should abort the processing
+            logger.exception(
+                f"Investigate if to raise error. An error happened. {msg}", extra=extra
+            )
+
     def _populate_trees(self, repositories: List[Dict[str, str]]) -> Dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
         """
-
-        def process_error(error: ApiError, extra: Dict[str, str]) -> None:
-            msg = "Continuing execution."
-            txt = error.text
-            if error.json:
-                json_data: JSONData = error.json
-                txt = json_data.get("message")
-
-            # TODO: Add condition for  getsentry/DataForThePeople
-            # e.g. getsentry/nextjs-sentry-example
-            if txt == "Git Repository is empty.":
-                logger.warning(f"The repository is empty. {msg}", extra=extra)
-            elif txt == "Not Found":
-                logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
-            elif txt == "Repository access blocked":
-                logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
-            elif txt == "Server Error":
-                logger.warning(f"Github failed to respond. {msg}.", extra=extra)
-            elif txt == "Bad credentials":
-                logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
-            elif txt.startswith("Unable to reach host:"):
-                logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
-            elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
-                logger.warning("Github has blocked this org. We will not continue.", extra=extra)
-                # Raising the error will be handled at the task level
-                raise error
-            else:
-                # We do not raise the exception so we can keep iterating through the repos.
-                # Nevertheless, investigate the error to determine if we should abort the processing
-                logger.exception(
-                    f"Investigate if to raise error. An error happened. {msg}", extra=extra
-                )
-
         trees: Dict[str, RepoTree] = {}
         only_use_cache = False
 
@@ -257,7 +256,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
                 )
             except ApiError as error:
-                process_error(error, extra)
+                self._populate_trees_process_error(error, extra)
             except Exception:
                 # Report for investigation but do not stop processing
                 logger.exception(
