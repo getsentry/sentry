@@ -37,6 +37,7 @@ from .base import (
 )
 from .detectors import (
     ConsecutiveDBSpanDetector,
+    ConsecutiveHTTPSpanDetector,
     NPlusOneAPICallsDetector,
     UncompressedAssetSpanDetector,
 )
@@ -232,6 +233,10 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "allowed_span_ops": ["resource.css", "resource.script"],
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
+        DetectorType.CONSECUTIVE_HTTP_OP: {
+            "span_duration_threshold": 1000,  # ms
+            "consecutive_count_threshold": 5,
+        },
     }
 
 
@@ -244,6 +249,7 @@ def _detect_performance_problems(
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
+        ConsecutiveHTTPSpanDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
         NPlusOneDBSpanDetector(detection_settings, data),
