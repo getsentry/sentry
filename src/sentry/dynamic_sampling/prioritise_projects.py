@@ -19,7 +19,7 @@ from snuba_sdk import (
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId
-from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.utils.snuba import raw_snql_query
@@ -37,6 +37,7 @@ def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tupl
     start_time = time.time()
     offset = 0
     sample_rate = int(options.get("dynamic-sampling.prioritise_projects.sample_rate") * 100)
+    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
             Query(
@@ -51,11 +52,7 @@ def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tupl
                     Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate),
                     Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                    Condition(
-                        Column("metric_id"),
-                        Op.EQ,
-                        TRANSACTION_METRICS_NAMES[TransactionMRI.COUNT_PER_ROOT_PROJECT.value],
-                    ),
+                    Condition(Column("metric_id"), Op.EQ, metric_id),
                 ],
                 granularity=Granularity(3600),
                 orderby=[
