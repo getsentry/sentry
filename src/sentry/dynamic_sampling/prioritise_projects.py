@@ -22,6 +22,7 @@ from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -68,7 +69,7 @@ def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tupl
         )
         data = raw_snql_query(
             request,
-            referrer="dynamic_sampling.fetch_projects_with_count_per_root_total_volumes",
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
