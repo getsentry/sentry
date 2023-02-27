@@ -16,6 +16,7 @@ import {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
+  access: Record<string, any>;
   api: Client;
   openMembership: boolean;
   organization: Organization;
@@ -178,13 +179,22 @@ class AllTeamsRow extends Component<Props, State> {
   };
 
   render() {
-    const {team, openMembership, organization} = this.props;
+    const {team, openMembership, organization, access} = this.props;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const buttonHelpText = team.flags['idp:provisioned']
-      ? t(
+    const hasOrgAdminAccess = access.has('org:admin');
+    const buttonHelpText = () => {
+      if (team.flags['idp:provisioned']) {
+        return t(
           "Membership to this team is managed through your organization's identity provider."
-        )
-      : undefined;
+        );
+      }
+      if (team.orgRole && !hasOrgAdminAccess) {
+        return t(
+          'Membership to a team with an organization role is managed by organization owners.'
+        );
+      }
+      return undefined;
+    };
 
     const display = (
       <IdBadge
@@ -199,6 +209,10 @@ class AllTeamsRow extends Component<Props, State> {
     const canViewTeam = team.hasAccess;
 
     const idpProvisioned = team.flags['idp:provisioned'];
+    const teamOrgRole = team.orgRole
+      ? team.orgRole.charAt(0).toUpperCase() + team.orgRole.slice(1) + ' Team'
+      : '';
+    const isDisabled = idpProvisioned || (team.orgRole !== null && !hasOrgAdminAccess);
 
     return (
       <TeamPanelItem>
@@ -211,6 +225,7 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
+        <div>{teamOrgRole}</div>
         <div>{this.getTeamRoleName()}</div>
         <div>
           {this.state.loading ? (
@@ -221,8 +236,8 @@ class AllTeamsRow extends Component<Props, State> {
             <Button
               size="sm"
               onClick={this.handleLeaveTeam}
-              disabled={idpProvisioned}
-              title={buttonHelpText}
+              disabled={isDisabled}
+              title={buttonHelpText()}
             >
               {t('Leave Team')}
             </Button>
@@ -240,8 +255,8 @@ class AllTeamsRow extends Component<Props, State> {
             <Button
               size="sm"
               onClick={this.handleJoinTeam}
-              disabled={idpProvisioned}
-              title={buttonHelpText}
+              disabled={isDisabled}
+              title={buttonHelpText()}
             >
               {t('Join Team')}
             </Button>
@@ -249,8 +264,8 @@ class AllTeamsRow extends Component<Props, State> {
             <Button
               size="sm"
               onClick={this.handleRequestAccess}
-              disabled={idpProvisioned}
-              title={buttonHelpText}
+              disabled={isDisabled}
+              title={buttonHelpText()}
             >
               {t('Request Access')}
             </Button>
@@ -278,7 +293,7 @@ export default withApi(AllTeamsRow);
 
 const TeamPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) minmax(90px, 1fr) min-content;
+  grid-template-columns: minmax(150px, 4fr) minmax(90px, 1fr) minmax(90px, 1fr) min-content;
   gap: ${space(2)};
   align-items: center;
 
