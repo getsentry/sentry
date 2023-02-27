@@ -90,7 +90,7 @@ function getErrorMessage(
         {
           title: t('Sentry not part of release pipeline'),
           desc: tct(
-            "Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what's set in your Sentry.init. The value for this event is [version].",
+            "Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what's set in your [init]. The value for this event is [version].",
             {
               init: sentryInit,
               version: <code>{error.data.version}</code>,
