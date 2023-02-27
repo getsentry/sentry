@@ -431,6 +431,16 @@ class RawCloudSpannerIndexer(StringIndexer):
         else:
             return str(results_list[0][0])
 
+    def resolve_shared_org(self, string: str) -> Optional[int]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class CloudSpannerIndexer"
+        )
+
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class CloudSpannerIndexer"
+        )
+
 
 class CloudSpannerIndexer(StaticStringIndexer):
     def __init__(self, **kwargs: Any) -> None:
