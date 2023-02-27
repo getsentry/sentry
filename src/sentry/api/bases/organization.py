@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import sentry_sdk
 from django.core.cache import cache
@@ -448,7 +448,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         )
 
     def has_release_permission(
-        self, request: Request, organization: Organization, release: Optional[Release]
+        self, request: Request, organization: Organization, release: Release
     ) -> bool:
         """
         Does the given request have permission to access this release, based
@@ -458,9 +458,6 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         for a minute on the unique combination of actor,org,release, and project
         ids.
         """
-        if release is None:
-            return True
-
         actor_id = None
         has_perms = None
         key = None

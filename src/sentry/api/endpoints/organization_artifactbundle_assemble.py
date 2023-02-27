@@ -4,7 +4,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Project
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -21,10 +20,6 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         """
         Assembles an artifact bundle and stores the debug ids in the database.
         """
-        # TODO: check how to properly do validation without a release.
-        if not self.has_release_permission(request, organization, None):
-            raise ResourceDoesNotExist
-
         schema = {
             "type": "object",
             "properties": {
