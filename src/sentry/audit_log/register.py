@@ -50,11 +50,7 @@ default_manager.add(
         event_id=20, name="TEAM_ADD", api_name="team.create", template="created team {slug}"
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=21, name="TEAM_EDIT", api_name="team.edit", template="edited team {slug}"
-    )
-)
+default_manager.add(events.TeamEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=22, name="TEAM_REMOVE", api_name="team.remove", template="removed team {slug}"
