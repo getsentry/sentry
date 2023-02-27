@@ -251,7 +251,7 @@ def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
         return None
 
 
-def _extract_information_from_manifest(manifest: dict) -> List[Tuple[SourceFileType, str]]:
+def _extract_debug_ids_from_manifest(manifest: dict) -> List[Tuple[SourceFileType, str]]:
     debug_ids_with_types = []
 
     files = manifest.get("files", {})
@@ -279,7 +279,7 @@ def _create_artifact_bundle(
     artifact_count: int,
 ) -> bool:
     with ReleaseArchive(archive_file.getfile()) as archive:
-        debug_ids_with_types = _extract_information_from_manifest(archive.manifest)
+        debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
         if len(debug_ids_with_types) > 0:
             artifact_bundle = ArtifactBundle.objects.create(
@@ -299,6 +299,7 @@ def _create_artifact_bundle(
 
             for project_id in project_ids:
                 ProjectArtifactBundle.objects.create(
+                    organization_id=org_id,
                     project_id=project_id,
                     artifact_bundle=artifact_bundle,
                 )
