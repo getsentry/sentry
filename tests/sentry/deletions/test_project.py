@@ -36,9 +36,7 @@ class DeleteProjectTest(TransactionTestCase):
         release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)
         release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
-        env = Environment.objects.create(
-            organization_id=project.organization_id, project_id=project.id, name="foo"
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name="foo")
         env.add_project(project)
         repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
         commit_author = CommitAuthor.objects.create(
