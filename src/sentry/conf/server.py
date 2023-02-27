@@ -615,6 +615,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.tasks.auto_enable_codecov",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -844,6 +845,11 @@ CELERYBEAT_SCHEDULE = {
     "hybrid-cloud-repair-mappings": {
         "task": "sentry.tasks.organization_mapping.repair_mappings",
         "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
+    },
+    "auto-enable-codecov": {
+        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+        "schedule": timedelta(hours=12),
         "options": {"expires": 3600},
     },
 }

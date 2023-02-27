@@ -114,6 +114,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.check_monitors": 1.0,
+    "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
