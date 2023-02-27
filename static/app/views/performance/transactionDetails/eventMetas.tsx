@@ -259,7 +259,7 @@ export function getEventDetailHeaderCols({
   return `grid-template-columns: ${[
     'minmax(160px, 1fr)', // Event ID
     type === 'transaction' ? 'minmax(160px, 1fr)' : 'minmax(200px, 1fr)', // Duration or Created Time
-    type === 'transaction' && 'minmax(160px, 1fr)', // Status
+    type === 'transaction' && isBackendProject && 'minmax(160px, 1fr)', // Status
     type === 'transaction' && 'minmax(160px, 1fr) ', // Browser
     hasReplay ? '5fr' : '6fr', // Replay
     hasReplay && 'minmax(325px, 1fr)', // Quick Trace

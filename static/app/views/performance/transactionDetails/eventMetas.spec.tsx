@@ -47,13 +47,13 @@ describe('getEventDetailHeaderCols', () => {
       false,
       false,
       'transaction',
-      'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  6fr;',
+      'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  6fr;',
     ],
     [
       true,
       false,
       'transaction',
-      'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  5fr minmax(325px, 1fr);',
+      'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)  5fr minmax(325px, 1fr);',
     ],
     [
       false,
