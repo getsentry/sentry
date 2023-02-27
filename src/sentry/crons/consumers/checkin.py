@@ -1,6 +1,7 @@
 import logging
 from typing import Mapping
 
+import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -16,37 +17,53 @@ logger = logging.getLogger(__name__)
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
-    params = json.loads(message.payload.value)
-    current_datetime = to_datetime(params["date_updated"])
+    wrapper = msgpack.unpackb(message.payload.value)
+
+    params = json.loads(wrapper["payload"])
+    start_time = to_datetime(float(wrapper["start_time"]))
+    project_id = int(wrapper["project_id"])
 
     # TODO: Same as MonitorCheckInDetailsEndpoint.put. Keep in sync or factor out.
-    with transaction.atomic():
-        try:
-            checkin = MonitorCheckIn.objects.select_related("monitor").get(
-                monitor_id=params["monitor_id"], guid=params["checkin_id"]
+    try:
+        with transaction.atomic():
+            try:
+                checkin = MonitorCheckIn.objects.select_related("monitor").get(
+                    project_id=project_id,
+                    monitor_id=params["monitor_id"],
+                    guid=params["checkin_id"],
+                )
+            except MonitorCheckIn.DoesNotExist:
+                logger.debug("checkin does not exist: %s", params["checkin_id"])
+                return
+
+            # Map attributes from raw JSON to the model.
+            params["status"] = params["status"].upper()
+            if "duration" in params:
+                params["duration"] = int(params["duration"])
+            else:
+                params["duration"] = int((start_time - checkin.date_added).total_seconds() * 1000)
+
+            monitor = checkin.monitor
+            checkin.update(**params)
+
+            if checkin.status == CheckInStatus.ERROR:
+                monitor.mark_failed(start_time)
+                return
+
+            monitor_params = {
+                "last_checkin": start_time,
+                "next_checkin": monitor.get_next_scheduled_checkin(start_time),
+            }
+
+            if checkin.status == CheckInStatus.OK:
+                monitor_params["status"] = MonitorStatus.OK
+
+            Monitor.objects.filter(id=monitor.id).exclude(last_checkin__gt=start_time).update(
+                **monitor_params
             )
-        except MonitorCheckIn.DoesNotExist:
-            logger.debug("checkin does not exist: %s", params["checkin_id"])
-            return
-
-        monitor = checkin.monitor
-        checkin.update(**params)
-
-        if checkin.status == CheckInStatus.ERROR:
-            monitor.mark_failed(current_datetime)
-            return
-
-        monitor_params = {
-            "last_checkin": current_datetime,
-            "next_checkin": monitor.get_next_scheduled_checkin(current_datetime),
-        }
-
-        if checkin.status == CheckInStatus.OK:
-            monitor_params["status"] = MonitorStatus.OK
-
-        Monitor.objects.filter(id=monitor.id).exclude(last_checkin__gt=current_datetime).update(
-            **monitor_params
-        )
+    except Exception:
+        # Skip this message and continue processing in the consumer.
+        logger.exception("Failed to process checkin", exc_info=True)
 
 
 class StoreCronCheckinStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
