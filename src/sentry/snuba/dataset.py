@@ -15,6 +15,7 @@ class Dataset(Enum):
     Replays = "replays"
     Profiles = "profiles"
     IssuePlatform = "search_issues"
+    Functions = "functions"
 
 
 @unique
