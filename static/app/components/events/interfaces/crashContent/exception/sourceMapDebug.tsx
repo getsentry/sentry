@@ -90,7 +90,7 @@ function getErrorMessage(
         {
           title: t('Sentry not part of release pipeline'),
           desc: tct(
-            'Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what’s set in your Sentry.init. The value for this event is [version].',
+            "Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what's set in your Sentry.init. The value for this event is [version].",
             {
               init: sentryInit,
               version: <code>{error.data.version}</code>,
@@ -104,7 +104,7 @@ function getErrorMessage(
         {
           title: t('Source Maps not uploaded'),
           desc: t(
-            'It looks like you’re creating, but not uploading your source maps. Read our docs for troubleshooting help.'
+            "It looks like you're creating, but not uploading your source maps. Read our docs for troubleshooting help."
           ),
           docsLink: defaultDocsLink,
         },
@@ -146,7 +146,7 @@ function getErrorMessage(
         {
           title: t('Dist Mismatch'),
           desc: tct(
-            'The distribution identifier you’re providing doesn’t match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Read our docs for troubleshooting help.',
+            "The distribution identifier you're providing doesn't match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Read our docs for troubleshooting help.",
             {
               init: sentryInit,
               dist: <code>dist</code>,
@@ -161,9 +161,9 @@ function getErrorMessage(
     case SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND:
       return [
         {
-          title: t('Source Map File doesn’t exist'),
+          title: t("Source Map File doesn't exist"),
           desc: t(
-            'Sentry couldn’t fetch the source map file for this event. Read our docs for troubleshooting help.'
+            "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
           ),
           docsLink: getTroubleshootingLink(),
         },
@@ -318,8 +318,8 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       }
     >
       {tn(
-        "We've encountered %s problem unminifying your applications source code!",
-        "We've encountered %s problems unminifying your applications source code!",
+        "We've encountered %s problem un-minifying your applications source code!",
+        "We've encountered %s problems un-minifying your applications source code!",
         errorMessages.length
       )}
     </Alert>
