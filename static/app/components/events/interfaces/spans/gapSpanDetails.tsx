@@ -110,7 +110,7 @@ export function GapSpanDetails({
       <InlineDocs
         orgSlug={organization.slug}
         platform={event.sdk?.name || ''}
-        projectSlug={event?.projectSlug ?? ''}
+        projectSlug={project?.slug ?? event?.projectSlug ?? ''}
         resetCellMeasureCache={resetCellMeasureCache}
       />
     );
