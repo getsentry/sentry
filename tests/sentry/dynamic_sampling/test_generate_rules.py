@@ -87,7 +87,6 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
@@ -111,7 +110,6 @@ def test_generate_rules_return_uniform_rules_with_rate(
     fake_project = MagicMock()
     assert generate_rules(fake_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -146,7 +144,6 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                     }
                 ],
             },
-            "active": True,
             "id": 1002,
         },
         {
@@ -163,11 +160,9 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                     }
                 ],
             },
-            "active": True,
             "id": 1001,
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -205,7 +200,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
     )
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
@@ -222,7 +216,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
             "type": "transaction",
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -269,7 +262,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
     )
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
@@ -286,7 +278,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
             "type": "transaction",
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -327,7 +318,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
@@ -344,7 +334,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
             "type": "transaction",
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -365,7 +354,6 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     fake_project = MagicMock()
     assert generate_rules(fake_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
@@ -418,7 +406,6 @@ def test_generate_rules_with_different_project_platforms(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -438,7 +425,6 @@ def test_generate_rules_with_different_project_platforms(
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -478,7 +464,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -493,7 +478,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -508,7 +492,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -521,7 +504,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -564,7 +546,6 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -577,7 +558,6 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -598,7 +578,6 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
@@ -621,7 +600,6 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},

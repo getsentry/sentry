@@ -77,7 +77,7 @@ class Condition(TypedDict):
     inner: List[Inner]
 
 
-class Rule(TypedDict):
+class ActiveRule(TypedDict):
     samplingValue: SamplingValue
     type: str
     active: bool
@@ -85,15 +85,26 @@ class Rule(TypedDict):
     id: int
 
 
+class Rule(ActiveRule):
+    active: bool
+
+
 class DecayingFn(TypedDict):
     type: str
     decayedValue: Optional[str]
 
 
-class DecayingRule(Rule):
+class ActiveDecayingRule(Rule):
     timeRange: TimeRange
     decayingFn: DecayingFn
 
+
+class DecayingRule(ActiveDecayingRule):
+    active: bool
+
+
+#: This is the rule format that Relay expects
+PolymorphicActiveRule = Union[ActiveRule, ActiveDecayingRule]
 
 # Type defining the all the possible rules types that can exist.
 PolymorphicRule = Union[Rule, DecayingRule]
@@ -179,4 +190,4 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
             "The dynamic factor function requires a sample rate in the interval [0.x, 1.0] with x > 0."
         )
 
-    return float(x / x**base_sample_rate)
+    return float(x / x ** base_sample_rate)
