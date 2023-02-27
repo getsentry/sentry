@@ -20,7 +20,6 @@ NEW_CODECOV_REPORT_URL = (
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 REF_TYPE = Literal["branch", "sha"]
 CODECOV_TIMEOUT = 2
-WALK_BACK_LIMIT = "20"
 
 
 class CodecovIntegrationError(Enum):
@@ -95,7 +94,7 @@ def get_codecov_data(
             url = NEW_CODECOV_REPORT_URL.format(
                 service=service, owner_username=owner_username, repo_name=repo_name, path=path
             )
-            params = {ref_type: ref, "walk_back": WALK_BACK_LIMIT}
+            params = {ref_type: ref}
 
         with configure_scope() as scope:
             timeout = (

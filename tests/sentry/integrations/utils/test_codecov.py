@@ -90,12 +90,12 @@ class TestCodecovIntegration(APITestCase):
 
     @responses.activate
     @with_feature("organizations:codecov-stacktrace-integration-v2")
-    def test_get_codecov_report_with_walkback(self):
+    def test_get_codecov_report_new_endpoint(self):
         expected_line_coverage = [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
         expected_codecov_url = "https://codecov.io/gh/testgit/abc/commit/abc"
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master&walk_back=20",
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master",
             status=200,
             json={
                 "files": [{"line_coverage": expected_line_coverage}],
@@ -116,10 +116,10 @@ class TestCodecovIntegration(APITestCase):
 
     @responses.activate
     @with_feature("organizations:codecov-stacktrace-integration-v2")
-    def test_get_codecov_report_with_walkback_error(self):
+    def test_get_codecov_report_new_endpoint_error(self):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master&walk_back=20",
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master",
             status=404,
         )
 
