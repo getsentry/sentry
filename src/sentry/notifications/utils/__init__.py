@@ -527,14 +527,17 @@ class PerformanceProblemContext:
                 return span
         return None
 
-    def get_span_duration(self, span: Dict[str, any]) -> timedelta:
-        return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
+    def get_span_duration(self, span: Dict[str, Any] | None) -> timedelta:
+        if span:
+            return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
+        return timedelta(0)
 
-    def _sum_span_duration(self, spans: list) -> int:
+    def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
-        sum = 0
+        sum: float = 0.0
         for span in spans:
-            sum += self.get_span_duration(span).total_seconds() * 1000
+            if span:
+                sum += self.get_span_duration(span).total_seconds() * 1000
         return sum
 
     @classmethod
@@ -652,7 +655,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
             [self.get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
         )
 
-        sum_of_dependent_span_durations = 0
+        sum_of_dependent_span_durations = 0.0
         for span in consecutive_spans:
             if span not in independent_spans:
                 sum_of_dependent_span_durations += (
