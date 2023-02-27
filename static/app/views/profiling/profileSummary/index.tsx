@@ -20,16 +20,18 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {defined, generateQueryWithTag} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField} from 'sentry/utils/discover/fields';
+import {formatTagKey, isAggregateField} from 'sentry/utils/discover/fields';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import Tags from 'sentry/views/discover/tags';
 
 import {ProfileSummaryContent} from './content';
 
@@ -84,6 +86,22 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
 
     return search.formatString();
   }, [rawQuery, transaction]);
+
+  const profilesCountQuery = useProfileEvents<'count()'>({
+    fields: ['count()'],
+    sort: {key: 'count()', order: 'desc'},
+    referrer: 'api.profiling.profile-summary-table', // TODO
+    query,
+    enabled: profilingUsingTransactions,
+  });
+
+  const profilesCount = useMemo(() => {
+    if (profilesCountQuery.status !== 'success') {
+      return null;
+    }
+
+    return profilesCountQuery.data[0].data[0]['count()'] as number;
+  }, [profilesCountQuery]);
 
   const filtersQuery = useMemo(() => {
     // To avoid querying for the filters each time the query changes,
@@ -151,6 +169,13 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     _eventView.additionalConditions.setFilterValues('has', ['profile.id']);
     return _eventView;
   }, [props.location, project, query, transaction]);
+
+  function generateTagUrl(key: string, value: string) {
+    return {
+      ...props.location,
+      query: generateQueryWithTag(props.location.query, {key: formatTagKey(key), value}),
+    };
+  }
 
   return (
     <SentryDocumentTitle
@@ -220,6 +245,17 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                     query={query}
                   />
                 </Layout.Main>
+                {profilingUsingTransactions && (
+                  <Layout.Side>
+                    <Tags
+                      generateUrl={generateTagUrl}
+                      totalValues={profilesCount}
+                      eventView={eventView}
+                      organization={organization}
+                      location={props.location}
+                    />
+                  </Layout.Side>
+                )}
               </Layout.Body>
             </Fragment>
           )}
