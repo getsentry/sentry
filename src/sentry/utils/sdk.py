@@ -9,13 +9,7 @@ from django.urls import resolve
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import (  # NOQA
-    Scope,
-    capture_exception,
-    capture_message,
-    configure_scope,
-    push_scope,
-)
+from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -473,10 +467,10 @@ def check_tag(tag_key: str, expected_value: str) -> bool:
 
 
 # We have some events being tagged with organization.slug even when we don't have such info
-def log_if_tags_already_set(scope: Scope, org_id: int, org_slug: str) -> None:
+def log_if_tags_already_set(org_id: int, org_slug: str) -> None:
     """If the tags are already set and differ, report them as a Sentry error."""
     if check_tag("organization", org_id) or check_tag("organization.slug", org_slug):
-        logger.error("Intentional error for investigation. Ignore it. WOR-2464.")
+        logger.error("Intentional error for investigation. See WOR-2464.")
 
 
 def bind_organization_context(organization):
