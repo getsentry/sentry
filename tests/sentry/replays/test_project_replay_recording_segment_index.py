@@ -122,7 +122,9 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
         )
         self.features = {"organizations:session-replay": True}
 
-    def save_recording_segment(self, segment_id: int, data: bytes, compressed: bool = True):
+    def save_recording_segment(
+        self, segment_id: int, data: bytes, compressed: bool = True, **metadata
+    ):
         # Insert the row in clickhouse.
         self.store_replays(
             mock_replay(
@@ -131,6 +133,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
                 self.replay_id,
                 segment_id=segment_id,
                 retention_days=30,
+                **metadata,
             )
         )
 
@@ -143,3 +146,51 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
             file_id=None,
         )
         StorageBlob().set(metadata, zlib.compress(data) if compressed else data)
+
+    def test_archived_segment_metadata_returns_no_results(self):
+        """Assert archived segment metadata returns no results."""
+        self.save_recording_segment(0, b"[{}]", compressed=True, is_archived=True)
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert b"".join([i for i in response.streaming_content]) == b"[]"
+
+    def test_blob_does_not_exist(self):
+        """Assert missing blobs return default value."""
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                self.replay_id,
+                segment_id=0,
+                retention_days=30,
+            )
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert b"".join([i for i in response.streaming_content]) == b"[[]]"
+
+    def test_missing_segment_meta(self):
+        """Assert missing segment meta returns no blob data."""
+        metadata = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=0,
+            retention_days=30,
+            file_id=None,
+        )
+        StorageBlob().set(metadata, zlib.compress(b"[{}]"))
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert b"".join([i for i in response.streaming_content]) == b"[]"
