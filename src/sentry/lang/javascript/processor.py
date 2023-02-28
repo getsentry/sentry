@@ -900,8 +900,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # Component responsible for fetching the files.
         self.fetcher = Fetcher(
+            project=self.project,
             allow_scraping=organization.get_option("sentry:scrape_javascript", True) is not False
-            and self.project.get_option("sentry:scrape_javascript", True)
+            and self.project.get_option("sentry:scrape_javascript", True),
         )
 
     def get_valid_frames(self):
