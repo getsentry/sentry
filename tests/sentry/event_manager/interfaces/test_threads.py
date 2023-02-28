@@ -30,6 +30,7 @@ basic_payload = dict(
             "crashed": False,
             "current": True,
             "name": "Main Thread",
+            "state": "RUNNABLE",
             "stacktrace": {
                 "frames": [
                     {"filename": "foo/baz.c", "function": "main", "lineno": 1, "in_app": True}
@@ -56,6 +57,7 @@ def test_basics(make_threads_snapshot):
         {"values": [{"id": None}]},
         {"values": [{"name": None}]},
         {"values": [{"stacktrace": None}]},
+        {"values": [{"threads": None}]},
     ],
 )
 def test_null_values(make_threads_snapshot, input):
