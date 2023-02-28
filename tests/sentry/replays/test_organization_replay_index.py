@@ -196,6 +196,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             assert len(response_data["data"][0]) == 1
             assert "tags" in response_data["data"][0]
+            assert response_data["data"][0]["tags"]["test"] == ["world", "hello"]
+            assert response_data["data"][0]["tags"]["other"] == ["hello"]
 
     def test_get_replays_minimum_field_set(self):
         """Test replay response with fields requested in production."""
