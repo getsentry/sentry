@@ -172,8 +172,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         :auth: required
         """
         should_return_schema = features.has(
-            "organizations:streamline-targeting-context",
-            project.organization,
+            "organizations:streamline-targeting-context", project.organization
         )
         return Response(
             serialize(
@@ -195,8 +194,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         :auth: required
         """
         should_return_schema = features.has(
-            "organizations:streamline-targeting-context",
-            project.organization,
+            "organizations:streamline-targeting-context", project.organization
         )
         serializer = ProjectOwnershipSerializer(
             data=request.data, partial=True, context={"ownership": self.get_ownership(project)}
