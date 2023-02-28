@@ -39,8 +39,7 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type
                 orderby="-count",
             )
             snql_query = builder.get_snql_query()
-            referrer = "api.organization-events-span-ops"
-            results = raw_snql_query(snql_query, referrer)
+            results = raw_snql_query(snql_query, "api.organization-events-span-ops")
             return [SpanOp(op=row["spans_op"], count=row["count"]) for row in results["data"]]
 
         with self.handle_query_errors():

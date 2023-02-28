@@ -442,8 +442,8 @@ class SnubaTSDB(BaseTSDB):
                     ]
 
             referrer = f"tsdb-modelid:{model.value}"
-            if tenant_ids:
-                tenant_ids["referrer"] = referrer
+            tenant_ids = tenant_ids or dict()
+            tenant_ids["referrer"] = referrer
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
@@ -456,7 +456,7 @@ class SnubaTSDB(BaseTSDB):
                     granularity=Granularity(rollup),
                     limit=Limit(limit),
                 ),
-                tenant_ids=tenant_ids or dict(),
+                tenant_ids=tenant_ids,
             )
             query_result = raw_snql_query(snql_request, referrer=referrer, use_cache=use_cache)
             if manual_group_on_time:

@@ -110,7 +110,10 @@ def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOve
             dataset="events",
             app_id="grouping",
             query=query,
-            tenant_ids={"referrer": "<unknown>", "organization_id": group.project.organization_id},
+            tenant_ids={
+                "referrer": "api.group_hashes_levels.get_hash_for_parent_level",
+                "organization_id": group.project.organization_id,
+            },
         )
         return_hash: str = get_path(snuba.raw_snql_query(request), "data", 0, "hash")  # type: ignore
         cache.set(cache_key, return_hash)
