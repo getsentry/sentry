@@ -348,6 +348,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
             conditions=conditions,
+            tenant_ids={"organization_id": self.organization_id},
             **query_params,
         )
         if error_issue_ids:

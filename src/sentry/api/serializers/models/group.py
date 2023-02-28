@@ -899,7 +899,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         from sentry.search.snuba.executors import get_search_filter
 
         self.environment_ids = environment_ids
-
+        self.organization_id = organization_id
         # XXX: We copy this logic from `PostgresSnubaQueryExecutor.query`. Ideally we
         # should try and encapsulate this logic, but if you're changing this, change it
         # there as well.

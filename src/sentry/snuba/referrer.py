@@ -69,6 +69,9 @@ class ReferrerBase(Enum):
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
     API_GROUP_EVENTS_PERFORMANCE = "api.group-events.performance"
     API_GROUP_HASHES_LEVELS_GET_LEVEL_NEW_ISSUES = "api.group_hashes_levels.get_level_new_issues"
+    API_GROUP_HASHES_LEVELS_GET_HASH_FOR_PARENT_LEVEL = (
+        "api.group_hashes_levels.get_hash_for_parent_level"
+    )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
