@@ -147,7 +147,7 @@ function SlowestTransactionPanelItem({
   return (
     <PanelItem key={transaction.transaction}>
       <Flex justify="space-between" gap={space(1)}>
-        <PlatformIcon platform={transactionProject?.platform || 'default'} />
+        <PlatformIcon platform={transactionProject?.platform ?? 'default'} />
         <Flex.Item grow={1}>
           <Link
             to={generateProfileSummaryRouteWithQuery({
