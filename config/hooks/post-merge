@@ -8,11 +8,11 @@ reset="$(tput sgr0)"
 files_changed_upstream="$(mktemp)"
 trap "rm -f ${files_changed_upstream}" EXIT
 
-git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD > "$files_changed_upstream"
+git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD >"$files_changed_upstream"
 
 grep --quiet 'requirements-dev-frozen.txt' "$files_changed_upstream" && py="install-py-dev "
-grep --quiet 'yarn.lock' "$files_changed_upstream"                   && js="install-js-dev "
-grep --quiet 'migrations' "$files_changed_upstream"                  && migrations="apply-migrations "
+grep --quiet 'yarn.lock' "$files_changed_upstream" && js="install-js-dev "
+grep --quiet 'migrations' "$files_changed_upstream" && migrations="apply-migrations "
 
 [[ "$pc" || "$py" || "$js" || "$migrations" ]] && needs_update=1
 
