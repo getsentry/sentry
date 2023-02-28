@@ -198,6 +198,16 @@ class PGStringIndexerV2(StringIndexer):
     def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
         return TABLE_MAPPING[use_case_id]
 
+    def resolve_shared_org(self, string: str) -> Optional[int]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class PostgresIndexer"
+        )
+
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class PostgresIndexer"
+        )
+
 
 class PostgresIndexer(StaticStringIndexer):
     def __init__(self) -> None:

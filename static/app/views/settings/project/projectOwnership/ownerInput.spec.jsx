@@ -39,7 +39,7 @@ describe('Project Ownership Input', function () {
       />
     );
 
-    const submitButton = screen.getByRole('button', {name: 'Save Changes'});
+    const submitButton = screen.getByRole('button', {name: 'Save'});
     expect(put).not.toHaveBeenCalled();
 
     // if text is unchanged, submit button is disabled

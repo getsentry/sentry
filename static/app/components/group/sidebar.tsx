@@ -218,7 +218,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     return (
       <Container>
         {!hasStreamlineTargetingFeature && (
-          <OwnedBy group={group} project={project} organization={organization} />
+          <OwnedBy
+            group={group}
+            event={event}
+            project={project}
+            organization={organization}
+          />
         )}
         <AssignedTo
           group={group}
