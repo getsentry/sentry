@@ -151,7 +151,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             )
 
             monitor_environment = MonitorEnvironment.objects.get_or_create(
-                monitor=monitor, environment=environment
+                monitor=monitor, environment=environment, status=monitor.status
             )[0]
 
             checkin = MonitorCheckIn.objects.create(
