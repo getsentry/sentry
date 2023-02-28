@@ -5,12 +5,11 @@ not polymorphic on service providers.  Any change of credentials will result in 
 proper steps are taken to migrate your data.
 """
 import dataclasses
-import functools
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, Optional, Union
+from typing import Optional, Union
 
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -32,26 +31,6 @@ class RecordingSegmentStorageMeta:
     retention_days: int
     date_added: Optional[datetime] = None
     file_id: Optional[int] = None
-
-
-def cached(fn: Callable[[Any, RecordingSegmentStorageMeta], bytes]):
-    """Return cached blob data."""
-
-    @functools.wraps(fn)
-    def decorator(self, segment: RecordingSegmentStorageMeta) -> bytes:
-        cache_key = make_filename(segment)
-
-        # Fetch the recording-segment from cache if possible.
-        cache_value = replay_cache.get(cache_key, raw=True)
-        if cache_value:
-            return cache_value
-
-        # Fetch the recording-segment from storage and cache before returning a response.
-        value = fn(self, segment)
-        replay_cache.set(cache_key, value, timeout=3600, raw=True)
-        return value
-
-    return decorator
 
 
 class Blob(ABC):
@@ -122,14 +101,26 @@ class StorageBlob(Blob):
         storage.delete(self.make_key(segment))
 
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
-    @cached
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
-        storage = get_storage(self._make_storage_options())
+        cache_key = make_filename(segment)
 
-        blob = storage.open(self.make_key(segment))
-        result = blob.read()
-        blob.close()
-        return result
+        # Return eagerly from cache if the value exists.
+        cache_value = replay_cache.get(cache_key, raw=True)
+        if cache_value:
+            return cache_value
+
+        try:
+            storage = get_storage(self._make_storage_options())
+            blob = storage.open(self.make_key(segment))
+            result = blob.read()
+            blob.close()
+        except Exception:
+            # Return a default value if the storage does not exist.
+            return b"[]"
+        else:
+            # Set the returned value in cache.
+            replay_cache.set(cache_key, result, timeout=3600, raw=True)
+            return result
 
     @metrics.wraps("replays.lib.storage.StorageBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
