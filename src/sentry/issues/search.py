@@ -13,6 +13,10 @@ from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
 
 
+class UnsupportedSearchQuery(Exception):
+    pass
+
+
 class IntermediateSearchQueryPartial(Protocol):
     def __call__(
         self,
@@ -234,9 +238,11 @@ def _update_profiling_search_filters(
 
     for sf in search_filters:
         # XXX: we replace queries on these keys to something that should return nothing since
-        # profiling issues doesn't support have stacktraces
-        if sf.key.name in ("notHandled", "error.handled"):
-            updated_filters.append(SearchFilter(SearchKey("1"), "=", SearchValue("2")))
+        # profiling issues doesn't support stacktraces
+        if sf.key.name in ("error.unhandled", "error.handled"):
+            raise UnsupportedSearchQuery(
+                f"{sf.key.name} filter isn't supported for {GroupCategory.PROFILE.name}"
+            )
         else:
             updated_filters.append(sf)
 

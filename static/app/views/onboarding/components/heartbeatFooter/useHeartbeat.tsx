@@ -67,19 +67,23 @@ export function useHeartbeat(
   // *not* include sample events, while just looking at the issues list will.
   // We will wait until the project.firstEvent is set and then locate the
   // event given that event datetime
-  useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
-    staleTime: 0,
-    enabled: !!firstError && !firstIssue, // Only fetch if an error event is received and we have not yet located the first issue,
-    onSuccess: data => {
-      setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
-    },
-  });
+  const {isLoading: issuesLoading} = useQuery<Group[]>(
+    [`/projects/${organization.slug}/${projectSlug}/issues/`],
+    {
+      staleTime: 0,
+      enabled: !!firstError && !firstIssue, // Only fetch if an error event is received and we have not yet located the first issue,
+      onSuccess: data => {
+        setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
+      },
+    }
+  );
 
   const firstErrorReceived = firstIssue ?? !!firstError;
   const loading = eventIsLoading || sessionIsLoading;
 
   return {
     loading,
+    issuesLoading,
     serverConnected,
     firstErrorReceived,
     firstTransactionReceived,

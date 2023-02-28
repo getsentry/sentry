@@ -6,7 +6,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test(stable=True)
 class MonitorDetailsTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-details"
-    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-details"
 
     def setUp(self):
         super().setUp()
@@ -44,7 +44,7 @@ class MonitorDetailsTest(MonitorTestCase):
 @region_silo_test(stable=True)
 class UpdateMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-details"
-    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-details"
 
     def setUp(self):
         super().setUp()
@@ -262,11 +262,26 @@ class UpdateMonitorTest(MonitorTestCase):
 
         assert resp.status_code == 400
 
+    def test_cannot_change_project(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor.guid)
+            self.login_as(user=self.user)
+
+            project2 = self.create_project()
+            resp = self.client.put(path, data={"project": project2.slug})
+
+            assert resp.status_code == 400, resp.content
+            assert (
+                resp.data["detail"]["message"]
+                == "existing monitors may not be moved between projects"
+            ), resp.content
+
 
 @region_silo_test()
 class DeleteMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-details"
-    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-details"
 
     def setUp(self):
         super().setUp()

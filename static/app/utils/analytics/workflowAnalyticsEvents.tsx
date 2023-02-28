@@ -74,6 +74,7 @@ export type TeamInsightsEventParameters = {
       | 'assign'
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
+    assigned_type?: string;
   };
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};

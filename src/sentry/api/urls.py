@@ -69,6 +69,7 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -224,9 +225,6 @@ from .endpoints.organization_dashboard_widget_details import (
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
-from .endpoints.organization_dynamic_sampling_sdk_versions import (
-    OrganizationDynamicSamplingSDKVersionsEndpoint,
-)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -395,6 +393,7 @@ from .endpoints.project_processingissues import (
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
+    ProjectProfilingFlamegraphEndpoint,
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -654,7 +653,7 @@ urlpatterns = [
     url(
         r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
-        name="sentry-api-0-accept-organization-invite-with-org",
+        name="sentry-api-0-organization-accept-organization-invite",
     ),
     url(
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
@@ -697,27 +696,27 @@ urlpatterns = [
                 url(
                     r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-details-with-org",
+                    name="sentry-api-0-organization-monitor-details",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-index",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-details-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-details",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
                     MonitorCheckInAttachmentEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-attachment-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-attachment",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-stats-with-org",
+                    name="sentry-api-0-organization-monitor-stats",
                 ),
             ]
         ),
@@ -1573,11 +1572,6 @@ urlpatterns = [
                     OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
                     name="sentry-api-0-organization-transaction-anomaly-detection",
                 ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/dynamic-sampling/sdk-versions/$",
-                    OrganizationDynamicSamplingSDKVersionsEndpoint.as_view(),
-                    name="sentry-api-0-organization-dynamic-sampling-sdk-versions",
-                ),
                 # relay usage
                 url(
                     r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
@@ -2312,6 +2306,11 @@ urlpatterns = [
                     name="sentry-api-0-project-profiling-raw-profile",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/flamegraph/$",
+                    ProjectProfilingFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-flamegraph",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-transactions",
@@ -2337,7 +2336,7 @@ urlpatterns = [
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
-        name="sentry-api-0-group-stats-with-org",
+        name="sentry-api-0-organization-group-stats",
     ),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
@@ -2348,7 +2347,7 @@ urlpatterns = [
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-shared-group-details-with-org",
+        name="sentry-api-0-organization-shared-group-details",
     ),
     url(
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
@@ -2487,6 +2486,11 @@ urlpatterns = [
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),
+                url(
+                    r"^project-config/$",
+                    AdminRelayProjectConfigsEndpoint.as_view(),
+                    name="sentry-api-0-internal-project-config",
+                ),
             ]
         ),
     ),
