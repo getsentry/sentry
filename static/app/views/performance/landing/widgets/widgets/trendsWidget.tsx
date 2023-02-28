@@ -126,13 +126,17 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       const initialConditions = new MutableSearch([]);
       initialConditions.addFilterValues('transaction', [listItem.transaction]);
 
+      const {statsPeriod, start, end} = eventView;
+
+      const defaultPeriod = !start && !end ? DEFAULT_STATS_PERIOD : undefined;
+
       const trendsTarget = trendsTargetRoute({
         organization: props.organization,
         location,
         initialConditions,
         additionalQuery: {
           trendFunction: trendFunctionField,
-          statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
+          statsPeriod: statsPeriod || DEFAULT_STATS_PERIOD,
         },
       });
 
@@ -144,7 +148,9 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
         additionalQuery: {
           display: DisplayModes.TREND,
           trendFunction: trendFunctionField,
-          statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
+          statsPeriod: statsPeriod || defaultPeriod,
+          start,
+          end,
         },
       });
 
