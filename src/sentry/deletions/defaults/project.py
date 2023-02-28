@@ -38,7 +38,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupSubscription,
             models.LatestAppConnectBuildsCheck,
             models.Monitor,
-            models.MonitorEnvironment,
             models.ProjectBookmark,
             models.ProjectKey,
             models.ProjectTeam,
