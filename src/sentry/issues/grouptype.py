@@ -176,6 +176,7 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
+# deprecated: use ProfileFileIOGroupType, ProfileImageDecodeGroupType, or ProfileJSONDecodeType
 class ProfileBlockedThreadGroupType(GroupType):
     type_id = 2000
     slug = "profile_blocked_thread"
@@ -211,6 +212,8 @@ PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
     [
         ProfileBlockedThreadGroupType.type_id,
         ProfileFileIOGroupType.type_id,
+        ProfileImageDecodeGroupType.type_id,
+        ProfileJSONDecodeType.type_id,
     ]
 )
 
