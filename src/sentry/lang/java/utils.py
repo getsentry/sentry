@@ -3,12 +3,12 @@ import os
 import sentry_sdk
 from symbolic import ProguardMapper
 
-from sentry import features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.eventstore.models import Event
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.options import sample_modulo
 from sentry.utils.safe import get_path
 
 CACHE_TIMEOUT = 3600
@@ -82,8 +82,8 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
 def deobfuscate_view_hierarchy(data):
     project = Project.objects.get_from_cache(id=data["project"])
 
-    if not features.has(
-        "organizations:view-hierarchy-deobfuscation", project.organization, actor=None
+    if not sample_modulo(
+        "processing.view-hierarchies-deobfuscation-general-availability", project.organization.id
     ):
         return
 
