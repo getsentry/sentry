@@ -472,7 +472,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             )
             has_perms = cache.get(key)
         if has_perms is None:
-            projects = self.get_projects(request, organization, project_ids=set(project_ids))
+            projects = self.get_projects(
+                request, organization, project_ids=set(project_ids) if project_ids else None
+            )
             # XXX(iambriccardo): The logic here is that you have access to this release if any of your projects
             # associated with this release you have release permissions to.  This is a bit of
             # a problem because anyone can add projects to a release, so this check is easy
