@@ -49,7 +49,7 @@ def process_profile_task(
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     sentry_sdk.set_context(
-        "profile",
+        "profile_metadata",
         {
             "organization_id": profile["organization_id"],
             "project_id": profile["project_id"],
