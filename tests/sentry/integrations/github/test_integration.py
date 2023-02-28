@@ -696,3 +696,45 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
                 ]
             )
+
+    @responses.activate
+    def test_get_trees_for_org_rate_limit_401(self):
+        """Sometimes the rate limit API fails from the get go."""
+        # Generic test set up
+        cache.clear()  # TODO: Investigate why it did not work in the setUp method
+        installation = self.get_installation_helper()
+
+        # None of the repos will have any files since rate limit will fail
+        # with a 401 response (which makes no sense)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", []),
+                ("foo", "master", []),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
+
+        # This time the rate limit will not fail, thus, it will fetch the trees
+        self.set_rate_limit()
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+            ]
+        )
+
+        # This time we will get a 401 but be will load from the cache (unlike the first time)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
