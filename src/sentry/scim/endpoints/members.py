@@ -68,16 +68,22 @@ class OperationValue(Field):
             return value
         elif isinstance(value, dict):
             return value
-        else:
-            raise ValidationError("value must be a boolean or object")
+        elif isinstance(value, str):
+            value = resolve_maybe_bool_value(value)
+            if value is not None:
+                return value
+        raise ValidationError("value must be a boolean or object")
 
     def to_internal_value(self, data) -> Union[Dict, bool]:
         if isinstance(data, bool):
             return data
         elif isinstance(data, dict):
             return data
-        else:
-            raise ValidationError("value must be a boolean or object")
+        elif isinstance(data, str):
+            value = resolve_maybe_bool_value(data)
+            if value is not None:
+                return value
+        raise ValidationError("value must be a boolean or object")
 
 
 class SCIMPatchOperationSerializer(serializers.Serializer):
@@ -116,6 +122,19 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
+def resolve_maybe_bool_value(value):
+    if isinstance(value, str):
+        value = value.lower()
+        # Some IdP vendors such as Azure send boolean values as actual strings.
+        if value == "true":
+            return True
+        elif value == "false":
+            return False
+    if isinstance(value, bool):
+        return value
+    return None
+
+
 @region_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
@@ -143,11 +162,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         if operation.get("op").lower() == MemberPatchOps.REPLACE:
             if (
                 isinstance(operation.get("value"), dict)
-                and operation.get("value").get("active") is False
+                and resolve_maybe_bool_value(operation.get("value").get("active")) is False
             ):
                 # how okta sets active to false
                 return True
-            elif operation.get("path") == "active" and operation.get("value") is False:
+            elif (
+                operation.get("path") == "active"
+                and resolve_maybe_bool_value(operation.get("value")) is False
+            ):
                 # how other idps set active to false
                 return True
         return False
