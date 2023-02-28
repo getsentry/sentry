@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {RouteComponentProps, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -23,6 +23,8 @@ import {space} from 'sentry/styles/space';
 import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type RouteParams = {
   groupId: string;
@@ -46,7 +48,7 @@ type State = {
 const DEFAULT_SORT = 'count';
 
 class GroupTagValues extends AsyncComponent<
-  Props & AsyncComponent['props'],
+  Props & AsyncComponent['props'] & WithRouterProps,
   State & AsyncComponent['state']
 > {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -279,7 +281,7 @@ class GroupTagValues extends AsyncComponent<
   }
 }
 
-export default GroupTagValues;
+export default withSentryRouter(GroupTagValues);
 
 const TitleWrapper = styled('div')`
   display: flex;
