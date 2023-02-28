@@ -10,7 +10,7 @@ from sentry.models import CheckInStatus, MonitorCheckIn
 
 
 @region_silo_endpoint
-class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
+class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     # TODO(dcramer): probably convert to tsdb
     def get(
         self, request: Request, project, monitor, organization_slug: str | None = None
