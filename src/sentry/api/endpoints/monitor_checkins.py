@@ -150,9 +150,13 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 project=project, name=result.get("environment", "production")
             )
 
-            monitor_environment = MonitorEnvironment.objects.get_or_create(
-                monitor=monitor, environment=environment, status=monitor.status
-            )[0]
+            monitor_environment, created = MonitorEnvironment.objects.get_or_create(
+                monitor=monitor, environment=environment
+            )
+
+            if created:
+                monitor_environment.status = monitor.status
+                monitor_environment.save()
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
