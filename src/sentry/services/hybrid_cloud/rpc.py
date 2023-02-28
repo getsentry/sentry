@@ -32,11 +32,17 @@ class RpcService(InterfaceWithLifecycle):
                 raise TypeError("`local_mode` class attribute (SiloMode) is required")
 
     @classmethod
-    def _get_all_abstract_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
+    def _get_all_abstract_methods(cls) -> Iterator[Callable[..., Any]]:
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name, None)
-            if callable(attr) and getattr(attr, _IS_RPC_METHOD_ATTR, False):
+            if callable(attr) and getattr(attr, "__isabstractmethod__", False):
                 yield attr
+
+    @classmethod
+    def _get_all_abstract_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
+        return (
+            m for m in cls._get_all_abstract_methods() if getattr(m, _IS_RPC_METHOD_ATTR, False)
+        )
 
     @classmethod
     def _declares_service_interface(cls) -> bool:
@@ -100,7 +106,7 @@ class RpcService(InterfaceWithLifecycle):
 
         overrides = {
             service_method.__name__: create_delegating_method(service_method)
-            for service_method in cls._get_all_abstract_rpc_methods()
+            for service_method in cls._get_all_abstract_methods()
         }
         overrides[impl_attrname] = cached_local_implementation
         remote_service_class = type(f"{cls.__name__}__LocalDelegate", (cls,), overrides)
