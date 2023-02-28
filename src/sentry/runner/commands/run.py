@@ -653,11 +653,12 @@ def metrics_parallel_consumer(**options):
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
 
+    initialize_global_consumer_state(ingest_config)
+
     streamer = get_parallel_metrics_consumer(
         indexer_profile=ingest_config, slicing_router=slicing_router, **options
     )
 
-    initialize_global_consumer_state(ingest_config)
     run_processor_with_signals(streamer)
 
 
