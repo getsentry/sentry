@@ -613,5 +613,24 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             assert resp.redirect_chain == [
                 ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
+            ]
+
+    def test_login_valid_credentials_org_does_not_exist(self):
+        user = self.create_user()
+        with override_settings(MIDDLEWARE=tuple(provision_middleware())):
+            # load it once for test cookie
+            self.client.get(self.path)
+
+            resp = self.client.post(
+                self.path,
+                {"username": user.username, "password": "admin", "op": "login"},
+                SERVER_NAME="albertos-apples.testserver",
+                follow=True,
+            )
+
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                ("http://albertos-apples.testserver/auth/login/", 302),
                 ("http://testserver/organizations/new/", 302),
             ]

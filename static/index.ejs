@@ -16,12 +16,11 @@
     try {
       function extractSlug() {
         // XXX: If you change this also change its sibiling in static/app/utils/extractSlug.tsx
-        var knownDomains = /(?:localhost|dev\.getsentry.net|sentry.dev)(?:\:\d*)?$/;
-
-        var domainParts = window.location.host.split('.');
-        var slug = domainParts.shift();
-        var domain = domainParts.join('.');
-        if (domain.match(knownDomains)) {
+        // The two regexps are not meant to be exactly the same
+        var knownDomains = /\.(?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?$/;
+        if (window.location.host.match(knownDomains)) {
+          var domainParts = window.location.host.split('.');
+          var slug = domainParts.shift();
           return slug;
         }
 
@@ -30,6 +29,7 @@
         if (matches) {
           return matches[1];
         }
+
         console.error(`Could not extract an organization slug from ${window.location}. Assuming 'sentry'`);
 
         return 'sentry';

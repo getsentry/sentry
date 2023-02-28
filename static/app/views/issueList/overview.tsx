@@ -1136,28 +1136,14 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, selection, location, router} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const {organization, selection, router} = this.props;
     const query = this.getQuery();
-    const queryPageInt = parseInt(location.query.page, 10);
-    // Cursor must be present for the page number to be used
-    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
 
-    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
-    if (!links?.next?.results || this.allResultsVisible()) {
-      // On last available page
-      pageCount = queryCount;
-    } else if (!links?.previous?.results) {
-      // On first available page
-      pageCount = groupIds.length;
-    }
+    const numIssuesOnPage = groupIds.length;
 
-    // Subtract # items that have been marked reviewed
-    pageCount = Math.max(pageCount - itemsRemoved, 0);
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
     const displayCount = tct('[count] of [total]', {
-      count: pageCount,
+      count: numIssuesOnPage,
       total: (
         <StyledQueryCount
           hideParens
