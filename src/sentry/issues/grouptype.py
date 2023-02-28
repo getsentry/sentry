@@ -199,9 +199,6 @@ class ProfileJSONDecodeType(GroupType):
     category = GroupCategory.PROFILE.value
 
 
-PROFILE_ISSUE_TYPES = get_group_types_by_category(GroupCategory.PROFILE.value)
-
-
 def reduce_noise(
     new_grouphashes: Set[str],
     performance_problems_by_hash: Dict[str, PerformanceProblem],
