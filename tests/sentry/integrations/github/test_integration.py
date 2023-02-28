@@ -586,16 +586,24 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization=self.organization, integration=integration
         ).exists()
 
-    def set_rate_limit(self, remaining=MINIMUM_REQUESTS + 100, limit=5000):
-        """Helper class to set the rate limit"""
-        responses.add(
-            method=responses.GET,
-            url="https://api.github.com/rate_limit",
-            json={
+    def set_rate_limit(
+        self, remaining=MINIMUM_REQUESTS + 100, limit=5000, json_body=None, status=200
+    ):
+        """Helper class to set the rate limit.
+        A status code different than 200 requires a json_body
+        """
+        response_json = (
+            json_body
+            if status != 200
+            else {
                 "resources": {
                     "core": {"limit": limit, "remaining": remaining, "used": "foo", "reset": 123}
                 }
-            },
+            }
+        )
+        # upsert: it calls add() if not existant, otherwise, it calls replace
+        responses.upsert(
+            responses.GET, "https://api.github.com/rate_limit", json=response_json, status=status
         )
 
     def get_installation_helper(self):

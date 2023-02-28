@@ -234,9 +234,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         trees: Dict[str, RepoTree] = {}
         only_use_cache = False
 
-        rate_limit = self.get_rate_limit()
-        remaining_requests = rate_limit.remaining
-        logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
+        remaining_requests = MINIMUM_REQUESTS
+        try:
+            rate_limit = self.get_rate_limit()
+            remaining_requests = rate_limit.remaining
+            logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
+        except ApiError:
+            only_use_cache = True
+            # Report so we can investigate
+            logger.exception("Loading trees from cache. Execution will continue. Check logs.")
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
@@ -248,6 +254,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.info(
                     "Too few requests remaining. Grabbing values from the cache.", extra=extra
                 )
+            else:
+                remaining_requests -= 1
 
             try:
                 # The Github API rate limit is reset every hour
@@ -262,8 +270,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.exception(
                     "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
-
-            remaining_requests -= 1
 
         return trees
 
@@ -414,13 +420,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
+        now = datetime.utcnow()
 
         if (
             not token
             or not expires_at
-            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < datetime.utcnow())
+            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < now)
             or force_refresh
         ):
+            logger.info(f"Token to be refreshed (expires: {expires_at}, now: {now}).")
             from copy import deepcopy
 
             res = self.create_token()
@@ -431,6 +439,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             self.integration = integration_service.update_integration(  # type: ignore
                 integration_id=self.integration.id, metadata=new_metadata
             )
+            logger.info("The token has been refreshed.")
+
+        if expires_at:
+            logger.info(f"The token will expire at {expires_at} (now: {now}).")
 
         return token or ""
 
