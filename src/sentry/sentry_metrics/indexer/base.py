@@ -197,7 +197,14 @@ class StringIndexer(Service):
     Check `sentry.snuba.metrics` for convenience functions.
     """
 
-    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
+    __all__ = (
+        "record",
+        "resolve",
+        "reverse_resolve",
+        "bulk_record",
+        "resolve_shared_org",
+        "reverse_shared_org_resolve",
+    )
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
