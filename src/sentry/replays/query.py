@@ -153,7 +153,7 @@ def query_replays_dataset(
                 *having,
             ],
             orderby=sorting,
-            groupby=[Column("replay_id")],
+            groupby=[Column("project_id"), Column("replay_id")],
             granularity=Granularity(3600),
             **query_options,
         ),
@@ -421,8 +421,8 @@ class ReplayQueryConfig(QueryConfig):
     started_at = String(is_filterable=False)
     finished_at = String(is_filterable=False)
     # Dedicated url parameter should be used.
-    project_id = String(query_alias="projectId", is_filterable=False)
-    project = String(query_alias="projectId", is_filterable=False)
+    project_id = String(query_alias="project_id", is_filterable=False)
+    project = String(query_alias="project_id", is_filterable=False)
 
 
 # Pagination.
@@ -571,11 +571,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
     "replay_type": _grouped_unique_scalar_value(column_name="replay_type", alias="replay_type"),
-    "project_id": Function(
-        "toString",
-        parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
-        alias="projectId",
-    ),
+    "project_id": Column("project_id"),
     "platform": _grouped_unique_scalar_value(column_name="platform"),
     "agg_environment": _grouped_unique_scalar_value(
         column_name="environment", alias="agg_environment"
