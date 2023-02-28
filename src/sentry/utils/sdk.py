@@ -478,7 +478,7 @@ def bind_organization_context(organization):
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.configure_scope() as scope:
-        log_if_tags_already_set(scope, organization.id, organization.slug)
+        log_if_tags_already_set(organization.id, organization.slug)
 
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
