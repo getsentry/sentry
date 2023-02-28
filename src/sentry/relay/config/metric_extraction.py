@@ -26,7 +26,7 @@ class RuleCondition(TypedDict):
 
 class MetricConditionalTaggingRule(TypedDict):
     condition: RuleCondition
-    targetMetrics: Sequence[str]
+    targetMetrics: List[str]
     targetTag: str
     tagValue: str
 
@@ -36,11 +36,11 @@ _TRANSACTION_METRICS_TO_RULE_FIELD = {
     TransactionMetric.DURATION.value: "event.duration",
 }
 
-_SATISFACTION_TARGET_METRICS = (
+_SATISFACTION_TARGET_METRICS = [
     "s:transactions/user@none",
     "d:transactions/duration@millisecond",
     "d:transactions/measurements.lcp@millisecond",
-)
+]
 
 _SATISFACTION_TARGET_TAG = "satisfaction"
 
@@ -87,6 +87,10 @@ def get_metric_conditional_tagging_rules(
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
 
     rules.extend(_HISTOGRAM_OUTLIER_RULES)
+
+    # Sort target metrics to be consistent with Relay serialization:
+    for rule in rules:
+        rule["targetMetrics"].sort()
 
     return rules
 

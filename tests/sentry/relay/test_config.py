@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from freezegun import freeze_time
+from sentry_relay import validate_project_config
 
 from sentry.constants import ObjectStatus
 from sentry.discover.models import TeamKeyTransaction
@@ -22,6 +23,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -104,6 +106,8 @@ def test_get_project_config(default_project, insta_snapshot, django_cache, full)
     cfg = get_project_config(default_project, full_config=full, project_keys=keys)
     cfg = cfg.to_dict()
 
+    validate_project_config(json.dumps(cfg["config"]), strict=True)
+
     # Remove keys that change everytime
     cfg.pop("lastChange")
     cfg.pop("lastFetch")
@@ -148,12 +152,12 @@ def test_get_experimental_config_transaction_metrics_exception(
     with Feature({"organizations:transaction-metrics-extraction": True}):
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
 
+    config = cfg.to_dict()["config"]
+    validate_project_config(json.dumps(config), strict=True)
+
     # we check that due to exception we don't add `d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond`
-    assert (
-        "breakdowns.span_ops.ops"
-        not in cfg.to_dict()["config"]["transactionMetrics"]["extractMetrics"]
-    )
-    assert cfg.to_dict()["config"]["transactionMetrics"]["extractCustomTags"] == []
+    assert "breakdowns.span_ops.ops" not in config["transactionMetrics"]["extractMetrics"]
+    assert config["transactionMetrics"]["extractCustomTags"] == []
     assert mock_capture_exception.call_count == 2
 
 
@@ -177,6 +181,7 @@ def test_project_config_uses_filter_features(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    validate_project_config(json.dumps(cfg["config"]), strict=True)
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
     cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
@@ -202,6 +207,7 @@ def test_project_config_exposed_features(default_project):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    validate_project_config(json.dumps(cfg["config"]), strict=True)
     cfg_features = get_path(cfg, "config", "features")
     assert cfg_features == ["projects:custom-inbound-filters"]
 
@@ -288,6 +294,7 @@ def test_project_config_with_all_biases_enabled(
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
+    validate_project_config(json.dumps(cfg["config"]), strict=True)
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
     assert dynamic_sampling == {
         "rules": [],
@@ -410,6 +417,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    validate_project_config(json.dumps(cfg["config"]), strict=True)
     insta_snapshot(
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
@@ -434,6 +442,7 @@ def test_project_config_with_organizations_metrics_extraction(
             cfg = get_project_config(default_project, full_config=True)
 
         cfg = cfg.to_dict()
+        validate_project_config(json.dumps(cfg["config"]), strict=True)
         session_metrics = get_path(cfg, "config", "sessionMetrics")
         if has_metrics_extraction:
             assert session_metrics == {
@@ -481,6 +490,7 @@ def test_project_config_satisfaction_thresholds(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    validate_project_config(json.dumps(cfg["config"]), strict=True)
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
 
@@ -490,6 +500,7 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
     cfg = get_project_config(default_project, full_config=True)
     cfg = cfg.to_dict()
+    validate_project_config(json.dumps(cfg["config"]), strict=True)
     insta_snapshot(cfg["config"]["spanAttributes"])
 
 
@@ -514,10 +525,12 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
     )
     with feature, options:
         config = get_project_config(default_project)
+        config = config.to_dict()["config"]
+        validate_project_config(json.dumps(config), strict=True)
         if killswitch or not feature_flag:
-            assert "transactionMetrics" not in config.to_dict()["config"]
+            assert "transactionMetrics" not in config
         else:
-            config = config.to_dict()["config"]["transactionMetrics"]
+            config = config["transactionMetrics"]
             assert config["extractMetrics"]
             assert config["customMeasurements"]["limit"] > 0
 
@@ -531,6 +544,8 @@ def test_accept_transaction_names(default_project):
     )
     with feature:
         config = get_project_config(default_project).to_dict()["config"]
+
+        # validate_project_config(json.dumps(config), strict=True)
         transaction_metrics_config = config["transactionMetrics"]
 
         assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"

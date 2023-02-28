@@ -107,7 +107,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     for flt in get_all_filter_specs():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
-        filter_settings[filter_id] = settings
+        if settings["isEnabled"]:
+            filter_settings[filter_id] = settings
 
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
@@ -267,13 +268,15 @@ def _get_project_config(
                 ],
                 "piiConfig": get_pii_config(project),
                 "datascrubbingSettings": get_datascrubbing_settings(project),
-                "features": get_exposed_features(project),
             },
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
 
     config = cfg["config"]
+
+    if exposed_features := get_exposed_features(project):
+        config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
@@ -320,13 +323,21 @@ def _get_project_config(
 
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
-        config["filterSettings"] = get_filter_settings(project)
+        if filter_settings := get_filter_settings(project):
+            config["filterSettings"] = filter_settings
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
-        config["groupingConfig"] = get_grouping_config_dict_for_project(project)
+        grouping_config = get_grouping_config_dict_for_project(project)
+        if grouping_config is not None:
+            config["groupingConfig"] = grouping_config
     with Hub.current.start_span(op="get_event_retention"):
-        config["eventRetention"] = quotas.get_event_retention(project.organization)
+        event_retention = quotas.get_event_retention(project.organization)
+        if event_retention is not None:
+            config["eventRetention"] = event_retention
     with Hub.current.start_span(op="get_all_quotas"):
-        config["quotas"] = get_quotas(project, keys=project_keys)
+        # TODO(jjbayer): Skip if Relay has been able to default missing entries for a long time
+        # (otherwise problem with external relays)
+        if quotas_config := get_quotas(project, keys=project_keys):
+            config["quotas"] = quotas_config
 
     return ProjectConfig(project, **cfg)
 
@@ -586,6 +597,9 @@ def get_transaction_metrics_settings(
         custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
     except Exception:
         capture_exception()
+
+    # Sort extractMetrics to be consistent with Relay serialization:
+    metrics.sort()
 
     return {
         "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
