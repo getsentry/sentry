@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, List, Mapping
 
 from sentry import features
+from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
@@ -82,9 +83,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            serialized = user_service.serialize_many(filter=dict(user_ids=[user.id]))
-            if serialized:
-                data["user"] = serialized[0]
+            data["user"] = serialize(user, serializer=UserSerializer())
         for fn in SentryFunction.objects.get_sentry_functions(organization, "comment"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 

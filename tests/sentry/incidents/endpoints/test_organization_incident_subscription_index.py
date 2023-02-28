@@ -49,9 +49,9 @@ class OrganizationIncidentSubscribeEndpointTest(
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
             self.get_success_response(self.organization.slug, incident.identifier, status_code=201)
-        sub = IncidentSubscription.objects.filter(incident=incident, user_id=self.user.id).get()
+        sub = IncidentSubscription.objects.filter(incident=incident, user=self.user).get()
         assert sub.incident == incident
-        assert sub.user_id == self.user.id
+        assert sub.user == self.user
 
 
 @region_silo_test
@@ -69,6 +69,4 @@ class OrganizationIncidentUnsubscribeEndpointTest(
         subscribe_to_incident(incident, self.user.id)
         with self.feature("organizations:incidents"):
             self.get_success_response(self.organization.slug, incident.identifier, status_code=200)
-        assert not IncidentSubscription.objects.filter(
-            incident=incident, user_id=self.user.id
-        ).exists()
+        assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()

@@ -19,11 +19,7 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
         query = {"fields": ["test"], "conditions": [], "limit": 10}
 
         model = DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="Test query",
-            query=query,
-            version=1,
+            organization=self.org, created_by=self.user, name="Test query", query=query, version=1
         )
 
         model.set_projects(self.project_ids)
@@ -93,7 +89,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             query = {"fields": ["test"], "conditions": [], "limit": 10}
             model = DiscoverSavedQuery.objects.create(
                 organization=self.org,
-                created_by_id=self.user.id,
+                created_by=self.user,
                 name=f"My query {i}",
                 query=query,
                 version=1,
@@ -115,7 +111,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="My query",
             query=query,
             version=2,
@@ -146,7 +142,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="My query",
             query=query,
             version=2,
@@ -175,7 +171,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="My query",
             query=query,
             version=2,
@@ -210,7 +206,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by_id=uhoh_user.id,
+            created_by=uhoh_user,
             name="a query for uhoh",
             query=query,
             version=2,
@@ -221,7 +217,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by_id=whoops_user.id,
+            created_by=whoops_user,
             name="a query for whoops",
             query=query,
             version=2,
@@ -243,7 +239,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         }
         DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="My expired query",
             query=query,
             version=2,
@@ -260,7 +256,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["test"], "conditions": [], "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="Homepage Test Query",
             query=query,
             version=2,

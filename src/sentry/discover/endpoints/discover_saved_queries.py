@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -14,7 +14,7 @@ from sentry.discover.models import DiscoverSavedQuery
 from sentry.search.utils import tokenize_query
 
 
-@region_silo_endpoint
+@pending_silo_endpoint
 class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverSavedQueryPermission,)
 
@@ -32,6 +32,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
 
         queryset = (
             DiscoverSavedQuery.objects.filter(organization=organization)
+            .select_related("created_by")
             .prefetch_related("projects")
             .extra(select={"lower_name": "lower(name)"})
         ).exclude(is_homepage=True)
@@ -132,7 +133,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             version=data["version"],
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            created_by=request.user if request.user.is_authenticated else None,
         )
 
         model.set_projects(data["project_ids"])
