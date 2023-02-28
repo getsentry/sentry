@@ -135,7 +135,7 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
+    def get(self, request: Request, project: Project) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
         kwargs: Dict[str, Any] = {
