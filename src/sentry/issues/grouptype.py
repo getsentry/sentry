@@ -176,14 +176,6 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
-class ProfileBlockedThreadGroupType(GroupType):
-    type_id = 2000
-    slug = "profile_blocked_thread"
-    description = "Blocked Thread"
-    category = GroupCategory.PROFILE.value
-
-
-@dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
