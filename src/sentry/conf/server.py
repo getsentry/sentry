@@ -9,7 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, Mapping, Tuple
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import sentry
@@ -25,7 +25,11 @@ def gettext_noop(s):
 socket.setdefaulttimeout(5)
 
 
-def env(key, default="", type=None):
+def env(
+    key: str,
+    default: Union[str, int, float, bool, None] = "",
+    type: Optional[Callable[[Any], Any]] = None,
+):
     """
     Extract an environment variable for use in configuration
 
