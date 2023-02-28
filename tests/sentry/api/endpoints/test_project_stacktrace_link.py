@@ -513,7 +513,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             (
                 "sentry.api.endpoints.project_stacktrace_link",
                 logging.ERROR,
-                "Something unexpected happen. Continuing execution.",
+                "Something unexpected happened. Continuing execution.",
             )
         ]
 
