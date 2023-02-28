@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import RRWebPlayer from 'rrweb-player';
+import RRWebPlayer from '@sentry-internal/rrweb-player';
 
 import {space} from 'sentry/styles/space';
 

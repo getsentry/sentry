@@ -611,6 +611,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
+    "sentry.dynamic_sampling.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
@@ -662,6 +663,10 @@ CELERY_QUEUES = [
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
+    ),
+    Queue(
+        "dynamicsampling",
+        routing_key="dynamicsampling",
     ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
@@ -844,6 +849,12 @@ CELERYBEAT_SCHEDULE = {
     "hybrid-cloud-repair-mappings": {
         "task": "sentry.tasks.organization_mapping.repair_mappings",
         "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
+    },
+    "dynamic-sampling-prioritize-projects": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
+        # Run job every 1 hour
+        "schedule": crontab(minute=0),
         "options": {"expires": 3600},
     },
 }
@@ -1035,6 +1046,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-ui-frames": False,
     # Enable the profiling dashboard redesign
     "organizations:profiling-dashboard-redesign": False,
+    # Enable the profiling aggregate flamegraph
+    "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
     # Enable the transactions backed profiling views

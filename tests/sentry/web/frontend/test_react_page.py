@@ -2,6 +2,7 @@ from fnmatch import fnmatch
 
 from django.urls import URLResolver, get_resolver, reverse
 
+from sentry.models import OrganizationStatus
 from sentry.testutils import TestCase
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
@@ -284,3 +285,54 @@ class ReactPageViewTest(TestCase):
             assert response.redirect_chain == [
                 (f"http://{other_org.slug}.testserver/issues/", 302),
             ]
+
+    def test_customer_domain_loads(self):
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.ACTIVE)
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            response = self.client.get(
+                "/issues/",
+                SERVER_NAME=f"{org.slug}.testserver",
+            )
+            assert response.status_code == 200
+            self.assertTemplateUsed(response, "sentry/base-react.html")
+            assert response.context["request"]
+            assert self.client.session["activeorg"] == org.slug
+
+    def test_customer_domain_org_pending_deletion(self):
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            response = self.client.get(
+                "/issues/",
+                SERVER_NAME=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                (f"http://{org.slug}.testserver/restore/", 302),
+            ]
+            assert "activeorg" not in self.client.session
+
+    def test_customer_domain_org_deletion_in_progress(self):
+        org = self.create_organization(
+            owner=self.user, status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            response = self.client.get(
+                "/issues/",
+                SERVER_NAME=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                ("http://testserver/organizations/new/", 302),
+            ]
+            assert "activeorg" not in self.client.session
