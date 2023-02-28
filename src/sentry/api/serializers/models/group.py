@@ -186,20 +186,14 @@ class GroupSerializerBase(Serializer, ABC):
     def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Union[Team, Any]]:
         gas = GroupAssignee.objects.filter(group__in=item_list)
         result: MutableMapping[int, Union[Team, Any]] = {}
-        all_team_ids: MutableMapping[int, Set[int]] = {}
-        all_user_ids: MutableMapping[int, Set[int]] = {}
+        all_team_ids: MutableMapping[int, Set[int]] = defaultdict(set)
+        all_user_ids: MutableMapping[int, Set[int]] = defaultdict(set)
 
         for g in gas:
             if g.team_id:
-                if g.team_id not in all_team_ids:
-                    all_team_ids[g.team_id] = {g.group_id}
-                else:
-                    all_team_ids[g.team_id].add(g.group_id)
+                all_team_ids[g.team_id].add(g.group_id)
             if g.user_id:
-                if g.team_id not in all_team_ids:
-                    all_user_ids[g.user_id] = {g.group_id}
-                else:
-                    all_user_ids[g.user_id].add(g.group_id)
+                all_user_ids[g.user_id].add(g.group_id)
 
         for team in Team.objects.filter(id__in=all_team_ids.keys()):
             for group_id in all_team_ids[team.id]:

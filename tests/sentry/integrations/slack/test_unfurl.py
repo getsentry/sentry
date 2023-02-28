@@ -168,7 +168,6 @@ def test_match_link(url, expected):
     assert match_link(url) == expected
 
 
-# @region_silo_test(stable=True)
 class UnfurlTest(TestCase):
     def setUp(self):
         super().setUp()
