@@ -390,7 +390,7 @@ function RuleListRow({
               items={actions}
               position="bottom-end"
               triggerProps={{
-                'aria-label': t('Show more'),
+                'aria-label': t('Actions'),
                 size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,

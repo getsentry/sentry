@@ -104,6 +104,7 @@ function Line({
       case 'native':
         return nativeV2 ? (
           <NativeV2
+            event={event}
             leadsToApp={leadsToApp}
             frame={frame}
             prevFrame={prevFrame}
@@ -121,6 +122,7 @@ function Line({
           />
         ) : (
           <Native
+            event={event}
             leadsToApp={leadsToApp}
             frame={frame}
             prevFrame={prevFrame}
@@ -144,6 +146,7 @@ function Line({
       default:
         return (
           <Default
+            event={event}
             leadsToApp={leadsToApp}
             frame={frame}
             nextFrame={nextFrame}
