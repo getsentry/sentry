@@ -69,6 +69,7 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -2485,6 +2486,11 @@ urlpatterns = [
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),
+                url(
+                    r"^project-config/$",
+                    AdminRelayProjectConfigsEndpoint.as_view(),
+                    name="sentry-api-0-internal-project-config",
+                ),
             ]
         ),
     ),
