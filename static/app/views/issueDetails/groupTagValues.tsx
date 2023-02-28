@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps, WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -17,16 +17,12 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconEllipsis, IconMail, IconOpen, IconPlay} from 'sentry/icons';
+import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type RouteParams = {
   groupId: string;
@@ -50,7 +46,7 @@ type State = {
 const DEFAULT_SORT = 'count';
 
 class GroupTagValues extends AsyncComponent<
-  Props & AsyncComponent['props'] & WithRouterProps,
+  Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -76,7 +72,6 @@ class GroupTagValues extends AsyncComponent<
 
   renderResults() {
     const {
-      routes,
       baseUrl,
       project,
       environments: environment,
@@ -149,14 +144,6 @@ class GroupTagValues extends AsyncComponent<
                 <IconOpen size="xs" color="gray300" />
               </StyledExternalLink>
             )}
-            {key === 'replayId' ? (
-              <ReplayButton
-                project={project}
-                routes={routes}
-                orgId={orgId}
-                tagValue={tagValue}
-              />
-            ) : null}
           </NameColumn>
           <RightAlignColumn>{pct}</RightAlignColumn>
           <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
@@ -292,30 +279,7 @@ class GroupTagValues extends AsyncComponent<
   }
 }
 
-export default withSentryRouter(GroupTagValues);
-
-function ReplayButton({project, routes, orgId, tagValue}) {
-  const replaySlug = `${project?.slug}:${tagValue.value}`;
-  const referrer = getRouteStringFromRoutes(routes);
-
-  const target = {
-    pathname: `/organizations/${orgId}/replays/${replaySlug}/`,
-    query: {
-      referrer,
-    },
-  };
-  return (
-    <RightAligned>
-      <Tooltip title={t('View Replay')}>
-        <Link to={target}>
-          <Button size="xs" aria-label={t('View Replay')}>
-            <IconPlay size="xs" />
-          </Button>
-        </Link>
-      </Tooltip>
-    </RightAligned>
-  );
-}
+export default GroupTagValues;
 
 const TitleWrapper = styled('div')`
   display: flex;
@@ -355,13 +319,6 @@ const StyledSortLink = styled(Link)`
   :hover {
     color: inherit;
   }
-`;
-
-const RightAligned = styled('div')`
-  display: block;
-  flex-grow: 1;
-  text-align: right;
-  padding-left: ${space(0.5)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
