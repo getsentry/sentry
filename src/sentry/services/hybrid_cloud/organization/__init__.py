@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, List, Mapping, Optional, cast
 
@@ -20,6 +21,7 @@ class OrganizationService(RpcService):
         return DatabaseBackedOrganizationService()
 
     @rpc_method
+    @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[RpcUserOrganizationContext]:
@@ -33,6 +35,7 @@ class OrganizationService(RpcService):
     # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
     #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
     @rpc_method
+    @abstractmethod
     def get_organizations(
         self,
         user_id: Optional[int],
@@ -55,6 +58,7 @@ class OrganizationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
@@ -64,6 +68,7 @@ class OrganizationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
@@ -73,6 +78,7 @@ class OrganizationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
@@ -92,6 +98,7 @@ class OrganizationService(RpcService):
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
     @rpc_method
+    @abstractmethod
     def add_organization_member(
         self,
         *,
@@ -103,14 +110,17 @@ class OrganizationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         pass
 
     @rpc_method
+    @abstractmethod
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         pass
 
     @rpc_method
+    @abstractmethod
     def get_all_org_roles(
         self,
         organization_member: Optional[RpcOrganizationMember] = None,
@@ -119,6 +129,7 @@ class OrganizationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         pass
 

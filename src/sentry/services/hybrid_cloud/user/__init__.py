@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
@@ -120,6 +121,7 @@ class UserService(FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeTyp
         return DatabaseBackedUserService()
 
     @rpc_method
+    @abstractmethod
     def get_many_by_email(
         self,
         emails: List[str],
@@ -137,6 +139,7 @@ class UserService(FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeTyp
         pass
 
     @rpc_method
+    @abstractmethod
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> List[RpcUser]:
@@ -153,11 +156,13 @@ class UserService(FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeTyp
         pass
 
     @rpc_method
+    @abstractmethod
     def get_from_group(self, group: Group) -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @rpc_method
+    @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
         pass
 

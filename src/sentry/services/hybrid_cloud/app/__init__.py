@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import datetime
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict, cast
@@ -119,12 +120,14 @@ class AppService(
         return DatabaseBackedAppService()
 
     @rpc_method
+    @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
     ) -> RpcSentryAppInstallation | None:
         pass
 
     @rpc_method
+    @abc.abstractmethod
     def get_installed_for_organization(
         self,
         *,
@@ -133,6 +136,7 @@ class AppService(
         pass
 
     @rpc_method
+    @abc.abstractmethod
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 
@@ -150,16 +154,19 @@ class AppService(
         )
 
     @rpc_method
+    @abc.abstractmethod
     def get_custom_alert_rule_actions(
         self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
     ) -> List[Mapping[str, Any]]:
         pass
 
     @rpc_method
+    @abc.abstractmethod
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         pass
 
     @rpc_method
+    @abc.abstractmethod
     def get_related_sentry_app_components(
         self,
         *,
@@ -186,6 +193,7 @@ class AppService(
         )
 
     @rpc_method
+    @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
     ) -> AlertRuleActionResult:

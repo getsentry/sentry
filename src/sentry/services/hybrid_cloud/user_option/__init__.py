@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Optional, TypedDict, cast
 
@@ -55,10 +56,12 @@ class UserOptionService(
         return DatabaseBackedUserOptionService()
 
     @rpc_method
+    @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
         pass
 
     @rpc_method
+    @abstractmethod
     def set_option(
         self,
         *,

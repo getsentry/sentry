@@ -1,4 +1,5 @@
 import datetime
+from abc import abstractmethod
 from dataclasses import dataclass, fields
 from typing import cast
 
@@ -22,6 +23,7 @@ class LostPasswordHashService(RpcService):
     # TODO: Denormalize this scim enabled flag onto organizations?
     # This is potentially a large list
     @rpc_method
+    @abstractmethod
     def get_or_create(
         self,
         user_id: int,

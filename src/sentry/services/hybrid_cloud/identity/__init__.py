@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from dataclasses import dataclass
 from typing import List, cast
 
@@ -50,6 +51,7 @@ class IdentityService(RpcService):
         )
 
     @rpc_method
+    @abstractmethod
     def get_provider(
         self,
         *,
@@ -64,6 +66,7 @@ class IdentityService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_identity(
         self,
         *,
@@ -78,6 +81,7 @@ class IdentityService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_user_identities_by_provider_type(
         self,
         *,

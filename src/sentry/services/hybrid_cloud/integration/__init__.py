@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Tuple, cast
@@ -88,6 +89,7 @@ class IntegrationService(RpcService):
         )
 
     @rpc_method
+    @abstractmethod
     def page_integration_ids(
         self,
         *,
@@ -98,6 +100,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def page_organization_integrations_ids(
         self,
         *,
@@ -109,6 +112,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_integrations(
         self,
         *,
@@ -125,6 +129,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_integration(
         self,
         *,
@@ -138,6 +143,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_organization_integrations(
         self,
         *,
@@ -168,6 +174,7 @@ class IntegrationService(RpcService):
         return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
 
     @rpc_method
+    @abstractmethod
     def get_organization_context(
         self,
         *,
@@ -183,6 +190,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def update_integrations(
         self,
         *,
@@ -198,6 +206,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def update_integration(
         self,
         *,
@@ -213,6 +222,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def update_organization_integrations(
         self,
         *,
@@ -229,6 +239,7 @@ class IntegrationService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def update_organization_integration(
         self,
         *,

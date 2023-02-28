@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from abc import abstractmethod
 from typing import TYPE_CHECKING, List, Protocol, Sequence, cast
 
 from sentry.notifications.types import (
@@ -53,6 +54,7 @@ class NotificationsService(RpcService):
         return DatabaseBackedNotificationsService()
 
     @rpc_method
+    @abstractmethod
     def get_settings_for_recipient_by_parent(
         self,
         *,
@@ -63,6 +65,7 @@ class NotificationsService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_settings_for_users(
         self,
         *,
@@ -73,6 +76,7 @@ class NotificationsService(RpcService):
         pass
 
     @rpc_method
+    @abstractmethod
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:

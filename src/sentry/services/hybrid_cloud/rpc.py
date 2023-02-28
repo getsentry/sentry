@@ -12,7 +12,8 @@ _global_service_registry: Dict[str, "RpcService"] = {}
 
 
 def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
-    method = abstractmethod(method)
+    if not getattr(method, "__isabstractmethod__", False):
+        raise ValueError("`@rpc_method` may only decorate abstract methods")
     setattr(method, _IS_RPC_METHOD_ATTR, True)
     return method
 

@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, cast
@@ -37,6 +38,7 @@ class ProjectKeyService(RpcService):
         return DatabaseBackedProjectKeyService()
 
     @rpc_method
+    @abstractmethod
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         pass
 
