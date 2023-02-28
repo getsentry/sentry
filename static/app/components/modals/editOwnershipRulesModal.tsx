@@ -11,14 +11,14 @@ import OwnershipModal from 'sentry/views/settings/project/projectOwnership/editR
 
 type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
 
-const EditOwnershipRulesModal = ({Body, Header, onSave, ...props}: Props) => {
+const EditOwnershipRulesModal = ({Body, Header, onSave, closeModal, ...props}: Props) => {
   return (
     <Fragment>
       <Header closeButton>
         <h4>{t('Edit Ownership Rules')}</h4>
       </Header>
       <Body>
-        <OwnershipModal {...props} onSave={onSave} />
+        <OwnershipModal {...props} onSave={onSave} onCancel={closeModal} />
       </Body>
     </Fragment>
   );

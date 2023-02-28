@@ -566,6 +566,7 @@ urlpatterns += [
     url(r"^profiling/", react_page_view, name="profiling"),
     # Projects
     url(r"^projects/", react_page_view, name="projects"),
+    url(r"^projects/(?P<project_slug>[\w_-]+)/", react_page_view, name="project-details"),
     # Dashboards
     url(r"^dashboard/", react_page_view, name="dashboard"),
     url(r"^dashboards/", react_page_view, name="dashboards"),
@@ -592,6 +593,12 @@ urlpatterns += [
         r"^disabled-member/",
         DisabledMemberView.as_view(),
         name="sentry-customer-domain-organization-disabled-member",
+    ),
+    # Restore organization
+    url(
+        r"^restore/",
+        RestoreOrganizationView.as_view(),
+        name="sentry-customer-domain-restore-organization",
     ),
     # Project on-boarding
     # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
@@ -646,6 +653,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
                     GroupEventJsonView.as_view(),
                     name="sentry-group-event-json",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-project-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
