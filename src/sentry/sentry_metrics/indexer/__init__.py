@@ -18,3 +18,4 @@ if TYPE_CHECKING:
     record = StringIndexer().record
     resolve = StringIndexer().resolve
     reverse_resolve = StringIndexer().reverse_resolve
+    resolve_shared_org = StringIndexer().resolve_shared_org

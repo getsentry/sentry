@@ -21,7 +21,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {generateQueryWithTag} from 'sentry/utils';
+import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -388,11 +388,8 @@ function SummaryContent({
           organization={organization}
           eventView={eventView}
           totals={
-            totalValues
-              ? {
-                  'count()': totalValues['count()'],
-                  'sum(transaction.duration)': totalValues['sum(transaction.duration)'],
-                }
+            defined(totalValues?.['count()'])
+              ? {'count()': totalValues!['count()']}
               : null
           }
           projectId={projectId}
