@@ -106,14 +106,18 @@ def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> b
             # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
             # See comments in the function for why this happens.
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
-            modules, stacktraces = _symbolicate(
+            modules, stacktraces, success = _symbolicate(
                 project=project,
                 profile_id=event_id,
                 modules=raw_modules,
                 stacktraces=raw_stacktraces,
             )
 
-            _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
+            if success:
+                _process_symbolicator_results(
+                    profile=profile, modules=modules, stacktraces=stacktraces
+                )
+
             profile["symbolicated"] = True
             return True
         except Exception as e:
@@ -258,7 +262,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 @metrics.wraps("process_profile.symbolicate.request")
 def _symbolicate(
     project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
-) -> Tuple[List[Any], List[Any]]:
+) -> Tuple[List[Any], List[Any], bool]:
     symbolicator = Symbolicator(project=project, event_id=profile_id)
     symbolication_start_time = time()
 
@@ -266,7 +270,11 @@ def _symbolicate(
         try:
             with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
                 response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-                return (response.get("modules", modules), response.get("stacktraces", stacktraces))
+                return (
+                    response.get("modules", modules),
+                    response.get("stacktraces", stacktraces),
+                    True,
+                )
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -283,7 +291,7 @@ def _symbolicate(
                 continue
 
     # returns the unsymbolicated data to avoid errors later
-    return (modules, stacktraces)
+    return (modules, stacktraces, False)
 
 
 @metrics.wraps("process_profile.symbolicate.process")
