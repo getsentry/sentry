@@ -157,6 +157,48 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "ip" in response_data["data"][0]["user"]
             assert "display_name" in response_data["data"][0]["user"]
 
+    def test_get_replays_tags_field(self):
+        """Test replay response with fields requested in production."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                project.id,
+                replay1_id,
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],
+                tags={"test": "hello", "other": "hello"},
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                urls=["http://localhost:3000/"],
+                tags={"test": "world", "other": "hello"},
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=tags")
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 1
+
+            assert len(response_data["data"][0]) == 1
+            assert "tags" in response_data["data"][0]
+            assert sorted(response_data["data"][0]["tags"]["test"]) == ["hello", "world"]
+            assert response_data["data"][0]["tags"]["other"] == ["hello"]
+
     def test_get_replays_minimum_field_set(self):
         """Test replay response with fields requested in production."""
         project = self.create_project(teams=[self.team])
