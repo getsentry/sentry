@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import SearchBar from 'sentry/components/events/searchBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -25,6 +26,7 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   formatError,
   formatSort,
@@ -35,6 +37,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
@@ -50,17 +53,27 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
-  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
+  const profilingUsingTransactions = organization.features.includes(
+    'profiling-using-transactions'
+  );
+
+  const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
+
+  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
     key: 'p99()',
     order: 'desc',
   });
 
-  const profileFilters = useProfileFilters({query: '', selection});
+  const profileFilters = useProfileFilters({
+    query: '',
+    selection,
+    disabled: profilingUsingTransactions,
+  });
   const {projects} = useProjects();
 
   const transactions = useProfileEvents<FieldType>({
     cursor,
-    fields: FIELDS,
+    fields,
     query,
     sort,
     referrer: 'api.profiling.landing-table',
@@ -121,9 +134,31 @@ function ProfilingContent({location}: ProfilingContentProps) {
     'profiling-dashboard-redesign'
   );
 
+  const eventView = useMemo(() => {
+    const _eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: t('Profiling'),
+        fields: [],
+        query,
+        projects: selection.projects,
+      },
+      location
+    );
+    _eventView.additionalConditions.setFilterValues('has', ['profile.id']);
+    return _eventView;
+  }, [location, query, selection.projects]);
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer
+        defaultSelection={
+          profilingUsingTransactions
+            ? {datetime: DEFAULT_PROFILING_DATETIME_SELECTION}
+            : undefined
+        }
+      >
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -172,15 +207,26 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <EnvironmentPageFilter />
                   <DatePageFilter alignDropdown="left" />
                 </PageFilterBar>
-                <SmartSearchBar
-                  organization={organization}
-                  hasRecentSearches
-                  searchSource="profile_landing"
-                  supportedTags={profileFilters}
-                  query={query}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {profilingUsingTransactions ? (
+                  <SearchBar
+                    searchSource="profile_summary"
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                ) : (
+                  <SmartSearchBar
+                    organization={organization}
+                    hasRecentSearches
+                    searchSource="profile_landing"
+                    supportedTags={profileFilters}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
                 <ProfilingOnboardingPanel>
@@ -210,7 +256,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     />
                   )}
                   <ProfileEventsTable
-                    columns={FIELDS.slice()}
+                    columns={fields.slice()}
                     data={transactions.status === 'success' ? transactions.data[0] : null}
                     error={
                       transactions.status === 'error'
@@ -219,7 +265,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     }
                     isLoading={transactions.status === 'loading'}
                     sort={sort}
-                    sortableColumns={new Set(FIELDS)}
+                    sortableColumns={new Set(fields)}
                   />
                   <Pagination
                     pageLinks={
@@ -238,7 +284,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-const FIELDS = [
+const BASE_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
@@ -248,7 +294,10 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = (typeof FIELDS)[number];
+// user misery is only available with the profiling-using-transactions feature
+const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
+
+type FieldType = (typeof ALL_FIELDS)[number];
 
 const ActionBar = styled('div')`
   display: grid;

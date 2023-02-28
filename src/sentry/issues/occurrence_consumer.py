@@ -25,7 +25,7 @@ from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.models import Organization, Project
 from sentry.utils import json, metrics
@@ -155,7 +155,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "evidence_display": payload.get("evidence_display"),
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
-                # TODO: need to parse level
+                "level": payload.get("level", DEFAULT_LEVEL),
             }
 
             if payload.get("event_id"):
@@ -175,13 +175,12 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
                 event_data = {
                     "event_id": UUID(event_payload.get("event_id")).hex,
+                    "level": occurrence_data["level"],
                     "project_id": event_payload.get("project_id"),
                     "platform": event_payload.get("platform"),
+                    "received": event_payload.get("received", timezone.now()),
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
-                    "received": event_payload.get("received", timezone.now()),
-                    # This allows us to show the title consistently in discover
-                    "title": occurrence_data["issue_title"],
                 }
 
                 optional_params = [
@@ -205,6 +204,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         event_data[optional_param] = event_payload.get(optional_param)
 
                 _validate_event_data(event_data)
+
+                event_data["metadata"] = {
+                    # This allows us to show the title consistently in discover
+                    "title": occurrence_data["issue_title"],
+                }
 
                 return {"occurrence_data": occurrence_data, "event_data": event_data}
             else:
