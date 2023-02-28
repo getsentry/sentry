@@ -690,7 +690,7 @@ def profiles_consumer(**options):
 @run.command("ingest-replay-recordings")
 @log_options()
 @configuration
-@batching_kafka_options("ingest-replay-recordings", max_batch_size=100)
+@kafka_options("ingest-replay-recordings")
 @click.option(
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
