@@ -102,7 +102,7 @@ _DEFAULT_DAEMONS = {
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
     "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
-    "crons": ["sentry", "run", "ingest-crons", "--no-strict-offset-reset"],
+    "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
 
 

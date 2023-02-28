@@ -27,13 +27,13 @@ def process_message(message: Message[KafkaPayload]) -> None:
     try:
         with transaction.atomic():
             try:
-                checkin = MonitorCheckIn.objects.select_related("monitor").get(
+                check_in = MonitorCheckIn.objects.select_related("monitor").get(
                     project_id=project_id,
                     monitor_id=params["monitor_id"],
-                    guid=params["checkin_id"],
+                    guid=params["check_in_id"],
                 )
             except MonitorCheckIn.DoesNotExist:
-                logger.debug("checkin does not exist: %s", params["checkin_id"])
+                logger.debug("check-in does not exist: %s", params["check_in_id"])
                 return
 
             # Map attributes from raw JSON to the model.
@@ -41,12 +41,12 @@ def process_message(message: Message[KafkaPayload]) -> None:
             if "duration" in params:
                 params["duration"] = int(params["duration"])
             else:
-                params["duration"] = int((start_time - checkin.date_added).total_seconds() * 1000)
+                params["duration"] = int((start_time - check_in.date_added).total_seconds() * 1000)
 
-            monitor = checkin.monitor
-            checkin.update(**params)
+            monitor = check_in.monitor
+            check_in.update(**params)
 
-            if checkin.status == CheckInStatus.ERROR:
+            if check_in.status == CheckInStatus.ERROR:
                 monitor.mark_failed(start_time)
                 return
 
@@ -55,7 +55,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 "next_checkin": monitor.get_next_scheduled_checkin(start_time),
             }
 
-            if checkin.status == CheckInStatus.OK:
+            if check_in.status == CheckInStatus.OK:
                 monitor_params["status"] = MonitorStatus.OK
 
             Monitor.objects.filter(id=monitor.id).exclude(last_checkin__gt=start_time).update(
@@ -63,10 +63,10 @@ def process_message(message: Message[KafkaPayload]) -> None:
             )
     except Exception:
         # Skip this message and continue processing in the consumer.
-        logger.exception("Failed to process checkin", exc_info=True)
+        logger.exception("Failed to process check-in", exc_info=True)
 
 
-class StoreCronCheckinStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
         commit: Commit,

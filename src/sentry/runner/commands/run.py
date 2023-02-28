@@ -675,16 +675,16 @@ def replays_recordings_consumer(**options):
     run_processor_with_signals(consumer)
 
 
-@run.command("ingest-crons")
+@run.command("ingest-monitors")
 @log_options()
-@click.option("--topic", default="ingest-crons", help="Topic to get cron checlkin data from.")
-@batching_kafka_options("ingest-crons", max_batch_size=100)
+@click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")
+@batching_kafka_options("ingest-monitors", max_batch_size=100)
 @strict_offset_reset_option()
 @configuration
-def crons_consumer(**options):
-    from sentry.crons.consumers import get_cron_checkins_consumer
+def monitors_consumer(**options):
+    from sentry.monitors.consumers import get_monitor_check_ins_consumer
 
-    consumer = get_cron_checkins_consumer(**options)
+    consumer = get_monitor_check_ins_consumer(**options)
     run_processor_with_signals(consumer)
 
 
