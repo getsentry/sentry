@@ -68,6 +68,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
                 tags={"test": "world", "other": "hello"},
+                error_ids=[],
             )
         )
 
@@ -92,9 +93,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 ],
                 count_segments=2,
                 # count_errors=3,
-                count_errors=2,
+                count_errors=1,
                 tags={"test": ["hello", "world"], "other": ["hello"]},
-                activity=6,
+                activity=4,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
@@ -427,6 +428,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_model="10",
                 tags={"a": "m", "b": "q", "c": "test"},
                 urls=["example.com"],
+                error_ids=["a3a62ef6-ac86-415b-83c2-416fc2f76db1"],
             )
         )
         self.store_replays(
@@ -447,6 +449,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_family=None,
                 device_model=None,
                 tags={"a": "n", "b": "o"},
+                error_ids=[],
             )
         )
 
@@ -506,12 +509,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*zz",
                 "urls:example.com",
                 "url:example.com",
-                "activity:5",
+                "activity:3",
                 "activity:>2",
             ]
 
             for query in queries:
-                response = self.client.get(self.url + f"?field=id&query={query}")
+                response = self.client.get(self.url + f"?query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
@@ -550,7 +553,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "release:[a,b]",
                 "c:*zz",
                 "!c:*st",
-                "!activity:5",
+                "!activity:3",
                 "activity:<2",
             ]
             for query in null_queries:

@@ -109,6 +109,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 segment_id=1,
                 trace_ids=[trace_id_2],
                 urls=["http://www.sentry.io/"],
+                error_ids=[],
             )
         )
         self.store_replays(
@@ -119,6 +120,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 segment_id=2,
                 trace_ids=[trace_id_2],
                 urls=["http://localhost:3000/"],
+                error_ids=[],
             )
         )
 
@@ -144,8 +146,8 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                     "http://localhost:3000/",
                 ],
                 count_segments=3,
-                count_errors=3,
-                activity=9,
+                count_errors=1,
+                activity=4,
             )
             assert_expected_response(response_data["data"], expected_response)
 
