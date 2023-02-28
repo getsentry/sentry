@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import features
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
@@ -91,11 +90,8 @@ def derive_code_mappings(
     extra = {
         "organization.slug": org.slug,
     }
-    feat_key = "organizations:derive-code-mappings"
-    # Check the feature flag again to ensure the feature is still enabled.
-    org_has_flag = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
 
-    if not org_has_flag or not data["platform"] in SUPPORTED_LANGUAGES:
+    if data["platform"] not in SUPPORTED_LANGUAGES:
         logger.info("Event should not be processed.", extra=extra)
         return
 
