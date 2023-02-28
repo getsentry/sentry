@@ -83,6 +83,7 @@ class TransactionMRI(Enum):
     # Ingested
     USER = "s:transactions/user@none"
     DURATION = "d:transactions/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:transactions/count_per_root_project@none"
     MEASUREMENTS_FCP = "d:transactions/measurements.fcp@millisecond"
     MEASUREMENTS_LCP = "d:transactions/measurements.lcp@millisecond"
     MEASUREMENTS_APP_START_COLD = "d:transactions/measurements.app_start_cold@millisecond"

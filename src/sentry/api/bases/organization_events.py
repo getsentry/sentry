@@ -24,6 +24,7 @@ from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
+    functions,
     issue_platform,
     metrics_enhanced_performance,
     metrics_performance,
@@ -43,6 +44,7 @@ DATASET_OPTIONS = {
     "metrics": metrics_performance,
     "profiles": profiles,
     "issuePlatform": issue_platform,
+    "profile_functions": functions,
 }
 
 
