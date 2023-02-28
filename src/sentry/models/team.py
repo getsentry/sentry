@@ -288,7 +288,13 @@ class Team(Model):
                 cursor.close()
 
     def get_audit_log_data(self):
-        return {"id": self.id, "slug": self.slug, "name": self.name, "status": self.status}
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "org_role": self.org_role,
+        }
 
     def get_projects(self):
         from sentry.models import Project

@@ -197,7 +197,14 @@ class StringIndexer(Service):
     Check `sentry.snuba.metrics` for convenience functions.
     """
 
-    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
+    __all__ = (
+        "record",
+        "resolve",
+        "reverse_resolve",
+        "bulk_record",
+        "resolve_shared_org",
+        "reverse_shared_org_resolve",
+    )
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
@@ -261,6 +268,22 @@ class StringIndexer(Service):
 
         Callers should not rely on the default use_case_id -- it exists only
         as a temporary workaround.
+
+        Returns None if the entry cannot be found.
+        """
+        raise NotImplementedError()
+
+    def resolve_shared_org(self, string: str) -> Optional[int]:
+        """
+        Look up the index for a shared (cross organisation) string.
+
+        Typically, this function will only lookup strings that are statically defined but
+        regardless of the mechanism these are strings that are not organisation or use-case specific.
+        """
+        raise NotImplementedError()
+
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+        """Lookup the stored string given integer for a shared (cross organisation) ID.
 
         Returns None if the entry cannot be found.
         """

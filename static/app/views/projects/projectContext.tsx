@@ -1,5 +1,4 @@
-import {Component, createRef} from 'react';
-import DocumentTitle from 'react-document-title';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -10,6 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -101,7 +101,7 @@ class ProjectContext extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props, _prevState: State) {
     if (prevProps.projectId !== this.props.projectId) {
       this.fetchData();
     }
@@ -116,31 +116,12 @@ class ProjectContext extends Component<Props, State> {
     if (prevProps.projects.length !== this.props.projects.length) {
       this.fetchData();
     }
-
-    // Call forceUpdate() on <DocumentTitle/> if either project or organization
-    // state has changed. This is because <DocumentTitle/>'s shouldComponentUpdate()
-    // returns false unless props differ; meaning context changes for project/org
-    // do NOT trigger renders for <DocumentTitle/> OR any subchildren. The end result
-    // being that child elements that listen for context changes on project/org will
-    // NOT update (without this hack).
-    // See: https://github.com/gaearon/react-document-title/issues/35
-
-    // intentionally shallow comparing references
-    if (prevState.project !== this.state.project) {
-      const docTitle = this.docTitleRef.current;
-      if (!docTitle) {
-        return;
-      }
-      docTitle.forceUpdate();
-    }
   }
 
   componentWillUnmount() {
     this.unsubscribeMembers();
     this.unsubscribeProjects();
   }
-
-  docTitleRef = createRef<DocumentTitle>();
 
   unsubscribeProjects = ProjectsStore.listen(
     (projectIds: Set<string>) => this.onProjectChange(projectIds),
@@ -287,9 +268,9 @@ class ProjectContext extends Component<Props, State> {
 
   render() {
     return (
-      <DocumentTitle ref={this.docTitleRef} title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={this.getTitle()}>
         {this.renderBody()}
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

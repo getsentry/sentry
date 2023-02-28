@@ -77,7 +77,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.issues.grouptype import GroupCategory, reduce_noise
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -127,7 +127,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.utils import json, metrics, redis
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -2318,20 +2318,11 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
 
             if new_grouphashes:
-                # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
+                # limits group creation to grouphashes seen multiple times over a specified time window
                 if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
-                    groups_to_ignore = set()
-                    cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get(
-                        "cluster", "default"
+                    new_grouphashes = reduce_noise(
+                        new_grouphashes, performance_problems_by_hash, project
                     )
-                    client = redis.redis_clusters.get(cluster_key)
-
-                    for new_grouphash in new_grouphashes:
-                        group_type = performance_problems_by_hash[new_grouphash].type
-                        if not should_create_group(client, new_grouphash, group_type, project):
-                            groups_to_ignore.add(new_grouphash)
-
-                    new_grouphashes = new_grouphashes - groups_to_ignore
 
                 new_grouphashes_count = len(new_grouphashes)
 
@@ -2438,33 +2429,6 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             job["event"].data["hashes"] = hashes
             for problem_hash in hashes:
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
-
-
-@metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str, type: GroupType, project: Project) -> bool:
-    key = f"grouphash:{grouphash}:{project.id}"
-    times_seen = client.incr(key)
-    metrics.incr(
-        "performance.performance_issue.grouphash_counted",
-        tags={
-            "times_seen": times_seen,
-            "group_type": type.description,
-        },
-        sample_rate=1.0,
-    )
-
-    if times_seen >= type.ignore_limit:
-        client.delete(grouphash)
-        metrics.incr(
-            "performance.performance_issue.issue_will_be_created",
-            tags={"group_type": type.slug},
-            sample_rate=1.0,
-        )
-
-        return True
-    else:
-        client.expire(key, 60 * 60 * 24)  # 24 hour expiration from last seen
-        return False
 
 
 @metrics.wraps("event_manager.save_transaction_events")
