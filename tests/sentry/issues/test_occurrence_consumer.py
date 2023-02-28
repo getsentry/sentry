@@ -128,8 +128,8 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         message = get_test_message(self.project.id, type=300)
         with pytest.raises(InvalidEventPayloadError):
             with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
-                "sentry.issues.occurrence_consumer.PROFILE_ISSUE_TYPES",
-                {300},
+                "sentry.issues.occurrence_consumer.get_group_types_by_category",
+                lambda _: {300},
             ):
                 _process_message(message)
 
@@ -170,8 +170,8 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             type=PerformanceSlowDBQueryGroupType.type_id,
         )
         with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
-            "sentry.issues.occurrence_consumer.PROFILE_ISSUE_TYPES",
-            {PerformanceSlowDBQueryGroupType.type_id},
+            "sentry.issues.occurrence_consumer.get_group_types_by_category",
+            lambda _: {PerformanceSlowDBQueryGroupType.type_id},
         ):
             processed = _process_message(message)
         assert processed is not None
