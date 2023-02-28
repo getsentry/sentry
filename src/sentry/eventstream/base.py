@@ -216,8 +216,6 @@ class EventStream(Service):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int,
-        commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,

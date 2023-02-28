@@ -70,7 +70,7 @@ def get_occurrence_kafka_payload() -> KafkaPayload:
 def test_dispatch_task(mock_dispatch: Mock) -> None:
     commit = Mock()
     partition = Partition(Topic("test"), 0)
-    factory = PostProcessForwarderStrategyFactory(concurrency=2, max_pending_futures=10)
+    factory = PostProcessForwarderStrategyFactory(concurrency=2)
     strategy = factory.create_with_partitions(commit, {partition: 0})
 
     strategy.submit(Message(BrokerValue(get_kafka_payload(), partition, 1, datetime.now())))
@@ -104,7 +104,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
 def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
     commit = Mock()
     partition = Partition(Topic("test-occurrence"), 0)
-    factory = PostProcessForwarderStrategyFactory(concurrency=2, max_pending_futures=10)
+    factory = PostProcessForwarderStrategyFactory(concurrency=2)
     strategy = factory.create_with_partitions(commit, {partition: 0})
 
     strategy.submit(

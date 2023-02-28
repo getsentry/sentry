@@ -29,7 +29,7 @@ from django.conf import settings
 from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates, PostProcessForwarderType
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
-from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
+from sentry.eventstream.kafka.synchronized import SynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json, metrics
@@ -234,8 +234,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: str,
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int,
-        commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: Optional[bool],
@@ -261,14 +259,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
             )
         )
 
-        synchronized_consumer = ArroyoSynchronizedConsumer(
+        synchronized_consumer = SynchronizedConsumer(
             consumer=consumer,
             commit_log_consumer=commit_log_consumer,
             commit_log_topic=Topic(commit_log_topic),
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(concurrency, commit_batch_size)
+        strategy_factory = PostProcessForwarderStrategyFactory(concurrency)
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
@@ -281,8 +279,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int,
-        commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
@@ -302,8 +298,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             topic or default_topic,
             commit_log_topic,
             synchronize_commit_group,
-            commit_batch_size,
-            commit_batch_timeout_ms,
             concurrency,
             initial_offset_reset,
             strict_offset_reset,

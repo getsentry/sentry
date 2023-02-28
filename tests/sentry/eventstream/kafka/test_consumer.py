@@ -118,8 +118,6 @@ class PostProcessForwarderTest(TestCase):
             topic=self.events_topic,
             commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
-            commit_batch_size=1,
-            commit_batch_timeout_ms=100,
             concurrency=1,
             initial_offset_reset="earliest",
             strict_offset_reset=None,
