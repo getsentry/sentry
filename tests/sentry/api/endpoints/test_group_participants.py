@@ -19,7 +19,7 @@ class GroupParticipantsTest(APITestCase):
         return (
             lambda group: reverse("sentry-api-0-group-stats", args=[group.id]),
             lambda group: reverse(
-                "sentry-api-0-group-stats-with-org", args=[self.organization.slug, group.id]
+                "sentry-api-0-organization-group-stats", args=[self.organization.slug, group.id]
             ),
         )
 

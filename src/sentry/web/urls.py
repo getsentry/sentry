@@ -366,7 +366,7 @@ urlpatterns += [
     url(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
-        name="sentry-accept-invite-with-org",
+        name="sentry-organization-accept-invite",
     ),
     # User settings use generic_react_page_view, while any view acting on
     # behalf of an organization should use react_page_view

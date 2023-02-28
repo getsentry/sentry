@@ -6,7 +6,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test(stable=True)
 class MonitorDetailsTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-details"
-    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-details"
 
     def setUp(self):
         super().setUp()
@@ -44,7 +44,7 @@ class MonitorDetailsTest(MonitorTestCase):
 @region_silo_test(stable=True)
 class UpdateMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-details"
-    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-details"
 
     def setUp(self):
         super().setUp()
@@ -281,7 +281,7 @@ class UpdateMonitorTest(MonitorTestCase):
 @region_silo_test()
 class DeleteMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-details"
-    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-details"
 
     def setUp(self):
         super().setUp()
