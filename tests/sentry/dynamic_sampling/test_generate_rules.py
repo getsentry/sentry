@@ -86,18 +86,16 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
     )
 
 
+@pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(
-    get_blended_sample_rate, get_enabled_user_biases
+    get_blended_sample_rate, get_enabled_user_biases, default_project
 ):
     # it means no enabled user biases
     get_enabled_user_biases.return_value = {}
     get_blended_sample_rate.return_value = 0.1
-    # since we mock get_blended_sample_rate function
-    # no need to create real project in DB
-    fake_project = MagicMock()
-    assert generate_rules(fake_project) == [
+    assert generate_rules(default_project) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
@@ -106,12 +104,11 @@ def test_generate_rules_return_uniform_rules_with_rate(
             "type": "trace",
         }
     ]
-    get_blended_sample_rate.assert_called_with(fake_project)
     get_enabled_user_biases.assert_called_with(
-        fake_project.get_option("sentry:dynamic_sampling_biases", None)
+        default_project.get_option("sentry:dynamic_sampling_biases", None)
     )
     validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project)})
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
     )
 
 
@@ -353,15 +350,22 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
     )
 
 
+@pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
-    get_blended_sample_rate,
+    get_blended_sample_rate, default_project
 ):
     get_blended_sample_rate.return_value = 1.0
-    # since we mock get_blended_sample_rate function
-    # no need to create real project in DB
-    fake_project = MagicMock()
-    assert generate_rules(fake_project) == [
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": False},
+            {"id": "ignoreHealthChecks", "active": False},
+            {"id": "boostLatestRelease", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+        ],
+    )
+    assert generate_rules(default_project) == [
         {
             "active": True,
             "condition": {"inner": [], "op": "and"},
@@ -370,9 +374,8 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(fake_project)
     validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project)})
+        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
     )
 
 
