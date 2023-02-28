@@ -40,6 +40,7 @@ def latest_release_only(default_project):
 
 def _validate_rules(project):
     rules = generate_rules(project)
+
     # Generate boilerplate around minimal project config:
     project_config = {
         "allowedDomains": ["*"],
@@ -362,7 +363,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     _validate_rules(fake_project)
 
 
-@freeze_time("2022-10-21 18:50:25+00:00")
+@freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @pytest.mark.django_db
@@ -371,8 +372,8 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     [
         (version, platform, end)
         for version, platform, end in [
-            ("1.0", "python", "2022-10-21 20:03:03+00:00"),
-            ("2.0", None, "2022-10-21 19:50:25+00:00"),
+            ("1.0", "python", "2022-10-21T20:03:03Z"),
+            ("2.0", None, "2022-10-21T19:50:25Z"),
         ]
     ],
 )
@@ -417,7 +418,7 @@ def test_generate_rules_with_different_project_platforms(
             },
             "id": 1500,
             "timeRange": {
-                "start": "2022-10-21 18:50:25+00:00",
+                "start": "2022-10-21T18:50:25Z",
                 "end": end,
             },
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
@@ -433,7 +434,7 @@ def test_generate_rules_with_different_project_platforms(
 
 
 @pytest.mark.django_db
-@freeze_time("2022-10-21 18:50:25+00:00")
+@freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
@@ -470,7 +471,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1500,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
@@ -484,7 +485,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1501,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
@@ -498,7 +499,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1502,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
@@ -512,7 +513,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
 
 @pytest.mark.django_db
-@freeze_time("2022-10-21 18:50:25+00:00")
+@freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_does_not_return_rule_with_deleted_release(
@@ -552,7 +553,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
                 ],
             },
             "id": 1500,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
