@@ -232,9 +232,11 @@ def validate_models_have_silos(exemptions: Set[Type[Model]], app_name: str | Non
 
 def validate_no_cross_silo_foreign_keys(
     exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
-) -> None:
+) -> Set[Any]:
+    seen: Set[Any] = set()
     for model in iter_models(app_name):
-        validate_model_no_cross_silo_foreign_keys(model, exemptions)
+        seen |= validate_model_no_cross_silo_foreign_keys(model, exemptions)
+    return seen
 
 
 def validate_no_cross_silo_deletions(
@@ -255,6 +257,16 @@ def validate_no_cross_silo_deletions(
                     )
 
 
+def _is_relation_cross_silo(
+    model: Type[Model],
+    related: Type[Model],
+) -> bool:
+    for mode in model._meta.silo_limit.modes:
+        if mode not in related._meta.silo_limit.modes:
+            return True
+    return False
+
+
 def validate_relation_does_not_cross_silo_foreign_keys(
     model: Type[Model],
     related: Type[Model],
@@ -269,13 +281,19 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
-) -> None:
+) -> Set[Any]:
+    seen: Set[Any] = set()
     for field in model._meta.fields:
         if isinstance(field, RelatedField):
             if (model, field.related_model) in exemptions:
-                continue
+                if _is_relation_cross_silo(model, field.related_model):
+                    seen = seen | {(model, field.related_model)}
+                    continue
             if (field.related_model, model) in exemptions:
-                continue
+                if _is_relation_cross_silo(field.related_model, model):
+                    seen = seen | {(field.related_model, model)}
+                    continue
 
             validate_relation_does_not_cross_silo_foreign_keys(model, field.related_model)
             validate_relation_does_not_cross_silo_foreign_keys(field.related_model, model)
+    return seen

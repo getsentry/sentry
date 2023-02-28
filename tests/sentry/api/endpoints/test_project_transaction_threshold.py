@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTransactionThresholdTest(APITestCase):
     feature_name = "organizations:performance-view"
 

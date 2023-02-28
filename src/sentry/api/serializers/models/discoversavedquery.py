@@ -1,34 +1,28 @@
 from collections import defaultdict
 
-from django.db.models.query import prefetch_related_objects
-
-from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.user import UserSerializer
+from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
 @register(DiscoverSavedQuery)
 class DiscoverSavedQuerySerializer(Serializer):
     def get_attrs(self, item_list, user):
-        prefetch_related_objects(item_list, "created_by")
-
         result = defaultdict(lambda: {"created_by": {}})
 
-        user_serializer = UserSerializer()
-        serialized_users = {
-            user["id"]: user
-            for user in serialize(
-                [
-                    discover_saved_query.created_by
+        service_serialized = user_service.serialize_many(
+            filter={
+                "user_ids": [
+                    discover_saved_query.created_by_id
                     for discover_saved_query in item_list
-                    if discover_saved_query.created_by
-                ],
-                user=user,
-                serializer=user_serializer,
-            )
-        }
+                    if discover_saved_query.created_by_id
+                ]
+            },
+            as_user=user,
+        )
+        serialized_users = {user["id"]: user for user in service_serialized}
 
         for discover_saved_query in item_list:
             result[discover_saved_query]["created_by"] = serialized_users.get(

@@ -6,7 +6,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-comments"
     method = "post"
@@ -36,7 +36,7 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
             )
         activity = IncidentActivity.objects.get(id=resp.data["id"])
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert resp.data == serialize([activity], self.user)[0]
 
@@ -61,11 +61,11 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
             )
         activity = IncidentActivity.objects.get(id=resp.data["id"])
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert resp.data == serialize([activity], self.user)[0]
         assert IncidentSubscription.objects.filter(
-            user=mentioned_member, incident=incident
+            user_id=mentioned_member.id, incident=incident
         ).exists()
 
     def test_access(self):

@@ -70,4 +70,4 @@ class UnsubscribeIncidentNotificationsTest(UnsubscribeNotificationsBaseTest, Tes
         return self.create_incident()
 
     def assert_unsubscribed(self, instance, user):
-        assert not IncidentSubscription.objects.filter(incident=instance, user=user).exists()
+        assert not IncidentSubscription.objects.filter(incident=instance, user_id=user.id).exists()
