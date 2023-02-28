@@ -7,11 +7,10 @@ from django.utils import timezone
 from sentry import features
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.models import Activity, ActorTuple
+from sentry.models import ActorTuple
 from sentry.models.groupowner import OwnerRuleType
 from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -287,19 +286,6 @@ class ProjectOwnership(Model):
                     "rule": (issue_owner.context or {}).get("rule", ""),
                 }
             )
-
-            activity = Activity.objects.filter(
-                group=event.group, type=ActivityType.ASSIGNED.value
-            ).order_by("-datetime")
-            if activity:
-                auto_assigned = activity[0].data.get("integration")
-                if not auto_assigned:
-                    analytics.record(
-                        "autoassignment.post_manual_assignment",
-                        organization_id=event.group.project.organization_id,
-                        project_id=project_id,
-                        group_id=event.group.id,
-                    )
 
             assignment = GroupAssignee.objects.assign(
                 event.group,
