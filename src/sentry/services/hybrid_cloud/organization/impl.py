@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
 
@@ -48,8 +47,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_member_flags(cls, member: OrganizationMember) -> RpcOrganizationMemberFlags:
         result = RpcOrganizationMemberFlags()
-        for f in dataclasses.fields(RpcOrganizationMemberFlags):
-            setattr(result, f.name, bool(getattr(member.flags, unescape_flag_name(f.name))))
+        for field_name in RpcOrganizationMemberFlags.__fields__:
+            setattr(result, field_name, bool(getattr(member.flags, unescape_flag_name(field_name))))
         return result
 
     @classmethod
@@ -91,8 +90,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_flags(cls, org: Organization) -> RpcOrganizationFlags:
         result = RpcOrganizationFlags()
-        for f in dataclasses.fields(result):
-            setattr(result, f.name, getattr(org.flags, f.name))
+        for field_name in result.__fields__:
+            setattr(result, field_name, getattr(org.flags, field_name))
         return result
 
     @classmethod

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import fields
 from typing import Any, Callable, FrozenSet, Iterable, List, Optional
 
 from django.db.models import QuerySet
@@ -158,9 +157,9 @@ class DatabaseBackedUserService(
 
 def serialize_rpc_user(user: User) -> RpcUser:
     args = {
-        field.name: getattr(user, field.name)
-        for field in fields(RpcUser)
-        if hasattr(user, field.name)
+        field_name: getattr(user, field_name)
+        for field_name in RpcUser.__fields__
+        if hasattr(user, field_name)
     }
     args["pk"] = user.pk
     args["display_name"] = user.get_display_name()
