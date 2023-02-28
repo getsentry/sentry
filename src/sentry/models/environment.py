@@ -38,8 +38,6 @@ class Environment(Model):
 
     organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
-    # DEPRECATED, use projects
-    project_id = BoundedBigIntegerField(null=True)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
 
