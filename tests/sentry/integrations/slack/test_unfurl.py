@@ -585,7 +585,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,
@@ -649,7 +649,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,
@@ -826,7 +826,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,
@@ -1092,7 +1092,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,

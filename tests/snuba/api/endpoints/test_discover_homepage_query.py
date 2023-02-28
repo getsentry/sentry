@@ -27,7 +27,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
     def test_returns_serialized_saved_query_if_homepage_is_set(self):
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=self.query,
             is_homepage=True,
@@ -41,7 +41,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
     def test_put_updates_existing_homepage_query_to_reflect_new_data(self):
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=self.query,
             is_homepage=True,
@@ -79,7 +79,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
 
         new_query = DiscoverSavedQuery.objects.get(
-            created_by=self.user, organization=self.org, is_homepage=True
+            created_by_id=self.user.id, organization=self.org, is_homepage=True
         )
         assert response.data == serialize(new_query)
         assert new_query.query["fields"] == homepage_query_payload["fields"]
@@ -102,7 +102,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
 
         new_query = DiscoverSavedQuery.objects.get(
-            created_by=self.user, organization=self.org, is_homepage=True
+            created_by_id=self.user.id, organization=self.org, is_homepage=True
         )
         assert new_query.name == ""
         assert response.data["name"] == ""
@@ -123,7 +123,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
 
         new_query = DiscoverSavedQuery.objects.get(
-            created_by=self.user, organization=self.org, is_homepage=True
+            created_by_id=self.user.id, organization=self.org, is_homepage=True
         )
         assert new_query.name == ""
         assert response.data["name"] == ""
@@ -146,7 +146,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
     def test_delete_resets_saved_query(self):
         DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=self.query,
             is_homepage=True,
@@ -156,5 +156,5 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 204
         assert not DiscoverSavedQuery.objects.filter(
-            created_by=self.user, organization=self.org, is_homepage=True
+            created_by_id=self.user.id, organization=self.org, is_homepage=True
         ).exists()

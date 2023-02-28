@@ -54,7 +54,7 @@ class DiscoverSavedQueryTest(TestCase):
             organization=self.org,
             name="Test query",
             query=self.query,
-            created_by=self.user,
+            created_by_id=self.user.id,
             is_homepage=True,
         )
 
@@ -63,7 +63,7 @@ class DiscoverSavedQueryTest(TestCase):
                 organization=self.org,
                 name="Test query 2",
                 query=self.query,
-                created_by=self.user,
+                created_by_id=self.user.id,
                 is_homepage=True,
             )
 
@@ -72,14 +72,14 @@ class DiscoverSavedQueryTest(TestCase):
             organization=self.org,
             name="Test query",
             query=self.query,
-            created_by=self.user,
+            created_by_id=self.user.id,
             is_homepage=True,
         )
         new_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             name="Test query 2",
             query=self.query,
-            created_by=self.user,
+            created_by_id=self.user.id,
         )
 
         with pytest.raises(IntegrityError), transaction.atomic():
@@ -98,14 +98,14 @@ class DiscoverSavedQueryTest(TestCase):
             organization=self.org,
             name="Test query",
             query=self.query,
-            created_by=self.user,
+            created_by_id=self.user.id,
             is_homepage=True,
         )
         new_query = DiscoverSavedQuery.objects.create(
             organization=other_org,
             name="Test query 2",
             query=self.query,
-            created_by=self.user,
+            created_by_id=self.user.id,
         )
 
         # Does not error since the query is in another org
