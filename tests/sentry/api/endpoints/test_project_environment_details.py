@@ -11,7 +11,7 @@ class ProjectEnvironmentsTest(APITestCase):
         project = self.create_project()
 
         environment = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="production"
+            organization_id=project.organization_id, name="production"
         )
         environment.add_project(project)
 
@@ -54,7 +54,7 @@ class ProjectEnvironmentsTest(APITestCase):
         project = self.create_project()
 
         environment = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="production"
+            organization_id=project.organization_id, name="production"
         )
         environment.add_project(project)
 

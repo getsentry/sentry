@@ -7,7 +7,8 @@ import type {ReprocessEventModalOptions} from 'sentry/components/modals/reproces
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import ModalStore from 'sentry/stores/modalStore';
-import {
+import type {
+  Event,
   Group,
   IssueOwnership,
   Organization,
@@ -16,7 +17,6 @@ import {
   Team,
 } from 'sentry/types';
 import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
-import {Event} from 'sentry/types/event';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -120,6 +120,10 @@ type CreateOwnershipRuleModalOptions = {
    * The project to create a rules for
    */
   project: Project;
+  /**
+   * Suggestions will be created from the current event
+   */
+  eventData?: Event;
 };
 
 export type EditOwnershipRulesModalOptions = {
@@ -129,8 +133,13 @@ export type EditOwnershipRulesModalOptions = {
   project: Project;
 };
 
-export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
-  const mod = await import('sentry/components/modals/createOwnershipRuleModal');
+/**
+ * Open the edit ownership modal within issue details
+ */
+export async function openIssueOwnershipRuleModal(
+  options: CreateOwnershipRuleModalOptions
+) {
+  const mod = await import('sentry/components/modals/issueOwnershipRuleModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
