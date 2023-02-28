@@ -87,7 +87,7 @@ class AlertRuleSerializer(Serializer):
         for rule_activity in rule_activities:
             rpc_user = use_by_user_id.get(rule_activity.user_id)
             if rpc_user:
-                user = dict(id=user.id, name=user.get_display_name(), email=user.email)
+                user = dict(id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email)
             else:
                 user = None
             result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = user
