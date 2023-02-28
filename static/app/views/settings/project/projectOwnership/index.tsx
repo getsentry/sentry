@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
@@ -31,6 +32,21 @@ type State = {
   codeowners?: CodeOwner[];
   ownership?: null | IssueOwnership;
 } & AsyncView['state'];
+
+// TODO: remove
+interface OwnershipRulesParsed {
+  owners: string[];
+  rule: string;
+  type: string;
+}
+// TODO: remove
+const rules: OwnershipRulesParsed[] = [
+  {
+    owners: ['team:1303244', 'team:1303244', 'team:1303244'],
+    rule: '**/src/**',
+    type: 'path',
+  },
+];
 
 class ProjectOwnership extends AsyncView<Props, State> {
   // TODO: Remove with `streamline-targeting-context`
@@ -132,6 +148,9 @@ tags.sku_class:enterprise #enterprise`;
 
     const disabled = !organization.access.includes('project:write');
     const editOwnershipeRulesDisabled = !organization.access.includes('project:read');
+    const hasStreamlineTargetingContext = organization.features?.includes(
+      'streamline-targeting-context'
+    );
 
     return (
       <Fragment>
@@ -139,15 +158,34 @@ tags.sku_class:enterprise #enterprise`;
           title={this.getOwnershipTitle()}
           action={
             <Fragment>
-              <Button
-                to={{
-                  pathname: `/organizations/${organization.slug}/issues/`,
-                  query: {project: project.id},
-                }}
-                size="sm"
-              >
-                {t('View Issues')}
-              </Button>
+              {hasStreamlineTargetingContext ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  icon={<IconEdit size="xs" />}
+                  onClick={() =>
+                    openEditOwnershipRules({
+                      organization,
+                      project,
+                      ownership: ownership!,
+                      onSave: this.handleOwnershipSave,
+                    })
+                  }
+                  disabled={!!ownership && editOwnershipeRulesDisabled}
+                >
+                  {t('Edit Rules')}
+                </Button>
+              ) : (
+                <Button
+                  to={{
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query: {project: project.id},
+                  }}
+                  size="sm"
+                >
+                  {t('View Issues')}
+                </Button>
+              )}
               <Feature features={['integrations-codeowners']}>
                 <Access access={['org:integrations']}>
                   {({hasAccess}) =>
@@ -177,7 +215,9 @@ tags.sku_class:enterprise #enterprise`;
           projectSlug={project.slug}
           codeowners={codeowners ?? []}
         />
-        {ownership && <OwnershipRulesTable />}
+        {ownership && (
+          <OwnershipRulesTable projectRules={rules} codeownersRules={rules} />
+        )}
         {ownership && (
           <RulesPanel
             data-test-id="issueowners-panel"
