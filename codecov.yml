@@ -1,3 +1,10 @@
+codecov:
+  notify:
+    # The minimum amount of codecov reporting checks that need to complete
+    # For FE we have 5 checks and for BE we have 11
+    # TODO: Remove this when we have support of after_n_builds per flag
+    after_n_builds: 5
+
 # Setting coverage targets per flag
 coverage:
   status:
