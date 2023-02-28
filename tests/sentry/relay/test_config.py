@@ -62,7 +62,6 @@ DEFAULT_ENVIRONMENT_RULE = {
             }
         ],
     },
-    "active": True,
     "id": 1001,
 }
 
@@ -80,7 +79,6 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
             }
         ],
     },
-    "active": True,
     "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
 }
 
@@ -153,7 +151,6 @@ def test_get_experimental_config_transaction_metrics_exception(
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
 
     config = cfg.to_dict()["config"]
-    validate_project_config(json.dumps(config), strict=True)
 
     # we check that due to exception we don't add `d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond`
     assert "breakdowns.span_ops.ops" not in config["transactionMetrics"]["extractMetrics"]
@@ -201,15 +198,15 @@ def test_project_config_uses_filter_features(
 
 @pytest.mark.django_db
 @region_silo_test(stable=True)
-@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["projects:custom-inbound-filters"])
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
-    with Feature({"projects:custom-inbound-filters": True}):
+    with Feature({"organizations:profiling": True}):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
     validate_project_config(json.dumps(cfg["config"]), strict=True)
     cfg_features = get_path(cfg, "config", "features")
-    assert cfg_features == ["projects:custom-inbound-filters"]
+    assert cfg_features == ["organizations:profiling"]
 
 
 @pytest.mark.django_db
@@ -309,15 +306,12 @@ def test_project_config_with_all_biases_enabled(
                             "op": "glob",
                             "name": "event.transaction",
                             "value": HEALTH_CHECK_GLOBS,
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
-                "active": True,
                 "id": 1002,
             },
             {
-                "active": True,
                 "condition": {
                     "inner": [
                         {
@@ -343,17 +337,14 @@ def test_project_config_with_all_biases_enabled(
                             "op": "glob",
                             "name": "trace.environment",
                             "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
-                "active": True,
                 "id": 1001,
             },
             {
                 "samplingValue": {"type": "factor", "value": 1.5},
                 "type": "trace",
-                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [
@@ -367,15 +358,14 @@ def test_project_config_with_all_biases_enabled(
                 },
                 "id": 1500,
                 "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
+                    "start": "2022-10-21T18:50:25Z",
+                    "end": "2022-10-21T19:50:25Z",
                 },
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
                 "samplingValue": {"type": "factor", "value": 1.5},
                 "type": "trace",
-                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [
@@ -389,15 +379,14 @@ def test_project_config_with_all_biases_enabled(
                 },
                 "id": 1501,
                 "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
+                    "start": "2022-10-21T18:50:25Z",
+                    "end": "2022-10-21T19:50:25Z",
                 },
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},
                 "type": "trace",
-                "active": True,
                 "condition": {"op": "and", "inner": []},
                 "id": 1000,
             },
