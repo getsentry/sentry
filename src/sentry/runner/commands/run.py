@@ -703,7 +703,7 @@ def replays_recordings_consumer(**options):
 @run.command("ingest-monitors")
 @log_options()
 @click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")
-@batching_kafka_options("ingest-monitors", max_batch_size=100)
+@kafka_options("ingest-monitors")
 @strict_offset_reset_option()
 @configuration
 def monitors_consumer(**options):
