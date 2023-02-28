@@ -114,9 +114,7 @@ class ReactPageViewTest(TestCase):
                 reverse("sentry-organization-issue-list", args=[org.slug]), follow=True
             )
             assert response.status_code == 200
-            assert response.redirect_chain == [
-                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302)
-            ]
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
 
             response = self.client.get(reverse("issues"), follow=True)
             assert response.status_code == 200
@@ -124,11 +122,9 @@ class ReactPageViewTest(TestCase):
 
             response = self.client.get("/", follow=True)
             assert response.status_code == 200
-            # TODO(alberto): follow up with patch to make /issues/ the default whenever customer domain feature is
-            #                enabled.
             assert response.redirect_chain == [
                 (f"/organizations/{org.slug}/issues/", 302),
-                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302),
+                (f"http://{org.slug}.testserver/issues/", 302),
             ]
 
             # No redirect if customer domain is already being used
