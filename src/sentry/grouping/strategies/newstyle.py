@@ -46,6 +46,29 @@ _java_assist_enhancer_re = re.compile(r"""(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r"""(\$fn__)\d+""", re.X)
 
+# Java specific anonymous CGLIB Enhancer classes.
+# see: https://github.com/getsentry/sentry-java/issues/1018
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf
+#   com.example.api.OutboundController$EnhancerByGuice$ae46b1bf
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$FastClassByGuice$caceacd2
+#   com.example.api.OutboundController$EnhancerByGuice$ae46b1bf$FastClassByGuice$caceacd2
+_java_enhancer_by_re = re.compile(r"""(\$\$?EnhancerBy[\w_]+?\$?\$)[a-fA-F0-9]+(_[0-9]+)?""", re.X)
+
+# Java specific anonymous CGLIB FastClass classes.
+# see: https://github.com/getsentry/sentry-java/issues/1018
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$FastClassByGuice$caceacd2
+#   com.example.api.OutboundController$EnhancerByGuice$ae46b1bf$FastClassByGuice$caceacd2
+_java_fast_class_by_re = re.compile(
+    r"""(\$\$?FastClassBy[\w_]+?\$?\$)[a-fA-F0-9]+(_[0-9]+)?""", re.X
+)
+
+# Java specific anonymous Hibernate classes.
+# see: https://github.com/getsentry/sentry-java/issues/1018
+#   com.example.model.User$HibernateProxy$oRWxjAWT
+_java_hibernate_proxy_re = re.compile(r"""(\$\$?HibernateProxy\$?\$)\w+(_[0-9]+)?""", re.X)
+
 # fields that need to be the same between frames for them to be considered
 # recursive calls
 RECURSION_COMPARISON_FIELDS = [
@@ -166,6 +189,9 @@ def get_module_component(
             module = _java_cglib_enhancer_re.sub(r"\1<auto>", module)
             module = _java_assist_enhancer_re.sub(r"\1<auto>", module)
             module = _clojure_enhancer_re.sub(r"\1<auto>", module)
+            module = _java_enhancer_by_re.sub(r"\1<auto>", module)
+            module = _java_fast_class_by_re.sub(r"\1<auto>", module)
+            module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
 
