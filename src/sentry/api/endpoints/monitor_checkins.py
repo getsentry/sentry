@@ -4,7 +4,7 @@ from typing import List
 
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import Throttled
+from rest_framework.exceptions import ParseError, Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +15,7 @@ from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
+from sentry.api.utils import get_date_range_from_stats_period
 from sentry.api.validators import MonitorCheckInValidator
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -68,7 +69,14 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             if project.organization.slug != organization_slug:
                 return self.respond_invalid()
 
-        queryset = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        params = request.GET
+        start, end = get_date_range_from_stats_period(params)
+        if start is None or end is None:
+            raise ParseError(detail="Invalid date range")
+
+        queryset = MonitorCheckIn.objects.filter(
+            monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
+        )
 
         return self.paginate(
             request=request,
