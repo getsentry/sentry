@@ -1,6 +1,6 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {Replayer, ReplayerEvents} from 'rrweb';
+import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
