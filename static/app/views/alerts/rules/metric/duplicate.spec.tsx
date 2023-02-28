@@ -38,6 +38,12 @@ describe('Incident Rules Duplicate', function () {
           type: 'email',
           integrationId: null,
         },
+        {
+          allowedTargetTypes: ['specific'],
+          integrationName: null,
+          type: 'slack',
+          integrationId: 1,
+        },
       ],
     });
     MockApiClient.addMockResponse({
@@ -104,5 +110,66 @@ describe('Incident Rules Duplicate', function () {
 
     // Has the updated alert rule name
     expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+  });
+
+  it('duplicates slack actions', function () {
+    const rule = TestStubs.MetricRule();
+    rule.triggers[0].actions.push({
+      id: '13',
+      alertRuleTriggerId: '12',
+      type: 'slack',
+      targetType: 'specific',
+      targetIdentifier: '#feed-ecosystem',
+      inputChannelId: 'ABC123',
+      integrationId: 1,
+      sentryAppId: null,
+      desc: 'Send a Slack notification to #feed-ecosystem',
+    });
+
+    const {organization, project, router} = initializeOrg({
+      organization: {
+        access: ['alerts:write'],
+      },
+      router: {
+        params: {},
+        location: {
+          query: {
+            createFromDuplicate: true,
+            duplicateRuleId: `${rule.id}`,
+          },
+        },
+      },
+      project: rule.projects[0],
+      projects: rule.projects,
+    });
+
+    const req = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+
+    render(
+      <MetricRulesDuplicate
+        params={{}}
+        route={{}}
+        routeParams={router.params}
+        router={router}
+        routes={router.routes}
+        location={router.location}
+        organization={organization}
+        project={project}
+        userTeamIds={[]}
+      />
+    );
+
+    // Duplicated alert has been called
+    expect(req).toHaveBeenCalled();
+
+    // Still has a selected slack action
+    expect(screen.getByText('Slack')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('optional: channel ID or user ID')).toHaveValue(
+      'ABC123'
+    );
+    expect(screen.getByText(/Enter a channel or user ID/)).toBeInTheDocument();
   });
 });
