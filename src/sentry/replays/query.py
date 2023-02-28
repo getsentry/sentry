@@ -558,7 +558,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
-    "tags": ["tags.key", "tags.value"],
+    "tags": ["tk", "tv"],
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
     "user.email": ["user_email"],
