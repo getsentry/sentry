@@ -16,7 +16,7 @@ from sentry.testutils.silo import region_silo_test
 @freeze_time()
 class CreateMonitorCheckInTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-check-in-index"
-    endpoint_with_org = "sentry-api-0-monitor-check-in-index-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-check-in-index"
 
     def setUp(self):
         super().setUp()

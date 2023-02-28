@@ -26,7 +26,7 @@ from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class MonitorDetailsEndpoint(MonitorEndpoint):
+class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     public = {"GET", "PUT", "DELETE"}
 
     @extend_schema(

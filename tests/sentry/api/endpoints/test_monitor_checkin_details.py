@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test(stable=True)
 class UpdateMonitorCheckInTest(APITestCase):
     endpoint = "sentry-api-0-monitor-check-in-details"
-    endpoint_with_org = "sentry-api-0-monitor-check-in-details-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-check-in-details"
 
     def setUp(self):
         super().setUp()
