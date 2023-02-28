@@ -12,7 +12,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class UploadMonitorCheckInAttachmentTest(APITestCase):
-    endpoint = "sentry-api-0-monitor-check-in-attachment-with-org"
+    endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 
     def setUp(self):
         super().setUp()
