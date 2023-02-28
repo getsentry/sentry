@@ -11,6 +11,7 @@ from django.conf import settings
 
 from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory
 from sentry.utils import kafka_config
+from sentry.utils.batching_kafka_consumer import create_topics
 
 
 def get_monitor_check_ins_consumer(
@@ -47,6 +48,7 @@ def get_config(
     force_cluster: str | None,
 ) -> MutableMapping[str, Any]:
     cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
+    create_topics(cluster_name, [topic])
     return build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,
