@@ -17,7 +17,6 @@ from sentry.db.models import (
 )
 from sentry.utils import json
 
-from ..services.hybrid_cloud.user import user_service
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
 logger = logging.getLogger(__name__)
@@ -86,10 +85,6 @@ class ExportedData(Model):
     def email_success(self):
         from sentry.utils.email import MessageBuilder
 
-        user = user_service.get_user(user_id=self.user_id)
-        if user is None:
-            return
-
         # The following condition should never be true, but it's a safeguard in case someone manually calls this method
         if self.date_finished is None or self.date_expired is None or self._get_file() is None:
             logger.warning(
@@ -107,14 +102,10 @@ class ExportedData(Model):
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
         )
-        msg.send_async([user.email])
+        msg.send_async([self.user.email])
 
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
-
-        user = user_service.get_user(user_id=self.user_id)
-        if user is None:
-            return
 
         msg = MessageBuilder(
             subject="We couldn't export your data.",
@@ -127,7 +118,7 @@ class ExportedData(Model):
             template="sentry/emails/data-export-failure.txt",
             html_template="sentry/emails/data-export-failure.html",
         )
-        msg.send_async([user.email])
+        msg.send_async([self.user.email])
         self.delete()
 
     def _get_file(self):

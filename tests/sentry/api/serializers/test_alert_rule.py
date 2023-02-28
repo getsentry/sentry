@@ -8,7 +8,6 @@ from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.models import Rule
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 NOT_SET = object()
 
@@ -100,7 +99,6 @@ class BaseAlertRuleSerializerTest:
         return rule
 
 
-@region_silo_test(stable=True)
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -132,7 +130,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(environment=self.environment, user=user)
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
-        assert alert_rule.created_by.id == user.id
+        assert alert_rule.created_by == user
 
     def test_owner(self):
         user = self.create_user("foo@example.com")
@@ -156,7 +154,6 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
 
-@region_silo_test(stable=True)
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         projects = [self.project, self.create_project()]
@@ -195,7 +192,6 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[1]["triggers"] == []
 
 
-@region_silo_test(stable=True)
 class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
     def test_combined_serializer(self):
         projects = [self.project, self.create_project()]

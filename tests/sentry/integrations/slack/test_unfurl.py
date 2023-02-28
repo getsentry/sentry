@@ -168,7 +168,6 @@ def test_match_link(url, expected):
     assert match_link(url) == expected
 
 
-# @region_silo_test(stable=True)
 class UnfurlTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -586,7 +585,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="Test query",
             query=query,
             version=2,
@@ -650,7 +649,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="Test query",
             query=query,
             version=2,
@@ -827,7 +826,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="Test query",
             query=query,
             version=2,
@@ -1093,7 +1092,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by=self.user,
             name="Test query",
             query=query,
             version=2,

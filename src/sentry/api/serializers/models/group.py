@@ -15,7 +15,6 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
-    Set,
     Tuple,
     TypedDict,
     Union,
@@ -36,6 +35,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
+    ActorTuple,
     Commit,
     Environment,
     Group,
@@ -183,32 +183,19 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
-    def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Union[Team, Any]]:
-        gas = GroupAssignee.objects.filter(group__in=item_list)
-        result: MutableMapping[int, Union[Team, Any]] = {}
-        all_team_ids: MutableMapping[int, Set[int]] = {}
-        all_user_ids: MutableMapping[int, Set[int]] = {}
+    def _serialize_assigness(
+        self, actor_dict: Mapping[int, ActorTuple]
+    ) -> Mapping[int, Union[Team, Any]]:
+        actors_by_type: MutableMapping[Any, List[ActorTuple]] = defaultdict(list)
+        for actor in actor_dict.values():
+            actors_by_type[actor.type].append(actor)
 
-        for g in gas:
-            if g.team_id:
-                if g.team_id not in all_team_ids:
-                    all_team_ids[g.team_id] = {g.group_id}
-                else:
-                    all_team_ids[g.team_id].add(g.group_id)
-            if g.user_id:
-                if g.team_id not in all_team_ids:
-                    all_user_ids[g.user_id] = {g.group_id}
-                else:
-                    all_user_ids[g.user_id].add(g.group_id)
+        resolved_actors = {}
+        for t, actors in actors_by_type.items():
+            serializable = ActorTuple.resolve_many(actors)
+            resolved_actors[t] = {actor.id: actor for actor in serializable}
 
-        for team in Team.objects.filter(id__in=all_team_ids.keys()):
-            for group_id in all_team_ids[team.id]:
-                result[group_id] = team
-        for user in user_service.get_many(filter=dict(user_ids=list(all_user_ids.keys()))):
-            for group_id in all_user_ids[user.id]:
-                result[group_id] = user
-
-        return result
+        return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
 
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
@@ -236,7 +223,11 @@ class GroupSerializerBase(Serializer, ABC):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, False, None))
 
-        resolved_assignees = self._serialize_assignees(item_list)
+        assignees: Mapping[int, ActorTuple] = {
+            a.group_id: a.assigned_actor()
+            for a in GroupAssignee.objects.filter(group__in=item_list)
+        }
+        resolved_assignees = self._serialize_assigness(assignees)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 
