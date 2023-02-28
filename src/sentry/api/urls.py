@@ -652,7 +652,7 @@ urlpatterns = [
     url(
         r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
-        name="sentry-api-0-accept-organization-invite-with-org",
+        name="sentry-api-0-organization-accept-organization-invite",
     ),
     url(
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
@@ -695,27 +695,27 @@ urlpatterns = [
                 url(
                     r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-details-with-org",
+                    name="sentry-api-0-organization-monitor-details",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-index",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-details-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-details",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
                     MonitorCheckInAttachmentEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-attachment-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-attachment",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-stats-with-org",
+                    name="sentry-api-0-organization-monitor-stats",
                 ),
             ]
         ),
@@ -2335,7 +2335,7 @@ urlpatterns = [
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
-        name="sentry-api-0-group-stats-with-org",
+        name="sentry-api-0-organization-group-stats",
     ),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
@@ -2346,7 +2346,7 @@ urlpatterns = [
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-shared-group-details-with-org",
+        name="sentry-api-0-organization-shared-group-details",
     ),
     url(
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",

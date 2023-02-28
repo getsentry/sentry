@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {
   AssigneeSelectorDropdown,
@@ -203,10 +203,15 @@ function AssignedTo({
       <StyledSidebarTitle>
         {t('Assigned To')}
         {hasStreamlineTargetingFeature && (
-          <Access access={['project:write']}>
+          <Access access={['project:read']}>
             <Button
               onClick={() => {
-                openCreateOwnershipRule({project, organization, issueId: group.id});
+                openIssueOwnershipRuleModal({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event!,
+                });
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
