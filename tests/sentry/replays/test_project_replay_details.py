@@ -146,7 +146,6 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                     "http://localhost:3000/",
                 ],
                 count_segments=3,
-                count_errors=1,
                 activity=4,
             )
             assert_expected_response(response_data["data"], expected_response)

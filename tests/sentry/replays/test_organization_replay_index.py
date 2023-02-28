@@ -428,7 +428,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_model="10",
                 tags={"a": "m", "b": "q", "c": "test"},
                 urls=["example.com"],
-                error_ids=["a3a62ef6-ac86-415b-83c2-416fc2f76db1"],
             )
         )
         self.store_replays(
@@ -514,7 +513,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             ]
 
             for query in queries:
-                response = self.client.get(self.url + f"?query={query}")
+                response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
