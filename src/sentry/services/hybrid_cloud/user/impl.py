@@ -17,6 +17,7 @@ from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.user import (
+    RpcAuthenticator,
     RpcAvatar,
     RpcUser,
     RpcUserEmail,
@@ -31,13 +32,24 @@ class DatabaseBackedUserService(
     UserService,
 ):
     def get_many_by_email(
-        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+        self,
+        emails: List[str],
+        is_active: bool = True,
+        is_verified: bool = True,
+        is_project_member: bool = False,
+        project_id: Optional[int] = None,
     ) -> List[RpcUser]:
         query = self._base_query()
         if is_verified:
             query = query.filter(emails__is_verified=is_verified)
         if is_active:
             query = query.filter(is_active=is_active)
+        if is_project_member:
+            query = query.filter(
+                sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id__in=[
+                    project_id
+                ]
+            )
         return [
             self._serialize_rpc(user) for user in query.filter(in_iexact("emails__email", emails))
         ]
@@ -45,7 +57,7 @@ class DatabaseBackedUserService(
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> List[RpcUser]:
-        qs = User.objects
+        qs = self._base_query()
 
         if is_active is not None:
             qs = qs.filter(is_active=is_active)
@@ -123,6 +135,7 @@ class DatabaseBackedUserService(
                       ON sentry_userrole_users.role_id=sentry_userrole.id
                    WHERE user_id=auth_user.id""",
                 "useremails": "select array_agg(row_to_json(sentry_useremail)) from sentry_useremail where user_id=auth_user.id",
+                "authenticators": "select array_agg(row_to_json(auth_authenticator)) from auth_authenticator where user_id=auth_user.id",
             }
         )
 
@@ -157,7 +170,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
     args["password_usable"] = user.has_usable_password()
     args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
 
-    # And process the _base_user_query special data additions
+    # And process the _base_query special data additions
     permissions: FrozenSet[str] = frozenset({})
     if hasattr(user, "permissions") and user.permissions is not None:
         permissions = frozenset(user.permissions)
@@ -190,6 +203,21 @@ def serialize_rpc_user(user: User) -> RpcUser:
             avatar_type=avatar.avatar_type,
         )
     args["avatar"] = avatar
+    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
+    if hasattr(user, "authenticators") and user.authenticators is not None:
+        authenticators = frozenset(
+            RpcAuthenticator(
+                id=a["id"],
+                user_id=a["user_id"],
+                created_at=a["created_at"],
+                last_used_at=a["last_used_at"],
+                type=a["type"],
+                config=a["config"],
+            )
+            for a in user.authenticators
+        )
+    args["authenticators"] = authenticators
+
     return RpcUser(**args)
 
 

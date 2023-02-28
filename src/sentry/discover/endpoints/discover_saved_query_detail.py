@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -14,7 +14,7 @@ from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DiscoverSavedQuery
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverSavedQueryPermission,)
 
@@ -108,7 +108,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class DiscoverSavedQueryVisitEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverSavedQueryPermission,)
 

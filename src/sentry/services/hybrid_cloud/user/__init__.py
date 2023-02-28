@@ -4,7 +4,7 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, FrozenSet, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
@@ -40,6 +40,7 @@ class RpcUser:
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[RpcAvatar] = None
     useremails: FrozenSet[RpcUserEmail] = frozenset()
+    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -64,6 +65,9 @@ class RpcUser:
     def class_name(self) -> str:
         return "User"
 
+    def has_2fa(self) -> bool:
+        return len(self.authenticators) > 0
+
 
 @dataclass(frozen=True, eq=True)
 class RpcAvatar:
@@ -78,6 +82,16 @@ class RpcUserEmail:
     id: int = 0
     email: str = ""
     is_verified: bool = False
+
+
+@dataclass(frozen=True, eq=True)
+class RpcAuthenticator:
+    id: int = 0
+    user_id: int = -1
+    created_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    last_used_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    type: int = -1
+    config: Any = None
 
 
 class UserSerializeType(IntEnum):  # annoying
@@ -101,7 +115,12 @@ class UserService(
 ):
     @abstractmethod
     def get_many_by_email(
-        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+        self,
+        emails: List[str],
+        is_active: bool = True,
+        is_verified: bool = True,
+        is_project_member: bool = False,
+        project_id: Optional[int] = None,
     ) -> List[RpcUser]:
         """
         Return a list of users matching the filters

@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
+from typing import Optional
 
 import click
 
@@ -366,8 +367,8 @@ def cron(**options):
 @strict_offset_reset_option()
 @click.option(
     "--entity",
-    type=click.Choice(["errors", "transactions"]),
-    help="The type of entity to process (errors, transactions).",
+    type=click.Choice(["errors", "transactions", "search_issues"]),
+    help="The type of entity to process (errors, transactions, search_issues).",
 )
 @log_options()
 @configuration
@@ -445,38 +446,24 @@ def query_subscription_consumer(**options):
     run_processor_with_signals(subscriber)
 
 
-def batching_kafka_options(
-    group, max_batch_size=None, max_batch_time_ms=1000, allow_force_cluster=True
+def kafka_options(
+    consumer_group: str,
+    allow_force_cluster: bool = True,
+    include_batching_options: bool = False,
+    default_max_batch_size: Optional[int] = None,
+    default_max_batch_time_ms: Optional[int] = 1000,
 ):
-    """
-    Expose batching_kafka_consumer options as CLI args.
 
-    TODO(markus): Probably want to have this as part of batching_kafka_consumer
-    as this is duplicated effort between Snuba and Sentry.
+    """
+    Basic set of Kafka options for a consumer.
     """
 
     def inner(f):
         f = click.option(
             "--consumer-group",
             "group_id",
-            default=group,
+            default=consumer_group,
             help="Kafka consumer group for the consumer.",
-        )(f)
-
-        f = click.option(
-            "--max-batch-size",
-            "max_batch_size",
-            default=max_batch_size,
-            type=int,
-            help="How many messages to process before committing offsets.",
-        )(f)
-
-        f = click.option(
-            "--max-batch-time-ms",
-            "max_batch_time",
-            default=max_batch_time_ms,
-            type=int,
-            help="How long to batch for before committing offsets.",
         )(f)
 
         f = click.option(
@@ -486,6 +473,23 @@ def batching_kafka_options(
             type=click.Choice(["earliest", "latest", "error"]),
             help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
         )(f)
+
+        if include_batching_options:
+            f = click.option(
+                "--max-batch-size",
+                "max_batch_size",
+                default=default_max_batch_size,
+                type=int,
+                help="Maximum number of messages to batch before flushing.",
+            )(f)
+
+            f = click.option(
+                "--max-batch-time-ms",
+                "max_batch_time",
+                default=default_max_batch_time_ms,
+                type=int,
+                help="Maximum time (in seconds) to wait before flushing a batch.",
+            )(f)
 
         if allow_force_cluster:
             f = click.option(
@@ -507,6 +511,27 @@ def batching_kafka_options(
         return f
 
     return inner
+
+
+def batching_kafka_options(
+    group, max_batch_size=None, max_batch_time_ms=1000, allow_force_cluster=True
+):
+    """
+    Expose batching_kafka_consumer options as CLI args.
+
+    TODO(markus): Probably want to have this as part of batching_kafka_consumer
+    as this is duplicated effort between Snuba and Sentry.
+
+    TODO: To be removed in favour of `kafka_options` after it is no longer used by sentry and getsentry.
+    """
+
+    return kafka_options(
+        group,
+        allow_force_cluster=allow_force_cluster,
+        include_batching_options=True,
+        default_max_batch_size=max_batch_size,
+        default_max_batch_time_ms=max_batch_time_ms,
+    )
 
 
 @run.command("ingest-consumer")
@@ -598,7 +623,7 @@ def occurrences_ingest_consumer(**options):
 
 @run.command("ingest-metrics-parallel-consumer")
 @log_options()
-@batching_kafka_options("ingest-metrics-consumer", allow_force_cluster=False)
+@kafka_options("ingest-metrics-consumer", allow_force_cluster=False)
 @strict_offset_reset_option()
 @configuration
 @click.option(
@@ -628,11 +653,12 @@ def metrics_parallel_consumer(**options):
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
 
+    initialize_global_consumer_state(ingest_config)
+
     streamer = get_parallel_metrics_consumer(
         indexer_profile=ingest_config, slicing_router=slicing_router, **options
     )
 
-    initialize_global_consumer_state(ingest_config)
     run_processor_with_signals(streamer)
 
 
@@ -664,7 +690,7 @@ def profiles_consumer(**options):
 @run.command("ingest-replay-recordings")
 @log_options()
 @configuration
-@batching_kafka_options("ingest-replay-recordings", max_batch_size=100)
+@kafka_options("ingest-replay-recordings")
 @click.option(
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )

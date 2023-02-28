@@ -6,25 +6,17 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentActivity,
     IncidentSeen,
-    IncidentSnapshot,
     IncidentSubscription,
-    TimeSeriesSnapshot,
 )
 from sentry.models import (
+    Activity,
     Actor,
     ApiApplication,
     ApiKey,
+    AuditLogEntry,
     AuthProvider,
     AuthProviderDefaultTeams,
-    Broadcast,
-    BroadcastSeen,
     Dashboard,
-    GroupAssignee,
-    GroupBookmark,
-    GroupOwner,
-    GroupSeen,
-    GroupShare,
-    GroupSubscription,
     MonitorCheckIn,
     MonitorLocation,
     NotificationSetting,
@@ -38,15 +30,10 @@ from sentry.models import (
     ProjectTransactionThresholdOverride,
     PromptsActivity,
     RecentSearch,
-    Release,
     RuleActivity,
-    SavedSearch,
     SentryApp,
-    SentryAppAvatar,
-    SentryAppComponent,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
     ServiceHook,
     Team,
     User,
@@ -58,7 +45,6 @@ from sentry.models.integrations import (
     Integration,
     OrganizationIntegration,
     PagerDutyService,
-    ProjectIntegration,
     RepositoryProjectPathConfig,
 )
 from sentry.testutils.silo import (
@@ -84,33 +70,26 @@ class any_model:
 
 decorator_exemptions = set()
 fk_emeptions = {
+    (Activity, User),
+    (AlertRuleActivity, User),
     (ApiKey, Organization),
+    (AuditLogEntry, Organization),
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
     (AuthProvider, Organization),
-    (SentryAppAvatar, SentryApp),
-    (BroadcastSeen, Broadcast),
-    (BroadcastSeen, User),
+    (ExportedData, User),
     (User, Dashboard),
-    (GroupAssignee, User),
-    (GroupBookmark, User),
-    (Release, User),
-    (GroupOwner, User),
-    (GroupSeen, User),
-    (GroupShare, User),
-    (GroupSubscription, User),
     (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
-    (Integration, ProjectIntegration),
+    (IncidentSeen, User),
+    (IncidentSubscription, User),
     (OrganizationIntegration, Organization),
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
     (SentryApp, Organization),
-    (SentryAppComponent, SentryApp),
     (SentryAppInstallation, Organization),
     (SentryAppInstallationForProvider, Organization),
-    (SentryAppInstallationToken, SentryAppInstallation),
     (MonitorCheckIn, MonitorLocation),
     (NotificationSetting, Actor),
     (UserOption, Project),
@@ -121,19 +100,13 @@ fk_emeptions = {
     (PromptsActivity, User),
     (RecentSearch, User),
     (RuleActivity, User),
-    (SavedSearch, User),
     (ServiceHook, ApiApplication),
+    (User, Actor),
     (ProjectTransactionThresholdOverride, User),
     (ProjectTransactionThreshold, User),
-    (User, Actor),
-    (IncidentSeen, User),
-    (IncidentSnapshot, TimeSeriesSnapshot),
-    (IncidentActivity, User),
-    (IncidentSubscription, User),
     (AlertRuleTriggerAction, SentryApp),
-    (AlertRuleActivity, User),
     (DiscoverSavedQuery, User),
-    (ExportedData, User),
+    (IncidentActivity, User),
 }
 
 
@@ -142,7 +115,8 @@ def test_models_have_silos():
 
 
 def test_silo_foreign_keys():
-    validate_no_cross_silo_foreign_keys(fk_emeptions)
+    for unused in fk_emeptions - validate_no_cross_silo_foreign_keys(fk_emeptions):
+        raise ValueError(f"fk_exemptions includes non conflicting relation {unused!r}")
 
 
 def test_cross_silo_deletions():
