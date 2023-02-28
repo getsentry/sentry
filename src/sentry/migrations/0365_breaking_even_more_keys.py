@@ -89,31 +89,33 @@ def activityuser_migrations():
     ]
 
 
-def apiauthorization_user_migrations():
+def recentsearch_user_migrations():
     database_operations = [
         migrations.AlterField(
-            model_name="apiauthorization",
-            name="application",
+            model_name="recentsearch",
+            name="user",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                to="sentry.ApiApplication", db_constraint=False, db_index=True, null=True
+                to="sentry.User", db_constraint=False, db_index=False, null=False
             ),
         ),
     ]
 
     state_operations = [
         migrations.AlterField(
-            model_name="apiauthorization",
-            name="application",
+            model_name="recentsearch",
+            name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.ApiApplication", db_index=True, on_delete="CASCADE", null=True
+                "sentry.User", db_index=False, on_delete="CASCADE"
             ),
         ),
         migrations.RenameField(
-            model_name="apiauthorization",
-            old_name="application",
-            new_name="application_id",
+            model_name="recentsearch",
+            old_name="user",
+            new_name="user_id",
         ),
-        migrations.AlterUniqueTogether("apiauthorization", {("user", "application_id")}),
+        migrations.AlterUniqueTogether(
+            "recentsearch", (("user_id", "organization", "type", "query_hash"),)
+        ),
     ]
 
     return database_operations + [
@@ -121,29 +123,29 @@ def apiauthorization_user_migrations():
     ]
 
 
-def apigrant_user_migrations():
+def dashboard_user_migrations():
     database_operations = [
         migrations.AlterField(
-            model_name="apigrant",
-            name="application",
+            model_name="dashboard",
+            name="created_by",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                to="sentry.ApiApplication", db_constraint=False, db_index=True, null=False
+                to="sentry.User", db_constraint=False, db_index=True
             ),
         ),
     ]
 
     state_operations = [
         migrations.AlterField(
-            model_name="apigrant",
-            name="application",
+            model_name="dashboard",
+            name="created_by",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.ApiApplication", db_index=True, on_delete="CASCADE"
+                "sentry.User", on_delete="CASCADE"
             ),
         ),
         migrations.RenameField(
-            model_name="apigrant",
-            old_name="application",
-            new_name="application_id",
+            model_name="dashboard",
+            old_name="created_by",
+            new_name="created_by_id",
         ),
     ]
 
@@ -169,4 +171,9 @@ class Migration(CheckedMigration):
         ("sentry", "0364_remove_project_id_from_environment"),
     ]
 
-    operations = auditlog_organization_migrations() + activityuser_migrations()
+    operations = (
+        auditlog_organization_migrations()
+        + activityuser_migrations()
+        + recentsearch_user_migrations()
+        + dashboard_user_migrations()
+    )

@@ -9,14 +9,11 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.models import (
-    Activity,
     Actor,
     ApiApplication,
     ApiKey,
-    AuditLogEntry,
     AuthProvider,
     AuthProviderDefaultTeams,
-    Dashboard,
     MonitorCheckIn,
     MonitorLocation,
     NotificationSetting,
@@ -70,15 +67,12 @@ class any_model:
 
 decorator_exemptions = set()
 fk_emeptions = {
-    (Activity, User),
     (AlertRuleActivity, User),
     (ApiKey, Organization),
-    (AuditLogEntry, Organization),
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
     (AuthProvider, Organization),
     (ExportedData, User),
-    (User, Dashboard),
     (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
