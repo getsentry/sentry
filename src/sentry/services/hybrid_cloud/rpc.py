@@ -91,10 +91,10 @@ class RpcService(InterfaceWithLifecycle):
         def create_delegating_method(base_method: Callable[..., Any]) -> Callable[..., Any]:
             method_name = base_method.__name__
 
-            def delegating_method(service_obj: "RpcService", **kwargs: Any) -> Any:
+            def delegating_method(service_obj: "RpcService", *args: Any, **kwargs: Any) -> Any:
                 impl = getattr(service_obj, impl_attrname)
                 method = getattr(impl, method_name)
-                return method(**kwargs)
+                return method(*args, **kwargs)
 
             return delegating_method
 
