@@ -22,6 +22,8 @@ BASE64_SOURCEMAP = "data:application/json;base64," + (
     .replace("\n", "")
 )
 
+INVALID_BASE64_SOURCEMAP = "data:application/json;base64,A"
+
 
 def get_fixture_path(name):
     return os.path.join(os.path.dirname(__file__), "fixtures", name)
@@ -116,8 +118,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "brand": "Sony",
         }
 
-    @patch("sentry.lang.javascript.processor.fetch_file")
-    def test_source_expansion(self, mock_fetch_file):
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
+    def test_source_expansion(self, mock_fetch_by_url):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -147,19 +149,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             },
         }
 
-        mock_fetch_file.return_value.body = force_bytes("\n".join("hello world"))
-        mock_fetch_file.return_value.encoding = None
-        mock_fetch_file.return_value.headers = {}
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("hello world"))
+        mock_fetch_by_url.return_value.encoding = None
+        mock_fetch_by_url.return_value.headers = {}
 
         event = self.post_and_retrieve_event(data)
 
-        mock_fetch_file.assert_called_once_with(
-            "http://example.com/foo.js",
-            project=self.project,
-            release=None,
-            dist=None,
-            allow_scraping=True,
-        )
+        mock_fetch_by_url.assert_called_once_with("http://example.com/foo.js")
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -177,9 +173,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # no source map means no raw_stacktrace
         assert exception.values[0].raw_stacktrace is None
 
-    @patch("sentry.lang.javascript.processor.fetch_file")
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
-    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_file):
+    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_by_url):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -205,19 +201,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
-        mock_fetch_file.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_file.return_value.body = force_bytes("\n".join("<generated source>"))
-        mock_fetch_file.return_value.encoding = None
+        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
 
-        mock_fetch_file.assert_called_once_with(
-            "http://example.com/test.min.js",
-            project=self.project,
-            release=None,
-            dist=None,
-            allow_scraping=True,
-        )
+        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -227,6 +217,106 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame.context_line == 'console.log("hello, World!")'
         assert not frame.post_context
         assert frame.data["sourcemap"] == "http://example.com/test.min.js"
+
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
+    @patch("sentry.lang.javascript.processor.discover_sourcemap")
+    def test_invalid_base64_sourcemap_returns_an_error(
+        self, mock_discover_sourcemap, mock_fetch_by_url
+    ):
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        mock_discover_sourcemap.return_value = INVALID_BASE64_SOURCEMAP
+
+        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.encoding = None
+
+        event = self.post_and_retrieve_event(data)
+
+        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
+
+        assert len(event.data["errors"]) == 1
+        assert event.data["errors"][0] == {
+            "url": "<base64>",
+            "reason": "Invalid base64-encoded string: "
+            "number of data characters (1) cannot be 1 more than a multiple of 4",
+            "type": "js_invalid_source",
+        }
+
+    @patch("sentry.lang.javascript.processor.SmCache.from_bytes")
+    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
+    @patch("sentry.lang.javascript.processor.discover_sourcemap")
+    def test_sourcemap_cache_is_constructed_only_once_if_an_error_is_raised(
+        self, mock_discover_sourcemap, mock_fetch_by_url, mock_from_bytes
+    ):
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
+
+        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
+        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.encoding = None
+
+        mock_from_bytes.side_effect = Exception()
+
+        self.post_and_retrieve_event(data)
+
+        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
+        mock_from_bytes.assert_called_once()
 
     @responses.activate
     def test_error_message_translations(self):
@@ -297,6 +387,107 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "timestamp": self.min_ago,
             "message": "hello",
             "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                # NOTE: Intentionally source is not retrieved from this HTML file
+                                {
+                                    "function": 'function: "HTMLDocument.<anonymous>"',
+                                    "abs_path": "http//example.com/index.html",
+                                    "filename": "index.html",
+                                    "lineno": 283,
+                                    "colno": 17,
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert event.data["errors"] == [
+            {"type": "js_no_source", "url": "http//example.com/index.html"}
+        ]
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        expected = "\treturn a + b; // fôo"
+        assert frame.context_line == expected
+        assert frame.post_context == ["}", ""]
+
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+        raw_frame = raw_frame_list[0]
+        assert not raw_frame.pre_context
+        assert (
+            raw_frame.context_line
+            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
+            'divide(a,b){"use strict";try{return multip {snip}'
+        )
+        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
+        assert raw_frame.lineno == 1
+
+        # Since we couldn't expand source for the 2nd frame, both
+        # its raw and original form should be identical
+        assert raw_frame_list[1] == frame_list[1]
+
+    @responses.activate
+    def test_sourcemap_ignore_debug_id(self):
+        # This tests the same as the one above, but it ensures that for now the debug_id
+        # code that is not yet implemented, will be not make any damage yet.
+        responses.add(
+            responses.GET,
+            "http://example.com/file.min.js",
+            body=load_fixture("file.min.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(
+            responses.GET,
+            "http://example.com/file1.js",
+            body=load_fixture("file1.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(
+            responses.GET,
+            "http://example.com/file2.js",
+            body=load_fixture("file2.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(
+            responses.GET,
+            "http://example.com/file.sourcemap.js",
+            body=load_fixture("file.sourcemap.js"),
+            content_type="application/javascript; charset=utf-8",
+        )
+        responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "debug_id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
+                        "code_file": "http://example.com/file.min.js",
+                    }
+                ]
+            },
             "exception": {
                 "values": [
                     {
