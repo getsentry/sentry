@@ -7,6 +7,7 @@ from typing import Any, Dict, Generator, List, Optional, Union
 from snuba_sdk import (
     Column,
     Condition,
+    CurriedFunction,
     Entity,
     Function,
     Granularity,
@@ -308,17 +309,22 @@ def _grouped_unique_values(
     )
 
 
-def _grouped_unique_scalar_value(
-    column_name: str, alias: Optional[str] = None, aliased: bool = True
+def take_first_from_aggregation(
+    column_name: str,
+    alias: Optional[str] = None,
+    aliased: bool = True,
 ) -> Function:
-    """Returns the first value of a unique array.
+    """Returns the first value encountered in an aggregated array.
 
     E.g.
-        [1, 2, 2, 3, 3, 3, null] => [1, 2, 3] => 1
+        [1, 2, 2, 3, 3, 3, null] => [1] => 1
     """
     return Function(
         "arrayElement",
-        parameters=[_grouped_unique_values(column_name), 1],
+        parameters=[
+            CurriedFunction("groupArray", initializers=[1], parameters=[Column(column_name)]),
+            1,
+        ],
         alias=alias or column_name if aliased else None,
     )
 
@@ -570,14 +576,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
-    "replay_type": _grouped_unique_scalar_value(column_name="replay_type", alias="replay_type"),
     "project_id": Column("project_id"),
-    "platform": _grouped_unique_scalar_value(column_name="platform"),
-    "agg_environment": _grouped_unique_scalar_value(
-        column_name="environment", alias="agg_environment"
-    ),
-    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
-    "dist": _grouped_unique_scalar_value(column_name="dist"),
     "trace_ids": Function(
         "arrayMap",
         parameters=[
@@ -636,29 +635,31 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="isArchived",
     ),
     "activity": _activity_score(),
-    "user_id": _grouped_unique_scalar_value(column_name="user_id"),
-    "user_email": _grouped_unique_scalar_value(column_name="user_email"),
-    "user_name": _grouped_unique_scalar_value(column_name="user_name"),
+    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
+    "replay_type": take_first_from_aggregation(column_name="replay_type", alias="replay_type"),
+    "platform": take_first_from_aggregation(column_name="platform"),
+    "agg_environment": take_first_from_aggregation(
+        column_name="environment", alias="agg_environment"
+    ),
+    "dist": take_first_from_aggregation(column_name="dist"),
+    "user_id": take_first_from_aggregation(column_name="user_id"),
+    "user_email": take_first_from_aggregation(column_name="user_email"),
+    "user_name": take_first_from_aggregation(column_name="user_name"),
     "user_ip": Function(
         "IPv4NumToString",
-        parameters=[
-            _grouped_unique_scalar_value(
-                column_name="ip_address_v4",
-                aliased=False,
-            )
-        ],
+        parameters=[take_first_from_aggregation(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
-    "os_name": _grouped_unique_scalar_value(column_name="os_name"),
-    "os_version": _grouped_unique_scalar_value(column_name="os_version"),
-    "browser_name": _grouped_unique_scalar_value(column_name="browser_name"),
-    "browser_version": _grouped_unique_scalar_value(column_name="browser_version"),
-    "device_name": _grouped_unique_scalar_value(column_name="device_name"),
-    "device_brand": _grouped_unique_scalar_value(column_name="device_brand"),
-    "device_family": _grouped_unique_scalar_value(column_name="device_family"),
-    "device_model": _grouped_unique_scalar_value(column_name="device_model"),
-    "sdk_name": _grouped_unique_scalar_value(column_name="sdk_name"),
-    "sdk_version": _grouped_unique_scalar_value(column_name="sdk_version"),
+    "os_name": take_first_from_aggregation(column_name="os_name"),
+    "os_version": take_first_from_aggregation(column_name="os_version"),
+    "browser_name": take_first_from_aggregation(column_name="browser_name"),
+    "browser_version": take_first_from_aggregation(column_name="browser_version"),
+    "device_name": take_first_from_aggregation(column_name="device_name"),
+    "device_brand": take_first_from_aggregation(column_name="device_brand"),
+    "device_family": take_first_from_aggregation(column_name="device_family"),
+    "device_model": take_first_from_aggregation(column_name="device_model"),
+    "sdk_name": take_first_from_aggregation(column_name="sdk_name"),
+    "sdk_version": take_first_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
 }
