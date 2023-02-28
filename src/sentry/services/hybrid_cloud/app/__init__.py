@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import abc
 import datetime
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict, cast
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryApp, SentryAppInstallation
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -108,15 +107,24 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
 
 class AppService(
     FilterQueryInterface[SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None],
-    InterfaceWithLifecycle,
+    RpcService,
 ):
-    @abc.abstractmethod
+    name = "app"
+    local_mode = SiloMode.REGION
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.app.impl import DatabaseBackedAppService
+
+        return DatabaseBackedAppService()
+
+    @rpc_method
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
     ) -> RpcSentryAppInstallation | None:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def get_installed_for_organization(
         self,
         *,
@@ -124,7 +132,7 @@ class AppService(
     ) -> List[RpcSentryAppInstallation]:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 
@@ -141,17 +149,17 @@ class AppService(
             events=app.events,
         )
 
-    @abc.abstractmethod
+    @rpc_method
     def get_custom_alert_rule_actions(
         self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
     ) -> List[Mapping[str, Any]]:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def get_related_sentry_app_components(
         self,
         *,
@@ -177,23 +185,11 @@ class AppService(
             uuid=app.uuid,
         )
 
-    @abc.abstractmethod
+    @rpc_method
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
     ) -> AlertRuleActionResult:
         pass
 
 
-def impl_with_db() -> AppService:
-    from sentry.services.hybrid_cloud.app.impl import DatabaseBackedAppService
-
-    return DatabaseBackedAppService()
-
-
-app_service: AppService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.CONTROL: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-    }
-)
+app_service = cast(AppService, AppService.resolve_to_delegation())

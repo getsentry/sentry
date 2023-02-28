@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import datetime
-from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -110,10 +109,17 @@ class UserFilterArgs(TypedDict, total=False):
     emails: List[str]
 
 
-class UserService(
-    FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeType], InterfaceWithLifecycle
-):
-    @abstractmethod
+class UserService(FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeType], RpcService):
+    name = "user"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.user.impl import DatabaseBackedUserService
+
+        return DatabaseBackedUserService()
+
+    @rpc_method
     def get_many_by_email(
         self,
         emails: List[str],
@@ -130,7 +136,7 @@ class UserService(
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> List[RpcUser]:
@@ -146,12 +152,12 @@ class UserService(
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_from_group(self, group: Group) -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
         pass
 
@@ -169,16 +175,4 @@ class UserService(
             return None
 
 
-def impl_with_db() -> UserService:
-    from sentry.services.hybrid_cloud.user.impl import DatabaseBackedUserService
-
-    return DatabaseBackedUserService()
-
-
-user_service: UserService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
-)
+user_service: UserService = cast(UserService, UserService.resolve_to_delegation())

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import abc
 import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Dict, Generator, List, Mapping, Tuple, Type
+from typing import Any, Dict, Generator, List, Mapping, Tuple, Type, cast
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import BaseAuthentication
@@ -13,8 +12,8 @@ from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcOrganizationMember
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
@@ -84,24 +83,33 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
         return None
 
 
-class AuthService(InterfaceWithLifecycle):
-    @abc.abstractmethod
+class AuthService(RpcService):
+    name = "auth"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
+
+        return DatabaseBackedAuthService()
+
+    @rpc_method
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def authenticate_with(
         self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
     ) -> AuthenticationContext:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def get_user_auth_state(
         self,
         *,
@@ -114,7 +122,7 @@ class AuthService(InterfaceWithLifecycle):
 
     # TODO: Denormalize this scim enabled flag onto organizations?
     # This is potentially a large list
-    @abc.abstractmethod
+    @rpc_method
     def get_org_ids_with_scim(
         self,
     ) -> List[int]:
@@ -124,7 +132,7 @@ class AuthService(InterfaceWithLifecycle):
         """
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
         """
         This method returns a list of auth providers for an org
@@ -132,7 +140,7 @@ class AuthService(InterfaceWithLifecycle):
         """
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def handle_new_membership(
         self,
         request: Request,
@@ -142,15 +150,9 @@ class AuthService(InterfaceWithLifecycle):
     ) -> Tuple[RpcUser, RpcOrganizationMember]:
         pass
 
-    @abc.abstractmethod
+    @rpc_method
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
         pass
-
-
-def impl_with_db() -> AuthService:
-    from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
-
-    return DatabaseBackedAuthService()
 
 
 @dataclass
@@ -337,14 +339,6 @@ class RpcOrganizationAuthConfig:
     has_api_key: bool = False
 
 
-auth_service: AuthService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.CONTROL: impl_with_db,  # This eventually must become a DatabaseBackedAuthService, but use the new org member mapping table
-        SiloMode.REGION: stubbed(
-            impl_with_db, SiloMode.CONTROL
-        ),  # this must eventually be purely RPC
-    }
-)
+auth_service: AuthService = cast(AuthService, AuthService.resolve_to_delegation())
 
 from sentry.models import OrganizationMember

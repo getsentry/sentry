@@ -1,17 +1,27 @@
 import datetime
-from abc import abstractmethod
 from dataclasses import dataclass, fields
 from typing import cast
 
 from sentry.models import LostPasswordHash
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
-class LostPasswordHashService(InterfaceWithLifecycle):
+class LostPasswordHashService(RpcService):
+    name = "lost_password_hash"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.lost_password_hash.impl import (
+            DatabaseLostPasswordHashService,
+        )
+
+        return DatabaseLostPasswordHashService()
+
     # TODO: Denormalize this scim enabled flag onto organizations?
     # This is potentially a large list
-    @abstractmethod
+    @rpc_method
     def get_or_create(
         self,
         user_id: int,
@@ -43,16 +53,6 @@ class RpcLostPasswordHash:
         return cast(str, LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode))
 
 
-def impl_with_db() -> LostPasswordHashService:
-    from sentry.services.hybrid_cloud.lost_password_hash.impl import DatabaseLostPasswordHashService
-
-    return DatabaseLostPasswordHashService()
-
-
-lost_password_hash_service: LostPasswordHashService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+lost_password_hash_service: LostPasswordHashService = cast(
+    LostPasswordHashService, LostPasswordHashService.resolve_to_delegation()
 )

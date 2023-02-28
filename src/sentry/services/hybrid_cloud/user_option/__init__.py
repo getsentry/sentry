@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Optional, TypedDict
+from typing import Any, Iterable, List, Optional, TypedDict, cast
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
@@ -44,13 +43,22 @@ class UserOptionFilterArgs(TypedDict, total=False):
 
 
 class UserOptionService(
-    FilterQueryInterface[UserOptionFilterArgs, RpcUserOption, None], InterfaceWithLifecycle
+    FilterQueryInterface[UserOptionFilterArgs, RpcUserOption, None], RpcService
 ):
-    @abstractmethod
+    name = "user_option"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
+
+        return DatabaseBackedUserOptionService()
+
+    @rpc_method
     def delete_options(self, *, option_ids: List[int]) -> None:
         pass
 
-    @abstractmethod
+    @rpc_method
     def set_option(
         self,
         *,
@@ -63,16 +71,6 @@ class UserOptionService(
         pass
 
 
-def impl_with_db() -> UserOptionService:
-    from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
-
-    return DatabaseBackedUserOptionService()
-
-
-user_option_service: UserOptionService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+user_option_service: UserOptionService = cast(
+    UserOptionService, UserOptionService.resolve_to_delegation()
 )

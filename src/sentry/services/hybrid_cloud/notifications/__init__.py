@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import dataclasses
-from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Protocol, Sequence
+from typing import TYPE_CHECKING, List, Protocol, Sequence, cast
 
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviders
@@ -41,8 +40,19 @@ class MayHaveActor(Protocol):
         pass
 
 
-class NotificationsService(InterfaceWithLifecycle):
-    @abstractmethod
+class NotificationsService(RpcService):
+    name = "notifications"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.notifications.impl import (
+            DatabaseBackedNotificationsService,
+        )
+
+        return DatabaseBackedNotificationsService()
+
+    @rpc_method
     def get_settings_for_recipient_by_parent(
         self,
         *,
@@ -52,7 +62,7 @@ class NotificationsService(InterfaceWithLifecycle):
     ) -> List[RpcNotificationSetting]:
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_settings_for_users(
         self,
         *,
@@ -62,7 +72,7 @@ class NotificationsService(InterfaceWithLifecycle):
     ) -> List[RpcNotificationSetting]:
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:
@@ -81,16 +91,6 @@ class NotificationsService(InterfaceWithLifecycle):
         )
 
 
-def impl_with_db() -> NotificationsService:
-    from sentry.services.hybrid_cloud.notifications.impl import DatabaseBackedNotificationsService
-
-    return DatabaseBackedNotificationsService()
-
-
-notifications_service: NotificationsService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+notifications_service: NotificationsService = cast(
+    NotificationsService, NotificationsService.resolve_to_delegation()
 )

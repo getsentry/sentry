@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, cast
 
 from django.utils import timezone
 
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import (
-    InterfaceWithLifecycle,
-    PatchableMixin,
-    Unset,
-    UnsetVal,
-    silo_mode_delegation,
-    stubbed,
-)
+from sentry.services.hybrid_cloud import PatchableMixin, Unset, UnsetVal
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
@@ -41,8 +34,19 @@ class RpcOrganizationMappingUpdate(PatchableMixin["Organization"]):
         return cls(**cls.params_from_instance(inst), organization_id=inst.id)
 
 
-class OrganizationMappingService(InterfaceWithLifecycle):
-    @abstractmethod
+class OrganizationMappingService(RpcService):
+    name = "organization_mapping"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.organization_mapping.impl import (
+            DatabaseBackedOrganizationMappingService,
+        )
+
+        return DatabaseBackedOrganizationMappingService()
+
+    @rpc_method
     def create(
         self,
         *,
@@ -73,33 +77,21 @@ class OrganizationMappingService(InterfaceWithLifecycle):
     def close(self) -> None:
         pass
 
-    @abstractmethod
+    @rpc_method
     def update(self, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
-    @abstractmethod
+    @rpc_method
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         pass
 
-    @abstractmethod
+    @rpc_method
     def delete(self, organization_id: int) -> None:
         pass
 
 
-def impl_with_db() -> OrganizationMappingService:
-    from sentry.services.hybrid_cloud.organization_mapping.impl import (
-        DatabaseBackedOrganizationMappingService,
-    )
-
-    return DatabaseBackedOrganizationMappingService()
-
-
-organization_mapping_service: OrganizationMappingService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+organization_mapping_service: OrganizationMappingService = cast(
+    OrganizationMappingService, OrganizationMappingService.resolve_to_delegation()
 )
 
 from sentry.models import Organization

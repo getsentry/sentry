@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, cast
 
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
-class OrganizationService(InterfaceWithLifecycle):
-    @abstractmethod
+class OrganizationService(RpcService):
+    name = "organization"
+    local_mode = SiloMode.REGION
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+
+        return DatabaseBackedOrganizationService()
+
+    @rpc_method
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[RpcUserOrganizationContext]:
@@ -24,7 +32,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
     # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
     #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
-    @abstractmethod
+    @rpc_method
     def get_organizations(
         self,
         user_id: Optional[int],
@@ -46,7 +54,7 @@ class OrganizationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
@@ -55,7 +63,7 @@ class OrganizationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
@@ -64,7 +72,7 @@ class OrganizationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
@@ -83,7 +91,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
-    @abstractmethod
+    @rpc_method
     def add_organization_member(
         self,
         *,
@@ -94,15 +102,15 @@ class OrganizationService(InterfaceWithLifecycle):
     ) -> RpcOrganizationMember:
         pass
 
-    @abstractmethod
+    @rpc_method
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         pass
 
-    @abstractmethod
+    @rpc_method
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_all_org_roles(
         self,
         organization_member: Optional[RpcOrganizationMember] = None,
@@ -110,24 +118,12 @@ class OrganizationService(InterfaceWithLifecycle):
     ) -> List[str]:
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         pass
 
 
-def impl_with_db() -> OrganizationService:
-    from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
-
-    return DatabaseBackedOrganizationService()
-
-
-organization_service: OrganizationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: impl_with_db,
-        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
-    }
-)
+organization_service = cast(OrganizationService, OrganizationService.resolve_to_delegation())
 
 
 def team_status_visible() -> int:

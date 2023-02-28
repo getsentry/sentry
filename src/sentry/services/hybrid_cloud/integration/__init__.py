@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple, cast
 
 from sentry.constants import ObjectStatus
-from sentry.services.hybrid_cloud import (
-    InterfaceWithLifecycle,
-    RpcPaginationArgs,
-    RpcPaginationResult,
-    silo_mode_delegation,
-    stubbed,
-)
+from sentry.services.hybrid_cloud import RpcPaginationArgs, RpcPaginationResult
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
@@ -60,7 +54,16 @@ class RpcOrganizationIntegration:
         return "disabled"
 
 
-class IntegrationService(InterfaceWithLifecycle):
+class IntegrationService(RpcService):
+    name = "integration"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.integration.impl import DatabaseBackedIntegrationService
+
+        return DatabaseBackedIntegrationService()
+
     def _serialize_integration(self, integration: Integration) -> RpcIntegration:
         return RpcIntegration(
             id=integration.id,
@@ -84,7 +87,7 @@ class IntegrationService(InterfaceWithLifecycle):
             grace_period_end=oi.grace_period_end,
         )
 
-    @abstractmethod
+    @rpc_method
     def page_integration_ids(
         self,
         *,
@@ -94,7 +97,7 @@ class IntegrationService(InterfaceWithLifecycle):
     ) -> RpcPaginationResult:
         pass
 
-    @abstractmethod
+    @rpc_method
     def page_organization_integrations_ids(
         self,
         *,
@@ -105,7 +108,7 @@ class IntegrationService(InterfaceWithLifecycle):
     ) -> RpcPaginationResult:
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_integrations(
         self,
         *,
@@ -121,7 +124,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_integration(
         self,
         *,
@@ -134,7 +137,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def get_organization_integrations(
         self,
         *,
@@ -164,7 +167,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
 
-    @abstractmethod
+    @rpc_method
     def get_organization_context(
         self,
         *,
@@ -179,7 +182,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def update_integrations(
         self,
         *,
@@ -194,7 +197,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def update_integration(
         self,
         *,
@@ -209,7 +212,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def update_organization_integrations(
         self,
         *,
@@ -225,7 +228,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
-    @abstractmethod
+    @rpc_method
     def update_organization_integration(
         self,
         *,
@@ -275,18 +278,8 @@ class IntegrationService(InterfaceWithLifecycle):
         return feature in int_provider.features
 
 
-def impl_with_db() -> IntegrationService:
-    from sentry.services.hybrid_cloud.integration.impl import DatabaseBackedIntegrationService
-
-    return DatabaseBackedIntegrationService()
-
-
-integration_service: IntegrationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+integration_service: IntegrationService = cast(
+    IntegrationService, IntegrationService.resolve_to_delegation()
 )
 
 from sentry.integrations.base import (

@@ -1,9 +1,8 @@
-from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
@@ -27,22 +26,21 @@ class RpcProjectKey:
     dsn_public: str = ""
 
 
-class ProjectKeyService(InterfaceWithLifecycle):
-    @abstractmethod
+class ProjectKeyService(RpcService):
+    name = "project_key"
+    local_mode = SiloMode.REGION
+
+    @classmethod
+    def get_local_implementation(cls) -> "RpcService":
+        from sentry.services.hybrid_cloud.project_key.impl import DatabaseBackedProjectKeyService
+
+        return DatabaseBackedProjectKeyService()
+
+    @rpc_method
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         pass
 
 
-def impl_with_db() -> ProjectKeyService:
-    from sentry.services.hybrid_cloud.project_key.impl import DatabaseBackedProjectKeyService
-
-    return DatabaseBackedProjectKeyService()
-
-
-project_key_service: ProjectKeyService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: impl_with_db,
-        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
-    }
+project_key_service: ProjectKeyService = cast(
+    ProjectKeyService, ProjectKeyService.resolve_to_delegation()
 )
