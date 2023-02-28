@@ -52,8 +52,10 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Request denied for non super-users
         """
         self.login_as(self.user)
+
         url = self.get_url(proj_id=self.proj1.id)
         response = self.client.get(url)
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_retrieving_project_configs(self):
@@ -62,10 +64,11 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         keys in redis
         """
         self.login_as(self.superuser, superuser=True)
+
         url = self.get_url(proj_id=self.proj1.id)
         response = self.client.get(url)
-        assert response.status_code == status.HTTP_200_OK
 
+        assert response.status_code == status.HTTP_200_OK
         expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
         actual = response.json()
         assert actual == expected
@@ -76,10 +79,11 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         for that public key
         """
         self.login_as(self.superuser, superuser=True)
+
         url = self.get_url(key=self.p1_pk.public_key)
         response = self.client.get(url)
-        assert response.status_code == status.HTTP_200_OK
 
+        assert response.status_code == status.HTTP_200_OK
         expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
         actual = response.json()
         assert actual == expected
@@ -92,15 +96,41 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         expected = {"configs": {self.p2_pk.public_key: "EMPTY"}}
 
         self.login_as(self.superuser, superuser=True)
+
         url = self.get_url(proj_id=self.proj2.id)
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
-
         actual = response.json()
         assert actual == expected
+
         url = self.get_url(key=self.p2_pk.public_key)
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
+        actual = response.json()
+        assert actual == expected
 
+    def test_inexistent_project(self):
+        """
+        Asking for an inexitent project will return 404
+        """
+        inexistent_project_id = 2 ^ 32
+        self.login_as(self.superuser, superuser=True)
+
+        url = self.get_url(proj_id=inexistent_project_id)
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_inexistent_key(self):
+        """
+        Asking for an inexistent project key will return an empty result
+        """
+        inexsitent_key = 123
+        self.login_as(self.superuser, superuser=True)
+
+        url = self.get_url(key=inexsitent_key)
+        response = self.client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        expected = {"configs": {str(inexsitent_key): "EMPTY"}}
         actual = response.json()
         assert actual == expected
