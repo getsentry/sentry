@@ -1226,7 +1226,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         """
         # We require that artifact bundles with debug ids used embedded source in the source map.
         # TODO: use enum for source file type when available.
-        if debug_id is not None and source_file_type != "source":
+        if debug_id is not None and source_file_type == "source":
             return None
 
         rv = self._get_cached_sourceview(url, debug_id, source_file_type)
