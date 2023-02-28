@@ -7,7 +7,7 @@ from sentry.issues.grouptype import (
     ErrorGroupType,
     GroupCategory,
     PerformanceNPlusOneGroupType,
-    ProfileBlockedThreadGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models import Activity, Group, Project
 from sentry.rules.history.preview import (
@@ -217,7 +217,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                     Group.objects.create(
                         project=self.project,
                         first_seen=prev_hour,
-                        type=ProfileBlockedThreadGroupType.type_id,
+                        type=ProfileFileIOGroupType.type_id,
                     )
                 )
 
@@ -726,7 +726,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 occurrence = self.build_occurrence(level="info")
                 occurrence.save()
                 event.occurrence = occurrence
-                event.group.type = ProfileBlockedThreadGroupType.type_id
+                event.group.type = ProfileFileIOGroupType.type_id
 
         conditions = [
             {
