@@ -82,6 +82,7 @@ export type Team = {
   isPending: boolean;
   memberCount: number;
   name: string;
+  orgRole: string | null;
   slug: string;
   teamRole: string | null;
 };
