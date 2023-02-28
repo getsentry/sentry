@@ -21,22 +21,29 @@ def get_integration_from_token(token):
     as Jira doesn't have any additional fields we can embed information in.
     """
     if not token:
-        raise ValueError("Token was empty")
+        return
 
     try:
         unvalidated = jwt.peek_claims(token)
     except jwt.DecodeError:
-        raise ValueError("Could not decode JWT token")
+        logger.info("jwt-decode-error")
+        return
+
     if "id" not in unvalidated:
-        raise ValueError("Token did not contain `id`")
+        logger.info("token-missing-id")
+        return
+
     try:
         integration = Integration.objects.get(provider="jira_server", external_id=unvalidated["id"])
     except Integration.DoesNotExist:
-        raise ValueError("Could not find integration for token")
+        logger.info("integration-missing-for-token")
+        return
+
     try:
         jwt.decode(token, integration.metadata["webhook_secret"])
     except Exception as err:
-        raise ValueError(f"Could not validate JWT. Got {err}")
+        logger.info("token-validation-error", extra={"error": str(err)})
+        return
 
     return integration
 
@@ -51,15 +58,11 @@ class JiraIssueUpdatedWebhook(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, token, *args, **kwargs) -> Response:
-        extra = {}
-        try:
-            integration = get_integration_from_token(token)
-            extra["integration_id"] = integration.id
-        except ValueError as err:
-            extra.update({"token": token, "error": str(err)})
-            logger.info("token-validation-error", extra=extra)
-            logger.exception("Invalid token.")
+        integration = get_integration_from_token(token)
+        if not integration:
             return self.respond(status=400)
+
+        extra = {"integration_id": integration.id}
 
         data = request.data
 
@@ -71,9 +74,8 @@ class JiraIssueUpdatedWebhook(Endpoint):
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:
-            extra.update({"token": token, "error": str(err)})
+            extra.update({"error": str(err)})
             logger.info("sync-failed", extra=extra)
-            logger.exception("Invalid token.")
             return self.respond(status=400)
         else:
             return self.respond()
