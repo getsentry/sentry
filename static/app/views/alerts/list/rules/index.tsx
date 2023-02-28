@@ -13,6 +13,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
@@ -59,7 +60,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   get projectsFromResults() {
-    const ruleList = this.state.ruleList ?? [];
+    const ruleList = (this.state.ruleList ?? []).filter(defined);
 
     return [...new Set(ruleList.map(({projects}) => projects).flat())];
   }
