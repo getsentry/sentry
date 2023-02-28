@@ -37,7 +37,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
   }
 
   & > * {
-    min-width: 7rem;
+    min-width: 0;
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: max-content;
@@ -49,6 +49,11 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
       @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
         flex-shrink: 1;
       }
+    }
+
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:last-child {
+      min-width: 6.5rem;
     }
   }
 
