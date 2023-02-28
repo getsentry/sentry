@@ -146,14 +146,13 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         result = serializer.validated_data
 
         with transaction.atomic():
-            if not result.environment:
-                result.environment = "production"
-
-            environment = Environment.get_or_create(project=project, name=result.environment)
+            environment = Environment.get_or_create(
+                project=project, name=result.get("environment", "production")
+            )
 
             monitor_environment = MonitorEnvironment.objects.get_or_create(
                 monitor=monitor, environment=environment
-            )
+            )[0]
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
@@ -191,7 +190,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                     last_checkin__gt=checkin.date_added
                 ).update(**monitor_params)
                 MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
-                    last_checking__gt=checkin.date_added
+                    last_checkin__gt=checkin.date_added
                 ).update(**monitor_params)
 
         if isinstance(request.auth, ProjectKey):

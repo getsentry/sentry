@@ -49,7 +49,7 @@ class MonitorEnvironment(Model):
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
+                next_checkin=self.monitor.get_next_scheduled_checkin(next_checkin_base),
                 status=new_status,
                 last_checkin=last_checkin,
             )
