@@ -341,6 +341,7 @@ from sentry.api.endpoints.project_processingissues import (
     ProjectProcessingIssuesFixEndpoint,
 )
 from sentry.api.endpoints.project_profiling_profile import (
+    ProjectProfilingFlamegraphEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
 )
@@ -600,6 +601,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationTransactionAnomalyDetectionEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
+    ProjectProfilingFlamegraphEndpoint,
     JiraDescriptorEndpoint,
     JiraInstalledEndpoint,
     JiraUninstalledEndpoint,

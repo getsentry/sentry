@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -67,48 +67,50 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   );
 
   return (
-    <Layout.Main fullWidth>
-      <ProfileCharts query={props.query} hideCount />
-      <TableHeader>
-        <CompactSelect
-          triggerProps={{prefix: t('Filter'), size: 'xs'}}
-          value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
-          options={FILTER_OPTIONS}
-          onChange={opt => handleFilterChange(opt.value)}
+    <Fragment>
+      <Layout.Main fullWidth>
+        <ProfileCharts query={props.query} hideCount />
+        <TableHeader>
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
+            options={FILTER_OPTIONS}
+            onChange={opt => handleFilterChange(opt.value)}
+          />
+          <StyledPagination
+            pageLinks={
+              profiles.status === 'success'
+                ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+                : null
+            }
+            size="xs"
+          />
+        </TableHeader>
+        <ProfileEventsTable
+          columns={fields}
+          data={profiles.status === 'success' ? profiles.data[0] : null}
+          error={profiles.status === 'error' ? t('Unable to load profiles') : null}
+          isLoading={profiles.status === 'loading'}
+          sort={sort}
         />
-        <StyledPagination
-          pageLinks={
-            profiles.status === 'success'
-              ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
-              : null
-          }
-          size="xs"
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
         />
-      </TableHeader>
-      <ProfileEventsTable
-        columns={fields}
-        data={profiles.status === 'success' ? profiles.data[0] : null}
-        error={profiles.status === 'error' ? t('Unable to load profiles') : null}
-        isLoading={profiles.status === 'loading'}
-        sort={sort}
-      />
-      <SuspectFunctionsTable
-        project={props.project}
-        transaction={props.transaction}
-        analyticsPageSource="profiling_transaction"
-      />
-    </Layout.Main>
+      </Layout.Main>
+    </Fragment>
   );
 }
 
 const ALL_FIELDS = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
   'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
@@ -123,11 +125,10 @@ export function getProfilesTableFields(platform: Project['platform']) {
 
 const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
-  'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ];
 
 const FILTER_OPTIONS = [
@@ -137,11 +138,11 @@ const FILTER_OPTIONS = [
   },
   {
     label: t('Slowest Profiles'),
-    value: '-profile.duration',
+    value: '-transaction.duration',
   },
   {
     label: t('Fastest Profiles'),
-    value: 'profile.duration',
+    value: 'transaction.duration',
   },
 ];
 

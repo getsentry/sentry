@@ -19,9 +19,6 @@ class RpcUserOption:
     organization_id: int | None = None
 
 
-ApiUserOption = RpcUserOption
-
-
 def get_option_from_list(
     options: List[RpcUserOption],
     *,

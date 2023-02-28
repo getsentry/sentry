@@ -275,8 +275,9 @@ def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
         project, event
     )
     user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
-    suspect_committers = user_service.get_many_by_email(user_emails)
-
+    suspect_committers = user_service.get_many_by_email(
+        user_emails, is_project_member=True, project_id=project.id
+    )
     return suspect_committers
 
 

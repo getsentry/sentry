@@ -19,14 +19,7 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
-from sentry.models import (
-    ApiKey,
-    Authenticator,
-    Organization,
-    Project,
-    ProjectStatus,
-    ReleaseProject,
-)
+from sentry.models import ApiKey, Organization, Project, ProjectStatus, ReleaseProject
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.utils import auth
@@ -50,7 +43,7 @@ class OrganizationPermission(SentryPermission):
     def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return (
             organization.flags.require_2fa
-            and not Authenticator.objects.user_has_2fa(request.user)
+            and not request.user.has_2fa()
             and not is_active_superuser(request)
         )
 

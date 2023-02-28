@@ -40,6 +40,7 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(null=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -56,6 +57,7 @@ class ReleaseArtifactBundle(Model):
     release_name = models.CharField(max_length=250)
     dist_id = BoundedBigIntegerField(null=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -91,6 +93,7 @@ class ProjectArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
