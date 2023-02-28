@@ -170,8 +170,10 @@ def in_iexact(column: str, values: Any) -> Q:
     from operator import or_
 
     query = f"{column}__iexact"
+    # if values is empty, have a default value for the reduce call that will essentially resolve a column in []
+    query_in = f"{column}__in"
 
-    return reduce(or_, [Q(**{query: v}) for v in values])
+    return reduce(or_, [Q(**{query: v}) for v in values], Q(**{query_in: []}))
 
 
 def in_icontains(column: str, values: Any) -> Q:
