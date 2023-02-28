@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import functools
 import itertools
@@ -272,6 +274,7 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids: dict[str, str | int] = None,
     ):
         if model in self.non_outcomes_snql_query_settings:
             # no way around having to explicitly map legacy condition format to SnQL since this function
@@ -307,6 +310,7 @@ class SnubaTSDB(BaseTSDB):
                     model in (TSDBModel.group_generic, TSDBModel.users_affected_by_generic_group)
                 ),
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
+                tenant_ids=tenant_ids,
             )
         else:
             return self.__get_data_legacy(
@@ -340,6 +344,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: Optional[int] = None,
         manual_group_on_time: bool = False,
         is_grouprelease: bool = False,
+        tenant_ids: dict[str, str | int] = None,
     ):
         """
         Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
@@ -436,6 +441,9 @@ class SnubaTSDB(BaseTSDB):
                         Condition(Column(time_column), Op.LT, end),
                     ]
 
+            referrer = f"tsdb-modelid:{model.value}"
+            if tenant_ids:
+                tenant_ids["referrer"] = referrer
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
@@ -448,10 +456,9 @@ class SnubaTSDB(BaseTSDB):
                     granularity=Granularity(rollup),
                     limit=Limit(limit),
                 ),
+                tenant_ids=tenant_ids or dict(),
             )
-            query_result = raw_snql_query(
-                snql_request, referrer=f"tsdb-modelid:{model.value}", use_cache=use_cache
-            )
+            query_result = raw_snql_query(snql_request, referrer=referrer, use_cache=use_cache)
             if manual_group_on_time:
                 translated_results = {"data": query_result["data"]}
             else:
@@ -705,6 +712,7 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
@@ -726,6 +734,7 @@ class SnubaTSDB(BaseTSDB):
             conditions=conditions,
             use_cache=use_cache,
             jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:{timestamp:count, ...}}
