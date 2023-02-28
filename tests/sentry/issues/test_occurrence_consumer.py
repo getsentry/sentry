@@ -9,7 +9,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     EventLookupError,
@@ -44,7 +44,7 @@ def get_test_message(
             {"name": "Line", "value": "40", "important": True},
             {"name": "Memory", "value": "breached", "important": False},
         ],
-        "type": ProfileBlockedThreadGroupType.type_id,
+        "type": ProfileFileIOGroupType.type_id,
         "detection_time": now.isoformat(),
     }
 

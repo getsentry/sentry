@@ -208,7 +208,7 @@ class ProfileJSONDecodeType(GroupType):
     category = GroupCategory.PROFILE.value
 
 
-PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
+PROFILE_ISSUE_TYPES = frozenset(
     [
         ProfileBlockedThreadGroupType.type_id,
         ProfileFileIOGroupType.type_id,
