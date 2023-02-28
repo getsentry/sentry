@@ -36,7 +36,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             if cached_config is not None:
                 configs[key] = cached_config
             else:
-                configs[key] = "EMPTY"
+                configs[key] = None
 
         # TODO if we don't think we'll add anything to the endpoint
         # we may as well return just the configs

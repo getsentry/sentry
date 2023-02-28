@@ -1,3 +1,5 @@
+from urllib import parse
+
 from django.urls import reverse
 from rest_framework import status
 
@@ -36,22 +38,23 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         )
 
     def get_url(self, proj_id=None, key=None):
-        ret_val = reverse(self.path)
-        ret_val += "?"
-        if proj_id:
-            ret_val += f"projectId={proj_id}"
-        if proj_id and key:
-            ret_val += "&"
-        if key:
-            ret_val += f"projectKey={key}"
+        query = {}
+        if proj_id is not None:
+            query["projectId"] = proj_id
+        if key is not None:
+            query["projectKey"] = key
 
+        query_string = parse.urlencode(query)
+
+        ret_val = reverse(self.path)
+        ret_val += f"?{query_string}"
         return ret_val
 
     def test_normal_users_do_not_have_access(self):
         """
         Request denied for non super-users
         """
-        self.login_as(self.user)
+        self.login_as(self.owner)
 
         url = self.get_url(proj_id=self.proj1.id)
         response = self.client.get(url)
@@ -93,7 +96,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Asking for a project that was not cached in redis will return
         an empty marker
         """
-        expected = {"configs": {self.p2_pk.public_key: "EMPTY"}}
+        expected = {"configs": {self.p2_pk.public_key: None}}
 
         self.login_as(self.superuser, superuser=True)
 
@@ -131,6 +134,6 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        expected = {"configs": {str(inexsitent_key): "EMPTY"}}
+        expected = {"configs": {str(inexsitent_key): None}}
         actual = response.json()
         assert actual == expected
