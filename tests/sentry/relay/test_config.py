@@ -35,7 +35,6 @@ PII_CONFIG = """
         "@ip",
         "@mac"
       ],
-      "hide_rule": false,
       "redaction": {
         "method": "remove"
       }
