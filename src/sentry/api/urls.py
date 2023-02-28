@@ -1129,6 +1129,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-avatar",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/artifactbundle/assemble/$",
+                    OrganizationArtifactBundleAssembleEndpoint.as_view(),
+                    name="sentry-api-0-organization-artifactbundle-assemble",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/config/integrations/$",
                     OrganizationConfigIntegrationsEndpoint.as_view(),
                     name="sentry-api-0-organization-config-integrations",
@@ -1931,11 +1936,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
                     SourceMapDebugEndpoint.as_view(),
                     name="sentry-api-0-event-source-map-debug",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/artifactbundle/assemble/$",
-                    OrganizationArtifactBundleAssembleEndpoint.as_view(),
-                    name="sentry-api-0-organization-artifactbundle-assemble",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
