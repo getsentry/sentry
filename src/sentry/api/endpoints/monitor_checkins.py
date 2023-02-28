@@ -24,7 +24,16 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey
+from sentry.models import (
+    CheckInStatus,
+    Environment,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+    Project,
+    ProjectKey,
+)
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics
 
@@ -137,9 +146,20 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         result = serializer.validated_data
 
         with transaction.atomic():
+            # transitional monitor environment logic
+            if not result.environment:
+                result.environment = "production"
+
+            environment = Environment.get_or_create(project=project, name=result.environment)
+
+            monitor_environment = MonitorEnvironment.objects.get_or_create(
+                monitor=monitor, environment=environment
+            )
+
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
+                monitor_environment_id=monitor_environment.id,
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
