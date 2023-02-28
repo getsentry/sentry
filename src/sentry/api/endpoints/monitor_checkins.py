@@ -146,7 +146,6 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         result = serializer.validated_data
 
         with transaction.atomic():
-            # transitional monitor environment logic
             if not result.environment:
                 result.environment = "production"
 
@@ -175,7 +174,9 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 )
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                if not monitor.mark_failed(last_checkin=checkin.date_added):
+                monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
+                monitor_environment.mark_failed(last_checkin=checkin.date_added)
+                if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
@@ -188,6 +189,9 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                     monitor_params["status"] = MonitorStatus.OK
                 Monitor.objects.filter(id=monitor.id).exclude(
                     last_checkin__gt=checkin.date_added
+                ).update(**monitor_params)
+                MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
+                    last_checking__gt=checkin.date_added
                 ).update(**monitor_params)
 
         if isinstance(request.auth, ProjectKey):
