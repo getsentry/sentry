@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import uniq from 'lodash/uniq';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -132,9 +133,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {query} = location;
     const hasEditAccess = organization.access.includes('alerts:write');
     const ruleList = (this.state.ruleList ?? []).filter(defined);
-    const projectsFromResults = [
-      ...new Set(ruleList.map(({projects}) => projects).flat()),
-    ];
+    const projectsFromResults = uniq(ruleList.flatMap(({projects}) => projects));
 
     const sort: {
       asc: boolean;
