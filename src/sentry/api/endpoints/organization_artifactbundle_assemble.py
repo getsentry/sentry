@@ -53,7 +53,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         if len(project_ids) != len(projects):
             return Response({"error": "One or more projects are invalid"}, status=400)
 
-        if not self.has_release_permission(request, organization, project_ids=project_ids):
+        if not self.has_release_permission(request, organization, project_ids=set(project_ids)):
             raise ResourceDoesNotExist
 
         checksum = data.get("checksum")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, Optional, Set
 
 import sentry_sdk
 from django.core.cache import cache
@@ -445,7 +445,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         release: Optional[Release] = None,
-        project_ids: Optional[List[int]] = None,
+        project_ids: Optional[Set[int]] = None,
     ) -> bool:
         """
         Does the given request have permission to access this release, based
@@ -472,9 +472,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             )
             has_perms = cache.get(key)
         if has_perms is None:
-            projects = self.get_projects(
-                request, organization, project_ids=set(project_ids) if project_ids else None
-            )
+            projects = self.get_projects(request, organization, project_ids=project_ids)
             # XXX(iambriccardo): The logic here is that you have access to this release if any of your projects
             # associated with this release you have release permissions to.  This is a bit of
             # a problem because anyone can add projects to a release, so this check is easy
@@ -489,4 +487,4 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             if key is not None and actor_id is not None:
                 cache.set(key, has_perms, 60)
 
-        return has_perms  # type: ignore[no-any-return]
+        return has_perms
