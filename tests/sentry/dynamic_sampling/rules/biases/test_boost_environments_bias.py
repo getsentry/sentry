@@ -26,7 +26,6 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                     {
                         "name": "trace.environment",
                         "op": "glob",
-                        "options": {"ignoreCase": True},
                         "value": ENVIRONMENT_GLOBS,
                     }
                 ],

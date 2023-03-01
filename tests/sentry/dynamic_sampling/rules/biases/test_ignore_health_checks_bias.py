@@ -31,7 +31,6 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                     {
                         "name": "event.transaction",
                         "op": "glob",
-                        "options": {"ignoreCase": True},
                         "value": health_check_globs,
                     }
                 ],
