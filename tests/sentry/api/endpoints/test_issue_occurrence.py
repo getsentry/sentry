@@ -1,7 +1,7 @@
 from datetime import datetime
 from unittest import mock
 
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -55,7 +55,7 @@ class IssueOccurrenceTest(APITestCase):
                     "important": False,
                 },
             ],
-            "type": ProfileBlockedThreadGroupType.type_id,
+            "type": ProfileFileIOGroupType.type_id,
             "detection_time": ensure_aware(datetime.now()),
             "event": self.event,
         }
