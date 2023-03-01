@@ -113,8 +113,8 @@ def adjust_sample_rates(
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,  # 25 mins
-    time_limit=2 * 60 + 5,
+    soft_time_limit=2 * 60 * 60,  # 2hours
+    time_limit=2 * 60 * 60 + 5,
 )  # type: ignore
 def prioritise_transactions() -> None:
     """

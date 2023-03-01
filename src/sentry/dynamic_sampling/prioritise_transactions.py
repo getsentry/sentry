@@ -21,6 +21,7 @@ from snuba_sdk import (
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ def fetch_transactions_with_total_volumes() -> Generator[ProjectTransactions, No
         )
         data = raw_snql_query(
             request,
-            referrer="dynamic_sampling.fetch_projects_with_count_per_transaction_volumes",
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
