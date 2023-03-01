@@ -383,6 +383,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Telemetry Experience
+/bin/send_transactions.py                                                        @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
