@@ -45,10 +45,6 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
             ),
           }
         : {}),
-      idleTimeout: 5000,
-      _metricOptions: {
-        _reportAllChanges: false,
-      },
       _experiments: {
         enableInteractions: true,
       },
