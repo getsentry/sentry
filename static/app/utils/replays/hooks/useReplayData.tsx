@@ -20,7 +20,9 @@ type State = {
    * If a fetch is underway for the requested root reply.
    * This includes fetched all the sub-resources like attachments and `sentry-replay-event`
    */
-  fetching: boolean;
+  fetchingAttachments: boolean;
+  fetchingErrors: boolean;
+  fetchingReplay: boolean;
 };
 
 type Options = {
@@ -35,7 +37,9 @@ type Options = {
   replaySlug: string;
 };
 
-interface Result extends Pick<State, 'fetchError' | 'fetching'> {
+interface Result {
+  fetchError: undefined | RequestError;
+  fetching: boolean;
   onRetry: () => void;
   replay: ReplayReader | null;
   replayRecord: ReplayRecord | undefined;
@@ -43,7 +47,9 @@ interface Result extends Pick<State, 'fetchError' | 'fetching'> {
 
 const INITIAL_STATE: State = Object.freeze({
   fetchError: undefined,
-  fetching: true,
+  fetchingAttachments: true,
+  fetchingErrors: true,
+  fetchingReplay: true,
 });
 
 function responsesToAttachments(responses: Array<unknown>) {
@@ -94,6 +100,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     );
     const mappedRecord = mapResponseToReplayRecord(response.data);
     setReplayRecord(mappedRecord);
+    setState(prev => ({...prev, fetchingReplay: false}));
   }, [api, orgSlug, projectSlug, replayId]);
 
   const fetchAttachments = useCallback(async () => {
@@ -120,6 +127,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         return promise;
       })
     );
+    setState(prev => ({...prev, fetchingAttachments: false}));
   }, [api, orgSlug, projectSlug, replayRecord]);
 
   const fetchErrors = useCallback(async () => {
@@ -153,32 +161,31 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         return promise;
       })
     );
+    setState(prev => ({...prev, fetchingErrors: false}));
   }, [api, orgSlug, replayRecord]);
 
   const onError = useCallback(error => {
     Sentry.captureException(error);
-    setState({
-      ...INITIAL_STATE,
-      fetchError: error,
-      fetching: false,
-    });
+    setState(prev => ({...prev, fetchError: error}));
   }, []);
 
   useEffect(() => {
-    setState(INITIAL_STATE);
     fetchReplay().catch(onError);
   }, [fetchReplay, onError]);
 
   useEffect(() => {
-    Promise.all([fetchAttachments(), fetchErrors()])
-      .then(() => {
-        setState(prev => ({
-          ...prev,
-          fetching: false,
-        }));
-      })
-      .catch(onError);
-  }, [fetchAttachments, fetchErrors, onError]);
+    if (state.fetchError) {
+      return;
+    }
+    fetchErrors().catch(onError);
+  }, [state.fetchError, fetchErrors, onError]);
+
+  useEffect(() => {
+    if (state.fetchError) {
+      return;
+    }
+    fetchAttachments().catch(onError);
+  }, [state.fetchError, fetchAttachments, onError]);
 
   const replay = useMemo(() => {
     return ReplayReader.factory({
@@ -190,7 +197,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
 
   return {
     fetchError: state.fetchError,
-    fetching: state.fetching,
+    fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
     onRetry: () => {},
     replay,
     replayRecord,
