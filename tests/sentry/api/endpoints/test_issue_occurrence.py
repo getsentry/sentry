@@ -14,7 +14,6 @@ from sentry.utils.samples import load_data
 class IssueOccurrenceTest(APITestCase):
     def setUp(self):
         super().setUp()
-        # self.user = self.create_user(is_superuser=False)
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, members=[self.user])
