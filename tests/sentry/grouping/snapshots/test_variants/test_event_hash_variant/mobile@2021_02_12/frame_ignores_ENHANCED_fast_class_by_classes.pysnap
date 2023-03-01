@@ -2,37 +2,37 @@
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "465d672b2d322bf6a1b44499f6dabc1f"
+  hash: "91f42e615037e91a3c6f8a6fcf04056b"
   tree_label: "api.jipJipManagementApplication"
   component:
     app-depth-1*
       stacktrace*
         frame*
-          module* (removed codegen marker)
-            "com.example.api.OutboundController$$FastClassByGuice$$<auto>"
+          module*
+            "com.example.api.OutboundController$$FastClassByGuice$$ae46b1bf"
           function*
             "jipJipManagementApplication"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "465d672b2d322bf6a1b44499f6dabc1f"
+  hash: "91f42e615037e91a3c6f8a6fcf04056b"
   tree_label: "api.jipJipManagementApplication"
   component:
     app-depth-max*
       stacktrace*
         frame*
-          module* (removed codegen marker)
-            "com.example.api.OutboundController$$FastClassByGuice$$<auto>"
+          module*
+            "com.example.api.OutboundController$$FastClassByGuice$$ae46b1bf"
           function*
             "jipJipManagementApplication"
 --------------------------------------------------------------------------
 system:
-  hash: "465d672b2d322bf6a1b44499f6dabc1f"
+  hash: "91f42e615037e91a3c6f8a6fcf04056b"
   tree_label: "api.jipJipManagementApplication"
   component:
     system*
       stacktrace*
         frame*
-          module* (removed codegen marker)
-            "com.example.api.OutboundController$$FastClassByGuice$$<auto>"
+          module*
+            "com.example.api.OutboundController$$FastClassByGuice$$ae46b1bf"
           function*
             "jipJipManagementApplication"

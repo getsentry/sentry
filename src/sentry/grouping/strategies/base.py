@@ -147,6 +147,9 @@ class GroupingContext:
 
         return rv
 
+    def get_strategy_id(self):
+        return self.config.id
+
 
 def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
     """Looks up a strategy by id."""

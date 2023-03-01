@@ -7,18 +7,18 @@ app:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
-          module* (removed codegen marker)
-            "com.example.api.OutboundController$$EnhancerByGuice$$<auto>$$FastClassByGuice$$<auto>"
+          module*
+            "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2"
           function*
             "jipJipManagementApplication"
 --------------------------------------------------------------------------
 system:
-  hash: "0094f39fc617031afb6c655419f4a9f2"
+  hash: "f771960161f86b1f8eec4edc3016e1c0"
   component:
     system*
       stacktrace*
         frame*
-          module* (removed codegen marker)
-            "com.example.api.OutboundController$$EnhancerByGuice$$<auto>$$FastClassByGuice$$<auto>"
+          module*
+            "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2"
           function*
             "jipJipManagementApplication"
