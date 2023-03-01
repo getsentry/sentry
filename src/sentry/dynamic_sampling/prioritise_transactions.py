@@ -18,7 +18,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.utils.snuba import raw_snql_query
@@ -41,7 +41,9 @@ def fetch_transactions_with_total_volumes() -> Generator[ProjectTransactions, No
     """
     start_time = time.time()
     offset = 0
-    transaction_tag = f"tags_raw[{SHARED_STRINGS['transaction']}]"
+    transaction_string_id = indexer.resolve_shared_org("transaction")
+    transaction_tag = f"tags_raw[{transaction_string_id}]"
+    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     current_org_id: Optional[int] = None
     current_proj_id: Optional[int] = None
     transaction_counts: List[Tuple[str, int]] = []
@@ -63,11 +65,7 @@ def fetch_transactions_with_total_volumes() -> Generator[ProjectTransactions, No
                 where=[
                     Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                    Condition(
-                        Column("metric_id"),
-                        Op.EQ,
-                        TRANSACTION_METRICS_NAMES[TransactionMRI.COUNT_PER_ROOT_PROJECT.value],
-                    ),
+                    Condition(Column("metric_id"), Op.EQ, metric_id),
                 ],
                 granularity=Granularity(3600),
                 orderby=[
