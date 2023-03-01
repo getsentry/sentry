@@ -4,6 +4,7 @@ import unittest
 import zipfile
 from copy import deepcopy
 from io import BytesIO
+from time import time
 from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
@@ -550,7 +551,7 @@ class FetchReleaseFileTest(TestCase):
         assert good_file.chunks.call_count == 1
 
 
-class FetchFileTest(TestCase):
+class FetchFileByUrlTest(TestCase):
     @responses.activate
     def test_simple(self):
         responses.add(
@@ -896,6 +897,86 @@ class FetchFileTest(TestCase):
 
         assert exc.value.data["type"] == EventError.JS_MISSING_SOURCE
         assert exc.value.data["url"] == url
+
+
+class FetchFileByDebugIdTest(TestCase):
+    def test(self):
+        # TODO: add real test following this code for file creation.
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("example.js", b"foo")
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "files": {
+                            "example.js": {
+                                "url": "/example.js",
+                                "type": "sourcemap",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
+                                },
+                            }
+                        }
+                    }
+                ),
+            )
+
+        file = File.objects.create(name="foo", type="release.bundle")
+        file.putfile(compressed)
+
+
+class BuildAbsPathDebugIdCacheTest(TestCase):
+    def test_build_with(self):
+        processor = JavaScriptStacktraceProcessor(
+            data={
+                "timestamp": time(),
+                "message": "hello",
+                "platform": "javascript",
+                "debug_meta": {
+                    "images": [
+                        {
+                            "type": "sourcemap",
+                            "debug_id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
+                            "code_file": "http://example.com/file.min.js",
+                        }
+                    ]
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "http://example.com/file.min.js",
+                                        "filename": "file.min.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    },
+                                    {
+                                        "function": 'function: "HTMLDocument.<anonymous>"',
+                                        "abs_path": "http//example.com/index.html",
+                                        "filename": "index.html",
+                                        "lineno": 283,
+                                        "colno": 17,
+                                        "in_app": False,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            stacktrace_infos=None,
+            project=self.create_project(),
+        )
+        processor.build_abs_path_debug_id_cache()
+
+        assert processor.abs_path_debug_id == {
+            "http://example.com/file.min.js": "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        }
 
 
 class CacheControlTest(unittest.TestCase):

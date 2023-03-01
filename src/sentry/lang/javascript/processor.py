@@ -23,7 +23,13 @@ from symbolic import SourceView
 
 from sentry import features, http, options
 from sentry.event_manager import set_tag
-from sentry.models import EventError, Organization, ReleaseFile
+from sentry.models import (
+    ArtifactBundleArchive,
+    DebugIdArtifactBundle,
+    EventError,
+    Organization,
+    ReleaseFile,
+)
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils import json, metrics
@@ -713,7 +719,47 @@ class Fetcher:
         self.dist = dist
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
-        # TODO: implement debug id lookup.
+        try:
+            artifact_bundle = DebugIdArtifactBundle.objects.get(
+                debug_id=debug_id, source_file_type=source_file_type
+            ).select_related("artifact_bundle")
+
+            artifact_bundle = fetch_retry_policy(artifact_bundle.getfile)
+
+            if artifact_bundle is not None:
+                try:
+                    archive = ArtifactBundleArchive(artifact_bundle)
+                except Exception:
+                    artifact_bundle.seek(0)
+                    # logger.error(
+                    #     "Failed to initialize archive for release %s",
+                    #     release.id,
+                    #     exc_info=exc,
+                    #     extra={"contents": base64.b64encode(archive_file.read(256))},
+                    # )
+                else:
+                    with archive:
+                        try:
+                            fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
+                        except KeyError:
+                            pass
+                        except Exception:
+                            pass
+                        else:
+                            result = fetch_and_cache_artifact(
+                                debug_id,
+                                lambda: fp,
+                                # TODO: implement cache keys for new artifacts based on debug_ids.
+                                "cache_key",
+                                "meta_cache_key",
+                                headers,
+                                compress_fn=compress,
+                            )
+
+                            return result
+        except DebugIdArtifactBundle.DoesNotExist:
+            return None
+
         return None
 
     def fetch_by_url(self, url):
@@ -843,10 +889,6 @@ class Fetcher:
 
         return result
 
-    def _fetch_sourcemap_by_debug_id(self):
-        # TODO: implement debug id lookup.
-        return None
-
 
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
@@ -883,6 +925,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # be ported to Symbolicator we wanted to keep it as simple and explicit as possible. This comment also
         # applies to the many repetitions across the code.
 
+        # Cache the corresponding debug id for a specific abs path.
+        self.abs_path_debug_id = {}
+
         # Cache holding the results of the fetching by url.
         self.fetch_by_url_sourceviews = {}
         self.fetch_by_url_errors = {}
@@ -912,6 +957,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             frames.extend(get_path(info.stacktrace, "frames", filter=is_valid_frame, default=()))
         return frames
 
+    def build_abs_path_debug_id_cache(self):
+        images = self.data.get("debug_meta", {}).get("images", [])
+
+        for image in images:
+            if image is not None:
+                code_file = image.get("code_file", None)
+                debug_id = image.get("debug_id", None)
+
+                if code_file is not None and debug_id is not None:
+                    self.abs_path_debug_id[code_file] = debug_id
+
     def preprocess_step(self, processing_task):
         frames = self.get_valid_frames()
         if not frames:
@@ -921,17 +977,21 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             )
             return False
 
-        release = None
-        dist = None
-
         with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.preprocess_step.get_release"):
             release = self.get_release(create=True)
+            dist = None
+
             if self.data.get("dist") and release:
                 timestamp = self.data.get("timestamp")
                 date = timestamp and datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
                 dist = release.add_dist(self.data["dist"], date)
 
         self.fetcher.bind_release(release=release, dist=dist)
+
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.preprocess_step.build_abs_path_to_debug_id_cache"
+        ):
+            self.build_abs_path_debug_id_cache()
 
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
