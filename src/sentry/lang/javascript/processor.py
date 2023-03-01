@@ -727,11 +727,11 @@ class Fetcher:
 
             result = cache.get(cache_key)
 
-            if result == -1:
-                return None
-
-            if result:
-                return result_from_cache(result_url, result)
+            # if result == -1:
+            #     return None
+            #
+            # if result:
+            #     return result_from_cache(result_url, result)
 
             # TODO: in the future we would like to query the debug id and then check if that specific bundle is bound
             #  to the passed project.
@@ -1080,11 +1080,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             all_errors.extend(errors)
 
         # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
-        sourcemap_url = self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
-        if sourcemap_url is not None:
-            self.sourcemaps_touched.add(sourcemap_url)
-        elif debug_id is not None:
-            self.sourcemaps_touched.add(debug_id)
+        # TODO: check if using debug id as url makes sense.
+        sourcemap_url = (
+            self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
+            if debug_id is None
+            else debug_id
+        )
+        self.sourcemaps_touched.add(sourcemap_url)
 
         source_context = None
 
@@ -1144,6 +1146,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # obtain source context directly from there.
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
+                    if debug_id is not None:
+                        # TODO: raise error because it means that sourceContents was not in the sourcemap.
+                        pass
                     # If we arrive here, it means that we want to load the actual source file because it was missing
                     # inside the sourcemap. Because we don't allow the absence of source contents in the sourcemaps
                     # containing a debug_id, we will only fetch by url.
@@ -1226,7 +1231,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # This expansion is done on the new symbolicated frame. Here we are passing the context lines that are fetched
         # from the sourcemap or the original source from which we are going to extract context ourselves.
         changed_frame = self.expand_frame(
-            new_frame, source_context=source_context, source=sourceview
+            new_frame, debug_id=debug_id, source_context=source_context, source=sourceview
         )
 
         # If we did not manage to match but we do have a line or column
@@ -1243,7 +1248,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # This second call to the frame expansion is done on the raw frame, thus we are just naively going to obtain
         # context in the original file from which the error has been thrown.
-        changed_raw = sourcemap_applied and self.expand_frame(raw_frame)
+        changed_raw = sourcemap_applied and self.expand_frame(raw_frame, debug_id=debug_id)
 
         if sourcemap_applied or all_errors or changed_frame or changed_raw:
             # In case we are done processing, we iterate over all errors that we got
@@ -1300,7 +1305,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         except Exception as exc:
             logger.exception("Failed to tag suspected console errors", exc_info=exc)
 
-    def expand_frame(self, frame, source_context=None, source=None):
+    def expand_frame(self, frame, debug_id=None, source_context=None, source=None):
         """
         Mutate the given frame to include pre- and post-context lines.
         """
@@ -1309,7 +1314,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return False
 
         if source_context is None:
-            source = source or self.get_or_fetch_sourceview(url=frame["abs_path"])
+            # In this situation we didn't find the context in the source map, thus we need to load the original file.
+            # Here the logic for loading is either we load from the url or we try to fetch the file by debug id but only
+            # if it is a minified source.
+            source = source or self.get_or_fetch_sourceview(
+                url=frame["abs_path"],
+                debug_id=debug_id,
+                source_file_type=SourceFileType.MINIFIED_SOURCE,
+            )
             if source is None:
                 logger.debug("No source found for %s", frame["abs_path"])
                 return False
@@ -1442,7 +1454,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         return None
 
     def _handle_debug_id_sourcemap_lookup(self, debug_id):
-        minified_sourceview = self.fetch_by_debug_id_sourceviews.get(debug_id)
+        minified_sourceview = self.fetch_by_debug_id_sourceviews.get(
+            (debug_id, SourceFileType.MINIFIED_SOURCE)
+        )
         if minified_sourceview is None:
             return None
 
