@@ -65,7 +65,7 @@ describe('useReplayData', () => {
       },
     });
 
-    // Immediatly we will see the replay call is made
+    // Immediately we will see the replay call is made
     expect(mockedReplayCall).toHaveBeenCalledTimes(1);
     expect(mockedAttachmentsCall).not.toHaveBeenCalledTimes(1);
     expect(mockedErrorsCall).not.toHaveBeenCalledTimes(1);

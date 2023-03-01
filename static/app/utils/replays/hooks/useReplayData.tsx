@@ -54,7 +54,7 @@ const INITIAL_STATE: State = Object.freeze({
 
 function responseToAttachments(segment: unknown[]) {
   // Each segment includes an array of attachments
-  // Therefore we flatten 2 levels deep
+  // Therefore we flatten 1 levels deep
   return segment.flat(1);
 }
 
