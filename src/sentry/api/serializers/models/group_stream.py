@@ -153,12 +153,13 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         except Environment.DoesNotExist:
             stats = {g.id: tsdb.make_series(0, **query_params) for g in groups}
         else:
+            org_id = groups[0].project.organization_id if groups else None
             stats = tsdb.get_range(
                 model=tsdb.models.group,
                 keys=[g.id for g in groups],
                 environment_ids=environment and [environment.id],
                 **query_params,
-                tenant_ids={"organization_id": environment.organization_id},
+                tenant_ids={"organization_id": org_id} if org_id else None,
             )
 
         return stats
