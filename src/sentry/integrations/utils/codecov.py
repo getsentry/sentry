@@ -19,7 +19,7 @@ NEW_CODECOV_REPORT_URL = (
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 REF_TYPE = Literal["branch", "sha"]
-CODECOV_TIMEOUT = 5
+CODECOV_TIMEOUT = 10
 
 
 class CodecovIntegrationError(Enum):
