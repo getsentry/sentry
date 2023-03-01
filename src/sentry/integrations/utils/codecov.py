@@ -36,7 +36,7 @@ def codecov_enabled(organization: Organization, user: Any) -> bool:
         "organizations:codecov-stacktrace-integration", organization, actor=user
     )
     setting_enabled = organization.flags.codecov_access
-    return flag_enabled and setting_enabled
+    return bool(flag_enabled and setting_enabled)
 
 
 def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
@@ -155,7 +155,7 @@ def fetch_codecov_data(
         path = config["outcome"]["sourcePath"]
 
         ref = sha if sha else config["config"]["defaultBranch"]
-        ref_type = "sha" if sha else "branch"
+        ref_type: REF_TYPE = "sha" if sha else "branch"
 
         lineCoverage, codecovUrl = get_codecov_data(
             repo, service, ref, ref_type, path, organization
