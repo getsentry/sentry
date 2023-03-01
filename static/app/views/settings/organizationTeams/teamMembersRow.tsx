@@ -20,9 +20,17 @@ const TeamMembersRow = (props: {
   removeMember: (member: Member) => void;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
+  teamOrgRole?: string;
 }) => {
-  const {organization, member, user, hasWriteAccess, removeMember, updateMemberRole} =
-    props;
+  const {
+    organization,
+    teamOrgRole,
+    member,
+    user,
+    hasWriteAccess,
+    removeMember,
+    updateMemberRole,
+  } = props;
 
   return (
     <TeamRolesPanelItem key={member.id}>
@@ -34,6 +42,7 @@ const TeamMembersRow = (props: {
           hasWriteAccess={hasWriteAccess}
           updateMemberRole={updateMemberRole}
           organization={organization}
+          teamOrgRole={teamOrgRole}
           member={member}
         />
       </div>
@@ -54,29 +63,35 @@ const TeamRoleSelect = (props: {
   member: TeamMember;
   organization: Organization;
   updateMemberRole: (member: TeamMember, newRole: string) => void;
+  teamOrgRole?: string;
 }) => {
-  const {hasWriteAccess, organization, member, updateMemberRole} = props;
+  const {hasWriteAccess, organization, teamOrgRole, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
     return null;
   }
 
+  const teamOrgRoleIndex = orgRoleList.findIndex(r => r.id === teamOrgRole) ?? -1;
+  const teamOrgRoleValue = teamOrgRoleIndex >= 0 ? orgRoleList[teamOrgRoleIndex] : null;
   const {allOrgRoles: memberOrgRoles} = member;
-  const topOrgRole = memberOrgRoles[0];
+  const topOrgRole =
+    teamOrgRoleIndex > orgRoleList.findIndex(r => r.id === memberOrgRoles[0].id)
+      ? teamOrgRoleValue
+      : memberOrgRoles[0];
 
-  const teamRoleId = member.teamRole || topOrgRole.minimumTeamRole;
+  const teamRoleId = member.teamRole || topOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   if (
     !hasWriteAccess ||
-    hasOrgRoleOverwrite({orgRole: topOrgRole.id, orgRoleList, teamRoleList})
+    hasOrgRoleOverwrite({orgRole: topOrgRole?.id, orgRoleList, teamRoleList})
   ) {
     return (
       <RoleName>
         {teamRole.name}
         <IconWrapper>
           <RoleOverwriteIcon
-            orgRole={topOrgRole.id}
+            orgRole={topOrgRole?.id}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
