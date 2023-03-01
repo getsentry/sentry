@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {
   AriaGridListItemOptions,
@@ -63,10 +63,50 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   const [isFocusWithin, setFocusWithin] = useState(false);
   const {focusWithinProps} = useFocusWithin({onFocusWithinChange: setFocusWithin});
 
-  const checkboxSize = size === 'xs' ? 'xs' : 'sm';
+  const rowPropsMemo = useMemo(
+    () => mergeProps(rowProps, focusWithinProps, hoverProps),
+    // Only update optionProps when a relevant state (selection/focus/disable) changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isSelected, isDisabled]
+  );
+
+  const gridCellPropsMemo = useMemo(
+    () => gridCellProps,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isSelected, isDisabled]
+  );
+
+  const labelPropsMemo = useMemo(
+    () => ({as: typeof label === 'string' ? 'p' : 'div'}),
+    [label]
+  );
+
+  const leadingItemsMemo = useMemo(() => {
+    const checkboxSize = size === 'xs' ? 'xs' : 'sm';
+    return (
+      <Fragment>
+        <CheckWrap multiple={multiple} isSelected={isSelected} role="presentation">
+          {multiple ? (
+            <Checkbox
+              {...checkboxProps}
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+          )}
+        </CheckWrap>
+        {leadingItems}
+      </Fragment>
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [multiple, isSelected, isDisabled, size, leadingItems]);
+
   return (
     <MenuListItem
-      {...mergeProps(rowProps, focusWithinProps, hoverProps)}
+      {...rowPropsMemo}
       ref={ref}
       size={size}
       label={label}
@@ -74,26 +114,9 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       disabled={isDisabled}
       isFocused={isFocusWithin}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
-      innerWrapProps={gridCellProps}
-      labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
-      leadingItems={
-        <Fragment>
-          <CheckWrap multiple={multiple} isSelected={isSelected} role="presentation">
-            {multiple ? (
-              <Checkbox
-                {...checkboxProps}
-                size={checkboxSize}
-                checked={isSelected}
-                disabled={isDisabled}
-                readOnly
-              />
-            ) : (
-              isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
-            )}
-          </CheckWrap>
-          {leadingItems}
-        </Fragment>
-      }
+      innerWrapProps={gridCellPropsMemo}
+      labelProps={labelPropsMemo}
+      leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}
       tooltip={tooltip}
       tooltipOptions={tooltipOptions}

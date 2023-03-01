@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef, useMemo} from 'react';
+import {forwardRef as reactForwardRef, memo, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -174,8 +174,10 @@ function BaseMenuListItem({
   );
 }
 
-const MenuListItem = reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>(
-  (props, ref) => <BaseMenuListItem {...props} forwardRef={ref} />
+const MenuListItem = memo(
+  reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>((props, ref) => (
+    <BaseMenuListItem {...props} forwardRef={ref} />
+  ))
 );
 
 export default MenuListItem;
