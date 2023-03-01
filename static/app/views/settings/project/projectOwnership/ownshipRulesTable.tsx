@@ -15,34 +15,42 @@ import {t, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
-import {Actor} from 'sentry/types';
-
-interface OwnershipRulesParsed {
-  matcher: {pattern: string; type: string};
-  owners: Actor[];
-}
+import {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
 
 interface OwnershipRulesTableProps {
-  codeownersRules: OwnershipRulesParsed[];
-  projectRules: OwnershipRulesParsed[];
+  codeowners: CodeOwner[];
+  projectRules: ParsedOwnershipRule[];
+}
+
+/**
+ * Once we mash the rules together we need codeowners id for more context
+ */
+interface MixedOwnershipRule extends ParsedOwnershipRule {
+  codeownersId?: string;
 }
 
 const PAGE_LIMIT = 25;
 
 export function OwnershipRulesTable({
   projectRules,
-  codeownersRules,
+  codeowners,
 }: OwnershipRulesTableProps) {
   const [search, setSearch] = useState<string>('');
   const [page, setPage] = useState<number>(0);
 
   const chunkedRules = useMemo(() => {
-    const rules = [...projectRules, ...codeownersRules].filter(
+    const codeownerRulesWithId = codeowners.flatMap<MixedOwnershipRule>(owners =>
+      (owners.schema?.rules ?? []).map(rule => ({
+        ...rule,
+        codeownersId: owners.id,
+      }))
+    );
+    const rules: MixedOwnershipRule[] = [...projectRules, ...codeownerRulesWithId].filter(
       rule => rule.matcher.type.includes(search) || rule.matcher.pattern.includes(search)
     );
 
     return chunk(rules, PAGE_LIMIT);
-  }, [projectRules, codeownersRules, search]);
+  }, [projectRules, codeowners, search]);
   const hasNextPage = chunkedRules[page + 1] !== undefined;
   const hasPrevPage = page !== 0;
 
@@ -70,8 +78,12 @@ export function OwnershipRulesTable({
         />
       </div>
 
-      <StyledPanelTable headers={[t('Type'), t('Rule'), t('Owner')]}>
-        {chunkedRules[page].map((rule, index) => {
+      <StyledPanelTable
+        headers={[t('Type'), t('Rule'), t('Owner')]}
+        isEmpty={chunkedRules.length === 0}
+        emptyMessage={t('No ownership rules found')}
+      >
+        {chunkedRules[page]?.map((rule, index) => {
           let name: string | undefined = 'unknown';
           if (rule.owners[0]?.type === 'team') {
             const team = TeamStore.getById(rule.owners[0].id);

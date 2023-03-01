@@ -6,13 +6,14 @@ import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Actor, CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
+import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -32,19 +33,6 @@ type State = {
   codeowners?: CodeOwner[];
   ownership?: null | IssueOwnership;
 } & AsyncView['state'];
-
-// TODO: remove
-interface OwnershipRulesParsed {
-  matcher: {pattern: string; type: string};
-  owners: Actor[];
-}
-// TODO: remove
-const rules: OwnershipRulesParsed[] = [
-  {
-    owners: [{type: 'team', id: '1303244', name: ''}],
-    matcher: {type: 'path', pattern: '**/src/**'},
-  },
-];
 
 class ProjectOwnership extends AsyncView<Props, State> {
   // TODO: Remove with `streamline-targeting-context`
@@ -213,8 +201,13 @@ tags.sku_class:enterprise #enterprise`;
           projectSlug={project.slug}
           codeowners={codeowners ?? []}
         />
-        {ownership && (
-          <OwnershipRulesTable projectRules={rules} codeownersRules={rules} />
+        {hasStreamlineTargetingContext && ownership && (
+          <ErrorBoundary mini>
+            <OwnershipRulesTable
+              projectRules={ownership.schema?.rules ?? []}
+              codeowners={codeowners ?? []}
+            />
+          </ErrorBoundary>
         )}
         {ownership && (
           <RulesPanel
