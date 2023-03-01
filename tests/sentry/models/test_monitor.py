@@ -180,3 +180,30 @@ class MonitorTestCase(TestCase):
                 "type": "default",
             },
         ) == dict(event)
+
+    def test_save_defaults_slug_to_guid(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        assert str(monitor.guid) == monitor.slug
+
+    def test_save_defaults_slug_to_guid_only_on_create(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        original_monitor_guid = monitor.guid
+
+        # Simulate existing monitors entries that don't have a slug set
+        monitor.slug = None
+        monitor.name = "New name"
+        monitor.save()
+
+        assert monitor.guid == original_monitor_guid
