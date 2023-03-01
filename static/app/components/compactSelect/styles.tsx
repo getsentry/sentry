@@ -93,6 +93,11 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   color: ${p => p.theme.subText};
   transition: opacity 0.1s;
 
+  &.focus-visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
   ${p =>
     p.visible
       ? `
@@ -103,11 +108,6 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
     opacity: 0;
     pointer-events: none;
   `}
-
-  &.focus-visible {
-    opacity: 1;
-    pointer-events: all;
-  }
 `;
 
 export const SectionSeparator = styled('li')`
