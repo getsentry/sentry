@@ -15,7 +15,7 @@ def handle_legacy(notification_type: FineTuningAPIKey, users: Iterable) -> Itera
     """For EMAIL and REPORTS, check UserOptions."""
     filter_args = {}
     if notification_type == FineTuningAPIKey.EMAIL:
-        filter_args["project__isnull"] = False
+        filter_args["project_id__isnull"] = False
 
     key = {
         FineTuningAPIKey.EMAIL: "mail:email",

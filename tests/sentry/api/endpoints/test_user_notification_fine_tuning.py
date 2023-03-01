@@ -268,7 +268,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         self.get_error_response("me", "reports", status_code=403, **data)
 
         assert not UserOption.objects.filter(
-            user=self.user, organization=new_org, key="reports"
+            user=self.user, organization_id=new_org.id, key="reports"
         ).exists()
 
         data = {str(new_project.id): 1}
