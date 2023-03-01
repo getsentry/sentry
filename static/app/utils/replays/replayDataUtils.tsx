@@ -86,7 +86,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       : {}),
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
-    ...(apiResponse.releases ? {releases: [apiResponse.releases]} : {}),
+    ...(apiResponse.releases ? {releases: [...apiResponse.releases]} : {}),
     ...(apiResponse.os?.name ? {'os.name': [apiResponse.os.name]} : {}),
     ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
