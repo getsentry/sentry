@@ -5,6 +5,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.role import OrganizationRoleSerializer
 from sentry.models import ExternalActor, OrganizationMember, User
 from sentry.services.hybrid_cloud.user import user_service
 
@@ -88,6 +89,10 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
+            "allOrgRoles": serialize(
+                obj.get_all_org_roles_sorted(),
+                serializer=OrganizationRoleSerializer(organization=obj.organization),
+            ),
         }
 
         if "externalUsers" in self.expand:

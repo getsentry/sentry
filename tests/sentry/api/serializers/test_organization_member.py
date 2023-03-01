@@ -1,4 +1,8 @@
-from sentry.api.serializers import OrganizationMemberWithProjectsSerializer, serialize
+from sentry.api.serializers import (
+    OrganizationMemberSerializer,
+    OrganizationMemberWithProjectsSerializer,
+    serialize,
+)
 from sentry.api.serializers.models.organization_member import (
     OrganizationMemberSCIMSerializer,
     OrganizationMemberWithTeamsSerializer,
@@ -25,6 +29,18 @@ class OrganizationMemberSerializerTest(TestCase):
                 "user__email"
             )
         )
+
+
+@region_silo_test(stable=True)
+class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest):
+    def test_all_org_roles(self):
+        manager_team = self.create_team(organization=self.org, org_role="manager")
+        member = self.create_member(
+            organization=self.org, user=self.create_user(), teams=[manager_team]
+        )
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        assert result["allOrgRoles"][0]["id"] == "manager"
+        assert result["allOrgRoles"][1]["id"] == "member"
 
 
 @region_silo_test(stable=True)
