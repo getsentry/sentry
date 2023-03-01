@@ -1,6 +1,4 @@
 ---
-created: '2023-01-11T11:41:29.725142Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -9,62 +7,62 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "dispatchInteractiveEvent"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "interactiveUpdates"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "interactiveUpdates$1"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "performSyncWork"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "performWork"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "performWorkOnRoot"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "renderRoot"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "replayUnitOfWork"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function*
               "invokeGuardedCallback"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function* (trimmed javascript function)
               "invokeGuardedCallbackDev"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "index.js"
             function* (trimmed javascript function)
               "sentryWrapped"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             filename*
               "react-dom.development.js"
             function* (trimmed javascript function)

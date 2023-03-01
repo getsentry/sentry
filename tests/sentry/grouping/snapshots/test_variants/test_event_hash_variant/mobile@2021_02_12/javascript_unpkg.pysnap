@@ -1,0 +1,93 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "b746dd9c32716f9c823129cb30f26338"
+  tree_label: "Te"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "Te"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "728bbcb0ca8aaf4d90feed1f320bf9f6"
+  tree_label: "Te"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "Te"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "728bbcb0ca8aaf4d90feed1f320bf9f6"
+  tree_label: "Te"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "Te"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "728bbcb0ca8aaf4d90feed1f320bf9f6"
+  tree_label: "Te"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "Te"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

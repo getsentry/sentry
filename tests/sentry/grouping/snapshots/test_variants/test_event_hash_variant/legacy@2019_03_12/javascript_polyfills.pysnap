@@ -1,0 +1,66 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function*
+              "e.<anonymous>"
+            lineno (function takes precedence)
+              21
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+            lineno (function takes precedence)
+              46
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "tslib/tslib.es6"
+            function*
+              "_.sent"
+            lineno (function takes precedence)
+              81
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "ff4f080caf40f8c396751f8b3b8c09d2"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function*
+              "e.<anonymous>"
+            lineno (function takes precedence)
+              21
+          frame*
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+            lineno (function takes precedence)
+              46
+          frame*
+            module*
+              "tslib/tslib.es6"
+            function*
+              "_.sent"
+            lineno (function takes precedence)
+              81
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"

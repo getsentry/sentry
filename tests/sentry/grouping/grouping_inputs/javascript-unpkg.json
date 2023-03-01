@@ -1,0 +1,30 @@
+{
+  "platform": "javascript",
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "bad",
+        "stacktrace": {
+          "frames": [
+            {
+              "module": "react-dom@16.13.1/umd/react-dom.production",
+              "filename": "/react-dom@16.13.1/umd/react-dom.production.min.js",
+              "abs_path": "https://unpkg.com/react-dom@16.13.1/umd/react-dom.production.min.js",
+              "lineno": 61,
+              "colno": 68
+            },
+            {
+              "function": "Te",
+              "module": "react-dom@16.13.1/umd/react-dom.production",
+              "filename": "/react-dom@16.13.1/umd/react-dom.production.min.js",
+              "abs_path": "https://unpkg.com/react-dom@16.13.1/umd/react-dom.production.min.js",
+              "lineno": 146,
+              "colno": 151
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

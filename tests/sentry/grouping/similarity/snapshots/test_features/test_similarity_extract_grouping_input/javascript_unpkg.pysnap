@@ -1,0 +1,5 @@
+---
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","react-dom@16.13.1/umd/react-dom.production"]],[["function","Te"],["module","react-dom@16.13.1/umd/react-dom.production"]]]
+similarity:2020-07-23:type:ident-shingle: "Error"

@@ -1,6 +1,4 @@
 ---
-created: '2023-01-11T11:41:28.112736Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -21,7 +19,7 @@ app:
               "run"
             context-line*
               "return $callable($passable);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/vendor/** -app))
             filename*
               "pipeline.php"
             function*

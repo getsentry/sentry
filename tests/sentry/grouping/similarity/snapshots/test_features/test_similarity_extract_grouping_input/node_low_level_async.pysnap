@@ -1,0 +1,5 @@
+---
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","task_queues"],["function","processTicksAndRejections"],["module","task_queues"]],[["filename","axiosinterceptor.js"],["function","runMicrotasks"]]]
+similarity:2020-07-23:type:ident-shingle: "Error"

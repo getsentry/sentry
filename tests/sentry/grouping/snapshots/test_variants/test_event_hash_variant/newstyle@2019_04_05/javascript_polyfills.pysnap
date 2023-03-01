@@ -1,0 +1,50 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function*
+              "e.<anonymous>"
+          frame (non app frame)
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame (non app frame)
+            module*
+              "tslib/tslib.es6"
+            function*
+              "_.sent"
+        type*
+          "Error"
+--------------------------------------------------------------------------
+system:
+  hash: "ff4f080caf40f8c396751f8b3b8c09d2"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function*
+              "e.<anonymous>"
+          frame*
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame*
+            module*
+              "tslib/tslib.es6"
+            function*
+              "_.sent"
+        type*
+          "Error"
