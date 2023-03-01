@@ -528,7 +528,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def test_codecov_new_endpoint(self, mock_integration):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py?branch=master",
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=200,
             json={
                 "files": [{"line_coverage": self.expected_line_coverage}],
