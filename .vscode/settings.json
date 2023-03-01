@@ -36,7 +36,8 @@
   },
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
-    "**/node_modules/@testing-library/*"
+    "**/node_modules/@testing-library/*",
+    "**/node_modules/@tanstack/react-query"
   ],
   // Avoid relative imports
   "typescript.preferences.importModuleSpecifier": "non-relative",
