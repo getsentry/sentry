@@ -63,7 +63,17 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
 
-        schema = create_schema_from_issue_owners(attrs["raw"], self.context["ownership"].project_id)
+        if features.has(
+            "organizations:streamline-targeting-context",
+            self.context["ownership"].project.organization,
+        ):
+            schema = create_schema_from_issue_owners(
+                attrs["raw"], self.context["ownership"].project_id, True
+            )
+        else:
+            schema = create_schema_from_issue_owners(
+                attrs["raw"], self.context["ownership"].project_id
+            )
 
         self._validate_no_codeowners(schema["rules"])
 
@@ -161,7 +171,14 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
 
         :auth: required
         """
-        return Response(serialize(self.get_ownership(project), request.user))
+        should_return_schema = features.has(
+            "organizations:streamline-targeting-context", project.organization
+        )
+        return Response(
+            serialize(
+                self.get_ownership(project), request.user, should_return_schema=should_return_schema
+            )
+        )
 
     def put(self, request: Request, project) -> Response:
         """
@@ -176,11 +193,16 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                                     to fall through and make everyone an implicit owner.
         :auth: required
         """
+        should_return_schema = features.has(
+            "organizations:streamline-targeting-context", project.organization
+        )
         serializer = ProjectOwnershipSerializer(
             data=request.data, partial=True, context={"ownership": self.get_ownership(project)}
         )
         if serializer.is_valid():
             ownership = serializer.save()
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
-            return Response(serialize(ownership, request.user))
+            return Response(
+                serialize(ownership, request.user, should_return_schema=should_return_schema)
+            )
         return Response(serializer.errors, status=400)
