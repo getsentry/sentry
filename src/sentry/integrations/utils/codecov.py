@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Optional, Sequence, Tuple
+from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 
 import requests
+from rest_framework import status
 from sentry_sdk import configure_scope
 
 from sentry import features, options
@@ -28,6 +29,14 @@ class CodecovIntegrationError(Enum):
     MISSING_CODECOV = (
         "Codecov access can only be enabled if the organization has a Codecov integration."
     )
+
+
+def codecov_enabled(organization: Organization, user: Any) -> bool:
+    flag_enabled = features.has(
+        "organizations:codecov-stacktrace-integration", organization, actor=user
+    )
+    setting_enabled = organization.flags.codecov_access
+    return flag_enabled and setting_enabled
 
 
 def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
@@ -133,3 +142,50 @@ def get_codecov_data(
             response.raise_for_status()
 
     return line_coverage, codecov_url
+
+
+def fetch_codecov_data(
+    organization: Organization,
+    sha: Optional[str],
+    config: Any,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    try:
+        repo = config["repository"].name
+        service = config["config"]["provider"]["key"]
+        path = config["outcome"]["sourcePath"]
+
+        ref = sha if sha else config["config"]["defaultBranch"]
+        ref_type = "sha" if sha else "branch"
+
+        lineCoverage, codecovUrl = get_codecov_data(
+            repo, service, ref, ref_type, path, organization
+        )
+        if lineCoverage and codecovUrl:
+            return {
+                "lineCoverage": lineCoverage,
+                "coverageUrl": codecovUrl,
+                "status": status.HTTP_200_OK,
+            }, None
+    except requests.exceptions.HTTPError as error:
+        data = {
+            "attemptedUrl": error.response.url,
+            "status": error.response.status_code,
+        }
+
+        message = None
+        if error.response.status_code == status.HTTP_404_NOT_FOUND:
+            message = "Failed to get expected data from Codecov. Continuing execution."
+
+        return data, message
+    except requests.Timeout:
+        with configure_scope() as scope:
+            scope.set_tag("codecov.timeout", True)
+        return {
+            "status": status.HTTP_408_REQUEST_TIMEOUT,
+        }, "Codecov request timed out. Continuing execution."
+    except Exception:
+        return {
+            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+        }, "Something unexpected happened. Continuing execution."
+
+    return None, None
