@@ -1,14 +1,13 @@
 import {Fragment, useCallback, useContext, useRef} from 'react';
-import styled from '@emotion/styled';
 import {AriaListBoxOptions, useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
 import {ListState} from '@react-stately/list';
 import {Node} from '@react-types/shared';
 
-import {space} from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
+import {ListLabel, ListSeparator, ListWrap} from '../styles';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -92,13 +91,9 @@ function ListBox({
   const {overlayIsOpen} = useContext(SelectContext);
   return (
     <Fragment>
-      {listItems.length !== 0 && <Separator role="separator" />}
-      {listItems.length !== 0 && label && <Label {...labelProps}>{label}</Label>}
-      <SelectListBoxWrap
-        {...mergeProps(listBoxProps, props)}
-        onKeyDown={onKeyDown}
-        ref={ref}
-      >
+      {listItems.length !== 0 && <ListSeparator role="separator" />}
+      {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
+      <ListWrap {...mergeProps(listBoxProps, props)} onKeyDown={onKeyDown} ref={ref}>
         {overlayIsOpen &&
           listItems.map(item => {
             if (item.type === 'section') {
@@ -121,62 +116,9 @@ function ListBox({
               />
             );
           })}
-      </SelectListBoxWrap>
+      </ListWrap>
     </Fragment>
   );
 }
 
 export {ListBox};
-
-const SelectListBoxWrap = styled('ul')`
-  margin: 0;
-  padding: ${space(0.5)} 0;
-
-  /* Add 1px to top padding if preceded by menu header, to account for the header's
-  shadow border */
-  div[data-header] ~ &:first-of-type,
-  div[data-header] ~ div > &:first-of-type {
-    padding-top: calc(${space(0.5)} + 1px);
-  }
-
-  /* Remove top padding if preceded by search input, since search input already has
-  vertical padding */
-  input ~ &&:first-of-type,
-  input ~ div > &&:first-of-type {
-    padding-top: 0;
-  }
-
-  /* Should scroll if it's in a non-composite select */
-  :only-of-type {
-    min-height: 0;
-    overflow: auto;
-  }
-
-  :focus-visible {
-    outline: none;
-  }
-`;
-
-const Label = styled('p')`
-  display: inline-block;
-  font-weight: 600;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.subText};
-  text-transform: uppercase;
-  white-space: nowrap;
-  margin: ${space(0.5)} ${space(1.5)};
-  padding-right: ${space(1)};
-`;
-
-const Separator = styled('div')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${space(0.5)} ${space(1.5)};
-
-  :first-child {
-    display: none;
-  }
-
-  ul:empty + & {
-    display: none;
-  }
-`;

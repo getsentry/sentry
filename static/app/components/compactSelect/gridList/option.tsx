@@ -15,6 +15,8 @@ import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {FormSize} from 'sentry/utils/theme';
 
+import {CheckWrap} from '../styles';
+
 interface GridListOptionProps extends AriaGridListItemOptions {
   listState: ListState<any>;
   node: Node<any>;
@@ -124,13 +126,3 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     />
   );
 }
-
-const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 1em;
-  height: 1.4em;
-  padding-bottom: 1px;
-  pointer-events: none;
-`;

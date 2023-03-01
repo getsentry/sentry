@@ -9,6 +9,8 @@ import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {FormSize} from 'sentry/utils/theme';
 
+import {CheckWrap} from '../styles';
+
 interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
@@ -94,13 +96,3 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
     />
   );
 }
-
-const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 1em;
-  height: 1.4em;
-  padding-bottom: 1px;
-  pointer-events: none;
-`;
