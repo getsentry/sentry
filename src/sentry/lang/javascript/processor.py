@@ -708,7 +708,7 @@ class Fetcher:
         self.allow_scraping = allow_scraping
 
     def bind_release(self, release=None, dist=None):
-        """Updates the fetcher with a project, release and dist."""
+        """Updates the fetcher with a release and dist."""
         self.release = release
         self.dist = dist
 
@@ -900,8 +900,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # Component responsible for fetching the files.
         self.fetcher = Fetcher(
+            project=self.project,
             allow_scraping=organization.get_option("sentry:scrape_javascript", True) is not False
-            and self.project.get_option("sentry:scrape_javascript", True)
+            and self.project.get_option("sentry:scrape_javascript", True),
         )
 
     def get_valid_frames(self):

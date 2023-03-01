@@ -68,6 +68,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
                 tags={"test": "world", "other": "hello"},
+                error_ids=[],
             )
         )
 
@@ -196,7 +197,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             assert len(response_data["data"][0]) == 1
             assert "tags" in response_data["data"][0]
-            assert response_data["data"][0]["tags"]["test"] == ["world", "hello"]
+            assert sorted(response_data["data"][0]["tags"]["test"]) == ["hello", "world"]
             assert response_data["data"][0]["tags"]["other"] == ["hello"]
 
     def test_get_replays_minimum_field_set(self):
@@ -476,6 +477,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq2_timestamp,
                 project.id,
                 replay1_id,
+                user_id=None,
+                user_name=None,
+                user_email=None,
+                ipv4=None,
                 os_name=None,
                 os_version=None,
                 browser_name=None,
@@ -485,6 +490,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_family=None,
                 device_model=None,
                 tags={"a": "n", "b": "o"},
+                error_ids=[],
             )
         )
 
