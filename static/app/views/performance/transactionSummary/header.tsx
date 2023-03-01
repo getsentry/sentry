@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -103,10 +103,15 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
+  const projectIds = useMemo(
+    () => (project?.id ? [Number(project.id)] : []),
+    [project?.id]
+  );
+
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    projectIds: project ? [Number(project.id)] : [],
+    projectIds,
   })[transactionName];
 
   return (

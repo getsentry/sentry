@@ -60,10 +60,14 @@ function GroupHeaderTabs({
   project,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
+  const projectIds = useMemo(
+    () => (project.id ? [Number(project.id)] : []),
+    [project.id]
+  );
   const replaysCount = useReplaysCount({
     groupIds: group.id,
     organization,
-    projectIds: [Number(project.id)],
+    projectIds,
   })[group.id];
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
