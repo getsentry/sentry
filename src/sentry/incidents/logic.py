@@ -413,7 +413,7 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")
+    return IncidentActivity.objects.filter(incident=incident).select_related("incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
