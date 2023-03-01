@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import {AriaOptionProps, useOption} from '@react-aria/listbox';
 import {ListState} from '@react-stately/list';
 import {Node} from '@react-types/shared';

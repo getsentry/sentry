@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {
   AriaGridListItemOptions,
   useGridListItem,
