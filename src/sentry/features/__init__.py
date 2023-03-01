@@ -229,6 +229,7 @@ default_manager.add("organizations:derive-code-mappings", OrganizationFeature)
 default_manager.add("organizations:derive-code-mappings-dry-run", OrganizationFeature)
 default_manager.add("organizations:codecov-stacktrace-integration", OrganizationFeature, True)
 default_manager.add("organizations:codecov-stacktrace-integration-v2", OrganizationFeature, True)
+default_manager.add("organizations:auto-enable-codecov", OrganizationFeature)
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, True)
 
 # Project scoped features
