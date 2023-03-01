@@ -108,11 +108,17 @@ class UserOptionManager(OptionManager["User"]):
 
         uid = user.id if user and not isinstance(user, int) else user
         metakey = self._make_key(user, project=project, organization=organization)
+        project_id: int | None = project.id if isinstance(project, Model) else project
+        organization_id: int | None = (
+            organization.id if isinstance(organization, Model) else organization
+        )
 
         if metakey not in self._option_cache or force_reload:
             result = {
                 i.key: i.value
-                for i in self.filter(user_id=uid, project_id=project, organization_id=organization)
+                for i in self.filter(
+                    user_id=uid, project_id=project_id, organization_id=organization_id
+                )
             }
             self._option_cache[metakey] = result
 
