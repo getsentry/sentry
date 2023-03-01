@@ -1080,6 +1080,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-preview": False,
     # Enable issue alert test notifications
     "organizations:issue-alert-test-notifications": False,
+    # Enable creating issue occurrences
+    "organizations:issue-occurrences": False,
     # Enable issue platform
     "organizations:issue-platform": False,
     # Whether to allow issue only search on the issue list

@@ -14,11 +14,12 @@ from sentry.utils.samples import load_data
 class IssueOccurrenceTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.user = self.create_user(is_superuser=True)
+        # self.user = self.create_user(is_superuser=False)
+        self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[self.team])
-        self.login_as(user=self.user, superuser=True)
+        self.login_as(user=self.user)
 
         self.url = "/api/0/issue-occurrence/"
         self.event = {
@@ -61,18 +62,21 @@ class IssueOccurrenceTest(APITestCase):
         }
 
     def test_simple(self, mock_func):
-        response = self.client.post(self.url, data=self.data, format="json")
+        with self.feature("organizations:issue-occurrences"):
+            response = self.client.post(self.url, data=self.data, format="json")
         assert response.status_code == 201, response.content
 
     def test_load_fake_data(self, mock_func):
         url = self.url + "?dummyOccurrence=True"
         data = dict(self.data)
         data.pop("event", None)
-        response = self.client.post(url, data=data, format="json")
+        with self.feature("organizations:issue-occurrences"):
+            response = self.client.post(url, data=data, format="json")
         assert response.status_code == 201, response.content
 
     def test_no_data_passed(self, mock_func):
-        response = self.client.post(self.url, data={}, format="json")
+        with self.feature("organizations:issue-occurrences"):
+            response = self.client.post(self.url, data={}, format="json")
         assert response.status_code == 400, response.content
 
     def test_no_projects(self, mock_func):
@@ -81,11 +85,13 @@ class IssueOccurrenceTest(APITestCase):
         url = self.url + "?dummyOccurrence=True"
         data = dict(self.data)
         data.pop("event", None)
-        response = self.client.post(url, data=data, format="json")
+        with self.feature("organizations:issue-occurrences"):
+            response = self.client.post(url, data=data, format="json")
         assert response.status_code == 400, response.content
 
     def test_load_profiling_occurrence(self, mock_func):
         event_data = load_data("generic-event-profiling")
         data = event_data.data
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature("organizations:issue-occurrences"):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content

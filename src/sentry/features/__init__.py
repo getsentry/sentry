@@ -89,6 +89,7 @@ default_manager.add("organizations:issue-alert-test-notifications", Organization
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-removal-action", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
+default_manager.add("organizations:issue-occurrences", OrganizationFeature, True)
 default_manager.add("organizations:issue-platform", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, True)
