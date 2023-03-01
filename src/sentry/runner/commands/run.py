@@ -344,13 +344,13 @@ def cron(**options):
     "--commit-batch-size",
     default=1000,
     type=int,
-    help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--concurrency",
@@ -384,8 +384,6 @@ def post_process_forwarder(**options):
             topic=options["topic"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
-            commit_batch_size=options["commit_batch_size"],
-            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
             strict_offset_reset=options["strict_offset_reset"],
@@ -550,7 +548,7 @@ def batching_kafka_options(
     is_flag=True,
     help="Listen to all consumer types at once.",
 )
-@batching_kafka_options("ingest-consumer", max_batch_size=100)
+@kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @click.option(
     "--concurrency",
     type=int,
@@ -664,7 +662,7 @@ def metrics_parallel_consumer(**options):
 
 @run.command("billing-metrics-consumer")
 @log_options()
-@batching_kafka_options("billing-metrics-consumer", max_batch_size=100)
+@kafka_options("billing-metrics-consumer")
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
