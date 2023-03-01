@@ -413,7 +413,7 @@ def post_process_forwarder(**options):
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Deprecated. Remove once no longer passed in production.",
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
 )
 @click.option(
     "--initial-offset-reset",
