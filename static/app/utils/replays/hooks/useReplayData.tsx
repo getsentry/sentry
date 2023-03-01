@@ -42,11 +42,8 @@ interface Result extends Pick<State, 'fetchError' | 'fetching'> {
 }
 
 const INITIAL_STATE: State = Object.freeze({
-  // attachments: undefined,
-  // errors: undefined,
   fetchError: undefined,
   fetching: true,
-  // replayRecord: undefined,
 });
 
 function responsesToAttachments(responses: Array<unknown>) {
