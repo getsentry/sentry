@@ -7,22 +7,19 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.models import Project
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 from sentry.utils.samples import load_data
-from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint
-
 
 
 @region_silo_endpoint
 class IssueOccurrenceEndpoint(Endpoint):
-    # permission_classes = (SuperuserPermission,)
-    # private = True
+    permission_classes = (OrganizationPermission,)
 
     def post(self, request: Request) -> Response:
         """
@@ -44,7 +41,9 @@ class IssueOccurrenceEndpoint(Endpoint):
                 )
             project = projects[0]
 
-        if not features.has("organizations:issue-occurrences", project.organization, actor=request.user):
+        if not features.has(
+            "organizations:issue-occurrences", project.organization, actor=request.user
+        ):
             return Response(403)
 
         if request.query_params.get("dummyOccurrence") == "True":
