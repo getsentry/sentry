@@ -384,8 +384,6 @@ def post_process_forwarder(**options):
             topic=options["topic"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
-            commit_batch_size=options["commit_batch_size"],
-            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
             strict_offset_reset=options["strict_offset_reset"],
@@ -407,15 +405,15 @@ def post_process_forwarder(**options):
 @click.option("--topic", default=None, help="Topic to get subscription updates from.")
 @click.option(
     "--commit-batch-size",
-    default=100,
+    default=1000,
     type=int,
-    help="How many messages to process before committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--initial-offset-reset",
@@ -653,11 +651,12 @@ def metrics_parallel_consumer(**options):
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
 
+    initialize_global_consumer_state(ingest_config)
+
     streamer = get_parallel_metrics_consumer(
         indexer_profile=ingest_config, slicing_router=slicing_router, **options
     )
 
-    initialize_global_consumer_state(ingest_config)
     run_processor_with_signals(streamer)
 
 
@@ -689,7 +688,7 @@ def profiles_consumer(**options):
 @run.command("ingest-replay-recordings")
 @log_options()
 @configuration
-@batching_kafka_options("ingest-replay-recordings", max_batch_size=100)
+@kafka_options("ingest-replay-recordings")
 @click.option(
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
