@@ -3,6 +3,7 @@ from enum import Enum
 from django.db import models
 
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -59,9 +60,7 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
-    edited_by = FlexibleForeignKey(
-        "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
-    )
+    edited_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
     class Meta:
         app_label = "sentry"
@@ -89,9 +88,7 @@ class ProjectTransactionThreshold(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
-    edited_by = FlexibleForeignKey(
-        "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
-    )
+    edited_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
     class Meta:
         app_label = "sentry"

@@ -1,8 +1,6 @@
 import logging
 from typing import Any, Optional, Sequence
 
-from django.db import IntegrityError
-
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,
@@ -94,12 +92,9 @@ def find_channel_id_for_rule(
         else:
             rule = project_rules.Creator.run(pending_save=False, **kwargs)
             if user_id:
-                try:
-                    RuleActivity.objects.create(
-                        rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value
-                    )
-                except IntegrityError:
-                    pass
+                RuleActivity.objects.create(
+                    rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value
+                )
 
         redis_rule_status.set_value("success", rule.id)
         return
