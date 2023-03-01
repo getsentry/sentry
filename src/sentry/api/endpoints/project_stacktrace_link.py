@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, List, Mapping, Optional
 
 import requests
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
@@ -399,13 +400,19 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         }
                         if error.response.status_code != 404:
                             logger.exception(
-                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
+                                "Failed to get expected data from Codecov. Continuing execution."
                             )
                     except requests.Timeout:
                         scope.set_tag("codecov.timeout", True)
+                        result["codecov"] = {
+                            "status": status.HTTP_408_REQUEST_TIMEOUT,
+                        }
                         logger.exception("Codecov request timed out. Continuing execution.")
                     except Exception:
-                        logger.exception("Something unexpected happen. Continuing execution.")
+                        result["codecov"] = {
+                            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        }
+                        logger.exception("Something unexpected happened. Continuing execution.")
                     # We don't expect coverage data if the integration does not exist (404)
 
             try:

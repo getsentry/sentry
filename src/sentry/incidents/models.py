@@ -14,7 +14,6 @@ from sentry.db.models import (
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
-    control_silo_only_model,
     region_silo_only_model,
     sane_repr,
 )
@@ -225,7 +224,7 @@ class IncidentSnapshot(Model):
         db_table = "sentry_incidentsnapshot"
 
 
-@control_silo_only_model
+@region_silo_only_model
 class TimeSeriesSnapshot(Model):
     __include_in_export__ = True
 
@@ -252,7 +251,7 @@ class IncidentActivity(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user = FlexibleForeignKey("sentry.User", null=True)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     type = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
@@ -398,7 +397,7 @@ class AlertRule(Model):
             created_activity = AlertRuleActivity.objects.get(
                 alert_rule=self, type=AlertRuleActivityType.CREATED.value
             )
-            return created_activity.user
+            return user_service.get_user(user_id=created_activity.user_id)
         except AlertRuleActivity.DoesNotExist:
             pass
         return None
@@ -578,8 +577,11 @@ class AlertRuleTriggerAction(Model):
 
     @property
     def target(self):
+        if self.target_identifier is None:
+            return None
+
         if self.target_type == self.TargetType.USER.value:
-            return user_service.get_user(user_id=self.target_identifier)
+            return user_service.get_user(user_id=int(self.target_identifier))
         elif self.target_type == self.TargetType.TEAM.value:
             try:
                 return Team.objects.get(id=int(self.target_identifier))
