@@ -55,6 +55,7 @@ function useReplayFromIssue({
       fields: REPLAY_LIST_FIELDS,
       projects: [Number(group.project.id)],
       query: `id:[${String(replayIds)}]`,
+      range: '14d',
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
   }, [location.query.sort, group.project.id, replayIds]);
