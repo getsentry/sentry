@@ -7,6 +7,7 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
@@ -21,13 +22,14 @@ class UserOptionManager(OptionManager["User"]):
         self,
         user: User | RpcUser | int,
         project: Project | None = None,
-        organization: Organization | None = None,
+        organization: Organization | int | None = None,
     ) -> str:
         uid = user.id if user and not isinstance(user, int) else user
+        org_id: int | None = organization.id if isinstance(organization, Model) else organization
         if project:
             metakey = f"{uid}:{project.id}:project"
         elif organization:
-            metakey = f"{uid}:{organization.id}:organization"
+            metakey = f"{uid}:{org_id}:organization"
         else:
             metakey = f"{uid}:user"
 
@@ -97,7 +99,7 @@ class UserOptionManager(OptionManager["User"]):
         self,
         user: User | RpcUser | int,
         project: Project | None = None,
-        organization: Organization | None = None,
+        organization: Organization | int | None = None,
         force_reload: bool = False,
     ) -> Mapping[str, Value]:
         if organization and project:
@@ -109,7 +111,7 @@ class UserOptionManager(OptionManager["User"]):
         if metakey not in self._option_cache or force_reload:
             result = {
                 i.key: i.value
-                for i in self.filter(user_id=uid, project=project, organization=organization)
+                for i in self.filter(user_id=uid, project=project, organization_id=organization)
             }
             self._option_cache[metakey] = result
 
@@ -119,12 +121,12 @@ class UserOptionManager(OptionManager["User"]):
 
     def post_save(self, instance: UserOption, **kwargs: Any) -> None:
         self.get_all_values(
-            instance.user, instance.project, instance.organization, force_reload=True
+            instance.user, instance.project, instance.organization_id, force_reload=True
         )
 
     def post_delete(self, instance: UserOption, **kwargs: Any) -> None:
         self.get_all_values(
-            instance.user, instance.project, instance.organization, force_reload=True
+            instance.user, instance.project, instance.organization_id, force_reload=True
         )
 
 
@@ -184,7 +186,7 @@ class UserOption(Model):  # type: ignore
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey("sentry.Project", null=True)
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
@@ -193,6 +195,6 @@ class UserOption(Model):  # type: ignore
     class Meta:
         app_label = "sentry"
         db_table = "sentry_useroption"
-        unique_together = (("user", "project", "key"), ("user", "organization", "key"))
+        unique_together = (("user", "project", "key"), ("user", "organization_id", "key"))
 
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
