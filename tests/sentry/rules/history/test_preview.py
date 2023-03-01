@@ -204,7 +204,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         hours = get_hours(PREVIEW_TIME_RANGE)
         prev_hour = timezone.now() - timedelta(hours=1)
         errors = []
-        profile_blocked_thread = []
+        profile_file_io_main_thread = []
         for i in range(hours):
             if i % 2:
                 errors.append(
@@ -213,7 +213,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                     )
                 )
             else:
-                profile_blocked_thread.append(
+                profile_file_io_main_thread.append(
                     Group.objects.create(
                         project=self.project,
                         first_seen=prev_hour,
@@ -230,7 +230,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert all(group.id not in result for group in errors)
-        assert all(group.id in result for group in profile_blocked_thread)
+        assert all(group.id in result for group in profile_file_io_main_thread)
 
     def test_level(self):
         event = self._set_up_event({"tags": {"level": "error"}})
