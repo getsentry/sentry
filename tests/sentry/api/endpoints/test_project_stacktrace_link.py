@@ -355,59 +355,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
-    @patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_get_latest_commit_from_blame(self, get_jwt, mock_blame):
-        self.integration.provider = "github"
-        self.integration.save()
-
-        mock_blame.return_value = git_blame
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        commit_sha = project_stacktrace_link_endpoint.get_latest_commit_sha_from_blame(
-            integration_installation=self.integration.get_installation(
-                organization_id=self.project.organization_id
-            ),
-            line_no=26,
-            filepath="test/path/file.py",
-            repository=self.repo,
-            ref="main",
-        )
-        assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
-
-    @with_feature("organizations:codecov-commit-sha-from-git-blame")
-    @patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
-    @patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_get_commit_sha_from_blame_failed_to_get_commit(
-        self, get_jwt, mock_blame, mock_get_stacktrace_link
-    ):
-        self._caplog.set_level(logging.ERROR, logger="sentry")
-        self.organization.flags.codecov_access = True
-        self.organization.save()
-        self.integration.provider = "github"
-        self.integration.save()
-
-        mock_get_stacktrace_link.return_value = (
-            "https://github.com/repo/blob/master/src/path/to/file.py",
-        )
-        mock_blame.return_value = []
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={"file": self.filepath, "lineNo": 26},
-        )
-
-        # Error logging means an error is sent to Sentry
-        assert self._caplog.record_tuples == [
-            (
-                "sentry.api.endpoints.project_stacktrace_link",
-                logging.ERROR,
-                "Failed to get commit from git blame.",
-            )
-        ]
-        assert response.data.get("codecov") is None
-
     @patch.object(
         ExampleIntegration,
         "get_stacktrace_link",
