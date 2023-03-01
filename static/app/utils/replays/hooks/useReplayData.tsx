@@ -104,7 +104,12 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   }, [api, orgSlug, projectSlug, replayId]);
 
   const fetchAttachments = useCallback(async () => {
-    if (!replayRecord || !replayRecord.count_segments) {
+    if (!replayRecord) {
+      return;
+    }
+
+    if (!replayRecord.count_segments) {
+      setState(prev => ({...prev, fetchingAttachments: false}));
       return;
     }
 
@@ -131,7 +136,12 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   }, [api, orgSlug, projectSlug, replayRecord]);
 
   const fetchErrors = useCallback(async () => {
-    if (!replayRecord || !replayRecord.error_ids.length) {
+    if (!replayRecord) {
+      return;
+    }
+
+    if (!replayRecord.error_ids.length) {
+      setState(prev => ({...prev, fetchingErrors: false}));
       return;
     }
 
