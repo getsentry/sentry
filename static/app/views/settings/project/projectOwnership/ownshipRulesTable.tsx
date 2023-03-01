@@ -18,9 +18,8 @@ import space from 'sentry/styles/space';
 import {Actor} from 'sentry/types';
 
 interface OwnershipRulesParsed {
-  owners: string[];
-  rule: string;
-  type: string;
+  matcher: {pattern: string; type: string};
+  owners: Actor[];
 }
 
 interface OwnershipRulesTableProps {
@@ -38,14 +37,9 @@ export function OwnershipRulesTable({
   const [page, setPage] = useState<number>(0);
 
   const chunkedRules = useMemo(() => {
-    const rules = [
-      ...projectRules,
-      ...codeownersRules.map(rule => ({
-        ...rule,
-        rule: `${rule.type}:${rule.rule}`,
-        type: 'codeowners',
-      })),
-    ].filter(rule => rule.type.includes(search) || rule.rule.includes(search));
+    const rules = [...projectRules, ...codeownersRules].filter(
+      rule => rule.matcher.type.includes(search) || rule.matcher.pattern.includes(search)
+    );
 
     return chunk(rules, PAGE_LIMIT);
   }, [projectRules, codeownersRules, search]);
@@ -75,38 +69,32 @@ export function OwnershipRulesTable({
 
       <StyledPanelTable headers={[t('Type'), t('Rule'), t('Owner')]}>
         {chunkedRules[page].map(rule => {
-          const owners = rule.owners.map(owner => {
-            const [ownerType, ownerId] = owner?.split(':');
-            return ownerType === 'team'
-              ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
-              : {type: 'user' as Actor['type'], id: ownerId, name: ''};
-          });
           let name: string | undefined = undefined;
-          if (owners[0]?.type === 'team') {
-            const team = TeamStore.getById(owners[0].id);
+          if (rule.owners[0]?.type === 'team') {
+            const team = TeamStore.getById(rule.owners[0].id);
             name = `#${team?.slug ?? 'unknown'}`;
-          } else if (owners[0]?.type === 'user') {
-            const user = MemberListStore.getById(owners[0].id);
+          } else if (rule.owners[0]?.type === 'user') {
+            const user = MemberListStore.getById(rule.owners[0].id);
             name = user?.name;
           }
 
           return (
-            <Fragment key={`${rule.type}${rule.rule}`}>
+            <Fragment key={`${rule.matcher.type}${rule.matcher.pattern}`}>
               <RowItem>
-                <Tag type="highlight">{capitalize(rule.type)}</Tag>
+                <Tag type="highlight">{capitalize(rule.matcher.type)}</Tag>
               </RowItem>
-              <RowRule>{rule.rule}</RowRule>
+              <RowRule>{rule.matcher.pattern}</RowRule>
               <RowItem>
-                <AvatarContainer numAvatars={Math.min(owners.length, 3)}>
+                <AvatarContainer numAvatars={Math.min(rule.owners.length, 3)}>
                   <SuggestedAvatarStack
-                    owners={owners}
+                    owners={rule.owners}
                     suggested={false}
                     reverse={false}
                   />
                 </AvatarContainer>
                 {name}
-                {owners.length > 1 &&
-                  tn(' and %s other', ' and %s others', owners.length - 1)}
+                {rule.owners.length > 1 &&
+                  tn(' and %s other', ' and %s others', rule.owners.length - 1)}
               </RowItem>
             </Fragment>
           );

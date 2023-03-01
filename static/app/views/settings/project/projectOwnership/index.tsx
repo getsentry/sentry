@@ -12,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
+import {Actor, CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -35,16 +35,14 @@ type State = {
 
 // TODO: remove
 interface OwnershipRulesParsed {
-  owners: string[];
-  rule: string;
-  type: string;
+  matcher: {pattern: string; type: string};
+  owners: Actor[];
 }
 // TODO: remove
 const rules: OwnershipRulesParsed[] = [
   {
-    owners: ['team:1303244', 'team:1303244', 'team:1303244'],
-    rule: '**/src/**',
-    type: 'path',
+    owners: [{type: 'team', id: '1303244', name: ''}],
+    matcher: {type: 'path', pattern: '**/src/**'},
   },
 ];
 
