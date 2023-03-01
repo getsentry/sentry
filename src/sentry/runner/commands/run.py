@@ -344,13 +344,13 @@ def cron(**options):
     "--commit-batch-size",
     default=1000,
     type=int,
-    help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--concurrency",
@@ -405,9 +405,9 @@ def post_process_forwarder(**options):
 @click.option("--topic", default=None, help="Topic to get subscription updates from.")
 @click.option(
     "--commit-batch-size",
-    default=1000,
+    default=100,
     type=int,
-    help="Deprecated. Remove once no longer passed in production.",
+    help="How many messages to process before committing offsets.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
