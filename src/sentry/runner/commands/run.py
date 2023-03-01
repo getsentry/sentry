@@ -548,7 +548,7 @@ def batching_kafka_options(
     is_flag=True,
     help="Listen to all consumer types at once.",
 )
-@batching_kafka_options("ingest-consumer", max_batch_size=100)
+@kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @click.option(
     "--concurrency",
     type=int,
