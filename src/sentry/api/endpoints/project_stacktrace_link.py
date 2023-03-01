@@ -393,6 +393,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         )
                         if codecov_data:
                             result["codecov"] = codecov_data
+                        else:
+                            result["codecov"] = {"status": status.HTTP_204_NO_CONTENT}
                     except requests.exceptions.HTTPError as error:
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,
