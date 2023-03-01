@@ -28,6 +28,7 @@ function useCommitters(
     {
       staleTime: Infinity,
       retry: false,
+      refetchOnWindowFocus: false,
       ...options,
     }
   );
