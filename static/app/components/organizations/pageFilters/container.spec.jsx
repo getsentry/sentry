@@ -3,6 +3,7 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -524,6 +525,39 @@ describe('PageFiltersContainer', function () {
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {environment: [], project: ['1']},
+        })
+      );
+    });
+
+    it('selects a project if user is superuser and belongs to no projects', function () {
+      ConfigStore.init();
+      ConfigStore.loadInitialData(
+        TestStubs.Config({
+          user: TestStubs.User({isSuperuser: true}),
+        })
+      );
+      const project = TestStubs.Project({id: '3', isMember: false});
+      const org = TestStubs.Organization({projects: [project]});
+
+      ProjectsStore.loadInitialData(org.projects);
+
+      const initializationObj = initializeOrg({
+        organization: org,
+        router: {
+          params: {orgId: 'org-slug'},
+          location: {pathname: '/test', query: {}},
+        },
+      });
+
+      renderComponent(
+        <PageFiltersContainer />,
+        initializationObj.routerContext,
+        initializationObj.organization
+      );
+
+      expect(initializationObj.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {environment: [], project: ['3']},
         })
       );
     });

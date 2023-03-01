@@ -12,6 +12,8 @@ import {
 import * as Layout from 'sentry/components/layouts/thirds';
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -70,7 +72,11 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   const specifiedProjects = specificProjectSlugs
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
-  const memberProjects = specifiedProjects.filter(project => project.isMember);
+
+  const {user} = useLegacyStore(ConfigStore);
+  const memberProjects = user.isSuperuser
+    ? specifiedProjects
+    : specifiedProjects.filter(project => project.isMember);
 
   const doInitialization = () =>
     initializeUrlState({
