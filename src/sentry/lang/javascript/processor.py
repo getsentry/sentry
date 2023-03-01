@@ -1138,8 +1138,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     "Mapping compressed source %r to mapping in %r", frame["abs_path"], abs_path
                 )
 
-                # This 'if' should always evaluate to True when debug_id is used.
+                # Source context and sourceview will be both used down the line during frame expansion.
                 if token.context_line is not None:
+                    # If we arrive here, it means that we found the original source in the source map, thus we can
+                    # obtain source context directly from there.
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
                     # If we arrive here, it means that we want to load the actual source file because it was missing
@@ -1147,6 +1149,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # containing a debug_id, we will only fetch by url.
                     sourceview = self.get_or_fetch_sourceview(url=abs_path)
 
+                # In case we are not able to load the original source, we can't do much besides logging it.
                 if sourceview is None:
                     errors = self.fetch_by_url_errors.get(abs_path)
                     if errors:
@@ -1220,6 +1223,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame.get("data") or {}, sourcemap=http.expose_url(sourcemap_url)
             )
 
+        # This expansion is done on the new symbolicated frame. Here we are passing the context lines that are fetched
+        # from the sourcemap or the original source from which we are going to extract context ourselves.
         changed_frame = self.expand_frame(
             new_frame, source_context=source_context, source=sourceview
         )
@@ -1236,6 +1241,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 }
             )
 
+        # This second call to the frame expansion is done on the raw frame, thus we are just naively going to obtain
+        # context in the original file from which the error has been thrown.
         changed_raw = sourcemap_applied and self.expand_frame(raw_frame)
 
         if sourcemap_applied or all_errors or changed_frame or changed_raw:
@@ -1302,7 +1309,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return False
 
         if source_context is None:
-            # TODO: in case we have a debug_id, how we get the original source code? Do we try to get is from SmCache?
             source = source or self.get_or_fetch_sourceview(url=frame["abs_path"])
             if source is None:
                 logger.debug("No source found for %s", frame["abs_path"])

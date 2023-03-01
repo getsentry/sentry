@@ -564,7 +564,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             zip_file.writestr("file1.js", load_fixture("file1.js"))
             zip_file.writestr("file2.js", load_fixture("file2.js"))
             zip_file.writestr("empty.js", load_fixture("empty.js"))
-            zip_file.writestr("file.sourcemap.js", load_fixture("file.sourcemap.js"))
+            zip_file.writestr("file.wc.sourcemap.js", load_fixture("file.wc.sourcemap.js"))
 
             zip_file.writestr(
                 "manifest.json",
@@ -602,8 +602,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                     "content-type": "application/json",
                                 },
                             },
-                            "file.sourcemap.js": {
-                                "url": "~/file.sourcemap.js",
+                            "file.wc.sourcemap.js": {
+                                "url": "~/file.wc.sourcemap.js",
                                 "type": "source_map",
                                 "headers": {
                                     "content-type": "application/json",
