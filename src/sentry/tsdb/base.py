@@ -355,7 +355,15 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_range(
-        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end,
+        rollup=None,
+        environment_ids=None,
+        use_cache=False,
+        tenant_ids=None,
     ):
         """
         To get a range of data for group ID=[1, 2, 3]:
