@@ -23,7 +23,7 @@ chardet==4.0.0
 click==8.0.4
 confluent-kafka==1.9.2
 croniter==0.3.37
-cryptography==38.0.3
+cryptography==39.0.1
 cssselect==1.0.3
 cssutils==2.4.0
 datadog==0.29.3
@@ -82,7 +82,7 @@ pyasn1-modules==0.2.4
 pycountry==17.5.14
 pycparser==2.21
 pyjwt==2.4.0
-pyopenssl==22.0.0
+pyopenssl==23.0.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
 pysocks==1.7.1
@@ -113,7 +113,7 @@ sentry-sdk==1.15.0
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-sdk==1.0.3
+snuba-sdk==1.0.5
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.3.0

@@ -248,6 +248,13 @@ def handle_owner_assignment(job):
                     if issue_owners:
                         try:
                             handle_group_owners(project, group, issue_owners)
+                            logger.info(
+                                "handle_owner_assignment.success",
+                                extra={
+                                    **basic_logging_details,
+                                    "reason": "stored_issue_owners",
+                                },
+                            )
                         except Exception:
                             logger.exception("Failed to store group owners")
         except Exception:

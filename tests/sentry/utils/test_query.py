@@ -1,6 +1,18 @@
-from sentry.models import Team, User
+from sentry.db.models.query import in_iexact
+from sentry.models import Organization, Team, User
 from sentry.testutils import TestCase
 from sentry.utils.query import RangeQuerySetWrapper, bulk_delete_objects
+
+
+class InIexactQueryTest(TestCase):
+    def test_basic(self):
+        self.create_organization(slug="SlugA")
+        self.create_organization(slug="slugB")
+        self.create_organization(slug="slugc")
+
+        assert Organization.objects.filter(in_iexact("slug", ["sluga", "slugb"])).count() == 2
+        assert Organization.objects.filter(in_iexact("slug", ["slugC"])).count() == 1
+        assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
 class RangeQuerySetWrapperTest(TestCase):

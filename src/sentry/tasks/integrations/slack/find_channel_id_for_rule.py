@@ -1,6 +1,8 @@
 import logging
 from typing import Any, Optional, Sequence
 
+from django.db import IntegrityError
+
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,
@@ -9,7 +11,8 @@ from sentry.integrations.slack.utils import (
     strip_channel_name,
 )
 from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule, RuleActivity, RuleActivityType, User
+from sentry.models import Project, Rule, RuleActivity, RuleActivityType
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 
@@ -36,13 +39,6 @@ def find_channel_id_for_rule(
         redis_rule_status.set_value("failed")
         return
 
-    user = None
-    if user_id:
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            pass
-
     organization = project.organization
     integration_id: Optional[int] = None
     channel_name: Optional[str] = None
@@ -55,13 +51,14 @@ def find_channel_id_for_rule(
             channel_name = strip_channel_name(action["channel"])
             break
 
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
+    integration: RpcIntegration
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
+    )
+    if not integrations:
         redis_rule_status.set_value("failed")
         return
+    integration = integrations[0]
 
     # We do not know exactly how long it will take to paginate through all of the Slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
@@ -96,10 +93,13 @@ def find_channel_id_for_rule(
             rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
             rule = project_rules.Creator.run(pending_save=False, **kwargs)
-            if user:
-                RuleActivity.objects.create(
-                    rule=rule, user=user, type=RuleActivityType.CREATED.value
-                )
+            if user_id:
+                try:
+                    RuleActivity.objects.create(
+                        rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value
+                    )
+                except IntegrityError:
+                    pass
 
         redis_rule_status.set_value("success", rule.id)
         return

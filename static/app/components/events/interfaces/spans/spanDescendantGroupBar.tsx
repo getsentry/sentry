@@ -154,7 +154,11 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
           width: toPercent(bounds.width || 0),
         }}
       >
-        <DurationPill durationDisplay={durationDisplay} showDetail={false}>
+        <DurationPill
+          durationDisplay={durationDisplay}
+          showDetail={false}
+          spanBarType={spanBarType}
+        >
           {durationString}
         </DurationPill>
       </RowRectangle>

@@ -819,6 +819,10 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         # No owners should be remaining
         assert len(owner_emails) == 0
 
+        # Ensure cache was flushed
+        org = Organization.objects.get_from_cache(slug=org.slug)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
     def test_cannot_remove_as_admin(self):
         org = self.create_organization(owner=self.user)
         user = self.create_user(email="foo@example.com", is_superuser=False)
