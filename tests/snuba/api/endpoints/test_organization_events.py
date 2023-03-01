@@ -13,7 +13,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -618,7 +618,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         event, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,

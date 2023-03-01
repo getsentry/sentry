@@ -176,14 +176,6 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
-class ProfileBlockedThreadGroupType(GroupType):
-    type_id = 2000
-    slug = "profile_blocked_thread"
-    description = "Blocked Thread"
-    category = GroupCategory.PROFILE.value
-
-
-@dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
@@ -205,14 +197,6 @@ class ProfileJSONDecodeType(GroupType):
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
-
-
-PROFILE_FILE_IO_ISSUE_TYPES = frozenset(
-    [
-        ProfileBlockedThreadGroupType.type_id,
-        ProfileFileIOGroupType.type_id,
-    ]
-)
 
 
 def reduce_noise(

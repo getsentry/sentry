@@ -1,4 +1,4 @@
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -72,7 +72,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         event_group = event.for_group(event.group)
         event_group.occurrence = self.build_occurrence()
-        event.group.type = ProfileBlockedThreadGroupType.type_id
+        event.group.type = ProfileFileIOGroupType.type_id
 
         self.login_as(user=self.user)
         response = self.get_response(

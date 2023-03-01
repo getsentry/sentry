@@ -23,7 +23,7 @@ from django.utils import timezone
 from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -261,9 +261,9 @@ def _process_message(
             txn.set_tag("project_id", project.id)
             txn.set_tag("project_slug", project.slug)
 
-            if occurrence_data["type"] not in PROFILE_FILE_IO_ISSUE_TYPES or not features.has(
-                "organizations:profile-blocked-main-thread-ingest", organization
-            ):
+            if occurrence_data["type"] not in get_group_types_by_category(
+                GroupCategory.PROFILE.value
+            ) or not features.has("organizations:profile-blocked-main-thread-ingest", organization):
                 metrics.incr(
                     "occurrence_ingest.dropped_feature_disabled",
                     sample_rate=1.0,

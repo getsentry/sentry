@@ -16,7 +16,7 @@ from sentry.integrations.slack.message_builder.issues import (
     get_option_groups,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
@@ -173,7 +173,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType.type_id
+        event.group.type = ProfileFileIOGroupType.type_id
 
         attachments = SlackIssuesMessageBuilder(group=event.group, event=event).build()
 
