@@ -56,6 +56,7 @@ export function SuspectFunctionsTable({
     sort: functionsSort,
     functionType,
   });
+
   return (
     <Fragment>
       <TableHeader>
@@ -80,7 +81,9 @@ export function SuspectFunctionsTable({
         />
         <StyledPagination
           pageLinks={
-            functionsQuery.isFetched ? functionsQuery.data?.[0]?.pageLinks : null
+            functionsQuery.isFetched
+              ? functionsQuery.data?.[2]?.getResponseHeader('Link') ?? null
+              : null
           }
           onCursor={handleFunctionsCursor}
           size="xs"
