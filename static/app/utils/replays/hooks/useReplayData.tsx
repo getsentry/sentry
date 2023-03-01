@@ -83,8 +83,8 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   const api = useApi();
 
   const [state, setState] = useState<State>(INITIAL_STATE);
-  const [attachments, setAttachments] = useState<unknown[]>();
-  const [errors, setErrors] = useState<ReplayError[]>();
+  const [attachments, setAttachments] = useState<unknown[]>([]);
+  const [errors, setErrors] = useState<ReplayError[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
   // Fetch every field of the replay. We're overfetching, not every field is used
