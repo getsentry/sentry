@@ -112,6 +112,7 @@ class ArtifactBundleArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
+        self._build_entries_by_debug_id_map()
 
     def __enter__(self):
         return self
@@ -157,7 +158,7 @@ class ArtifactBundleArchive:
                     and (source_file_type := SourceFileType.from_lowercase_key(file_type))
                     is not None
                 ):
-                    self._entries_by_debug_id[debug_id, source_file_type] = (file_path, info)
+                    self._entries_by_debug_id[(debug_id, source_file_type)] = (file_path, info)
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType

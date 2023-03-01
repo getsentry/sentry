@@ -6,6 +6,7 @@ from copy import deepcopy
 from io import BytesIO
 from time import time
 from unittest.mock import ANY, MagicMock, call, patch
+from uuid import uuid4
 
 import pytest
 import responses
@@ -35,7 +36,15 @@ from sentry.lang.javascript.processor import (
     should_retry_fetch,
     trim_line,
 )
-from sentry.models import EventError, File, Release, ReleaseFile
+from sentry.models import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    EventError,
+    File,
+    Release,
+    ReleaseFile,
+    SourceFileType,
+)
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.stacktraces.processing import ProcessableFrame, find_stacktraces_in_data
 from sentry.testutils import TestCase
@@ -900,31 +909,145 @@ class FetchFileByUrlTest(TestCase):
 
 
 class FetchFileByDebugIdTest(TestCase):
-    def test(self):
-        # TODO: add real test following this code for file creation.
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+
+    @staticmethod
+    def get_compressed_zip_file(artifact_name, files):
+        def remove_and_return(dictionary, key):
+            dictionary.pop(key)
+            return dictionary
+
         compressed = BytesIO()
         with zipfile.ZipFile(compressed, mode="w") as zip_file:
-            zip_file.writestr("example.js", b"foo")
+            for file_path, info in files.items():
+                zip_file.writestr(file_path, bytes(info["content"]))
+
             zip_file.writestr(
                 "manifest.json",
                 json.dumps(
                     {
+                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
                         "files": {
-                            "example.js": {
-                                "url": "/example.js",
-                                "type": "sourcemap",
-                                "headers": {
-                                    "content-type": "application/json",
-                                    "debug-id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
-                                },
-                            }
+                            file_path: remove_and_return(info, "content")
+                            for file_path, info in files.items()
                         }
                     }
                 ),
             )
+        compressed.seek(0)
 
-        file = File.objects.create(name="foo", type="release.bundle")
+        file = File.objects.create(name=artifact_name, type="artifact.bundle")
         file.putfile(compressed)
+
+        return file
+
+    def test_fetch_by_debug_id_with_valid_params(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                    },
+                },
+                "index.js": {
+                    "url": "/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+        )
+
+        # Check with present debug id and source file type.
+        result = Fetcher().fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+        )
+        assert result.url == debug_id
+        assert result.body == b"foo"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "debug-id": debug_id}
+        assert result.encoding == "utf-8"
+
+        # Check with present debug id and source file type.
+        result = Fetcher().fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.MINIFIED_SOURCE
+        )
+        assert result.url == debug_id
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {
+            "content-type": "application/json",
+            "debug-id": debug_id,
+            "sourcemap": "index.js.map",
+        }
+        assert result.encoding == "utf-8"
+
+        # Check with present debug id and absent source file type.
+        result = Fetcher().fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE
+        )
+        assert result is None
+
+        # Check with absent debug id and present source file type.
+        result = Fetcher().fetch_by_debug_id(
+            debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153",
+            source_file_type=SourceFileType.SOURCE_MAP,
+        )
+        assert result is None
+
+        # Check with absent debug id and absent source file type.
+        result = Fetcher().fetch_by_debug_id(
+            debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153", source_file_type=SourceFileType.SOURCE
+        )
+        assert result is None
+
+    def test_fetch_by_debug_id_with_invalid_params(self):
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {"content-type": "application/json"},
+                }
+            },
+        )
+        ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=1
+        )
+
+        result = Fetcher().fetch_by_debug_id(debug_id=None, source_file_type=None)
+        assert result is None
 
 
 class BuildAbsPathDebugIdCacheTest(TestCase):

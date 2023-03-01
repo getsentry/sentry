@@ -29,6 +29,7 @@ from sentry.models import (
     EventError,
     Organization,
     ReleaseFile,
+    SourceFileType,
 )
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.stacktraces.processing import StacktraceProcessor
@@ -214,7 +215,7 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.05))
 
 
-def fetch_and_cache_artifact(filename, fetch_fn, cache_key, cache_key_meta, headers, compress_fn):
+def fetch_and_cache_artifact(result_url, fetch_fn, cache_key, cache_key_meta, headers, compress_fn):
     # If the release file is not in cache, check if we can retrieve at
     # least the size metadata from cache and prevent compression and
     # caching if payload exceeds the backend limit.
@@ -244,7 +245,7 @@ def fetch_and_cache_artifact(filename, fetch_fn, cache_key, cache_key_meta, head
     else:
         headers = {k.lower(): v for k, v in headers.items()}
         encoding = get_encoding_from_headers(headers)
-        result = http.UrlResult(filename, headers, body, 200, encoding)
+        result = http.UrlResult(result_url, headers, body, 200, encoding)
 
         # If we don't have the compressed body for caching because the
         # cached metadata said it is too large payload for the cache
@@ -280,7 +281,7 @@ def get_cache_keys(filename, release, dist):
     return cache_key, cache_key_meta
 
 
-def result_from_cache(filename, result):
+def result_from_cache(url, result):
     # Previous caches would be a 3-tuple instead of a 4-tuple,
     # so this is being maintained for backwards compatibility
     try:
@@ -288,7 +289,7 @@ def result_from_cache(filename, result):
     except IndexError:
         encoding = None
 
-    return http.UrlResult(filename, result[0], zlib.decompress(result[1]), result[2], encoding)
+    return http.UrlResult(url, result[0], zlib.decompress(result[1]), result[2], encoding)
 
 
 @metrics.wraps("sourcemaps.release_file")
@@ -720,47 +721,73 @@ class Fetcher:
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
         try:
-            artifact_bundle = DebugIdArtifactBundle.objects.get(
-                debug_id=debug_id, source_file_type=source_file_type
-            ).select_related("artifact_bundle")
+            # TODO: we need to decide which result_url we want to use, this will be the http.UrlResult.url.3
+            result_url = debug_id
+            cache_key = "cache_key"
 
+            result = cache.get(cache_key)
+
+            if result == -1:
+                return None
+
+            if result:
+                return result_from_cache(result_url, result)
+
+            # TODO: in the future we would like to query the debug id and then check if that specific bundle is bound
+            #  to the passed project.
+            artifact_bundle = (
+                DebugIdArtifactBundle.objects.filter(
+                    debug_id=debug_id,
+                    source_file_type=source_file_type.value
+                    if source_file_type is not None
+                    else None,
+                )
+                .select_related("artifact_bundle__file")[0]
+                .artifact_bundle.file
+            )
             artifact_bundle = fetch_retry_policy(artifact_bundle.getfile)
 
             if artifact_bundle is not None:
                 try:
                     archive = ArtifactBundleArchive(artifact_bundle)
-                except Exception:
+                except Exception as exc:
                     artifact_bundle.seek(0)
-                    # logger.error(
-                    #     "Failed to initialize archive for release %s",
-                    #     release.id,
-                    #     exc_info=exc,
-                    #     extra={"contents": base64.b64encode(archive_file.read(256))},
-                    # )
+                    logger.error(
+                        "Failed to initialize archive for the artifact bundle %s",
+                        artifact_bundle.id,
+                        exc_info=exc,
+                        extra={"contents": base64.b64encode(artifact_bundle.read(256))},
+                    )
                 else:
                     with archive:
                         try:
                             fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
-                        except KeyError:
-                            pass
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            logger.error(
+                                "File with debug id %s and source type %s not found in artifact bundle %s",
+                                debug_id,
+                                source_file_type,
+                                artifact_bundle.id,
+                                exc_info=exc,
+                            )
+                            cache.set(cache_key, -1, 60)
+                            return None
                         else:
                             result = fetch_and_cache_artifact(
-                                debug_id,
+                                result_url,
                                 lambda: fp,
                                 # TODO: implement cache keys for new artifacts based on debug_ids.
-                                "cache_key",
-                                "meta_cache_key",
+                                cache_key,
+                                None,
                                 headers,
                                 compress_fn=compress,
                             )
 
                             return result
-        except DebugIdArtifactBundle.DoesNotExist:
+        except IndexError:
             return None
-
-        return None
+        else:
+            return None
 
     def fetch_by_url(self, url):
         """
@@ -1030,12 +1057,21 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         ):
             return
 
+        # We get the debug_id for file in this frame, if any.
+        debug_id = self.abs_path_debug_id.get(frame["abs_path"])
+
         # The 'sourceview' is used for pre/post and 'context_line' frame expansion.
         # Here it's pointing to the minified source, however the variable can be shadowed with the original sourceview
-        # (or 'None' if the token doesnt provide us with the 'context_line') down the road.
-        # TODO: add support for debug ids.
-        sourceview = self.get_or_fetch_sourceview(url=frame["abs_path"])
-        sourcemap_cache = self.get_or_fetch_sourcemap_cache(url=frame["abs_path"])
+        # (or 'None' if the token doesn't provide us with the 'context_line') down the road.
+        # TODO: how to we determine whether resolution happened with debug_id or url?
+        sourceview = self.get_or_fetch_sourceview(
+            url=frame["abs_path"],
+            debug_id=debug_id,
+            source_file_type=SourceFileType.MINIFIED_SOURCE,
+        )
+        sourcemap_cache = self.get_or_fetch_sourcemap_cache(
+            url=frame["abs_path"], debug_id=debug_id
+        )
 
         # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
         # happen in one of the two we will detect them and add them to 'all_errors'.
@@ -1045,7 +1081,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
         sourcemap_url = self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
-        self.sourcemaps_touched.add(sourcemap_url)
+        if sourcemap_url is not None:
+            self.sourcemaps_touched.add(sourcemap_url)
+        elif debug_id is not None:
+            self.sourcemaps_touched.add(debug_id)
 
         source_context = None
 
@@ -1103,6 +1142,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 if token.context_line is not None:
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
+                    # If we arrive here, it means that we want to load the actual source file because it was missing
+                    # inside the sourcemap. Because we don't allow the absence of source contents in the sourcemaps
+                    # containing a debug_id, we will only fetch by url.
                     sourceview = self.get_or_fetch_sourceview(url=abs_path)
 
                 if sourceview is None:
@@ -1260,7 +1302,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return False
 
         if source_context is None:
-            # TODO: add lookup by debug id in case abs_path has it.
+            # TODO: in case we have a debug_id, how we get the original source code? Do we try to get is from SmCache?
             source = source or self.get_or_fetch_sourceview(url=frame["abs_path"])
             if source is None:
                 logger.debug("No source found for %s", frame["abs_path"])
@@ -1285,9 +1327,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         Returns None when a file with either 'url' or 'debug_id' cannot be found.
         """
-        # We require that artifact bundles with debug ids used embedded source in the source map.
-        # TODO: use enum for source file type when available.
-        if debug_id is not None and source_file_type == "source":
+        # We require that artifact bundles with debug ids used embedded source in the source map. For this reason
+        # it is not possible to look for a source file with a debug id.
+        if debug_id is not None and source_file_type == SourceFileType.SOURCE:
             return None
 
         rv = self._get_cached_sourceview(url, debug_id, source_file_type)
@@ -1312,7 +1354,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def _fetch_and_cache_sourceview(self, url, debug_id, source_file_type):
         self.fetch_count += 1
 
-        # TODO: this branch should only apply to http fetches.
         if self.fetch_count > self.max_fetches:
             self.fetch_by_url_errors.setdefault(url, []).append(
                 {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES}
@@ -1399,8 +1440,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if minified_sourceview is None:
             return None
 
-        # TODO: use enum for source file type when available.
-        result = self.fetcher.fetch_by_debug_id(debug_id, "sourcemap")
+        result = self.fetcher.fetch_by_debug_id(debug_id, SourceFileType.SOURCE_MAP)
         if result is not None:
             sourcemap_view = SmCache.from_bytes(
                 minified_sourceview.get_source().encode("utf-8"), result.body
@@ -1495,14 +1535,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 continue
             pending_file_list.add(f["abs_path"])
 
-        for idx, filename in enumerate(pending_file_list):
+        for idx, url in enumerate(pending_file_list):
             with sentry_sdk.start_span(
                 op="JavaScriptStacktraceProcessor.populate_source_cache.cache_source"
             ) as span:
-                span.set_data("filename", filename)
-                # TODO: we want to implement the construction of the abs_path -> debug_id table.
-                # We first want to fetch the sourceview of the file but not the sourcemaps.
-                self.get_or_fetch_sourceview(url=filename)
+                span.set_data("url", url)
+                debug_id = self.abs_path_debug_id.get(url)
+                # We first want to fetch the minified sourceview either by debug_id or url.
+                self.get_or_fetch_sourceview(
+                    url=url, debug_id=debug_id, source_file_type=SourceFileType.MINIFIED_SOURCE
+                )
 
     def close(self):
         StacktraceProcessor.close(self)
