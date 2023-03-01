@@ -22,9 +22,7 @@ def handle_legacy(notification_type: FineTuningAPIKey, users: Iterable) -> Itera
         FineTuningAPIKey.REPORTS: "reports:disabled-organizations",
     }.get(notification_type)
 
-    return UserOption.objects.filter(key=key, user__in=users, **filter_args).select_related(
-        "user", "project", "organization"
-    )
+    return UserOption.objects.filter(key=key, user__in=users, **filter_args).select_related("user")
 
 
 class UserNotificationsSerializer(Serializer):
@@ -59,8 +57,8 @@ class UserNotificationsSerializer(Serializer):
                 # This UserOption should have both project + organization = None
                 for org_id in uo.value:
                     data[org_id] = "0"
-            elif uo.project is not None:
-                data[uo.project.id] = str(uo.value)
-            elif uo.organization is not None:
-                data[uo.organization.id] = str(uo.value)
+            elif uo.project_id is not None:
+                data[uo.project_id] = str(uo.value)
+            elif uo.organization_id is not None:
+                data[uo.organization_id] = str(uo.value)
         return data

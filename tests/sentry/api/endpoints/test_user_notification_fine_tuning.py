@@ -154,10 +154,10 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         self.get_success_response("me", "email", status_code=204, **data)
 
         value1 = UserOption.objects.get(
-            user=self.user, project=self.project, key="mail:email"
+            user=self.user, project_id=self.project.id, key="mail:email"
         ).value
         value2 = UserOption.objects.get(
-            user=self.user, project=self.project2, key="mail:email"
+            user=self.user, project_id=self.project2.id, key="mail:email"
         ).value
 
         assert value1 == email
