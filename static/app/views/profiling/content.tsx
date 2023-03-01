@@ -130,10 +130,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
-  const isNewProfilingDashboardEnabled = organization.features.includes(
-    'profiling-dashboard-redesign'
-  );
-
   const eventView = useMemo(() => {
     const _eventView = EventView.fromNewQueryWithLocation(
       {
@@ -239,22 +235,10 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 </ProfilingOnboardingPanel>
               ) : (
                 <Fragment>
-                  {isNewProfilingDashboardEnabled ? (
-                    <PanelsGrid>
-                      <ProfilingSlowestTransactionsPanel />
-                      <ProfileCharts
-                        query={query}
-                        selection={selection}
-                        hideCount={isNewProfilingDashboardEnabled}
-                      />
-                    </PanelsGrid>
-                  ) : (
-                    <ProfileCharts
-                      query={query}
-                      selection={selection}
-                      hideCount={isNewProfilingDashboardEnabled}
-                    />
-                  )}
+                  <PanelsGrid>
+                    <ProfilingSlowestTransactionsPanel />
+                    <ProfileCharts query={query} selection={selection} hideCount />
+                  </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}
                     data={transactions.status === 'success' ? transactions.data[0] : null}

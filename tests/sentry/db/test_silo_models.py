@@ -1,13 +1,5 @@
 from sentry.api.serializers.base import registry
-from sentry.data_export.models import ExportedData
-from sentry.discover.models import DiscoverSavedQuery
-from sentry.incidents.models import (
-    AlertRuleActivity,
-    AlertRuleTriggerAction,
-    IncidentActivity,
-    IncidentSeen,
-    IncidentSubscription,
-)
+from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import (
     Activity,
     Actor,
@@ -25,8 +17,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationOnboardingTask,
     ProjectBookmark,
-    ProjectTransactionThreshold,
-    ProjectTransactionThresholdOverride,
     PromptsActivity,
     RecentSearch,
     RuleActivity,
@@ -51,37 +41,18 @@ from sentry.testutils.silo import (
     validate_no_cross_silo_foreign_keys,
 )
 
-
-class any_model:
-    def __eq__(self, other):
-        return True
-
-    def __le__(self, other):
-        return False
-
-    def __ge__(self, other):
-        return False
-
-    def __hash__(self):
-        return 1
-
-
 decorator_exemptions = set()
 fk_emeptions = {
     (Activity, User),
-    (AlertRuleActivity, User),
     (ApiKey, Organization),
     (AuditLogEntry, Organization),
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
     (AuthProvider, Organization),
-    (ExportedData, User),
     (User, Dashboard),
     (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
-    (IncidentSeen, User),
-    (IncidentSubscription, User),
     (OrganizationIntegration, Organization),
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
@@ -98,11 +69,7 @@ fk_emeptions = {
     (RuleActivity, User),
     (ServiceHook, ApiApplication),
     (User, Actor),
-    (ProjectTransactionThresholdOverride, User),
-    (ProjectTransactionThreshold, User),
     (AlertRuleTriggerAction, SentryApp),
-    (DiscoverSavedQuery, User),
-    (IncidentActivity, User),
 }
 
 

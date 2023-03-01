@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0364_remove_project_id_from_environment"),
+        ("sentry", "0365_breaking_more_fks"),
     ]
 
     database_operations = [
