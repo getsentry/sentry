@@ -106,8 +106,8 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
                 user_option, _ = UserOption.objects.get_or_create(
                     key=USER_OPTION_SETTINGS[key]["key"],
                     user=user,
-                    project=None,
-                    organization=None,
+                    project_id=None,
+                    organization_id=None,
                 )
                 user_option.update(value=str(int(value)))
 
