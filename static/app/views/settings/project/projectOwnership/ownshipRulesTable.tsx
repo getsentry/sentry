@@ -44,10 +44,13 @@ export function OwnershipRulesTable({
     return chunk(rules, PAGE_LIMIT);
   }, [projectRules, codeownersRules, search]);
   const hasNextPage = chunkedRules[page + 1] !== undefined;
-  const hasPrevPage = chunkedRules[page - 1] !== undefined;
+  const hasPrevPage = page !== 0;
 
   useEffect(() => {
-    chunkedRules[page] && setPage(0);
+    // Reset to first page if the list of rules changes
+    if (!chunkedRules[page]) {
+      setPage(0);
+    }
   }, [chunkedRules, page]);
 
   const handleSearch = (value: string) => {
@@ -68,18 +71,20 @@ export function OwnershipRulesTable({
       </div>
 
       <StyledPanelTable headers={[t('Type'), t('Rule'), t('Owner')]}>
-        {chunkedRules[page].map(rule => {
-          let name: string | undefined = undefined;
+        {chunkedRules[page].map((rule, index) => {
+          let name: string | undefined = 'unknown';
           if (rule.owners[0]?.type === 'team') {
             const team = TeamStore.getById(rule.owners[0].id);
-            name = `#${team?.slug ?? 'unknown'}`;
+            if (team?.slug) {
+              name = `#${team.slug}`;
+            }
           } else if (rule.owners[0]?.type === 'user') {
             const user = MemberListStore.getById(rule.owners[0].id);
             name = user?.name;
           }
 
           return (
-            <Fragment key={`${rule.matcher.type}${rule.matcher.pattern}`}>
+            <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
               <RowItem>
                 <Tag type="highlight">{capitalize(rule.matcher.type)}</Tag>
               </RowItem>
@@ -163,5 +168,5 @@ const RowRule = styled(RowItem)`
 `;
 
 const AvatarContainer = styled('div')<{numAvatars: number}>`
-  width: ${p => 24 + (p.numAvatars - 1) * (24 * 0.6)}px;
+  max-width: ${p => 24 + (p.numAvatars - 1) * (24 * 0.6)}px;
 `;
