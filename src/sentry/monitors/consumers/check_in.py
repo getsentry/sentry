@@ -29,11 +29,11 @@ def process_message(message: Message[KafkaPayload]) -> None:
             try:
                 check_in = MonitorCheckIn.objects.select_related("monitor").get(
                     project_id=project_id,
-                    monitor_id=params["monitor_id"],
+                    monitor__guid=params["monitor_id"],
                     guid=params["check_in_id"],
                 )
             except MonitorCheckIn.DoesNotExist:
-                logger.debug("check-in does not exist: %s", params["check_in_id"])
+                logger.debug("check-in or monitor do not exist: %s", params["check_in_id"])
                 return
 
             # Map attributes from raw JSON to the model.
