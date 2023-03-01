@@ -31,6 +31,13 @@ class Migration(CheckedMigration):
                 to="sentry.Organization", db_constraint=False, db_index=True, null=True
             ),
         ),
+        migrations.AlterField(
+            model_name="useroption",
+            name="project",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.Project", db_constraint=False, db_index=True, null=True
+            ),
+        ),
     ]
 
     state_operations = [
@@ -46,9 +53,21 @@ class Migration(CheckedMigration):
             old_name="organization",
             new_name="organization_id",
         ),
+        migrations.AlterField(
+            model_name="useroption",
+            name="project",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.Project", null=True, on_delete="CASCADE"
+            ),
+        ),
+        migrations.RenameField(
+            model_name="useroption",
+            old_name="project",
+            new_name="project_id",
+        ),
         migrations.AlterUniqueTogether(
             name="useroption",
-            unique_together=(("user", "project", "key"), ("user", "organization_id", "key")),
+            unique_together=(("user", "project_id", "key"), ("user", "organization_id", "key")),
         ),
     ]
 
