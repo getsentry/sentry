@@ -61,22 +61,22 @@ const TeamRoleSelect = (props: {
     return null;
   }
 
-  const {orgRole: orgRoleId} = member;
-  const orgRole = orgRoleList.find(r => r.id === orgRoleId);
+  const {allOrgRoles: memberOrgRoles} = member;
+  const topOrgRole = memberOrgRoles[0];
 
-  const teamRoleId = member.teamRole || orgRole?.minimumTeamRole;
+  const teamRoleId = member.teamRole || topOrgRole.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   if (
     !hasWriteAccess ||
-    hasOrgRoleOverwrite({orgRole: orgRoleId, orgRoleList, teamRoleList})
+    hasOrgRoleOverwrite({orgRole: topOrgRole.id, orgRoleList, teamRoleList})
   ) {
     return (
       <RoleName>
         {teamRole.name}
         <IconWrapper>
           <RoleOverwriteIcon
-            orgRole={orgRoleId}
+            orgRole={topOrgRole.id}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />

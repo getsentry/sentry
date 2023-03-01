@@ -272,6 +272,14 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     }
 
     const {access, features, orgRoleList} = organization;
+    const currentTopOrgRole = member.allOrgRoles[0];
+    const orgRoleValue = orgRoleList.find(r => r.id === orgRole);
+    const orgRoleIndex = orgRoleValue ? orgRoleList.indexOf(orgRoleValue) : -1;
+    const topOrgRole =
+      orgRoleList.indexOf(currentTopOrgRole) < orgRoleIndex
+        ? currentTopOrgRole.id
+        : orgRole;
+
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
     const hasTeamRoles = features.includes('team-roles');
 
@@ -403,7 +411,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
               enforceIdpProvisioned
               disabled={!canEdit}
               organization={organization}
-              selectedOrgRole={orgRole}
+              selectedOrgRole={topOrgRole}
               selectedTeamRoles={teamRoles}
               onChangeTeamRole={this.onChangeTeamRole}
               onAddTeam={this.onAddTeam}

@@ -109,6 +109,7 @@ export interface TeamRole extends MemberRole {
  * Returned from /organizations/org/users/
  */
 export interface Member {
+  allOrgRoles: OrgRole[];
   dateCreated: string;
   email: string;
   expired: boolean;
