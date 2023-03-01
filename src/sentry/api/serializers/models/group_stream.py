@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import logging
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -25,8 +24,6 @@ from sentry.models.groupowner import get_owner_details
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-
-logger = logging.getLogger("bruh.group.stream")
 
 
 @dataclass
@@ -349,7 +346,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         results = {}
 
-        logger.error(f"ORG ID ADDED {self.organization_id}")
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
