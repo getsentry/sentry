@@ -401,7 +401,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             "attemptedUrl": error.response.url,
                             "status": error.response.status_code,
                         }
-                        if error.response.status_code != 404:
+                        if error.response.status_code == 404:
+                            logger.warning("Codecov request returned 404. Coverage may not exist")
+                        else:
                             logger.exception(
                                 "Failed to get expected data from Codecov. Continuing execution."
                             )
