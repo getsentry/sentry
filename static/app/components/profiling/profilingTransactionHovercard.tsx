@@ -57,10 +57,6 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
     </Link>
   );
 
-  if (!organization.features.includes('profiling-dashboard-redesign')) {
-    return triggerLink;
-  }
-
   return (
     <StyledHovercard
       delay={250}

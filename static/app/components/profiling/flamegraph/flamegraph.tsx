@@ -183,10 +183,6 @@ function Flamegraph(): ReactElement {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('profiling-flamechart-spans');
-  }, [organization.features]);
-
   const hasUIFrames = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
@@ -211,12 +207,12 @@ function Flamegraph(): ReactElement {
   }, [profiledTransaction]);
 
   const spanChart = useMemo(() => {
-    if (!profile || !hasFlameChartSpans) {
+    if (!profile) {
       return null;
     }
 
     return new SpanChart(spanTree, {unit: profile.unit});
-  }, [spanTree, profile, hasFlameChartSpans]);
+  }, [spanTree, profile]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
