@@ -393,12 +393,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         )
                         if codecov_data:
                             result["codecov"] = codecov_data
+                        else:
+                            result["codecov"] = {"status": status.HTTP_204_NO_CONTENT}
+                            raise Exception("Expected data from Codecov but got none.")
                     except requests.exceptions.HTTPError as error:
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,
                             "status": error.response.status_code,
                         }
-                        if error.response.status_code != 404:
+                        if error.response.status_code == 404:
+                            logger.warning("Codecov request returned 404. Coverage may not exist")
+                        else:
                             logger.exception(
                                 "Failed to get expected data from Codecov. Continuing execution."
                             )

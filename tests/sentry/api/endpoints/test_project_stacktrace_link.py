@@ -392,21 +392,22 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         mock_blame.return_value = []
 
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={"file": self.filepath, "lineNo": 26},
-        )
-
-        # Error logging means an error is sent to Sentry
-        assert self._caplog.record_tuples == [
-            (
-                "sentry.api.endpoints.project_stacktrace_link",
-                logging.ERROR,
-                "Failed to get commit from git blame.",
+        with pytest.raises(Exception):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                qs_params={"file": self.filepath, "lineNo": 26},
             )
-        ]
-        assert response.data.get("codecov") is None
+
+            # Error logging means an error is sent to Sentry
+            assert self._caplog.record_tuples == [
+                (
+                    "sentry.api.endpoints.project_stacktrace_link",
+                    logging.ERROR,
+                    "Failed to get commit from git blame.",
+                )
+            ]
+            assert response.data.get("codecov") == {"status": 204}
 
     @patch.object(
         ExampleIntegration,
