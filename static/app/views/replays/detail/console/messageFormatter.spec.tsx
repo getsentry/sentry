@@ -159,7 +159,7 @@ describe('MessageFormatter', () => {
   it('Should print console message correctly when it is an Error object', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[2]} />);
 
-    expect(screen.getByText('{}')).toBeInTheDocument();
+    expect(screen.getByText('Error: this is my error message')).toBeInTheDocument();
   });
 
   it('Should print empty object in case there is no message prop', () => {
@@ -186,16 +186,12 @@ describe('MessageFormatter', () => {
     expect(screen.getByText('This is a literal 100%')).toBeInTheDocument();
   });
 
-  // with library sprintfjs this prints undefined, but it ideally should be %s
-  // eslint-disable-next-line
   it('Should print unbound %s placeholder', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[7]} />);
 
     expect(screen.getByText('Unbound placeholder %s')).toBeInTheDocument();
   });
 
-  // with library sprintfjs this throws and will just print the string
-  // eslint-disable-next-line
   it('Should print placeholder with literal %', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[8]} />);
 

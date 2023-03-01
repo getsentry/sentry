@@ -5,6 +5,8 @@ import {format} from 'util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import isObject from 'lodash/isObject';
+import {objectIsEmpty} from 'sentry/utils';
 
 interface Props {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
@@ -25,7 +27,20 @@ function MessageFormatter({breadcrumb}: Props) {
     return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
   }
 
-  logMessage = format(...breadcrumb.data.arguments);
+  // There is a special case where `console.error()` is called with an Error object.
+  // The SDK uses the Error's `message` property as the breadcrumb message, but we lose the Error type,
+  // resulting in an empty object in the breadcrumb arguments. In this case, we
+  // only want to use `breadcrumb.message`.
+  if (
+    breadcrumb.message &&
+    breadcrumb.data?.arguments.length === 1 &&
+    isObject(breadcrumb.data.arguments[0]) &&
+    objectIsEmpty(breadcrumb.data.arguments[0])
+  ) {
+    logMessage = breadcrumb.message;
+  } else {
+    logMessage = format(...breadcrumb.data.arguments);
+  }
 
   // TODO(replays): Add better support for AnnotatedText (e.g. we use message
   // args from breadcrumb.data.arguments and not breadcrumb.message directly)
