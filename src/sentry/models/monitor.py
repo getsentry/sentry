@@ -124,6 +124,7 @@ class Monitor(Model):
     __include_in_export__ = True
 
     guid = UUIDField(unique=True, auto_add=True)
+    slug = models.SlugField(null=True)
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
@@ -142,7 +143,7 @@ class Monitor(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("type", "next_checkin"),)
+        index_together = (("organization_id", "slug"), ("type", "next_checkin"))
 
     __repr__ = sane_repr("guid", "project_id", "name")
 
