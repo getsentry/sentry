@@ -94,7 +94,7 @@ def get_codecov_data(
             url = NEW_CODECOV_REPORT_URL.format(
                 service=service, owner_username=owner_username, repo_name=repo_name, path=path
             )
-            params = {ref_type: ref}
+            params = None
 
         with configure_scope() as scope:
             timeout = (
