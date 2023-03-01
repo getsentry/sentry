@@ -95,7 +95,8 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     const response = await api.requestPromise(
       `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/`
     );
-    return response.data;
+    const mappedRecord = mapResponseToReplayRecord(response.data);
+    setReplayRecord(mappedRecord);
   }, [api, orgSlug, projectSlug, replayId]);
 
   const fetchAttachments = useCallback(async () => {
@@ -168,12 +169,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
 
   useEffect(() => {
     setState(INITIAL_STATE);
-    fetchReplay()
-      .then(fetchedRecord => {
-        const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
-        setReplayRecord(mappedRecord);
-      })
-      .catch(onError);
+    fetchReplay().catch(onError);
   }, [fetchReplay, onError]);
 
   useEffect(() => {
