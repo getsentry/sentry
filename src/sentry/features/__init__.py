@@ -136,6 +136,7 @@ default_manager.add("organizations:performance-slow-db-issue", OrganizationFeatu
 default_manager.add("organizations:profiling", OrganizationFeature)
 default_manager.add("organizations:profiling-flamegraphs", OrganizationFeature, True)
 default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, True)
+default_manager.add("organizations:profiling-aggregate-flamegraph", OrganizationFeature, True)
 default_manager.add("organizations:profiling-previews", OrganizationFeature, True)
 default_manager.add("organizations:profiling-using-transactions", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)

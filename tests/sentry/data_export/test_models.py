@@ -23,7 +23,10 @@ class ExportedDataTest(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.data_export = ExportedData.objects.create(
-            user=self.user, organization=self.organization, query_type=0, query_info={"env": "test"}
+            user_id=self.user.id,
+            organization=self.organization,
+            query_type=0,
+            query_info={"env": "test"},
         )
         self.file1 = File.objects.create(
             name="tempfile-data-export", type="export.csv", headers={"Content-Type": "text/csv"}

@@ -18,14 +18,13 @@ from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_excep
 from sentry.lang.javascript.processor import (
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    Fetcher,
     JavaScriptStacktraceProcessor,
     UnparseableSourcemap,
     cache,
     discover_sourcemap,
-    fetch_file,
     fetch_release_archive_for_url,
     fetch_release_file,
-    fetch_sourcemap,
     fold_function_name,
     generate_module,
     get_function_for_token,
@@ -59,18 +58,18 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         project = self.create_project()
         r = JavaScriptStacktraceProcessor({}, None, project)
         # defaults
-        assert r.allow_scraping
+        assert r.fetcher.allow_scraping
 
         # disabled for project
         project.update_option("sentry:scrape_javascript", False)
         r = JavaScriptStacktraceProcessor({}, None, project)
-        assert not r.allow_scraping
+        assert not r.fetcher.allow_scraping
 
         # disabled for org
         project.delete_option("sentry:scrape_javascript")
         project.organization.update_option("sentry:scrape_javascript", False)
         r = JavaScriptStacktraceProcessor({}, None, project)
-        assert not r.allow_scraping
+        assert not r.fetcher.allow_scraping
 
     @patch(
         "sentry.lang.javascript.processor.JavaScriptStacktraceProcessor.get_valid_frames",
@@ -90,15 +89,15 @@ class JavaScriptStacktraceProcessorTest(TestCase):
             project=project,
         )
 
-        assert processor.release is None
-        assert processor.dist is None
+        assert processor.fetcher.release is None
+        assert processor.fetcher.dist is None
 
         processor.preprocess_step(None)
 
-        assert processor.release == release
-        assert processor.dist is not None
-        assert processor.dist.name == "foo"
-        assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
+        assert processor.fetcher.release == release
+        assert processor.fetcher.dist is not None
+        assert processor.fetcher.dist.name == "foo"
+        assert processor.fetcher.dist.date_added.timestamp() == processor.data["timestamp"]
 
     @with_feature("organizations:javascript-console-error-tag")
     def test_tag_suspected_console_error(self):
@@ -558,7 +557,7 @@ class FetchFileTest(TestCase):
             responses.GET, "http://example.com", body="foo bar", content_type="application/json"
         )
 
-        result = fetch_file("http://example.com")
+        result = Fetcher().fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -567,7 +566,7 @@ class FetchFileTest(TestCase):
         assert result.headers == {"content-type": "application/json"}
 
         # ensure we use the cached result
-        result2 = fetch_file("http://example.com")
+        result2 = Fetcher().fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -596,7 +595,7 @@ class FetchFileTest(TestCase):
             self.project.update_option("sentry:token_header", header_name_option_value)
 
             url = f"http://example.com/{i}/"
-            result = fetch_file(url, project=self.project)
+            result = Fetcher(project=self.project).fetch_by_url(url)
 
             assert result.url == url
             assert result.body == b"foo bar"
@@ -610,20 +609,20 @@ class FetchFileTest(TestCase):
         responses.add(responses.GET, "http://example.com", body=RequestException())
 
         with pytest.raises(http.BadSource):
-            fetch_file("http://example.com")
+            Fetcher().fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
         # ensure we use the cached domain-wide failure for the second call
         with pytest.raises(http.BadSource):
-            fetch_file("http://example.com/foo/bar")
+            Fetcher().fetch_by_url("http://example.com/foo/bar")
 
         assert len(responses.calls) == 1
 
     @responses.activate
     def test_non_url_without_release(self):
         with pytest.raises(http.BadSource):
-            fetch_file("/example.js")
+            Fetcher().fetch_by_url("/example.js")
 
     @responses.activate
     @patch("sentry.lang.javascript.processor.fetch_release_file")
@@ -636,7 +635,7 @@ class FetchFileTest(TestCase):
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
         release.add_project(self.project)
 
-        result = fetch_file("/example.js", release=release)
+        result = Fetcher(release=release).fetch_by_url("/example.js")
         assert result.url == "/example.js"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
@@ -672,13 +671,13 @@ class FetchFileTest(TestCase):
 
         # Attempt to fetch nonexisting
         with pytest.raises(http.BadSource):
-            fetch_file("does-not-exist.js", release=release)
+            Fetcher(release=release).fetch_by_url("does-not-exist.js")
 
         # Attempt to fetch nonexsting again (to check if cache works)
         with pytest.raises(http.BadSource):
-            result = fetch_file("does-not-exist.js", release=release)
+            result = Fetcher(release=release).fetch_by_url("does-not-exist.js")
 
-        result = fetch_file("/example.js", release=release)
+        result = Fetcher(release=release).fetch_by_url("/example.js")
         assert result.url == "/example.js"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
@@ -686,7 +685,7 @@ class FetchFileTest(TestCase):
         assert result.encoding == "utf-8"
 
         # Make sure cache loading works:
-        result2 = fetch_file("/example.js", release=release)
+        result2 = Fetcher(release=release).fetch_by_url("/example.js")
         assert result2 == result
 
     def _create_archive(self, release, url):
@@ -844,7 +843,7 @@ class FetchFileTest(TestCase):
             content_type="application/json; charset=utf-8",
         )
 
-        result = fetch_file("http://example.com")
+        result = Fetcher().fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -854,7 +853,7 @@ class FetchFileTest(TestCase):
         assert result.encoding == "utf-8"
 
         # ensure we use the cached result
-        result2 = fetch_file("http://example.com")
+        result2 = Fetcher().fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -880,7 +879,7 @@ class FetchFileTest(TestCase):
             )
 
             with pytest.raises(http.CannotFetch) as exc:
-                fetch_file("http://example.com")
+                Fetcher().fetch_by_url("http://example.com")
 
             assert exc.value.data["type"] == EventError.TOO_LARGE_FOR_CACHE
 
@@ -893,7 +892,7 @@ class FetchFileTest(TestCase):
     def test_truncated(self):
         url = truncatechars("http://example.com", 3)
         with pytest.raises(http.CannotFetch) as exc:
-            fetch_file(url)
+            Fetcher().fetch_by_url(url)
 
         assert exc.value.data["type"] == EventError.JS_MISSING_SOURCE
         assert exc.value.data["url"] == url
@@ -1160,7 +1159,10 @@ class FoldFunctionNameTest(unittest.TestCase):
 
 class FetchSourcemapTest(TestCase):
     def test_simple_base64(self):
-        smap_view = fetch_sourcemap(base64_sourcemap)
+        processor = JavaScriptStacktraceProcessor(
+            data={}, stacktrace_infos=None, project=self.create_project()
+        )
+        smap_view = processor._fetch_sourcemap_cache_by_url(base64_sourcemap)
         token = smap_view.lookup(1, 1, 0)
 
         assert token.src == "/test.js"
@@ -1169,7 +1171,10 @@ class FetchSourcemapTest(TestCase):
         assert token.context_line == 'console.log("hello, World!")'
 
     def test_base64_without_padding(self):
-        smap_view = fetch_sourcemap(base64_sourcemap.rstrip("="))
+        processor = JavaScriptStacktraceProcessor(
+            data={}, stacktrace_infos=None, project=self.create_project()
+        )
+        smap_view = processor._fetch_sourcemap_cache_by_url(base64_sourcemap.rstrip("="))
         token = smap_view.lookup(1, 1, 0)
 
         assert token.src == "/test.js"
@@ -1179,7 +1184,10 @@ class FetchSourcemapTest(TestCase):
 
     def test_broken_base64(self):
         with pytest.raises(UnparseableSourcemap):
-            fetch_sourcemap("data:application/json;base64,xxx")
+            processor = JavaScriptStacktraceProcessor(
+                data={}, stacktrace_infos=None, project=self.create_project()
+            )
+            processor._fetch_sourcemap_cache_by_url("data:application/json;base64,xxx")
 
     @responses.activate
     def test_garbage_json(self):
@@ -1188,7 +1196,10 @@ class FetchSourcemapTest(TestCase):
         )
 
         with pytest.raises(UnparseableSourcemap):
-            fetch_sourcemap("http://example.com")
+            processor = JavaScriptStacktraceProcessor(
+                data={}, stacktrace_infos=None, project=self.create_project()
+            )
+            processor._fetch_sourcemap_cache_by_url("http://example.com")
 
 
 class TrimLineTest(unittest.TestCase):
@@ -1564,19 +1575,22 @@ class CacheSourceTest(TestCase):
         processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
 
         # no release on the event, so won't find file in database
-        assert processor.release is None
+        assert processor.fetcher.release is None
 
         # not a real url, so won't find file on the internet
         abs_path = "app:///i/dont/exist.js"
 
         # before caching, no errors
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 0
 
-        processor.cache_source(abs_path)
+        processor.get_or_fetch_sourceview(url=abs_path)
 
         # now we have an error
-        assert len(processor.cache.get_errors(abs_path)) == 1
-        assert processor.cache.get_errors(abs_path)[0] == {"url": abs_path, "type": "js_no_source"}
+        assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 1
+        assert processor.fetch_by_url_errors.get(abs_path, [])[0] == {
+            "url": abs_path,
+            "type": "js_no_source",
+        }
 
     def test_node_modules_file_no_source_no_error(self):
         """
@@ -1586,17 +1600,18 @@ class CacheSourceTest(TestCase):
 
         project = self.create_project()
         processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
+        # We need to initialize the fetcher so that it can capture the necessary context to execute file fetching.
 
         # no release on the event, so won't find file in database
-        assert processor.release is None
+        assert processor.fetcher.release is None
 
         # not a real url, so won't find file on the internet
         abs_path = "app:///../node_modules/i/dont/exist.js"
 
-        processor.cache_source(abs_path)
+        processor.get_or_fetch_sourceview(url=abs_path)
 
         # no errors, even though the file can't have been found
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 0
 
     def test_node_modules_file_with_source_is_used(self):
         """
@@ -1616,13 +1631,14 @@ class CacheSourceTest(TestCase):
         # in real life the preprocess step will pull release out of the data
         # dictionary passed to the JavaScriptStacktraceProcessor constructor,
         # but since this is just a unit test, we have to set it manually
-        processor.release = release
+        processor.fetcher.bind_release(release=release)
+        # We need to initialize the fetcher so that it can capture the necessary context to execute file fetching.
 
-        processor.cache_source(abs_path)
-
-        # file is cached, no errors are generated
-        assert processor.cache.get(abs_path)
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        # We found the source view.
+        assert processor.get_or_fetch_sourceview(url=abs_path)
+        # Source view exists in cache.
+        assert processor.fetch_by_url_sourceviews.get(abs_path)
+        assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 0
 
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
     def test_node_modules_file_with_source_but_no_map_records_error(self, mock_discover_sourcemap):
@@ -1646,13 +1662,18 @@ class CacheSourceTest(TestCase):
         # in real life the preprocess step will pull release out of the data
         # dictionary passed to the JavaScriptStacktraceProcessor constructor,
         # but since this is just a unit test, we have to set it manually
-        processor.release = release
+        processor.fetcher.bind_release(release=release)
+        # We need to initialize the fetcher so that it can capture the necessary context to execute file fetching.
 
         # before caching, no errors
-        assert len(processor.cache.get_errors(abs_path)) == 0
+        assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 0
 
-        processor.cache_source(abs_path)
+        processor.get_or_fetch_sourceview(url=abs_path)
+        processor.get_or_fetch_sourcemap_cache(url=abs_path)
 
         # now we have an error
-        assert len(processor.cache.get_errors(abs_path)) == 1
-        assert processor.cache.get_errors(abs_path)[0] == {"url": map_url, "type": "js_no_source"}
+        assert len(processor.fetch_by_url_errors.get(abs_path, [])) == 1
+        assert processor.fetch_by_url_errors.get(abs_path, [])[0] == {
+            "url": map_url,
+            "type": "js_no_source",
+        }
