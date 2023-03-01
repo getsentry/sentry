@@ -949,22 +949,22 @@ class FetchFileByDebugIdTest(TestCase):
             "bundle.zip",
             {
                 "index.js.map": {
-                    "url": "/index.js.map",
+                    "url": "~/index.js.map",
                     "type": "source_map",
                     "content": b"foo",
                     "headers": {
-                        "content-type": "application/json",
+                        "content-type": "/application/json",
                         "debug-id": debug_id,
                     },
                 },
                 "index.js": {
-                    "url": "/index.js",
+                    "url": "~/index.js",
                     "type": "minified_source",
                     "content": b"bar",
                     "headers": {
                         "content-type": "application/json",
                         "debug-id": debug_id,
-                        "sourcemap": "index.js.map",
+                        "sourcemap": "~/index.js.map",
                     },
                 },
             },

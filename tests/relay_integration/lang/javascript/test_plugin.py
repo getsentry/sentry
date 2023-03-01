@@ -3,11 +3,19 @@ import zipfile
 from base64 import b64encode
 from io import BytesIO
 from unittest.mock import patch
+from uuid import uuid4
 
 import responses
 from django.utils.encoding import force_bytes
 
-from sentry.models import File, Release, ReleaseFile
+from sentry.models import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    File,
+    Release,
+    ReleaseFile,
+    SourceFileType,
+)
 from sentry.models.releasefile import update_artifact_index
 from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -547,6 +555,150 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert raw_frame_list[1] == frame_list[1]
 
     @responses.activate
+    def test_expansion_with_debug_id(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("file.min.js", load_fixture("file.min.js"))
+            zip_file.writestr("file1.js", load_fixture("file1.js"))
+            zip_file.writestr("file2.js", load_fixture("file2.js"))
+            zip_file.writestr("empty.js", load_fixture("empty.js"))
+            zip_file.writestr("file.sourcemap.js", load_fixture("file.sourcemap.js"))
+
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                        "files": {
+                            "file.min.js": {
+                                "url": "~/file.min.js",
+                                "type": "minified_source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                    "sourcemap": "~/file.sourcemap.js",
+                                },
+                            },
+                            "file1.js": {
+                                "url": "~/file1.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "file2.js": {
+                                "url": "~/file2.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "empty.js": {
+                                "url": "~/empty.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "file.sourcemap.js": {
+                                "url": "~/file.sourcemap.js",
+                                "type": "source_map",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                },
+                            },
+                        }
+                    }
+                ),
+            )
+        compressed.seek(0)
+
+        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file.putfile(compressed)
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "debug_id": debug_id,
+                        "code_file": "http://example.com/file.min.js",
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}", ""]
+
+        frame = frame_list[1]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
+
+    @responses.activate
     def test_sourcemap_embedded_source_expansion(self):
         responses.add(
             responses.GET,
@@ -776,7 +928,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert raw_frame.lineno == 2
 
     @responses.activate
-    def test_expansion_via_release_artifacts(self):
+    def test_expansion_via_debug(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
