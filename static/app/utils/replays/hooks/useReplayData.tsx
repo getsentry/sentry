@@ -52,11 +52,10 @@ const INITIAL_STATE: State = Object.freeze({
   fetchingReplay: true,
 });
 
-function responsesToAttachments(responses: Array<unknown>) {
-  // Each response returns an array of segments
+function responseToAttachments(segment: unknown[]) {
   // Each segment includes an array of attachments
   // Therefore we flatten 2 levels deep
-  return responses.flat(2);
+  return segment.flat(1);
 }
 
 /**
@@ -113,7 +112,6 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       return;
     }
 
-    const baseUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord.id}/recording-segments/`;
     const perPage = 100;
 
     const pages = Math.ceil(replayRecord.count_segments / 100);
@@ -124,10 +122,17 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     await Promise.allSettled(
       cursors.map(cursor => {
         const promise = api.requestPromise(
-          `${baseUrl}?download&per_page=${perPage}&cursor=${cursor}`
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord.id}/recording-segments/`,
+          {
+            query: {
+              download: true,
+              per_page: perPage,
+              cursor,
+            },
+          }
         );
         promise.then(response => {
-          setAttachments(prev => (prev ?? []).concat(responsesToAttachments([response])));
+          setAttachments(prev => (prev ?? []).concat(responseToAttachments(response)));
         });
         return promise;
       })
@@ -179,9 +184,14 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     setState(prev => ({...prev, fetchError: error}));
   }, []);
 
+  const loadData = useCallback(
+    () => fetchReplay().catch(onError),
+    [fetchReplay, onError]
+  );
+
   useEffect(() => {
-    fetchReplay().catch(onError);
-  }, [fetchReplay, onError]);
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     if (state.fetchError) {
@@ -208,7 +218,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   return {
     fetchError: state.fetchError,
     fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
-    onRetry: () => {},
+    onRetry: loadData,
     replay,
     replayRecord,
   };
