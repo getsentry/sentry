@@ -211,8 +211,13 @@ class AllTeamsRow extends Component<Props, State> {
     const idpProvisioned = team.flags['idp:provisioned'];
     const teamOrgRole = team.orgRole
       ? team.orgRole.charAt(0).toUpperCase() + team.orgRole.slice(1) + ' Team'
-      : ' ';
-    const teamOrgRoleName = teamOrgRole && this.getTeamRoleName() ? teamOrgRole : null;
+      : null;
+    const roleDisplay = () => {
+      if (teamOrgRole === null && this.getTeamRoleName() === null) {
+        return 'none';
+      }
+      return 'block';
+    };
     const isDisabled = idpProvisioned || (team.orgRole !== null && !hasOrgAdminAccess);
 
     return (
@@ -226,8 +231,8 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <div>{teamOrgRoleName}</div>
-        <div>{this.getTeamRoleName()}</div>
+        <div style={{display: roleDisplay()}}>{teamOrgRole}</div>
+        <div style={{display: roleDisplay()}}>{this.getTeamRoleName()}</div>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>
@@ -303,15 +308,11 @@ const TeamPanelItem = styled(PanelItem)`
     margin-left: auto;
   }
 
-  > div:empty {
-    display: none;
-  }
-
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(150px, 3fr) minmax(90px, 1fr) minmax(90px, 1fr) min-content;
     grid-template-rows: auto;
     > div:empty {
-      display: block;
+      display: block !important;
     }
   }
 `;
