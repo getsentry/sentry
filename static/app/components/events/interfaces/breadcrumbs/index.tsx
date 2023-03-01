@@ -307,9 +307,9 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
       {showReplay ? (
         <Fragment>
           <EventReplay
+            organization={organization}
             replayId={replayId}
             projectSlug={projectSlug}
-            orgSlug={organization.slug}
             event={event}
           />
           {actions}

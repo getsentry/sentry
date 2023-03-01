@@ -99,6 +99,7 @@ function EventsContent(props: Props) {
 
   if (
     organization.features.includes('session-replay-ui') &&
+    project &&
     projectSupportsReplay(project)
   ) {
     transactionsListTitles.push(t('replay'));
