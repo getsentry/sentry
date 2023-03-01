@@ -3,6 +3,7 @@ from unittest import mock
 from unittest.mock import patch
 from uuid import UUID
 
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlquote
 from freezegun import freeze_time
@@ -27,6 +28,27 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
     def setUp(self):
         super().setUp()
+
+    def test_checkin_using_slug(self):
+        self.login_as(self.user)
+        monitor = self._create_monitor(slug="my-monitor")
+
+        path = reverse(self.endpoint_with_org, args=[self.organization.slug, monitor.slug])
+        resp = self.client.post(path, {"status": "ok"})
+
+        assert resp.status_code == 201, resp.content
+
+    def test_checkin_slug_orgless(self):
+        self.login_as(self.user)
+        monitor = self._create_monitor(slug="my-monitor")
+
+        path = reverse(self.endpoint, args=[monitor.slug])
+        resp = self.client.post(path, {"status": "ok"})
+
+        # Slug based check-ins only work when using the organization routes.
+        # This is a 400 unfortunately since we cannot differentiate between a
+        # bad UUID or a missing slug since they are sharing parameters
+        assert resp.status_code == 400, resp.content
 
     def test_headers_on_creation(self):
         self.login_as(self.user)
@@ -216,7 +238,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
                 HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
             )
 
-            assert resp.status_code == 400, resp.content
+            assert resp.status_code == 404, resp.content
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
@@ -225,7 +247,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
         resp = self.client.post(path)
 
-        assert resp.status_code == 400
+        assert resp.status_code == 404
 
     def test_rate_limit(self):
         self.login_as(self.user)
