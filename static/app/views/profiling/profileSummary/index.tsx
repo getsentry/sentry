@@ -88,7 +88,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const profilesCountQuery = useProfileEvents<'count()'>({
+  const profilesAggregateQuery = useProfileEvents<'count()'>({
     fields: ['count()'],
     sort: {key: 'count()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table', // TODO
@@ -97,12 +97,12 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   });
 
   const profilesCount = useMemo(() => {
-    if (profilesCountQuery.status !== 'success') {
+    if (profilesAggregateQuery.status !== 'success') {
       return null;
     }
 
-    return profilesCountQuery.data[0].data[0]['count()'] as number;
-  }, [profilesCountQuery]);
+    return (profilesAggregateQuery.data?.[0]?.data?.[0]?.['count()'] as number) || null;
+  }, [profilesAggregateQuery]);
 
   const filtersQuery = useMemo(() => {
     // To avoid querying for the filters each time the query changes,
