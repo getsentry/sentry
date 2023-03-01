@@ -13,6 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models import OrganizationMember
 from sentry.utils.email import MessageBuilder
+from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -79,9 +80,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "from_org": project.organization.name,
             "project_name": project.slug,
             "request_time": timezone.now(),
-            "url": organization.absolute_url(
-                "/accept-transfer/", query=urlencode({"data": url_data})
-            ),
+            "url": absolute_uri(f"/accept-transfer/?{urlencode({'data': url_data})}"),
             "requester": request.user,
         }
         MessageBuilder(

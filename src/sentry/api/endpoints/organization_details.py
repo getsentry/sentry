@@ -31,7 +31,6 @@ from sentry.lang.native.utils import (
     convert_crashreport_count,
 )
 from sentry.models import (
-    Authenticator,
     AuthProvider,
     Organization,
     OrganizationAvatar,
@@ -210,7 +209,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def validate_require2FA(self, value):
         user = self.context["user"]
-        has_2fa = Authenticator.objects.user_has_2fa(user)
+        has_2fa = user.has_2fa()
         if value and not has_2fa:
             raise serializers.ValidationError(ERR_NO_2FA)
 
@@ -599,6 +598,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     transaction_id=schedule.guid,
                 )
                 organization.send_delete_confirmation(entry, ONE_DAY)
+                Organization.objects.uncache_object(organization.id)
         context = serialize(
             organization,
             request.user,

@@ -96,8 +96,7 @@ def _create_issue_kwargs(
         "message": event.search_message,
         # TODO: Not sure what to put here
         # "logger": job["logger_name"],
-        # TODO: Level override from occurrence?
-        "level": LOG_LEVELS_MAP.get(event.data["level"]),
+        "level": LOG_LEVELS_MAP.get(occurrence.level),
         "culprit": occurrence.subtitle,
         "last_seen": event.datetime,
         "first_seen": event.datetime,

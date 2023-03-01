@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud import ApiPaginationArgs, ApiPaginationResult
+from sentry.services.hybrid_cloud import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
     RpcIntegration,
@@ -28,8 +28,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         *,
         provider_keys: List[str],
         organization_id: int,
-        args: ApiPaginationArgs,
-    ) -> ApiPaginationResult:
+        args: RpcPaginationArgs,
+    ) -> RpcPaginationResult:
         return args.do_hybrid_cloud_pagination(
             description="page_integration_ids",
             paginator_cls=OffsetPaginator,
@@ -46,8 +46,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int,
         statuses: List[int],
         provider_key: str | None = None,
-        args: ApiPaginationArgs,
-    ) -> ApiPaginationResult:
+        args: RpcPaginationArgs,
+    ) -> RpcPaginationResult:
         queryset = OrganizationIntegration.objects.filter(
             organization_id=organization_id,
             status__in=statuses,

@@ -383,14 +383,14 @@ function RuleListRow({
           </AssigneeWrapper>
         )}
       </FlexCenter>
-      <ActionsRow>
+      <ActionsColumn>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
             <DropdownMenu
               items={actions}
               position="bottom-end"
               triggerProps={{
-                'aria-label': t('Show more'),
+                'aria-label': t('Actions'),
                 size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
@@ -399,7 +399,7 @@ function RuleListRow({
             />
           )}
         </Access>
-      </ActionsRow>
+      </ActionsColumn>
     </ErrorBoundary>
   );
 }
@@ -453,7 +453,7 @@ const TriggerText = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const ActionsRow = styled(FlexCenter)`
+const ActionsColumn = styled(FlexCenter)`
   justify-content: center;
   padding: ${space(1)};
 `;
