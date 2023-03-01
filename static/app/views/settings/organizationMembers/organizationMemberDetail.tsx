@@ -274,12 +274,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const {access, features, orgRoleList} = organization;
 
     // determine the team roles using the member's org role and those from teams
-    const currentTopOrgRole = member.allOrgRoles ? member.allOrgRoles[0] : null;
-    const orgRoleIndex = orgRoleList.findIndex(r => r.id === orgRole) ?? -1;
-    const topOrgRole =
-      currentTopOrgRole && orgRoleList.indexOf(currentTopOrgRole) < orgRoleIndex
-        ? currentTopOrgRole.id
-        : orgRole;
+    const topOrgRole = member.allOrgRoles ? member.allOrgRoles[0].id : orgRole;
 
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
     const hasTeamRoles = features.includes('team-roles');
