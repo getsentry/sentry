@@ -1,5 +1,7 @@
 import logging
+
 from typing import Optional, Sequence, Tuple
+
 
 from sentry import features, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
@@ -14,6 +16,8 @@ from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_c
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
+from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId, get_redis_client_for_ds
 from sentry.models import Organization, Project
 from sentry.tasks.base import instrumented_task
@@ -23,6 +27,7 @@ from sentry.utils import metrics
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
 CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
+
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +111,7 @@ def adjust_sample_rates(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )
         pipeline.execute()
+
 
 
 @instrumented_task(
