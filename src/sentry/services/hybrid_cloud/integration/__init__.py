@@ -1,11 +1,15 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in this module, as we want to reflect on type annotations and avoid forward
+# references where hybrid cloud service classes and data models are defined.
 
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from sentry.constants import ObjectStatus
+from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     RpcPaginationArgs,
@@ -14,6 +18,13 @@ from sentry.services.hybrid_cloud import (
     stubbed,
 )
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.integrations.base import (
+        IntegrationFeatures,
+        IntegrationInstallation,
+        IntegrationProvider,
+    )
 
 
 @dataclass(frozen=True, eq=True)
@@ -28,7 +39,7 @@ class RpcIntegration:
     def __hash__(self) -> int:
         return hash(self.id)
 
-    def get_provider(self) -> IntegrationProvider:
+    def get_provider(self) -> "IntegrationProvider":
         from sentry import integrations
 
         return integrations.get(self.provider)  # type: ignore
@@ -48,7 +59,7 @@ class RpcOrganizationIntegration:
     integration_id: int
     config: Dict[str, Any]
     status: int  # As ObjectStatus
-    grace_period_end: datetime | None
+    grace_period_end: Optional[datetime]
 
     def __hash__(self) -> int:
         return hash(self.id)
@@ -100,7 +111,7 @@ class IntegrationService(InterfaceWithLifecycle):
         *,
         organization_id: int,
         statuses: List[int],
-        provider_key: str | None = None,
+        provider_key: Optional[str] = None,
         args: RpcPaginationArgs,
     ) -> RpcPaginationResult:
         pass
@@ -109,12 +120,12 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_integrations(
         self,
         *,
-        integration_ids: Iterable[int] | None = None,
-        organization_id: int | None = None,
-        status: int | None = None,
-        providers: List[str] | None = None,
-        org_integration_status: int | None = None,
-        limit: int | None = None,
+        integration_ids: Optional[Iterable[int]] = None,
+        organization_id: Optional[int] = None,
+        status: Optional[int] = None,
+        providers: Optional[List[str]] = None,
+        org_integration_status: Optional[int] = None,
+        limit: Optional[int] = None,
     ) -> List[RpcIntegration]:
         """
         Returns all APIIntegrations matching the provided kwargs.
@@ -125,10 +136,10 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_integration(
         self,
         *,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> RpcIntegration | None:
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
         """
@@ -138,13 +149,13 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_organization_integrations(
         self,
         *,
-        org_integration_ids: List[int] | None = None,
-        integration_id: int | None = None,
-        organization_id: int | None = None,
-        status: int | None = None,
-        providers: List[str] | None = None,
-        has_grace_period: bool | None = None,
-        limit: int | None = None,
+        org_integration_ids: Optional[List[int]] = None,
+        integration_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+        status: Optional[int] = None,
+        providers: Optional[List[str]] = None,
+        has_grace_period: Optional[bool] = None,
+        limit: Optional[int] = None,
     ) -> List[RpcOrganizationIntegration]:
         """
         Returns all APIOrganizationIntegrations from the matching kwargs.
@@ -155,7 +166,7 @@ class IntegrationService(InterfaceWithLifecycle):
 
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
-    ) -> RpcOrganizationIntegration | None:
+    ) -> Optional[RpcOrganizationIntegration]:
         """
         Returns an RpcOrganizationIntegration from the integration and organization ids.
         """
@@ -169,10 +180,10 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> Tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Tuple[Optional[RpcIntegration], Optional[RpcOrganizationIntegration]]:
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
@@ -184,9 +195,9 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         integration_ids: List[int],
-        name: str | None = None,
-        metadata: Dict[str, Any] | None = None,
-        status: int | None = None,
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
     ) -> List[RpcIntegration]:
         """
         Returns a list of APIIntegrations after updating the fields provided.
@@ -199,10 +210,10 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         integration_id: int,
-        name: str | None = None,
-        metadata: Dict[str, Any] | None = None,
-        status: int | None = None,
-    ) -> RpcIntegration | None:
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+    ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
@@ -214,10 +225,10 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         org_integration_ids: List[int],
-        config: Dict[str, Any] | None = None,
-        status: int | None = None,
-        grace_period_end: datetime | None = None,
-        set_grace_period_end_null: bool | None = None,
+        config: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+        grace_period_end: Optional[datetime] = None,
+        set_grace_period_end_null: Optional[bool] = None,
     ) -> List[RpcOrganizationIntegration]:
         """
         Returns a list of APIOrganizationIntegrations after updating the fields provided.
@@ -230,11 +241,11 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         org_integration_id: int,
-        config: Dict[str, Any] | None = None,
-        status: int | None = None,
-        grace_period_end: datetime | None = None,
-        set_grace_period_end_null: bool | None = None,
-    ) -> RpcOrganizationIntegration | None:
+        config: Optional[Dict[str, Any]] = None,
+        status: Optional[int] = None,
+        grace_period_end: Optional[datetime] = None,
+        set_grace_period_end_null: Optional[bool] = None,
+    ) -> Optional[RpcOrganizationIntegration]:
         """
         Returns an RpcOrganizationIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
@@ -246,9 +257,9 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_installation(
         self,
         *,
-        integration: RpcIntegration | Integration,
+        integration: Union[RpcIntegration, Integration],
         organization_id: int,
-    ) -> IntegrationInstallation:
+    ) -> "IntegrationInstallation":
         """
         Returns the IntegrationInstallation class for a given integration.
         Intended to replace calls of `integration.get_installation`.
@@ -257,13 +268,13 @@ class IntegrationService(InterfaceWithLifecycle):
         from sentry import integrations
 
         provider = integrations.get(integration.provider)
-        installation: IntegrationInstallation = provider.get_installation(
+        installation: "IntegrationInstallation" = provider.get_installation(
             model=integration,
             organization_id=organization_id,
         )
         return installation
 
-    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool:
+    def has_feature(self, *, provider: str, feature: "IntegrationFeatures") -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
         Intended to replace calls of `integration.has_feature`.
@@ -271,7 +282,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         from sentry import integrations
 
-        int_provider: IntegrationProvider = integrations.get(provider)
+        int_provider: "IntegrationProvider" = integrations.get(provider)
         return feature in int_provider.features
 
 
@@ -288,10 +299,3 @@ integration_service: IntegrationService = silo_mode_delegation(
         SiloMode.CONTROL: impl_with_db,
     }
 )
-
-from sentry.integrations.base import (
-    IntegrationFeatures,
-    IntegrationInstallation,
-    IntegrationProvider,
-)
-from sentry.models.integrations import Integration, OrganizationIntegration

@@ -1,3 +1,8 @@
+# Please do not use
+#     from __future__ import annotations
+# in this module, as we want to reflect on type annotations and avoid forward
+# references where hybrid cloud service classes and data models are defined.
+
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
