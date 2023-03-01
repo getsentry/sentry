@@ -387,6 +387,7 @@ class BaseTSDB(Service):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         range_set = self.get_range(
             model,
@@ -397,6 +398,7 @@ class BaseTSDB(Service):
             environment_ids=[environment_id] if environment_id is not None else None,
             use_cache=use_cache,
             jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
