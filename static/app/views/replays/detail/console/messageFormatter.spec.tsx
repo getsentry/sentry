@@ -20,7 +20,7 @@ const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [
     level: BreadcrumbLevelType.LOG,
     message: 'This is a %s test',
     timestamp: '2022-06-22T20:00:39.959Z',
-    id: 1,
+    id: 0,
     color: 'purple300',
     description: 'Debug',
   },
@@ -34,7 +34,7 @@ const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [
     level: BreadcrumbLevelType.LOG,
     message: 'test 1 false [object Object]',
     timestamp: '2022-06-22T16:49:11.198Z',
-    id: 2,
+    id: 1,
     color: 'purple300',
     description: 'Debug',
   },
@@ -99,6 +99,48 @@ const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [
     color: 'purple300',
     description: 'Debug',
   },
+  {
+    type: BreadcrumbType.DEBUG,
+    category: 'console',
+    data: {
+      arguments: ['This is a literal 100%'],
+      logger: 'console',
+    },
+    level: BreadcrumbLevelType.LOG,
+    message: 'This is a literal 100%',
+    timestamp: '2022-06-22T20:00:39.959Z',
+    id: 6,
+    color: 'purple300',
+    description: 'Debug',
+  },
+  {
+    type: BreadcrumbType.DEBUG,
+    category: 'console',
+    data: {
+      arguments: ['Unbound placeholder %s'],
+      logger: 'console',
+    },
+    level: BreadcrumbLevelType.LOG,
+    message: 'Unbound placeholder %s',
+    timestamp: '2022-06-22T20:00:39.959Z',
+    id: 7,
+    color: 'purple300',
+    description: 'Debug',
+  },
+  {
+    type: BreadcrumbType.DEBUG,
+    category: 'console',
+    data: {
+      arguments: ['Placeholder %s with 100%', 'myPlaceholder'],
+      logger: 'console',
+    },
+    level: BreadcrumbLevelType.LOG,
+    message: 'Placeholder %s with 100%',
+    timestamp: '2022-06-22T20:00:39.959Z',
+    id: 8,
+    color: 'purple300',
+    description: 'Debug',
+  },
 ];
 
 describe('MessageFormatter', () => {
@@ -129,12 +171,30 @@ describe('MessageFormatter', () => {
   it('Should ignore the "%c" placheholder and print the console message correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
 
-    expect(screen.getByText('prev state {"cart":[]}')).toBeInTheDocument();
+    expect(screen.getByText('prev state { cart: [] }')).toBeInTheDocument();
   });
 
   it('Should print arrays correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[5]} />);
 
-    expect(screen.getByText('test ["foo","bar"]')).toBeInTheDocument();
+    expect(screen.getByText("test [ 'foo', 'bar' ]")).toBeInTheDocument();
+  });
+
+  it('Should print literal %', () => {
+    render(<MessageFormatter breadcrumb={breadcrumbs[6]} />);
+
+    expect(screen.getByText('This is a literal 100%')).toBeInTheDocument();
+  });
+
+  it('Should print unbound %s placeholder', () => {
+    render(<MessageFormatter breadcrumb={breadcrumbs[7]} />);
+
+    expect(screen.getByText('Unbound placeholder %s')).toBeInTheDocument();
+  });
+
+  it('Should print placeholder with literal %', () => {
+    render(<MessageFormatter breadcrumb={breadcrumbs[8]} />);
+
+    expect(screen.getByText('Placeholder myPlaceholder with 100%')).toBeInTheDocument();
   });
 });
