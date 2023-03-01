@@ -47,7 +47,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
 
         UserOption.objects.create(
             user=self.user,
-            organization=None,
+            organization_id=None,
             key="reports:disabled-organizations",
             value=[self.organization.id],
         )

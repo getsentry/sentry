@@ -388,7 +388,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.create_member(user=user, organization=self.organization, teams=[self.team])
 
         UserOption.objects.create(
-            user=user, key="mail:email", value="foo@bar.dodo", project=self.project
+            user=user, key="mail:email", value="foo@bar.dodo", project_id=self.project.id
         )
         # disable slack
         NotificationSetting.objects.update_settings(
