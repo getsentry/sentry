@@ -16,7 +16,6 @@ from django.db.utils import IntegrityError
 
 from sentry import options
 from sentry.models.file import File, get_storage
-from sentry.replays.cache import replay_cache
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
 
@@ -102,13 +101,6 @@ class StorageBlob(Blob):
 
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
-        cache_key = make_filename(segment)
-
-        # Return eagerly from cache if the value exists.
-        cache_value = replay_cache.get(cache_key, raw=True)
-        if cache_value:
-            return cache_value
-
         try:
             storage = get_storage(self._make_storage_options())
             blob = storage.open(self.make_key(segment))
@@ -118,8 +110,6 @@ class StorageBlob(Blob):
             # Return a default value if the storage does not exist.
             return b"[]"
         else:
-            # Set the returned value in cache.
-            replay_cache.set(cache_key, result, timeout=3600, raw=True)
             return result
 
     @metrics.wraps("replays.lib.storage.StorageBlob.set")
