@@ -7,7 +7,14 @@ import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
-import {SectionGroup, SectionSeparator, SectionTitle, SectionWrap} from '../styles';
+import {
+  SectionGroup,
+  SectionHeader,
+  SectionSeparator,
+  SectionTitle,
+  SectionWrap,
+} from '../styles';
+import {SectionToggle} from '../utils';
 
 import {GridListOption} from './option';
 
@@ -32,6 +39,10 @@ export function GridListSection({node, listState, size}: GridListSectionProps) {
     });
   }, [node.childNodes, filterOption]);
 
+  const showToggleAllButton =
+    listState.selectionManager.selectionMode === 'multiple' &&
+    node.value.showToggleAllButton;
+
   return (
     <Fragment>
       <SectionSeparator {...separatorProps} />
@@ -41,10 +52,15 @@ export function GridListSection({node, listState, size}: GridListSectionProps) {
           ? {'aria-label': node['aria-label']}
           : {'aria-labelledby': titleId})}
       >
-        {node.rendered && (
-          <SectionTitle id={titleId} aria-hidden>
-            {node.rendered}
-          </SectionTitle>
+        {(node.rendered || showToggleAllButton) && (
+          <SectionHeader>
+            {node.rendered && (
+              <SectionTitle id={titleId} aria-hidden>
+                {node.rendered}
+              </SectionTitle>
+            )}
+            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
+          </SectionHeader>
         )}
         <SectionGroup role="presentation">
           {filteredOptions.map(child => (
