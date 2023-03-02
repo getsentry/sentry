@@ -11,10 +11,6 @@ from sentry.testutils import TestCase
 
 
 class JavaScriptSdkLoaderTest(TestCase):
-    # def setUp(self):
-    # self.project = self.create_project()
-    # self.project_key = self.create_project_key(project=self.project)
-
     @pytest.fixture(autouse=True)
     def set_settings(self):
         settings.JS_SDK_LOADER_SDK_VERSION = "0.5.2"
