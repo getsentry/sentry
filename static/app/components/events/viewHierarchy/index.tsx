@@ -14,6 +14,7 @@ import {
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -70,6 +71,7 @@ type ViewHierarchyProps = {
 };
 
 function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
+  const organization = useOrganization();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -116,6 +118,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
           trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_tree', {
             organization: project.organization,
             platform: project.platform,
+            user_org_role: organization.orgRole,
           });
         }}
       >
@@ -157,11 +160,12 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       setSelectedNode(node);
       handleScrollTo(item => item === node);
       trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_wireframe', {
-        organization: project.organization,
+        organization,
         platform: project.platform,
+        user_org_role: organization.orgRole,
       });
     },
-    [handleScrollTo, project.organization, project.platform]
+    [handleScrollTo, organization, project.platform]
   );
 
   const showWireframe = project?.platform !== 'unity';
@@ -179,7 +183,6 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   return (
     <Fragment>
       <RenderingSystem
-        organization={project.organization}
         platform={project?.platform}
         system={viewHierarchy.rendering_system}
       />

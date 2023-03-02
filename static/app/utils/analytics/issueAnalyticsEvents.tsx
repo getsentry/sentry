@@ -31,9 +31,18 @@ export type IssueEventParameters = {
   'issue.shared_publicly': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
-  'issue_details.view_hierarchy.hover_rendering_system': {platform?: string};
-  'issue_details.view_hierarchy.select_from_tree': {platform?: string};
-  'issue_details.view_hierarchy.select_from_wireframe': {platform?: string};
+  'issue_details.view_hierarchy.hover_rendering_system': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_details.view_hierarchy.select_from_tree': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_details.view_hierarchy.select_from_wireframe': {
+    platform?: string;
+    user_org_role?: string;
+  };
   'issue_error_banner.proguard_misconfigured.clicked': {
     group?: string;
     platform?: string;

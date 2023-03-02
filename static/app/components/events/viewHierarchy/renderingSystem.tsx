@@ -4,16 +4,16 @@ import {PlatformIcon} from 'platformicons';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type RenderingSystemProps = {
-  organization: Organization;
   platform?: string;
   system?: string;
 };
 
-function RenderingSystem({platform, system, organization}: RenderingSystemProps) {
+function RenderingSystem({platform, system}: RenderingSystemProps) {
+  const organization = useOrganization();
   return (
     <Container>
       <Tooltip title={t('Rendering System: %s', system ?? t('Unknown'))}>
@@ -24,6 +24,7 @@ function RenderingSystem({platform, system, organization}: RenderingSystemProps)
               {
                 organization,
                 platform,
+                user_org_role: organization.orgRole,
               }
             );
           }}
