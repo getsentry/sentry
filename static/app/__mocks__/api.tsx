@@ -9,8 +9,6 @@ export class Request {}
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-type AsyncDelay = null | number;
-
 const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
   if (!fn) {
     return;
@@ -43,7 +41,23 @@ type ResponseType = ApiNamespace.ResponseMeta & {
   url: string;
 };
 
-type MockResponse = [resp: ResponseType, mock: jest.Mock];
+type AsyncDelay = undefined | number;
+
+type AddMockResponseOptions = {
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   */
+  asyncDelay?: AsyncDelay;
+};
+
+type MockResponse = [
+  resp: ResponseType,
+  mock: jest.Mock,
+  options: AddMockResponseOptions
+];
 
 /**
  * Compare two records. `want` is all the entries we want to have the same value in `check`
@@ -74,12 +88,9 @@ class Client implements ApiNamespace.Client {
   static mockResponses: MockResponse[] = [];
 
   /**
-   * Whether to return mocked api responses directly, or with a setTimeout delay.
-   *
-   * Set to `null` to disable the async delay
-   * Set to a `number` which will be the amount of time (ms) for the delay
+   * Default value, if nothing is passed in to addMockResponse
    */
-  static asyncDelay: AsyncDelay = null;
+  static asyncDelay: AsyncDelay = undefined;
 
   static clearMockResponses() {
     Client.mockResponses = [];
@@ -112,7 +123,10 @@ class Client implements ApiNamespace.Client {
   }
 
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(response: Partial<ResponseType>) {
+  static addMockResponse(
+    response: Partial<ResponseType>,
+    options: AddMockResponseOptions = {}
+  ) {
     const mock = jest.fn();
 
     Client.mockResponses.unshift([
@@ -132,6 +146,10 @@ class Client implements ApiNamespace.Client {
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
       },
       mock,
+      {
+        asyncDelay: Client.asyncDelay,
+        ...options,
+      },
     ]);
 
     return mock;
@@ -167,12 +185,14 @@ class Client implements ApiNamespace.Client {
     func: FunctionCallback<T> | undefined,
     _cleanup: boolean = false
   ) {
+    const asyncDelay = Client.asyncDelay;
+
     return (...args: T) => {
       // @ts-expect-error
       if (RealApi.hasProjectBeenRenamed(...args)) {
         return;
       }
-      respond(Client.asyncDelay, func, ...args);
+      respond(asyncDelay, func, ...args);
     };
   }
 
@@ -200,10 +220,10 @@ class Client implements ApiNamespace.Client {
 
   // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
   request(url: string, options: Readonly<ApiNamespace.RequestOptions> = {}): any {
-    const [response, mock] = Client.findMockResponse(url, options) || [
-      undefined,
-      undefined,
-    ];
+    const [response, mock, mockResponseOptions] = Client.findMockResponse(
+      url,
+      options
+    ) || [undefined, undefined, undefined];
     if (!response || !mock) {
       const methodAndUrl = `${options.method || 'GET'} ${url}`;
       // Endpoints need to be mocked
@@ -261,7 +281,7 @@ class Client implements ApiNamespace.Client {
       } else {
         response.callCount++;
         respond(
-          Client.asyncDelay,
+          mockResponseOptions.asyncDelay,
           options.success,
           body,
           {},
@@ -274,7 +294,7 @@ class Client implements ApiNamespace.Client {
       }
     }
 
-    respond(Client.asyncDelay, options.complete);
+    respond(mockResponseOptions?.asyncDelay, options.complete);
   }
 
   handleRequestError = RealApi.Client.prototype.handleRequestError;
