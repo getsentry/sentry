@@ -2552,8 +2552,6 @@ GEOIP_PATH_MMDB = None
 JS_SDK_LOADER_CDN_URL = ""
 # Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
 JS_SDK_LOADER_SDK_VERSION = ""
-# Version of the Dynamic Loader - Used in header Surrogate-Key sdk/JS_SDK_DYNAMIC_LOADER_SDK_VERSION
-JS_SDK_DYNAMIC_LOADER_SDK_VERSION = ""
 # This should be the url pointing to the JS SDK. It may contain up to two "%s".
 # The first "%s" will be replaced with the SDK version, the second one is used
 # to inject a bundle modifier in the JS SDK CDN loader. e.g:
