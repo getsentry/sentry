@@ -18,19 +18,17 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0370_integrate_monitor_environment'),
+        ("sentry", "0370_integrate_monitor_environment"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='monitor',
-            unique_together={('organization_id', 'slug')},
+            name="monitor",
+            unique_together={("organization_id", "slug")},
         ),
         migrations.AlterIndexTogether(
-            name='monitor',
-            index_together={('type', 'next_checkin')},
+            name="monitor",
+            index_together={("type", "next_checkin")},
         ),
     ]
-
