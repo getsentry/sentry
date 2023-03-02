@@ -162,7 +162,7 @@ function Flamegraph(): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {colorCoding, sorting, view, type, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, sorting, view, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -717,13 +717,6 @@ function Flamegraph(): ReactElement {
     [dispatch]
   );
 
-  const onTypeChange: FlamegraphViewSelectMenuProps['onTypeChange'] = useCallback(
-    newView => {
-      dispatch({type: 'set type', payload: newView});
-    },
-    [dispatch]
-  );
-
   const onImport = useCallback(
     (p: Profiling.ProfileInput) => {
       setProfiles({type: 'resolved', data: p});
@@ -819,12 +812,10 @@ function Flamegraph(): ReactElement {
           onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
-          type={type}
           view={view}
           sorting={sorting}
           onSortingChange={onSortingChange}
           onViewChange={onViewChange}
-          onTypeChange={onTypeChange}
         />
         <FlamegraphSearch
           spans={spans}
@@ -836,7 +827,7 @@ function Flamegraph(): ReactElement {
 
       <FlamegraphLayout
         uiFrames={
-          hasUIFrames && type === 'flamechart' ? (
+          hasUIFrames ? (
             <FlamegraphUIFrames
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
@@ -850,7 +841,7 @@ function Flamegraph(): ReactElement {
         }
         spansTreeDepth={spanChart?.depth}
         spans={
-          spanChart && type === 'flamechart' ? (
+          spanChart ? (
             <FlamegraphSpans
               canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
