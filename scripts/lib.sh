@@ -220,7 +220,7 @@ clean() {
 
 drop-db() {
     echo "--> Dropping existing 'sentry' database"
-    docker exec sentry_postgres dropdb -h 127.0.0.1 -U postgres sentry || true
+    docker exec sentry_postgres dropdb --if-exists -h 127.0.0.1 -U postgres sentry
 }
 
 reset-db() {
