@@ -326,21 +326,16 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               },
               {startSession: true}
             );
-            openModal(
-              deps => (
-                <StacktraceLinkModal
-                  onSubmit={handleSubmit}
-                  filename={filename}
-                  project={project}
-                  organization={organization}
-                  integrations={match.integrations}
-                  {...deps}
-                />
-              ),
-              {
-                backdrop: false,
-              }
-            );
+            openModal(deps => (
+              <StacktraceLinkModal
+                onSubmit={handleSubmit}
+                filename={filename}
+                project={project}
+                organization={organization}
+                integrations={match.integrations}
+                {...deps}
+              />
+            ));
           }}
         >
           {t('Tell us where your source code is')}
