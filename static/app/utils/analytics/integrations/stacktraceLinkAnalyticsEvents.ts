@@ -12,7 +12,6 @@ export enum StacktraceLinkEvents {
   MANUAL_OPTION = 'integrations.stacktrace_manual_option_clicked',
   START_SETUP = 'integrations.stacktrace_start_setup',
   SUBMIT = 'integrations.stacktrace_submit_config',
-  LINK_VIEWED = 'integrations.stacktrace_link_viewed',
   CODECOV_LINK_CLICKED = 'integrations.stacktrace_codecov_link_clicked',
 }
 
@@ -36,7 +35,6 @@ export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string
   [StacktraceLinkEvents.COMPLETE_SETUP]: 'Integrations: Stacktrace Complete Setup',
   [StacktraceLinkEvents.OPEN_DOCS]: 'Integrations: Stacktrace Docs Clicked',
   [StacktraceLinkEvents.OPEN_LINK]: 'Integrations: Stacktrace Link Clicked',
-  [StacktraceLinkEvents.LINK_VIEWED]: 'Integrations: Stacktrace Link Viewed',
   [StacktraceLinkEvents.DISMISS_CTA]: 'Integrations: Stacktrace Link CTA Dismissed',
   [StacktraceLinkEvents.MANUAL_OPTION]: 'Integrations: Stacktrace Manual Option Clicked',
   [StacktraceLinkEvents.START_SETUP]: 'Integrations: Stacktrace Start Setup',
