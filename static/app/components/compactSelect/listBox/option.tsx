@@ -84,6 +84,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       label={label}
       details={details}
       disabled={isDisabled}
+      isSelected={isSelected}
       isFocused={listState.selectionManager.isFocused && isFocused}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
