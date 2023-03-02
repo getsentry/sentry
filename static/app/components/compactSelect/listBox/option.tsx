@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {AriaOptionProps, useOption} from '@react-aria/listbox';
 import {ListState} from '@react-stately/list';
 import {Node} from '@react-types/shared';
@@ -42,10 +42,43 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
     ref
   );
 
-  const checkboxSize = size === 'xs' ? 'xs' : 'sm';
+  const optionPropsMemo = useMemo(
+    () => optionProps,
+    // Only update optionProps when a relevant state (selection/focus/disable) changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isSelected, isFocused, isDisabled]
+  );
+
+  const labelPropsMemo = useMemo(
+    () => ({...labelProps, as: typeof label === 'string' ? 'p' : 'div'}),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [labelProps.id, label]
+  );
+
+  const leadingItemsMemo = useMemo(() => {
+    const checkboxSize = size === 'xs' ? 'xs' : 'sm';
+    return (
+      <Fragment>
+        <CheckWrap multiple={multiple} isSelected={isSelected} aria-hidden="true">
+          {multiple ? (
+            <Checkbox
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} />
+          )}
+        </CheckWrap>
+        {leadingItems}
+      </Fragment>
+    );
+  }, [multiple, isSelected, isDisabled, size, leadingItems]);
+
   return (
     <MenuListItem
-      {...optionProps}
+      {...optionPropsMemo}
       ref={ref}
       size={size}
       label={label}
@@ -53,24 +86,8 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       disabled={isDisabled}
       isFocused={listState.selectionManager.isFocused && isFocused}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
-      labelProps={{...labelProps, as: typeof label === 'string' ? 'p' : 'div'}}
-      leadingItems={
-        <Fragment>
-          <CheckWrap multiple={multiple} isSelected={isSelected} aria-hidden="true">
-            {multiple ? (
-              <Checkbox
-                size={checkboxSize}
-                checked={isSelected}
-                disabled={isDisabled}
-                readOnly
-              />
-            ) : (
-              isSelected && <IconCheckmark size={checkboxSize} />
-            )}
-          </CheckWrap>
-          {leadingItems}
-        </Fragment>
-      }
+      labelProps={labelPropsMemo}
+      leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}
       tooltip={tooltip}
       tooltipOptions={tooltipOptions}
