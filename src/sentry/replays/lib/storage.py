@@ -149,8 +149,12 @@ def make_filename(segment: RecordingSegmentStorageMeta) -> str:
 def make_storage_driver(organization_id: int) -> Union[FilestoreBlob, StorageBlob]:
     """Return a storage driver instance."""
     if organization_id % 100 < options.get("replay.storage.direct-storage-sample-rate"):
-        return StorageBlob()
+        return storage
     elif organization_id in settings.SENTRY_REPLAYS_STORAGE_ALLOWLIST:
-        return StorageBlob()
+        return storage
     else:
-        return FilestoreBlob()
+        return filestore
+
+
+storage = StorageBlob()
+filestore = FilestoreBlob()
