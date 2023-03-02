@@ -240,3 +240,36 @@ class CreateMonitorCheckInTest(MonitorTestCase):
                 assert resp.status_code == 201, resp.content
                 resp = self.client.post(path, {"status": "ok"})
                 assert resp.status_code == 429, resp.content
+
+    def test_statsperiod_constraints(self):
+        self.login_as(self.user)
+
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+
+            path = path_func(monitor.guid)
+
+            checkin = MonitorCheckIn.objects.create(
+                project_id=self.project.id,
+                monitor_id=monitor.id,
+                status=MonitorStatus.OK,
+                date_added=timezone.now() - timedelta(hours=12),
+            )
+
+            end = timezone.now()
+            startOneHourAgo = end - timedelta(hours=1)
+            startOneDayAgo = end - timedelta(days=1)
+
+            resp = self.client.get(path, {"statsPeriod": "1h"})
+            assert resp.json() == []
+            resp = self.client.get(
+                path, {"start": startOneHourAgo.isoformat(), "end": end.isoformat()}
+            )
+            assert resp.json() == []
+
+            resp = self.client.get(path, {"statsPeriod": "1d"})
+            assert resp.json()[0]["id"] == str(checkin.guid)
+            resp = self.client.get(
+                path, {"start": startOneDayAgo.isoformat(), "end": end.isoformat()}
+            )
+            assert resp.json()[0]["id"] == str(checkin.guid)
