@@ -14,7 +14,8 @@ const KEYDOWN_LISTENER_OPTIONS: AddEventListenerOptions & EventListenerOptions =
 
 export function useViewKeyboardNavigation(
   view: CanvasView<any> | null,
-  canvasPoolManager: CanvasPoolManager
+  canvasPoolManager: CanvasPoolManager,
+  pixelInConfigSpace: number
 ) {
   const inertia = useRef<number | null>(null);
 
@@ -37,14 +38,18 @@ export function useViewKeyboardNavigation(
         if (inertia.current === null) {
           inertia.current = 1;
         }
+
         canvasPoolManager.dispatch('transform config view', [
           getCenterScaleMatrixFromConfigPosition(
-            vec2.fromValues(0.99 * inertia.current, 1),
+            vec2.fromValues(
+              1 - (pixelInConfigSpace / view.configView.width) * inertia.current,
+              1
+            ),
             vec2.fromValues(view.configView.centerX, view.configView.y)
           ),
           view,
         ]);
-        inertia.current = Math.max(Math.abs(inertia.current * 0.99), 0.01);
+        inertia.current = inertia.current * 1.2;
       }
 
       if (event.key === 's') {
@@ -69,7 +74,7 @@ export function useViewKeyboardNavigation(
           getTranslationMatrixFromConfigSpace(1 * -inertia.current, 0),
           view,
         ]);
-        inertia.current = inertia.current * 1.18;
+        inertia.current = inertia.current * 1.01;
       }
       if (event.key === 'd') {
         if (inertia.current === null) {
@@ -80,7 +85,7 @@ export function useViewKeyboardNavigation(
           getTranslationMatrixFromConfigSpace(1 * inertia.current, 0),
           view,
         ]);
-        inertia.current = inertia.current * 1.18;
+        inertia.current = inertia.current * 1.01;
       }
     }
 
@@ -95,5 +100,5 @@ export function useViewKeyboardNavigation(
       document.removeEventListener('keyup', onKeyUp, KEYDOWN_LISTENER_OPTIONS);
       document.removeEventListener('keydown', onKeyDown, KEYDOWN_LISTENER_OPTIONS);
     };
-  }, [view, canvasPoolManager]);
+  }, [view, canvasPoolManager, pixelInConfigSpace]);
 }

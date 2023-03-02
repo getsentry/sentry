@@ -677,8 +677,18 @@ function Flamegraph(): ReactElement {
     [flamegraphRenderer]
   );
 
+  const physicalToConfig =
+    flamegraphView && flamegraphCanvas
+      ? mat3.invert(
+          mat3.create(),
+          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        )
+      : mat3.create();
+
+  const configSpacePixel = new Rect(0, 0, 1, 1).transformRect(physicalToConfig);
+
   // Register keyboard navigation
-  useViewKeyboardNavigation(flamegraphView, canvasPoolManager);
+  useViewKeyboardNavigation(flamegraphView, canvasPoolManager, configSpacePixel.width);
 
   // referenceNode is passed down to the flamegraphdrawer and is used to determine
   // the weights of each frame. In other words, in case there is no user selected root, then all
