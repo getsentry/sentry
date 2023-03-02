@@ -11,13 +11,6 @@ import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 const ERRORS_PER_PAGE = 50; // Need to make sure the url is not too large
 
 type State = {
-  attachments: undefined | unknown[];
-
-  /**
-   * List of errors that occurred during replay
-   */
-  errors: undefined | ReplayError[];
-
   /**
    * If any request returned an error then nothing is being returned
    */
@@ -27,12 +20,9 @@ type State = {
    * If a fetch is underway for the requested root reply.
    * This includes fetched all the sub-resources like attachments and `sentry-replay-event`
    */
-  fetching: boolean;
-
-  /**
-   * The root replay event
-   */
-  replayRecord: undefined | ReplayRecord;
+  fetchingAttachments: boolean;
+  fetchingErrors: boolean;
+  fetchingReplay: boolean;
 };
 
 type Options = {
@@ -47,25 +37,25 @@ type Options = {
   replaySlug: string;
 };
 
-interface Result extends Pick<State, 'fetchError' | 'fetching'> {
+interface Result {
+  fetchError: undefined | RequestError;
+  fetching: boolean;
   onRetry: () => void;
   replay: ReplayReader | null;
   replayRecord: ReplayRecord | undefined;
 }
 
 const INITIAL_STATE: State = Object.freeze({
-  attachments: undefined,
-  errors: undefined,
   fetchError: undefined,
-  fetching: true,
-  replayRecord: undefined,
+  fetchingAttachments: true,
+  fetchingErrors: true,
+  fetchingReplay: true,
 });
 
-function responsesToAttachments(responses: Array<unknown>) {
-  // Each response returns an array of segments
+function responseToAttachments(segment: unknown[]) {
   // Each segment includes an array of attachments
-  // Therefore we flatten 2 levels deep
-  return responses.flat(2);
+  // Therefore we flatten 1 levels deep
+  return segment.flat(1);
 }
 
 /**
@@ -96,143 +86,141 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   const [projectSlug, replayId] = replaySlug.split(':');
 
   const api = useApi();
-  const [state, setState] = useState<State>(INITIAL_STATE);
 
-  // Fetch every field of the replay. We're overfetching, not every field is needed
+  const [state, setState] = useState<State>(INITIAL_STATE);
+  const [attachments, setAttachments] = useState<unknown[]>([]);
+  const [errors, setErrors] = useState<ReplayError[]>([]);
+  const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
+
+  // Fetch every field of the replay. We're overfetching, not every field is used
   const fetchReplay = useCallback(async () => {
     const response = await api.requestPromise(
       `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/`
     );
-    return response.data;
+    const mappedRecord = mapResponseToReplayRecord(response.data);
+    setReplayRecord(mappedRecord);
+    setState(prev => ({...prev, fetchingReplay: false}));
   }, [api, orgSlug, projectSlug, replayId]);
 
-  const fetchAttachments = useCallback(
-    async (replayRecord: ReplayRecord) => {
-      if (!replayRecord.count_segments) {
-        return;
-      }
-
-      const baseUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`;
-      const perPage = 100;
-
-      const pages = Math.ceil(replayRecord.count_segments / 100);
-      const cursors = new Array(pages)
-        .fill(0)
-        .map((_, i) => `${perPage}:${i}:${i === 0 ? 1 : 0}`);
-
-      await Promise.allSettled(
-        cursors.map(cursor => {
-          const promise = api.requestPromise(
-            `${baseUrl}?download&per_page=${perPage}&cursor=${cursor}`
-          );
-          promise.then(response => {
-            const attachments = responsesToAttachments([response]);
-            setState(prev => ({
-              ...prev,
-              attachments: (prev.attachments ?? []).concat(attachments),
-              errors: prev.errors ?? [],
-            }));
-          });
-          return promise;
-        })
-      );
-    },
-    [api, orgSlug, projectSlug, replayId]
-  );
-
-  const fetchErrors = useCallback(
-    async (replayRecord: ReplayRecord) => {
-      if (!replayRecord.error_ids.length) {
-        return;
-      }
-
-      // Clone the `finished_at` time and bump it up one second because finishedAt
-      // has the `ms` portion truncated, while replays-events-meta operates on
-      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
-      // while the event is saved with `12:00:00.450Z`.
-      const finishedAtClone = new Date(replayRecord.finished_at);
-      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
-
-      const chunks = chunk(replayRecord.error_ids, ERRORS_PER_PAGE);
-      await Promise.allSettled(
-        chunks.map(errorIds => {
-          const promise = api.requestPromise(
-            `/organizations/${orgSlug}/replays-events-meta/`,
-            {
-              query: {
-                start: replayRecord.started_at.toISOString(),
-                end: finishedAtClone.toISOString(),
-                query: `id:[${String(errorIds)}]`,
-              },
-            }
-          );
-          promise.then(response => {
-            setState(prev => {
-              if (!prev.attachments?.length) {
-                return prev;
-              }
-              return {
-                ...prev,
-                errors: (prev.errors ?? []).concat(response.data),
-              };
-            });
-          });
-          return promise;
-        })
-      );
-    },
-    [api, orgSlug]
-  );
-
-  const fetchAll = useCallback(async () => {
-    const fetchedRecord = await fetchReplay();
-    const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
-    setState(prev => ({
-      ...prev,
-      replayRecord: mappedRecord,
-    }));
-
-    await Promise.all([fetchAttachments(mappedRecord), fetchErrors(mappedRecord)]);
-  }, [fetchReplay, fetchAttachments, fetchErrors]);
-
-  const loadEvents = useCallback(async () => {
-    setState(INITIAL_STATE);
-
-    try {
-      await fetchAll();
-
-      setState(prev => ({
-        ...prev,
-        fetching: false,
-      }));
-    } catch (error) {
-      Sentry.captureException(error);
-      setState({
-        ...INITIAL_STATE,
-        fetchError: error,
-        fetching: false,
-      });
+  const fetchAttachments = useCallback(async () => {
+    if (!replayRecord) {
+      return;
     }
-  }, [fetchAll]);
+
+    if (!replayRecord.count_segments) {
+      setState(prev => ({...prev, fetchingAttachments: false}));
+      return;
+    }
+
+    const perPage = 100;
+
+    const pages = Math.ceil(replayRecord.count_segments / 100);
+    const cursors = new Array(pages)
+      .fill(0)
+      .map((_, i) => `${perPage}:${i}:${i === 0 ? 1 : 0}`);
+
+    await Promise.allSettled(
+      cursors.map(cursor => {
+        const promise = api.requestPromise(
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord.id}/recording-segments/`,
+          {
+            query: {
+              download: true,
+              per_page: perPage,
+              cursor,
+            },
+          }
+        );
+        promise.then(response => {
+          setAttachments(prev => (prev ?? []).concat(responseToAttachments(response)));
+        });
+        return promise;
+      })
+    );
+    setState(prev => ({...prev, fetchingAttachments: false}));
+  }, [api, orgSlug, projectSlug, replayRecord]);
+
+  const fetchErrors = useCallback(async () => {
+    if (!replayRecord) {
+      return;
+    }
+
+    if (!replayRecord.error_ids.length) {
+      setState(prev => ({...prev, fetchingErrors: false}));
+      return;
+    }
+
+    // Clone the `finished_at` time and bump it up one second because finishedAt
+    // has the `ms` portion truncated, while replays-events-meta operates on
+    // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
+    // while the event is saved with `12:00:00.450Z`.
+    const finishedAtClone = new Date(replayRecord.finished_at);
+    finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
+
+    const chunks = chunk(replayRecord.error_ids, ERRORS_PER_PAGE);
+    await Promise.allSettled(
+      chunks.map(errorIds => {
+        const promise = api.requestPromise(
+          `/organizations/${orgSlug}/replays-events-meta/`,
+          {
+            query: {
+              start: replayRecord.started_at.toISOString(),
+              end: finishedAtClone.toISOString(),
+              query: `id:[${String(errorIds)}]`,
+            },
+          }
+        );
+        promise.then(response => {
+          setErrors(prev => (prev ?? []).concat(response.data));
+        });
+        return promise;
+      })
+    );
+    setState(prev => ({...prev, fetchingErrors: false}));
+  }, [api, orgSlug, replayRecord]);
+
+  const onError = useCallback(error => {
+    Sentry.captureException(error);
+    setState(prev => ({...prev, fetchError: error}));
+  }, []);
+
+  const loadData = useCallback(
+    () => fetchReplay().catch(onError),
+    [fetchReplay, onError]
+  );
 
   useEffect(() => {
-    loadEvents();
-  }, [loadEvents]);
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (state.fetchError) {
+      return;
+    }
+    fetchErrors().catch(onError);
+  }, [state.fetchError, fetchErrors, onError]);
+
+  useEffect(() => {
+    if (state.fetchError) {
+      return;
+    }
+    fetchAttachments().catch(onError);
+  }, [state.fetchError, fetchAttachments, onError]);
 
   const replay = useMemo(() => {
     return ReplayReader.factory({
-      attachments: state.attachments,
-      errors: state.errors,
-      replayRecord: state.replayRecord,
+      attachments,
+      errors,
+      replayRecord,
     });
-  }, [state.attachments, state.errors, state.replayRecord]);
+  }, [attachments, errors, replayRecord]);
 
   return {
     fetchError: state.fetchError,
-    fetching: state.fetching,
-    onRetry: loadEvents,
+    fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
+    onRetry: loadData,
     replay,
-    replayRecord: state.replayRecord,
+    replayRecord,
   };
 }
 

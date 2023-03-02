@@ -14,9 +14,7 @@ class GetOrCreateTest(TestCase):
         group = self.create_group(project=project)
         release = Release.objects.create(version="abc", organization_id=project.organization_id)
         release.add_project(project)
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="prod"
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
         datetime = timezone.now()
 
         grouprelease = GroupRelease.get_or_create(

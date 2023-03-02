@@ -6,7 +6,7 @@ from typing import Literal, Optional, Sequence, Tuple
 import requests
 from sentry_sdk import configure_scope
 
-from sentry import options
+from sentry import features, options
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 
@@ -14,9 +14,12 @@ LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 )
+NEW_CODECOV_REPORT_URL = (
+    "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
+)
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 REF_TYPE = Literal["branch", "sha"]
-CODECOV_TIMEOUT = 2
+CODECOV_TIMEOUT = 10
 
 
 class CodecovIntegrationError(Enum):
@@ -72,7 +75,7 @@ def get_codecov_data(
     ref: str,
     ref_type: REF_TYPE,
     path: str,
-    set_timeout: bool,
+    organization: Organization,
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
@@ -81,24 +84,40 @@ def get_codecov_data(
         owner_username, repo_name = repo.split("/")
         if service == "github":
             service = "gh"
+
         path = path.lstrip("/")
         url = CODECOV_REPORT_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
+        params = {ref_type: ref, "path": path}
+        if features.has("organizations:codecov-stacktrace-integration-v2", organization):
+            url = NEW_CODECOV_REPORT_URL.format(
+                service=service, owner_username=owner_username, repo_name=repo_name, path=path
+            )
+            params = {}
+
         with configure_scope() as scope:
-            params = {ref_type: ref, "path": path}
+            timeout = (
+                CODECOV_TIMEOUT
+                if features.has("organizations:codecov-stacktrace-integration-v2", organization)
+                else None
+            )
+
             response = requests.get(
                 url,
                 params=params,
                 headers={"Authorization": f"Bearer {codecov_token}"},
-                timeout=CODECOV_TIMEOUT if set_timeout else None,
+                timeout=timeout,
             )
             tags = {
                 "codecov.request_url": url,
+                "codecov.request_params": params,
                 "codecov.request_path": path,
                 "codecov.request_ref": ref,
                 "codecov.http_code": response.status_code,
             }
+            if features.has("organizations:codecov-stacktrace-integration-v2", organization):
+                tags["codecov.new_endpoint"] = True
 
             response_json = response.json()
             files = response_json.get("files")

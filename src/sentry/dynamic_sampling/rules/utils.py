@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
-from sentry.utils import json
+from django.conf import settings
+
+from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10
 BOOSTED_KEY_TRANSACTION_LIMIT = 10
@@ -12,6 +14,10 @@ LATEST_RELEASES_BOOST_FACTOR = 1.5
 LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
 
 IGNORE_HEALTH_CHECKS_FACTOR = 5
+
+
+ProjectId = int
+OrganizationId = int
 
 
 class ActivatableBias(TypedDict):
@@ -31,6 +37,7 @@ class RuleType(Enum):
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
     IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
+    BOOST_LOW_VOLUME_TRANSACTIONS = "boostLowVolumeTransactions"
 
 
 DEFAULT_BIASES: List[ActivatableBias] = [
@@ -41,12 +48,14 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     },
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
     RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
     RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
+    RuleType.BOOST_LOW_VOLUME_TRANSACTIONS: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
@@ -180,3 +189,8 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
         )
 
     return float(x / x**base_sample_rate)
+
+
+def get_redis_client_for_ds() -> Any:
+    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)

@@ -30,6 +30,8 @@ export function useSentryEvent<T extends Event>(
       return undefined;
     }
 
+    setRequestState({type: 'loading'});
+
     fetchSentryEvent<T>(api, organizationSlug, projectSlug, eventId)
       .then(event => {
         setRequestState({
