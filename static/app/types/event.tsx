@@ -653,6 +653,7 @@ type EventOccurrence = {
   issueTitle: string;
   resourceId: string;
   subtitle: string;
+  type: number;
 };
 
 interface EventBase {
