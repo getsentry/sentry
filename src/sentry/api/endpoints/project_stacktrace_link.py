@@ -275,7 +275,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 path=path,
                 organization=org,
             )
-            if lineCoverage and codecovUrl:
+            if lineCoverage or codecovUrl:
                 codecov_data = {
                     "lineCoverage": lineCoverage,
                     "coverageUrl": codecovUrl,

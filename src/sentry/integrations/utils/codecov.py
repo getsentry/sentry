@@ -80,6 +80,7 @@ def get_codecov_data(
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
     codecov_url = None
+    use_new_api = features.has("organizations:codecov-stacktrace-integration-v2", organization)
     if codecov_token:
         owner_username, repo_name = repo.split("/")
         if service == "github":
@@ -90,18 +91,14 @@ def get_codecov_data(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
         params = {ref_type: ref, "path": path}
-        if features.has("organizations:codecov-stacktrace-integration-v2", organization):
+        if use_new_api:
             url = NEW_CODECOV_REPORT_URL.format(
                 service=service, owner_username=owner_username, repo_name=repo_name, path=path
             )
             params = {}
 
         with configure_scope() as scope:
-            timeout = (
-                CODECOV_TIMEOUT
-                if features.has("organizations:codecov-stacktrace-integration-v2", organization)
-                else None
-            )
+            timeout = CODECOV_TIMEOUT if use_new_api else None
 
             response = requests.get(
                 url,
