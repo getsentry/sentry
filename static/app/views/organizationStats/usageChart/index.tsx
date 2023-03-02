@@ -64,6 +64,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
+    label: DATA_CATEGORY_INFO.replay.titleName,
+    value: DATA_CATEGORY_INFO.replay.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
     label: DATA_CATEGORY_INFO.attachment.titleName,
     value: DATA_CATEGORY_INFO.attachment.plural,
     disabled: false,
@@ -72,12 +78,6 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
     label: DATA_CATEGORY_INFO.profile.titleName,
     value: DATA_CATEGORY_INFO.profile.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.replay.titleName,
-    value: DATA_CATEGORY_INFO.replay.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
