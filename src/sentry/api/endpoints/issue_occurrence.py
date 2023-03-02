@@ -33,6 +33,7 @@ class IssueOccurrenceEndpoint(Endpoint):
             dummy_occurrence = dict(load_data("generic-event-profiling"))
             dummy_occurrence["event"]["received"] = datetime.utcnow().isoformat()
             dummy_occurrence["event"]["timestamp"] = datetime.utcnow().isoformat()
+            dummy_occurrence["detection_time"] = datetime.utcnow().timestamp()
             project_id = request.query_params.get("project_id")
             if project_id:
                 project = Project.objects.get(id=project_id)
