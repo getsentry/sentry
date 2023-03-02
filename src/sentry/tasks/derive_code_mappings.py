@@ -95,7 +95,7 @@ def derive_code_mappings(
     # Check the feature flag again to ensure the feature is still enabled.
     org_has_flag = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
 
-    if not (dry_run or org_has_flag or data["platform"] not in SUPPORTED_LANGUAGES):
+    if not org_has_flag or not data["platform"] in SUPPORTED_LANGUAGES:
         logger.info("Event should not be processed.", extra=extra)
         return
 
