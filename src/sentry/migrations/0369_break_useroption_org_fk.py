@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0365_breaking_more_fks"),
+        ("sentry", "0368_monitor_remove_slug_nullable"),
     ]
 
     database_operations = [

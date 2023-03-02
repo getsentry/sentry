@@ -344,13 +344,13 @@ def cron(**options):
     "--commit-batch-size",
     default=1000,
     type=int,
-    help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--concurrency",
@@ -405,15 +405,15 @@ def post_process_forwarder(**options):
 @click.option("--topic", default=None, help="Topic to get subscription updates from.")
 @click.option(
     "--commit-batch-size",
-    default=1000,
+    default=100,
     type=int,
-    help="Deprecated. Remove once no longer passed in production.",
+    help="How many messages to process before committing offsets.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Deprecated. Remove once no longer passed in production.",
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
 )
 @click.option(
     "--initial-offset-reset",
@@ -548,7 +548,7 @@ def batching_kafka_options(
     is_flag=True,
     help="Listen to all consumer types at once.",
 )
-@batching_kafka_options("ingest-consumer", max_batch_size=100)
+@kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @click.option(
     "--concurrency",
     type=int,
@@ -662,7 +662,7 @@ def metrics_parallel_consumer(**options):
 
 @run.command("billing-metrics-consumer")
 @log_options()
-@batching_kafka_options("billing-metrics-consumer", max_batch_size=100)
+@kafka_options("billing-metrics-consumer")
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
@@ -675,7 +675,7 @@ def metrics_billing_consumer(**options):
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
-@batching_kafka_options("ingest-profiles", max_batch_size=100)
+@kafka_options("ingest-profiles")
 @strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
