@@ -60,8 +60,9 @@ class MonitorCheckIn(Model):
     duration = BoundedPositiveIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=("guid",))
     attachment_id = BoundedBigIntegerField(null=True)
+
+    objects = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
