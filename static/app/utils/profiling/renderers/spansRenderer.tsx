@@ -101,9 +101,7 @@ export class SpanChartRenderer2D {
     if (span.node.span.op === 'missing-instrumentation') {
       return this.pattern;
     }
-    return (
-      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR
-    );
+    return this.colors.get(span.text) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
   }
 
   setSearchResults(query: string, searchResults: FlamegraphSearch['results']['spans']) {
@@ -188,8 +186,7 @@ export class SpanChartRenderer2D {
         configViewToPhysicalSpace
       );
 
-      const color =
-        this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
+      const color = this.colors.get(span.text) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
       // Reset any transforms that may have been applied before.
       // If we dont do it, it sometimes causes the canvas to be drawn with a translation

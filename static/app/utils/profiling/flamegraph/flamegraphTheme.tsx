@@ -120,9 +120,9 @@ export const LCH_DARK = {
 };
 
 const SPAN_LCH_LIGHT = {
-  C_0: 0.3,
-  C_d: 0.25,
-  L_0: 0.8,
+  C_0: 0.35,
+  C_d: 0.3,
+  L_0: 0.7,
   L_d: 0.15,
 };
 
@@ -165,7 +165,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: '#000',
     COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
-    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT),
     COLOR_MAPS: {
       'by symbol name': makeColorMapBySymbolName,
       'by system frame': makeColorMapBySystemFrame,
@@ -208,7 +208,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
-    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK),
     COLOR_MAPS: {
       'by symbol name': makeColorMapBySymbolName,
       'by system frame': makeColorMapBySystemFrame,

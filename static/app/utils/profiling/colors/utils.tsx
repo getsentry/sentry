@@ -366,10 +366,12 @@ export function makeSpansColorMapByOpAndDescription(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<SpanChartNode['node']['span']['span_id'], ColorChannels> {
   const colors = new Map<SpanChartNode['node']['span']['span_id'], ColorChannels>();
-  const uniqueSpans = uniqueBy(spans, s => s.node.span.op ?? '');
+  const uniqueSpans = uniqueBy(spans, s => s.text).sort((a, b) =>
+    a.text.localeCompare(b.text)
+  );
 
   for (let i = 0; i < uniqueSpans.length; i++) {
-    const key = uniqueSpans[i].node.span.op ?? '';
+    const key = uniqueSpans[i].text ?? '';
     if (key === 'missing instrumentation') {
       continue;
     }
