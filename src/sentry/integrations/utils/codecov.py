@@ -113,18 +113,27 @@ def get_codecov_data(
                 "codecov.request_ref": ref,
                 "codecov.http_code": response.status_code,
             }
-            if features.has("organizations:codecov-stacktrace-integration-v2", organization):
-                tags["codecov.new_endpoint"] = True
-
             response_json = response.json()
-            files = response_json.get("files")
-            line_coverage = files[0].get("line_coverage") if files else None
+            line_coverage, codecov_url = None, None
+            if use_new_api:
+                tags["codecov.new_endpoint"] = True
+                line_coverage = response_json.get("line_coverage")
+                coverage_found = line_coverage not in [None, [], [[]]]
+                tags["codecov.coverage_found"] = coverage_found
 
-            coverage_found = line_coverage not in [None, [], [[]]]
-            tags["codecov.coverage_found"] = coverage_found
+                commit_sha = response_json.get("commit_sha")
+                codecov_url = f"https://app.codecov.io/{service}/{owner_username}/{repo_name}/commit/{commit_sha}/{path}"
+                tags["codecov.coverage_url"] = codecov_url
+            else:
+                files = response_json.get("files")
+                line_coverage = files[0].get("line_coverage") if files else None
 
-            codecov_url = response_json.get("commit_file_url", "")
-            tags["codecov.coverage_url"] = codecov_url
+                coverage_found = line_coverage not in [None, [], [[]]]
+                tags["codecov.coverage_found"] = coverage_found
+
+                codecov_url = response_json.get("commit_file_url", "")
+                tags["codecov.coverage_url"] = codecov_url
+
             for key, value in tags.items():
                 scope.set_tag(key, value)
 
