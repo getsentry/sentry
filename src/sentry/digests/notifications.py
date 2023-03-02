@@ -82,7 +82,13 @@ def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any
         "rules": Rule.objects.in_bulk(
             itertools.chain.from_iterable(record.value.rules for record in records)
         ),
-        "event_counts": tsdb.get_sums(tsdb.models.group, list(groups.keys()), start, end),
+        "event_counts": tsdb.get_sums(
+            tsdb.models.group,
+            list(groups.keys()),
+            start,
+            end,
+            tenant_ids={"organization_id": project.organization_id},
+        ),
         "user_counts": tsdb.get_distinct_counts_totals(
             tsdb.models.users_affected_by_group, list(groups.keys()), start, end
         ),

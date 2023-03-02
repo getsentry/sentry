@@ -89,7 +89,10 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
         if stat_model is None:
             raise ValueError(f"Invalid group: {group}, stat: {stat}")
         data = tsdb.get_range(
-            model=stat_model, keys=keys, **self._parse_args(request, **query_kwargs)
+            model=stat_model,
+            keys=keys,
+            **self._parse_args(request, **query_kwargs),
+            tenant_ids={"organization_id": organization.id},
         )
 
         if group == "organization":

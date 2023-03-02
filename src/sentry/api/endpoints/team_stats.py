@@ -51,6 +51,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
                 model=tsdb.models.project,
                 keys=[p.id for p in projects],
                 **self._parse_args(request, environment_id),
+                tenant_ids={"organization_id": team.organization_id},
             ).values()
         )
 

@@ -98,6 +98,7 @@ class GroupSnooze(Model):
             keys=[self.group_id],
             start=start,
             end=end,
+            tenant_ids={"organization_id": self.group.project.organization_id},
         )[self.group_id]
 
         if rate >= self.count:

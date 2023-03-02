@@ -20,7 +20,12 @@ class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         stats = {}
         for model, name in ((tsdb.models.servicehook_fired, "total"),):
-            result = tsdb.get_range(model=model, keys=[hook.id], **stat_args)[hook.id]
+            result = tsdb.get_range(
+                model=model,
+                keys=[hook.id],
+                **stat_args,
+                tenant_ids={"organization_id": project.organization_id},
+            )[hook.id]
             for ts, count in result:
                 stats.setdefault(int(ts), {})[name] = count
 
