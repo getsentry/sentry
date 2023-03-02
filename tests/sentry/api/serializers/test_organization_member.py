@@ -35,10 +35,13 @@ class OrganizationMemberSerializerTest(TestCase):
 class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest):
     def test_all_org_roles(self):
         manager_team = self.create_team(organization=self.org, org_role="manager")
+        manager_team2 = self.create_team(organization=self.org, org_role="manager")
         member = self.create_member(
-            organization=self.org, user=self.create_user(), teams=[manager_team]
+            organization=self.org, user=self.create_user(), teams=[manager_team, manager_team2]
         )
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
+
+        assert len(result["allOrgRoles"]) == 2
         assert result["allOrgRoles"][0]["id"] == "manager"
         assert result["allOrgRoles"][1]["id"] == "member"
 
