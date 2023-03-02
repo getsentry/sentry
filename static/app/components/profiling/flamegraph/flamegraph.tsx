@@ -173,7 +173,7 @@ function Flamegraph(): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {colorCoding, sorting, view, type, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, sorting, view, type} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -256,19 +256,16 @@ function Flamegraph(): ReactElement {
     const newFlamegraph = new FlamegraphModel(profile, threadId, {
       inverted: view === 'bottom up',
       sort: sorting,
-      configSpace:
-        xAxis === 'transaction'
-          ? getTransactionConfigSpace(
-              profileGroup,
-              profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
-              profile.unit
-            )
-          : undefined,
+      configSpace: getTransactionConfigSpace(
+        profileGroup,
+        profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
+        profile.unit
+      ),
     });
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, profileGroup, profiledTransaction, sorting, threadId, view, xAxis]);
+  }, [profile, profileGroup, profiledTransaction, sorting, threadId, view]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
@@ -335,10 +332,7 @@ function Flamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform:
-            xAxis === 'transaction'
-              ? new Rect(flamegraph.profile.startedAt, 0, 0, 0)
-              : undefined,
+          configSpaceTransform: new Rect(flamegraph.profile.startedAt, 0, 0, 0),
         },
       });
 
@@ -399,7 +393,7 @@ function Flamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, xAxis]
+    [flamegraph, flamegraphCanvas, flamegraphTheme]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -417,10 +411,7 @@ function Flamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 10,
           depthOffset: 0,
-          configSpaceTransform:
-            xAxis === 'transaction'
-              ? new Rect(flamegraph.profile.startedAt, 0, 0, 0)
-              : undefined,
+          configSpaceTransform: new Rect(flamegraph.profile.startedAt, 0, 0, 0),
         },
       });
 
@@ -432,7 +423,7 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, xAxis]
+    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames]
   );
 
   const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
@@ -449,11 +440,6 @@ function Flamegraph(): ReactElement {
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
-          configSpaceTransform:
-            // When a standalone axis is selected, the spans need to be relative to profile start time
-            xAxis === 'standalone'
-              ? new Rect(-flamegraph.profile.startedAt, 0, 0, 0)
-              : undefined,
         },
       });
 
@@ -461,15 +447,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(flamegraphView.configView, {width: {min: 0}});
       return newView;
     },
-    [
-      spanChart,
-      spansCanvas,
-      xAxis,
-      flamegraph.inverted,
-      flamegraphView,
-      flamegraph.profile.startedAt,
-      flamegraphTheme.SIZES,
-    ]
+    [spanChart, spansCanvas, flamegraph.inverted, flamegraphView, flamegraphTheme.SIZES]
   );
 
   // We want to make sure that the views have the same min zoom levels so that

@@ -21,16 +21,6 @@ function isValidHighlightFrame(
   return !!frame && typeof frame.name === 'string';
 }
 
-function getAxisForType(
-  type: FlamegraphPreferences['type'],
-  xAxis: FlamegraphPreferences['xAxis']
-): FlamegraphPreferences['xAxis'] {
-  if (type === 'flamegraph') {
-    return 'profile';
-  }
-  return xAxis;
-}
-
 function getSortingForType(
   type: FlamegraphPreferences['type'],
   sorting: FlamegraphPreferences['sorting']
@@ -53,10 +43,6 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
   const type =
     initialState?.preferences?.type ?? DEFAULT_FLAMEGRAPH_STATE.preferences.type;
 
-  const xAxis = getAxisForType(
-    type,
-    initialState?.preferences?.xAxis ?? DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis
-  );
   const sorting = getSortingForType(
     type,
     initialState?.preferences?.sorting ?? DEFAULT_FLAMEGRAPH_STATE.preferences.sorting
@@ -91,7 +77,6 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
         DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
       sorting,
       view: initialState?.preferences?.view ?? DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-      xAxis,
     },
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,

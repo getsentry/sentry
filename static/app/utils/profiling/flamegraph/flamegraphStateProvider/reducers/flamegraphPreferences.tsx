@@ -11,7 +11,6 @@ export type FlamegraphColorCodings = [
 
 export type FlamegraphSorting = Flamegraph['sort'];
 export type FlamegraphViewOptions = 'top down' | 'bottom up';
-export type FlamegraphAxisOptions = 'profile' | 'transaction';
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
@@ -24,7 +23,6 @@ export interface FlamegraphPreferences {
   };
   type: 'flamegraph' | 'flamechart';
   view: FlamegraphViewOptions[number];
-  xAxis: FlamegraphAxisOptions[number];
 }
 
 type FlamegraphPreferencesAction =
@@ -36,11 +34,7 @@ type FlamegraphPreferencesAction =
   | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
   | {payload: FlamegraphPreferences['view']; type: 'set view'}
   | {payload: FlamegraphPreferences['type']; type: 'set type'}
-  | {payload: FlamegraphPreferences['layout']; type: 'set layout'}
-  | {
-      payload: FlamegraphPreferences['xAxis'];
-      type: 'set xAxis';
-    };
+  | {payload: FlamegraphPreferences['layout']; type: 'set layout'};
 
 export function flamegraphPreferencesReducer(
   state: FlamegraphPreferences,
@@ -50,10 +44,6 @@ export function flamegraphPreferencesReducer(
     case 'set type': {
       return {
         ...state,
-        // When a user switches from chart to graph, there is some
-        // cleanup that we need to do to the state as some of the views
-        // are not compatible with each other.
-        xAxis: action.payload === 'flamegraph' ? 'profile' : state.xAxis,
         sorting:
           action.payload === 'flamegraph' && state.sorting === 'call order'
             ? 'alphabetical'
@@ -87,9 +77,6 @@ export function flamegraphPreferencesReducer(
         ...state,
         view: action.payload,
       };
-    }
-    case 'set xAxis': {
-      return {...state, xAxis: action.payload};
     }
     case 'toggle timeline': {
       return {
