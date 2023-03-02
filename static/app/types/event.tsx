@@ -148,6 +148,7 @@ export interface Thread {
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
   name?: string | null;
+  state?: string | null;
 }
 
 export type Frame = {

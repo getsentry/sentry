@@ -7,7 +7,7 @@ const Grid = styled('div')`
   display: grid;
   gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 16px repeat(2, 1fr) 3fr;
+  grid-template-columns: 16px repeat(3, 1fr) 1fr;
 `;
 
 const GridCell = styled('div')`

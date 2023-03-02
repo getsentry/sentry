@@ -401,6 +401,7 @@
           ]
         },
         "crashed": false,
+        "state": "RUNNABLE",
         "id": 444,
         "name": "|ANR-WatchDog|"
       },
@@ -433,6 +434,7 @@
           ]
         },
         "crashed": false,
+        "state": "RUNNABLE",
         "id": 437,
         "name": "HeapTaskDaemon"
       },
@@ -615,6 +617,7 @@
           ]
         },
         "crashed": true,
+        "state": "BLOCKED",
         "id": 1,
         "name": "main"
       },
@@ -639,6 +642,7 @@
           ]
         },
         "crashed": false,
+        "state": "WAITING",
         "id": 443,
         "name": "FileObserver"
       }

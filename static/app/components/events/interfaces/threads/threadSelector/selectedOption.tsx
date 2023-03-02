@@ -12,12 +12,18 @@ type Props = {
 type ThreadInfo = {
   filename?: string;
   label?: string;
+  state?: string | null;
 };
+
+function getThreadLabel(details: ThreadInfo) {
+  const threadLabel = details?.label || `<${t('unknown')}>`;
+  return details.state ? `${threadLabel} (${details.state})` : threadLabel;
+}
 
 const SelectedOption = ({id, details}: Props) => (
   <Wrapper>
     <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
-    <Label>{details?.label || `<${t('unknown')}>`}</Label>
+    <Label>{getThreadLabel(details)}</Label>
   </Wrapper>
 );
 

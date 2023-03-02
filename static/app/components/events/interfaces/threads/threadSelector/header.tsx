@@ -8,6 +8,7 @@ const Header = () => (
     <GridCell>{t('Id')}</GridCell>
     <GridCell>{t('Name')}</GridCell>
     <GridCell>{t('Label')}</GridCell>
+    <GridCell>{t('State')}</GridCell>
   </Grid>
 );
 

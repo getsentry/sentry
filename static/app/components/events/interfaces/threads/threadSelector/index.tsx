@@ -34,9 +34,9 @@ const ThreadSelector = ({
 }: Props) => {
   const getDropDownItem = (thread: Thread) => {
     const {label, filename, crashedInfo} = filterThreadInfo(event, thread, exception);
-    const threadInfo = {label, filename};
+    const threadInfo = {label, filename, state: thread.state};
     return {
-      value: `#${thread.id}: ${thread.name} ${label} ${filename}`,
+      value: `#${thread.id}: ${thread.name} ${label} ${filename} (${thread.state})`,
       threadInfo,
       thread,
       label: (
@@ -46,6 +46,7 @@ const ThreadSelector = ({
           name={thread.name}
           crashed={thread.crashed}
           crashedInfo={crashedInfo}
+          state={thread.state}
         />
       ),
     };

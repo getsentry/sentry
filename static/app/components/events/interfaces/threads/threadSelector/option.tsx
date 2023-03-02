@@ -15,6 +15,7 @@ type Props = {
   crashed?: boolean;
   crashedInfo?: EntryData;
   name?: string | null;
+  state?: string | null;
 };
 
 type ThreadInfo = {
@@ -22,7 +23,7 @@ type ThreadInfo = {
   label?: string;
 };
 
-const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
+const Option = ({id, details, name, crashed, crashedInfo, state}: Props) => {
   const label = details.label ?? `<${t('unknown')}>`;
   const optionName = name || `<${t('unknown')}>`;
 
@@ -66,6 +67,13 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
         <InnerCell color="linkColor">
           <Tooltip title={label} position="top">
             <TextOverflow>{label}</TextOverflow>
+          </Tooltip>
+        </InnerCell>
+      </GridCell>
+      <GridCell>
+        <InnerCell>
+          <Tooltip title={state} position="top">
+            <TextOverflow>{state}</TextOverflow>
           </Tooltip>
         </InnerCell>
       </GridCell>

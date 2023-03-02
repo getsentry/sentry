@@ -17,6 +17,7 @@ type ThreadInfo = {
   crashedInfo?: EntryData;
   filename?: string;
   label?: string;
+  state?: string | null;
 };
 
 function filterThreadInfo(
@@ -25,6 +26,7 @@ function filterThreadInfo(
   exception?: Required<ExceptionType>
 ): ThreadInfo {
   const threadInfo: ThreadInfo = {};
+  threadInfo.state = thread.state;
 
   let stacktrace: StacktraceType | undefined = getThreadStacktrace(false, thread);
 
