@@ -14,9 +14,9 @@ from sentry.runner.decorators import configuration, log_options
 _DEV_METRICS_INDEXER_ARGS = [
     # We don't want to burn laptop CPU while idle, but do want for
     # metrics to be ingested with lowest latency possible.
-    "--max-batch-time-ms",
+    "--max-msg-batch-time-ms",
     "10000",
-    "--max-batch-size",
+    "--max-msg-batch-size",
     "1",
     # We don't really need more than 1 process.
     "--processes",
