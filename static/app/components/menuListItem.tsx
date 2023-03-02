@@ -14,6 +14,17 @@ import {FormSize} from 'sentry/utils/theme';
  */
 type Priority = 'primary' | 'danger' | 'default';
 
+/**
+ * Leading/trailing items to be rendered alongside the main text label.
+ */
+type EdgeItems =
+  | React.ReactNode
+  | ((state: {
+      disabled: boolean;
+      isFocused: boolean;
+      isSelected: boolean;
+    }) => React.ReactNode);
+
 export type MenuListItemProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
@@ -33,13 +44,7 @@ export type MenuListItemProps = {
   /*
    * Items to be added to the left of the label
    */
-  leadingItems?:
-    | React.ReactNode
-    | ((state: {
-        disabled: boolean;
-        isFocused: boolean;
-        isSelected: boolean;
-      }) => React.ReactNode);
+  leadingItems?: EdgeItems;
   /*
    * Whether leading items should be centered with respect to the entire
    * height of the item. If false (default), they will be centered with
@@ -67,13 +72,7 @@ export type MenuListItemProps = {
   /*
    * Items to be added to the right of the label.
    */
-  trailingItems?:
-    | React.ReactNode
-    | ((state: {
-        disabled: boolean;
-        isFocused: boolean;
-        isSelected: boolean;
-      }) => React.ReactNode);
+  trailingItems?: EdgeItems;
   /*
    * Whether trailing items should be centered wrt/ the entire height of the
    * item. If false (default), they will be centered wrt/ the first line of
