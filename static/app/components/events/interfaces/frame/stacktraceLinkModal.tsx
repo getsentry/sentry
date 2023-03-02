@@ -296,11 +296,12 @@ const ItemContainer = styled('div')`
   flex-direction: column;
   margin-top: ${space(0.25)};
   flex: 1;
-  max-width: 94%;
+  max-width: calc(100% - 25px - 8px);
 `;
 
 const ModalContainer = styled('div')`
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: ${space(2)};
 `;
 
