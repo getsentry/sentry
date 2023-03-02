@@ -30,6 +30,7 @@ class RecordingSegmentStorageMeta:
     retention_days: Optional[int]
     date_added: Optional[datetime] = None
     file_id: Optional[int] = None
+    file: Optional[File] = None
 
 
 class Blob(ABC):
@@ -53,12 +54,12 @@ class FilestoreBlob(Blob):
     """Filestore service driver blob manager."""
 
     def delete(self, segment: RecordingSegmentStorageMeta) -> None:
-        file = File.objects.get(pk=segment.file_id)
+        file = segment.file or File.objects.get(pk=segment.file_id)
         file.delete()
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
-        file = File.objects.get(pk=segment.file_id)
+        file = segment.file or File.objects.get(pk=segment.file_id)
         return file.getfile().read()
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.set")

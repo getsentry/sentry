@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import List
 
+from django.db.models import Prefetch
 from snuba_sdk import (
     Column,
     Condition,
@@ -20,6 +21,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.models.file import File, FileBlobIndex
 from sentry.replays.cache import replay_cache
 from sentry.replays.lib.storage import (
     FilestoreBlob,
@@ -81,6 +83,16 @@ def fetch_filestore_segments_meta(
         .order_by("segment_id")
         .all()[offset : limit + offset]
     )
+
+    files = File.objects.filter(id__in=[segment.file_id for segment in segments]).prefetch_related(
+        Prefetch(
+            "blobs",
+            queryset=FileBlobIndex.objects.select_related("blob").order_by("offset"),
+            to_attr="file_blob_indexes",
+        )
+    )
+    file_map = {file.id: file for file in files}
+
     return [
         RecordingSegmentStorageMeta(
             project_id=project_id,
@@ -89,6 +101,7 @@ def fetch_filestore_segments_meta(
             retention_days=None,
             date_added=segment.date_added,
             file_id=segment.file_id,
+            file=file_map[segment.file_id],
         )
         for segment in segments
     ]
