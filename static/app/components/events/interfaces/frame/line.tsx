@@ -10,6 +10,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import LeadHint from 'sentry/components/events/interfaces/frame/lineV2/leadHint';
 import StrictClick from 'sentry/components/strictClick';
+import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
@@ -285,6 +286,7 @@ export class Line extends Component<Props, State> {
             </LeftLineTitle>
             {this.renderRepeats()}
           </DefaultLineTitleWrapper>
+          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -350,6 +352,7 @@ export class Line extends Component<Props, State> {
             />
           </NativeLineContent>
           {this.renderExpander()}
+          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
         </DefaultLine>
       </StrictClick>
     );
@@ -463,7 +466,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
 `;
 
