@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 
@@ -45,111 +45,277 @@ describe('CompactSelect', function () {
     expect(screen.getByText('Menu title')).toBeInTheDocument();
   });
 
-  it('updates trigger label on selection', function () {
-    const mock = jest.fn();
-    render(
-      <CompactSelect
-        options={[
-          {value: 'opt_one', label: 'Option One'},
-          {value: 'opt_two', label: 'Option Two'},
-        ]}
-        onChange={mock}
-      />
-    );
+  describe('ListBox', function () {
+    it('updates trigger label on selection', function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
 
-    // click on the trigger button
-    userEvent.click(screen.getByRole('button'));
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
 
-    // select Option One
-    userEvent.click(screen.getByRole('option', {name: 'Option One'}));
+      // select Option One
+      userEvent.click(screen.getByRole('option', {name: 'Option One'}));
 
-    expect(mock).toHaveBeenCalledWith({value: 'opt_one', label: 'Option One'});
-    expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
+      expect(mock).toHaveBeenCalledWith({value: 'opt_one', label: 'Option One'});
+      expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
+    });
+
+    it('can select multiple options', function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          multiple
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
+
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
+
+      // select Option One & Option Two
+      userEvent.click(screen.getByRole('option', {name: 'Option One'}));
+      userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
+
+      expect(mock).toHaveBeenCalledWith([
+        {value: 'opt_one', label: 'Option One'},
+        {value: 'opt_two', label: 'Option Two'},
+      ]);
+      expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
+    });
+
+    it('displays trigger button with prefix', function () {
+      render(
+        <CompactSelect
+          triggerProps={{prefix: 'Prefix'}}
+          value="opt_one"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+      expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
+    });
+
+    it('can search', function () {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
+
+      // type 'Two' into the search box
+      userEvent.click(screen.getByPlaceholderText('Search here…'));
+      userEvent.keyboard('Two');
+
+      // only Option Two should be available, Option One should be filtered out
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('triggers onClose when the menu is closed if provided', function () {
+      const onCloseMock = jest.fn();
+      render(
+        <CompactSelect
+          onClose={onCloseMock}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
+      expect(onCloseMock).not.toHaveBeenCalled();
+
+      // close the menu
+      userEvent.click(document.body);
+      expect(onCloseMock).toHaveBeenCalled();
+    });
   });
 
-  it('can select multiple options', function () {
-    const mock = jest.fn();
-    render(
-      <CompactSelect
-        multiple
-        options={[
-          {value: 'opt_one', label: 'Option One'},
-          {value: 'opt_two', label: 'Option Two'},
-        ]}
-        onChange={mock}
-      />
-    );
+  describe('GridList', function () {
+    it('updates trigger label on selection', function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          grid
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
 
-    // click on the trigger button
-    userEvent.click(screen.getByRole('button'));
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
 
-    // select Option One & Option Two
-    userEvent.click(screen.getByRole('option', {name: 'Option One'}));
-    userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
+      // select Option One
+      userEvent.click(screen.getByRole('row', {name: 'Option One'}));
 
-    expect(mock).toHaveBeenCalledWith([
-      {value: 'opt_one', label: 'Option One'},
-      {value: 'opt_two', label: 'Option Two'},
-    ]);
-    expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
-  });
+      expect(mock).toHaveBeenCalledWith({value: 'opt_one', label: 'Option One'});
+      expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
+    });
 
-  it('displays trigger button with prefix', function () {
-    render(
-      <CompactSelect
-        triggerProps={{prefix: 'Prefix'}}
-        value="opt_one"
-        options={[
-          {value: 'opt_one', label: 'Option One'},
-          {value: 'opt_two', label: 'Option Two'},
-        ]}
-      />
-    );
-    expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
-  });
+    it('can select multiple options', function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          grid
+          multiple
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
 
-  it('can search', function () {
-    render(
-      <CompactSelect
-        searchable
-        searchPlaceholder="Search here…"
-        options={[
-          {value: 'opt_one', label: 'Option One'},
-          {value: 'opt_two', label: 'Option Two'},
-        ]}
-      />
-    );
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
 
-    // click on the trigger button
-    userEvent.click(screen.getByRole('button'));
+      // select Option One & Option Two
+      userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
 
-    // type 'Two' into the search box
-    userEvent.click(screen.getByPlaceholderText('Search here…'));
-    userEvent.keyboard('Two');
+      expect(mock).toHaveBeenCalledWith([
+        {value: 'opt_one', label: 'Option One'},
+        {value: 'opt_two', label: 'Option Two'},
+      ]);
+      expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
+    });
 
-    // only Option Two should be available, Option One should be filtered out
-    expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
-  });
+    it('displays trigger button with prefix', function () {
+      render(
+        <CompactSelect
+          grid
+          triggerProps={{prefix: 'Prefix'}}
+          value="opt_one"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+      expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
+    });
 
-  it('triggers onClose when the menu is closed if provided', function () {
-    const onCloseMock = jest.fn();
-    render(
-      <CompactSelect
-        onClose={onCloseMock}
-        options={[
-          {value: 'opt_one', label: 'Option One'},
-          {value: 'opt_two', label: 'Option Two'},
-        ]}
-      />
-    );
+    it('can search', function () {
+      render(
+        <CompactSelect
+          grid
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
 
-    // click on the trigger button
-    userEvent.click(screen.getByRole('button'));
-    expect(onCloseMock).not.toHaveBeenCalled();
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
 
-    // close the menu
-    userEvent.click(document.body);
-    expect(onCloseMock).toHaveBeenCalled();
+      // type 'Two' into the search box
+      userEvent.click(screen.getByPlaceholderText('Search here…'));
+      userEvent.keyboard('Two');
+
+      // only Option Two should be available, Option One should be filtered out
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('triggers onClose when the menu is closed if provided', function () {
+      const onCloseMock = jest.fn();
+      render(
+        <CompactSelect
+          grid
+          onClose={onCloseMock}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
+      expect(onCloseMock).not.toHaveBeenCalled();
+
+      // close the menu
+      userEvent.click(document.body);
+      expect(onCloseMock).toHaveBeenCalled();
+    });
+
+    it('allows keyboard navigation to nested buttons', async function () {
+      const onPointerUpMock = jest.fn();
+      const onKeyUpMock = jest.fn();
+
+      render(
+        <CompactSelect
+          grid
+          options={[
+            {
+              value: 'opt_one',
+              label: 'Option One',
+              trailingItems: (
+                <button onPointerUp={onPointerUpMock} onKeyUp={onKeyUpMock}>
+                  Trailing Button One
+                </button>
+              ),
+            },
+            {
+              value: 'opt_two',
+              label: 'Option Two',
+              trailingItems: (
+                <button onPointerUp={onPointerUpMock} onKeyUp={onKeyUpMock}>
+                  Trailing Button Two
+                </button>
+              ),
+            },
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button'));
+      await waitFor(() =>
+        expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus()
+      );
+
+      // press Arrow Right, focus should be moved to the trailing button
+      userEvent.keyboard('{ArrowRight}');
+      expect(screen.getByRole('button', {name: 'Trailing Button One'})).toHaveFocus();
+
+      // press Enter, onKeyUpMock is called
+      userEvent.keyboard('{ArrowRight}');
+      expect(onKeyUpMock).toHaveBeenCalled();
+
+      // click on Trailing Button Two, onPointerUpMock is called
+      userEvent.click(screen.getByRole('button', {name: 'Trailing Button Two'}));
+      expect(onPointerUpMock).toHaveBeenCalled();
+    });
   });
 });

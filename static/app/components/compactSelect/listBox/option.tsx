@@ -1,5 +1,4 @@
 import {Fragment, useRef} from 'react';
-import styled from '@emotion/styled';
 import {AriaOptionProps, useOption} from '@react-aria/listbox';
 import {ListState} from '@react-stately/list';
 import {Node} from '@react-types/shared';
@@ -9,13 +8,10 @@ import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {FormSize} from 'sentry/utils/theme';
 
-interface OptionProps extends AriaOptionProps {
+import {CheckWrap} from '../styles';
+
+interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
-  /**
-   * Whether the list box (ul element) has focus. If not (e.g. if the search input has
-   * focus), then Option will not have any focus effect.
-   */
-  listBoxHasFocus: boolean;
   listState: ListState<any>;
   size: FormSize;
 }
@@ -24,7 +20,7 @@ interface OptionProps extends AriaOptionProps {
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function Option({item, listState, listBoxHasFocus, size}: OptionProps) {
+export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
@@ -55,7 +51,7 @@ export function Option({item, listState, listBoxHasFocus, size}: OptionProps) {
       label={label}
       details={details}
       disabled={isDisabled}
-      isFocused={listBoxHasFocus && isFocused}
+      isFocused={listState.selectionManager.isFocused && isFocused}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
       labelProps={{...labelProps, as: typeof label === 'string' ? 'p' : 'div'}}
       leadingItems={
@@ -82,13 +78,3 @@ export function Option({item, listState, listBoxHasFocus, size}: OptionProps) {
     />
   );
 }
-
-const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 1em;
-  height: 1.4em;
-  padding-bottom: 1px;
-  pointer-events: none;
-`;
