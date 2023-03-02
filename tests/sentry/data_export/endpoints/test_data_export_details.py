@@ -19,7 +19,10 @@ class DataExportDetailsTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
         self.data_export = ExportedData.objects.create(
-            user=self.user, organization=self.organization, query_type=0, query_info={"env": "test"}
+            user_id=self.user.id,
+            organization=self.organization,
+            query_type=0,
+            query_info={"env": "test"},
         )
 
     def test_content(self):

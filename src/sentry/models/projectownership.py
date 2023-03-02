@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple, Union
 
 from django.db import models
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from sentry.models import ProjectCodeOwners, Team
     from sentry.services.hybrid_cloud.user import RpcUser
 
+logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
@@ -287,19 +289,23 @@ class ProjectOwnership(Model):
                     "rule": (issue_owner.context or {}).get("rule", ""),
                 }
             )
-
             activity = Activity.objects.filter(
                 group=event.group, type=ActivityType.ASSIGNED.value
             ).order_by("-datetime")
             if activity:
                 auto_assigned = activity[0].data.get("integration")
                 if not auto_assigned:
-                    analytics.record(
+                    logger.info(
                         "autoassignment.post_manual_assignment",
-                        organization_id=event.group.project.organization_id,
-                        project_id=project_id,
-                        group_id=event.group.id,
+                        extra={
+                            "event_id": event.event_id,
+                            "group_id": event.group_id,
+                            "project": event.project_id,
+                            "organization_id": event.project.organization_id,
+                            **details,
+                        },
                     )
+                    return
 
             assignment = GroupAssignee.objects.assign(
                 event.group,
@@ -316,6 +322,19 @@ class ProjectOwnership(Model):
                     organization_id=ownership.project.organization_id,
                     project_id=project_id,
                     group_id=event.group.id,
+                )
+                logger.info(
+                    "handle_auto_assignment.success",
+                    extra={
+                        "event": event.event_id,
+                        "group": event.group_id,
+                        "project": event.project_id,
+                        "organization": event.project.organization_id,
+                        # owner_id returns a string including the owner type (user or team) and id
+                        "assignee": issue_owner.owner_id(),
+                        "reason": "created" if assignment["new_assignment"] else "updated",
+                        **details,
+                    },
                 )
 
     @classmethod

@@ -95,7 +95,7 @@ class TestCodecovIntegration(APITestCase):
         expected_codecov_url = "https://codecov.io/gh/testgit/abc/commit/abc"
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master",
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py",
             status=200,
             json={
                 "files": [{"line_coverage": expected_line_coverage}],
@@ -119,7 +119,7 @@ class TestCodecovIntegration(APITestCase):
     def test_get_codecov_report_new_endpoint_error(self):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master",
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py",
             status=404,
         )
 

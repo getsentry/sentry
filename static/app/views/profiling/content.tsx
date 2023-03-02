@@ -53,14 +53,16 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
-  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
-    key: 'p99()',
-    order: 'desc',
-  });
-
   const profilingUsingTransactions = organization.features.includes(
     'profiling-using-transactions'
   );
+
+  const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
+
+  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
+    key: 'p99()',
+    order: 'desc',
+  });
 
   const profileFilters = useProfileFilters({
     query: '',
@@ -71,7 +73,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
 
   const transactions = useProfileEvents<FieldType>({
     cursor,
-    fields: FIELDS,
+    fields,
     query,
     sort,
     referrer: 'api.profiling.landing-table',
@@ -127,10 +129,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
       project => !projectsWithProfiles.has(String(project))
     );
   }, [selection.projects, projects]);
-
-  const isNewProfilingDashboardEnabled = organization.features.includes(
-    'profiling-dashboard-redesign'
-  );
 
   const eventView = useMemo(() => {
     const _eventView = EventView.fromNewQueryWithLocation(
@@ -237,24 +235,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 </ProfilingOnboardingPanel>
               ) : (
                 <Fragment>
-                  {isNewProfilingDashboardEnabled ? (
-                    <PanelsGrid>
-                      <ProfilingSlowestTransactionsPanel />
-                      <ProfileCharts
-                        query={query}
-                        selection={selection}
-                        hideCount={isNewProfilingDashboardEnabled}
-                      />
-                    </PanelsGrid>
-                  ) : (
-                    <ProfileCharts
-                      query={query}
-                      selection={selection}
-                      hideCount={isNewProfilingDashboardEnabled}
-                    />
-                  )}
+                  <PanelsGrid>
+                    <ProfilingSlowestTransactionsPanel />
+                    <ProfileCharts query={query} selection={selection} hideCount />
+                  </PanelsGrid>
                   <ProfileEventsTable
-                    columns={FIELDS.slice()}
+                    columns={fields.slice()}
                     data={transactions.status === 'success' ? transactions.data[0] : null}
                     error={
                       transactions.status === 'error'
@@ -263,7 +249,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     }
                     isLoading={transactions.status === 'loading'}
                     sort={sort}
-                    sortableColumns={new Set(FIELDS)}
+                    sortableColumns={new Set(fields)}
                   />
                   <Pagination
                     pageLinks={
@@ -282,7 +268,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-const FIELDS = [
+const BASE_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
@@ -292,7 +278,10 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = (typeof FIELDS)[number];
+// user misery is only available with the profiling-using-transactions feature
+const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
+
+type FieldType = (typeof ALL_FIELDS)[number];
 
 const ActionBar = styled('div')`
   display: grid;

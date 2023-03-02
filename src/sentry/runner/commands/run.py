@@ -344,13 +344,13 @@ def cron(**options):
     "--commit-batch-size",
     default=1000,
     type=int,
-    help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--concurrency",
@@ -384,8 +384,6 @@ def post_process_forwarder(**options):
             topic=options["topic"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
-            commit_batch_size=options["commit_batch_size"],
-            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
             strict_offset_reset=options["strict_offset_reset"],
@@ -550,7 +548,7 @@ def batching_kafka_options(
     is_flag=True,
     help="Listen to all consumer types at once.",
 )
-@batching_kafka_options("ingest-consumer", max_batch_size=100)
+@kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @click.option(
     "--concurrency",
     type=int,
@@ -653,17 +651,18 @@ def metrics_parallel_consumer(**options):
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
 
+    initialize_global_consumer_state(ingest_config)
+
     streamer = get_parallel_metrics_consumer(
         indexer_profile=ingest_config, slicing_router=slicing_router, **options
     )
 
-    initialize_global_consumer_state(ingest_config)
     run_processor_with_signals(streamer)
 
 
 @run.command("billing-metrics-consumer")
 @log_options()
-@batching_kafka_options("billing-metrics-consumer", max_batch_size=100)
+@kafka_options("billing-metrics-consumer")
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
@@ -676,7 +675,7 @@ def metrics_billing_consumer(**options):
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
-@batching_kafka_options("ingest-profiles", max_batch_size=100)
+@kafka_options("ingest-profiles")
 @strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
@@ -689,7 +688,7 @@ def profiles_consumer(**options):
 @run.command("ingest-replay-recordings")
 @log_options()
 @configuration
-@batching_kafka_options("ingest-replay-recordings", max_batch_size=100)
+@kafka_options("ingest-replay-recordings")
 @click.option(
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )

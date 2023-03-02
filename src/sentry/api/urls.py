@@ -69,6 +69,7 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -190,11 +191,8 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
-from .endpoints.monitor_checkin_attachment import MonitorCheckInAttachmentEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
-from .endpoints.monitor_details import MonitorDetailsEndpoint
-from .endpoints.monitor_stats import MonitorStatsEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
@@ -297,6 +295,11 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
+from .endpoints.organization_monitor_checkin_attachment import (
+    OrganizationMonitorCheckInAttachmentEndpoint,
+)
+from .endpoints.organization_monitor_details import OrganizationMonitorDetailsEndpoint
+from .endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
@@ -668,11 +671,6 @@ urlpatterns = [
         include(
             [
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/$",
-                    MonitorDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-details",
-                ),
-                url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-index",
@@ -681,11 +679,6 @@ urlpatterns = [
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-details",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/stats/$",
-                    MonitorStatsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-stats",
                 ),
             ]
         ),
@@ -696,11 +689,6 @@ urlpatterns = [
         include(
             [
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/$",
-                    MonitorDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-monitor-details",
-                ),
-                url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
                     name="sentry-api-0-organization-monitor-check-in-index",
@@ -709,16 +697,6 @@ urlpatterns = [
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-monitor-check-in-details",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
-                    MonitorCheckInAttachmentEndpoint.as_view(),
-                    name="sentry-api-0-organization-monitor-check-in-attachment",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/stats/$",
-                    MonitorStatsEndpoint.as_view(),
-                    name="sentry-api-0-organization-monitor-stats",
                 ),
             ]
         ),
@@ -1343,6 +1321,21 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/monitors/$",
                     OrganizationMonitorsEndpoint.as_view(),
                     name="sentry-api-0-organization-monitors",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/$",
+                    OrganizationMonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitor-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/stats/$",
+                    OrganizationMonitorStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitor-stats",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+                    OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitor-check-in-attachment",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/pinned-searches/$",
@@ -2493,6 +2486,11 @@ urlpatterns = [
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),
+                url(
+                    r"^project-config/$",
+                    AdminRelayProjectConfigsEndpoint.as_view(),
+                    name="sentry-api-0-internal-project-config",
+                ),
             ]
         ),
     ),
