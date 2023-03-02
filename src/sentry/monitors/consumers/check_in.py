@@ -37,7 +37,9 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 return
 
             status = getattr(CheckInStatus, params["status"].upper())
-            duration = int(params["duration"]) if params.get("duration") is not None else None
+            duration = (
+                int(params["duration"] * 1000) if params.get("duration") is not None else None
+            )
 
             try:
                 check_in = MonitorCheckIn.objects.select_for_update().get(
