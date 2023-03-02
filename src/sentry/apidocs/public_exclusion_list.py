@@ -126,7 +126,6 @@ from sentry.api.endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
-from sentry.api.endpoints.monitor_stats import MonitorStatsEndpoint
 from sentry.api.endpoints.organization_access_request_details import (
     OrganizationAccessRequestDetailsEndpoint,
 )
@@ -231,6 +230,7 @@ from sentry.api.endpoints.organization_metrics import (
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
+from sentry.api.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.api.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.api.endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from sentry.api.endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
@@ -617,7 +617,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     BroadcastDetailsEndpoint,
     AcceptProjectTransferEndpoint,
     AcceptOrganizationInvite,
-    MonitorStatsEndpoint,
+    OrganizationMonitorStatsEndpoint,
     UserIndexEndpoint,
     UserDetailsEndpoint,
     UserAvatarEndpoint,

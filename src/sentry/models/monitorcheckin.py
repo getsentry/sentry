@@ -51,6 +51,7 @@ class MonitorCheckIn(Model):
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     status = BoundedPositiveIntegerField(
         default=CheckInStatus.UNKNOWN, choices=CheckInStatus.as_choices(), db_index=True
@@ -59,8 +60,9 @@ class MonitorCheckIn(Model):
     duration = BoundedPositiveIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=("guid",))
     attachment_id = BoundedBigIntegerField(null=True)
+
+    objects = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"

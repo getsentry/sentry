@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional, Sequence, TypedDict, Union, cast
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.commit import CommitPolicy
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Commit, Message, Partition
@@ -26,8 +26,6 @@ def get_metrics_billing_consumer(
     strict_offset_reset: bool,
     force_topic: Union[str, None],
     force_cluster: Union[str, None],
-    max_batch_size: int,
-    max_batch_time: int,
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
     bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
@@ -44,7 +42,7 @@ def get_metrics_billing_consumer(
         ),
         topic=Topic(topic),
         processor_factory=BillingMetricsConsumerStrategyFactory(),
-        commit_policy=CommitPolicy(max_batch_time / 1000, max_batch_size),
+        commit_policy=ONCE_PER_SECOND,
     )
 
 

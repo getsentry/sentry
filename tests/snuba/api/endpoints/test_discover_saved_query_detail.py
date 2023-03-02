@@ -6,6 +6,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:discover"
 
@@ -21,7 +22,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         query = {"fields": ["test"], "conditions": [], "limit": 10}
 
         model = DiscoverSavedQuery.objects.create(
-            organization=self.org, created_by=self.user, name="Test query", query=query
+            organization=self.org, created_by_id=self.user.id, name="Test query", query=query
         )
 
         model.set_projects(self.project_ids)
@@ -70,7 +71,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_get_version(self):
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
-            organization=self.org, created_by=self.user, name="v2 query", query=query
+            organization=self.org, created_by_id=self.user.id, name="v2 query", query=query
         )
 
         model.set_projects(self.project_ids)
@@ -102,7 +103,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="v2 query",
             query=query,
             is_homepage=True,
@@ -185,7 +186,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=self.org, teams=[team])
         query = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query={"fields": ["test"], "conditions": [], "limit": 10},
         )
@@ -206,7 +207,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=self.org, teams=[team])
         query = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query={"fields": ["test"], "conditions": [], "limit": 10},
         )
@@ -227,7 +228,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="v2 query",
             query=query,
             is_homepage=True,
@@ -308,7 +309,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="v2 query",
             query=query,
             is_homepage=True,
@@ -339,7 +340,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         q = {"fields": ["test"], "conditions": [], "limit": 10}
 
         self.query = DiscoverSavedQuery.objects.create(
-            organization=self.org, created_by=self.user, name="Test query", query=q
+            organization=self.org, created_by_id=self.user.id, name="Test query", query=q
         )
 
         self.query.set_projects(self.project_ids)

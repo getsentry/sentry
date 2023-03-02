@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Iterable, Mapping
 
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
@@ -84,6 +84,7 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
         IssueEvidence("Evidence 2", "Not important", False),
         IssueEvidence("Evidence 3", "Nobody cares about this", False),
     ],
-    ProfileBlockedThreadGroupType,
+    ProfileFileIOGroupType,
     ensure_aware(datetime.now()),
+    "info",
 )

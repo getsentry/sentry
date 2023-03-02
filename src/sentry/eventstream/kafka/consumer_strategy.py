@@ -65,6 +65,7 @@ def dispatch_post_process_group_task(
                 "group_id": group_id,
                 "group_states": group_states,
                 "occurrence_id": occurrence_id,
+                "project_id": project_id,
             },
             queue=queue,
         )
@@ -95,13 +96,9 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
 
 
 class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(
-        self,
-        concurrency: int,
-        max_pending_futures: int,
-    ):
+    def __init__(self, concurrency: int):
         self.__concurrency = concurrency
-        self.__max_pending_futures = max_pending_futures
+        self.__max_pending_futures = concurrency + 1000
 
     def create_with_partitions(
         self,

@@ -395,6 +395,30 @@ const performanceOptionDefinitions: Field[] = [
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
 ];
 
 // This are ordered based on their display order visually

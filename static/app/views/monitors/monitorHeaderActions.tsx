@@ -1,16 +1,11 @@
 import {browserHistory} from 'react-router';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconEdit, IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -26,41 +21,18 @@ type Props = {
 const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
   const api = useApi();
 
-  const handleDelete = () => {
-    const redirectPath = `/organizations/${orgId}/crons/`;
-    addLoadingMessage(t('Deleting Monitor...'));
-
-    api
-      .requestPromise(`/organizations/${orgId}/monitors/${monitor.id}/`, {
-        method: 'DELETE',
-      })
-      .then(() => {
-        browserHistory.push(normalizeUrl(redirectPath));
-      })
-      .catch(() => {
-        addErrorMessage(t('Unable to remove monitor.'));
-      });
+  const handleDelete = async () => {
+    await deleteMonitor(api, orgId, monitor.id);
+    browserHistory.push(normalizeUrl(`/organizations/${orgId}/crons/`));
   };
 
-  const updateMonitor = (data: Partial<Monitor>) => {
-    addLoadingMessage();
-    api
-      .requestPromise(`/organizations/${orgId}/monitors/${monitor.id}/`, {
-        method: 'PUT',
-        data,
-      })
-      .then(resp => {
-        clearIndicators();
-        onUpdate?.(resp);
-      })
-      .catch(err => {
-        logException(err);
-        addErrorMessage(t('Unable to update monitor.'));
-      });
+  const handleUpdate = async (data: Partial<Monitor>) => {
+    const resp = await updateMonitor(api, orgId, monitor.id, data);
+    onUpdate?.(resp);
   };
 
   const toggleStatus = () =>
-    updateMonitor({
+    handleUpdate({
       status:
         monitor.status === MonitorStatus.DISABLED
           ? MonitorStatus.ACTIVE
