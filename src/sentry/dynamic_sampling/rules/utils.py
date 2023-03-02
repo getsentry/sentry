@@ -99,7 +99,6 @@ class Condition(TypedDict):
 class ActiveRule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    active: bool
     condition: Condition
     id: int
 
@@ -113,7 +112,7 @@ class DecayingFn(TypedDict):
     decayedValue: Optional[str]
 
 
-class ActiveDecayingRule(Rule):
+class ActiveDecayingRule(ActiveRule):
     timeRange: TimeRange
     decayingFn: DecayingFn
 

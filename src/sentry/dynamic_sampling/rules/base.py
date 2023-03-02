@@ -1,4 +1,4 @@
-from typing import List, OrderedDict, Set
+from typing import List, OrderedDict, Sequence, Set
 
 import sentry_sdk
 
@@ -52,7 +52,7 @@ def _get_rules_of_enabled_biases(
     return rules
 
 
-def generate_rules(project: Project) -> List[PolymorphicActiveRule]:
+def generate_rules(project: Project) -> Sequence[PolymorphicActiveRule]:
     try:
         rules = _get_rules_of_enabled_biases(
             project,
@@ -70,5 +70,5 @@ def generate_rules(project: Project) -> List[PolymorphicActiveRule]:
         return []
     else:
         for rule in rules:
-            rule.pop("active")
+            rule.pop("active")  # type: ignore
         return rules
