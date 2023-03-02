@@ -23,10 +23,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
 
-        if not span_id or not self._is_eligible_http_span(span) or self._overlaps_last_span(span):
-            self._validate_and_store_performance_problem()
-            self._reset_variables()
+        if not span_id or not self._is_eligible_http_span(span):
             return
+
+        if self._overlaps_last_span(span):
+            self._validate_and_store_performance_problem(span)
 
         self._add_problem_span(span)
 
