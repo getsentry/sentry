@@ -100,17 +100,20 @@ function TeamSelect({
     const teamsWithOrgRole = teams.filter(
       team => slugsToFilter.some(slug => slug === team.slug) && team.orgRole !== null
     );
+    // get teams with org roles, if any
     const teamOrgRoles =
       teamsWithOrgRole.length > 0
         ? teamsWithOrgRole.map(team => team.orgRole ?? undefined)
         : [];
+    // sort them and to get the highest priority role
+    // highest prio role may change minimum team role
     teamOrgRoles.sort((a, b) =>
       orgRoleList.findIndex(r => r.id === a) > orgRoleList.findIndex(r => r.id === b)
         ? 1
         : -1
     );
 
-    if (teamOrgRoles === null) {
+    if (teamOrgRoles.length === 0) {
       return selectedOrgRole;
     }
     if (

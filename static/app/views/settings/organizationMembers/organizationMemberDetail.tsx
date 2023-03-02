@@ -273,7 +273,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     const {access, features, orgRoleList} = organization;
 
-    // determine the team roles using the member's org role and those from teams
+    // determine the minimum team roles using all org roles
     const currentTopOrgRole = member.allOrgRoles ? member.allOrgRoles[0] : null;
     const orgRoleIndex = orgRoleList.findIndex(r => r.id === orgRole);
 

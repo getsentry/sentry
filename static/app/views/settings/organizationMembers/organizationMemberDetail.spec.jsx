@@ -31,6 +31,7 @@ describe('OrganizationMemberDetail', function () {
       'idp:provisioned': true,
     },
   });
+  const managerTeam = TestStubs.Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
   const teams = [
     team,
     TestStubs.Team({
@@ -49,6 +50,7 @@ describe('OrganizationMemberDetail', function () {
       },
     }),
     idpTeam,
+    managerTeam,
   ];
 
   const teamAssignment = {
@@ -682,5 +684,38 @@ describe('OrganizationMemberDetail', function () {
       selectEvent.openMenu(teamRoleSelect);
       expect(screen.queryAllByText('...').length).toBe(0);
     });
+  });
+
+  it('overwrites when member joins a manager team', () => {
+    render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+      context: routerContext,
+    });
+
+    // Role info box is hidden
+    expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
+
+    // Dropdown has correct value set
+    const teamRow = screen.getByTestId('team-row-for-member');
+    const teamRoleSelect = within(teamRow).getByText('Contributor');
+
+    // Join manager team
+    userEvent.click(screen.getByText('Add Team'));
+    // Click the first item
+    userEvent.click(screen.getByText('#manager-team'));
+
+    // Role info box is shown
+    expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+
+    // Dropdowns have correct value set
+    const teamRows = screen.getAllByTestId('team-row-for-member');
+    within(teamRows[0]).getByText('Team Admin');
+    within(teamRows[1]).getByText('Team Admin');
+
+    // Dropdown options are not visible
+    expect(screen.queryAllByText('...').length).toBe(0);
+
+    // Dropdown cannot be opened
+    selectEvent.openMenu(teamRoleSelect);
+    expect(screen.queryAllByText('...').length).toBe(0);
   });
 });
