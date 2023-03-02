@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -72,14 +73,23 @@ function FlamegraphViewSelectMenu({
         onChange={onViewChange}
         priority="primary"
       >
-        <SegmentedControl.Item key="bottom up">{t('Bottom Up')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="top down">{t('Top Down')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="bottom up" tooltip="top down view or icicle">
+          <IcicleIcon size="xs" />{' '}
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key="top down" tooltip="bottom up view or flame">
+          <FlameIcon size="xs" />{' '}
+        </SegmentedControl.Item>
       </SegmentedControl>
     </FlamegraphViewSelectMenuWrap>
   );
 }
 
 export {FlamegraphViewSelectMenu};
+
+const IcicleIcon = styled(IconProfiling)``;
+const FlameIcon = styled(IconProfiling)`
+  transform: rotate(180deg);
+`;
 
 const FlamegraphViewSelectMenuWrap = styled('div')`
   display: grid;
