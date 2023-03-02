@@ -42,7 +42,9 @@ def process_message(message: Message[KafkaPayload]) -> None:
     process_profile_task.s(profile=profile).apply_async()
 
 
-class ProcessProfileStrategyFactory(ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]):
+class ProcessProfileStrategyFactory(
+    ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]
+):
     def create_with_partitions(
         self,
         commit: Commit,
