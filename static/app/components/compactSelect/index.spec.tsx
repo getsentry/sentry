@@ -133,6 +133,75 @@ describe('CompactSelect', function () {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('can toggle sections', async function () {
+      render(
+        <CompactSelect
+          multiple
+          options={[
+            {
+              label: 'Section 1',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_one', label: 'Option One'},
+                {value: 'opt_two', label: 'Option Two'},
+              ],
+            },
+            {
+              label: 'Section 2',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_three', label: 'Option Three'},
+                {value: 'opt_four', label: 'Option Four'},
+              ],
+            },
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button', {expanded: false}));
+      await waitFor(() =>
+        expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus()
+      );
+
+      // move focus to Section 1's toggle button and press it to select all
+      userEvent.keyboard('{Tab}');
+      expect(screen.getByRole('button', {name: 'Select All in Section 1'})).toHaveFocus();
+      userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: 'Option Two'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // press Section 1's toggle button again to unselect all
+      userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+      expect(screen.getByRole('option', {name: 'Option Two'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+
+      // move to Section 2's toggle button and select all
+      userEvent.keyboard('{Tab}');
+      expect(screen.getByRole('button', {name: 'Select All in Section 2'})).toHaveFocus();
+      userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('option', {name: 'Option Three'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: 'Option Four'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
     it('triggers onClose when the menu is closed if provided', function () {
       const onCloseMock = jest.fn();
       render(
@@ -245,6 +314,76 @@ describe('CompactSelect', function () {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('can toggle sections', async function () {
+      render(
+        <CompactSelect
+          grid
+          multiple
+          options={[
+            {
+              label: 'Section 1',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_one', label: 'Option One'},
+                {value: 'opt_two', label: 'Option Two'},
+              ],
+            },
+            {
+              label: 'Section 2',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_three', label: 'Option Three'},
+                {value: 'opt_four', label: 'Option Four'},
+              ],
+            },
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      userEvent.click(screen.getByRole('button', {expanded: false}));
+      await waitFor(() =>
+        expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus()
+      );
+
+      // move focus to Section 1's toggle button and press it to select all
+      userEvent.keyboard('{Tab}');
+      expect(screen.getByRole('button', {name: 'Select All in Section 1'})).toHaveFocus();
+      userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByRole('row', {name: 'Option Two'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // press Section 1's toggle button again to unselect all
+      userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+      expect(screen.getByRole('row', {name: 'Option Two'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+
+      // move to Section 2's toggle button and select all
+      userEvent.keyboard('{Tab}');
+      expect(screen.getByRole('button', {name: 'Select All in Section 2'})).toHaveFocus();
+      userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('row', {name: 'Option Three'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByRole('row', {name: 'Option Four'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
     });
 
     it('triggers onClose when the menu is closed if provided', function () {

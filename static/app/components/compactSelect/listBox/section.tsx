@@ -7,7 +7,14 @@ import {Node} from '@react-types/shared';
 import {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
-import {SectionGroup, SectionSeparator, SectionTitle, SectionWrap} from '../styles';
+import {
+  SectionGroup,
+  SectionHeader,
+  SectionSeparator,
+  SectionTitle,
+  SectionWrap,
+} from '../styles';
+import {SectionToggle} from '../utils';
 
 import {ListBoxOption} from './option';
 
@@ -36,11 +43,22 @@ export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
     });
   }, [item.childNodes, filterOption]);
 
+  const showToggleAllButton =
+    listState.selectionManager.selectionMode === 'multiple' &&
+    item.value.showToggleAllButton;
+
   return (
     <Fragment>
       <SectionSeparator {...separatorProps} />
       <SectionWrap {...itemProps}>
-        {item.rendered && <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>}
+        {(item.rendered || showToggleAllButton) && (
+          <SectionHeader>
+            {item.rendered && (
+              <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
+            )}
+            {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
+          </SectionHeader>
+        )}
         <SectionGroup {...groupProps}>
           {filteredOptions.map(child => (
             <ListBoxOption

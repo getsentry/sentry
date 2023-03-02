@@ -414,8 +414,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${p => headerVerticalPadding[p.size]} ${space(1)}
-    ${p => headerVerticalPadding[p.size]} ${space(1.5)};
+  padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
@@ -448,9 +447,10 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: 400;
   color: ${p => p.theme.subText};
-  padding: 0 ${space(0.25)};
-  margin: 0 -${space(0.25)};
+  padding: 0 ${space(0.5)};
+  margin: 0 -${space(0.5)};
 `;
 
 const searchVerticalPadding: Record<FormSize, string> = {
