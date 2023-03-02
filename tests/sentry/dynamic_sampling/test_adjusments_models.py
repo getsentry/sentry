@@ -34,6 +34,7 @@ def test_adjust_sample_rates_org_with_few_projects():
             new_count_per_root=6.0,
             blended_sample_rate=0.25,
             new_sample_rate=pytest.approx(0.16666666666666666),
+            _diff=3.0,
         ),
         P(
             id=2,
@@ -41,6 +42,7 @@ def test_adjust_sample_rates_org_with_few_projects():
             new_count_per_root=5.5,
             blended_sample_rate=0.25,
             new_sample_rate=pytest.approx(0.19642857142857142),
+            _diff=1.5,
         ),
         P(
             id=3,
@@ -48,6 +50,7 @@ def test_adjust_sample_rates_org_with_few_projects():
             new_count_per_root=4.5,
             blended_sample_rate=0.25,
             new_sample_rate=0.375,
+            _diff=1.5,
         ),
         P(
             id=4,
@@ -55,6 +58,7 @@ def test_adjust_sample_rates_org_with_few_projects():
             new_count_per_root=4.0,
             blended_sample_rate=0.25,
             new_sample_rate=1.0,
+            _diff=3.0,
         ),
     ]
 
@@ -123,6 +127,7 @@ def test_adjust_sample_rates_org_with_even_num_projects():
             new_count_per_root=5.0,
             blended_sample_rate=0.25,
             new_sample_rate=0.15625,
+            _diff=3.0,
         ),
         P(
             id=2,
@@ -130,6 +135,7 @@ def test_adjust_sample_rates_org_with_even_num_projects():
             new_count_per_root=7.0,
             blended_sample_rate=0.25,
             new_sample_rate=0.0,
+            _diff=0.0,
         ),
         P(
             id=3,
@@ -137,6 +143,7 @@ def test_adjust_sample_rates_org_with_even_num_projects():
             new_count_per_root=6.0,
             blended_sample_rate=0.25,
             new_sample_rate=0.5,
+            _diff=3.0,
         ),
     ]
 
@@ -159,6 +166,7 @@ def test_adjust_sample_rates_org_with_same_counts_projects():
             new_count_per_root=6.0,
             blended_sample_rate=0.25,
             new_sample_rate=pytest.approx(0.16666666666666666),
+            _diff=3.0,
         ),
         P(
             id=2,
@@ -166,6 +174,7 @@ def test_adjust_sample_rates_org_with_same_counts_projects():
             new_count_per_root=6.375,
             blended_sample_rate=0.25,
             new_sample_rate=0.265625,
+            _diff=-0.375,
         ),
         P(
             id=3,
@@ -173,6 +182,7 @@ def test_adjust_sample_rates_org_with_same_counts_projects():
             new_count_per_root=5.625,
             blended_sample_rate=0.25,
             new_sample_rate=0.234375,
+            _diff=-0.375,
         ),
         P(
             id=4,
@@ -180,6 +190,7 @@ def test_adjust_sample_rates_org_with_same_counts_projects():
             new_count_per_root=4.0,
             blended_sample_rate=0.25,
             new_sample_rate=1.0,
+            _diff=3.0,
         ),
     ]
 
@@ -202,6 +213,7 @@ def test_adjust_sample_rates_org_with_counts_projects():
             new_count_per_root=8.0,
             blended_sample_rate=0.25,
             new_sample_rate=1.0,
+            _diff=6.0,
         ),
         P(
             id=2,
@@ -209,6 +221,7 @@ def test_adjust_sample_rates_org_with_counts_projects():
             new_count_per_root=4.0,
             blended_sample_rate=0.25,
             new_sample_rate=0.1,
+            _diff=6.0,
         ),
         P(
             id=3,
@@ -216,6 +229,7 @@ def test_adjust_sample_rates_org_with_counts_projects():
             new_count_per_root=11.5,
             blended_sample_rate=0.25,
             new_sample_rate=0.2875,
+            _diff=-1.5,
         ),
         P(
             id=4,
@@ -223,6 +237,7 @@ def test_adjust_sample_rates_org_with_counts_projects():
             new_count_per_root=8.5,
             blended_sample_rate=0.25,
             new_sample_rate=0.2125,
+            _diff=-1.5,
         ),
     ]
 
