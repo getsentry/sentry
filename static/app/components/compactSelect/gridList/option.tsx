@@ -113,6 +113,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       label={label}
       details={details}
       disabled={isDisabled}
+      isSelected={isSelected}
       isFocused={isFocusWithin}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
       innerWrapProps={gridCellPropsMemo}
