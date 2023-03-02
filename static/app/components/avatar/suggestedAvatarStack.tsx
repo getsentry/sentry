@@ -7,7 +7,7 @@ import {Actor} from 'sentry/types';
 
 type Props = {
   owners: Actor[];
-  reverse: boolean;
+  reverse?: boolean;
 } & BaseAvatar['props'] &
   Omit<React.ComponentProps<typeof ActorAvatar>, 'actor' | 'hasTooltip'>;
 
