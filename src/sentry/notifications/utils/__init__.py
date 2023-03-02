@@ -4,6 +4,7 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -526,6 +527,19 @@ class PerformanceProblemContext:
                 return span
         return None
 
+    def get_span_duration(self, span: Dict[str, Any] | None) -> timedelta:
+        if span:
+            return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
+        return timedelta(0)
+
+    def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
+        "Given non-overlapping spans, find the sum of the span durations in milliseconds"
+        sum: float = 0.0
+        for span in spans:
+            if span:
+                sum += self.get_span_duration(span).total_seconds() * 1000
+        return sum
+
     @classmethod
     def from_problem_and_spans(
         cls,
@@ -600,6 +614,8 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
                     "is_multi_value": True,
                 },
             ],
+            "transaction_duration": self.transaction_duration,
+            "slow_span_duration": self.time_saved,
         }
 
     @property
@@ -622,6 +638,31 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     def _find_span_desc_by_id(self, id: str) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
+
+    @property
+    def time_saved(self) -> float:
+        """
+        Calculates the cost saved by running spans in parallel,
+        this is the maximum time saved of running all independent queries in parallel
+        note, maximum means it does not account for db connection times and overhead associated with parallelization,
+        this is where thresholds come in
+        """
+        independent_spans = [self._find_span_by_id(id) for id in self.problem.offender_span_ids]
+        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids]
+        total_duration = self._sum_span_duration(consecutive_spans)
+
+        max_independent_span_duration = max(
+            [self.get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
+        )
+
+        sum_of_dependent_span_durations = 0.0
+        for span in consecutive_spans:
+            if span not in independent_spans:
+                sum_of_dependent_span_durations += (
+                    self.get_span_duration(span).total_seconds() * 1000
+                )
+
+        return total_duration - max(max_independent_span_duration, sum_of_dependent_span_durations)
 
 
 class RenderBlockingAssetProblemContext(PerformanceProblemContext):
