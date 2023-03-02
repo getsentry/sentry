@@ -244,4 +244,68 @@ describe('CompactSelect', function () {
     // Region 2's label isn't rendered because the region is empty
     expect(screen.queryByRole('Region 2')).not.toBeInTheDocument();
   });
+
+  it('works with grid lists', async function () {
+    render(
+      <CompositeSelect grid>
+        <CompositeSelect.Region
+          label="Region 1"
+          defaultValue="choice_one"
+          onChange={() => {}}
+          options={[
+            {value: 'choice_one', label: 'Choice One'},
+            {value: 'choice_two', label: 'Choice Two'},
+          ]}
+        />
+        <CompositeSelect.Region
+          multiple
+          label="Region 2"
+          onChange={() => {}}
+          options={[
+            {value: 'choice_three', label: 'Choice Three'},
+            {value: 'choice_four', label: 'Choice Four'},
+          ]}
+        />
+      </CompositeSelect>
+    );
+
+    // click on the trigger button
+    userEvent.click(screen.getByRole('button'));
+
+    // Region 1 is rendered & Choice One is selected
+    expect(screen.getByRole('grid', {name: 'Region 1'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Choice One'})).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('row', {name: 'Choice One'})).toHaveFocus()
+    );
+    expect(screen.getByRole('row', {name: 'Choice One'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('row', {name: 'Choice Two'})).toBeInTheDocument();
+
+    // Region 2  is rendered
+    expect(screen.getByRole('grid', {name: 'Region 2'})).toBeInTheDocument();
+    expect(screen.getByRole('grid', {name: 'Region 2'})).toHaveAttribute(
+      'aria-multiselectable',
+      'true'
+    );
+    expect(screen.getByRole('row', {name: 'Choice Three'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Choice Four'})).toBeInTheDocument();
+
+    // Pressing Arrow Down twice moves focus to Choice Three
+    userEvent.keyboard('{ArrowDown>2}');
+    expect(screen.getByRole('row', {name: 'Choice Three'})).toHaveFocus();
+
+    // Pressing Enter selects Choice Three
+    userEvent.keyboard('{Enter}');
+    expect(screen.getByRole('row', {name: 'Choice Three'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
+    // Pressing Arrow Down two more times loops focus back to Choice One
+    userEvent.keyboard('{ArrowDown>2}');
+    expect(screen.getByRole('row', {name: 'Choice One'})).toHaveFocus();
+  });
 });

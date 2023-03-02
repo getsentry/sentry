@@ -6,7 +6,7 @@ import {Item} from '@react-stately/collections';
 import {space} from 'sentry/styles/space';
 
 import {Control, ControlProps} from './control';
-import {ListBox, MultipleListBoxProps, SingleListBoxProps} from './listBox';
+import {List, MultipleListProps, SingleListProps} from './list';
 import {SelectOption} from './types';
 
 interface BaseCompositeSelectRegion<Value extends React.Key> {
@@ -17,27 +17,33 @@ interface BaseCompositeSelectRegion<Value extends React.Key> {
 
 /**
  * A single-selection (only one option can be selected at a time) "region" inside a
- * composite select. Each "region" is a separated, self-contained select box (each
- * renders as a list box with its own list state) whose selection values don't interfere
+ * composite select. Each "region" is a separated, self-contained selectable list (each
+ * renders as a `ul` with its own list state) whose selection values don't interfere
  * with one another.
  */
 export interface SingleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
-    Omit<SingleListBoxProps<Value>, 'children' | 'items' | 'compositeIndex' | 'size'> {}
+    Omit<
+      SingleListProps<Value>,
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+    > {}
 
 /**
  * A multiple-selection (multiple options can be selected at the same time) "region"
- * inside a composite select. Each "region" is a separated, self-contained select box
- * (each renders as a list box with its own list state) whose selection values don't
+ * inside a composite select. Each "region" is a separated, self-contained selectable
+ * list (each renders as a `ul` with its own list state) whose selection values don't
  * interfere with one another.
  */
 export interface MultipleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
-    Omit<MultipleListBoxProps<Value>, 'children' | 'items' | 'compositeIndex' | 'size'> {}
+    Omit<
+      MultipleListProps<Value>,
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+    > {}
 
 /**
  * A "region" inside a composite select. Each "region" is a separated, self-contained
- * select box (each renders as a list box with its own list state) whose selection
+ * selectable list (each renders as a `ul` with its own list state) whose selection
  * values don't interfere with one another.
  */
 export type CompositeSelectRegion<Value extends React.Key> =
@@ -57,7 +63,7 @@ type CompositeSelectChild =
 export interface CompositeSelectProps extends ControlProps {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
-   * self-contained select box (each renders as a list box with its own list state)
+   * self-contained selectable list (each renders as a `ul` with its own list state)
    * whose values don't interfere with one another.
    */
   children: CompositeSelectChild | CompositeSelectChild[];
@@ -66,7 +72,7 @@ export interface CompositeSelectProps extends ControlProps {
    * and functions as a fallback value. Each composite region also accepts the same
    * prop, which will take precedence over this one.
    */
-  closeOnSelect?: SingleListBoxProps<React.Key>['closeOnSelect'];
+  closeOnSelect?: SingleListProps<React.Key>['closeOnSelect'];
 }
 
 /**
@@ -75,13 +81,14 @@ export interface CompositeSelectProps extends ControlProps {
 function CompositeSelect({
   children,
   // Control props
+  grid,
   disabled,
   size = 'md',
   closeOnSelect,
   ...controlProps
 }: CompositeSelectProps) {
   return (
-    <Control {...controlProps} size={size} disabled={disabled}>
+    <Control {...controlProps} grid={grid} size={size} disabled={disabled}>
       <FocusScope>
         <RegionsWrap>
           {Children.map(children, (child, index) => {
@@ -92,6 +99,7 @@ function CompositeSelect({
             return (
               <Region
                 {...child.props}
+                grid={grid}
                 size={size}
                 compositeIndex={index}
                 closeOnSelect={child.props.closeOnSelect ?? closeOnSelect}
@@ -106,7 +114,7 @@ function CompositeSelect({
 
 /**
  * A "region" inside composite selectors. Each "region" is a separated, self-contained
- * select box (each renders as a list box with its own list state) whose selection
+ * selectable list (each renders as a `ul` with its own list state) whose selection
  * values don't interfere with one another.
  */
 CompositeSelect.Region = function <Value extends React.Key>(
@@ -121,8 +129,9 @@ CompositeSelect.Region = function <Value extends React.Key>(
 export {CompositeSelect};
 
 type RegionProps<Value extends React.Key> = CompositeSelectRegion<Value> & {
-  compositeIndex: SingleListBoxProps<Value>['compositeIndex'];
-  size: SingleListBoxProps<Value>['size'];
+  compositeIndex: SingleListProps<Value>['compositeIndex'];
+  grid: SingleListProps<Value>['grid'];
+  size: SingleListProps<Value>['size'];
 };
 
 function Region<Value extends React.Key>({
@@ -139,9 +148,9 @@ function Region<Value extends React.Key>({
   label,
   ...props
 }: RegionProps<Value>) {
-  // Combine list box props into an object with two clearly separated types, one where
+  // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
-  const listBoxProps = useMemo(() => {
+  const listProps = useMemo(() => {
     if (multiple) {
       return {
         multiple,
@@ -166,9 +175,9 @@ function Region<Value extends React.Key>({
   );
 
   return (
-    <ListBox
+    <List
       {...props}
-      {...listBoxProps}
+      {...listProps}
       items={optionsWithKey}
       disallowEmptySelection={disallowEmptySelection}
       isOptionDisabled={isOptionDisabled}
@@ -182,7 +191,7 @@ function Region<Value extends React.Key>({
           {opt.label}
         </Item>
       )}
-    </ListBox>
+    </List>
   );
 }
 
@@ -191,7 +200,7 @@ const RegionsWrap = styled('div')`
   overflow: auto;
   padding: ${space(0.5)} 0;
 
-  /* Remove padding inside list boxes */
+  /* Remove padding inside lists */
   > ul {
     padding: 0;
   }
