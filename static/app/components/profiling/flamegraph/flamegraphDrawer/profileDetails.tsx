@@ -11,7 +11,9 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {EventTransaction} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -47,6 +49,8 @@ function renderValue(
 
 interface ProfileDetailsProps {
   profileGroup: ProfileGroup;
+  projectId: string;
+  transaction: EventTransaction | null;
 }
 
 export function ProfileDetails(props: ProfileDetailsProps) {
@@ -105,6 +109,16 @@ export function ProfileDetails(props: ProfileDetailsProps) {
   const organization = organizations.find(
     o => o.id === String(props.profileGroup.metadata.organizationID)
   );
+
+  const projectSlug = props.projectId ?? '';
+
+  const transactionTarget =
+    props.transaction?.id && organization
+      ? getTransactionDetailsUrl(
+          organization.slug,
+          `${projectSlug}:${props.transaction.id}`
+        )
+      : null;
 
   return (
     <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
@@ -176,6 +190,14 @@ export function ProfileDetails(props: ProfileDetailsProps) {
                   </DetailsRow>
                 );
               }
+            }
+            if (key === 'transactionName' && transactionTarget) {
+              return (
+                <DetailsRow key={key}>
+                  <strong>{label}:</strong>
+                  <Link to={transactionTarget}>{value}</Link>
+                </DetailsRow>
+              );
             }
             if (key === 'projectID') {
               const project = projects.find(p => p.id === String(value));
