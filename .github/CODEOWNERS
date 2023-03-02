@@ -99,24 +99,24 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Crons
 /static/app/views/monitors                                   @getsentry/crons
-/src/sentry/models/monitor.py               			     @getsentry/crons
-/src/sentry/models/monitorcheckin.py               		     @getsentry/crons
+/src/sentry/models/monitor.py                                @getsentry/crons
+/src/sentry/models/monitorcheckin.py                         @getsentry/crons
 /src/sentry/models/monitorenvironment.py                     @getsentry/crons
-/src/sentry/models/monitorlocation.py                 	     @getsentry/crons
-/src/sentry/api/validators/monitor.py               	     @getsentry/crons
-/src/sentry/api/bases/monitor.py               	 		     @getsentry/crons
+/src/sentry/models/monitorlocation.py                        @getsentry/crons
+/src/sentry/api/validators/monitor.py                        @getsentry/crons
+/src/sentry/api/bases/monitor.py                             @getsentry/crons
 /src/sentry/api/endpoints/monitor_stats.py                   @getsentry/crons
 /src/sentry/api/endpoints/organization_monitors.py           @getsentry/crons
 /src/sentry/api/endpoints/monitor_checkins.py                @getsentry/crons
 /src/sentry/api/endpoints/monitor_checkin_details.py         @getsentry/crons
-/src/sentry/tasks/check_monitors.py 						 @getsentry/crons
+/src/sentry/tasks/check_monitors.py                          @getsentry/crons
 /tests/sentry/api/endpoints/test_organization_monitors.py    @getsentry/crons
 /tests/sentry/api/endpoints/test_monitor_checkins.py         @getsentry/crons
 /tests/sentry/api/endpoints/test_monitor_checkin_details.py  @getsentry/crons
-/tests/sentry/models/test_monitor.py 						 @getsentry/crons
-/tests/sentry/models/test_monitorenvironment.py 			 @getsentry/crons
-/tests/sentry/utils/test_monitors.py 						 @getsentry/crons
-/tests/sentry/tasks/test_check_monitors.py 					 @getsentry/crons
+/tests/sentry/models/test_monitor.py                         @getsentry/crons
+/tests/sentry/models/test_monitorenvironment.py              @getsentry/crons
+/tests/sentry/utils/test_monitors.py                         @getsentry/crons
+/tests/sentry/tasks/test_check_monitors.py                   @getsentry/crons
 
 
 # Owners by product feature
