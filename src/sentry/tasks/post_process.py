@@ -760,7 +760,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
             f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
             + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
         )
-        derive_code_mappings.delay(project.id, event.data, dry_run=False)
+        derive_code_mappings.delay(project.id, event.data)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")
