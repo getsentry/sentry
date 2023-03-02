@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, List, Mapping, Optional
 
 import requests
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
@@ -266,7 +267,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         # or getting ref from git blame was successful
         codecov_data = None
         if not fetch_commit_sha or ref:
-            lineCoverage, codecovUrl = get_codecov_data(
+            line_coverage, codecov_url = get_codecov_data(
                 repo=repo.name,
                 service=service,
                 ref=ref if ref else branch,
@@ -274,10 +275,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 path=path,
                 organization=org,
             )
-            if lineCoverage and codecovUrl:
+            if line_coverage and codecov_url:
                 codecov_data = {
-                    "lineCoverage": lineCoverage,
-                    "coverageUrl": codecovUrl,
+                    "lineCoverage": line_coverage,
+                    "coverageUrl": codecov_url,
                     "status": 200,
                 }
         return codecov_data
@@ -392,20 +393,31 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         )
                         if codecov_data:
                             result["codecov"] = codecov_data
+                        else:
+                            result["codecov"] = {"status": status.HTTP_204_NO_CONTENT}
+                            raise Exception("Expected data from Codecov but got none.")
                     except requests.exceptions.HTTPError as error:
                         result["codecov"] = {
                             "attemptedUrl": error.response.url,
                             "status": error.response.status_code,
                         }
-                        if error.response.status_code != 404:
+                        if error.response.status_code == 404:
+                            logger.warning("Codecov request returned 404. Coverage may not exist")
+                        else:
                             logger.exception(
-                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
+                                "Failed to get expected data from Codecov. Continuing execution."
                             )
                     except requests.Timeout:
                         scope.set_tag("codecov.timeout", True)
+                        result["codecov"] = {
+                            "status": status.HTTP_408_REQUEST_TIMEOUT,
+                        }
                         logger.exception("Codecov request timed out. Continuing execution.")
                     except Exception:
-                        logger.exception("Something unexpected happen. Continuing execution.")
+                        result["codecov"] = {
+                            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        }
+                        logger.exception("Something unexpected happened. Continuing execution.")
                     # We don't expect coverage data if the integration does not exist (404)
 
             try:

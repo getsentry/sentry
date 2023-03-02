@@ -1949,10 +1949,6 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
         <Route
-          path="details/"
-          component={make(() => import('sentry/views/profiling/profileDetails'))}
-        />
-        <Route
           path="flamechart/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />

@@ -344,13 +344,13 @@ def cron(**options):
     "--commit-batch-size",
     default=1000,
     type=int,
-    help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--commit-batch-timeout-ms",
     default=5000,
     type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+    help="Deprecated. Remove once no longer passed in production.",
 )
 @click.option(
     "--concurrency",
@@ -384,8 +384,6 @@ def post_process_forwarder(**options):
             topic=options["topic"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
-            commit_batch_size=options["commit_batch_size"],
-            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
             strict_offset_reset=options["strict_offset_reset"],
@@ -513,27 +511,6 @@ def kafka_options(
     return inner
 
 
-def batching_kafka_options(
-    group, max_batch_size=None, max_batch_time_ms=1000, allow_force_cluster=True
-):
-    """
-    Expose batching_kafka_consumer options as CLI args.
-
-    TODO(markus): Probably want to have this as part of batching_kafka_consumer
-    as this is duplicated effort between Snuba and Sentry.
-
-    TODO: To be removed in favour of `kafka_options` after it is no longer used by sentry and getsentry.
-    """
-
-    return kafka_options(
-        group,
-        allow_force_cluster=allow_force_cluster,
-        include_batching_options=True,
-        default_max_batch_size=max_batch_size,
-        default_max_batch_time_ms=max_batch_time_ms,
-    )
-
-
 @run.command("ingest-consumer")
 @log_options()
 @click.option(
@@ -550,7 +527,7 @@ def batching_kafka_options(
     is_flag=True,
     help="Listen to all consumer types at once.",
 )
-@batching_kafka_options("ingest-consumer", max_batch_size=100)
+@kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @click.option(
     "--concurrency",
     type=int,
@@ -664,7 +641,7 @@ def metrics_parallel_consumer(**options):
 
 @run.command("billing-metrics-consumer")
 @log_options()
-@batching_kafka_options("billing-metrics-consumer", max_batch_size=100)
+@kafka_options("billing-metrics-consumer")
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
@@ -677,7 +654,7 @@ def metrics_billing_consumer(**options):
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
-@batching_kafka_options("ingest-profiles", max_batch_size=100)
+@kafka_options("ingest-profiles")
 @strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
@@ -701,11 +678,27 @@ def replays_recordings_consumer(**options):
     run_processor_with_signals(consumer)
 
 
+@run.command("ingest-monitors")
+@log_options()
+@click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")
+@kafka_options("ingest-monitors")
+@strict_offset_reset_option()
+@configuration
+def monitors_consumer(**options):
+    from sentry.monitors.consumers import get_monitor_check_ins_consumer
+
+    consumer = get_monitor_check_ins_consumer(**options)
+    run_processor_with_signals(consumer)
+
+
 @run.command("indexer-last-seen-updater")
 @log_options()
 @configuration
-@batching_kafka_options(
-    "indexer-last-seen-updater-consumer", max_batch_size=100, allow_force_cluster=False
+@kafka_options(
+    "indexer-last-seen-updater-consumer",
+    allow_force_cluster=False,
+    include_batching_options=True,
+    default_max_batch_size=100,
 )
 @strict_offset_reset_option()
 @click.option("--ingest-profile", required=True)

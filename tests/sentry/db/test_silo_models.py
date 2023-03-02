@@ -1,13 +1,5 @@
 from sentry.api.serializers.base import registry
-from sentry.data_export.models import ExportedData
-from sentry.discover.models import DiscoverSavedQuery
-from sentry.incidents.models import (
-    AlertRuleActivity,
-    AlertRuleTriggerAction,
-    IncidentActivity,
-    IncidentSeen,
-    IncidentSubscription,
-)
+from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import (
     Actor,
     ApiApplication,
@@ -21,10 +13,7 @@ from sentry.models import (
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationOnboardingTask,
-    Project,
     ProjectBookmark,
-    ProjectTransactionThreshold,
-    ProjectTransactionThresholdOverride,
     PromptsActivity,
     RecentSearch,
     RuleActivity,
@@ -34,7 +23,6 @@ from sentry.models import (
     ServiceHook,
     Team,
     User,
-    UserOption,
 )
 from sentry.models.integrations import (
     ExternalActor,
@@ -50,34 +38,15 @@ from sentry.testutils.silo import (
     validate_no_cross_silo_foreign_keys,
 )
 
-
-class any_model:
-    def __eq__(self, other):
-        return True
-
-    def __le__(self, other):
-        return False
-
-    def __ge__(self, other):
-        return False
-
-    def __hash__(self):
-        return 1
-
-
 decorator_exemptions = set()
 fk_emeptions = {
-    (AlertRuleActivity, User),
     (ApiKey, Organization),
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
     (AuthProvider, Organization),
-    (ExportedData, User),
     (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
-    (IncidentSeen, User),
-    (IncidentSubscription, User),
     (OrganizationIntegration, Organization),
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
@@ -86,8 +55,6 @@ fk_emeptions = {
     (SentryAppInstallationForProvider, Organization),
     (MonitorCheckIn, MonitorLocation),
     (NotificationSetting, Actor),
-    (UserOption, Project),
-    (UserOption, Organization),
     (OrganizationAccessRequest, User),
     (OrganizationOnboardingTask, User),
     (ProjectBookmark, User),
@@ -96,11 +63,7 @@ fk_emeptions = {
     (RuleActivity, User),
     (ServiceHook, ApiApplication),
     (User, Actor),
-    (ProjectTransactionThresholdOverride, User),
-    (ProjectTransactionThreshold, User),
     (AlertRuleTriggerAction, SentryApp),
-    (DiscoverSavedQuery, User),
-    (IncidentActivity, User),
 }
 
 
