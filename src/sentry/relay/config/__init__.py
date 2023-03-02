@@ -334,8 +334,6 @@ def _get_project_config(
         if event_retention is not None:
             config["eventRetention"] = event_retention
     with Hub.current.start_span(op="get_all_quotas"):
-        # TODO(jjbayer): Skip if Relay has been able to default missing entries for a long time
-        # (otherwise problem with external relays)
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
 
