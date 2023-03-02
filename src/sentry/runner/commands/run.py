@@ -675,7 +675,7 @@ def metrics_billing_consumer(**options):
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
-@batching_kafka_options("ingest-profiles", max_batch_size=100)
+@kafka_options("ingest-profiles")
 @strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
@@ -696,6 +696,19 @@ def replays_recordings_consumer(**options):
     from sentry.replays.consumers import get_replays_recordings_consumer
 
     consumer = get_replays_recordings_consumer(**options)
+    run_processor_with_signals(consumer)
+
+
+@run.command("ingest-monitors")
+@log_options()
+@click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")
+@kafka_options("ingest-monitors")
+@strict_offset_reset_option()
+@configuration
+def monitors_consumer(**options):
+    from sentry.monitors.consumers import get_monitor_check_ins_consumer
+
+    consumer = get_monitor_check_ins_consumer(**options)
     run_processor_with_signals(consumer)
 
 

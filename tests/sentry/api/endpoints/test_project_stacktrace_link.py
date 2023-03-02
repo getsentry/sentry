@@ -474,11 +474,11 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def test_codecov_new_endpoint(self, mock_integration):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py?branch=master",
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=200,
             json={
-                "files": [{"line_coverage": self.expected_line_coverage}],
-                "commit_file_url": self.expected_codecov_url,
+                "line_coverage": self.expected_line_coverage,
+                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
             content_type="application/json",
         )

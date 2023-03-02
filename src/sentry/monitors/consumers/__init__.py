@@ -9,12 +9,12 @@ from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
-from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
+from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory
 from sentry.utils import kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
 
-def get_profiles_process_consumer(
+def get_monitor_check_ins_consumer(
     topic: str,
     group_id: str,
     auto_offset_reset: str,
@@ -34,7 +34,7 @@ def get_profiles_process_consumer(
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=ProcessProfileStrategyFactory(),
+        processor_factory=StoreMonitorCheckInStrategyFactory(),
         commit_policy=ONCE_PER_SECOND,
     )
 
