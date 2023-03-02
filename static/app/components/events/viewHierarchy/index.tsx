@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
@@ -112,6 +113,10 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onKeyDown={handleRowKeyDown}
         onClick={e => {
           handleRowClick(e);
+          trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_tree', {
+            organization: project.organization,
+            platform: project.platform,
+          });
         }}
       >
         {r.item.depth !== 0 && <DepthMarker depth={r.item.depth} />}
@@ -151,8 +156,12 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       setUserHasSelected(true);
       setSelectedNode(node);
       handleScrollTo(item => item === node);
+      trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_wireframe', {
+        organization: project.organization,
+        platform: project.platform,
+      });
     },
-    [handleScrollTo]
+    [handleScrollTo, project.organization, project.platform]
   );
 
   const showWireframe = project?.platform !== 'unity';
@@ -170,6 +179,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   return (
     <Fragment>
       <RenderingSystem
+        organization={project.organization}
         platform={project?.platform}
         system={viewHierarchy.rendering_system}
       />

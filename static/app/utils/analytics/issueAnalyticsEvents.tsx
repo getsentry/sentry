@@ -31,6 +31,9 @@ export type IssueEventParameters = {
   'issue.shared_publicly': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.view_hierarchy.hover_rendering_system': {platform?: string};
+  'issue_details.view_hierarchy.select_from_tree': {platform?: string};
+  'issue_details.view_hierarchy.select_from_wireframe': {platform?: string};
   'issue_error_banner.proguard_misconfigured.clicked': {
     group?: string;
     platform?: string;
@@ -158,6 +161,11 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'issue_details.view_hierarchy.hover_rendering_system':
+    'View Hierarchy: Hovered rendering system icon',
+  'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
+  'issue_details.view_hierarchy.select_from_wireframe':
+    'View Hierarchy: Selection from wireframe',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
