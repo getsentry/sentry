@@ -2083,7 +2083,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         user = self.user
 
-        uo1 = UserOption.objects.create(key="self_assign_issue", value="1", project=None, user=user)
+        uo1 = UserOption.objects.create(
+            key="self_assign_issue", value="1", project_id=None, user=user
+        )
 
         self.login_as(user=user)
         response = self.get_success_response(qs_params={"id": group.id}, status="resolved")
@@ -2106,7 +2108,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project=None, user=self.user
+            key="self_assign_issue", value="1", project_id=None, user=self.user
         )
 
         self.login_as(user=self.user)
