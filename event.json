@@ -1,0 +1,1480 @@
+{
+  "event_id": "06cd30f9176b4b9d979c846d9535d37c",
+  "project": 4504758516121600,
+  "release": null,
+  "dist": null,
+  "platform": "javascript",
+  "message": "",
+  "datetime": "2023-02-28T19:25:39.671400+00:00",
+  "tags": [
+    ["browser", "Chrome 110.0.0"],
+    ["browser.name", "Chrome"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["deviceMemory", "8 GB"],
+    ["effectiveConnectionType", "2g"],
+    ["environment", "production"],
+    ["hardwareConcurrency", "10"],
+    ["level", "info"],
+    ["os", "Mac OS X 10.15.7"],
+    ["os.name", "Mac OS X"],
+    ["user", "ip:76.9.201.6"],
+    ["transaction", "/"],
+    ["url", "http://localhost:3000/"]
+  ],
+  "_meta": {"transaction": {"": {"val": "/"}}},
+  "_metrics": {"bytes.ingested.event": 21977, "bytes.stored.event": 25969},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1677612327.324,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data undefined",
+        "data": {"arguments": ["data", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677612327.324,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 undefined",
+        "data": {"arguments": ["data2", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677612327.325,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612327.325,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612329.468,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://reqres.in/api/users?page=1"
+        }
+      },
+      {
+        "timestamp": 1677612329.473,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612329.473,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 undefined",
+        "data": {"arguments": ["data2", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677612329.474,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612329.474,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612329.479,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612329.479,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 undefined",
+        "data": {"arguments": ["data2", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677612329.479,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612329.48,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.504,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://reqres.in/api/users?page=2"
+        }
+      },
+      {
+        "timestamp": 1677612331.505,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.506,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.506,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.506,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.508,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.508,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.508,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612331.508,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.55,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://reqres.in/api/users?page=3"
+        }
+      },
+      {
+        "timestamp": 1677612333.55,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.55,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.551,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.551,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.552,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.552,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.552,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612333.552,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.591,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://reqres.in/api/users?page=4"
+        }
+      },
+      {
+        "timestamp": 1677612335.592,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.592,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.592,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.592,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.594,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.594,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.595,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612335.595,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.63,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://reqres.in/api/users?page=5"
+        }
+      },
+      {
+        "timestamp": 1677612337.631,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.631,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.631,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.631,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.632,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.632,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.632,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612337.633,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612339.671,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://reqres.in/api/users?page=6"
+        }
+      },
+      {
+        "timestamp": 1677612339.673,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612339.673,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612339.673,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677612339.674,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      }
+    ]
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.browser": {"value": 2021.900178, "unit": "millisecond"},
+      "ops.http": {"value": 12221.600295, "unit": "millisecond"},
+      "ops.resource": {"value": 16793.000221, "unit": "millisecond"},
+      "ops.ui": {"value": 338.000059, "unit": "millisecond"},
+      "total.time": {"value": 31374.500753, "unit": "millisecond"}
+    }
+  },
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "110.0.0", "type": "browser"},
+    "device": {
+      "family": "Mac",
+      "model": "Mac",
+      "brand": "Apple",
+      "type": "device"
+    },
+    "os": {"name": "Mac OS X", "version": "10.15.7", "type": "os"},
+    "trace": {
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "span_id": "ab7f5721ce90a775",
+      "op": "pageload",
+      "status": "unknown",
+      "exclusive_time": 42.599678,
+      "client_sample_rate": 1.0,
+      "hash": "6666cd76f9695646",
+      "tags": {
+        "deviceMemory": "8 GB",
+        "effectiveConnectionType": "2g",
+        "hardwareConcurrency": "10"
+      },
+      "type": "trace"
+    }
+  },
+  "culprit": "/",
+  "environment": "production",
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": [],
+  "ingest_path": [
+    {
+      "version": "23.2.0",
+      "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"
+    }
+  ],
+  "key_id": "3008195",
+  "level": "info",
+  "location": "/",
+  "logger": "",
+  "measurements": {
+    "connection.rtt": {"value": 2150.0, "unit": "millisecond"},
+    "ttfb": {"value": 15.10000228881836, "unit": "millisecond"},
+    "ttfb.requesttime": {"value": 9.199857711791992, "unit": "millisecond"}
+  },
+  "metadata": {"location": "/", "title": "/"},
+  "nodestore_insert": 1677612345.1164,
+  "received": 1677612343.257255,
+  "request": {
+    "url": "http://localhost:3000/",
+    "headers": [
+      ["Referer", "http://localhost:3000/"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "7.39.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "Dedupe",
+      "HttpContext",
+      "BrowserTracing"
+    ],
+    "packages": [{"name": "npm:@sentry/react", "version": "7.39.0"}]
+  },
+  "span_grouping_config": {"id": "default:2022-10-27"},
+  "spans": [
+    {
+      "timestamp": 1677612314.774,
+      "start_timestamp": 1677612314.626,
+      "exclusive_time": 148.000002,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "9e902e1a1f49adac",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1677612327.3194,
+      "start_timestamp": 1677612327.2224,
+      "exclusive_time": 97.000122,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "9458ccedfe141d37",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1677612329.468,
+      "start_timestamp": 1677612327.4319,
+      "exclusive_time": 2036.099911,
+      "description": "GET https://reqres.in/api/users?page=1",
+      "op": "http.client",
+      "span_id": "a2eb4cb6f9f6c258",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "xhr",
+        "url": "https://reqres.in/api/users?page=1"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677612327.4266,
+      "start_timestamp": 1677612327.3336,
+      "exclusive_time": 92.999935,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "a23249ec7ab7446d",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1677612331.5043,
+      "start_timestamp": 1677612329.4773,
+      "exclusive_time": 2027.000189,
+      "description": "GET https://reqres.in/api/users?page=2",
+      "op": "http.client",
+      "span_id": "96f85e2841ec8c5d",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "xhr",
+        "url": "https://reqres.in/api/users?page=2"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677612333.5498,
+      "start_timestamp": 1677612331.5072,
+      "exclusive_time": 2042.599917,
+      "description": "GET https://reqres.in/api/users?page=3",
+      "op": "http.client",
+      "span_id": "8c7100f6806b1737",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "xhr",
+        "url": "https://reqres.in/api/users?page=3"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677612335.5909,
+      "start_timestamp": 1677612333.5514,
+      "exclusive_time": 2039.499998,
+      "description": "GET https://reqres.in/api/users?page=4",
+      "op": "http.client",
+      "span_id": "bfea921819972f23",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "xhr",
+        "url": "https://reqres.in/api/users?page=4"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677612337.63,
+      "start_timestamp": 1677612335.5934,
+      "exclusive_time": 2036.600113,
+      "description": "GET https://reqres.in/api/users?page=5",
+      "op": "http.client",
+      "span_id": "9e190c52ca4e2736",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "xhr",
+        "url": "https://reqres.in/api/users?page=5"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677612339.6714,
+      "start_timestamp": 1677612337.6316,
+      "exclusive_time": 2039.800167,
+      "description": "GET https://reqres.in/api/users?page=6",
+      "op": "http.client",
+      "span_id": "884cdc8c750b60f5",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "xhr",
+        "url": "https://reqres.in/api/users?page=6"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677612314.6162,
+      "start_timestamp": 1677612314.616,
+      "exclusive_time": 0.200033,
+      "description": "unloadEvent",
+      "op": "browser",
+      "span_id": "afa113810f3664a7",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "8e6939b423884b5c"
+    },
+    {
+      "timestamp": 1677612327.3201,
+      "start_timestamp": 1677612327.3165,
+      "exclusive_time": 3.600121,
+      "description": "domContentLoadedEvent",
+      "op": "browser",
+      "span_id": "90fe88d7094c99f5",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "b0e3ee8970392a6f"
+    },
+    {
+      "timestamp": 1677612327.4345,
+      "start_timestamp": 1677612327.4345,
+      "exclusive_time": 0.0,
+      "description": "loadEvent",
+      "op": "browser",
+      "span_id": "8a87722e9ef7d0e9",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "39e89edd65c7c22a"
+    },
+    {
+      "timestamp": 1677612312.5906,
+      "start_timestamp": 1677612312.5906,
+      "exclusive_time": 0.0,
+      "description": "connect",
+      "op": "browser",
+      "span_id": "92aaa6cc3e127209",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "b640a0ce465fa2a4"
+    },
+    {
+      "timestamp": 1677612312.5906,
+      "start_timestamp": 1677612312.5906,
+      "exclusive_time": 0.0,
+      "description": "cache",
+      "op": "browser",
+      "span_id": "93b076a4a6266d06",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "0fea6a13c52b4d47"
+    },
+    {
+      "timestamp": 1677612312.5906,
+      "start_timestamp": 1677612312.5906,
+      "exclusive_time": 0.0,
+      "description": "DNS",
+      "op": "browser",
+      "span_id": "af97a2d73d0cdaf7",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "ed5f2bdecbd4bd34"
+    },
+    {
+      "timestamp": 1677612314.6146,
+      "start_timestamp": 1677612312.5965,
+      "exclusive_time": 2018.100024,
+      "description": "request",
+      "op": "browser",
+      "span_id": "ad6c00c9f2eb4236",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "10573b873d2fa5a3"
+    },
+    {
+      "timestamp": 1677612314.6146,
+      "start_timestamp": 1677612312.6057,
+      "exclusive_time": 2008.899927,
+      "description": "response",
+      "op": "browser",
+      "span_id": "a4628dd55e258edf",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "d1fc8eaf36937be0"
+    },
+    {
+      "timestamp": 1677612327.2142,
+      "start_timestamp": 1677612314.6188,
+      "exclusive_time": 12595.400095,
+      "description": "/static/js/bundle.js",
+      "op": "resource.script",
+      "span_id": "8353d57157d574e2",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "data": {
+        "Decoded Body Size": 2573190,
+        "Encoded Body Size": 527959,
+        "Transfer Size": 528259,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "032ded07ff89c3b4"
+    },
+    {
+      "timestamp": 1677612327.2989,
+      "start_timestamp": 1677612327.2989,
+      "exclusive_time": 0.0,
+      "description": "sentry-tracing-init",
+      "op": "mark",
+      "span_id": "9088292140706b23",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "hash": "c53716060ebc199a"
+    },
+    {
+      "timestamp": 1677612329.5903,
+      "start_timestamp": 1677612327.4564,
+      "exclusive_time": 2133.900166,
+      "description": "/favicon.ico",
+      "op": "resource.other",
+      "span_id": "8e024e7707e10171",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "data": {
+        "Decoded Body Size": 3870,
+        "Encoded Body Size": 3461,
+        "Transfer Size": 3761,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "35a63c8a85b1279a"
+    },
+    {
+      "timestamp": 1677612329.5262,
+      "start_timestamp": 1677612327.4771,
+      "exclusive_time": 2049.100161,
+      "description": "/manifest.json",
+      "op": "resource.link",
+      "span_id": "8c06a7b0653069b3",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "data": {
+        "Decoded Body Size": 492,
+        "Encoded Body Size": 492,
+        "Transfer Size": 792,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "a2a63063e1bd6ed2"
+    },
+    {
+      "timestamp": 1677612331.654,
+      "start_timestamp": 1677612329.5269,
+      "exclusive_time": 2127.09999,
+      "description": "/logo192.png",
+      "op": "resource.other",
+      "span_id": "a741a5c366bf5e60",
+      "parent_span_id": "ab7f5721ce90a775",
+      "trace_id": "c1c925c7513941c2bea0e59d1cac72ed",
+      "data": {
+        "Decoded Body Size": 5347,
+        "Encoded Body Size": 5347,
+        "Transfer Size": 5647,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "03cf160ff9190e10"
+    }
+  ],
+  "start_timestamp": 1677612312.5906,
+  "timestamp": 1677612339.6714,
+  "title": "/",
+  "transaction": "/",
+  "transaction_info": {"source": "url"},
+  "type": "transaction",
+  "user": {
+    "ip_address": "76.9.201.6",
+    "geo": {"country_code": "CA", "city": "Toronto", "region": "Canada"}
+  },
+  "version": "7"
+}
