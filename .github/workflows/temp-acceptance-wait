@@ -1,0 +1,174 @@
+
+  take-pr-acceptance-snapshots:
+    name: Take PR Acceptance Snapshots
+    runs-on: ubuntu-20.04
+    if: |
+      github.event.label.name == 'Trigger: Visual Snapshot'
+    timeout-minutes: 25
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2]
+        pg-version: ['9.6']
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 3
+      VISUAL_SNAPSHOT_ENABLE: 1
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+        name: Checkout sentry
+
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+
+      - name: Step configurations
+        id: config
+        run: echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
+
+      - name: webpack cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        with:
+          path: ${{ steps.config.outputs.webpack-path }}
+          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
+
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: webpack
+        env:
+          WEBPACK_CACHE_PATH: ${{ steps.config.outputs.webpack-path }}
+          SENTRY_INSTRUMENTATION: 1
+          # this is fine to not have for forks, it shouldn't fail
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
+        run: |
+          yarn build-acceptance
+
+      - name: Build chartcuterie configuration module
+        run: |
+          make build-chartcuterie-config
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          snuba: true
+          chartcuterie: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
+          make run-acceptance
+        env:
+          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
+
+      - name: Save snapshots
+        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
+        with:
+          save-only: true
+          snapshot-path: .artifacts/visual-snapshots
+
+  take-frontend-snapshots:
+    name: Take PR Frontend Snapshots
+    # If you change the runs-on image, you must also change the runner in jest-balance.yml
+    # so that the balancer runs in the same environment as the tests.
+    runs-on: ubuntu-20.04
+    if: |
+      github.event.label.name == 'Trigger: Visual Snapshot'
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
+        instance: [0, 1, 2]
+
+    env:
+      VISUAL_HTML_ENABLE: 1
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: Build CSS
+        run: NODE_ENV=production yarn build-css
+
+      - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct.
+          CI_NODE_TOTAL: 3
+          CI_NODE_INDEX: ${{ matrix.instance }}
+        run: |
+          SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+
+      - name: Save HTML artifacts
+        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
+        with:
+          name: jest-html
+          path: .artifacts/visual-snapshots
+
+      - name: Create Images from HTML
+        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41 # main
+        with:
+          base-path: .artifacts/visual-snapshots
+          css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
+
+      - name: Save snapshots
+        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
+        with:
+          save-only: true
+          snapshot-path: .artifacts/visual-snapshots
+
+
+
+
+
+  diff-visual-snapshots:
+    name: Diff Visual Snapshots
+    needs: [take-pr-acceptance-snapshots, take-master-acceptance-snapshots, take-frontend-snapshots]
+    runs-on: ubuntu-20.04
+    if: |
+      github.event.label.name == 'Trigger: Visual Snapshot'
+    timeout-minutes: 20
+    steps:
+      - name: Diff snapshots
+        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
+        with:
+          action-name: 'Visual Snapshot: Results'
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

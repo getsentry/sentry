@@ -152,8 +152,6 @@ jobs:
 
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
-        # Run this step only if there are acceptance related code changes
-        # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
