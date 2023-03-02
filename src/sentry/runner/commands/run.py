@@ -699,6 +699,19 @@ def replays_recordings_consumer(**options):
     run_processor_with_signals(consumer)
 
 
+@run.command("ingest-monitors")
+@log_options()
+@click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")
+@kafka_options("ingest-monitors")
+@strict_offset_reset_option()
+@configuration
+def monitors_consumer(**options):
+    from sentry.monitors.consumers import get_monitor_check_ins_consumer
+
+    consumer = get_monitor_check_ins_consumer(**options)
+    run_processor_with_signals(consumer)
+
+
 @run.command("indexer-last-seen-updater")
 @log_options()
 @configuration
