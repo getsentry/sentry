@@ -192,7 +192,7 @@ class UserSerializer(Serializer):  # type: ignore
             d = cast(UserSerializerResponseSelf, d)
             options = {
                 o.key: o.value
-                for o in UserOption.objects.filter(user_id=user.id, project__isnull=True)
+                for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
             }
             stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
 

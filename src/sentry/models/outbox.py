@@ -54,6 +54,7 @@ class OutboxCategory(IntEnum):
     AUDIT_LOG_EVENT = 5
     USER_IP_EVENT = 6
     INTEGRATION_UPDATE = 7
+    PROJECT_UPDATE = 8
 
     @classmethod
     def as_choices(cls):

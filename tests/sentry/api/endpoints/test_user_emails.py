@@ -80,7 +80,7 @@ class UserEmailsTest(APITestCase):
         mail_to_del = "altemail1@example.com"
         UserEmail.objects.create(user=self.user, email=mail_to_del)
         UserOption.objects.create(
-            user=self.user, project=self.project, key="mail:email", value=mail_to_del
+            user=self.user, project_id=self.project.id, key="mail:email", value=mail_to_del
         )
 
         response = self.client.delete(self.url, data={"email": mail_to_del})

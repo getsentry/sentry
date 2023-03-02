@@ -522,10 +522,10 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         project2 = self.create_project(organization=org)
         member = self.create_user("ahmed@ahmed.io")
         u1 = UserOption.objects.create(
-            user=member, project=self.project, key="mail:email", value="ahmed@ahmed.io"
+            user=member, project_id=self.project.id, key="mail:email", value="ahmed@ahmed.io"
         )
         u2 = UserOption.objects.create(
-            user=member, project=project2, key="mail:email", value="ahmed@ahmed.io"
+            user=member, project_id=project2.id, key="mail:email", value="ahmed@ahmed.io"
         )
 
         member_om = self.create_member(organization=self.organization, user=member, role="member")
