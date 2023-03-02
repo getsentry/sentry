@@ -1,7 +1,7 @@
 import logging
 import random
 from contextlib import contextmanager
-from typing import Any, Generator, Mapping, Optional, Union
+from typing import Any, Generator, Mapping, Optional
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
@@ -10,7 +10,7 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTaskInThreads,
 )
-from arroyo.types import Commit, FilteredPayload, Message, Partition
+from arroyo.types import Commit, Message, Partition
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
@@ -95,9 +95,7 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
     dispatch_post_process_group_task(**task_kwargs)
 
 
-class PostProcessForwarderStrategyFactory(
-    ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]
-):
+class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(self, concurrency: int):
         self.__concurrency = concurrency
         self.__max_pending_futures = concurrency + 1000
@@ -106,7 +104,7 @@ class PostProcessForwarderStrategyFactory(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[Union[FilteredPayload, KafkaPayload]]:
+    ) -> ProcessingStrategy[KafkaPayload]:
         return RunTaskInThreads(
             _get_task_kwargs_and_dispatch,
             self.__concurrency,
