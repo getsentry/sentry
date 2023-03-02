@@ -11,10 +11,6 @@
 /src/sentry/migrations/                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
 
-## API Owners for unowned endpoints / serializers
-/src/**/endpoints/                                       @getsentry/owners-api
-/src/sentry/api/                                         @getsentry/owners-api
-
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
