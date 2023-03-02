@@ -20,7 +20,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   return (
     <Fragment>
       <CollapsibleTimelineHeader border={theme.COLORS.GRID_LINE_COLOR}>
-        <span>{props.title}</span>
+        <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
         <StyledButton
           size="xs"
           onClick={props.open ? props.onClose : props.onOpen}
@@ -90,9 +90,13 @@ const CollapsibleTimelineHeader = styled('div')<{border: string}>`
   position: relative;
   z-index: 1;
   height: 20px;
+  min-height: 20px;
   border-top: 1px solid ${p => p.border};
-  padding: 1px ${space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
+`;
+
+export const CollapsibleTimelineLabel = styled('span')`
+  padding: 1px ${space(1)};
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
