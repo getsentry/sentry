@@ -109,7 +109,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
-    error_messages = []
+    error_messages: List[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
