@@ -1,4 +1,5 @@
 version: 2
+labels: []
 updates:
   - package-ecosystem: npm
     open-pull-requests-limit: 10
