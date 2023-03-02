@@ -61,7 +61,7 @@ def test_adjust_sample_rates_org_with_few_projects():
     assert p.adjust_sample_rates() == expected_projects
 
 
-def test_adjust_sample_rates_org_with_few_projects_and_zeros():
+def test_adjust_sample_rates_org_with_many_projects():
     target = [
         (1, 13369016.0),
         (11276, 369985.0),
