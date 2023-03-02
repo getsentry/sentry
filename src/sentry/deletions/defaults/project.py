@@ -5,7 +5,7 @@ class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
         from sentry.discover.models import DiscoverSavedQueryProject
-        from sentry.incidents.models import IncidentProject
+        from sentry.incidents.models import AlertRule, IncidentProject
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
 
@@ -13,6 +13,12 @@ class ProjectDeletionTask(ModelDeletionTask):
             # ProjectKey gets revoked immediately, in bulk
             ModelRelation(models.ProjectKey, {"project_id": instance.id})
         ]
+        relations.append(
+            ModelRelation(
+                AlertRule,
+                {"snuba_query__subscriptions__project": instance, "include_all_projects": False},
+            )
+        )
 
         # in bulk
         model_list = (
@@ -31,6 +37,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupShare,
             models.GroupSubscription,
             models.LatestAppConnectBuildsCheck,
+            models.Monitor,
             models.ProjectBookmark,
             models.ProjectKey,
             models.ProjectTeam,
@@ -47,7 +54,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             IncidentProject,
             QuerySubscription,
         )
-
         relations.extend(
             [
                 ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask)
@@ -66,5 +72,4 @@ class ProjectDeletionTask(ModelDeletionTask):
         relations.extend(
             [ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask) for m in model_list]
         )
-
         return relations

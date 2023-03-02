@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -202,13 +202,14 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            ProfileBlockedThreadGroupType,
+            ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
+            "info",
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType.type_id
+        event.group.type = ProfileFileIOGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -250,13 +251,14 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            ProfileBlockedThreadGroupType,
+            ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
+            "info",
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType.type_id
+        event.group.type = ProfileFileIOGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -308,7 +310,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Parent Span",
             "django.view - index",
             "Repeating Spans (10)",
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author`",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_autho...",
         ]
         for checked_value in checked_values:
             assert (
@@ -386,7 +388,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.create_member(user=user, organization=self.organization, teams=[self.team])
 
         UserOption.objects.create(
-            user=user, key="mail:email", value="foo@bar.dodo", project=self.project
+            user=user, key="mail:email", value="foo@bar.dodo", project_id=self.project.id
         )
         # disable slack
         NotificationSetting.objects.update_settings(

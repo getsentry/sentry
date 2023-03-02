@@ -165,8 +165,9 @@ export type InboxDetails = {
 export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
-  | 'codeowners'
-  | 'releaseCommit';
+  | 'projectOwnership'
+  // TODO: codeowners may no longer exist
+  | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {

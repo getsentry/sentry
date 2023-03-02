@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
-import Tooltip from 'sentry/components/charts/components/tooltip';
+import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -68,7 +68,7 @@ function MemoryChart({
       left: space(1),
       right: space(1),
     }),
-    tooltip: Tooltip({
+    tooltip: ChartTooltip({
       appendToBody: true,
       trigger: 'axis',
       renderMode: 'html',

@@ -3,7 +3,7 @@ from io import StringIO
 import click
 from django.apps import apps
 from django.core import management, serializers
-from django.db import connection
+from django.db import IntegrityError, connection, transaction
 
 from sentry.runner.decorators import configuration
 
@@ -16,9 +16,22 @@ EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
 def import_(src):
     "Imports data from a Sentry export."
 
-    for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
-        if obj.object._meta.app_label not in EXCLUDED_APPS:
-            obj.save()
+    try:
+        with transaction.atomic():
+            for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
+                if obj.object._meta.app_label not in EXCLUDED_APPS:
+                    obj.save()
+    # For all database integrity errors, let's warn users to follow our
+    # recommended backup/restore workflow before reraising exception. Most of
+    # these errors come from restoring on a different version of Sentry or not restoring
+    # on a clean install.
+    except IntegrityError as e:
+        warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
+        click.echo(
+            warningText,
+            err=True,
+        )
+        raise (e)
 
     sequence_reset_sql = StringIO()
 

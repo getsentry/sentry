@@ -15,7 +15,7 @@ from sentry.ingest.ingest_consumer import (
     process_userreport,
 )
 from sentry.models import EventAttachment, EventUser, File, UserReport, create_files_from_dif_zip
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 PROGUARD_UUID = "467ade76-6d0b-11ed-a1eb-0242ac120002"
@@ -203,6 +203,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
 
 @pytest.mark.django_db
+@override_options({"processing.view-hierarchies-deobfuscation-general-availability": 1.0})
 def test_deobfuscate_view_hierarchy(default_project, task_runner):
     payload = get_normalized_event(
         {
@@ -249,7 +250,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
         projects={default_project.id: default_project},
     )
 
-    with task_runner(), Feature({"organizations:view-hierarchy-deobfuscation": True}):
+    with task_runner():
         process_event(
             {
                 "payload": json.dumps(payload),

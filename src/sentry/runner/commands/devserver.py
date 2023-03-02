@@ -27,6 +27,9 @@ _DEV_METRICS_INDEXER_ARGS = [
     "--no-strict-offset-reset",
 ]
 
+# NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
+# in `devserver()` like so:
+#     daemons += [_get_daemon("my_new_daemon")]
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
@@ -36,8 +39,6 @@ _DEFAULT_DAEMONS = {
         "post-process-forwarder",
         "--entity=errors",
         "--loglevel=debug",
-        "--commit-batch-size=100",
-        "--commit-batch-timeout-ms=1000",
         "--no-strict-offset-reset",
     ],
     "post-process-forwarder-transactions": [
@@ -46,10 +47,18 @@ _DEFAULT_DAEMONS = {
         "post-process-forwarder",
         "--entity=transactions",
         "--loglevel=debug",
-        "--commit-batch-size=100",
-        "--commit-batch-timeout-ms=1000",
         "--commit-log-topic=snuba-transactions-commit-log",
         "--synchronize-commit-group=transactions_group",
+        "--no-strict-offset-reset",
+    ],
+    "post-process-forwarder-issue-platform": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--entity=search_issues",
+        "--loglevel=debug",
+        "--commit-log-topic=snuba-generic-events-commit-log",
+        "--synchronize-commit-group=generic_events_group",
         "--no-strict-offset-reset",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
@@ -90,6 +99,7 @@ _DEFAULT_DAEMONS = {
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
     "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
+    "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
 
 
@@ -289,6 +299,7 @@ and run `sentry devservices up kafka zookeeper`.
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
             daemons += [_get_daemon("post-process-forwarder-transactions")]
+            daemons += [_get_daemon("post-process-forwarder-issue-platform")]
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -317,7 +328,7 @@ and run `sentry devservices up kafka zookeeper`.
             ]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest")]
+        daemons += [_get_daemon("ingest"), _get_daemon("monitors")]
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]

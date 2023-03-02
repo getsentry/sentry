@@ -31,7 +31,6 @@ from sentry.lang.native.utils import (
     convert_crashreport_count,
 )
 from sentry.models import (
-    Authenticator,
     AuthProvider,
     Organization,
     OrganizationAvatar,
@@ -210,7 +209,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def validate_require2FA(self, value):
         user = self.context["user"]
-        has_2fa = Authenticator.objects.user_has_2fa(user)
+        has_2fa = user.has_2fa()
         if value and not has_2fa:
             raise serializers.ValidationError(ERR_NO_2FA)
 
@@ -495,19 +494,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         was_pending_deletion = organization.status in DELETION_STATUSES
 
         enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
-        if (
-            enabling_codecov
-            and features.has("organizations:codecov-stacktrace-integration-v2", organization)
-            and not has_codecov_integration(organization)
+        if enabling_codecov and features.has(
+            "organizations:codecov-stacktrace-integration-v2", organization
         ):
-            return self.respond(
-                {
-                    "codecovAccess": [
-                        "Codecov access can only be enabled if the organization has a Codecov integration."
-                    ]
-                },
-                status=status.HTTP_412_PRECONDITION_FAILED,
-            )
+            has_integration, error = has_codecov_integration(organization)
+            if not has_integration:
+                return self.respond(
+                    {"codecovAccess": [error]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = serializer_cls(
             data=request.data,
@@ -603,6 +598,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     transaction_id=schedule.guid,
                 )
                 organization.send_delete_confirmation(entry, ONE_DAY)
+                Organization.objects.uncache_object(organization.id)
         context = serialize(
             organization,
             request.user,
