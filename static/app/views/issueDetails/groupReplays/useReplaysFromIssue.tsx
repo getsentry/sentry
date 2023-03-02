@@ -45,7 +45,7 @@ function useReplayFromIssue({
   }, [api, organization.slug, group.id, group.project.id]);
 
   const eventView = useMemo(() => {
-    if (!replayIds) {
+    if (!replayIds.length) {
       return null;
     }
     return EventView.fromSavedQuery({
