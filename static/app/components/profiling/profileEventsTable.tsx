@@ -442,7 +442,7 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'user_misery()': {
     key: 'user_misery()',
     name: t('User Misery'),
-    width: COL_WIDTH_UNDEFINED,
+    width: 110,
   },
 };
 
