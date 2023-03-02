@@ -109,14 +109,31 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
+    error_messages = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
-        if error_messages:
-            filter_settings["errorMessages"] = {"patterns": error_messages}
+        error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
+
+    enable_react = project.get_option("filters:react-hydration-errors")
+    if enable_react:
+        error_messages += [
+            # Hydration failed because the initial UI does not match what was rendered on the server.
+            "https://reactjs.org/docs/error-decoder.html?invariant=418",
+            # The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
+            "https://reactjs.org/docs/error-decoder.html?invariant=419",
+            # There was an error while hydrating this Suspense boundary. Switched to client rendering.
+            "https://reactjs.org/docs/error-decoder.html?invariant=422",
+            # There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
+            "https://reactjs.org/docs/error-decoder.html?invariant=423",
+            # Text content does not match server-rendered HTML.
+            "https://reactjs.org/docs/error-decoder.html?invariant=425",
+        ]
+
+    if error_messages:
+        filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:

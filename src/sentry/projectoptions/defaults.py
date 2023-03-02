@@ -63,14 +63,17 @@ register(
 # Default legacy-browsers filter
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
 
-# Default legacy-browsers filter
+# Default web crawlers filter
 register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0"})
 
-# Default legacy-browsers filter
+# Default browser extensions filter
 register(key="filters:browser-extensions", epoch_defaults={1: "0"})
 
-# Default legacy-browsers filter
+# Default localhost filter
 register(key="filters:localhost", epoch_defaults={1: "0"})
+
+# Default react hydration errors filter
+register(key="filters:react-hydration-errors", epoch_defaults={1: "1"})
 
 # Default breakdowns config
 register(

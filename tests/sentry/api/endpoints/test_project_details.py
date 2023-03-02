@@ -469,6 +469,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
             "feedback:branding": False,
+            "filters:react-hydration-errors": True,
         }
         with self.feature("projects:custom-inbound-filters"):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -558,6 +559,7 @@ class ProjectUpdateTest(APITestCase):
         assert AuditLogEntry.objects.filter(
             organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
+        assert project.get_option("filters:react-hydration-errors", "1")
 
     def test_bookmarks(self):
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -687,6 +689,15 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_error_response(self.org_slug, self.proj_slug, status_code=400, **data)
         assert self.project.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
+
+    def test_react_hydration_errors(self):
+        value = False
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, options={"filters:react-hydration-errors": value}
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("filters:react_hydration_errors") == value
+        assert resp.data["options"]["filters:react_hydration_errors"] == value
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
