@@ -28,7 +28,7 @@ class RecordingSegmentStorageMeta:
     project_id: int
     replay_id: str
     segment_id: int
-    retention_days: int
+    retention_days: Optional[int]
     date_added: Optional[datetime] = None
     file_id: Optional[int] = None
 
@@ -143,8 +143,13 @@ def make_filename(segment: RecordingSegmentStorageMeta) -> str:
     used for managing TTLs.  The project_id and replay_id prefixes are used for managing user
     and GDPR deletions.
     """
+    # Records retrieved from the File interface do not have a statically defined retention
+    # period.  Their retention is dynamic and deleted by an async process.  These filenames
+    # default to the 90 day (max) retention period prefix.
+    retention_days = segment.retention_days or 90
+
     return "{}/{}/{}/{}".format(
-        segment.retention_days,
+        retention_days,
         segment.project_id,
         segment.replay_id,
         segment.segment_id,

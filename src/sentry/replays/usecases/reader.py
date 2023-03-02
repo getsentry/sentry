@@ -79,7 +79,7 @@ def fetch_filestore_segments_meta(
             project_id=project_id,
             replay_id=replay_id,
             segment_id=segment.segment_id,
-            retention_days=0,
+            retention_days=None,
             date_added=segment.date_added,
             file_id=segment.file_id,
         )
@@ -105,7 +105,7 @@ def fetch_filestore_segment_meta(
         project_id=project_id,
         replay_id=replay_id,
         segment_id=segment.segment_id,
-        retention_days=0,
+        retention_days=None,
         date_added=segment.date_added,
         file_id=segment.file_id,
     )

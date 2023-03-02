@@ -70,7 +70,7 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCa
             project_id=self.project.id,
             replay_id=self.replay_id,
             segment_id=self.segment_id,
-            retention_days=0,
+            retention_days=None,
         )
 
         self.segment_filename = make_filename(metadata)
