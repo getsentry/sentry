@@ -86,7 +86,8 @@ function ProfileProviderWrapper(props: FlamegraphViewProps): React.ReactElement 
   });
 
   const profileTransaction = useSentryEvent<EventTransaction>(
-    params.orgId,
+    // params.orgId does not seem to be set on dev, so provide a fallback
+    params.orgId || organization.slug,
     params.projectId,
     profiles.type === 'resolved' ? getTransactionId(profiles.data) : null
   );
