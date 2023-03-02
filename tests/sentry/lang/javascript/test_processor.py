@@ -1155,7 +1155,10 @@ class FetchFileByDebugIdTest(TestCase):
         fetcher = Fetcher(self.organization)
 
         # With this line we basically disable caching.
-        cache.set(get_artifact_bundle_cache_key_meta(bundle_id), {"compressed_size": 10})
+        cache.set(
+            get_artifact_bundle_cache_key_meta(debug_id, SourceFileType.SOURCE_MAP),
+            {"compressed_size": 10},
+        )
         # We need to reset the mock because we called 'set' here.
         cache_set.reset_mock()
 

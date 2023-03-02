@@ -206,7 +206,7 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
 
 
 def get_artifact_bundle_cache_key(debug_id, source_file_type):
-    return f"artifactbundlefile:v1:{debug_id}:{source_file_type.value}"
+    return f"artifactbundlefile:v1:{debug_id}:{source_file_type.value if source_file_type is not None else -1}"
 
 
 def get_artifact_bundle_cache_key_meta(debug_id, source_file_type):
