@@ -15,7 +15,7 @@ from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
-from sentry.api.utils import get_date_range_from_stats_period
+from sentry.api.utils import get_date_range_from_params
 from sentry.api.validators import MonitorCheckInValidator
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -69,7 +69,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             if project.organization.slug != organization_slug:
                 return self.respond_invalid()
 
-        start, end = get_date_range_from_stats_period(request.GET)
+        start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
 
