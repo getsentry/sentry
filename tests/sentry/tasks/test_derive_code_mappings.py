@@ -58,21 +58,23 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 
     @patch("sentry.tasks.derive_code_mappings.logger")
     def test_raises_other_api_errors(self, mock_logger):
-        with patch(
-            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
-            side_effect=ApiError("foo"),
-        ):
-            derive_code_mappings(self.project.id, self.event_data)
-            assert mock_logger.exception.call_count == 1
+        with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):
+            with patch(
+                "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
+                side_effect=ApiError("foo"),
+            ):
+                derive_code_mappings(self.project.id, self.event_data)
+                assert mock_logger.exception.call_count == 1
 
     def test_unable_to_get_lock(self):
-        with patch(
-            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
-            side_effect=UnableToAcquireLock,
-        ):
-            # We should raise an exception since the request will be retried
-            with pytest.raises(UnableToAcquireLock):
-                derive_code_mappings(self.project.id, self.event_data)
+        with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):
+            with patch(
+                "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
+                side_effect=UnableToAcquireLock,
+            ):
+                # We should raise an exception since the request will be retried
+                with pytest.raises(UnableToAcquireLock):
+                    derive_code_mappings(self.project.id, self.event_data)
 
 
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
