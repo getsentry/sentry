@@ -77,7 +77,7 @@ describe('useReplayData', () => {
       replayRecord: undefined,
     });
 
-    jest.runAllTimers();
+    jest.runOnlyPendingTimers();
     await waitForNextUpdate();
 
     // Afterwards we see the attachments & errors requests are made
@@ -99,7 +99,7 @@ describe('useReplayData', () => {
       replayRecord: HYDRATED_REPLAY,
     });
 
-    jest.runAllTimers();
+    jest.runOnlyPendingTimers();
     await waitForNextUpdate();
 
     // Finally we see fetching is complete
