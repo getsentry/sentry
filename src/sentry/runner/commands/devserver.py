@@ -27,6 +27,9 @@ _DEV_METRICS_INDEXER_ARGS = [
     "--no-strict-offset-reset",
 ]
 
+# NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
+# in `devserver()` like so:
+#     daemons += [_get_daemon("my_new_daemon")]
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
@@ -96,6 +99,7 @@ _DEFAULT_DAEMONS = {
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
     "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
+    "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
 
 
@@ -324,7 +328,7 @@ and run `sentry devservices up kafka zookeeper`.
             ]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest")]
+        daemons += [_get_daemon("ingest"), _get_daemon("monitors")]
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]

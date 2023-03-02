@@ -692,12 +692,10 @@ class ProjectUpdateTest(APITestCase):
 
     def test_react_hydration_errors(self):
         value = False
-        resp = self.get_success_response(
-            self.org_slug, self.proj_slug, options={"filters:react-hydration-errors": value}
-        )
-        project = Project.objects.get(id=self.project.id)
-        assert project.get_option("filters:react_hydration_errors") == value
-        assert resp.data["options"]["filters:react_hydration_errors"] == value
+        options = {"filters:react-hydration-errors": value}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:react-hydration-errors") == value
+        assert resp.data["options"]["filters:react-hydration-errors"] == value
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
