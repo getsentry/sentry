@@ -26,11 +26,24 @@ function FlamegraphViewSelectMenu({
         priority="primary"
         onChange={onSortingChange}
       >
-        <SegmentedControl.Item key="call order">{t('Call Order')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="alphabetical">
+        <SegmentedControl.Item
+          key="call order"
+          tooltip="Stacks appear in chronological order as they were called"
+        >
+          {t('Call Order')}
+        </SegmentedControl.Item>
+        <SegmentedControl.Item
+          key="alphabetical"
+          tooltip="Merges stacks and sorts them alphabetically"
+        >
           {t('Alphabetical')}
         </SegmentedControl.Item>
-        <SegmentedControl.Item key="left heavy">{t('Left Heavy')}</SegmentedControl.Item>
+        <SegmentedControl.Item
+          key="left heavy"
+          tooltip="Merges stacks and sorts them by weights"
+        >
+          {t('Left Heavy')}
+        </SegmentedControl.Item>
       </SegmentedControl>
       <SegmentedControl
         aria-label="View"
