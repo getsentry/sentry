@@ -1,8 +1,9 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
@@ -20,6 +21,7 @@ import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {EventAiSuggest} from 'sentry/views/issueDetails/eventAiSuggest';
 import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import EventCreatedTooltip from './eventCreatedTooltip';
@@ -45,6 +47,19 @@ class GroupEventToolbar extends Component<Props> {
       project_id: parseInt(this.props.project.id, 10),
       button,
     });
+  }
+
+  explain() {
+    openModal(({Header}) => (
+      <Fragment>
+        <Header closeButton>{t('AI Explanation')}</Header>
+        <EventAiSuggest
+          event={this.props.event}
+          project={this.props.project}
+          organization={this.props.organization}
+        />
+      </Fragment>
+    ));
   }
 
   render() {
@@ -85,6 +100,9 @@ class GroupEventToolbar extends Component<Props> {
                 >
                   {'JSON'} (<FileSize bytes={evt.size} />)
                 </ExternalLink>
+              </LinkContainer>
+              <LinkContainer>
+                <ExternalLink onClick={() => this.explain()}>{'Explain'}</ExternalLink>
               </LinkContainer>
             </Heading>
             <Tooltip

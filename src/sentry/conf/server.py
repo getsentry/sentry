@@ -1319,6 +1319,8 @@ SENTRY_FEATURES = {
     "organizations:fix-source-map-cta": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
+    # Enable OpenAI
+    "organizations:ai-suggest": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1731,6 +1733,9 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
+
+# Secret key for OpenAI
+OPENAI_API_KEY = None
 
 SENTRY_SCOPES = {
     "org:read",
