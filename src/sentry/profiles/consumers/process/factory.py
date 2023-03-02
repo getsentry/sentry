@@ -1,11 +1,11 @@
-from typing import Mapping, Union
+from typing import Mapping
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import Commit, FilteredPayload, Message, Partition
+from arroyo.types import Commit, Message, Partition
 
 from sentry.profiles.task import process_profile_task
 from sentry.utils import json, metrics
@@ -42,14 +42,12 @@ def process_message(message: Message[KafkaPayload]) -> None:
     process_profile_task.s(profile=profile).apply_async()
 
 
-class ProcessProfileStrategyFactory(
-    ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]
-):
+class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[Union[FilteredPayload, KafkaPayload]]:
+    ) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
             function=process_message,
             next_step=CommitOffsets(commit),
