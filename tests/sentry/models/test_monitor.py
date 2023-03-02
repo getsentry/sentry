@@ -202,7 +202,7 @@ class MonitorTestCase(TestCase):
         original_monitor_guid = monitor.guid
 
         # Simulate existing monitors entries that don't have a slug set
-        monitor.slug = None
+        monitor.slug = ""
         monitor.name = "New name"
         monitor.save()
 
