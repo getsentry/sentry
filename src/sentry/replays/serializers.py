@@ -17,7 +17,7 @@ class ReplayRecordingSegmentSerializer(Serializer):
 VALID_FIELD_SET = {
     "id",
     "title",
-    "projectId",
+    "project_id",
     "errorIds",
     "traceIds",
     "urls",

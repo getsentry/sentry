@@ -72,19 +72,30 @@ import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
 function getTransactionConfigSpace(
   profileGroup: ProfileGroup,
-  startedAt: number,
+  transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string
 ): Rect {
+  // We have a transaction, so we should do our best to align the profile
+  // with the transaction's timeline.
+  if (transaction) {
+    // TODO: Adjust the alignment based on the profile's timestamp if it does
+    // not match the transaction's start timestamp
+    const duration = transaction.endTimestamp - transaction.startTimestamp;
+    return new Rect(0, 0, formatTo(duration, 'seconds', unit), 0);
+  }
+
+  // No transaction was found, so best we can do is align it to the starting
+  // position of the profiles
   const duration = profileGroup.metadata.durationNS;
 
   // If durationNs is present, use it
   if (typeof duration === 'number') {
-    return new Rect(startedAt, 0, formatTo(duration, 'nanoseconds', unit), 0);
+    return new Rect(0, 0, formatTo(duration, 'nanoseconds', unit), 0);
   }
 
   // else fallback to Math.max of profile durations
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
-  return new Rect(startedAt, 0, maxProfileDuration, 0);
+  return new Rect(0, 0, maxProfileDuration, 0);
 }
 
 function collectAllSpanEntriesFromTransaction(
@@ -183,10 +194,6 @@ function Flamegraph(): ReactElement {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('profiling-flamechart-spans');
-  }, [organization.features]);
-
   const hasUIFrames = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
@@ -211,12 +218,12 @@ function Flamegraph(): ReactElement {
   }, [profiledTransaction]);
 
   const spanChart = useMemo(() => {
-    if (!profile || !hasFlameChartSpans) {
+    if (!profile) {
       return null;
     }
 
     return new SpanChart(spanTree, {unit: profile.unit});
-  }, [spanTree, profile, hasFlameChartSpans]);
+  }, [spanTree, profile]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
@@ -226,6 +233,15 @@ function Flamegraph(): ReactElement {
     // This could happen if threadId was initialized from query string, but for some
     // reason the profile was removed from the list of profiles.
     if (!profile) {
+      return LOADING_OR_FALLBACK_FLAMEGRAPH;
+    }
+
+    // Wait for the transaction to finish loading, regardless of the results.
+    // Otherwise, the rendered profile will probably shift once the transaction loads.
+    if (
+      profiledTransaction.type === 'loading' ||
+      profiledTransaction.type === 'initial'
+    ) {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
@@ -242,13 +258,17 @@ function Flamegraph(): ReactElement {
       sort: sorting,
       configSpace:
         xAxis === 'transaction'
-          ? getTransactionConfigSpace(profileGroup, profile.startedAt, profile.unit)
+          ? getTransactionConfigSpace(
+              profileGroup,
+              profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
+              profile.unit
+            )
           : undefined,
     });
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, profileGroup, sorting, threadId, view, xAxis]);
+  }, [profile, profileGroup, profiledTransaction, sorting, threadId, view, xAxis]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {

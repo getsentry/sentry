@@ -1,8 +1,11 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import dataclasses
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Protocol, Sequence, cast
+from typing import TYPE_CHECKING, List, Optional, Protocol, Sequence, cast
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -34,7 +37,7 @@ class MayHaveActor(Protocol):
         pass
 
     @property
-    def actor_id(self) -> int | None:
+    def actor_id(self) -> Optional[int]:
         pass
 
     def class_name(self) -> str:
@@ -83,7 +86,7 @@ class NotificationsService(RpcService):
         pass
 
     def _serialize_notification_settings(
-        self, setting: NotificationSetting
+        self, setting: "NotificationSetting"
     ) -> RpcNotificationSetting:
         return RpcNotificationSetting(
             scope_type=setting.scope_type,

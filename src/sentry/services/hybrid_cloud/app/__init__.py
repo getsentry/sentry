@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
 import datetime
@@ -28,6 +31,19 @@ class RpcSentryAppService:
 
 
 @dataclass
+class RpcSentryApp:
+    id: int = -1
+    scope_list: List[str] = field(default_factory=list)
+    application_id: int = -1
+    proxy_user_id: Optional[int] = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    events: List[str] = field(default_factory=list)
+
+
+@dataclass
 class RpcSentryAppInstallation:
     id: int = -1
     organization_id: int = -1
@@ -43,19 +59,6 @@ class RpcSentryAppComponent:
     sentry_app_id: int = -1
     type: str = ""
     schema: Mapping[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class RpcSentryApp:
-    id: int = -1
-    scope_list: List[str] = field(default_factory=list)
-    application_id: int = -1
-    proxy_user_id: int | None = None  # can be null on deletion.
-    owner_id: int = -1  # relation to an organization
-    name: str = ""
-    slug: str = ""
-    uuid: str = ""
-    events: List[str] = field(default_factory=list)
 
 
 class SentryAppEventDataInterface(Protocol):
@@ -90,7 +93,7 @@ class RpcSentryAppEventData(SentryAppEventDataInterface):
         return self.enabled
 
     @classmethod
-    def from_event(cls, data_interface: SentryAppEventDataInterface) -> RpcSentryAppEventData:
+    def from_event(cls, data_interface: SentryAppEventDataInterface) -> "RpcSentryAppEventData":
         return RpcSentryAppEventData(
             id=data_interface.id,
             label=data_interface.label,
@@ -123,7 +126,7 @@ class AppService(
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
+    ) -> Optional[RpcSentryAppInstallation]:
         pass
 
     @rpc_method
@@ -156,7 +159,11 @@ class AppService(
     @rpc_method
     @abc.abstractmethod
     def get_custom_alert_rule_actions(
-        self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
+        self,
+        *,
+        event_data: RpcSentryAppEventData,
+        organization_id: int,
+        project_slug: Optional[str],
     ) -> List[Mapping[str, Any]]:
         pass
 
@@ -178,7 +185,7 @@ class AppService(
         pass
 
     def serialize_sentry_app_installation(
-        self, installation: SentryAppInstallation, app: SentryApp | None = None
+        self, installation: SentryAppInstallation, app: Optional[SentryApp] = None
     ) -> RpcSentryAppInstallation:
         if app is None:
             app = installation.sentry_app
@@ -195,8 +202,8 @@ class AppService(
     @rpc_method
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
-        self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
-    ) -> AlertRuleActionResult:
+        self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
+    ) -> "AlertRuleActionResult":
         pass
 
 

@@ -1,9 +1,13 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import List, cast
+from typing import List, Optional, cast
 
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -55,10 +59,10 @@ class IdentityService(RpcService):
     def get_provider(
         self,
         *,
-        provider_id: int | None = None,
-        provider_type: str | None = None,
-        provider_ext_id: str | None = None,
-    ) -> RpcIdentityProvider | None:
+        provider_id: Optional[int] = None,
+        provider_type: Optional[str] = None,
+        provider_ext_id: Optional[str] = None,
+    ) -> Optional[RpcIdentityProvider]:
         """
         Returns an RpcIdentityProvider either by using the idp.id (provider_id), or a combination
         of idp.type (provider_type) and idp.external_id (provider_ext_id)
@@ -71,9 +75,9 @@ class IdentityService(RpcService):
         self,
         *,
         provider_id: int,
-        user_id: int | None = None,
-        identity_ext_id: str | None = None,
-    ) -> RpcIdentity | None:
+        user_id: Optional[int] = None,
+        identity_ext_id: Optional[str] = None,
+    ) -> Optional[RpcIdentity]:
         """
         Returns an RpcIdentity using the idp.id (provider_id) and either the user.id (user_id)
         or identity.external_id (identity_ext_id)
@@ -98,5 +102,3 @@ class IdentityService(RpcService):
 
 
 identity_service: IdentityService = cast(IdentityService, IdentityService.resolve_to_delegation())
-
-from sentry.models.identity import Identity, IdentityProvider

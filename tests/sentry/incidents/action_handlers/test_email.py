@@ -125,7 +125,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
     def test_user_email_routing(self):
         new_email = "marcos@sentry.io"
         UserOption.objects.create(
-            user=self.user, project=self.project, key="mail:email", value=new_email
+            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
         )
 
         useremail = UserEmail.objects.get(email=self.user.email)
@@ -150,10 +150,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         useremail.save()
 
         UserOption.objects.create(
-            user=self.user, project=self.project, key="mail:email", value=new_email
+            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
         )
         UserOption.objects.create(
-            user=new_user, project=self.project, key="mail:email", value=new_email
+            user=new_user, project_id=self.project.id, key="mail:email", value=new_email
         )
 
         self.create_team_membership(team=self.team, user=new_user)

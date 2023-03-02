@@ -68,6 +68,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
                 tags={"test": "world", "other": "hello"},
+                error_ids=[],
             )
         )
 
@@ -476,6 +477,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq2_timestamp,
                 project.id,
                 replay1_id,
+                user_id=None,
+                user_name=None,
+                user_email=None,
+                ipv4=None,
                 os_name=None,
                 os_version=None,
                 browser_name=None,
@@ -485,6 +490,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_family=None,
                 device_model=None,
                 tags={"a": "n", "b": "o"},
+                error_ids=[],
             )
         )
 

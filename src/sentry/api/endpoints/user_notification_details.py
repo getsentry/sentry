@@ -22,7 +22,7 @@ from sentry.types.integrations import ExternalProviders
 class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
         user_options = UserOption.objects.filter(
-            user__in=item_list, organization=None, project=None
+            user__in=item_list, organization_id=None, project_id=None
         ).select_related("user")
         keys_to_user_option_objects = {user_option.key: user_option for user_option in user_options}
 
@@ -106,8 +106,8 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
                 user_option, _ = UserOption.objects.get_or_create(
                     key=USER_OPTION_SETTINGS[key]["key"],
                     user=user,
-                    project=None,
-                    organization=None,
+                    project_id=None,
+                    organization_id=None,
                 )
                 user_option.update(value=str(int(value)))
 
