@@ -953,7 +953,7 @@ class FetchFileByDebugIdTest(TestCase):
                     "type": "source_map",
                     "content": b"foo",
                     "headers": {
-                        "content-type": "/application/json",
+                        "content-type": "application/json",
                         "debug-id": debug_id,
                     },
                 },

@@ -810,7 +810,6 @@ class Fetcher:
             with sentry_sdk.start_span(
                 op="JavaScriptStacktraceProcessor.fetch_file.fetch_release_artifact"
             ):
-                # TODO: move this method internally in the class.
                 result = fetch_release_artifact(url, self.release, self.dist)
         else:
             result = None
@@ -1063,14 +1062,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # The 'sourceview' is used for pre/post and 'context_line' frame expansion.
         # Here it's pointing to the minified source, however the variable can be shadowed with the original sourceview
         # (or 'None' if the token doesn't provide us with the 'context_line') down the road.
-        # TODO: how to we determine whether resolution happened with debug_id or url?
-        sourceview = self.get_or_fetch_sourceview(
+        sourceview, resolved_sv_with_debug_id = self.get_or_fetch_sourceview(
             url=frame["abs_path"],
             debug_id=debug_id,
             source_file_type=SourceFileType.MINIFIED_SOURCE,
         )
-        sourcemap_cache = self.get_or_fetch_sourcemap_cache(
-            url=frame["abs_path"], debug_id=debug_id
+        # Only if we resolved the minified source with a debug_id we want to try and resolve the sourcemap with the
+        # debug_id.
+        sourcemap_cache, resolved_smc_with_debug_id = self.get_or_fetch_sourcemap_cache(
+            url=frame["abs_path"], debug_id=debug_id if resolved_sv_with_debug_id else None
         )
 
         # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
@@ -1080,10 +1080,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             all_errors.extend(errors)
 
         # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
-        # TODO: check if using debug id as url makes sense.
+        # In case we resolved the sourcemap with the debug_id, the url will be the debug_id.
         sourcemap_url = (
             self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
-            if debug_id is None
+            if not resolved_smc_with_debug_id
             else debug_id
         )
         self.sourcemaps_touched.add(sourcemap_url)
@@ -1146,13 +1146,19 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # obtain source context directly from there.
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
-                    if debug_id is not None:
-                        # TODO: raise error because it means that sourceContents was not in the sourcemap.
-                        pass
-                    # If we arrive here, it means that we want to load the actual source file because it was missing
-                    # inside the sourcemap. Because we don't allow the absence of source contents in the sourcemaps
-                    # containing a debug_id, we will only fetch by url.
-                    sourceview = self.get_or_fetch_sourceview(url=abs_path)
+                    if resolved_smc_with_debug_id:
+                        all_errors.append(
+                            {
+                                "type": EventError.JS_MISSING_SOURCES_CONTENT,
+                                "source": frame["abs_path"],
+                                "sourcemap": sourcemap_label,
+                            }
+                        )
+                    else:
+                        # If we arrive here, it means that we want to load the actual source file because it was missing
+                        # inside the sourcemap. Because we don't allow the absence of source contents in the sourcemaps
+                        # containing a debug_id, we will only fetch by url.
+                        sourceview, _ = self.get_or_fetch_sourceview(url=abs_path)
 
                 # In case we are not able to load the original source, we can't do much besides logging it.
                 if sourceview is None:
@@ -1317,10 +1323,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # In this situation we didn't find the context in the source map, thus we need to load the original file.
             # Here the logic for loading is either we load from the url or we try to fetch the file by debug id but only
             # if it is a minified source.
-            source = source or self.get_or_fetch_sourceview(
-                url=frame["abs_path"],
-                debug_id=debug_id,
-                source_file_type=SourceFileType.MINIFIED_SOURCE,
+            source = (
+                source
+                or self.get_or_fetch_sourceview(
+                    url=frame["abs_path"],
+                    debug_id=debug_id,
+                    source_file_type=SourceFileType.MINIFIED_SOURCE,
+                )[0]
             )
             if source is None:
                 logger.debug("No source found for %s", frame["abs_path"])
@@ -1350,9 +1359,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if debug_id is not None and source_file_type == SourceFileType.SOURCE:
             return None
 
-        rv = self._get_cached_sourceview(url, debug_id, source_file_type)
-        if rv is not None:
-            return rv
+        sourceview, resolved_with_debug_id = self._get_cached_sourceview(
+            url, debug_id, source_file_type
+        )
+        if sourceview is not None:
+            return sourceview, resolved_with_debug_id
 
         return self._fetch_and_cache_sourceview(url, debug_id, source_file_type)
 
@@ -1360,14 +1371,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if debug_id is not None:
             sourceview = self.fetch_by_debug_id_sourceviews.get((debug_id, source_file_type))
             if sourceview is not None:
-                return sourceview
+                return sourceview, True
 
         if url is not None:
             sourceview = self.fetch_by_url_sourceviews.get(url)
             if sourceview is not None:
-                return sourceview
+                return sourceview, False
 
-        return None
+        return None, False
 
     def _fetch_and_cache_sourceview(self, url, debug_id, source_file_type):
         self.fetch_count += 1
@@ -1376,7 +1387,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.fetch_by_url_errors.setdefault(url, []).append(
                 {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES}
             )
-            return None
+            return None, False
 
         if debug_id is not None:
             logger.debug("Attempting to cache source with debug id %r", debug_id)
@@ -1388,7 +1399,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 if result is not None:
                     sourceview = SourceView.from_bytes(result.body)
                     self.fetch_by_debug_id_sourceviews[debug_id, source_file_type] = sourceview
-                    return sourceview
+                    return sourceview, True
 
         try:
             logger.debug("Attempting to cache source with url %r", url)
@@ -1402,7 +1413,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
-            return None
+            return None, False
         else:
             sourceview = SourceView.from_bytes(result.body)
             self.fetch_by_url_sourceviews[url] = sourceview
@@ -1411,7 +1422,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             if sourcemap_url:
                 self.minified_source_url_to_sourcemap_url[url] = sourcemap_url
 
-            return sourceview
+            return sourceview, False
 
     def get_or_fetch_sourcemap_cache(self, url=None, debug_id=None):
         """
@@ -1419,9 +1430,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         Returns None when a sourcemap corresponding to the file at 'url' is not found.
         """
-        rv = self._get_cached_sourcemap_cache(url, debug_id)
-        if rv is not None:
-            return rv
+        sourcemap_cache, resolved_with_debug_id = self._get_cached_sourcemap_cache(url, debug_id)
+        if sourcemap_cache is not None:
+            return sourcemap_cache, resolved_with_debug_id
 
         return self._fetch_and_cache_sourcemap_cache(url, debug_id)
 
@@ -1429,29 +1440,29 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if debug_id is not None:
             rv = self.debug_id_sourcemap_cache.get(debug_id)
             if rv is not None:
-                return rv
+                return rv, True
 
         if url is not None:
             # We get the url of the sourcemap from the url of the minified file.
             sourcemap_url = self.minified_source_url_to_sourcemap_url.get(url)
             rv = self.sourcemap_url_sourcemap_cache.get(sourcemap_url)
             if rv is not None:
-                return rv
+                return rv, False
 
-        return None
+        return None, False
 
     def _fetch_and_cache_sourcemap_cache(self, url, debug_id):
         if debug_id is not None:
             sourcemap_view = self._handle_debug_id_sourcemap_lookup(debug_id)
             if sourcemap_view is not None:
-                return sourcemap_view
+                return sourcemap_view, True
 
         if url is not None:
             sourcemap_view = self._handle_url_sourcemap_lookup(url)
             if sourcemap_view is not None:
-                return sourcemap_view
+                return sourcemap_view, False
 
-        return None
+        return None, False
 
     def _handle_debug_id_sourcemap_lookup(self, debug_id):
         minified_sourceview = self.fetch_by_debug_id_sourceviews.get(

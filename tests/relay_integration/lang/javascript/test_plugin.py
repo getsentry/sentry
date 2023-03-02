@@ -454,251 +454,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert raw_frame_list[1] == frame_list[1]
 
     @responses.activate
-    def test_sourcemap_ignore_debug_id(self):
-        # This tests the same as the one above, but it ensures that for now the debug_id
-        # code that is not yet implemented, will be not make any damage yet.
-        responses.add(
-            responses.GET,
-            "http://example.com/file.min.js",
-            body=load_fixture("file.min.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/file1.js",
-            body=load_fixture("file1.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/file2.js",
-            body=load_fixture("file2.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/file.sourcemap.js",
-            body=load_fixture("file.sourcemap.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "debug_meta": {
-                "images": [
-                    {
-                        "type": "sourcemap",
-                        "debug_id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
-                        "code_file": "http://example.com/file.min.js",
-                    }
-                ]
-            },
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                                # NOTE: Intentionally source is not retrieved from this HTML file
-                                {
-                                    "function": 'function: "HTMLDocument.<anonymous>"',
-                                    "abs_path": "http//example.com/index.html",
-                                    "filename": "index.html",
-                                    "lineno": 283,
-                                    "colno": 17,
-                                    "in_app": False,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert event.data["errors"] == [
-            {"type": "js_no_source", "url": "http//example.com/index.html"}
-        ]
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        frame = frame_list[0]
-        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-        expected = "\treturn a + b; // fôo"
-        assert frame.context_line == expected
-        assert frame.post_context == ["}", ""]
-
-        raw_frame_list = exception.values[0].raw_stacktrace.frames
-        raw_frame = raw_frame_list[0]
-        assert not raw_frame.pre_context
-        assert (
-            raw_frame.context_line
-            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
-            'divide(a,b){"use strict";try{return multip {snip}'
-        )
-        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
-        assert raw_frame.lineno == 1
-
-        # Since we couldn't expand source for the 2nd frame, both
-        # its raw and original form should be identical
-        assert raw_frame_list[1] == frame_list[1]
-
-    @responses.activate
-    def test_expansion_with_debug_id(self):
-        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
-
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
-            zip_file.writestr("file.min.js", load_fixture("file.min.js"))
-            zip_file.writestr("file1.js", load_fixture("file1.js"))
-            zip_file.writestr("file2.js", load_fixture("file2.js"))
-            zip_file.writestr("empty.js", load_fixture("empty.js"))
-            zip_file.writestr("file.wc.sourcemap.js", load_fixture("file.wc.sourcemap.js"))
-
-            zip_file.writestr(
-                "manifest.json",
-                json.dumps(
-                    {
-                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
-                        "files": {
-                            "file.min.js": {
-                                "url": "~/file.min.js",
-                                "type": "minified_source",
-                                "headers": {
-                                    "content-type": "application/json",
-                                    "debug-id": debug_id,
-                                    "sourcemap": "~/file.sourcemap.js",
-                                },
-                            },
-                            "file1.js": {
-                                "url": "~/file1.js",
-                                "type": "source",
-                                "headers": {
-                                    "content-type": "application/json",
-                                },
-                            },
-                            "file2.js": {
-                                "url": "~/file2.js",
-                                "type": "source",
-                                "headers": {
-                                    "content-type": "application/json",
-                                },
-                            },
-                            "empty.js": {
-                                "url": "~/empty.js",
-                                "type": "source",
-                                "headers": {
-                                    "content-type": "application/json",
-                                },
-                            },
-                            "file.wc.sourcemap.js": {
-                                "url": "~/file.wc.sourcemap.js",
-                                "type": "source_map",
-                                "headers": {
-                                    "content-type": "application/json",
-                                    "debug-id": debug_id,
-                                },
-                            },
-                        }
-                    }
-                ),
-            )
-        compressed.seek(0)
-
-        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
-        file.putfile(compressed)
-
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
-        )
-
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 79,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-            "debug_meta": {
-                "images": [
-                    {
-                        "type": "sourcemap",
-                        "debug_id": debug_id,
-                        "code_file": "http://example.com/file.min.js",
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert "errors" not in event.data
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        frame = frame_list[0]
-        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-        assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
-
-        frame = frame_list[1]
-        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
-        assert frame.context_line == "\treturn a * b;"
-        assert frame.post_context == [
-            "}",
-            "function divide(a, b) {",
-            '\t"use strict";',
-            "\ttry {",
-            "\t\treturn multiply(add(a, b), a, b) / c;",
-        ]
-
-    @responses.activate
     def test_sourcemap_embedded_source_expansion(self):
         responses.add(
             responses.GET,
@@ -1807,3 +1562,381 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
+
+    def test_expansion_with_debug_id(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
+            zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
+            zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
+            zip_file.writestr("files/_/_/empty.js", load_fixture("empty.js"))
+            zip_file.writestr(
+                "files/_/_/file.wc.sourcemap.js", load_fixture("file.wc.sourcemap.js")
+            )
+
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                        "files": {
+                            "files/_/_/file.min.js": {
+                                "url": "~/file.min.js",
+                                "type": "minified_source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                    "sourcemap": "~/file.sourcemap.js",
+                                },
+                            },
+                            "files/_/_/file1.js": {
+                                "url": "~/file1.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file2.js": {
+                                "url": "~/file2.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/empty.js": {
+                                "url": "~/empty.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file.wc.sourcemap.js": {
+                                "url": "~/file.wc.sourcemap.js",
+                                "type": "source_map",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                },
+                            },
+                        }
+                    }
+                ),
+            )
+        compressed.seek(0)
+
+        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file.putfile(compressed)
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "debug_id": debug_id,
+                        "code_file": "http://example.com/file.min.js",
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}", ""]
+
+        frame = frame_list[1]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
+
+    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
+            zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
+            zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
+            zip_file.writestr("files/_/_/empty.js", load_fixture("empty.js"))
+            zip_file.writestr("files/_/_/file.sourcemap.js", load_fixture("file.sourcemap.js"))
+
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                        "files": {
+                            "files/_/_/file.min.js": {
+                                "url": "~/file.min.js",
+                                "type": "minified_source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                    "sourcemap": "~/file.sourcemap.js",
+                                },
+                            },
+                            "files/_/_/file1.js": {
+                                "url": "~/file1.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file2.js": {
+                                "url": "~/file2.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/empty.js": {
+                                "url": "~/empty.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file.sourcemap.js": {
+                                "url": "~/file.sourcemap.js",
+                                "type": "source_map",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                },
+                            },
+                        }
+                    }
+                ),
+            )
+        compressed.seek(0)
+
+        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file.putfile(compressed)
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "debug_id": debug_id,
+                        "code_file": "http://example.com/file.min.js",
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert len(event.data["errors"]) == 3
+        assert event.data["errors"][0] == {
+            "type": "js_missing_sources_content",
+            "source": "http://example.com/file.min.js",
+            "sourcemap": debug_id,
+        }
+
+    def test_expansion_with_debug_id_not_found(self):
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        manifest = {
+            "org": self.organization.slug,
+            "release": release.version,
+            "files": {
+                "files/_/_/file.min.js": {
+                    "url": "http://example.com/file.min.js",
+                },
+                "files/_/_/file1.js": {
+                    "url": "http://example.com/file1.js",
+                },
+                "files/_/_/file2.js": {
+                    "url": "http://example.com/file2.js",
+                },
+                "files/_/_/file.sourcemap.js": {
+                    "url": "http://example.com/file.sourcemap.js",
+                },
+            },
+        }
+        file_like = BytesIO()
+        with zipfile.ZipFile(file_like, "w") as zip:
+            for rel_path, entry in manifest["files"].items():
+                name = os.path.basename(rel_path)
+                content = load_fixture(name)
+                if name == "file.min.js":
+                    # Remove link to source map, add to header instead
+                    content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
+                    entry["headers"] = {"SourceMap": "/file.sourcemap.js"}
+                zip.writestr(rel_path, content)
+            zip.writestr("manifest.json", json.dumps(manifest))
+        file_like.seek(0)
+
+        file = File.objects.create(name="release_bundle.zip", type="release.bundle")
+        file.putfile(file_like)
+
+        update_artifact_index(release, None, file)
+
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "debug_id": debug_id,
+                        "code_file": "http://example.com/file.min.js",
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}", ""]
+
+        frame = frame_list[1]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
