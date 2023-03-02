@@ -63,41 +63,11 @@ function ProfileFlamegraph(): React.ReactElement {
       qs.parse(window.location.search)
     );
 
-    let type =
-      queryStringState.preferences?.type ??
-      storedPreferences.preferences?.type ??
-      DEFAULT_FLAMEGRAPH_STATE.preferences.type;
-
-    let sorting =
-      queryStringState.preferences?.sorting ??
-      storedPreferences.preferences?.sorting ??
-      DEFAULT_FLAMEGRAPH_STATE.preferences.sorting;
-
-    // Ensure that the type and sorting is overriden to the default if the feature is not enabled
-    // or if the view permutation is not compatible with the type
-    if (
-      type === 'flamegraph' &&
-      !organization.features.includes('profiling-flamegraphs')
-    ) {
-      type = 'flamechart';
-    }
-
-    // If flamegraph, but user wants call order, switch to alphabetical
-    if (type === 'flamegraph' && sorting === 'call order') {
-      sorting = 'alphabetical';
-    }
-    // If flamechart, but user wants alphabetical, switch to call order
-    if (type === 'flamechart' && sorting === 'alphabetical') {
-      sorting = 'call order';
-    }
-
     return {
       ...queryStringState,
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
-        type,
-        sorting,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
           ...(storedPreferences?.preferences?.timelines ?? {}),
