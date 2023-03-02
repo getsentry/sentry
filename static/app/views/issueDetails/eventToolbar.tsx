@@ -52,7 +52,7 @@ class GroupEventToolbar extends Component<Props> {
   explain() {
     openModal(({Header}) => (
       <Fragment>
-        <Header closeButton>{t('AI Explanation')}</Header>
+        <Header closeButton>{t('Super Helpful Ay-Eye Assistent')}</Header>
         <EventAiSuggest
           event={this.props.event}
           project={this.props.project}

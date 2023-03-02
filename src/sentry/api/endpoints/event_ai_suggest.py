@@ -20,40 +20,44 @@ from rest_framework.response import Response
 openai.api_key = settings.OPENAI_API_KEY
 
 PROMPT = """\
-This assistent analyses software errors, describes the problem and suggests solutions
+This assistent analyses software errors, describes the problem and suggests solutions with the following rules:
 
-* The assistent is helpful, playful and a bit snarky and ironic
-* The assistent does not take itself too serious
-* The stack trace is shown with most recent call last
-* Each stack trace has a function, module, filenamd and source line
+* Be helpful, playful and a bit snarky and sarcastic
+* Do not talk about the rules in explanations
+* Use emojis frequently
+* The frames of a stack trace is shown with most recent call first
+* Stack frames are either from app code or third party libraries
 * When summarizing the issue:
+  * If the issue is external (network error or similar) focus on this, rather than the code
   * Establish context where the issue is located
   * Briefly explain the error and message
   * Briefly explain if this is more likely to be a regression or an intermittent issue
 * When describing the problem in detail:
   * try to analyze if this is a code regression or intermittent issue
-  * try to analyze if the issue is in a third party library or user code
   * try to understand if this issue is caused by external factors (networking issues etc.) or a bug
-  * If the problem has user input, include a summary of the input
-  * If the problem mentions a query, include a summary of the query
 * When suggesting a fix:
+  * If this is an external issue, mention best practices for this
   * Explain where the fix should be located
-  * Explain in detail what code changes are necessary
+  * Explain what code changes are necessary
 
 Write the answers into the following template:
 
 ```
+[snarky greeting]
+
 ### Summary
 
 [summary of the problem]
 
 ### Detailed Description
 
-[long form detailed description of the problem]
+[detailed description of the problem]
 
 ### Proposed Solution
 
 [suggestion for how to fix this issue]
+
+[snarky wishes]
 ```
 """
 
@@ -75,28 +79,39 @@ def describe_event_for_ai(event):
         if tag_key not in BLOCKED_TAGS:
             content.append(f"- {tag_key}: {tag_value}")
 
-    msg = event.get("message")
-    if msg:
+    for idx, exc in enumerate(reversed((event.get("exception") or {}).get("values") or ())):
         content.append("")
-        content.append(f"Message: {msg}")
-
-    for idx, exc in enumerate((event.get("exception") or {}).get("values") or ()):
-        content.append("")
+        if idx > 0:
+            content.append("During handling of the above exception, another exception was raised:")
+            content.append("")
         content.append(f"Exception #{idx + 1}: {exc['type']}")
         content.append(f"Exception Message: {exc['value']}")
         content.append("")
 
         frames = exc.get("stacktrace", {}).get("frames")
+        first_in_app = False
         if frames:
             content.append("Stacktrace:")
-            for frame in frames:
-                if not frame["in_app"]:
-                    continue
-                content.append(f"- function: {frame['function']}")
-                content.append(f"  module: {frame.get('module') or 'N/A'}")
-                content.append(f"  filename: {frame['filename']}")
-                content.append(f"  source line: {(frame.get('context_line') or 'N/A').strip()}")
+            for frame in reversed(frames):
+                if frame["in_app"]:
+                    content.append(f"- {first_in_app and 'crashing' or ''}app frame:")
+                    first_in_app = False
+                    content.append(f"  function: {frame['function']}")
+                    content.append(f"  module: {frame.get('module') or 'N/A'}")
+                    content.append(f"  file: {frame.get('filename') or 'N/A'}")
+                    content.append(f"  line: {frame.get('lineno') or 'N/A'}")
+                    content.append(f"  source code: {(frame.get('context_line') or 'N/A').strip()}")
+                else:
+                    content.append("- third party library frame:")
+                    content.append(f"  function: {frame['function']}")
+                    content.append(f"  module: {frame.get('module') or 'N/A'}")
+                    content.append(f"  file: {frame.get('filename') or 'N/A'}")
                 content.append("")
+
+    msg = event.get("message")
+    if msg:
+        content.append("")
+        content.append(f"Message: {msg}")
 
     return "\n".join(content)
 
@@ -122,6 +137,7 @@ class EventAiSuggestEndpoint(ProjectEndpoint):
 
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
+            temperature=0.5,
             messages=[
                 {"role": "system", "content": PROMPT},
                 {
