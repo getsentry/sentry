@@ -218,4 +218,4 @@
       injectSdk(onLoadCallbacks);
     });
   }
-})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe }});
+})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
