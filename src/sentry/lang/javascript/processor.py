@@ -205,6 +205,14 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
+def get_artifact_bundle_cache_key(bundle_id):
+    return f"artifactbundle:v1:{bundle_id}"
+
+
+def get_artifact_bundle_cache_key_meta(bundle_id):
+    return "meta:%s" % get_artifact_bundle_cache_key(bundle_id)
+
+
 MAX_FETCH_ATTEMPTS = 3
 
 
@@ -708,11 +716,14 @@ class Fetcher:
     in file fetching.
     """
 
-    def __init__(self, project=None, release=None, dist=None, allow_scraping=True):
+    def __init__(self, organization, project=None, release=None, dist=None, allow_scraping=True):
+        self.organization = organization
         self.project = project
         self.release = release
         self.dist = dist
         self.allow_scraping = allow_scraping
+
+        self.debug_id_to_bundle_id = {}
 
     def bind_release(self, release=None, dist=None):
         """Updates the fetcher with a release and dist."""
@@ -721,42 +732,44 @@ class Fetcher:
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
         try:
-            # TODO: we need to decide which result_url we want to use, this will be the http.UrlResult.url.3
+            # TODO: we need to decide which result_url we want to use, this will be the http.UrlResult.url.
             result_url = debug_id
-            cache_key = "cache_key"
-
-            result = cache.get(cache_key)
-
-            # if result == -1:
-            #     return None
-            #
-            # if result:
-            #     return result_from_cache(result_url, result)
+            # We check if we already cached the bundle_id of a specific debug_id.
+            if (bundle_id := self.debug_id_to_bundle_id.get(debug_id)) is not None:
+                result = cache.get(get_artifact_bundle_cache_key(bundle_id))
+                if result == -1:
+                    return None
+                if result:
+                    return result_from_cache(result_url, result)
 
             # TODO: in the future we would like to query the debug id and then check if that specific bundle is bound
             #  to the passed project.
-            artifact_bundle = (
-                DebugIdArtifactBundle.objects.filter(
-                    debug_id=debug_id,
-                    source_file_type=source_file_type.value
-                    if source_file_type is not None
-                    else None,
-                )
-                .select_related("artifact_bundle__file")[0]
-                .artifact_bundle.file
-            )
-            artifact_bundle = fetch_retry_policy(artifact_bundle.getfile)
+            debug_id_artifact_bundle = DebugIdArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                debug_id=debug_id,
+                source_file_type=source_file_type.value if source_file_type is not None else None,
+            ).select_related("artifact_bundle__file")[0]
 
-            if artifact_bundle is not None:
+            artifact_bundle = debug_id_artifact_bundle.artifact_bundle
+            bundle_id = artifact_bundle.bundle_id
+
+            # We want to remember the bundle id of this specific debug_id and create the appropriate cache keys for
+            # caching data.
+            self.debug_id_to_bundle_id[debug_id] = bundle_id
+            cache_key = get_artifact_bundle_cache_key(bundle_id)
+            cache_key_meta = get_artifact_bundle_cache_key_meta(bundle_id)
+
+            artifact_bundle_file = fetch_retry_policy(artifact_bundle.file.getfile)
+            if artifact_bundle_file is not None:
                 try:
-                    archive = ArtifactBundleArchive(artifact_bundle)
+                    archive = ArtifactBundleArchive(artifact_bundle_file)
                 except Exception as exc:
-                    artifact_bundle.seek(0)
+                    artifact_bundle_file.seek(0)
                     logger.error(
                         "Failed to initialize archive for the artifact bundle %s",
-                        artifact_bundle.id,
+                        artifact_bundle_file.id,
                         exc_info=exc,
-                        extra={"contents": base64.b64encode(artifact_bundle.read(256))},
+                        extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
                     )
                 else:
                     with archive:
@@ -767,7 +780,7 @@ class Fetcher:
                                 "File with debug id %s and source type %s not found in artifact bundle %s",
                                 debug_id,
                                 source_file_type,
-                                artifact_bundle.id,
+                                artifact_bundle_file.id,
                                 exc_info=exc,
                             )
                             cache.set(cache_key, -1, 60)
@@ -776,9 +789,8 @@ class Fetcher:
                             result = fetch_and_cache_artifact(
                                 result_url,
                                 lambda: fp,
-                                # TODO: implement cache keys for new artifacts based on debug_ids.
                                 cache_key,
-                                None,
+                                cache_key_meta,
                                 headers,
                                 compress_fn=compress,
                             )
@@ -971,6 +983,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # Component responsible for fetching the files.
         self.fetcher = Fetcher(
+            organization=self.organization,
             project=self.project,
             allow_scraping=organization.get_option("sentry:scrape_javascript", True) is not False
             and self.project.get_option("sentry:scrape_javascript", True),
@@ -1237,7 +1250,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # This expansion is done on the new symbolicated frame. Here we are passing the context lines that are fetched
         # from the sourcemap or the original source from which we are going to extract context ourselves.
         changed_frame = self.expand_frame(
-            new_frame, debug_id=debug_id, source_context=source_context, source=sourceview
+            new_frame, debug_id, source_context=source_context, source=sourceview
         )
 
         # If we did not manage to match but we do have a line or column
@@ -1254,7 +1267,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # This second call to the frame expansion is done on the raw frame, thus we are just naively going to obtain
         # context in the original file from which the error has been thrown.
-        changed_raw = sourcemap_applied and self.expand_frame(raw_frame, debug_id=debug_id)
+        changed_raw = sourcemap_applied and self.expand_frame(raw_frame, debug_id)
 
         if sourcemap_applied or all_errors or changed_frame or changed_raw:
             # In case we are done processing, we iterate over all errors that we got
@@ -1311,7 +1324,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         except Exception as exc:
             logger.exception("Failed to tag suspected console errors", exc_info=exc)
 
-    def expand_frame(self, frame, debug_id=None, source_context=None, source=None):
+    def expand_frame(self, frame, debug_id, source_context=None, source=None):
         """
         Mutate the given frame to include pre- and post-context lines.
         """

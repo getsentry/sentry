@@ -1940,3 +1940,5 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\ttry {",
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
+
+    # TODO: test with mix of source and minified source.
