@@ -15,10 +15,6 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     def get(
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         args = self._parse_args(request)
 
         stats = {}

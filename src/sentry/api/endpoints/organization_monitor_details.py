@@ -48,10 +48,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Retrieves details for a monitor.
         """
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
@@ -75,10 +71,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Update a monitor.
         """
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         validator = MonitorValidator(
             data=request.data,
             partial=True,

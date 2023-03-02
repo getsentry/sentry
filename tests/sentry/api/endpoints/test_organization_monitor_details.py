@@ -17,9 +17,15 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         resp = self.get_success_response(self.organization.slug, monitor.guid)
         assert resp.data["id"] == str(monitor.guid)
 
+    def test_simple_slug(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["id"] == str(monitor.guid)
+
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        self.get_error_response("asdf", monitor.guid, status_code=400)
+        self.get_error_response("asdf", monitor.guid, status_code=404)
 
     def test_invalid_monitor_id(self):
         self._create_monitor()
@@ -238,7 +244,7 @@ class UpdateMonitorTest(MonitorTestCase):
             "asdf",
             monitor.guid,
             method="PUT",
-            status_code=400,
+            status_code=404,
             **{"config": {"schedule_type": "interval", "schedule": [1, "month"]}},
         )
 
@@ -281,4 +287,4 @@ class DeleteMonitorTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        self.get_error_response("asdf", monitor.guid, status_code=400)
+        self.get_error_response("asdf", monitor.guid, status_code=404)
