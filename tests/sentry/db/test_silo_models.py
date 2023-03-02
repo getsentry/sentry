@@ -16,7 +16,6 @@ from sentry.models import (
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationOnboardingTask,
-    Project,
     ProjectBookmark,
     PromptsActivity,
     RecentSearch,
@@ -27,7 +26,6 @@ from sentry.models import (
     ServiceHook,
     Team,
     User,
-    UserOption,
 )
 from sentry.models.integrations import (
     ExternalActor,
@@ -63,8 +61,6 @@ fk_emeptions = {
     (SentryAppInstallationForProvider, Organization),
     (MonitorCheckIn, MonitorLocation),
     (NotificationSetting, Actor),
-    (UserOption, Project),
-    (UserOption, Organization),
     (OrganizationAccessRequest, User),
     (OrganizationOnboardingTask, User),
     (ProjectBookmark, User),
