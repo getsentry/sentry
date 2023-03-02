@@ -102,7 +102,7 @@ class SnubaProtocolEventStream(EventStream):
         received_timestamp: float,
         skip_consume: bool,
         group_states: Optional[GroupStates] = None,
-    ) -> Mapping[str, str]:
+    ) -> MutableMapping[str, str]:
         return {
             "Received-Timestamp": str(received_timestamp),
             "queue": self._get_queue_for_post_process(event),
@@ -391,7 +391,7 @@ class SnubaProtocolEventStream(EventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
@@ -405,7 +405,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
@@ -471,4 +471,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
+            occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )

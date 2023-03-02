@@ -23,7 +23,7 @@ from sentry.notifications.utils.participants import (
 )
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -217,7 +217,11 @@ class GetSendToOwnersTest(TestCase):
         self.team2 = self.create_team(
             organization=self.organization, members=[self.user, self.user2]
         )
+        self.team_suspect_committer = self.create_team(
+            organization=self.organization, members=[self.user_suspect_committer]
+        )
         self.project.add_team(self.team2)
+        self.project.add_team(self.team_suspect_committer)
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
         )
@@ -355,10 +359,12 @@ class GetSendToOwnersTest(TestCase):
             ExternalProviders.EMAIL: {
                 user_service.get_user(self.user.id),
                 user_service.get_user(self.user2.id),
+                user_service.get_user(self.user_suspect_committer.id),
             },
             ExternalProviders.SLACK: {
                 user_service.get_user(self.user.id),
                 user_service.get_user(self.user2.id),
+                user_service.get_user(self.user_suspect_committer.id),
             },
         }
 
@@ -454,9 +460,16 @@ class GetSendToOwnersTest(TestCase):
         Test suspect committer is added as suggested assignee, where no user owns the file and
         where the "organizations:commit-context" flag is on.
         """
-        project_no_team = self.create_project(
-            name="No Team Project", organization=self.organization
+        organization = self.create_organization(name="New Organization")
+        project_suspect_committer = self.create_project(
+            name="Suspect Committer Team Project",
+            organization=organization,
+            teams=[self.team_suspect_committer],
         )
+        team_suspect_committer = self.create_team(
+            organization=organization, members=[self.user_suspect_committer]
+        )
+        project_suspect_committer.add_team(team_suspect_committer)
         commit = self.create_sample_commit(self.user_suspect_committer)
         event = self.store_event(
             data={
@@ -473,18 +486,23 @@ class GetSendToOwnersTest(TestCase):
                     ]
                 },
             },
-            project_id=project_no_team.id,
+            project_id=project_suspect_committer.id,
         )
 
         GroupOwner.objects.create(
             group=event.group,
             user_id=self.user_suspect_committer.id,
-            project=self.project,
-            organization=self.organization,
+            project=project_suspect_committer,
+            organization=organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             context={"commitId": commit.id},
         )
-        assert self.get_send_to_owners(event) == {
+        assert get_send_to(
+            project_suspect_committer,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            target_identifier=None,
+            event=event,
+        ) == {
             ExternalProviders.EMAIL: {
                 user_service.get_user(self.user_suspect_committer.id),
             },
@@ -553,6 +571,41 @@ class GetSendToOwnersTest(TestCase):
             },
         }
 
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_not_project_member_commit_context_feature_flag(self):
+        """
+        Test suspect committer is not added as suggested assignee where the suspect committer
+         is not part of the project and where the "organizations:commit-context" flag is on.
+        """
+        user_suspect_committer_no_team = self.create_user(
+            email="suspectcommitternoteam@example.com", is_active=True
+        )
+        commit = self.create_sample_commit(user_suspect_committer_no_team)
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=user_suspect_committer_no_team.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {
+                user_service.get_user(self.user.id),
+            },
+            ExternalProviders.SLACK: {
+                user_service.get_user(self.user.id),
+            },
+        }
+
 
 class GetOwnersCase(TestCase):
     def setUp(self):
@@ -601,7 +654,7 @@ class GetOwnersCase(TestCase):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, APIUser]]
+        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, RpcUser]]
     ) -> None:
         assert len(expected) == len(received)
         for recipient in expected:

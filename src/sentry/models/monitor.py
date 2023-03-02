@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 import pytz
 from croniter import croniter
@@ -82,17 +83,15 @@ class MonitorStatus(ObjectStatus):
 
 
 class MonitorType:
+    # In the future we may have other types of monitors such as health check
+    # monitors. But for now we just have CRON_JOB style moniotors.
     UNKNOWN = 0
-    HEALTH_CHECK = 1
-    HEARTBEAT = 2
     CRON_JOB = 3
 
     @classmethod
     def as_choices(cls):
         return (
             (cls.UNKNOWN, "unknown"),
-            (cls.HEALTH_CHECK, "health_check"),
-            (cls.HEARTBEAT, "heartbeat"),
             (cls.CRON_JOB, "cron_job"),
         )
 
@@ -126,6 +125,7 @@ class Monitor(Model):
     __include_in_export__ = True
 
     guid = UUIDField(unique=True, auto_add=True)
+    slug = models.SlugField()
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
@@ -145,8 +145,21 @@ class Monitor(Model):
         app_label = "sentry"
         db_table = "sentry_monitor"
         index_together = (("type", "next_checkin"),)
+        unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
+
+    def save(self, *args, **kwargs):
+        # TODO(epurkhsier): This logic is to be removed when the `guid` field
+        # is removed and a slug is required when creating monitors
+
+        # NOTE: We ONLY set a slug while saving when creating a new monitor and
+        # the slug has not been set. Otherwise existing monitors without slugs
+        # would have their guids changed
+        if self._state.adding is True and self.slug == "":
+            self.guid = uuid4()
+            self.slug = str(self.guid)
+        return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):
         return ScheduleType.get_name(self.config.get("schedule_type", ScheduleType.CRONTAB))

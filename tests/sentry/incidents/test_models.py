@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -430,7 +431,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER.value,
             target_identifier=str(self.user.id),
         )
-        assert trigger.target == self.user
+        assert trigger.target == user_service.get_user(user_id=self.user.id)
 
     def test_invalid_user(self):
         trigger = AlertRuleTriggerAction(

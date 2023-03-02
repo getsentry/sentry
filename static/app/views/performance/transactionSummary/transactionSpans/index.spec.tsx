@@ -112,7 +112,6 @@ describe('Performance > Transaction Spans', function () {
       const grid = await screen.findByTestId('grid-editable');
       expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
       expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
-      expect(await within(grid).findByText('Span Count')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
@@ -142,27 +141,10 @@ describe('Performance > Transaction Spans', function () {
         const grid = await screen.findByTestId('grid-editable');
         expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
         expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
-        expect(await within(grid).findByText('Span Count')).toBeInTheDocument();
         expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
         expect(await within(grid).findByText(label)).toBeInTheDocument();
         expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
       });
-    });
-
-    it('renders the right count header', async function () {
-      const initialData = initializeData({query: {sort: SpanSortOthers.COUNT}});
-      render(<TransactionSpans location={initialData.router.location} />, {
-        context: initialData.routerContext,
-        organization: initialData.organization,
-      });
-
-      const grid = await screen.findByTestId('grid-editable');
-      expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
-      expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
-      expect(await within(grid).findByText('Span Count')).toBeInTheDocument();
-      expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
-      expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
-      expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
     });
 
     it('renders the right avg occurrence header', async function () {

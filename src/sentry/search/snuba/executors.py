@@ -41,6 +41,7 @@ from sentry.issues.search import (
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
+    UnsupportedSearchQuery,
     _query_params_for_generic,
     group_categories_from,
 )
@@ -141,6 +142,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -224,6 +226,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
     ) -> SnubaQueryParams:
+        """
+        :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
+        """
 
         if group_category in SEARCH_FILTER_UPDATERS:
             # remove filters not relevant to the group_category
@@ -297,6 +302,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         offset: int = 0,
         get_sample: bool = False,
         search_filters: Optional[Sequence[SearchFilter]] = None,
+        referrer: Optional[str] = None,
     ) -> Tuple[List[Tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -315,7 +321,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 ).values_list("name", flat=True)
             )
 
-        referrer = "search_sample" if get_sample else "search"
+        referrer = referrer or "search"
+        referrer = f"{referrer}_sample" if get_sample else referrer
 
         snuba_search_filters = [
             sf
@@ -353,24 +360,29 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not features.has("organizations:performance-issues-search", organization):
             group_categories.discard(GroupCategory.PERFORMANCE.value)
 
-        query_params_for_categories = [
-            self._prepare_params_for_category(
-                gc,
-                query_partial,
-                organization.id,
-                project_ids,
-                environments,
-                group_ids,
-                filters,
-                snuba_search_filters,
-                sort_field,
-                start,
-                end,
-                cursor,
-                get_sample,
-            )
-            for gc in group_categories
-        ]
+        query_params_for_categories = []
+
+        for gc in group_categories:
+            try:
+                query_params_for_categories.append(
+                    self._prepare_params_for_category(
+                        gc,
+                        query_partial,
+                        organization.id,
+                        project_ids,
+                        environments,
+                        group_ids,
+                        filters,
+                        snuba_search_filters,
+                        sort_field,
+                        start,
+                        end,
+                        cursor,
+                        get_sample,
+                    )
+                )
+            except UnsupportedSearchQuery:
+                pass
 
         query_params_for_categories = [
             query_params for query_params in query_params_for_categories if query_params is not None
@@ -465,6 +477,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -641,6 +654,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 limit=chunk_limit,
                 offset=offset,
                 search_filters=search_filters,
+                referrer=referrer,
             )
             metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
@@ -927,6 +941,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
     ) -> CursorResult[Group]:
 
         if not validate_cdc_search_filters(search_filters):

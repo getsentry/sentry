@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict
 from unittest import mock
 from unittest.mock import Mock, patch
@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.processing import event_processing_store
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
@@ -33,12 +34,18 @@ from sentry.models import (
     ProjectTeam,
 )
 from sentry.models.activity import ActivityIntegration
+from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, ISSUE_OWNERS_DEBOUNCE_KEY
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
-from sentry.tasks.post_process import post_process_group, process_event
+from sentry.tasks.post_process import (
+    ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
+    post_process_group,
+    process_event,
+    process_owner_assignments,
+)
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
@@ -574,7 +581,10 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             auto_assignment=True,
         )
 
-    def test_owner_assignment_order_precedence(self):
+    @patch(
+        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
+    )
+    def test_owner_assignment_order_precedence(self, mock_process_owner_assignments):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -607,8 +617,12 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
             "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),
         }
+        assert mock_process_owner_assignments.call_count == 1
 
-    def test_owner_assignment_extra_groups(self):
+    @patch(
+        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
+    )
+    def test_owner_assignment_extra_groups(self, mock_process_owner_assignments):
         extra_user = self.create_user()
         self.create_team_membership(self.team, user=extra_user)
         self.make_ownership(
@@ -637,8 +651,12 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(extra_user.id, None), (self.user.id, None)} == {
             (o.user_id, o.team_id) for o in owners
         }
+        assert mock_process_owner_assignments.call_count == 1
 
-    def test_owner_assignment_existing_owners(self):
+    @patch(
+        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
+    )
+    def test_owner_assignment_existing_owners(self, mock_process_owner_assignments):
         extra_team = self.create_team()
         ProjectTeam.objects.create(team=extra_team, project=self.project)
 
@@ -674,8 +692,12 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(None, extra_team.id), (self.user.id, None)} == {
             (o.user_id, o.team_id) for o in owners
         }
+        assert mock_process_owner_assignments.call_count == 1
 
-    def test_owner_assignment_assign_user(self):
+    @patch(
+        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
+    )
+    def test_owner_assignment_assign_user(self, mock_process_owner_assignments):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -694,6 +716,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == self.user.id
         assert assignee.team is None
+        assert mock_process_owner_assignments.call_count == 1
 
     def test_owner_assignment_ownership_no_matching_owners(self):
         event = self.create_event(
@@ -733,7 +756,10 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id is None
         assert assignee.team == self.team
 
-    def test_only_first_assignment_works(self):
+    @patch(
+        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
+    )
+    def test_only_first_assignment_works(self, mock_process_owner_assignments):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -753,6 +779,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == self.user.id
         assert assignee.team is None
+        assert mock_process_owner_assignments.call_count == 1
 
         event = self.create_event(
             data={
@@ -824,7 +851,12 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id is None
         assert assignee.team == self.team
 
-    def test_owner_assignment_when_owners_have_been_unassigned(self):
+    @patch(
+        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
+    )
+    def test_owner_assignment_when_owners_have_been_unassigned(
+        self, mock_process_owner_assignments
+    ):
         """
         Test that ensures that if certain assignees get unassigned, and project rules are changed
         then the new group assignees should be re-calculated and re-assigned
@@ -930,6 +962,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Group should be re-assigned to the new group owner
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == user_4.id
+        assert mock_process_owner_assignments.call_count == 6
 
     def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
         self.make_ownership()
@@ -953,6 +986,67 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_regression=False,
             is_new_group_environment=False,
             event=event,
+        )
+
+    @patch("sentry.tasks.post_process.logger")
+    def test_debounces_handle_owner_assignments(self, logger):
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), True, ISSUE_OWNERS_DEBOUNCE_DURATION)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        logger.info.assert_any_call(
+            "handle_owner_assignment.issue_owners_exist",
+            extra={
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+                "reason": "issue_owners_exist",
+            },
+        )
+
+    @patch("sentry.tasks.post_process.logger")
+    def test_issue_owners_should_ratelimit(self, logger):
+        cache.set(
+            f"issue_owner_assignment_ratelimiter:{self.project.id}",
+            (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
+        )
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        logger.info.assert_any_call(
+            "handle_owner_assignment.ratelimited",
+            extra={
+                "event": event.event_id,
+                "group": event.group_id,
+                "project": event.project_id,
+                "organization": event.project.organization_id,
+                "reason": "ratelimited",
+            },
         )
 
 
@@ -1040,7 +1134,8 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        Integration.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Integration.objects.all().delete()
         integration = Integration.objects.create(provider="bitbucket")
         integration.add_organization(self.organization)
         with self.tasks():
@@ -1369,15 +1464,16 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=None,
-            group_id=event.group_id,
-            occurrence_id=event.occurrence.id,
-            project_id=event.group.project_id,
-        )
+        with self.feature("organizations:profile-blocked-main-thread-ppg"):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=None,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence.id,
+                project_id=event.group.project_id,
+            )
         return cache_key
 
     def test_issueless(self):

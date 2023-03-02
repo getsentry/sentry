@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -10,20 +13,20 @@ from sentry.silo import SiloMode
 
 
 @dataclass
-class ApiUserOption:
+class RpcUserOption:
     id: int = -1
     user_id: int = -1
     value: Any = None
     key: str = ""
-    project_id: int | None = None
-    organization_id: int | None = None
+    project_id: Optional[int] = None
+    organization_id: Optional[int] = None
 
 
 def get_option_from_list(
-    options: List[ApiUserOption],
+    options: List[RpcUserOption],
     *,
-    key: str | None = None,
-    user_id: int | None = None,
+    key: Optional[str] = None,
+    user_id: Optional[int] = None,
     default: Any = None,
 ) -> Any:
     for option in options:
@@ -44,7 +47,7 @@ class UserOptionFilterArgs(TypedDict, total=False):
 
 
 class UserOptionService(
-    FilterQueryInterface[UserOptionFilterArgs, ApiUserOption, None], InterfaceWithLifecycle
+    FilterQueryInterface[UserOptionFilterArgs, RpcUserOption, None], InterfaceWithLifecycle
 ):
     @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
@@ -57,8 +60,8 @@ class UserOptionService(
         user_id: int,
         value: Any,
         key: str,
-        project_id: int | None = None,
-        organization_id: int | None = None,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
     ) -> None:
         pass
 

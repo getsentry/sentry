@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -18,6 +17,7 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
+import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import CodeOwnersPanel from 'sentry/views/settings/project/projectOwnership/codeowners';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
@@ -32,9 +32,17 @@ type State = {
 } & AsyncView['state'];
 
 class ProjectOwnership extends AsyncView<Props, State> {
+  // TODO: Remove with `streamline-targeting-context`
+  getOwnershipTitle() {
+    const {organization} = this.props;
+    return organization.features?.includes('streamline-targeting-context')
+      ? t('Ownership Rules')
+      : t('Issue Owners');
+  }
+
   getTitle() {
     const {project} = this.props;
-    return routeTitleGen(t('Issue Owners'), project.slug, false);
+    return routeTitleGen(this.getOwnershipTitle(), project.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -117,132 +125,17 @@ tags.sku_class:enterprise #enterprise`;
     });
   };
 
-  renderCodeOwnerErrors = () => {
-    const {project, organization} = this.props;
-    const {codeowners} = this.state;
-
-    const errMessageComponent = (message, values, link, linkValue) => (
-      <Fragment>
-        <ErrorMessageContainer>
-          <span>{message}</span>
-          <b>{values.join(', ')}</b>
-        </ErrorMessageContainer>
-        <ErrorCtaContainer>
-          <ExternalLink href={link}>{linkValue}</ExternalLink>
-        </ErrorCtaContainer>
-      </Fragment>
-    );
-
-    const errMessageListComponent = (
-      message: string,
-      values: string[],
-      linkFunction: (s: string) => string,
-      linkValueFunction: (s: string) => string
-    ) => {
-      return (
-        <Fragment>
-          <ErrorMessageContainer>
-            <span>{message}</span>
-          </ErrorMessageContainer>
-          <ErrorMessageListContainer>
-            {values.map((value, index) => (
-              <ErrorInlineContainer key={index}>
-                <b>{value}</b>
-                <ErrorCtaContainer>
-                  <ExternalLink href={linkFunction(value)} key={index}>
-                    {linkValueFunction(value)}
-                  </ExternalLink>
-                </ErrorCtaContainer>
-              </ErrorInlineContainer>
-            ))}
-          </ErrorMessageListContainer>
-        </Fragment>
-      );
-    };
-
-    return (codeowners || [])
-      .filter(({errors}) => Object.values(errors).flat().length)
-      .map(({id, codeMapping, errors}) => {
-        const errMessage = (type, values) => {
-          switch (type) {
-            case 'missing_external_teams':
-              return errMessageComponent(
-                `The following teams do not have an association in the organization: ${organization.slug}`,
-                values,
-                `/settings/${organization.slug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`,
-                'Configure Team Mappings'
-              );
-
-            case 'missing_external_users':
-              return errMessageComponent(
-                `The following usernames do not have an association in the organization: ${organization.slug}`,
-                values,
-                `/settings/${organization.slug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=userMappings`,
-                'Configure User Mappings'
-              );
-
-            case 'missing_user_emails':
-              return errMessageComponent(
-                `The following emails do not have an Sentry user in the organization: ${organization.slug}`,
-                values,
-                `/settings/${organization.slug}/members/`,
-                'Invite Users'
-              );
-
-            case 'teams_without_access':
-              return errMessageListComponent(
-                `The following team do not have access to the project: ${project.slug}`,
-                values,
-                value =>
-                  `/settings/${organization.slug}/teams/${value.slice(1)}/projects/`,
-                value => `Configure ${value} Permissions`
-              );
-
-            case 'users_without_access':
-              return errMessageListComponent(
-                `The following users are not on a team that has access to the project: ${project.slug}`,
-                values,
-                email => `/settings/${organization.slug}/members/?query=${email}`,
-                _ => `Configure Member Settings`
-              );
-            default:
-              return null;
-          }
-        };
-        return (
-          <Alert
-            key={id}
-            type="error"
-            showIcon
-            expand={[
-              <AlertContentContainer key="container">
-                {Object.entries(errors)
-                  .filter(([_, values]) => values.length)
-                  .map(([type, values]) => (
-                    <ErrorContainer key={`${id}-${type}`}>
-                      {errMessage(type, values)}
-                    </ErrorContainer>
-                  ))}
-              </AlertContentContainer>,
-            ]}
-          >
-            {`There were ${
-              Object.values(errors).flat().length
-            } ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
-          </Alert>
-        );
-      });
-  };
   renderBody() {
     const {project, organization} = this.props;
     const {ownership, codeowners} = this.state;
 
     const disabled = !organization.access.includes('project:write');
+    const editOwnershipeRulesDisabled = !organization.access.includes('project:read');
 
     return (
       <Fragment>
         <SettingsPageHeader
-          title={t('Issue Owners')}
+          title={this.getOwnershipTitle()}
           action={
             <Fragment>
               <Button
@@ -275,8 +168,14 @@ tags.sku_class:enterprise #enterprise`;
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
 
-        <PermissionAlert />
-        {this.renderCodeOwnerErrors()}
+        <PermissionAlert
+          access={!editOwnershipeRulesDisabled ? ['project:read'] : ['project:write']}
+        />
+        <CodeOwnerErrors
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+          codeowners={codeowners ?? []}
+        />
         {ownership && (
           <RulesPanel
             data-test-id="issueowners-panel"
@@ -296,13 +195,14 @@ tags.sku_class:enterprise #enterprise`;
                     onSave: this.handleOwnershipSave,
                   })
                 }
-                disabled={disabled}
+                disabled={editOwnershipeRulesDisabled}
               >
                 {t('Edit')}
               </Button>,
             ]}
           />
         )}
+        <PermissionAlert />
         <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
             codeowners={codeowners || []}
@@ -385,44 +285,6 @@ export default ProjectOwnership;
 
 const CodeOwnerButton = styled(Button)`
   margin-left: ${space(1)};
-`;
-
-const AlertContentContainer = styled('div')`
-  overflow-y: auto;
-  max-height: 350px;
-`;
-
-const ErrorContainer = styled('div')`
-  display: grid;
-  grid-template-areas: 'message cta';
-  grid-template-columns: 2fr 1fr;
-  gap: ${space(2)};
-  padding: ${space(1.5)} 0;
-`;
-
-const ErrorInlineContainer = styled(ErrorContainer)`
-  gap: ${space(1.5)};
-  grid-template-columns: 1fr 2fr;
-  align-items: center;
-  padding: 0;
-`;
-
-const ErrorMessageContainer = styled('div')`
-  grid-area: message;
-  display: grid;
-  gap: ${space(1.5)};
-`;
-
-const ErrorMessageListContainer = styled('div')`
-  grid-column: message / cta-end;
-  gap: ${space(1.5)};
-`;
-
-const ErrorCtaContainer = styled('div')`
-  grid-area: cta;
-  justify-self: flex-end;
-  text-align: right;
-  line-height: 1.5;
 `;
 
 const IssueOwnerDetails = styled('div')`

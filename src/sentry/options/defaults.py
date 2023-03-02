@@ -371,6 +371,9 @@ register("processing.can-use-scrubbers", default=True)
 # Set this value of the fraction of projects that you want to use it for.
 register("processing.sourcemapcache-processor", default=0.0)  # unused
 
+# Flag for enabling deobfuscation for ProGuard files in ingest consumer
+register("processing.view-hierarchies-deobfuscation-general-availability", default=0.0)
+
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -602,6 +605,10 @@ register("performance.issues.render_blocking_assets.problem-creation", default=0
 register("performance.issues.render_blocking_assets.la-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ea-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ga-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.problem-creation", default=0.0)
+register("performance.issues.m_n_plus_one_db.la-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ea-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ga-rollout", default=0.0)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
@@ -618,6 +625,7 @@ register("dynamic-sampling:enabled-biases", default=True)
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
+register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
 
 # Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)

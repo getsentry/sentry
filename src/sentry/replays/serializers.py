@@ -3,7 +3,7 @@ from rest_framework import serializers
 VALID_FIELD_SET = {
     "id",
     "title",
-    "projectId",
+    "project_id",
     "errorIds",
     "traceIds",
     "urls",

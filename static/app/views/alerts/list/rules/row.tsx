@@ -315,7 +315,6 @@ function RuleListRow({
             <AlertBadge
               status={rule?.latestIncident?.status}
               isIssue={isIssueAlert(rule)}
-              hideText
             />
           </Tooltip>
         </FlexCenter>
@@ -384,14 +383,14 @@ function RuleListRow({
           </AssigneeWrapper>
         )}
       </FlexCenter>
-      <ActionsRow>
+      <ActionsColumn>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
             <DropdownMenu
               items={actions}
               position="bottom-end"
               triggerProps={{
-                'aria-label': t('Show more'),
+                'aria-label': t('Actions'),
                 size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
@@ -400,7 +399,7 @@ function RuleListRow({
             />
           )}
         </Access>
-      </ActionsRow>
+      </ActionsColumn>
     </ErrorBoundary>
   );
 }
@@ -411,13 +410,13 @@ const FlexCenter = styled('div')`
 `;
 
 const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+  gap: ${space(2)};
   position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  margin-left: ${space(2)};
   line-height: 1.35;
 `;
 
@@ -454,7 +453,7 @@ const TriggerText = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const ActionsRow = styled(FlexCenter)`
+const ActionsColumn = styled(FlexCenter)`
   justify-content: center;
   padding: ${space(1)};
 `;

@@ -4,12 +4,18 @@ from typing import Any
 
 from django.dispatch import receiver
 
-from sentry.models import Organization, OrganizationMember, OutboxCategory, process_region_outbox
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OutboxCategory,
+    Project,
+    process_region_outbox,
+)
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
 from sentry.services.hybrid_cloud.log.impl import DatabaseBackedLogService
 from sentry.services.hybrid_cloud.organization_mapping import (
-    ApiOrganizationMappingUpdate,
+    RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
 
@@ -48,5 +54,12 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
         return
 
-    update = ApiOrganizationMappingUpdate.from_instance(org)
+    update = RpcOrganizationMappingUpdate.from_instance(org)
     organization_mapping_service.update(update)
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)
+def process_project_updates(object_identifier: int, **kwds: Any):
+    if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
+        return
+    proj

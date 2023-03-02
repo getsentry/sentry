@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from uuid import UUID
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -5,8 +9,9 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Monitor, Project, ProjectStatus
+from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
+from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
+from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, Project, ProjectStatus
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -32,6 +37,19 @@ class ProjectMonitorPermission(ProjectPermission):
     }
 
 
+class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
+    scope_map = ProjectMonitorPermission.scope_map
+
+    def has_object_permission(self, request: Request, view, project):
+        result = super().has_object_permission(request, view, project)
+
+        # Allow attachment uploads via DSN
+        if request.method == "POST":
+            return True
+
+        return result
+
+
 class MonitorEndpoint(Endpoint):
     permission_classes = (ProjectMonitorPermission,)
 
@@ -39,7 +57,12 @@ class MonitorEndpoint(Endpoint):
     def respond_invalid() -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
 
-    def convert_args(self, request: Request, monitor_id, *args, **kwargs):
+    def convert_args(self, request: Request, monitor_id: str, *args, **kwargs):
+        try:
+            UUID(monitor_id)
+        except ValueError:
+            raise ParameterValidationError("Invalid monitor UUID")
+
         try:
             monitor = Monitor.objects.get(guid=monitor_id)
         except Monitor.DoesNotExist:
@@ -68,3 +91,44 @@ class MonitorEndpoint(Endpoint):
         if isinstance(exc, InvalidAuthProject):
             return self.respond(status=400)
         return super().handle_exception(request, exc)
+
+
+class MonitorCheckInEndpoint(MonitorEndpoint):
+    # TODO(dcramer): this code needs shared with other endpoints as its security focused
+    # TODO(dcramer): this doesnt handle is_global roles
+    def convert_args(
+        self,
+        request: Request,
+        monitor_id: str,
+        checkin_id: str,
+        organization_slug: str | None = None,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, monitor_id, *args, **kwargs)
+
+        monitor = kwargs["monitor"]
+        # we support the magic keyword of "latest" to grab the most recent check-in
+        # which is unfinished (thus still mutable)
+        if checkin_id == "latest":
+            checkin = (
+                MonitorCheckIn.objects.filter(monitor=monitor)
+                .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                .order_by("-date_added")
+                .first()
+            )
+            if not checkin:
+                raise ResourceDoesNotExist
+        else:
+            try:
+                UUID(checkin_id)
+            except ValueError:
+                raise ParameterValidationError("Invalid check-in UUID")
+
+            try:
+                checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
+            except MonitorCheckIn.DoesNotExist:
+                raise ResourceDoesNotExist
+
+        kwargs.update({"checkin": checkin})
+        return args, kwargs

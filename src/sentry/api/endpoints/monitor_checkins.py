@@ -4,15 +4,18 @@ from typing import List
 
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError, Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import ratelimits
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
+from sentry.api.utils import get_date_range_from_params
 from sentry.api.validators import MonitorCheckInValidator
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -22,8 +25,21 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey
+from sentry.models import (
+    CheckInStatus,
+    Environment,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+    Project,
+    ProjectKey,
+)
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
+from sentry.utils import metrics
+
+CHECKIN_QUOTA_LIMIT = 5
+CHECKIN_QUOTA_WINDOW = 60
 
 
 @region_silo_endpoint
@@ -62,7 +78,13 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             if project.organization.slug != organization_slug:
                 return self.respond_invalid()
 
-        queryset = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        start, end = get_date_range_from_params(request.GET)
+        if start is None or end is None:
+            raise ParseError(detail="Invalid date range")
+
+        queryset = MonitorCheckIn.objects.filter(
+            monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
+        )
 
         return self.paginate(
             request=request,
@@ -118,12 +140,39 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
+        if ratelimits.is_limited(
+            f"monitor-checkins:{monitor.id}",
+            limit=CHECKIN_QUOTA_LIMIT,
+            window=CHECKIN_QUOTA_WINDOW,
+        ):
+            metrics.incr("monitors.checkin.dropped.ratelimited")
+            raise Throttled(
+                detail="Rate limited, please send no more than 5 checkins per minute per monitor"
+            )
+
         result = serializer.validated_data
 
         with transaction.atomic():
+            environment_name = result.get("environment")
+            if not environment_name:
+                environment_name = "production"
+
+            environment = Environment.get_or_create(project=project, name=environment_name)
+
+            monitor_environment, created = MonitorEnvironment.objects.get_or_create(
+                monitor=monitor, environment=environment
+            )
+
+            if created:
+                monitor_environment.status = monitor.status
+                monitor_environment.next_checkin = monitor.next_checkin
+                monitor_environment.last_checkin = monitor.last_checkin
+                monitor_environment.save()
+
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
+                monitor_environment=monitor_environment,
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
@@ -139,7 +188,9 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 )
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                if not monitor.mark_failed(last_checkin=checkin.date_added):
+                monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
+                monitor_environment.mark_failed(last_checkin=checkin.date_added)
+                if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
@@ -151,6 +202,9 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 if checkin.status == CheckInStatus.OK and monitor.status != MonitorStatus.DISABLED:
                     monitor_params["status"] = MonitorStatus.OK
                 Monitor.objects.filter(id=monitor.id).exclude(
+                    last_checkin__gt=checkin.date_added
+                ).update(**monitor_params)
+                MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
                     last_checkin__gt=checkin.date_added
                 ).update(**monitor_params)
 

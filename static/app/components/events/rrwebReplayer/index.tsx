@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import type RRWebPlayer from 'rrweb-player';
+import type RRWebPlayer from '@sentry-internal/rrweb-player';
 
 import BaseRRWebReplayer from './baseRRWebReplayer';
 
