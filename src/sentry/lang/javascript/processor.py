@@ -205,12 +205,12 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
-def get_artifact_bundle_cache_key(bundle_id):
-    return f"artifactbundle:v1:{bundle_id}"
+def get_artifact_bundle_cache_key(debug_id, source_file_type):
+    return f"artifactbundlefile:v1:{debug_id}:{source_file_type.value}"
 
 
-def get_artifact_bundle_cache_key_meta(bundle_id):
-    return "meta:%s" % get_artifact_bundle_cache_key(bundle_id)
+def get_artifact_bundle_cache_key_meta(debug_id, source_file_type):
+    return "meta:%s" % get_artifact_bundle_cache_key(debug_id, source_file_type)
 
 
 MAX_FETCH_ATTEMPTS = 3
@@ -723,8 +723,6 @@ class Fetcher:
         self.dist = dist
         self.allow_scraping = allow_scraping
 
-        self.debug_id_to_bundle_id = {}
-
     def bind_release(self, release=None, dist=None):
         """Updates the fetcher with a release and dist."""
         self.release = release
@@ -732,15 +730,17 @@ class Fetcher:
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
         try:
-            # TODO: we need to decide which result_url we want to use, this will be the http.UrlResult.url.
             result_url = debug_id
-            # We check if we already cached the bundle_id of a specific debug_id.
-            if (bundle_id := self.debug_id_to_bundle_id.get(debug_id)) is not None:
-                result = cache.get(get_artifact_bundle_cache_key(bundle_id))
-                if result == -1:
-                    return None
-                if result:
-                    return result_from_cache(result_url, result)
+
+            # TODO: we need to implement a better caching system that caches bundle ids for debug ids.
+            cache_key = get_artifact_bundle_cache_key(debug_id, source_file_type)
+            cache_key_meta = get_artifact_bundle_cache_key_meta(debug_id, source_file_type)
+
+            result = cache.get(get_artifact_bundle_cache_key(debug_id, source_file_type))
+            if result == -1:
+                return None
+            if result:
+                return result_from_cache(result_url, result)
 
             # TODO: in the future we would like to query the debug id and then check if that specific bundle is bound
             #  to the passed project.
@@ -751,13 +751,6 @@ class Fetcher:
             ).select_related("artifact_bundle__file")[0]
 
             artifact_bundle = debug_id_artifact_bundle.artifact_bundle
-            bundle_id = artifact_bundle.bundle_id
-
-            # We want to remember the bundle id of this specific debug_id and create the appropriate cache keys for
-            # caching data.
-            self.debug_id_to_bundle_id[debug_id] = bundle_id
-            cache_key = get_artifact_bundle_cache_key(bundle_id)
-            cache_key_meta = get_artifact_bundle_cache_key_meta(bundle_id)
 
             artifact_bundle_file = fetch_retry_policy(artifact_bundle.file.getfile)
             if artifact_bundle_file is not None:
@@ -972,6 +965,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # Cache holding the results of the fetching by debug id.
         self.fetch_by_debug_id_sourceviews = {}
+        self.fetch_by_debug_id_errors = {}
 
         # Cache holding the sourcemaps views indexed by either debug id or sourcemap url.
         self.debug_id_sourcemap_cache = {}
@@ -1088,6 +1082,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
         # happen in one of the two we will detect them and add them to 'all_errors'.
+        # TODO: check if we want also to return errors by debug id.
         errors = self.fetch_by_url_errors.get(frame["abs_path"])
         if errors is not None:
             all_errors.extend(errors)
@@ -1484,13 +1479,33 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if minified_sourceview is None:
             return None
 
+        try:
+            sourcemap_cache = self._fetch_sourcemap_cache_by_debug_id(debug_id, minified_sourceview)
+        except http.BadSource as exc:
+            # We also keep track of errors raised during debug_id lookup.
+            self.fetch_by_debug_id_errors.setdefault(debug_id, []).append(exc.data)
+            return None
+        else:
+            self.debug_id_sourcemap_cache[debug_id] = sourcemap_cache
+            return sourcemap_cache
+
+    def _fetch_sourcemap_cache_by_debug_id(self, debug_id, minified_sourceview):
         result = self.fetcher.fetch_by_debug_id(debug_id, SourceFileType.SOURCE_MAP)
         if result is not None:
-            sourcemap_view = SmCache.from_bytes(
-                minified_sourceview.get_source().encode("utf-8"), result.body
-            )
-            self.debug_id_sourcemap_cache[debug_id] = sourcemap_view
-            return sourcemap_view
+            try:
+                with sentry_sdk.start_span(
+                    op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_debug_id.SmCache.from_bytes"
+                ):
+                    # This is an expensive operation that should be executed as few times as possible.
+                    return SmCache.from_bytes(
+                        minified_sourceview.get_source().encode("utf-8"), result.body
+                    )
+            except Exception as exc:
+                # This is in debug because the product shows an error already.
+                logger.debug(str(exc), exc_info=True)
+                raise UnparseableSourcemap({"debug_id": debug_id})
+
+        return None
 
     def _handle_url_sourcemap_lookup(self, url):
         # In case there are any fetching errors tied to the url of the minified file, we don't want to attempt the

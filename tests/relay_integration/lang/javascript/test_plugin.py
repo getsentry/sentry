@@ -1564,6 +1564,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert "errors" not in event.data
 
     def test_expansion_with_debug_id(self):
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO()
@@ -1580,7 +1583,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                 "manifest.json",
                 json.dumps(
                     {
-                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                        "org": self.organization.slug,
+                        "release": release.version,
                         "files": {
                             "files/_/_/file.min.js": {
                                 "url": "~/file.min.js",
@@ -1620,14 +1624,19 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                     "debug-id": debug_id,
                                 },
                             },
-                        }
+                        },
                     }
                 ),
             )
         compressed.seek(0)
-
         file = File.objects.create(name="bundle.zip", type="artifact.bundle")
         file.putfile(compressed)
+
+        # We want to also store the release files for this bundle, to check if they work in tandem.
+        compressed.seek(0)
+        file_for_release = File.objects.create(name="bundle.zip", type="release.bundle")
+        file_for_release.putfile(compressed)
+        update_artifact_index(release, None, file_for_release)
 
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
@@ -1669,6 +1678,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                     "lineno": 1,
                                     "colno": 79,
                                 },
+                                # We want also to test the source without minification.
+                                {
+                                    "abs_path": "http://example.com/file1.js",
+                                    "filename": "file1.js",
+                                    "lineno": 3,
+                                    "colno": 12,
+                                },
                             ]
                         },
                     }
@@ -1708,6 +1724,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
+        frame = frame_list[2]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}", ""]
+
     def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
@@ -1723,7 +1744,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                 "manifest.json",
                 json.dumps(
                     {
-                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
                         "files": {
                             "files/_/_/file.min.js": {
                                 "url": "~/file.min.js",
@@ -1902,6 +1922,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                     "lineno": 1,
                                     "colno": 79,
                                 },
+                                # We want also to test the source without minification.
+                                {
+                                    "abs_path": "http://example.com/file1.js",
+                                    "filename": "file1.js",
+                                    "lineno": 3,
+                                    "colno": 12,
+                                },
                             ]
                         },
                     }
@@ -1941,4 +1968,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
-    # TODO: test with mix of source and minified source.
+        frame = frame_list[2]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}", ""]

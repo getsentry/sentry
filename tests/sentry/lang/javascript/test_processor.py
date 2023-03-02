@@ -1100,11 +1100,10 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
-        assert fetcher.debug_id_to_bundle_id == {debug_id: bundle_id}
-        assert len(self.relevant_calls(cache_get, "artifactbundle")) == 0
-        assert len(self.relevant_calls(cache_get, "meta:artifactbundle")) == 0
-        assert len(self.relevant_calls(cache_set, "artifactbundle")) == 1
-        assert len(self.relevant_calls(cache_set, "meta:artifactbundle")) == 1
+        assert len(self.relevant_calls(cache_get, "artifactbundlefile")) == 1
+        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile")) == 0
+        assert len(self.relevant_calls(cache_set, "artifactbundlefile")) == 1
+        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile")) == 1
         cache_get.reset_mock()
         cache_set.reset_mock()
 
@@ -1113,11 +1112,10 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
-        assert fetcher.debug_id_to_bundle_id == {debug_id: bundle_id}
-        assert len(self.relevant_calls(cache_get, "artifactbundle")) == 1
-        assert len(self.relevant_calls(cache_get, "meta:artifactbundle")) == 0
-        assert len(self.relevant_calls(cache_set, "artifactbundle")) == 0
-        assert len(self.relevant_calls(cache_set, "meta:artifactbundle")) == 0
+        assert len(self.relevant_calls(cache_get, "artifactbundlefile")) == 1
+        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile")) == 0
+        assert len(self.relevant_calls(cache_set, "artifactbundlefile")) == 0
+        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile")) == 0
 
     @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
     @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
@@ -1167,8 +1165,7 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
-            assert fetcher.debug_id_to_bundle_id == {debug_id: bundle_id}
-            assert len(self.relevant_calls(cache_get, "artifactbundle")) == 0
+            assert len(self.relevant_calls(cache_get, "artifactbundle")) == 1
             assert len(self.relevant_calls(cache_get, "meta:artifactbundle")) == 1
             assert len(self.relevant_calls(cache_set, "artifactbundle")) == 0
             assert len(self.relevant_calls(cache_set, "meta:artifactbundle")) == 0
@@ -1180,7 +1177,6 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
-            assert fetcher.debug_id_to_bundle_id == {debug_id: bundle_id}
             assert len(self.relevant_calls(cache_get, "artifactbundle")) == 1
             assert len(self.relevant_calls(cache_get, "meta:artifactbundle")) == 1
             assert len(self.relevant_calls(cache_set, "artifactbundle")) == 0
