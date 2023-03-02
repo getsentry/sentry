@@ -14,7 +14,7 @@ from arroyo.processing.strategies.filter import FilterStep
 from arroyo.processing.strategies.reduce import Reduce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.transform import TransformStep
-from arroyo.types import BaseValue, Commit, Message, Partition, Topic, FilteredPayload
+from arroyo.types import BaseValue, Commit, FilteredPayload, Message, Partition, Topic
 from django.utils import timezone
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
@@ -137,7 +137,9 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
         return set()
 
 
-class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]):
+class LastSeenUpdaterStrategyFactory(
+    ProcessingStrategyFactory[Union[FilteredPayload, KafkaPayload]]
+):
     def __init__(
         self,
         use_case_id: UseCaseKey,
@@ -180,7 +182,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[Union[FilteredPay
             self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
             logger.debug(f"{update_count} keys updated")
 
-        collect_step = Reduce(
+        collect_step: Reduce[Set[int], Set[int]] = Reduce(
             self.__max_batch_size,
             self.__max_batch_time,
             accumulator,

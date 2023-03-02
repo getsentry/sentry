@@ -55,7 +55,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
             next_step=CommitOffsets(commit),
         )
 
-        step2 = FilterStep(
+        step2: FilterStep[MessageContext] = FilterStep(
             function=is_capstone_message,
             next_step=step,
         )
