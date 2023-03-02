@@ -738,6 +738,7 @@ const commonTheme = {
   borderRadiusRight: '0 6px 6px 0',
 
   panelBorderRadius: '6px',
+  modalBorderRadius: '8px',
   linkBorderRadius: '2px',
 
   headerSelectorRowHeight: 44,

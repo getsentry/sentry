@@ -14,6 +14,7 @@ from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
@@ -829,7 +830,8 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        Organization.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):

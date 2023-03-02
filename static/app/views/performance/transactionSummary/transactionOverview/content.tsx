@@ -249,6 +249,7 @@ function SummaryContent({
 
   if (
     organization.features.includes('session-replay-ui') &&
+    project &&
     projectSupportsReplay(project)
   ) {
     transactionsListTitles.push(t('replay'));

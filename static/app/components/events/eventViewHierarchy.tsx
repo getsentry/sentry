@@ -82,7 +82,7 @@ function EventViewHierarchyContent({event, project}: Props) {
         <Fragment>
           {t('View Hierarchy')}
 
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Fragment>
       }
     >

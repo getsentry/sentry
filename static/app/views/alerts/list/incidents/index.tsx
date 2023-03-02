@@ -315,6 +315,10 @@ function IncidentsListContainer(props: Props) {
 
 const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
+
+  & > div {
+    padding: ${space(1.5)} ${space(2)};
+  }
 `;
 
 const StyledAlert = styled(Alert)`
