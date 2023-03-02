@@ -155,6 +155,8 @@ class MonitorForm extends Component<Props> {
               name="project"
               label={t('Project')}
               projects={this.props.projects.filter(project => project.isMember)}
+              disabled={!!monitor}
+              disabledReason={t('Existing monitors cannot be moved between projects')}
               valueIsSlug
               help={t(
                 "Select the project which contains the recurring job you'd like to monitor."

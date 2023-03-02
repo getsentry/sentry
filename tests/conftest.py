@@ -163,15 +163,19 @@ def protect_hybrid_cloud_deletions(request):
     logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
     create Outbox objects in the same transaction that matches what you delete.
     """
-    if "django_db_setup" not in request.fixturenames:
-        yield
-        return
-
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
 
-    with get_connection().cursor() as conn:
-        conn.execute("SET ROLE 'postgres'")
+    try:
+        with get_connection().cursor() as conn:
+            conn.execute("SET ROLE 'postgres'")
+    except (RuntimeError, AssertionError) as e:
+        # Tests that do not have access to the database should pass through.
+        # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
+        # fixture name that fully covered all cases of database access, so this approach is "try and then fail".
+        if "Database access not allowed" in str(e) or "Database queries to" in str(e):
+            yield
+            return
 
     reset_test_role(role="postgres_unprivileged")
 

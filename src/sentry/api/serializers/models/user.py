@@ -130,7 +130,7 @@ class UserSerializer(Serializer):  # type: ignore
         self, item_list: Sequence[User], user: User
     ) -> Dict[int, List[AuthIdentity]]:
         if not (env.request and is_active_superuser(env.request)):
-            item_list = [x for x in item_list if x == user]
+            item_list = [x for x in item_list if x.id == user.id]
 
         queryset = AuthIdentity.objects.filter(
             user_id__in=[i.id for i in item_list]
@@ -192,7 +192,7 @@ class UserSerializer(Serializer):  # type: ignore
             d = cast(UserSerializerResponseSelf, d)
             options = {
                 o.key: o.value
-                for o in UserOption.objects.filter(user_id=user.id, project__isnull=True)
+                for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
             }
             stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
 
