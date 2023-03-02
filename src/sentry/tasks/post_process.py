@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES, GroupCategory
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -149,11 +149,7 @@ def handle_owner_assignment(job):
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import (
-                ISSUE_OWNERS_DEBOUNCE_DURATION,
-                ISSUE_OWNERS_DEBOUNCE_KEY,
-                ProjectOwnership,
-            )
+            from sentry.models import ISSUE_OWNERS_DEBOUNCE_KEY
 
             event = job["event"]
             project, group = event.project, event.group
@@ -218,47 +214,50 @@ def handle_owner_assignment(job):
                             },
                         )
                         return
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.get_issue_owners"
-                ):
-
-                    if killswitch_matches_context(
-                        "post_process.get-autoassign-owners",
-                        {
-                            "project_id": project.id,
-                        },
-                    ):
-                        # see ProjectOwnership.get_issue_owners
-                        issue_owners = []
-                    else:
-
-                        issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
-
-                        # Cache for 1 day after we calculated. We don't need to move that fast.
-                        cache.set(
-                            issue_owners_key,
-                            True,
-                            ISSUE_OWNERS_DEBOUNCE_DURATION,
-                        )
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.handle_group_owners"
-                ):
-                    if issue_owners:
-                        try:
-                            handle_group_owners(project, group, issue_owners)
-                            logger.info(
-                                "handle_owner_assignment.success",
-                                extra={
-                                    **basic_logging_details,
-                                    "reason": "stored_issue_owners",
-                                },
-                            )
-                        except Exception:
-                            logger.exception("Failed to store group owners")
+                process_owner_assignments.delay(job)
         except Exception:
             logger.exception("Failed to handle owner assignments")
+
+
+@instrumented_task(name="sentry.tasks.process_owner_assignments", queue="process_owner_assignments")
+def process_owner_assignments(job: PostProcessJob) -> None:
+    with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_issue_owners"):
+        from sentry.models import (
+            ISSUE_OWNERS_DEBOUNCE_DURATION,
+            ISSUE_OWNERS_DEBOUNCE_KEY,
+            ProjectOwnership,
+        )
+
+        event = job["event"]
+        project, group = event.project, event.group
+        issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
+
+        if killswitch_matches_context(
+            "post_process.get-autoassign-owners",
+            {
+                "project_id": project.id,
+            },
+        ):
+            # see ProjectOwnership.get_issue_owners
+            issue_owners = []
+        else:
+
+            issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
+
+            # Cache for 1 day after we calculated. We don't need to move that fast.
+            cache.set(
+                issue_owners_key,
+                True,
+                ISSUE_OWNERS_DEBOUNCE_DURATION,
+            )
+
+    with sentry_sdk.start_span(op="post_process.handle_owner_assignment.handle_group_owners"):
+        if issue_owners:
+            try:
+                handle_group_owners(project, group, issue_owners)
+            except Exception:
+                logger.exception("Failed to store group owners")
+    handle_auto_assignment(job)
 
 
 def handle_group_owners(project, group, issue_owners):
@@ -533,7 +532,9 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type.type_id in PROFILE_FILE_IO_ISSUE_TYPES and not features.has(
+    if group_event.group.issue_type.type_id in get_group_types_by_category(
+        GroupCategory.PROFILE.value
+    ) and not features.has(
         "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
     ):
         return
@@ -964,7 +965,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_inbox_adds,
         process_commits,
         handle_owner_assignment,
-        handle_auto_assignment,
         process_rules,
         process_service_hooks,
         process_resource_change_bounds,
