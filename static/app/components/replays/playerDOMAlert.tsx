@@ -18,7 +18,7 @@ function PlayerDOMAlert() {
   return (
     <DOMAlertContainer data-test-id="player-dom-alert">
       <DOMAlert>
-        <IconInfo size="xs" />
+        <StyledIconInfo size="xs" />
         <div>{t('Right click & inspect your app’s DOM with your browser')}</div>
         <DismissButton
           priority="link"
@@ -55,10 +55,11 @@ const DOMAlert = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   gap: 0 ${space(1)};
   line-height: 1em;
+`;
 
-  & > svg {
-    margin-top: 1px;
-  }
+const StyledIconInfo = styled(IconInfo)`
+  margin-top: 1px;
+  min-width: 12px; /* Prevnt the icon from scaling down whenever text wraps */
 `;
 
 const DismissButton = styled(Button)`
