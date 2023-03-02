@@ -36,6 +36,10 @@ const ORG_SLUG = organization.slug;
 const PROJECT_SLUG = 'project-slug';
 const REPLAY_ID = RAW_REPLAY.id;
 
+const EXPECT_INIT_RRWEB_EVENT = expect.objectContaining({
+  type: 0,
+});
+
 const EXPECT_END_RRWEB_EVENT = expect.objectContaining({
   type: 5, // EventType.Custom,
   data: expect.objectContaining({
@@ -73,18 +77,18 @@ describe('useReplayData', () => {
       {asyncDelay: 1}
     );
 
-    const mockedEventsMetaCall = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/${ORG_SLUG}/replays-events-meta/`,
-        body: {data: MOCK_ERRORS},
-      },
-      {asyncDelay: 100} // Simulate 100ms response time
-    );
-
     const mockedSegmentsCall = MockApiClient.addMockResponse(
       {
         url: `/projects/${ORG_SLUG}/${PROJECT_SLUG}/replays/${REPLAY_ID}/recording-segments/`,
         body: MOCK_ATTACHMENTS,
+      },
+      {asyncDelay: 100} // Simulate 100ms response time
+    );
+
+    const mockedEventsMetaCall = MockApiClient.addMockResponse(
+      {
+        url: `/organizations/${ORG_SLUG}/replays-events-meta/`,
+        body: {data: MOCK_ERRORS},
       },
       {asyncDelay: 250} // Simulate 250ms response time
     );
@@ -108,10 +112,10 @@ describe('useReplayData', () => {
       replayRecord: undefined,
     });
 
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(10);
     await waitForNextUpdate();
 
-    // Afterwards we see the attachments & errors requests are made
+    // Afterwards we see the attachments & errors requests are made, no data has arrived
     expect(mockedReplayCall).toHaveBeenCalledTimes(1);
     expect(mockedEventsMetaCall).toHaveBeenCalledTimes(1);
     expect(mockedSegmentsCall).toHaveBeenCalledTimes(1);
@@ -121,7 +125,7 @@ describe('useReplayData', () => {
       onRetry: expect.any(Function),
       replay: expect.objectContaining({
         replayRecord: HYDRATED_REPLAY,
-        rrwebEvents: expect.arrayContaining([EXPECT_END_RRWEB_EVENT]),
+        rrwebEvents: [EXPECT_END_RRWEB_EVENT],
         breadcrumbs: [EXPECT_REPLAY_INIT],
         consoleCrumbs: [],
         networkSpans: [],
@@ -130,26 +134,40 @@ describe('useReplayData', () => {
       replayRecord: HYDRATED_REPLAY,
     });
 
+    jest.advanceTimersByTime(100);
+    await waitForNextUpdate();
+
+    // Next we see that some rrweb data has arrived
+    expect(result.current).toEqual(
+      expect.objectContaining({
+        fetching: true,
+        replay: expect.objectContaining({
+          rrwebEvents: expect.arrayContaining([
+            EXPECT_INIT_RRWEB_EVENT,
+            EXPECT_END_RRWEB_EVENT,
+          ]),
+          breadcrumbs: [EXPECT_REPLAY_INIT],
+          consoleCrumbs: [],
+        }),
+      })
+    );
+
     jest.advanceTimersByTime(250);
     await waitForNextUpdate();
 
-    // Finally we see fetching is complete
-    expect(mockedReplayCall).toHaveBeenCalledTimes(1);
-    expect(mockedEventsMetaCall).toHaveBeenCalledTimes(1);
-    expect(mockedSegmentsCall).toHaveBeenCalledTimes(1);
-    expect(result.current).toEqual({
-      fetchError: undefined,
-      fetching: false,
-      onRetry: expect.any(Function),
-      replay: expect.objectContaining({
-        replayRecord: HYDRATED_REPLAY,
-        rrwebEvents: expect.arrayContaining([EXPECT_END_RRWEB_EVENT]),
-        breadcrumbs: [EXPECT_REPLAY_INIT, EXPECT_ISSUE_CRUMB],
-        consoleCrumbs: [EXPECT_ISSUE_CRUMB],
-        networkSpans: [],
-        memorySpans: [],
-      }),
-      replayRecord: HYDRATED_REPLAY,
-    });
+    // Finally we see fetching is complete, errors are here too
+    expect(result.current).toEqual(
+      expect.objectContaining({
+        fetching: false,
+        replay: expect.objectContaining({
+          rrwebEvents: expect.arrayContaining([
+            EXPECT_INIT_RRWEB_EVENT,
+            EXPECT_END_RRWEB_EVENT,
+          ]),
+          breadcrumbs: [EXPECT_REPLAY_INIT, EXPECT_ISSUE_CRUMB],
+          consoleCrumbs: [EXPECT_ISSUE_CRUMB],
+        }),
+      })
+    );
   });
 });
