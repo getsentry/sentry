@@ -13,6 +13,7 @@ from snuba_sdk import (
     Entity,
     Granularity,
     Limit,
+    Offset,
     Op,
     OrderBy,
     Query,
@@ -193,22 +194,13 @@ def _fetch_segments_from_snuba(
                 # range.
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-                # NOTE: Optimization to reduce the number of rows before the LIMIT clause. The
-                # cursors happen to map 1 to 1 with segment_id. If these filters are removed
-                # you will need to supply an offset value.
-                Condition(Column("segment_id"), Op.GTE, offset),
-                Condition(Column("segment_id"), Op.LT, offset + limit),
                 # Used to dynamically pass the "segment_id" condition for details requests.
                 *conditions,
             ],
             orderby=[OrderBy(Column("segment_id"), Direction.ASC)],
             granularity=Granularity(3600),
             limit=Limit(limit),
-            # NOTE: We do not use the offset parameter because of the segment_id query optimization
-            # in the where clause.  If you remove the segment_id filters you need to uncomment this
-            # offset value.
-            #
-            # offset=Offset(0),
+            offset=Offset(offset),
         ),
     )
     response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
