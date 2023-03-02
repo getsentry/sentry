@@ -9,13 +9,15 @@ export class Request {}
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
+type AsyncDelay = null | number;
+
+const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
   if (!fn) {
     return;
   }
 
-  if (isAsync) {
-    setTimeout(() => fn(...args), 1);
+  if (asyncDelay !== null) {
+    setTimeout(() => fn(...args), asyncDelay);
     return;
   }
 
@@ -71,7 +73,13 @@ afterEach(() => {
 class Client implements ApiNamespace.Client {
   static mockResponses: MockResponse[] = [];
 
-  static mockAsync = false;
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   */
+  static asyncDelay: AsyncDelay = null;
 
   static clearMockResponses() {
     Client.mockResponses = [];
@@ -164,7 +172,7 @@ class Client implements ApiNamespace.Client {
       if (RealApi.hasProjectBeenRenamed(...args)) {
         return;
       }
-      respond(Client.mockAsync, func, ...args);
+      respond(Client.asyncDelay, func, ...args);
     };
   }
 
@@ -253,7 +261,7 @@ class Client implements ApiNamespace.Client {
       } else {
         response.callCount++;
         respond(
-          Client.mockAsync,
+          Client.asyncDelay,
           options.success,
           body,
           {},
@@ -266,7 +274,7 @@ class Client implements ApiNamespace.Client {
       }
     }
 
-    respond(Client.mockAsync, options.complete);
+    respond(Client.asyncDelay, options.complete);
   }
 
   handleRequestError = RealApi.Client.prototype.handleRequestError;

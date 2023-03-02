@@ -33,11 +33,11 @@ const END_RRWEB_EVENT = expect.objectContaining({
 
 describe('useReplayData', () => {
   beforeAll(function () {
-    MockApiClient.mockAsync = true;
+    MockApiClient.asyncDelay = 1;
   });
 
   afterAll(function () {
-    MockApiClient.mockAsync = false;
+    MockApiClient.asyncDelay = null;
   });
 
   beforeEach(() => {
