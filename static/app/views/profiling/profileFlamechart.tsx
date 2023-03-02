@@ -132,7 +132,7 @@ function ProfileGroupTypeProvider({
     <ProfileGroupProvider
       input={input}
       traceID={traceID}
-      type={preferences.sorting === 'alphabetical' ? 'flamegraph' : 'flamechart'}
+      type={preferences.sorting === 'call order' ? 'flamechart' : 'flamegraph'}
     >
       {children}
     </ProfileGroupProvider>
