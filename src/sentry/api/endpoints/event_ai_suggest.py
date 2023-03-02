@@ -20,16 +20,16 @@ from rest_framework.response import Response
 openai.api_key = settings.OPENAI_API_KEY
 
 PROMPT = """\
-This assistent analyses software errors
+This assistent analyses software errors, describes the problem and suggests solutions
 
+* The assistent is helpful, playful and a bit snarky and ironic
+* The assistent does not take itself too serious
 * The stack trace is shown with most recent call last
-* The faulting stack frame lines are marked with a leading `>`
-* Surrounding source context is marked with a leading `|`
-* Analyze all parts of the error for mentions of a query or user input
+* Each stack trace has a function, module, filenamd and source line
 * When summarizing the issue:
   * Establish context where the issue is located
   * Briefly explain the error and message
-  * Briefly explain if this is likely a regression or an intermittent issue
+  * Briefly explain if this is more likely to be a regression or an intermittent issue
 * When describing the problem in detail:
   * try to analyze if this is a code regression or intermittent issue
   * try to analyze if the issue is in a third party library or user code
@@ -43,50 +43,60 @@ This assistent analyses software errors
 Write the answers into the following template:
 
 ```
-## Summary
+### Summary
 
 [summary of the problem]
 
-## Detailed Description
+### Detailed Description
 
 [long form detailed description of the problem]
 
-## Proposed Solution
+### Proposed Solution
 
 [suggestion for how to fix this issue]
 ```
 """
 
 
+BLOCKED_TAGS = frozenset(
+    [
+        "user",
+        "server_name",
+        "release",
+        "handled",
+    ]
+)
+
+
 def describe_event_for_ai(event):
     content = []
     content.append("Tags:")
     for tag_key, tag_value in sorted(event["tags"]):
-        content.append(f"- {tag_key}: {tag_value}")
+        if tag_key not in BLOCKED_TAGS:
+            content.append(f"- {tag_key}: {tag_value}")
 
-    content.append("")
-    exc = event["exception"]["values"][0]
-    content.append(f"Exception Clas: {exc['type']}")
-    content.append(f"Exception Message: {exc['value']}")
-    content.append("")
+    msg = event.get("message")
+    if msg:
+        content.append("")
+        content.append(f"Message: {msg}")
 
-    frames = exc.get("stacktrace", {}).get("frames")
-    if frames:
-        content.append("Stacktrace:")
-        for frame in frames:
-            if not frame["in_app"]:
-                continue
-            content.append(f"- function: {frame['function']}")
-            content.append(f"  module: {frame.get('module')}")
-            content.append(f"  filename: {frame['filename']}")
-            content.append(f"  line: {frame.get('lineno')}")
-            content.append("  source:")
-            for line in frame.get("pre_context") or ():
-                content.append(f"    | {line}")
-            content.append(f"    > {frame.get('context_line') or 'N/A'}")
-            for line in frame.get("post_context") or ():
-                content.append(f"    | {line}")
-            content.append("")
+    for idx, exc in enumerate((event.get("exception") or {}).get("values") or ()):
+        content.append("")
+        content.append(f"Exception #{idx + 1}: {exc['type']}")
+        content.append(f"Exception Message: {exc['value']}")
+        content.append("")
+
+        frames = exc.get("stacktrace", {}).get("frames")
+        if frames:
+            content.append("Stacktrace:")
+            for frame in frames:
+                if not frame["in_app"]:
+                    continue
+                content.append(f"- function: {frame['function']}")
+                content.append(f"  module: {frame.get('module') or 'N/A'}")
+                content.append(f"  filename: {frame['filename']}")
+                content.append(f"  source line: {(frame.get('context_line') or 'N/A').strip()}")
+                content.append("")
 
     return "\n".join(content)
 
