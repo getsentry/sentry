@@ -180,7 +180,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
             logger.debug(f"{update_count} keys updated")
 
-        collect_step = Reduce(
+        collect_step: Reduce[Set[int], Set[int]] = Reduce(
             self.__max_batch_size,
             self.__max_batch_time,
             accumulator,
@@ -188,7 +188,8 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             RunTask(do_update, CommitOffsets(commit)),
         )
 
-        return FilterStep(self.__should_accept, TransformStep(retrieve_db_read_keys, collect_step))
+        transform_step = TransformStep(retrieve_db_read_keys, collect_step)
+        return FilterStep(self.__should_accept, transform_step)
 
 
 def get_last_seen_updater(

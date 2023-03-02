@@ -48,17 +48,21 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> Any:
+        step = RunTaskInThreads(
+            processing_function=move_replay_to_permanent_storage,
+            concurrency=4,
+            max_pending_futures=16,
+            next_step=CommitOffsets(commit),
+        )
+
+        step2: FilterStep[MessageContext] = FilterStep(
+            function=is_capstone_message,
+            next_step=step,
+        )
+
         return TransformStep(
             function=move_chunks_to_cache_or_skip,
-            next_step=FilterStep(
-                function=is_capstone_message,
-                next_step=RunTaskInThreads(
-                    processing_function=move_replay_to_permanent_storage,
-                    concurrency=4,
-                    max_pending_futures=16,
-                    next_step=CommitOffsets(commit),
-                ),
-            ),
+            next_step=step2,
         )
 
 
