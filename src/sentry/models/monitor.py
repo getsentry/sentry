@@ -144,7 +144,8 @@ class Monitor(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("organization_id", "slug"), ("type", "next_checkin"))
+        index_together = (("type", "next_checkin"),)
+        unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
 
